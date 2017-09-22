@@ -12,16 +12,19 @@ class over(object):
         self.values = args
 
 
-class PrettyPrintDict(dict):
+class AttrDict(dict):
     def __repr__(self):
         return ', '.join(k + '=' + str(v) for k, v in self.items())
+
+    def __getattr__(self, name):
+        return self[name]
 
 
 def make_params(**kwargs):
     keys = list(kwargs.keys())
     iterables = [kwargs[k].values if isinstance(kwargs[k], over) else (kwargs[k],) for k in keys]
     all_values = list(product(*iterables))
-    param_dicts = [PrettyPrintDict({k: v for k, v in zip(keys, values)}) for values in all_values]
+    param_dicts = [AttrDict({k: v for k, v in zip(keys, values)}) for values in all_values]
     return [param_dicts]
 
 
@@ -34,5 +37,4 @@ class Benchmark(object):
     def setup(self, params):
         for k, v in self.default_params.items():
             params.setdefault(k, v)
-        self.prepare(**params)
-
+        self.prepare(params)
