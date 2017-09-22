@@ -31,6 +31,7 @@ def make_params(**kwargs):
 class Benchmark(object):
     timer = time.time if PY2 else time.perf_counter
     default_params = []
+    params = make_params()
     param_names = ['config']
 
     # NOTE: subclasses should call prepare instead of setup
