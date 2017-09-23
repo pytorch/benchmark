@@ -284,7 +284,7 @@ class LayerNormLSTM(LSTM):
         return h_t, (h_t, c_t)
 
 
-class LayerNormGalLSTM(LSTM):
+class LayerNormGalLSTM(LayerNormLSTM):
 
     """
     Mixes GalLSTM's Dropout with Layer Normalization
@@ -295,7 +295,7 @@ class LayerNormGalLSTM(LSTM):
         self.sample_mask()
 
 
-class LayerNormMoonLSTM(LSTM):
+class LayerNormMoonLSTM(LayerNormLSTM):
 
     """
     Mixes MoonLSTM's Dropout with Layer Normalization
@@ -306,7 +306,7 @@ class LayerNormMoonLSTM(LSTM):
         self.sample_mask()
 
 
-class LayerNormSemeniutaLSTM(LSTM):
+class LayerNormSemeniutaLSTM(LayerNormLSTM):
 
     """
     Mixes SemeniutaLSTM's Dropout with Layer Normalization

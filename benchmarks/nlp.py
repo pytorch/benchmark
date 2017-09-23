@@ -6,7 +6,7 @@ from . import *
 
 
 class POSTagger(Benchmark):
-    """Based on code from https://gist.github.com/hal3/8c170c4400576eb8d0a8bd94ab231232 (by Hal Daumé III)."""
+    """Based on code from https://gist.github.com/hal3/8c170c4400576eb8d0a8bd94ab231232 (by Hal Daume III)."""
     goal_time = 2
     sequence_lengths = [13, 32, 35, 12, 16, 10, 21, 25, 23, 17, 22, 36, 23, 42,
                         52, 19, 18, 13, 34, 24, 31, 10, 21, 16, 24, 18, 33, 15,
