@@ -19,6 +19,7 @@ lstms = over(
     'LayerNormSemeniutaLSTM',
 )
 
+BATCH = 10
 N_ITER = 100
 DROPOUT = 0.5
 
@@ -34,8 +35,8 @@ class LSTMVariants(Benchmark):
                 x = x.cuda()
             return x
         lstm = getattr(lstm_variants,p.lstm_kind)
-        self.x = V(C(th.rand(1, 1, p.size)))
-        self.hiddens = (V(C(th.rand(1, 1, p.size))), V(C(th.rand(1, 1, p.size))))
+        self.x = V(C(th.rand(1, BATCH, p.size)))
+        self.hiddens = (V(C(th.rand(1, BATCH, p.size))), V(C(th.rand(1, BATCH, p.size))))
         th.manual_seed(1234)
         self.cus = C(lstm(p.size, p.size, dropout=DROPOUT))
         if hasattr(self.cus, 'mask'):

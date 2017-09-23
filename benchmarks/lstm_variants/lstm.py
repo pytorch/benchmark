@@ -13,8 +13,8 @@ from .normalize import LayerNorm
 """
 Implementation of LSTM variants.
 
-For now, they only support a sequence size of 1, and are ideal for RL use-cases. 
-Besides that, they are a stripped-down version of PyTorch's RNN layers. 
+For now, they only support a sequence size of 1, and are ideal for RL use-cases.
+Besides that, they are a stripped-down version of PyTorch's RNN layers.
 (no bidirectional, no num_layers, no batch_first)
 """
 
@@ -67,9 +67,9 @@ class SlowLSTM(nn.Module):
 
     def forward(self, x, hidden):
         h, c = hidden
-        h = h.view(h.size(0), -1)
-        c = c.view(h.size(0), -1)
-        x = x.view(x.size(0), -1)
+        h = h.view(h.size(1), -1)
+        c = c.view(c.size(1), -1)
+        x = x.view(x.size(1), -1)
         # Linear mappings
         i_t = th.mm(x, self.w_xi) + th.mm(h, self.w_hi) + self.b_i
         f_t = th.mm(x, self.w_xf) + th.mm(h, self.w_hf) + self.b_f
@@ -84,8 +84,8 @@ class SlowLSTM(nn.Module):
         c_t = th.mul(c, f_t) + th.mul(i_t, c_t)
         h_t = th.mul(o_t, th.tanh(c_t))
         # Reshape for compatibility
-        h_t = h_t.view(h_t.size(0), 1, -1)
-        c_t = c_t.view(c_t.size(0), 1, -1)
+        h_t = h_t.view(1, h_t.size(0), -1)
+        c_t = c_t.view(1, c_t.size(0), -1)
         if self.dropout > 0.0:
             F.dropout(h_t, p=self.dropout, training=self.training, inplace=True)
         return h_t, (h_t, c_t)
@@ -102,7 +102,7 @@ class LSTM(nn.Module):
     http://www.bioinf.jku.at/publications/older/2604.pdf
 
     Special args:
-    
+
     dropout_method: one of
             * pytorch: default dropout implementation
             * gal: uses GalLSTM's dropout
@@ -144,7 +144,7 @@ class LSTM(nn.Module):
         # activations
         gates = preact[:, :3 * self.hidden_size].sigmoid()
         g_t = preact[:, 3 * self.hidden_size:].tanh()
-        i_t = gates[:, :self.hidden_size] 
+        i_t = gates[:, :self.hidden_size]
         f_t = gates[:, self.hidden_size:2 * self.hidden_size]
         o_t = gates[:, -self.hidden_size:]
 
@@ -223,10 +223,10 @@ class LayerNormLSTM(LSTM):
         learnable: whether the LN alpha & gamma should be used.
     """
 
-    def __init__(self, input_size, hidden_size, bias=True, dropout=0.0, 
+    def __init__(self, input_size, hidden_size, bias=True, dropout=0.0,
                  dropout_method='pytorch', ln_preact=True, learnable=True):
-        super(LayerNormLSTM, self).__init__(input_size=input_size, 
-                                            hidden_size=hidden_size, 
+        super(LayerNormLSTM, self).__init__(input_size=input_size,
+                                            hidden_size=hidden_size,
                                             bias=bias,
                                             dropout=dropout,
                                             dropout_method=dropout_method)
@@ -254,7 +254,7 @@ class LayerNormLSTM(LSTM):
         # activations
         gates = preact[:, :3 * self.hidden_size].sigmoid()
         g_t = preact[:, 3 * self.hidden_size:].tanh()
-        i_t = gates[:, :self.hidden_size] 
+        i_t = gates[:, :self.hidden_size]
         f_t = gates[:, self.hidden_size:2 * self.hidden_size]
         o_t = gates[:, -self.hidden_size:]
 
@@ -314,4 +314,3 @@ class LayerNormSemeniutaLSTM(LSTM):
     def __init__(self, *args, **kwargs):
         super(LayerNormSemeniutaLSTM, self).__init__(*args, **kwargs)
         self.dropout_method = 'semeniuta'
-
