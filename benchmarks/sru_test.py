@@ -1,8 +1,12 @@
+from . import *
+
 import torch
 from torch.autograd import Variable
 from sru import SRU, SRUCell
 
-class SRUTest():
+class SRUTest(Benchmark):
+    default_params = dict()
+    params = make_params(use_kernel=over(False, True))
 
     def prepare(self, p):
         # input has length 20, batch size 32 and dimension 128
@@ -11,16 +15,16 @@ class SRUTest():
 
         self.rnn = SRU(input_size, hidden_size,
             num_layers = 2,          # number of stacking RNN layers
-            dropout = 0.0,           # dropout applied between RNN layers
-            rnn_dropout = 0.0,       # variational dropout applied on linear transformation
+            dropout = 0.00001,           # dropout applied between RNN layers
+            rnn_dropout = 0.0001,       # variational dropout applied on linear transformation
             use_tanh = 1,            # use tanh?
             use_relu = 0,            # use ReLU?
-            bidirectional = False    # bidirectional RNN ?
+            bidirectional = False,    # bidirectional RNN ?
+            use_kernel=p.use_kernel,
         )
         self.rnn.cuda()
 
-    def test_sru(self, p):
+    def time_sru(self, p):
         output, hidden = self.rnn(self.x)      # forward pass
-        print(output,hidden)
         # output is (length, batch size, hidden size * number of directions)
         # hidden is (layers, batch size, hidden size * number of directions)
