@@ -2,7 +2,7 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
-from . import Benchmark, make_params, over
+from . import Benchmark, make_params, over, AttrDict
 from models import memnn
 
 
