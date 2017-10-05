@@ -1,3 +1,11 @@
+# Copyright (c) 2017-present, Facebook, Inc.
+# All rights reserved.
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file at github.com/facebookresearch/ParlAI. An additional grant
+# of patent rights can be found in the PATENTS file in the same directory.
+
+"""From https://github.com/facebookresearch/ParlAI/tree/master/parlai/agents/memnn"""
+
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
