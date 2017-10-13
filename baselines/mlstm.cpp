@@ -3,10 +3,17 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include <algorithm>
+#include <cctype>
+#include <locale>
 #include <iostream>
+#include <fstream>
 #include <chrono>
+#include <system_error>
 
-#include "stdio.h"
+#include <stdio.h>
+#include <sched.h>
+#include <errno.h>
 
 #define CUDA_CHECK(result) cudaCheck(result, __FILE__, __LINE__);
 
@@ -51,9 +58,60 @@ mlstm(at::Tensor input,
   return {hy, cy};
 }
 
+/**
+ * cpu_pin - pin down the local thread to a core
+ * @cpu: the target core
+ */
+void cpu_pin(unsigned int cpu)
+{
+  int ret;
+  cpu_set_t mask;
+
+  CPU_ZERO(&mask);
+  CPU_SET(cpu, &mask);
+
+  ret = sched_setaffinity(0, sizeof(mask), &mask);
+  if (ret) throw std::system_error(errno, std::system_category());
+}
+
+// Credit: https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
+static inline void rtrim(std::string &s) {
+  s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+      return !std::isspace(ch);
+  }).base(), s.end());
+}
+
+/**
+ * Check that the power governor for a core is "performance",
+ * logging a warning if it is not.
+ */
+void check_cpu_governor(unsigned int cpu)
+{
+  std::ostringstream fpss;
+  fpss << "/sys/devices/system/cpu/cpu" << cpu << "/cpufreq/scaling_governor";
+  std::ifstream f(fpss.str());
+  if (!f.is_open()) {
+    std::cerr << "WARNING: Could not find CPU " << cpu << " governor information in filesystem (are you running on Linux?)\n";
+    std::cerr << "The file '" << fpss.str() << "' did not exist.\n";
+  }
+  std::ostringstream r;
+  r << f.rdbuf();
+  std::string gov(r.str());
+  rtrim(gov);
+  if (gov != "performance") {
+    std::cerr << "WARNING: CPU " << cpu << " governor is " << gov << ", which could lead to variance in performance.\n";
+    std::cerr << "Run 'echo performance > " << fpss.str() << "' as root to turn off power scaling.\n";
+  }
+}
+
 // Modeled off of Soumith's benchmark at
 // https://github.com/soumith/convnet-benchmarks/blob/d6177f97e61da0d98a528f355086eb2fc05fe7b8/nervana/convnet-benchmarks.py
 int main() {
+  constexpr unsigned int cpu = 0;
+
+  cpu_pin(cpu);
+  check_cpu_governor(cpu);
+
   constexpr int batch_size = 3;
   constexpr int input_size = 100;
   constexpr int hidden_size = 400;
