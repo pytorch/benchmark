@@ -1,30 +1,12 @@
 import torch
 from torch.autograd import Variable
 import torch.jit
+import torch.nn
 
 import gc
 import time
 import warnings
 import os
-
-@torch.jit.compile(nderivs=0)
-def mlstm(input, hx, cx, w_xm, w_hm, w_ih, w_mh):
-    # w_ih holds W_hx, W_ix, W_ox, W_fx
-    # w_mh holds W_hm, W_im, W_om, W_fm
-
-    m = input.mm(w_xm.t()) * hx.mm(w_hm.t())
-    gates = input.mm(w_ih.t()) + m.mm(w_mh.t())
-
-    ingate, forgetgate, hiddengate, outgate = gates.chunk(4, 1)
-
-    ingate = ingate.sigmoid()
-    outgate = outgate.sigmoid()
-    forgetgate = forgetgate.sigmoid()
-
-    cy = (forgetgate * cx) + (ingate * hiddengate)
-    hy = (cy * outgate).tanh()
-
-    return hy, cy
 
 
 # NB: Be careful with this when benchmarking backward; backward
@@ -56,26 +38,24 @@ def main():
     cpu_pin(cpu)
     check_cpu_governor(cpu)
 
-    batch_size = 1
-    input_size = 205
-    hidden_size = 1900
-    embed_size = hidden_size
+    batch_size = 64
+    input_size = 256
+    hidden_size = 512
+    layers = 1
 
-    seq_len = 200
+    seq_len = 512
     loops = 30
     warmup = 10
 
     def V(x):
-        #return x
         return Variable(x)
 
     input = V(torch.cuda.FloatTensor(seq_len, batch_size, input_size).normal_())
-    hx    = V(torch.cuda.FloatTensor(batch_size, hidden_size).normal_())
-    cx    = V(torch.cuda.FloatTensor(batch_size, hidden_size).normal_())
-    w_xm  = V(torch.cuda.FloatTensor(embed_size, input_size).normal_())
-    w_hm  = V(torch.cuda.FloatTensor(embed_size, hidden_size).normal_())
-    w_ih  = V(torch.cuda.FloatTensor(4 * hidden_size, input_size).normal_())
-    w_mh  = V(torch.cuda.FloatTensor(4 * hidden_size, embed_size).normal_())
+    hx    = V(torch.cuda.FloatTensor(layers, batch_size, hidden_size).normal_())
+    cx    = V(torch.cuda.FloatTensor(layers, batch_size, hidden_size).normal_())
+
+    lstm = torch.nn.LSTM(input_size, hidden_size, layers).cuda()
+    lstm.flatten_parameters()
 
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
@@ -84,13 +64,15 @@ def main():
         gc.collect()
         start.record()
         start_cpu = time.time()  # high precision only for Linux
-        for j in range(seq_len):
-            hx, cx = mlstm(input[j], hx, cx, w_xm, w_hm, w_ih, w_mh)
+        lstm(input, (hx, cx))
         end_cpu = time.time()
         end.record()
         torch.cuda.synchronize()
         msecs = start.elapsed_time(end)
-        print("mlstm({:2d}): {:8.3f} msecs ({:8.3f} msecs cpu)".format(i, msecs, (end_cpu-start_cpu)*1000))
+        flopc_per_cell = 201916416
+        flopc = flopc_per_cell * seq_len
+        flops = (flopc / (msecs / 1000)) / 1000000000000
+        print("lstm({:2d}): {:8.3f} msecs ({:8.3f} msecs cpu; {:8.3f} TFLOPS)".format(i, msecs, (end_cpu-start_cpu)*1000, flops))
 
 if __name__ == "__main__":
     main()

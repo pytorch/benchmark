@@ -232,7 +232,7 @@ int main() {
 
   constexpr int fast = 0;
 
-  constexpr int iters = fast ? 3 : 200; // truncated backpropagation length
+  constexpr int seq_len = fast ? 3 : 200; // truncated backpropagation length
   constexpr int loops  = fast ? 3 : 30;
   constexpr int warmup = fast ? 2 : 10;
 
@@ -260,7 +260,7 @@ int main() {
   for (int i = 0; i < warmup + loops; i++) {
     CUDA_CHECK(cudaEventRecord(start, 0));
     auto start_cpu = getTime();
-    for (int j = 0; j < iters; j++) {
+    for (int j = 0; j < seq_len; j++) {
       std::tie(hx, cx) = mlstm(input, hx, cx, w_xm, w_hm, w_ih, w_mh);
     }
     auto end_cpu = getTime();
