@@ -1,0 +1,3 @@
+*.exe
+perf.data*
+*.nvvp
