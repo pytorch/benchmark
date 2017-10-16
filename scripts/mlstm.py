@@ -1,14 +1,15 @@
+import benchmark_common
+
 import torch
 from torch.autograd import Variable
 import torch.jit
 
+import argparse
+import pprint
 import gc
 import time
-import warnings
-import os
 
-@torch.jit.compile(nderivs=0)
-def mlstm(input, hx, cx, w_xm, w_hm, w_ih, w_mh):
+def mlstm_raw(input, hx, cx, w_xm, w_hm, w_ih, w_mh):
     # w_ih holds W_hx, W_ix, W_ox, W_fx
     # w_mh holds W_hm, W_im, W_om, W_fm
 
@@ -27,64 +28,57 @@ def mlstm(input, hx, cx, w_xm, w_hm, w_ih, w_mh):
     return hy, cy
 
 
-# NB: Be careful with this when benchmarking backward; backward
-# uses multiple threads
-def cpu_pin(cpu):
-    os.sched_setaffinity(0, (cpu, ))
-
-
-def check_cpu_governor(cpu):
-    fp = "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor".format(cpu)
-    try:
-        with open(fp, 'r') as f:
-            gov = f.read().rstrip()
-            if gov != "performance":
-                warnings.warn("CPU {} governor is {} which could lead to variance in performance\n"
-                              "Run 'echo performance > {}' as root to turn off power scaling.".format(cpu, gov, fp))
-    except IOError as e:
-        warnings.warn("Could not find CPU {} governor information in filesystem (are you running on Linux?)\n"
-                      "The file '{}' is not readable.\n"
-                      "More information:\n\n{}".format(fp, e))
-
-
-# PyTorch does not natively provide NVML support so we don't check it
-
 def main():
-    cpu = 0
-    gpu = 0
+    parser = argparse.ArgumentParser(description="PyTorch LSTM benchmark.")
+    parser.add_argument('--cpu',          type=int, default=0,    help="CPU to run on")
+    parser.add_argument('--gpu',          type=int, default=0,    help="GPU to run on")
+    parser.add_argument('--batch-size',   type=int, default=1,    help="Batch size")
+    parser.add_argument('--input-size',   type=int, default=205,  help="Input size")
+    parser.add_argument('--hidden-size',  type=int, default=1900, help="Hidden size")
+    parser.add_argument('--embed-size',   type=int, default=None, help="Embed size")
+    parser.add_argument('--seq-len',      type=int, default=20,   help="Sequence length")
+    parser.add_argument('--warmup',       type=int, default=10,   help="Warmup iterations")
+    parser.add_argument('--benchmark',    type=int, default=20,   help="Benchmark iterations")
+    parser.add_argument('--autograd',     action='store_true',    help="Use autograd")
+    parser.add_argument('--jit',          action='store_true',    help="Use JIT compiler (implies --autograd)")
+    args = parser.parse_args()
 
-    cpu_pin(cpu)
-    check_cpu_governor(cpu)
+    if args.embed_size is None:
+        args.embed_size = args.hidden_size
 
-    batch_size = 1
-    input_size = 205
-    hidden_size = 1900
-    embed_size = hidden_size
+    if args.jit:
+        args.autograd = True
 
-    seq_len = 200
-    loops = 30
-    warmup = 10
+    pprint.pprint(vars(args))
 
-    def V(x):
-        #return x
-        return Variable(x)
+    benchmark_common.init(args.cpu, args.gpu)
 
-    input = V(torch.cuda.FloatTensor(seq_len, batch_size, input_size).normal_())
-    hx    = V(torch.cuda.FloatTensor(batch_size, hidden_size).normal_())
-    cx    = V(torch.cuda.FloatTensor(batch_size, hidden_size).normal_())
-    w_xm  = V(torch.cuda.FloatTensor(embed_size, input_size).normal_())
-    w_hm  = V(torch.cuda.FloatTensor(embed_size, hidden_size).normal_())
-    w_ih  = V(torch.cuda.FloatTensor(4 * hidden_size, input_size).normal_())
-    w_mh  = V(torch.cuda.FloatTensor(4 * hidden_size, embed_size).normal_())
+    if args.autograd:
+        V = Variable
+    else:
+        V = lambda x: x
+
+    if args.jit:
+        mlstm = torch.jit.compile(nderivs=0)(mlstm_raw)
+    else:
+        mlstm = mlstm_raw
+
+    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu))
+    hx    = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu))
+    cx    = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu))
+    w_xm  = V(torch.randn(args.embed_size, args.input_size).cuda(device=args.gpu))
+    w_hm  = V(torch.randn(args.embed_size, args.hidden_size).cuda(device=args.gpu))
+    w_ih  = V(torch.randn(4 * args.hidden_size, args.input_size).cuda(device=args.gpu))
+    w_mh  = V(torch.randn(4 * args.hidden_size, args.embed_size).cuda(device=args.gpu))
 
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
 
-    for i in range(warmup + loops):
+    for i in range(args.warmup + args.benchmark):
         gc.collect()
         start.record()
         start_cpu = time.time()  # high precision only for Linux
-        for j in range(seq_len):
+        for j in range(args.seq_len):
             hx, cx = mlstm(input[j], hx, cx, w_xm, w_hm, w_ih, w_mh)
         end_cpu = time.time()
         end.record()

@@ -1,66 +1,47 @@
+import benchmark_common
+
 import torch
 from torch.autograd import Variable
 import torch.jit
 import torch.nn
 
+import argparse
+import pprint
 import gc
 import time
-import warnings
-import os
-
-
-# NB: Be careful with this when benchmarking backward; backward
-# uses multiple threads
-def cpu_pin(cpu):
-    os.sched_setaffinity(0, (cpu, ))
-
-
-def check_cpu_governor(cpu):
-    fp = "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor".format(cpu)
-    try:
-        with open(fp, 'r') as f:
-            gov = f.read().rstrip()
-            if gov != "performance":
-                warnings.warn("CPU {} governor is {} which could lead to variance in performance\n"
-                              "Run 'echo performance > {}' as root to turn off power scaling.".format(cpu, gov, fp))
-    except IOError as e:
-        warnings.warn("Could not find CPU {} governor information in filesystem (are you running on Linux?)\n"
-                      "The file '{}' is not readable.\n"
-                      "More information:\n\n{}".format(fp, e))
-
-
-# PyTorch does not natively provide NVML support so we don't check it
+import sys
 
 def main():
-    cpu = 0
-    gpu = 0
+    parser = argparse.ArgumentParser(description="PyTorch CuDNN LSTM benchmark.")
+    parser.add_argument('--cpu',          type=int, default=0,    help="CPU to run on")
+    parser.add_argument('--gpu',          type=int, default=0,    help="GPU to run on")
+    parser.add_argument('--batch-size',   type=int, default=1,    help="Batch size")
+    parser.add_argument('--input-size',   type=int, default=256,  help="Input size")
+    parser.add_argument('--hidden-size',  type=int, default=512,  help="Hidden size")
+    parser.add_argument('--layers',       type=int, default=1,    help="Layers")
+    parser.add_argument('--seq-len',      type=int, default=512,  help="Sequence length")
+    parser.add_argument('--warmup',       type=int, default=10,   help="Warmup iterations")
+    parser.add_argument('--benchmark',    type=int, default=30,   help="Benchmark iterations")
+    args = parser.parse_args()
 
-    cpu_pin(cpu)
-    check_cpu_governor(cpu)
+    benchmark_common.init(args.cpu, args.gpu)
 
-    batch_size = 64
-    input_size = 256
-    hidden_size = 512
-    layers = 1
-
-    seq_len = 512
-    loops = 30
-    warmup = 10
+    pprint.pprint(vars(args))
 
     def V(x):
-        return Variable(x)
+        return Variable(x)  # mandatory
 
-    input = V(torch.cuda.FloatTensor(seq_len, batch_size, input_size).normal_())
-    hx    = V(torch.cuda.FloatTensor(layers, batch_size, hidden_size).normal_())
-    cx    = V(torch.cuda.FloatTensor(layers, batch_size, hidden_size).normal_())
+    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu))
+    hx    = V(torch.randn(args.layers, args.batch_size, args.hidden_size).cuda(device=args.gpu))
+    cx    = V(torch.randn(args.layers, args.batch_size, args.hidden_size).cuda(device=args.gpu))
 
-    lstm = torch.nn.LSTM(input_size, hidden_size, layers).cuda()
+    lstm = torch.nn.LSTM(args.input_size, args.hidden_size, args.layers).cuda(device_id=args.gpu)
     lstm.flatten_parameters()
 
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
 
-    for i in range(warmup + loops):
+    for i in range(args.warmup + args.benchmark):
         gc.collect()
         start.record()
         start_cpu = time.time()  # high precision only for Linux
@@ -69,10 +50,7 @@ def main():
         end.record()
         torch.cuda.synchronize()
         msecs = start.elapsed_time(end)
-        flopc_per_cell = 201916416
-        flopc = flopc_per_cell * seq_len
-        flops = (flopc / (msecs / 1000)) / 1000000000000
-        print("lstm({:2d}): {:8.3f} msecs ({:8.3f} msecs cpu; {:8.3f} TFLOPS)".format(i, msecs, (end_cpu-start_cpu)*1000, flops))
+        print("cudnn_lstm({:2d}): {:8.3f} msecs ({:8.3f} msecs cpu)".format(i, msecs, (end_cpu-start_cpu)*1000), file=sys.stderr)
 
 if __name__ == "__main__":
     main()

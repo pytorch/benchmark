@@ -1,18 +1,20 @@
-from flops import *
+import benchmark_common
 
 import torch
 from torch.autograd import Variable
 import torch.jit
 from torch._thnn import type2backend
 
+import argparse
+import pprint
 import gc
 import time
-import warnings
-import os
+import sys
 
 
 
-# very marginal improvement pre-transposing weights
+# If you swap the transpose here, you can test the effect of pre-transposing.
+# In my experiments it didn't account for much
 def t_use(x):
     return x
 def t_def(x):
@@ -39,7 +41,7 @@ def fused_lstm(input, hidden, w_ih, w_hh):
     return hy, cy
 
 
-def lstm(input, hidden, w_ih, w_hh):
+def unfused_lstm(input, hidden, w_ih, w_hh):
     hx, cx = hidden
     gates = input.mm(t_use(w_ih)) + hx.mm(t_use(w_hh))
 
@@ -55,101 +57,63 @@ def lstm(input, hidden, w_ih, w_hh):
 
     return hy, cy
 
-
-def lstm_flops(input, hidden, w_ih, w_hh):
-    flops = 0
-
-    hx, cx = hidden
-    gates = input.mm(t_use(w_ih)) + hx.mm(t_use(w_hh))
-
-    flops += mm_flops(input.size(), t_use(w_ih).size())
-    flops += mm_flops(hx.size(), t_use(w_hh).size())
-
-    ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
-
-    ingate = ingate.sigmoid()
-    forgetgate = forgetgate.sigmoid()
-    cellgate = cellgate.tanh()
-    outgate = outgate.sigmoid()
-
-    flops += sigmoid_flops(ingate.size())
-    flops += sigmoid_flops(forgetgate.size())
-    flops += tanh_flops(cellgate.size())
-    flops += sigmoid_flops(outgate.size())
-
-    cy = (forgetgate * cx) + (ingate * cellgate)
-    hy = outgate * cy.tanh()
-    flops += cy.numel() * 4 + tanh_flops(cy.size())
-
-    print(flops)
-
-    return hy, cy
-
-
-# NB: Be careful with this when benchmarking backward; backward
-# uses multiple threads
-def cpu_pin(cpu):
-    os.sched_setaffinity(0, (cpu, ))
-
-
-def check_cpu_governor(cpu):
-    fp = "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor".format(cpu)
-    try:
-        with open(fp, 'r') as f:
-            gov = f.read().rstrip()
-            if gov != "performance":
-                warnings.warn("CPU {} governor is {} which could lead to variance in performance\n"
-                              "Run 'echo performance > {}' as root to turn off power scaling.".format(cpu, gov, fp))
-    except IOError as e:
-        warnings.warn("Could not find CPU {} governor information in filesystem (are you running on Linux?)\n"
-                      "The file '{}' is not readable.\n"
-                      "More information:\n\n{}".format(fp, e))
-
-
-# PyTorch does not natively provide NVML support so we don't check it
 
 def main():
-    cpu = 0
-    gpu = 0
+    parser = argparse.ArgumentParser(description="PyTorch LSTM benchmark.")
+    parser.add_argument('--cpu',          type=int, default=0,    help="CPU to run on")
+    parser.add_argument('--gpu',          type=int, default=0,    help="GPU to run on")
+    parser.add_argument('--batch-size',   type=int, default=1,    help="Batch size")
+    parser.add_argument('--input-size',   type=int, default=256,  help="Input size")
+    parser.add_argument('--hidden-size',  type=int, default=512,  help="Hidden size")
+    parser.add_argument('--seq-len',      type=int, default=512,  help="Sequence length")
+    parser.add_argument('--warmup',       type=int, default=10,   help="Warmup iterations")
+    parser.add_argument('--benchmark',    type=int, default=20,   help="Benchmark iterations")
+    parser.add_argument('--autograd',     action='store_true',    help="Use autograd")
+    parser.add_argument('--fused',        action='store_true',    help="Use fused cell")
+    parser.add_argument('--jit',          action='store_true',    help="Use JIT compiler (implies --autograd)")
+    args = parser.parse_args()
 
-    cpu_pin(cpu)
-    check_cpu_governor(cpu)
+    if args.jit:
+        args.autograd = True
 
-    batch_size = 64
-    input_size = 256
-    hidden_size = 512
+    assert not (args.jit and args.fused)
 
-    seq_len = 512
-    loops = 30
-    warmup = 10
+    pprint.pprint(vars(args))
 
-    def V(x):
-        return x
-        #return Variable(x)
+    benchmark_common.init(args.cpu, args.gpu)
 
-    input = V(torch.cuda.FloatTensor(seq_len, batch_size, input_size).normal_())
-    hx    = V(torch.cuda.FloatTensor(batch_size, hidden_size).normal_())
-    cx    = V(torch.cuda.FloatTensor(batch_size, hidden_size).normal_())
-    w_ih  = V(t_def(torch.cuda.FloatTensor(4 * hidden_size, input_size).normal_()))
-    w_hh  = V(t_def(torch.cuda.FloatTensor(4 * hidden_size, hidden_size).normal_()))
+    if args.autograd:
+        V = Variable
+    else:
+        V = lambda x: x
+
+    if args.fused:
+        lstm = fused_lstm
+    elif args.jit:
+        lstm = torch.jit.compile(nderivs=0)(unfused_lstm)
+    else:
+        lstm = unfused_lstm
+
+    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu))
+    hx    = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu))
+    cx    = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu))
+    w_ih  = V(t_def(torch.randn(4 * args.hidden_size, args.input_size)).cuda(device=args.gpu))
+    w_hh  = V(t_def(torch.randn(4 * args.hidden_size, args.hidden_size)).cuda(device=args.gpu))
 
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
 
-    for i in range(warmup + loops):
+    for i in range(args.warmup + args.benchmark):
         gc.collect()
         start.record()
         start_cpu = time.time()  # high precision only for Linux
-        for j in range(seq_len):
+        for j in range(args.seq_len):
             hx, cx = lstm(input[j], (hx, cx), w_ih, w_hh)
         end_cpu = time.time()
         end.record()
         torch.cuda.synchronize()
         msecs = start.elapsed_time(end)
-        flopc_per_cell = 201916416
-        flopc = flopc_per_cell * seq_len
-        flops = (flopc / (msecs / 1000)) / 1000000000000
-        print("lstm({:2d}): {:8.3f} msecs ({:8.3f} msecs cpu; {:8.3f} TFLOPS)".format(i, msecs, (end_cpu-start_cpu)*1000, flops))
+        print("lstm({:2d}): {:8.3f} msecs ({:8.3f} msecs cpu)".format(i, msecs, (end_cpu-start_cpu)*1000), file=sys.stderr)
 
 if __name__ == "__main__":
     main()
