@@ -460,7 +460,7 @@ class SRU_Compute_No_Kernel(Function):
         bias1, bias2 = bias.split(self.d_out)
         u_ = [u.select(-1, i) for i in range(0, k_)]
         h = []
-        x_ = x if k_ == 3 else u[3]
+        x_ = x if k_ == 3 else u_[3]
         for i in range(0, length):
             u0i, u1i, u2i = u_[0][i], u_[1][i], u_[2][i]
             g1 = torch.sigmoid(u1i + bias1)
