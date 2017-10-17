@@ -455,7 +455,7 @@ class SRU_Compute_No_Kernel(Function):
 
         u = u.view(length, batch, d, k_)
 
-        cur = x.new(ncols).zero_() if init is None else init
+        cur = x.new(batch, d).zero_() if init is None else init
         size = (length, batch, d*bidir) if x.dim() == 3 else (batch, d*bidir)
         bias1, bias2 = bias.split(self.d_out)
         u_ = [u.select(-1, i) for i in range(0, k_)]
