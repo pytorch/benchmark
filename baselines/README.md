@@ -14,9 +14,11 @@ module load gcc/5.3.0
 
 2. Install a Conda environment
 
-3. Install ATen: `conda install -c ezyang aten`
+3. Install the libstdc++ ATen was built with: `conda install libstdcxx-ng`
 
-4. `make run_lstm`
+4. Install ATen: `conda install -c ezyang aten`
+
+5. `make run_lstm`
 
 Look in the Makefile if you want to try running things manually.
 All parameters are hard coded so you'll have to edit the C++ to use it.

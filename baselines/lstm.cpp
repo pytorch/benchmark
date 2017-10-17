@@ -34,11 +34,7 @@ lstm(at::Tensor input,
   return {hy, cy};
 }
 
-// Modeled off of Soumith's benchmark at
-// https://github.com/soumith/convnet-benchmarks/blob/d6177f97e61da0d98a528f355086eb2fc05fe7b8/nervana/convnet-benchmarks.py
 int main() {
-
-  // TODO: Check that frequency is fixed
 
   constexpr unsigned int cpu = 0, gpu = 0;
 
@@ -66,10 +62,6 @@ int main() {
   // Possible experiment:
   // Create a stream that is default nonblocking
   // (don't use the default stream because shenanigans)
-  //
-  // Experiment: run this on devgpu with numa pinning (even though there's noise)
-  //
-  // Experiment: look in nvvp
 
   cudaEvent_t start, end;
   CUDA_CHECK(cudaEventCreate(&start));
