@@ -31,11 +31,11 @@ def main():
     def V(x):
         return Variable(x)  # mandatory
 
-    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu))
-    hx    = V(torch.randn(args.layers, args.batch_size, args.hidden_size).cuda(device=args.gpu))
-    cx    = V(torch.randn(args.layers, args.batch_size, args.hidden_size).cuda(device=args.gpu))
+    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(args.gpu))
+    hx    = V(torch.randn(args.layers, args.batch_size, args.hidden_size).cuda(args.gpu))
+    cx    = V(torch.randn(args.layers, args.batch_size, args.hidden_size).cuda(args.gpu))
 
-    lstm = torch.nn.LSTM(args.input_size, args.hidden_size, args.layers).cuda(device_id=args.gpu)
+    lstm = torch.nn.LSTM(args.input_size, args.hidden_size, args.layers).cuda(args.gpu)
     lstm.flatten_parameters()
 
     start = torch.cuda.Event(enable_timing=True)

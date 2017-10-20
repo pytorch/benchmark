@@ -43,14 +43,14 @@ int main() {
   check_gpu_applications_clock(gpu);
 
   constexpr int batch_size = 1;
-  constexpr int input_size = 64;
-  constexpr int hidden_size = 1300;
+  constexpr int input_size = 256;
+  constexpr int hidden_size = 512;
 
   constexpr int fast = 0;
 
-  constexpr int seq_len = fast ? 3 : 20;
-  constexpr int loops  = fast ? 3 : 30;
+  constexpr int seq_len = fast ? 3 : 512;
   constexpr int warmup = fast ? 2 : 10;
+  constexpr int loops  = fast ? 3 : 30;
 
   auto input = at::CUDA(at::kFloat).randn({seq_len, batch_size, input_size});
   auto hx    = at::CUDA(at::kFloat).randn({batch_size, hidden_size});
