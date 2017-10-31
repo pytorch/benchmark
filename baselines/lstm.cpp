@@ -50,7 +50,7 @@ int main() {
 
   constexpr int seq_len = fast ? 3 : 512;
   constexpr int warmup = fast ? 2 : 10;
-  constexpr int loops  = fast ? 3 : 30;
+  constexpr int loops  = fast ? 3 : 20;
 
   auto input = at::CUDA(at::kFloat).randn({seq_len, batch_size, input_size});
   auto hx    = at::CUDA(at::kFloat).randn({batch_size, hidden_size});
@@ -69,7 +69,7 @@ int main() {
 
   for (int i = 0; i < warmup + loops; i++) {
     CUDA_CHECK(cudaEventRecord(start, 0));
-    auto start_cpu = getTime();
+    auto start_cpu_ns = getTime();
     for (int j = 0; j < seq_len; j++) {
       std::tie(hx, cx) = lstm(input[j], hx, cx, w_ih, w_hh);
     }
@@ -78,12 +78,12 @@ int main() {
       __asm__("");
     }
     */
-    auto end_cpu = getTime();
+    auto end_cpu_ns = getTime();
     CUDA_CHECK(cudaEventRecord(end, 0));
     CUDA_CHECK(cudaDeviceSynchronize());
-    float msecs;
-    cudaEventElapsedTime(&msecs, start, end);
-    printf("lstm(%2d): %8.3f msecs (%8.3f msecs cpu)\n", i, msecs, (end_cpu-start_cpu)/1000000.0);
+    float gpu_msecs;
+    cudaEventElapsedTime(&gpu_msecs, start, end);
+    print_result_usecs("lstm", i, gpu_msecs * 1000, (end_cpu_ns-start_cpu_ns)/1000.0, seq_len);
   }
 
   CUDA_CHECK(cudaEventDestroy(start));

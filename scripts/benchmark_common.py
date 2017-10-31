@@ -1,5 +1,6 @@
 import os
 import warnings
+import sys
 
 
 def init(cpu, gpu):
@@ -28,3 +29,6 @@ def check_cpu_governor(cpu):
         warnings.warn("Could not find CPU {} governor information in filesystem (are you running on Linux?)\n"
                       "The file '{}' is not readable.\n"
                       "More information:\n\n{}".format(fp, e))
+
+def print_results_usecs(name, i, gpu_usecs, cpu_usecs, divide_by):
+    print("{}({:2d}): {:8.3f} usecs ({:8.3f} usecs cpu)".format(name, i, gpu_usecs/divide_by, cpu_usecs/divide_by, file=sys.stderr))

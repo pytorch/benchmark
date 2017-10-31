@@ -44,13 +44,13 @@ def main():
     for i in range(args.warmup + args.benchmark):
         gc.collect()
         start.record()
-        start_cpu = time.time()  # high precision only for Linux
+        start_cpu_secs = time.time()  # high precision only for Linux
         lstm(input, (hx, cx))
-        end_cpu = time.time()
+        end_cpu_secs = time.time()
         end.record()
         torch.cuda.synchronize()
-        msecs = start.elapsed_time(end)
-        print("cudnn_lstm({:2d}): {:8.3f} msecs ({:8.3f} msecs cpu)".format(i, msecs, (end_cpu-start_cpu)*1000), file=sys.stderr)
+        gpu_msecs = start.elapsed_time(end)
+        benchmark_common.print_results_usecs("cudnn_lstm", i, gpu_msecs*1000, (end_cpu_secs - start_cpu_secs)*1000000, args.seq_len)
 
 if __name__ == "__main__":
     main()

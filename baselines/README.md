@@ -22,3 +22,10 @@ module load gcc/5.3.0
 
 Look in the Makefile if you want to try running things manually.
 All parameters are hard coded so you'll have to edit the C++ to use it.
+
+To build `lstm_variable.exe`, you need an env var saying where PyTorch
+build tree is:
+
+```
+PYTORCH_HOME=$PATH_TO_PYTORCH make run_lstm_variable
+```

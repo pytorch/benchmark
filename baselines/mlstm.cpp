@@ -82,16 +82,16 @@ int main() {
 
   for (int i = 0; i < warmup + loops; i++) {
     CUDA_CHECK(cudaEventRecord(start, 0));
-    auto start_cpu = getTime();
+    auto start_cpu_ns = getTime();
     for (int j = 0; j < seq_len; j++) {
       std::tie(hx, cx) = mlstm(input, hx, cx, w_xm, w_hm, w_ih, w_mh);
     }
-    auto end_cpu = getTime();
+    auto end_cpu_ns = getTime();
     CUDA_CHECK(cudaEventRecord(end, 0));
     CUDA_CHECK(cudaDeviceSynchronize());
-    float msecs;
-    cudaEventElapsedTime(&msecs, start, end);
-    printf("mlstm(%2d): %8.3f msecs (%8.3f msecs cpu)\n", i, msecs, (end_cpu-start_cpu)/1000000.0);
+    float gpu_msecs;
+    cudaEventElapsedTime(&gpu_msecs, start, end);
+    print_result_usecs("mlstm", i, gpu_msecs * 1000, (end_cpu_ns-start_cpu_ns)/1000.0, seq_len);
   }
 
   CUDA_CHECK(cudaEventDestroy(start));

@@ -137,6 +137,10 @@ void check_gpu_applications_clock(unsigned int gpu)
   }
 }
 
+void print_result_usecs(const char* name, int i, float gpu_usecs, float cpu_usecs, int divide_by) {
+    printf("%s(%2d): %8.3f usecs (%8.3f usecs cpu)\n", name, i, gpu_usecs/divide_by, cpu_usecs/divide_by);
+}
+
 /*
 // This is actually not so useful because even if it looks like you're maxing
 // the clocks at your sampling rate, actually the GPU may be clocking up/down

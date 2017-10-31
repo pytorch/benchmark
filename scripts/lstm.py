@@ -43,6 +43,7 @@ def fused_lstm(input, hidden, w_ih, w_hh):
 
 def unfused_lstm(input, hidden, w_ih, w_hh):
     hx, cx = hidden
+    #return hx.clone(), cx.clone()
     gates = input.mm(t_use(w_ih)) + hx.mm(t_use(w_hh))
 
     ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
@@ -65,27 +66,44 @@ def main():
     parser.add_argument('--batch-size',   type=int, default=1,    help="Batch size")
     parser.add_argument('--input-size',   type=int, default=256,  help="Input size")
     parser.add_argument('--hidden-size',  type=int, default=512,  help="Hidden size")
-    parser.add_argument('--seq-len',      type=int, default=512,  help="Sequence length")
+    parser.add_argument('--seq-len',      type=int, default=None,  help="Sequence length")
     parser.add_argument('--warmup',       type=int, default=10,   help="Warmup iterations")
     parser.add_argument('--benchmark',    type=int, default=20,   help="Benchmark iterations")
     parser.add_argument('--autograd',     action='store_true',    help="Use autograd")
+    parser.add_argument('--variable',     action='store_true',    help="Use Variable, but not autograd (measure baseline overhead)")
     parser.add_argument('--fused',        action='store_true',    help="Use fused cell")
     parser.add_argument('--jit',          action='store_true',    help="Use JIT compiler (implies --autograd)")
+    parser.add_argument('--backward',     action='store_true',    help="Run backwards computation")
     args = parser.parse_args()
 
     if args.jit:
         args.autograd = True
 
+    if args.backward:
+        args.autograd = True
+
+    # TODO: Support BPTT
+
+    if args.seq_len is None:
+        # TODO: Not sure about the wisdom of this
+        if args.backward:
+            args.seq_len = 32
+        else:
+            args.seq_len = 512
+
     assert not (args.jit and args.fused)
+    assert not (args.variable and args.autograd)
 
     pprint.pprint(vars(args))
 
     benchmark_common.init(args.cpu, args.gpu)
 
-    if args.autograd:
-        V = Variable
+    if args.variable:
+        V = lambda x, requires_grad=False: Variable(x, requires_grad=False)
+    elif args.autograd:
+        V = lambda x, requires_grad=False: Variable(x, requires_grad=requires_grad)
     else:
-        V = lambda x: x
+        V = lambda x, requires_grad=False: x
 
     if args.fused:
         lstm = fused_lstm
@@ -94,11 +112,11 @@ def main():
     else:
         lstm = unfused_lstm
 
-    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu))
-    hx    = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu))
-    cx    = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu))
-    w_ih  = V(t_def(torch.randn(4 * args.hidden_size, args.input_size)).cuda(device=args.gpu))
-    w_hh  = V(t_def(torch.randn(4 * args.hidden_size, args.hidden_size)).cuda(device=args.gpu))
+    input = V(torch.randn(args.batch_size, args.input_size).cuda(device=args.gpu))
+    hx0   = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu), requires_grad=True)
+    cx0   = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu), requires_grad=True)
+    w_ih  = V(t_def(torch.randn(4 * args.hidden_size, args.input_size)).cuda(device=args.gpu), requires_grad=True)
+    w_hh  = V(t_def(torch.randn(4 * args.hidden_size, args.hidden_size)).cuda(device=args.gpu), requires_grad=True)
 
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
@@ -106,14 +124,19 @@ def main():
     for i in range(args.warmup + args.benchmark):
         gc.collect()
         start.record()
-        start_cpu = time.time()  # high precision only for Linux
+        times = []
+        start_cpu_secs = time.time()  # high precision only for Linux
+        hx, cx = hx0, cx0
         for j in range(args.seq_len):
-            hx, cx = lstm(input[j], (hx, cx), w_ih, w_hh)
-        end_cpu = time.time()
+            times.append(time.time())
+            hx, cx = lstm(input, (hx, cx), w_ih, w_hh)
+        if args.backward:
+            hx.sum().backward()
+        end_cpu_secs = time.time()
         end.record()
         torch.cuda.synchronize()
-        msecs = start.elapsed_time(end)
-        print("lstm({:2d}): {:8.3f} msecs ({:8.3f} msecs cpu)".format(i, msecs, (end_cpu-start_cpu)*1000), file=sys.stderr)
+        gpu_msecs = start.elapsed_time(end)
+        benchmark_common.print_results_usecs("lstm", i, gpu_msecs*1000, (end_cpu_secs - start_cpu_secs)*1000000, args.seq_len)
 
 if __name__ == "__main__":
     main()
