@@ -2,3 +2,4 @@
 PyTorch
 */**/__pycache__
 */**/*.pyc
+*.out
