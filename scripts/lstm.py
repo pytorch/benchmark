@@ -114,7 +114,7 @@ def main():
     else:
         lstm = unfused_lstm
 
-    input = V(torch.randn(args.batch_size, args.input_size).cuda(device=args.gpu))
+    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu))
     hx0   = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu), requires_grad=True)
     cx0   = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu), requires_grad=True)
     w_ih  = V(t_def(torch.randn(4 * args.hidden_size, args.input_size)).cuda(device=args.gpu), requires_grad=True)
@@ -129,8 +129,8 @@ def main():
         start.record()
         start_cpu_secs = time.time()  # high precision only for Linux
         hx, cx = hx0, cx0
-        for j in range(args.seq_len):
-            hx, cx = lstm(input, (hx, cx), w_ih, w_hh)
+        for i in torch.unbind(input):
+            hx, cx = lstm(i, (hx, cx), w_ih, w_hh)
         if args.backward:
             hx.sum().backward()
         end_cpu_secs = time.time()
