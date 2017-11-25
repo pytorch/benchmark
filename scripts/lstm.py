@@ -3,6 +3,7 @@ import benchmark_common
 import torch
 from torch.autograd import Variable
 import torch.jit
+import torch.nn as nn
 from torch._thnn import type2backend
 from torch.nn._functions.rnn import LSTMCell
 from torch.autograd.profiler import profile
@@ -76,6 +77,7 @@ def main():
     parser.add_argument('--variable',     action='store_true',    help="Use Variable, but not autograd (measure baseline overhead)")
     parser.add_argument('--fused',        action='store_true',    help="Use fused cell")
     parser.add_argument('--jit',          action='store_true',    help="Use JIT compiler (implies --autograd)")
+    parser.add_argument('--cudnn',        action='store_true',    help="Use cuDNN")
     parser.add_argument('--backward',     action='store_true',    help="Run backwards computation")
     args = parser.parse_args()
 
@@ -84,6 +86,10 @@ def main():
 
     if args.backward:
         args.autograd = True
+
+    if args.cudnn:
+        args.autograd = True
+        assert not args.jit
 
     # TODO: Support BPTT
 
@@ -108,9 +114,12 @@ def main():
         V = lambda x, requires_grad=False: x
 
     if args.jit:
-        lstm = torch.jit.compile(nderivs=0, optimize=args.fused)(unfused_lstm)
+        lstm = torch.jit.compile(nderivs=int(args.backward), optimize=args.fused)(unfused_lstm)
     elif args.fused:
         lstm = fused_lstm if not args.autograd else LSTMCell
+    elif args.cudnn:
+        lstm = nn.LSTM(args.input_size, args.hidden_size)
+        lstm.cuda()
     else:
         lstm = unfused_lstm
 
@@ -128,11 +137,14 @@ def main():
         gc.disable()
         start.record()
         start_cpu_secs = time.time()  # high precision only for Linux
-        hx, cx = hx0, cx0
-        for i in torch.unbind(input):
-            hx, cx = lstm(i, (hx, cx), w_ih, w_hh)
+        if args.cudnn:
+            _, (hx, cx) = lstm(input, (hx0[None], cx0[None]))
+        else:
+            hx, cx = hx0, cx0
+            for i in torch.unbind(input):
+                hx, cx = lstm(i, (hx, cx), w_ih, w_hh)
         if args.backward:
-            hx.sum().backward()
+            (cx * hx).sum().backward()
         end_cpu_secs = time.time()
         end.record()
         torch.cuda.synchronize()
