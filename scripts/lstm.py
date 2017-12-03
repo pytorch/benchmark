@@ -121,6 +121,10 @@ def main():
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
 
+    total_gpu_usecs = 0
+    total_cpu_usecs = 0
+    all_gpu_usecs = []
+    all_cpu_usecs = []
     for i in range(args.warmup + args.benchmark):
         gc.collect()
         start.record()
@@ -136,7 +140,24 @@ def main():
         end.record()
         torch.cuda.synchronize()
         gpu_msecs = start.elapsed_time(end)
+        if i >= args.warmup:
+          all_gpu_usecs.append(gpu_msecs*1000)
+          all_cpu_usecs.append((end_cpu_secs - start_cpu_secs) * 1000000)
         benchmark_common.print_results_usecs("lstm", i, gpu_msecs*1000, (end_cpu_secs - start_cpu_secs)*1000000, args.seq_len)
+
+    all_gpu_usecs.sort()
+    all_cpu_usecs.sort()
+    benchmark_common.print_results_usecs("lstm(avg)", i+1, sum(all_gpu_usecs), sum(all_cpu_usecs), args.seq_len * args.benchmark)
+    def print_percentile(p):
+        benchmark_common.print_results_usecs("lstm({:3f})".format(p), i+1, benchmark_common.percentile(all_gpu_usecs, p), benchmark_common.percentile(all_cpu_usecs, p), args.seq_len)
+    print_percentile(0)
+    print_percentile(.25)
+    print_percentile(.50)
+    print_percentile(.75)
+    print_percentile(.99)
+    print_percentile(.999)
+    print_percentile(.9999)
+    print_percentile(1)
 
 if __name__ == "__main__":
     main()
