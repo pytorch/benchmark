@@ -2,6 +2,7 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cudnn.h>
 #include <nvml.h>
 
 #include <algorithm>
@@ -18,12 +19,21 @@
 #include <errno.h>
 
 #define CUDA_CHECK(result) cudaCheck(result, __FILE__, __LINE__)
+#define CUDNN_CHECK(result) cudnnCheck(result, __FILE__, __LINE__)
 #define NVML_CHECK(result) nvmlCheck(result, __FILE__, __LINE__)
 
 static void cudaCheck(cudaError_t result, const char * file, int line) {
   if(result != cudaSuccess) {
     std::stringstream ss;
     ss << file << ":" << line << ": " << cudaGetErrorString(result);
+    throw std::runtime_error(ss.str());
+  }
+}
+
+static void cudnnCheck(cudnnStatus_t result, const char * file, int line) {
+  if(result != CUDNN_STATUS_SUCCESS) {
+    std::stringstream ss;
+    ss << file << ":" << line << ": " << cudnnGetErrorString(result);
     throw std::runtime_error(ss.str());
   }
 }
