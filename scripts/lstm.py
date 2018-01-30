@@ -24,11 +24,11 @@ def t_def(x):
     return x
 
 
-def fused_lstm(input, hidden, w_ih, w_hh):
+def fused_lstm(input, hidden, w_ih, w_hh, b_ih, b_hh):
     hx, cx = hidden
 
-    input_gate = input.mm(t_use(w_ih))
-    hidden_gate = hidden[0].mm(t_use(w_hh))
+    input_gate = input.mm(t_use(w_ih)) + b_ih[None, :]
+    hidden_gate = hidden[0].mm(t_use(w_hh)) + b_hh[None, :]
 
     backend = type2backend[type(input_gate)]
 
@@ -44,9 +44,9 @@ def fused_lstm(input, hidden, w_ih, w_hh):
     return hy, cy
 
 
-def unfused_lstm(input, hidden, w_ih, w_hh):
+def unfused_lstm(input, hidden, w_ih, w_hh, b_ih, b_hh):
     hx, cx = hidden
-    gates = input.mm(t_use(w_ih)) + hx.mm(t_use(w_hh))
+    gates = input.mm(t_use(w_ih)) + hx.mm(t_use(w_hh)) + b_ih[None, :] + b_hh[None, :]
 
     ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
 
@@ -61,9 +61,11 @@ def unfused_lstm(input, hidden, w_ih, w_hh):
     return hy, cy
 
 
-def unfused_lstm_skip_input(input, hidden, w_hh):
+def unfused_lstm_skip_input(input, hidden, w_hh, b_hh=None):
     hx, cx = hidden
     gates = input + hx.mm(t_use(w_hh))
+    if b_hh is not None:
+        gates = gates + b_hh[None, :]
 
     ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
 
@@ -76,9 +78,19 @@ def unfused_lstm_skip_input(input, hidden, w_hh):
     hy = outgate * cy.tanh()
 
     return hy, cy
+
+def whole_lstm(input, hidden, w_ih, w_hh, b_ih, b_hh):
+    input_mm = (input.view(-1, args.input_size)
+                        .mm(t_use(w_ih))
+                        .view(args.seq_len, args.batch_size, args.hidden_size * 4)) + (b_ih + b_hh)[None, None, :]
+    for i in input_mm.split(1):
+        hidden = unfused_lstm_skip_input(i.squeeze(), hidden, w_hh)
+    return hidden
 
 
 def main():
+    global args
+
     parser = argparse.ArgumentParser(description="PyTorch LSTM benchmark.")
     parser.add_argument('--cpu',          type=int, default=0,    help="CPU to run on")
     parser.add_argument('--gpu',          type=int, default=0,    help="GPU to run on")
@@ -94,7 +106,7 @@ def main():
     parser.add_argument('--fused',        action='store_true',    help="Use fused cell")
     parser.add_argument('--jit',          action='store_true',    help="Use JIT compiler (implies --autograd)")
     parser.add_argument('--cudnn',        action='store_true',    help="Use cuDNN")
-    parser.add_argument('--batch_mm',     action='store_true',    help="Batch input gemm")
+    parser.add_argument('--whole',        action='store_true',    help="Batch input gemm")
     parser.add_argument('--backward',     action='store_true',    help="Run backwards computation")
     args = parser.parse_args()
 
@@ -128,23 +140,25 @@ def main():
     else:
         V = lambda x, requires_grad=False: x
 
-    base_cell = unfused_lstm if not args.batch_mm else unfused_lstm_skip_input
+    base_cell = unfused_lstm if not args.whole else whole_lstm
     if args.jit:
         lstm = torch.jit.compile(nderivs=int(args.backward), optimize=args.fused)(base_cell)
-    elif args.fused:
-        assert not args.batch_mm
-        lstm = fused_lstm if not args.autograd else LSTMCell
     elif args.cudnn:
         lstm = nn.LSTM(args.input_size, args.hidden_size)
         lstm.cuda()
+    elif args.fused:
+        assert not args.whole
+        lstm = fused_lstm if not args.autograd else LSTMCell
     else:
         lstm = base_cell
 
-    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu))
+    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu), requires_grad=True)
     hx0   = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu), requires_grad=True)
     cx0   = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu), requires_grad=True)
     w_ih  = V(t_def(torch.randn(4 * args.hidden_size, args.input_size)).cuda(device=args.gpu), requires_grad=True)
     w_hh  = V(t_def(torch.randn(4 * args.hidden_size, args.hidden_size)).cuda(device=args.gpu), requires_grad=True)
+    b_ih  = V(torch.randn(4 * args.hidden_size).cuda(device=args.gpu), requires_grad=True)
+    b_hh  = V(torch.randn(4 * args.hidden_size).cuda(device=args.gpu), requires_grad=True)
 
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
@@ -156,17 +170,12 @@ def main():
         start_cpu_secs = time.time()  # high precision only for Linux
         if args.cudnn:
             _, (hx, cx) = lstm(input, (hx0[None], cx0[None]))
-        elif args.batch_mm:
-            hx, cx = hx0, cx0
-            input_mm = (input.view(-1, args.input_size)
-                             .mm(t_use(w_ih))
-                             .view(args.seq_len, args.batch_size, 4 * args.hidden_size))
-            for i in torch.unbind(input_mm):
-                hx, cx = lstm(i, (hx, cx), w_hh)
+        elif args.whole:
+            hx, cx = lstm(input, (hx0, cx0), w_ih, w_hh, b_ih, b_hh)
         else:
             hx, cx = hx0, cx0
             for i in torch.unbind(input):
-                hx, cx = lstm(i, (hx, cx), w_ih, w_hh)
+                hx, cx = lstm(i, (hx, cx), w_ih, w_hh, b_ih, b_hh)
         if args.backward:
             (cx * hx).sum().backward()
         end_cpu_secs = time.time()
