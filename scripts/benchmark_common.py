@@ -3,9 +3,10 @@ import warnings
 import sys
 
 
-def init(cpu, gpu):
+def init(cpu, gpu, skip_cpu_governor_check=False):
     cpu_pin(cpu)
-    check_cpu_governor(cpu)
+    if not skip_cpu_governor_check:
+        check_cpu_governor(cpu)
 
 
 # NB: Be careful with this when benchmarking backward; backward

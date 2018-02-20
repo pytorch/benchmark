@@ -30,17 +30,18 @@ def mlstm_raw(input, hx, cx, w_xm, w_hm, w_ih, w_mh):
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch LSTM benchmark.")
-    parser.add_argument('--cpu',          type=int, default=0,    help="CPU to run on")
-    parser.add_argument('--gpu',          type=int, default=0,    help="GPU to run on")
-    parser.add_argument('--batch-size',   type=int, default=1,    help="Batch size")
-    parser.add_argument('--input-size',   type=int, default=205,  help="Input size")
-    parser.add_argument('--hidden-size',  type=int, default=1900, help="Hidden size")
-    parser.add_argument('--embed-size',   type=int, default=None, help="Embed size")
-    parser.add_argument('--seq-len',      type=int, default=20,   help="Sequence length")
-    parser.add_argument('--warmup',       type=int, default=10,   help="Warmup iterations")
-    parser.add_argument('--benchmark',    type=int, default=20,   help="Benchmark iterations")
-    parser.add_argument('--autograd',     action='store_true',    help="Use autograd")
-    parser.add_argument('--jit',          action='store_true',    help="Use JIT compiler (implies --autograd)")
+    parser.add_argument('--cpu',                     type=int, default=0,     help="CPU to run on")
+    parser.add_argument('--gpu',                     type=int, default=0,     help="GPU to run on")
+    parser.add_argument('--batch-size',              type=int, default=1,     help="Batch size")
+    parser.add_argument('--input-size',              type=int, default=205,   help="Input size")
+    parser.add_argument('--hidden-size',             type=int, default=1900,  help="Hidden size")
+    parser.add_argument('--embed-size',              type=int, default=None,  help="Embed size")
+    parser.add_argument('--seq-len',                 type=int, default=20,    help="Sequence length")
+    parser.add_argument('--warmup',                  type=int, default=10,    help="Warmup iterations")
+    parser.add_argument('--benchmark',               type=int, default=20,    help="Benchmark iterations")
+    parser.add_argument('--autograd',                action='store_true',     help="Use autograd")
+    parser.add_argument('--jit',                     action='store_true',     help="Use JIT compiler (implies --autograd)")
+    parser.add_argument('--skip-cpu-governor-check', action='store_true',     help="Skip checking whether CPU governor is set to `performance`")
     args = parser.parse_args()
 
     if args.embed_size is None:
@@ -51,7 +52,7 @@ def main():
 
     pprint.pprint(vars(args))
 
-    benchmark_common.init(args.cpu, args.gpu)
+    benchmark_common.init(args.cpu, args.gpu, args.skip_cpu_governor_check)
 
     if args.autograd:
         V = Variable
