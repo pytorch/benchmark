@@ -13,18 +13,19 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description="PyTorch CuDNN LSTM benchmark.")
-    parser.add_argument('--cpu',          type=int, default=0,    help="CPU to run on")
-    parser.add_argument('--gpu',          type=int, default=0,    help="GPU to run on")
-    parser.add_argument('--batch-size',   type=int, default=1,    help="Batch size")
-    parser.add_argument('--input-size',   type=int, default=256,  help="Input size")
-    parser.add_argument('--hidden-size',  type=int, default=512,  help="Hidden size")
-    parser.add_argument('--layers',       type=int, default=1,    help="Layers")
-    parser.add_argument('--seq-len',      type=int, default=512,  help="Sequence length")
-    parser.add_argument('--warmup',       type=int, default=10,   help="Warmup iterations")
-    parser.add_argument('--benchmark',    type=int, default=30,   help="Benchmark iterations")
+    parser.add_argument('--cpu',                     type=int,  default=0,    help="CPU to run on")
+    parser.add_argument('--gpu',                     type=int,  default=0,    help="GPU to run on")
+    parser.add_argument('--batch-size',              type=int,  default=1,    help="Batch size")
+    parser.add_argument('--input-size',              type=int,  default=256,  help="Input size")
+    parser.add_argument('--hidden-size',             type=int,  default=512,  help="Hidden size")
+    parser.add_argument('--layers',                  type=int,  default=1,    help="Layers")
+    parser.add_argument('--seq-len',                 type=int,  default=512,  help="Sequence length")
+    parser.add_argument('--warmup',                  type=int,  default=10,   help="Warmup iterations")
+    parser.add_argument('--benchmark',               type=int,  default=30,   help="Benchmark iterations")
+    parser.add_argument('--skip-cpu-governor-check', action='store_true',     help="Skip checking whether CPU governor is set to `performance`")
     args = parser.parse_args()
 
-    benchmark_common.init(args.cpu, args.gpu)
+    benchmark_common.init(args.cpu, args.gpu, args.skip_cpu_governor_check)
 
     pprint.pprint(vars(args))
 
