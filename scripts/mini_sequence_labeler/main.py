@@ -134,7 +134,7 @@ def test_wsj():
                 # print('output=%s, truth=%s' % (output, ex.labels))
 
             loss.backward()
-            total_loss += loss.data.numpy()[0]
+            total_loss += float(loss)
             optimizer.step()
         print(total_loss)
 
