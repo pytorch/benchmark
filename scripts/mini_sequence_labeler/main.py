@@ -24,6 +24,7 @@ from torch import nn
 from torch.autograd import Variable
 from torch.nn.parameter import Parameter
 import torch.nn.functional as F
+import argparse
 
 def reseed(seed=90210):
     random.seed(seed)
@@ -44,6 +45,11 @@ def minibatch(data, minibatch_size, reshuffle):
         yield data[n:n+minibatch_size]
 
 def test_wsj():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--epochs', type=int, default=10,
+                        help='number of epochs to train (default: 10)')
+    args = parser.parse_args()
+
     print
     print('# test on wsj subset')
 
@@ -55,7 +61,7 @@ def test_wsj():
     d_actemb = 5
 
     minibatch_size = 5
-    n_epochs = 10
+    n_epochs = args.epochs
     preprocess_minibatch = True
     
     embed_word = nn.Embedding(n_types, d_emb)
