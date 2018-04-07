@@ -12,7 +12,7 @@ from utils import get_env_pytorch_examples, config_runs, cmd_string, execution, 
 parser = argparse.ArgumentParser(description="PyTorch model accuracy benchmark.")
 parser.add_argument('--repeat', type=int, default=5,
                     help="Number of Runs")
-parser.add_argument('--arch', type=str, default='all', choices=model_names,
+parser.add_argument('--arch', type=str, default='all', choices=model_names, nargs='+',
                     help='model architectures: ' + ' | '.join(model_names) + ' (default: all)')
 parser.add_argument('--log-dir', type=str, default='log',
                     help='the path on the file system to place the working log directory at')
