@@ -11,9 +11,9 @@ model_names = sorted(name for name in models.__dict__
 
 
 def get_env_pytorch_examples():
-    pytorch_examples_home = os.environ.get('PYTORCH_EXAMPLES_HOME')
+    pytorch_examples_home = os.environ.get('EXAMPLES_HOME')
     if pytorch_examples_home is None:
-        print('PYTORCH_EXAMPLES_HOME not found')
+        print('EXAMPLES_HOME not found')
         sys.exit()
 
     return pytorch_examples_home
@@ -28,16 +28,25 @@ def execution(cmd, log_path):
     log_file.write('\n')
 
     exec_command = shlex.split(cmd)
-    #proc = subprocess.Popen(exec_command, stdout=log_file, stderr=subprocess.STDOUT)
-    #proc.wait()
-    #return_code = proc.returncode
-    return_code = 1
+    proc = subprocess.Popen(exec_command, stdout=log_file, stderr=subprocess.STDOUT)
+    proc.wait()
+    return_code = proc.returncode
+    log_file.close()
+
+    log_file = open(log_path, 'r+')
 
     if return_code == 0:
-        acc = '0.97'
+        acc = parse_accuracy(log_file)
     else:
-        acc = 'error'
+        acc = 'NA'
+
     return acc
+
+
+def parse_accuracy(log_file):
+    output_data = log_file.readlines()
+    _, _, prec1, _, prec2 = output_data[-2].split()
+    return (prec1, prec2)
 
 
 def config_runs(model, iter):
@@ -52,5 +61,5 @@ def cmd_string(examples_home, model, data_path):
     lr = 0.1
     if model in ['alexnet', 'vgg11', 'vgg11_bn', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn']:
         lr = 0.01
-    cmd = ' '.join(['python3', examples_home, '-a', model, '--lr', str(lr), data_path])
+    cmd = ' '.join(['python3', examples_home, '-a', model, '--lr', str(lr), '--epochs', str(1), data_path])
     return cmd
