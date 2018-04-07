@@ -63,6 +63,6 @@ def cmd_string(examples_home, model, data_path):
     if model in ['alexnet', 'vgg11', 'vgg11_bn', 'vgg13_bn',
                  'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn']:
         lr = 0.01
-    cmd = ' '.join(['python3', examples_home, '-a', model, '--lr', str(lr),
-                    '--epochs', str(1), data_path])
+
+    cmd = ' '.join(['python3', examples_home, '-a', model, '--lr', str(lr), data_path])
     return cmd
