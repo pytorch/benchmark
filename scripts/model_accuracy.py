@@ -1,25 +1,13 @@
 #!/usr/bin/env python3
 
-# TODO
-# Image-net args
-    # Default train / val folder
-# extract accuracy
-
-
-# export PYTORCH_EXAMPLES_HOME=/Users/krishnakalyan3/open-source/torch_perf/examples/
 import os
+import argparse
 from os.path import join
 from datetime import datetime
-from tqdm import tqdm
-import itertools
-import sys
-import argparse
-import torchvision.models as models
-import gc
 import logging
+from tqdm import tqdm
+from utils import get_env_pytorch_examples, config_runs, cmd_string, execution, model_names
 
-model_names = sorted(name for name in models.__dict__
-                     if not (not (name.islower() and not name.startswith("__")) or not callable(models.__dict__[name])))
 
 parser = argparse.ArgumentParser(description="PyTorch model accuracy benchmark.")
 parser.add_argument('--repeat',   type=int, default=1,
@@ -30,21 +18,11 @@ parser.add_argument('--temp-dir', type=str, default='log',
                     help='the path on the file system to place the working temporary directory at')
 parser.add_argument('--filename', type=str, default='perf_test',
                     help='name of the output file')
+parser.add_argument('--data', type=str, required=True,
+                    help='path to dataset')
 
 
-def get_env_pytorch_examples():
-    pytorch_examples_home = os.environ.get('PYTORCH_EXAMPLES_HOME')
-    if pytorch_examples_home is None:
-        print('PYTORCH_EXAMPLES_HOME not found')
-        sys.exit()
-
-    return pytorch_examples_home
-
-
-def init(args):
-    folder_root = os.getcwd()
-    temp_dir = join(folder_root, args.temp_dir)
-
+def log_init():
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 
@@ -53,27 +31,37 @@ def init(args):
     logging.basicConfig(filename=join(temp_dir, log_filename), level=20)
 
 
-def execution(cmd, iteration, model):
-    gc.collect()
-    accuracy = 0.95
-    #os.system(cmd)
-    return (model, accuracy, iteration)
-
-
 def main():
+    global args, temp_dir
     args = parser.parse_args()
-    init(args)
+
+    # temp dir
+    folder_root = os.getcwd()
+    temp_dir = join(folder_root, args.temp_dir)
+
+    log_init()
 
     time_now = str(datetime.now())
     logging.info('New performance test started at {}'.format(time_now))
     logging.info('model, accuracy, iteration')
 
-    pytorch_examples_home = get_env_pytorch_examples()
+    examples_home = get_env_pytorch_examples()
+    imagenet = join(examples_home, 'imagenet', 'main.py')
 
-    # Build configuration
-    k =itertools.product(['alex_net','image_net'], 'm')
-    print(list(k))
+    runs = config_runs(args.arch, args.repeat)
 
+    for i in tqdm(range(len(runs))):
+        model, current_iter = runs[i]
+
+        # logging execution
+        file_name = runs[i][0] + str(runs[i][1]) + '.txt'
+        log_path = join(temp_dir, file_name)
+
+        # execution
+        cmd = cmd_string(imagenet, model, args.data)
+        accuracy = execution(cmd, log_path)
+
+        logging.info('{},{},{}'.format(model, accuracy, current_iter))
 
 if __name__ == '__main__':
     main()
