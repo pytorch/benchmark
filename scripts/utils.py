@@ -39,7 +39,7 @@ def execution(cmd, log_path):
     if return_code == 0:
         acc = parse_accuracy(log_file)
     else:
-        acc = 'NA'
+        acc = ('NA', 'NA')
 
     return acc
 

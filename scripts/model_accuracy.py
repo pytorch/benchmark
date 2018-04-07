@@ -61,7 +61,7 @@ def main():
         cmd = cmd_string(imagenet, model, args.data_dir)
         prec1, prec5 = execution(cmd, log_path)
 
-        logging.info('{},{},{} {}'.format(model, prec1, prec5, current_iter))
+        logging.info('{},{},{},{}'.format(model, prec1, prec5, current_iter))
 
 
 if __name__ == '__main__':
