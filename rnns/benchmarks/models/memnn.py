@@ -38,10 +38,9 @@ class MemNN(nn.Module):
         self.out_memory_embedder = embedding()
         self.memory_hop = Hop(opt['embedding_size'])
 
-        self.score = DotScore()
-
+        # self.score = DotScore()
         if opt['cuda']:
-            self.score.cuda()
+            # self.score.cuda()
             self.memory_hop.cuda()
 
     def time_feature(self, t):
@@ -118,7 +117,7 @@ class Embed(nn.Embedding):
             emb = torch.sum(emb, dim=1).squeeze(1)
             for j, length in enumerate(row):
                 if length > 0:
-                    emb[j] /= length
+                    emb[j] /= emb.new_tensor(length)
             emb_list.append(emb)
         embs = torch.stack(emb_list)
 
@@ -158,7 +157,7 @@ class Hop(nn.Module):
         if attention_mask is not None:
             # exclude masked elements from the softmax
             attention = attention_mask.float() * attention + (1 - attention_mask.float()) * -1e20
-        probs = softmax(attention).unsqueeze(1)
+        probs = softmax(attention, 1).unsqueeze(1)
         memory_output = torch.bmm(probs, out_memory_embeddings).squeeze(1)
         query_embeddings = self.linear(query_embeddings)
         output = memory_output + query_embeddings
@@ -189,9 +188,9 @@ class Decoder(nn.Module):
         return self.hidden_to_idx(output, dropout=self.training)
 
 
-class DotScore(nn.Module):
-    def one_to_one(self, query_embeddings, answer_embeddings, reply_embeddings=None):
-        return (query_embeddings * answer_embeddings).sum(dim=1).squeeze(1)
-
-    def one_to_many(self, query_embeddings, answer_embeddings, reply_embeddings=None):
-        return query_embeddings.mm(answer_embeddings.t())
+# class DotScore(nn.Module):
+#     def one_to_one(self, query_embeddings, answer_embeddings, reply_embeddings=None):
+#         return (query_embeddings * answer_embeddings).sum(dim=1).squeeze(1)
+#
+#     def one_to_many(self, query_embeddings, answer_embeddings, reply_embeddings=None):
+#         return query_embeddings.mm(answer_embeddings.t())

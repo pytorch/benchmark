@@ -1,66 +1,83 @@
 """Run benchmark on ParlAI Memnn Model."""
 import torch
 from torch import nn
-from torch.autograd import Variable
-from . import Benchmark, make_params, over, AttrDict
-from models import memnn
+import gc
+from .common import AttrDict, Bench
+from .models import memnn
+import argparse
 
 
-class Memnn(Benchmark):
-    """Memnn benchmark."""
+def one_to_many(query_embeddings, answer_embeddings, reply_embeddings=None):
+    return query_embeddings.mm(answer_embeddings.t())
+
+
+def run_memnn(args):
+    nbatches = args.warmup + args.benchmark
+
     default_params = dict(lr=0.01, embedding_size=128, hops=3, mem_size=100,
                           time_features=False, position_encoding=True,
                           output='rank', dropout=0.1, optimizer='adam',
-                          num_features=500, num_batches=1)
-    params = make_params(cuda=over(True, False))
+                          num_features=500, num_batches=nbatches, cuda=False)
+    params = AttrDict(default_params)
 
-    def prepare(self, p):
-        """Set up model."""
-        # The CPU version is slow...
-        p['batch_size'] = 32 if p.cuda else 4
+    """Set up model."""
+    # The CPU version is slow...
+    params['batch_size'] = 32 if params.cuda else 4
 
-        def cast(tensor):
-            return tensor.cuda() if p.cuda else tensor
+    if params.cuda:
+        device = torch.device('cuda:0')
+    else:
+        device = torch.device('cpu')
 
-        self.model = memnn.MemNN(p, p.num_features)
-        self.criterion = nn.CrossEntropyLoss()
-        self.data_batches = [
-            [  # memories, queries, memory_lengths, query_lengths
-                Variable(cast(torch.zeros(p.batch_size * p.mem_size).long())),
-                Variable(cast(torch.zeros(p.batch_size * 28).long())),
-                Variable(cast(torch.ones(p.batch_size, p.mem_size).long())),
-                Variable(cast(torch.LongTensor(p.batch_size).fill_(28).long())),
-            ]
-            for _ in range(p.num_batches)
+    model = memnn.MemNN(params, params.num_features)
+    criterion = nn.CrossEntropyLoss()
+    data_batches = [
+        [  # memories, queries, memory_lengths, query_lengths
+            torch.zeros(params.batch_size * params.mem_size, dtype=torch.long, device=device),
+            torch.zeros(params.batch_size * 28             , dtype=torch.long, device=device),
+            torch.ones (params.batch_size, params.mem_size , dtype=torch.long, device=device),
+            torch.full((params.batch_size,), 28            , dtype=torch.long, device=device),
         ]
-        self.cand_batches = [
-            Variable(cast(torch.zeros(p.batch_size * 14, p.embedding_size)))
-            for _ in range(p.num_batches)
-        ]
-        self.target_batches = [
-            Variable(cast(torch.ones(p.batch_size).long()))
-            for _ in range(p.num_batches)
-        ]
-        if p.cuda:
-            self.model.cuda()
-            self.criterion.cuda()
+        for _ in range(params.num_batches)
+    ]
+    cand_batches = [
+        torch.zeros(params.batch_size * 14, params.embedding_size, device=device)
+        for _ in range(params.num_batches)
+    ]
+    target_batches = [
+        torch.ones(params.batch_size, dtype=torch.long, device=device)
+        for _ in range(params.num_batches)
+    ]
+    if params.cuda:
+        model.cuda()
+        criterion.cuda()
 
-    def time_memnn(self, p):
-        """Time model."""
-        total_loss = 0
-        for data, cands, targets in zip(self.data_batches, self.cand_batches, self.target_batches):
-            output_embeddings = self.model(*data)
-            scores = self.model.score.one_to_many(output_embeddings, cands)
-            loss = self.criterion(scores, targets)
-            loss.backward()
-            total_loss += loss.data
-            if p.cuda:
-                torch.cuda.synchronize()
+    """Time model."""
+    bench = Bench(name='memnn')
+    trace_once = args.jit
+
+    total_loss = 0
+    for data, cands, targets in zip(data_batches, cand_batches, target_batches):
+        gc.collect()
+        bench.start_timing()
+        if trace_once:
+            model = torch.jit.trace(*data)(model)
+            trace_once = False
+        output_embeddings = model(*data)
+        scores = one_to_many(output_embeddings, cands)
+        loss = criterion(scores, targets)
+        loss.backward()
+        total_loss += float(loss.item())
+        bench.stop_timing()
+
+    return bench
+
 
 if __name__ == '__main__':
-    d = Memnn.default_params.copy()
-    d['cuda'] = False
-    p = AttrDict(d)
-    m = Memnn()
-    m.prepare(p)
-    m.time_memnn(p)
+    parser = argparse.ArgumentParser(description="PyTorch memnn bench")
+    parser.add_argument('--warmup',     type=int, default=2,   help="Warmup iterations")
+    parser.add_argument('--benchmark',  type=int, default=10,  help="Benchmark iterations")
+    parser.add_argument('--jit',        action='store_true',   help="Use JIT compiler")
+    args = parser.parse_args()
+
+    run_memnn(args)
