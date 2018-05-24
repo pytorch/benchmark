@@ -20,13 +20,20 @@ SummaryStats = namedtuple('SummaryStats', ['mean', 'min', 'max'])
 class Bench(object):
     timer = time.time if PY2 else time.perf_counter
 
-    def __init__(self, name='bench', cuda=False):
+    def __init__(self, name='bench', cuda=False, warmup_iters=0):
         self.results = []
         self.timing = False
         self.iter = 0
 
         self.name = name
         self.cuda = cuda
+        self.warmup_iters = warmup_iters
+
+    def __enter__(self):
+        self.start_timing()
+
+    def __exit__(self, *args):
+        self.stop_timing()
 
     def start_timing(self):
         assert not self.timing
@@ -34,7 +41,7 @@ class Bench(object):
         self.timing = True
         if self.cuda:
             self.start = torch.cuda.Event(enable_timing=True)
-            self.end = torch.cuda.Event(enable_timing=False)
+            self.end = torch.cuda.Event(enable_timing=True)
             self.start.record()
         self.start_cpu_secs = self.timer()
 
@@ -71,4 +78,6 @@ class Bench(object):
             return SummaryStats(sum(lst)/len(lst), min(lst), max(lst))
 
         gpu_msecs, cpu_msecs = zip(*self.results)
-        return mean_min_max(gpu_msecs), mean_min_max(cpu_msecs)
+        warmup = self.warmup_iters
+        return (mean_min_max(gpu_msecs[warmup:]),
+                mean_min_max(cpu_msecs[warmup:]))

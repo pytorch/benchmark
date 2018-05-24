@@ -353,7 +353,7 @@ class SRU_Compute(Function):
         k_ = k//2 if self.bidirectional else k
         ncols = batch*d*bidir
         thread_per_block = min(512, ncols)
-        num_block = (ncols-1)/thread_per_block+1
+        num_block = (ncols-1)//thread_per_block+1
 
         init_ = x.new(ncols).zero_() if init is None else init
         size = (length, batch, d*bidir) if x.dim() == 3 else (batch, d*bidir)
@@ -398,7 +398,7 @@ class SRU_Compute(Function):
         k_ = k//2 if self.bidirectional else k
         ncols = batch*d*bidir
         thread_per_block = min(512, ncols)
-        num_block = (ncols-1)/thread_per_block+1
+        num_block = (ncols-1)//thread_per_block+1
 
         init_ = x.new(ncols).zero_() if init is None else init
         grad_u = u.new(*u.size())
@@ -437,27 +437,20 @@ class SRU_Compute(Function):
         return grad_u, grad_x, grad_bias.sum(1).view(-1), grad_init, None
 
 
-class SRU_Compute_No_Kernel(Function):
-
-    def __init__(self, activation_type, d_out, bidirectional=False):
-        super(SRU_Compute_No_Kernel, self).__init__()
-        self.activation_type = activation_type
-        self.d_out = d_out
-        self.bidirectional = bidirectional
-
-    def forward(self, u, x, bias, init=None, mask_h=None):
-        bidir = 2 if self.bidirectional else 1
+def SRU_Compute_No_Kernel(activation_type, d_out, bidirectional=False):
+    def forward(u, x, bias, init=None, mask_h=None):
+        # bidir = 2 if bidirectional else 1
         length = x.size(0) if x.dim() == 3 else 1
         batch = x.size(-2)
-        d = self.d_out
+        d = d_out
         k = u.size(-1) // d
-        k_ = k//2 if self.bidirectional else k
+        k_ = k//2 if bidirectional else k
 
         u = u.view(length, batch, d, k_)
 
         cur = x.new(batch, d).zero_() if init is None else init
-        size = (length, batch, d*bidir) if x.dim() == 3 else (batch, d*bidir)
-        bias1, bias2 = bias.split(self.d_out)
+        # size = (length, batch, d*bidir) if x.dim() == 3 else (batch, d*bidir)
+        bias1, bias2 = bias.split(d_out)
         u_ = [u.select(-1, i) for i in range(0, k_)]
         h = []
         x_ = x if k_ == 3 else u_[3]
@@ -466,26 +459,28 @@ class SRU_Compute_No_Kernel(Function):
             g1 = torch.sigmoid(u1i + bias1)
             g2 = torch.sigmoid(u2i + bias2)
             cur = (cur - u0i)*g1 + u0i
-            if self.activation_type == 1:
+            if activation_type == 1:
                 val = torch.tanh(cur)
-            elif self.activation_type == 2:
+            elif activation_type == 2:
                 val = torch.relu(cur)
             if mask_h is not None:
                 val = val*mask_h
             xi = x_[i]
             h.append((val - xi)*g2 + xi)
 
-        if self.bidirectional:
+        if bidirectional:
             assert False
         else:
             last_hidden = cur
         h = torch.stack(h)
         return h, last_hidden
 
+    return forward
+
 
 class SRUCell(nn.Module):
     def __init__(self, n_in, n_out, dropout=0, rnn_dropout=0,
-                bidirectional=False, use_tanh=1, use_relu=0, use_kernel=True):
+                bidirectional=False, use_tanh=1, use_relu=0, use_kernel=True, jit=False):
         super(SRUCell, self).__init__()
         self.n_in = n_in
         self.n_out = n_out
@@ -505,6 +500,13 @@ class SRUCell(nn.Module):
             n_out*4 if bidirectional else n_out*2
         ))
         self.init_weight()
+        self.jit = jit
+        assert not (self.jit and self.use_kernel)
+
+        if self.jit:
+            sru_jit = SRU_Compute_No_Kernel(self.activation_type, self.n_out, self.bidirectional)
+            self.sru_jit = sru_jit
+            self.sru_jit_traced = False
 
     def init_weight(self):
         val_range = (3.0/self.n_in)**0.5
@@ -541,10 +543,34 @@ class SRUCell(nn.Module):
             mask_h = self.get_dropout_mask_((batch, n_out*bidir), self.dropout)
             if self.use_kernel:
                 h, c = SRU_Compute(self.activation_type, n_out, self.bidirectional)(u, input, self.bias, c0, mask_h)
-            else:
-                h, c = SRU_Compute_No_Kernel(self.activation_type, n_out, self.bidirectional)(u, input, self.bias, c0, mask_h)
+                return h, c
+
+            # No kernel
+            if self.jit:
+                if not self.sru_jit_traced:
+                    print("Tracing sru cell with dropout")
+                    self.sru_jit = torch.jit.trace(u, input, self.bias, c0, mask_h)(self.sru_jit)
+                    self.sru_jit_traced = True
+                assert n_out == self.n_out
+                h, c = self.sru_jit(u, input, self.bias, c0, mask_h)
+                return h, c
+
+            h, c = SRU_Compute_No_Kernel(self.activation_type, n_out, self.bidirectional)(u, input, self.bias, c0, mask_h)
         else:
-            h, c = SRU_Compute(self.activation_type, n_out, self.bidirectional)(u, input, self.bias, c0)
+            if self.use_kernel:
+                h, c = SRU_Compute(self.activation_type, n_out, self.bidirectional)(u, input, self.bias, c0)
+                return h, c
+            
+            if self.jit:
+                if not self.sru_jit_traced:
+                    print("Tracing sru cell without dropout")
+                    self.sru_jit = torch.jit.trace(u, input, self.bias, c0)(self.sru_jit)
+                    self.sru_jit_traced = True
+                assert n_out == self.n_out
+                h, c = self.sru_jit(u, input, self.bias, c0)
+                return h, c
+
+            return SRU_Compute_No_Kernel(self.activation_type, n_out, self.bidirectional)(u, input, self.bias, c0)
 
         return h, c
 
@@ -555,7 +581,8 @@ class SRUCell(nn.Module):
 
 class SRU(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=2, dropout=0, rnn_dropout=0,
-                bidirectional=False, use_tanh=1, use_relu=0, use_kernel=True):
+                bidirectional=False, use_tanh=1, use_relu=0, use_kernel=True,
+                jit=False):
         super(SRU, self).__init__()
         self.n_in = input_size
         self.n_out = hidden_size
@@ -577,6 +604,7 @@ class SRU(nn.Module):
                 use_tanh = use_tanh,
                 use_relu = use_relu,
                 use_kernel = use_kernel,
+                jit=jit,
             )
             self.rnn_lst.append(l)
 

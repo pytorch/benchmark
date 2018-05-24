@@ -29,16 +29,17 @@ def mlstm_raw(input, hx, cx, w_xm, w_hm, w_ih, w_mh):
     return hy, cy
 
 
-def run_mlstm(cpu=0, gpu=0, batch_size=1, input_size=205, hidden_size=1900, embed_size=None, seq_len=20, warmup=10, benchmark=20, autograd=False, jit=False, backward=False, skip_cpu_governor_check=False):
-    bench = Bench(cuda=True)
+def run_mlstm(cpu=0, gpu=0, batch_size=1, input_size=205, hidden_size=1900, embed_size=None,
+              seq_len=20, warmup=10, benchmark=20, autograd=False, jit=False,
+              backward=False, skip_cpu_governor_check=False):
+    name = "mlstm_jit" if jit else "mlstm"
+    iter_timer = Bench(name=name, cuda=True, warmup_iters=warmup)
 
     if embed_size is None:
         embed_size = hidden_size
 
     if jit or backward:
         autograd = True
-
-    pprint.pprint(vars(args))
 
     benchmark_init(cpu, gpu, skip_cpu_governor_check)
 
@@ -61,21 +62,20 @@ def run_mlstm(cpu=0, gpu=0, batch_size=1, input_size=205, hidden_size=1900, embe
 
     for _ in range(warmup + benchmark):
         gc.collect()
-        bench.start_timing()
-        hx_t = hx
-        cx_t = cx
-        for j in range(seq_len):
-            hx_t, cx_t = mlstm(input[j], hx_t, cx_t, w_xm, w_hm, w_ih, w_mh)
-        if args.backward:
-            hx_t.sum().backward()
-            for param in params:
-                param.grad.zero_()
-        bench.stop_timing()
+        with iter_timer:
+            hx_t = hx
+            cx_t = cx
+            for j in range(seq_len):
+                hx_t, cx_t = mlstm(input[j], hx_t, cx_t, w_xm, w_hm, w_ih, w_mh)
+            if backward:
+                hx_t.sum().backward()
+                for param in params:
+                    param.grad.zero_()
 
-    return bench
+    return iter_timer
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="PyTorch LSTM benchmark.")
+    parser = argparse.ArgumentParser(description="PyTorch mLSTM benchmark.")
     parser.add_argument('--cpu',                     type=int, default=0,     help="CPU to run on")
     parser.add_argument('--gpu',                     type=int, default=0,     help="GPU to run on")
     parser.add_argument('--batch-size',              type=int, default=1,     help="Batch size")
@@ -91,4 +91,5 @@ if __name__ == "__main__":
     parser.add_argument('--skip-cpu-governor-check', action='store_true',     help="Skip checking whether CPU governor is set to `performance`")
     args = parser.parse_args()
 
+    pprint.pprint(vars(args))
     run_mlstm(**vars(args))

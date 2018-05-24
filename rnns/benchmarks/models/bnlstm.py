@@ -126,7 +126,7 @@ class LSTMCell(nn.Module):
         wh_b = torch.addmm(bias_batch, h_0, self.weight_hh)
         wi = torch.mm(input_, self.weight_ih)
         f, i, o, g = torch.split(wh_b + wi,
-                                 split_size=self.hidden_size, dim=1)
+                                 self.hidden_size, dim=1)
         c_1 = torch.sigmoid(f)*c_0 + torch.sigmoid(i)*torch.tanh(g)
         h_1 = torch.sigmoid(o) * torch.tanh(c_1)
         return h_1, c_1
@@ -212,7 +212,7 @@ class BNLSTMCell(nn.Module):
         bn_wh = self.bn_hh(wh, time=time)
         bn_wi = self.bn_ih(wi, time=time)
         f, i, o, g = torch.split(bn_wh + bn_wi + bias_batch,
-                                 split_size=self.hidden_size, dim=1)
+                                 self.hidden_size, dim=1)
         c_1 = torch.sigmoid(f)*c_0 + torch.sigmoid(i)*torch.tanh(g)
         h_1 = torch.sigmoid(o) * torch.tanh(self.bn_c(c_1, time=time))
         return h_1, c_1

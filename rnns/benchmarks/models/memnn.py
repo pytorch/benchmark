@@ -108,7 +108,6 @@ class Embed(nn.Embedding):
                 if length > 0:
                     input[i, j, :length] = indices[offset:offset+length]
                 offset += length
-        input = Variable(input)
 
         for i, row in enumerate(lengths_mat):
             emb = super().forward(input[i, :, :])
@@ -117,7 +116,7 @@ class Embed(nn.Embedding):
             emb = torch.sum(emb, dim=1).squeeze(1)
             for j, length in enumerate(row):
                 if length > 0:
-                    emb[j] /= emb.new_tensor(length)
+                    emb[j] /= float(length)
             emb_list.append(emb)
         embs = torch.stack(emb_list)
 
@@ -130,11 +129,20 @@ class Embed(nn.Embedding):
     @staticmethod
     @lru_cache(maxsize=32)
     def position_matrix(J, d):
-        m = torch.Tensor(J, d)
-        for k in range(1, d+1):
-            for j in range(1, J+1):
-                m[j-1, k-1] = (1 - j/J) - (k/d) * (1 - 2 * j/J)
-        return m
+        # TODO: I rewrote this to be faster, but depending on if the code is python2/3 the
+        # original code (commented out) produces a different result because of
+        # division semantics. Check to see what is correct.
+        #
+        # m = torch.Tensor(J, d)
+        # for k in range(1, d+1):
+        #     for j in range(1, J+1):
+        #         m[j-1, k-1] = (1 - j/J) - (k/d) * (1 - 2 * j/J)
+        k = torch.arange(d+1, dtype=torch.float)[1:].unsqueeze(0).expand(J, d)
+        j = torch.arange(J+1, dtype=torch.float)[1:].unsqueeze(1).expand(J, d)
+        J = float(J)
+        d = float(d)
+        out = (1. - j/J) - (k/d) * (1. - 2. * j/J)
+        return out
 
     @staticmethod
     def position_tensor(sentence_lengths, embeddings):
