@@ -28,6 +28,9 @@ import argparse
 from .common import Bench
 import gc
 
+# Assuming this script is being called from the benchmark/rnns dir
+wsj_default_path = './wsj.pkl'
+
 def reseed(seed=90210):
     random.seed(seed)
     torch.manual_seed(seed)
@@ -46,14 +49,14 @@ def minibatch(data, minibatch_size, reshuffle):
     for n in range(0, len(data), minibatch_size):
         yield data[n:n+minibatch_size]
 
-def test_wsj(jit=False, epochs=10):
+def test_wsj(jit=False, epochs=10, wsj_path=wsj_default_path):
     jit_tag = '_jit' if jit else ''
     name = 'seqlab{}'.format(jit_tag)
     iter_timer = Bench(name=name, cuda=False, warmup_iters=1)
     print
     print('# test on wsj subset')
 
-    data, n_types, n_labels = pickle.load(open('wsj.pkl', 'rb'))
+    data, n_types, n_labels = pickle.load(open(wsj_path, 'rb'))
 
     d_emb = 50
     d_rnn = 51
@@ -162,6 +165,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=10,
                         help='number of epochs to train (default: 10)')
+    parser.add_argument('--wsj-path', type=str, default=wsj_default_path,
+                        help='path to wsj.pkl')
     parser.add_argument('--jit', action='store_true',
                         help='jit')
     args = parser.parse_args()

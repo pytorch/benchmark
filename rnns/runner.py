@@ -10,6 +10,7 @@ from benchmarks.tensor import run_tensor
 from benchmarks.lstm_variants_test import run_lstm_variant
 from benchmarks.bnlstm import run_bnlstm
 from benchmarks.sru_test import run_sru
+from benchmarks.qrnn import run_qrnn
 
 from benchmarks.sequence_labeler import test_wsj 
 from benchmarks.sequence_labeler import Example
@@ -37,25 +38,25 @@ def skip(fn):
 
 class Benchmarks(object):
 
-    @skip
+    # @skip
     def sequence_labeler(self):
         return [
             test_wsj(epochs=5, jit=False),
             test_wsj(epochs=5, jit=True),
         ]
 
-    @skip
+    # @skip
     def lstm_one_layer_train_cuda(self):
         return [
             run_lstm(seq_len=256, batch_size=32, backward=True, jit=True),
             run_cudnn_lstm(seq_len=256, batch_size=32, backward=True),
         ]
 
-    @skip
+    # @skip
     def mlstm_forward_cuda(self):
         return [run_mlstm(autograd=True), run_mlstm(jit=True)]
 
-    @skip
+    # @skip
     def tensor_mul_broadcast(self):
         # Basic example
         return [
@@ -63,7 +64,7 @@ class Benchmarks(object):
             run_tensor(broadcast=False),
         ]
 
-    @skip
+    # @skip
     def memnn(self):
         # This doesn't actually use a RNN. (in its current form, at least)
         # CUDA is much slower than CPU for memnn (CPU is still slow).
@@ -73,12 +74,12 @@ class Benchmarks(object):
             run_memnn(warmup=5, benchmark=15, cuda=True),
         ]
 
-    @skip
+    # @skip
     def bnlstm(self):
         # Slow on CPU
         return [run_bnlstm(cuda=True, num_batches=5)]
 
-    @skip
+    # @skip
     def lstm_variant(self):
         # Slow on CPU
         variants = over(
@@ -97,13 +98,21 @@ class Benchmarks(object):
         params = make_params(variant=variants, cuda=cuda)[0]
         return [run_lstm_variant(**p) for p in params]
 
-    @skip
+    # @skip
     def sru(self):
         params = make_params(backward=over(False, True),
                              use_kernel=over(False, True))[0]
         params_jit = make_params(backward=over(False, True), jit=True)[0]
         params.extend(params_jit)
         return [run_sru(**p) for p in params]
+
+    # @skip
+    def qrnn(self):
+        params = make_params(cuda=True,
+                             use_kernel=over(False, True))[0]
+        params_jit = make_params(cuda=True, jit=True)[0]
+        params.extend(params_jit)
+        return [run_qrnn(**p) for p in params]
 
 
 def discover_benchmarks():
