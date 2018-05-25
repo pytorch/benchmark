@@ -17,6 +17,15 @@ PY2 = sys.version_info[0] == 2
 SummaryStats = namedtuple('SummaryStats', ['mean', 'min', 'max'])
 
 
+def tag(**kwargs):
+    # tag(key=value) returns '_key' if value else ''
+    # kwargs should have only one thing
+    assert len(kwargs.keys()) == 1
+    key = list(kwargs.keys())[0]
+    value = kwargs[key]
+    return '_{}'.format(key) if value else ''
+
+
 class Bench(object):
     timer = time.time if PY2 else time.perf_counter
 

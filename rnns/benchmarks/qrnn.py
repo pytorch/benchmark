@@ -2,24 +2,16 @@ import argparse
 import pprint
 
 from .benchmark_common import benchmark_init
-from .common import Bench
+from .common import Bench, tag
 from .torchqrnn import QRNN
 
 import torch
 import gc
 
 
-def tag(**kwargs):
-    # kwargs should have only one thing
-    assert len(kwargs.keys()) == 1
-    key = list(kwargs.keys())[0]
-    value = kwargs[key]
-    return '_{}'.format(key) if value else ''
-
-
 def run_qrnn(batch_size=20, input_size=128, seq_len=20,
              warmup=10, benchmark=10,
-             hidden_size=256, num_layers=5,
+             hidden_size=256, num_layers=10,
              use_kernel=False, jit=False, cuda=False):
     assert not (use_kernel and jit)
     if use_kernel:
@@ -38,7 +30,7 @@ def run_qrnn(batch_size=20, input_size=128, seq_len=20,
         device = torch.device('cpu')
     batches = [torch.rand(size, requires_grad=True, device=device)
                for _ in range(niters)]
-    qrnn = QRNN(input_size, hidden_size, num_layers=2, dropout=0.4,
+    qrnn = QRNN(input_size, hidden_size, num_layers=num_layers, dropout=0.4,
                 use_kernel=use_kernel, jit=jit).to(device)
 
     for X in batches:
@@ -55,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size',   type=int, default=20,    help="Batch size")
     parser.add_argument('--input-size',   type=int, default=128,   help="Input size")
     parser.add_argument('--hidden-size',  type=int, default=256,   help="Hidden size")
-    parser.add_argument('--num_layers',   type=int, default=5,     help="Hidden size")
+    parser.add_argument('--num-layers',   type=int, default=10,    help="Hidden size")
     parser.add_argument('--seq-len',      type=int, default=20,    help="Sequence length")
     parser.add_argument('--warmup',       type=int, default=10,    help="Warmup iterations")
     parser.add_argument('--benchmark',    type=int, default=20,    help="Benchmark iterations")

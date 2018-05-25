@@ -37,6 +37,78 @@ def reseed(seed=90210):
 
 reseed()
 
+@torch.jit.script
+def gru_cell(input_, hidden, w_hh, b_hh):
+    gi = input_
+    gh = hidden.mm(w_hh.t()) + b_hh
+    i_r, i_i, i_n = gi.chunk(chunks=3, dim=1)
+    h_r, h_i, h_n = gh.chunk(chunks=3, dim=1)
+
+    resetgate = F.sigmoid(i_r + h_r)
+    inputgate = F.sigmoid(i_i + h_i)
+    newgate = F.tanh(i_n + resetgate * h_n)
+    hy = newgate + inputgate * (hidden - newgate)
+
+    return hy
+
+
+def _gru(input_, hidden, w_hh, b_hh, reverse=False):
+    seq_len, batch_size, _ = input_.size()
+    steps = range(0, seq_len)
+    if reverse:
+        steps = range(seq_len - 1, -1, -1)
+    output = []
+    for i in steps:
+        hidden = gru_cell(input_[i], hidden, w_hh, b_hh)
+        output.append(hidden)
+
+    if reverse:
+        output.reverse()
+
+    output = torch.cat(output, 0).view(seq_len, *output[0].size())
+    return output, hidden
+
+
+def gru(input, hidden, all_weights):
+    seq_len, batch_size, input_size = input.size()
+
+    outputs = []
+    hiddens = []
+
+    for direction in [0, 1]:
+        w_ih, w_hh, b_ih, b_hh = all_weights[direction]
+        # Pre-multiply the inputs
+        input_ = F.linear(input.view(-1, input_size), w_ih, b_ih).view(
+            seq_len, batch_size, -1)
+
+        output, hy = _gru(input_, hidden[direction],
+                          w_hh, b_hh, reverse=(direction == 1))
+        outputs.append(output)
+        hiddens.append(hy)
+
+    output = torch.cat(outputs, -1)
+    hidden = torch.stack(hiddens, 0)
+
+    return output, hidden
+
+
+class Model(nn.Module):
+    def __init__(self, d_emb, d_rnn, jit=False):
+        super(Model, self).__init__()
+        self.gru = nn.GRU(d_emb, d_rnn, bidirectional=True)
+        self.jit = jit
+        self.input_size = d_emb
+        self.hidden_size = d_rnn
+
+    def forward(self, input):
+        if not self.jit:
+            return self.gru(input)
+
+        hidden = input.new_zeros(2, input.size(1), self.hidden_size)
+        result = gru(input, hidden, self.gru.all_weights)
+        return result
+
+
 class Example(object):
     def __init__(self, tokens, labels, n_labels):
         self.tokens = tokens
@@ -49,10 +121,11 @@ def minibatch(data, minibatch_size, reshuffle):
     for n in range(0, len(data), minibatch_size):
         yield data[n:n+minibatch_size]
 
-def test_wsj(jit=False, epochs=10, wsj_path=wsj_default_path):
+def test_wsj(jit=False, epochs=12, wsj_path=wsj_default_path, cuda=False):
     jit_tag = '_jit' if jit else ''
-    name = 'seqlab{}'.format(jit_tag)
-    iter_timer = Bench(name=name, cuda=False, warmup_iters=1)
+    cuda_tag = '_cuda' if cuda else ''
+    name = 'seqlab{}{}'.format(cuda_tag, jit_tag)
+    iter_timer = Bench(name=name, cuda=False, warmup_iters=2)
     print
     print('# test on wsj subset')
 
@@ -66,15 +139,15 @@ def test_wsj(jit=False, epochs=10, wsj_path=wsj_default_path):
     minibatch_size = 5
     n_epochs = epochs
     preprocess_minibatch = True
-    
+
     embed_word = nn.Embedding(n_types, d_emb)
-    gru = nn.GRU(d_emb, d_rnn, bidirectional=True)
-    if jit:
-        gru = torch.jit.trace(torch.randn(5, 52, 50))(gru)
+    gru = Model(d_emb, d_rnn, jit=jit)
+    if cuda:
+        gru.cuda()
 
     embed_action = nn.Embedding(n_labels, d_actemb)
     combine_arh = nn.Linear(d_actemb + d_rnn * 2 + d_hid, d_hid)
-    
+
     initial_h_tensor = torch.Tensor(1, d_hid)
     initial_h_tensor.zero_()
     initial_h = Parameter(initial_h_tensor)
@@ -111,14 +184,15 @@ def test_wsj(jit=False, epochs=10, wsj_path=wsj_default_path):
                     # minibatch in one go (requires padding with zeros,
                     # should be masked but isn't right now)
                     all_tokens = [ex.tokens for ex in batch]
-                    if jit:
-                        # jit requires fixed length
-                        max_length = 52
-                    else:
-                        max_length = max(map(len, all_tokens))
+                    max_length = max(map(len, all_tokens))
                     all_tokens = [tok + [0] * (max_length - len(tok)) for tok in all_tokens]
                     all_e = embed_word(Variable(torch.LongTensor(all_tokens), requires_grad=False))
-                    [all_rnn_out, _] = gru(all_e)
+
+                    if cuda:
+                        [all_rnn_out, _] = gru(all_e.cuda())
+                        all_rnn_out = all_rnn_out.cpu()
+                    else:
+                        all_rnn_out, _ = gru(all_e)
                 
                 for ex in batch:
                     N = len(ex.tokens)

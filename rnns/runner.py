@@ -40,10 +40,8 @@ class Benchmarks(object):
 
     # @skip
     def sequence_labeler(self):
-        return [
-            test_wsj(epochs=5, jit=False),
-            test_wsj(epochs=5, jit=True),
-        ]
+        params = make_params(cuda=over(False, True), jit=over(False, True))[0]
+        return [test_wsj(**p) for p in params]
 
     # @skip
     def lstm_one_layer_train_cuda(self):
