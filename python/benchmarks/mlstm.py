@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
-from . import *
+from common import Benchmark, make_params, over, AttrDict
 
 import models.mlstm as mlstm
 
@@ -26,9 +26,17 @@ class MultiplicativeLSTM(Benchmark):
         self.w_ih = Variable(cast(torch.randn(4 * p.hidden_size, p.input_size)))
         self.w_mh = Variable(cast(torch.randn(4 * p.hidden_size, p.embed_size)))
 
-    def time_mlstm(self, p):
+    def time(self, p):
         # TODO: this is totally bogus
         h = self.hiddens
         for i in range(N_ITER):
             # TODO: Don't keep using the same input
             h = mlstm.MultiplicativeLSTMCell(self.input, h, self.w_xm, self.w_hm, self.w_ih, self.w_mh)
+
+if __name__ == '__main__':
+    d = MultiplicativeLSTM.default_params.copy()
+    d['cuda'] = False
+    p = AttrDict(d)
+    m = MultiplicativeLSTM()
+    m.prepare(p)
+    m.time(p)

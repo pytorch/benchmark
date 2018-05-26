@@ -1,0 +1,6 @@
+Google benchmark
+cmake -G "Unix Makefiles" ../../../third_party/benchmark/ -DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON -DCMAKE_BUILD_TYPE=Release
+make -j 80
+
+Remove scaling warning
+sudo cpupower frequency-set --governor performance

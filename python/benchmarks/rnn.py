@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
-from . import *
+from common import Benchmark, make_params, over, AttrDict
 
 
 class WLM(Benchmark):
@@ -44,7 +44,7 @@ class WLM(Benchmark):
             self.model.cuda()
             self.criterion.cuda()
 
-    def time_word_language_model_example(self, p):
+    def time(self, p):
         total_loss = 0
         for data, targets in zip(self.data_batches, self.target_batches):
             output, _ = self.model(data)
@@ -55,3 +55,10 @@ class WLM(Benchmark):
             torch.cuda.synchronize()
 
 
+if __name__ == '__main__':
+    d = WLM.default_params.copy()
+    d['cuda'] = False
+    p = AttrDict(d)
+    m = WLM()
+    m.prepare(p)
+    m.time(p)

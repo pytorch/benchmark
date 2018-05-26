@@ -3,3 +3,5 @@ PyTorch
 */**/__pycache__
 */**/*.pyc
 *.out
+*.swp
+build/
