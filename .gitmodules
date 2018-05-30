@@ -1,6 +1,6 @@
 [submodule "third_party/benchmark"]
 	path = third_party/benchmark
 	url = https://github.com/google/benchmark
-[submodule "third_party/googletest"]
-	path = third_party/googletest
-	url = https://github.com/google/googletest
+[submodule "setup/third_party/pytorch-dockerfiles"]
+	path = setup/third_party/pytorch-dockerfiles
+	url = https://github.com/pietern/pytorch-dockerfiles
