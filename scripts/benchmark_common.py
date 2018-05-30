@@ -12,7 +12,7 @@ def init(cpu, gpu, skip_cpu_governor_check=False):
 # NB: Be careful with this when benchmarking backward; backward
 # uses multiple threads
 def cpu_pin(cpu):
-    if not getattr(os, 'sched_setaffinity'):
+    if not hasattr(os, 'sched_setaffinity'):
         warnings.warn("Could not pin to CPU {}; try pinning with 'taskset 0x{:x}'".format(cpu, 1 << cpu))
     else:
         os.sched_setaffinity(0, (cpu, ))
