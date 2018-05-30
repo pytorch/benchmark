@@ -46,6 +46,7 @@ class Benchmarks(object):
     # @skip
     def lstm_one_layer_train_cuda(self):
         return [
+            run_lstm(seq_len=256, batch_size=32, backward=True, fused=True),
             run_lstm(seq_len=256, batch_size=32, backward=True, jit=True),
             run_cudnn_lstm(seq_len=256, batch_size=32, backward=True),
         ]

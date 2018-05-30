@@ -480,7 +480,8 @@ def SRU_Compute_No_Kernel(activation_type, d_out, bidirectional=False):
 
 class SRUCell(nn.Module):
     def __init__(self, n_in, n_out, dropout=0, rnn_dropout=0,
-                bidirectional=False, use_tanh=1, use_relu=0, use_kernel=True, jit=False):
+                 bidirectional=False, use_tanh=1, use_relu=0, use_kernel=True,
+                 jit=False):
         super(SRUCell, self).__init__()
         self.n_in = n_in
         self.n_out = n_out

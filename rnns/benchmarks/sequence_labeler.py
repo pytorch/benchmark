@@ -121,7 +121,7 @@ def minibatch(data, minibatch_size, reshuffle):
     for n in range(0, len(data), minibatch_size):
         yield data[n:n+minibatch_size]
 
-def test_wsj(jit=False, epochs=12, wsj_path=wsj_default_path, cuda=False):
+def test_wsj(jit=False, epochs=6, wsj_path=wsj_default_path, cuda=False):
     jit_tag = '_jit' if jit else ''
     cuda_tag = '_cuda' if cuda else ''
     name = 'seqlab{}{}'.format(cuda_tag, jit_tag)
