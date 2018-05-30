@@ -5,14 +5,15 @@ import argparse
 import pprint
 import gc
 
-from .common import Bench
+from .common import Bench, tag
 from .models import bnlstm
 
 # From https://github.com/jihunchoi/recurrent-batch-normalization-pytorch
 
-def run_bnlstm(hidden_size=100, max_length=784, pmnist=False, num_batches=1,
+def run_bnlstm(hidden_size=100, max_length=784, pmnist=False, num_batches=5,
                cuda=False, jit=False, warmup=10, benchmark=20):
-    iter_timer = Bench(cuda=cuda)
+    name = 'bnlstm{}{}'.format(tag(cuda=cuda), tag(jit=jit))
+    iter_timer = Bench(name, cuda=cuda, warmup_iters=2)
 
     # The CPU version is slow...
     batch_size = 20 if cuda else 5
@@ -21,7 +22,8 @@ def run_bnlstm(hidden_size=100, max_length=784, pmnist=False, num_batches=1,
         def __init__(self):
             super(Model, self).__init__()
             self.rnn = bnlstm.LSTM(cell_class=bnlstm.BNLSTMCell, input_size=1,
-                                   hidden_size=hidden_size, batch_first=True, max_length=max_length)
+                                   hidden_size=hidden_size, batch_first=True,
+                                   max_length=max_length, jit=jit)
             self.fc = nn.Linear(in_features=hidden_size, out_features=10)  # 10 digits in mnist
 
         def forward(self, data):

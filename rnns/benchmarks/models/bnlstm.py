@@ -136,11 +136,20 @@ class LSTMCell(nn.Module):
         return s.format(name=self.__class__.__name__, **self.__dict__)
 
 
+@torch.jit.script
+def bnlstm_helper(c_0, bn_wh, bn_wi, bias_batch):
+    f, i, o, g = torch.chunk(bn_wh + bn_wi + bias_batch,
+                             chunks=4, dim=1)
+    c_1 = torch.sigmoid(f)*c_0 + torch.sigmoid(i)*torch.tanh(g)
+    return c_1, o
+
+
 class BNLSTMCell(nn.Module):
 
     """A BN-LSTM cell."""
 
-    def __init__(self, input_size, hidden_size, max_length, use_bias=True):
+    def __init__(self, input_size, hidden_size, max_length, use_bias=True,
+                 jit=False):
 
         super(BNLSTMCell, self).__init__()
         self.input_size = input_size
@@ -163,6 +172,8 @@ class BNLSTMCell(nn.Module):
         self.bn_c = SeparatedBatchNorm1d(
             num_features=hidden_size, max_length=max_length)
         self.reset_parameters()
+
+        self.jit = jit
 
     def reset_parameters(self):
         """
@@ -211,6 +222,12 @@ class BNLSTMCell(nn.Module):
         wi = torch.mm(input_, self.weight_ih)
         bn_wh = self.bn_hh(wh, time=time)
         bn_wi = self.bn_ih(wi, time=time)
+
+        if self.jit:
+            c_1, o = bnlstm_helper(c_0, bn_wh, bn_wi, bias_batch)
+            h_1 = torch.sigmoid(o) * torch.tanh(self.bn_c(c_1, time=time))
+            return h_1, c_1
+
         f, i, o, g = torch.split(bn_wh + bn_wi + bias_batch,
                                  self.hidden_size, dim=1)
         c_1 = torch.sigmoid(f)*c_0 + torch.sigmoid(i)*torch.tanh(g)

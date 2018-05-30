@@ -19,6 +19,32 @@ Besides that, they are a stripped-down version of PyTorch's RNN layers.
 """
 
 
+@th.jit.script
+def slowlstm_cell(x, h, c, w_xi, w_hi, b_i,
+                  w_xf, w_hf, b_f, w_xo, w_ho, b_o,
+                  w_xc, w_hc, b_c):
+    h = h.view((h.size(1), -1))
+    c = c.view((c.size(1), -1))
+    x = x.view((x.size(1), -1))
+    # Linear mappings
+    i_t = th.mm(x, w_xi) + th.mm(h, w_hi) + b_i
+    f_t = th.mm(x, w_xf) + th.mm(h, w_hf) + b_f
+    o_t = th.mm(x, w_xo) + th.mm(h, w_ho) + b_o
+    # activations
+    i_t = i_t.sigmoid()
+    f_t = f_t.sigmoid()
+    o_t = o_t.sigmoid()
+    # cell computations
+    c_t = th.mm(x, w_xc) + th.mm(h, w_hc) + b_c
+    c_t = c_t.tanh()
+    c_t = th.mul(c, f_t) + th.mul(i_t, c_t)
+    h_t = th.mul(o_t, th.tanh(c_t))
+    # Reshape for compatibility
+    h_t = h_t.view((1, h_t.size(0), -1))
+    c_t = c_t.view((1, c_t.size(0), -1))
+    return h_t, c_t
+
+
 class SlowLSTM(nn.Module):
 
     """
@@ -27,7 +53,8 @@ class SlowLSTM(nn.Module):
     http://www.bioinf.jku.at/publications/older/2604.pdf
     """
 
-    def __init__(self, input_size, hidden_size, bias=True, dropout=0.0):
+    def __init__(self, input_size, hidden_size, bias=True, dropout=0.0,
+                 jit=False):
         super(SlowLSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -60,12 +87,27 @@ class SlowLSTM(nn.Module):
         self.b_c = W(self.b_c)
         self.reset_parameters()
 
+        self.jit = jit
+
     def reset_parameters(self):
         std = 1.0 / math.sqrt(self.hidden_size)
         for w in self.parameters():
             w.data.uniform_(-std, std)
 
     def forward(self, x, hidden):
+
+        if self.jit:
+            h, c = hidden
+            h_t, c_t = slowlstm_cell(x, h, c,
+                                     self.w_xi, self.w_hi, self.b_i,
+                                     self.w_xf, self.w_hf, self.b_f,
+                                     self.w_xo, self.w_ho, self.b_o,
+                                     self.w_xc, self.w_hc, self.b_c)
+            if self.dropout > 0.0:
+                F.dropout(h_t, p=self.dropout, training=self.training,
+                          inplace=True)
+            return h_t, (h_t, c_t)
+
         h, c = hidden
         h = h.view(h.size(1), -1)
         c = c.view(c.size(1), -1)
@@ -110,7 +152,8 @@ class LSTM(nn.Module):
             * semeniuta: uses SemeniutaLSTM's dropout
     """
 
-    def __init__(self, input_size, hidden_size, bias=True, dropout=0.0, dropout_method='pytorch'):
+    def __init__(self, input_size, hidden_size, bias=True, dropout=0.0,
+                 dropout_method='pytorch', jit=False):
         super(LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -224,7 +267,8 @@ class LayerNormLSTM(LSTM):
     """
 
     def __init__(self, input_size, hidden_size, bias=True, dropout=0.0,
-                 dropout_method='pytorch', ln_preact=True, learnable=True):
+                 dropout_method='pytorch', ln_preact=True, learnable=True,
+                 jit=False):
         super(LayerNormLSTM, self).__init__(input_size=input_size,
                                             hidden_size=hidden_size,
                                             bias=bias,

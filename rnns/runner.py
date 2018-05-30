@@ -76,7 +76,10 @@ class Benchmarks(object):
     # @skip
     def bnlstm(self):
         # Slow on CPU
-        return [run_bnlstm(cuda=True, num_batches=5)]
+        return [
+            run_bnlstm(cuda=True, jit=True, num_batches=9),
+            run_bnlstm(cuda=True, num_batches=9),
+        ]
 
     # @skip
     def lstm_variant(self):
@@ -92,9 +95,9 @@ class Benchmarks(object):
             'LayerNormMoonLSTM',
             'LayerNormSemeniutaLSTM',
         )
-        cuda = over(True)
 
-        params = make_params(variant=variants, cuda=cuda)[0]
+        params = make_params(variant=variants, cuda=True)[0]
+        params.extend(make_params(variant='SlowLSTM', cuda=True, jit=True)[0])
         return [run_lstm_variant(**p) for p in params]
 
     # @skip

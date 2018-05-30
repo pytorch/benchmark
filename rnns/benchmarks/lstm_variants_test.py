@@ -2,7 +2,7 @@ import torch as th
 from torch.autograd import Variable as V
 import gc
 
-from .common import AttrDict, Bench
+from .common import AttrDict, Bench, tag
 
 import benchmarks.lstm_variants as lstm_variants
 
@@ -23,12 +23,11 @@ SEQ_LEN = 100
 DROPOUT = 0.5
 
 
-def run_lstm_variant(variant='SlowLSTM', cuda=False, size=128):
+def run_lstm_variant(variant='SlowLSTM', cuda=False, size=128, jit=False):
     assert variant in lstms
     p = AttrDict({'cuda': cuda, 'lstm_kind': variant, 'size': size})
 
-    cuda_tag = '_cuda' if cuda else ''
-    name = '{}_size{}{}'.format(variant, size, cuda_tag)
+    name = '{}_size{}{}{}'.format(variant, size, tag(cuda=cuda), tag(jit=jit))
 
     def C(x):
         if p.cuda:
@@ -39,7 +38,7 @@ def run_lstm_variant(variant='SlowLSTM', cuda=False, size=128):
     x = V(C(th.rand(1, BATCH, p.size)))
     hiddens = (V(C(th.rand(1, BATCH, p.size))), V(C(th.rand(1, BATCH, p.size))))
     th.manual_seed(1234)
-    cus = C(lstm(p.size, p.size, dropout=DROPOUT))
+    cus = C(lstm(p.size, p.size, dropout=DROPOUT, jit=jit))
     if hasattr(cus, 'mask'):
         cus.mask = C(cus.mask)
 
