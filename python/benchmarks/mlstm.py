@@ -1,42 +1,91 @@
+import benchmark_common
+
 import torch
-from torch import nn
 from torch.autograd import Variable
-from common import Benchmark, make_params, over, AttrDict
+import torch.jit
 
-import models.mlstm as mlstm
+import argparse
+import pprint
+import gc
+import time
 
-# From https://discuss.pytorch.org/t/implementation-of-multiplicative-lstm/2328/5
+def mlstm_raw(input, hx, cx, w_xm, w_hm, w_ih, w_mh):
+    # w_ih holds W_hx, W_ix, W_ox, W_fx
+    # w_mh holds W_hm, W_im, W_om, W_fm
 
-N_ITER = 700
+    m = input.mm(w_xm.t()) * hx.mm(w_hm.t())
+    gates = input.mm(w_ih.t()) + m.mm(w_mh.t())
 
-class MultiplicativeLSTM(Benchmark):
-    # parameters taken from the paper
-    default_params = dict(batch_size=3, input_size=100, hidden_size=400, embed_size=400, cuda=True)
-    params = make_params(cuda=over(True, False))
+    ingate, forgetgate, hiddengate, outgate = gates.chunk(4, 1)
 
-    def prepare(self, p):
-        def cast(tensor):
-            return tensor.cuda() if p.cuda else tensor
+    ingate = ingate.sigmoid()
+    outgate = outgate.sigmoid()
+    forgetgate = forgetgate.sigmoid()
 
-        self.input = Variable(cast(torch.randn(p.batch_size, p.input_size)))
-        self.hiddens = (Variable(cast(torch.randn(p.batch_size, p.hidden_size))),
-                        Variable(cast(torch.randn(p.batch_size, p.hidden_size))))
-        self.w_xm = Variable(cast(torch.randn(p.embed_size, p.input_size)))
-        self.w_hm = Variable(cast(torch.randn(p.embed_size, p.hidden_size)))
-        self.w_ih = Variable(cast(torch.randn(4 * p.hidden_size, p.input_size)))
-        self.w_mh = Variable(cast(torch.randn(4 * p.hidden_size, p.embed_size)))
+    cy = (forgetgate * cx) + (ingate * hiddengate)
+    hy = (cy * outgate).tanh()
 
-    def time(self, p):
-        # TODO: this is totally bogus
-        h = self.hiddens
-        for i in range(N_ITER):
-            # TODO: Don't keep using the same input
-            h = mlstm.MultiplicativeLSTMCell(self.input, h, self.w_xm, self.w_hm, self.w_ih, self.w_mh)
+    return hy, cy
 
-if __name__ == '__main__':
-    d = MultiplicativeLSTM.default_params.copy()
-    d['cuda'] = False
-    p = AttrDict(d)
-    m = MultiplicativeLSTM()
-    m.prepare(p)
-    m.time(p)
+
+def main():
+    parser = argparse.ArgumentParser(description="PyTorch LSTM benchmark.")
+    parser.add_argument('--cpu',                     type=int, default=0,     help="CPU to run on")
+    parser.add_argument('--gpu',                     type=int, default=0,     help="GPU to run on")
+    parser.add_argument('--batch-size',              type=int, default=1,     help="Batch size")
+    parser.add_argument('--input-size',              type=int, default=205,   help="Input size")
+    parser.add_argument('--hidden-size',             type=int, default=1900,  help="Hidden size")
+    parser.add_argument('--embed-size',              type=int, default=None,  help="Embed size")
+    parser.add_argument('--seq-len',                 type=int, default=20,    help="Sequence length")
+    parser.add_argument('--warmup',                  type=int, default=10,    help="Warmup iterations")
+    parser.add_argument('--benchmark',               type=int, default=20,    help="Benchmark iterations")
+    parser.add_argument('--autograd',                action='store_true',     help="Use autograd")
+    parser.add_argument('--jit',                     action='store_true',     help="Use JIT compiler (implies --autograd)")
+    parser.add_argument('--skip-cpu-governor-check', action='store_true',     help="Skip checking whether CPU governor is set to `performance`")
+    args = parser.parse_args()
+
+    if args.embed_size is None:
+        args.embed_size = args.hidden_size
+
+    if args.jit:
+        args.autograd = True
+
+    pprint.pprint(vars(args))
+
+    benchmark_common.init(args.cpu, args.gpu, args.skip_cpu_governor_check)
+
+    if args.autograd:
+        V = Variable
+    else:
+        V = lambda x: x
+
+    if args.jit:
+        mlstm = torch.jit.compile(nderivs=0)(mlstm_raw)
+    else:
+        mlstm = mlstm_raw
+
+    input = V(torch.randn(args.seq_len, args.batch_size, args.input_size).cuda(device=args.gpu))
+    hx    = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu))
+    cx    = V(torch.randn(args.batch_size, args.hidden_size).cuda(device=args.gpu))
+    w_xm  = V(torch.randn(args.embed_size, args.input_size).cuda(device=args.gpu))
+    w_hm  = V(torch.randn(args.embed_size, args.hidden_size).cuda(device=args.gpu))
+    w_ih  = V(torch.randn(4 * args.hidden_size, args.input_size).cuda(device=args.gpu))
+    w_mh  = V(torch.randn(4 * args.hidden_size, args.embed_size).cuda(device=args.gpu))
+
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+
+    for i in range(args.warmup + args.benchmark):
+        gc.collect()
+        start.record()
+        start_cpu_secs = time.time()  # high precision only for Linux
+        for j in range(args.seq_len):
+            hx, cx = mlstm(input[j], hx, cx, w_xm, w_hm, w_ih, w_mh)
+        end_cpu_secs = time.time()
+        end.record()
+        torch.cuda.synchronize()
+        gpu_msecs = start.elapsed_time(end)
+        benchmark_common.print_results_usecs("mlstm", i, gpu_msecs*1000, (end_cpu_secs - start_cpu_secs)*1000000, args.seq_len)
+
+if __name__ == "__main__":
+    main()
