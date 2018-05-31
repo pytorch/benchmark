@@ -32,7 +32,7 @@ if __name__ == "__main__":
         # numbers = numbers.transpose(0, 1)
         # numbers = numbers.sigmoid()
         # numbers = numbers.transpose(0, 1)
-        # numbers = numbers.tanh()
+        numbers = numbers.tanh()
         # numbers = numbers.transpose(0, 1)
         # numbers = numbers.sigmoid()
     print("elapsed: " + str(time.time() - tstart))
