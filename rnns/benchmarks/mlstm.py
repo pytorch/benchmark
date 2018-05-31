@@ -1,6 +1,3 @@
-from .benchmark_common import benchmark_init
-from .common import Bench
-
 import torch
 from torch.autograd import Variable
 import torch.jit
@@ -9,6 +6,14 @@ import argparse
 import pprint
 import gc
 import time
+
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import Bench, tag
+else:
+    from .benchmark_common import benchmark_init
+    from .common import Bench, tag
+
 
 def mlstm_raw(input, hx, cx, w_xm, w_hm, w_ih, w_mh):
     # w_ih holds W_hx, W_ix, W_ox, W_fx

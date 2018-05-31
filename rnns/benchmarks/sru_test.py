@@ -1,14 +1,18 @@
-from . import *
-
-from .benchmark_common import benchmark_init
-from .common import Bench
 import pprint
 import argparse
+import gc
 
 import torch
 from torch.autograd import Variable
-import gc
-from .sru import SRU, SRUCell
+
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import Bench
+    from sru import SRU
+else:
+    from .benchmark_common import benchmark_init
+    from .common import Bench
+    from .sru import SRU
 
 
 def run_sru(cpu=0, gpu=0, jit=False, use_kernel=False, backward=False,

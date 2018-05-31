@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from . import *
 
+# This file is superceded by sequence_labeler.py.
+
 
 class POSTagger(Benchmark):
     """Based on code from https://gist.github.com/hal3/8c170c4400576eb8d0a8bd94ab231232 (by Hal Daume III)."""

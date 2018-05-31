@@ -2,9 +2,15 @@ import torch as th
 from torch.autograd import Variable as V
 import gc
 
-from .common import AttrDict, Bench, tag
-
 import benchmarks.lstm_variants as lstm_variants
+
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import AttrDict, Bench, tag
+else:
+    from .benchmark_common import benchmark_init
+    from .common import AttrDict, Bench, tag
+
 
 lstms = [
     'SlowLSTM',

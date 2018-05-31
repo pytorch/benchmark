@@ -1,6 +1,3 @@
-from .benchmark_common import benchmark_init
-from .common import Bench
-
 import torch
 from torch.autograd import Variable
 import torch.jit
@@ -11,6 +8,13 @@ import pprint
 import gc
 import time
 import sys
+
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import Bench, tag
+else:
+    from .benchmark_common import benchmark_init
+    from .common import Bench, tag
 
 
 def run_cudnn_lstm(cpu=0, gpu=0, batch_size=1, input_size=256, hidden_size=512,

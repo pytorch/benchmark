@@ -1,5 +1,8 @@
-from .benchmark_common import benchmark_init
-from .common import Bench, tag
+import argparse
+import pprint
+import gc
+import time
+import sys
 
 import torch
 from torch.autograd import Variable
@@ -8,11 +11,13 @@ from torch._thnn import type2backend
 from torch.nn._functions.thnn import rnnFusedPointwise as fusedBackend
 from torch.nn._functions.rnn import LSTMCell
 import torch.nn.functional as F
-import argparse
-import pprint
-import gc
-import time
-import sys
+
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import Bench, tag
+else:
+    from .benchmark_common import benchmark_init
+    from .common import Bench, tag
 
 # This file copied from scripts/lstm.py.
 

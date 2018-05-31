@@ -25,8 +25,12 @@ from torch.autograd import Variable
 from torch.nn.parameter import Parameter
 import torch.nn.functional as F
 import argparse
-from .common import Bench
 import gc
+
+if __name__ == '__main__':
+    from common import Bench
+else:
+    from .common import Bench
 
 # Assuming this script is being called from the benchmark/rnns dir
 wsj_default_path = './wsj.pkl'

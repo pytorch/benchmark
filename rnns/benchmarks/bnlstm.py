@@ -5,8 +5,15 @@ import argparse
 import pprint
 import gc
 
-from .common import Bench, tag
-from .models import bnlstm
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import Bench, tag
+    from models import bnlstm
+else:
+    from .benchmark_common import benchmark_init
+    from .common import Bench, tag
+    from .models import bnlstm
+
 
 # From https://github.com/jihunchoi/recurrent-batch-normalization-pytorch
 

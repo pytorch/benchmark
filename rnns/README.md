@@ -2,9 +2,9 @@
 
 To run all the benchmarks, and get a summary view, use `python runner.py`
 
-To run a specific benchmark, call it as a Python module:
-`python -m benchmarks.sru`. They come with a lot of command line options
-for fine-tuning.
+To run a specific benchmark, run it as a python script:
+`python benchmarks/sru.py` or `python benchmarks/sequence_labeler.py`
+They come with a lot of command line options for fine-tuning.
 
 ## Caveats
 

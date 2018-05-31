@@ -3,6 +3,7 @@ from torch import nn
 from torch.autograd import Variable
 from . import *
 
+# This file is not in use
 
 class WLM(Benchmark):
     default_params = dict(rnn_type='LSTM', num_tokens=10000, embedding_size=200,

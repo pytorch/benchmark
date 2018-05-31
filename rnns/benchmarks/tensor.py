@@ -1,6 +1,11 @@
 import torch
-from .common import Bench
-from .benchmark_common import benchmark_init
+
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import Bench
+else:
+    from .benchmark_common import benchmark_init
+    from .common import Bench
 
 
 def run_tensor(broadcast=True):

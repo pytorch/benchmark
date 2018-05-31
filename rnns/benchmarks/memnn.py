@@ -2,10 +2,18 @@
 import torch
 from torch import nn
 import gc
-from .common import AttrDict, Bench
-from .models import memnn
 import argparse
 import pprint
+
+
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import AttrDict, Bench, tag
+    from models import memnn
+else:
+    from .benchmark_common import benchmark_init
+    from .common import AttrDict, Bench, tag
+    from .models import memnn
 
 
 def one_to_many(query_embeddings, answer_embeddings, reply_embeddings=None):

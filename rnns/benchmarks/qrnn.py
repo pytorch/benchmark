@@ -1,12 +1,17 @@
 import argparse
 import pprint
-
-from .benchmark_common import benchmark_init
-from .common import Bench, tag
-from .torchqrnn import QRNN
-
-import torch
 import gc
+import torch
+
+
+if __name__ == '__main__':
+    from benchmark_common import benchmark_init
+    from common import Bench, tag
+    from torchqrnn import QRNN
+else:
+    from .benchmark_common import benchmark_init
+    from .common import Bench, tag
+    from .torchqrnn import QRNN
 
 
 def run_qrnn(batch_size=20, input_size=128, seq_len=20,
