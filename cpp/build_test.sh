@@ -1,3 +1,5 @@
+#!/bin/bash
+
 CONDA_LIB="$(which python)"
 CONDA_LIB=`dirname $CONDA_LIB`/../lib
 g++ \
@@ -11,7 +13,6 @@ g++ \
     test.cpp \
     "$PYTORCH_HOME"/torch/lib/tmp_install/lib/libcaffe2.so \
     build/benchmark/src/libbenchmark.a
-
 
 LD_LIBRARY_PATH="$PYTORCH_HOME"/torch/lib/tmp_install/lib 
 OMP_NUM_THREADS=10 

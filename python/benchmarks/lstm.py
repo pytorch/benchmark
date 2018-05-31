@@ -1,4 +1,4 @@
-import benchmark_common
+import tools
 
 import torch
 from torch.autograd import Variable
@@ -97,7 +97,7 @@ def main():
 
     pprint.pprint(vars(args))
 
-    benchmark_common.init(args.cpu, args.gpu, args.skip_cpu_governor_check)
+    tools.init(args.cpu, args.gpu, args.skip_cpu_governor_check)
 
     if args.variable:
         V = lambda x, requires_grad=False: Variable(x, requires_grad=False)

@@ -4,3 +4,6 @@
 [submodule "setup/third_party/pytorch-dockerfiles"]
 	path = setup/third_party/pytorch-dockerfiles
 	url = https://github.com/pietern/pytorch-dockerfiles
+[submodule "python/third_party_benchmarks/PyTorch-benchmark"]
+	path = python/third_party_benchmarks/PyTorch-benchmark
+	url = https://github.com/MlWoo/PyTorch-benchmark
