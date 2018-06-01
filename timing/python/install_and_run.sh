@@ -10,7 +10,7 @@ pushd /home/perf
 git clone https://github.com/pytorch/pytorch
 pushd pytorch
 git submodule update --init
-conda install -y -c intel mkl-dnn
+conda install -y -c mingfeima mkl-dnn
 python setup.py install
 popd
 git clone https://github.com/pytorch/benchmark
