@@ -1,7 +1,7 @@
 #!/bin/bash
 
 g++ \
-    -I../third_party/benchmark/include \
+    -I../../third_party/benchmark/include \
     -std=c++11 \
     -Wl,-rpath-link,"$CONDA_LIB" \
     -pthread \
