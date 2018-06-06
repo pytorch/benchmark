@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import csv
 import random
+import gc
 import utils as bench_utils
 
 
@@ -201,11 +202,19 @@ def run_benchmark_job(job, obj, settings):
     row["repetitions"] = settings.benchmark_repetitions
     results = BenchmarkResults()
     for _ in range(settings.benchmark_repetitions):
+        gc.collect()
+        gc.collect()
         if "setup" in dir(obj):
             obj.setup(obj.state, AttrDict(arg))
+        gc.collect()
+        gc.collect()
         results.append(run_func_benchmark(func, arg, obj.state, settings))
+        gc.collect()
+        gc.collect()
         if "teardown" in dir(obj):
             obj.teardown(obj.state, AttrDict(arg))
+        gc.collect()
+        gc.collect()
     row["time_mean"] = results.time_mean()
     row["time_std"] = results.time_std()
     row["cpu_mean"] = results.cpu_mean()

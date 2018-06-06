@@ -15,9 +15,9 @@ pushd pytorch
 
 # Fetching upstream changes from https://github.com/pytorch/pytorch.git
 git fetch --tags --quiet https://github.com/pytorch/pytorch.git +refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/remotes/origin/pr/* --depth=50
-git checkout -f "$1"
+git checkout "$1"
 
-git submodule --quiet update --init
+git submodule update --init
 python setup.py --quiet install
 popd
 
