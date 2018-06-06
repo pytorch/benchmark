@@ -1,1 +1,0 @@
-benchmark,time_mean,time_std,cpu_mean,cpu_std,iter_mean,repetitions,"('arch', 'size')",single_batch_size,inference,cuda

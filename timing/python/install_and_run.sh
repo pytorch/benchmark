@@ -17,7 +17,9 @@ pushd pytorch
 git fetch --tags --quiet https://github.com/pytorch/pytorch.git +refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/remotes/origin/pr/* --depth=50
 git checkout "$1"
 
-git submodule update --init
+git submodule init
+git submodule sync
+git submodule update --recursive --remote
 python setup.py --quiet install
 popd
 
@@ -25,9 +27,3 @@ git clone https://github.com/pytorch/vision
 pushd vision
 python setup.py install
 popd
-
-git clone https://github.com/pytorch/benchmark
-pushd benchmark
-pushd timing
-pushd python
-python run.py
