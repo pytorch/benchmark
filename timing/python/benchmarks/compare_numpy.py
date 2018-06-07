@@ -62,7 +62,6 @@ ALL_UNARY_FUNCTIONS = [
 ]
 
 
-# TODO: Make args list to allow specification of order
 class NumpyComparison(GridBenchmark):
 
     args = {
@@ -78,14 +77,14 @@ class NumpyComparison(GridBenchmark):
     def setup(self, state, arg):
         size_ = int(1024 * math.pow(10, arg.mag))
         tv = make_tensor(size_, arg.dtype, arg.cont, 3, arg.trans)
-        state["torch_tensor"] = tv
-        state["numpy_tensor"] = state["torch_tensor"].clone().numpy()
+        state.torch_tensor = tv
+        state.numpy_tensor = state.torch_tensor.clone().numpy()
 
     def teardown(self, state, arg):
         pass
 
     def benchmark(self, state, arg):
         if arg.framework == "Torch":
-            getattr(state["torch_tensor"], arg["function"][0])()
+            getattr(state.torch_tensor, arg.function[0])()
         else:
-            getattr(np, arg["function"][1])(state["numpy_tensor"])
+            getattr(np, arg.function[1])(state.numpy_tensor)

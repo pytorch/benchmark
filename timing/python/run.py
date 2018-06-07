@@ -11,4 +11,4 @@ from benchmarks import Convnets
 import framework
 
 if __name__ == "__main__":
-    framework.main(sys.argv, [Convnets])
+    framework.main(sys.argv, [NumpyComparison, Convnets])

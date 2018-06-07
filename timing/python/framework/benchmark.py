@@ -1,4 +1,3 @@
-import logging
 import numpy as np
 import csv
 import random
@@ -8,10 +7,15 @@ import utils as bench_utils
 
 class AttrDict(dict):
     def __repr__(self):
-        return ", ".join(k + "=" + str(v) for k, v in self.items())
+        keys = sorted(self.keys())
+        result = ", ".join(k + "=" + str(self[k]) for k in keys)
+        return "(" + result + ")"
 
     def __getattr__(self, name):
         return self[name]
+
+    def __setattr__(self, name, value):
+        self[name] = value
 
 
 class BenchmarkResult(dict):
@@ -71,15 +75,29 @@ class BenchmarkResults(object):
 class Benchmark(object):
     def __init__(self):
         if "args" not in dir(self):
-            logging.warn(
+            import logging
+
+            logger = logging.getLogger()
+            logger.warn(
                 "Benchmark " + str(self.__class__) + " has no args set."
                 " Using empty dictionary."
             )
             self.args = [{}]
+        if "user_counters" not in dir(self):
+            import logging
+
+            logger = logging.getLogger()
+            logger.info(
+                "Benchmark "
+                + str(self.__class__)
+                + " has no user counters set."
+                " Using empty dictionary."
+            )
+            self.user_counters = {}
         cpus = bench_utils.get_cpu_list()
         for cpu in cpus:
             bench_utils.check_cpu_governor(cpu)
-        self.state = {}
+        self.state = AttrDict()
 
 
 class ListBenchmark(Benchmark):
@@ -109,23 +127,20 @@ class GridBenchmark(Benchmark):
 
 
 # TODO
-# benchmark [--benchmark_list_tests={true|false}]
 #           [--benchmark_filter=<regex>]
 #           [--benchmark_format=<console|json|csv>]
-#           [--benchmark_out=<filename>]
 #           [--benchmark_out_format=<json|console|csv>]
-#           [--benchmark_color={auto|true|false}]
 #           [--benchmark_counters_tabular={true|false}]
-#           [--v=<verbosity>]
 # DONE
+#           [--v=<verbosity>]
+#           [--benchmark_list_tests={true|false}]
+#           [--benchmark_out=<filename>]
 #           [--benchmark_min_time=<min_time>]
 #           [--benchmark_repetitions=<num_repetitions>]
 #           [--benchmark_report_aggregates_only={true|false}
 
 # TODO: Write general setup script to check for environment setup
-# TODO: Add functionality for user counters e.g. custom timings
-# TODO: Allow option to output csv directly instead of pretty print
-# - better for remote
+# TODO: Add additional checks to prevent user errors, e.g. wrong class methods
 
 
 def run_func_benchmark(func, arg, state, settings):
@@ -153,24 +168,34 @@ def run_func_benchmark(func, arg, state, settings):
 
 def make_print_row(row, row_format, header):
     status_str = ""
+
+    def process_header(header):
+        v = row[header]
+        return row_format[header].format(str(v))
+
     for i in range(len(header)):
-        v = row[header[i]]
-        status_str += row_format[header[i]].format(str(v))
+        if header[i] in row:
+            status_str += process_header(header[i])
+
     return status_str
 
 
-def make_pretty_print_row_format(args, header, header_labels, header_init):
+def make_pretty_print_row_format(obj, header, header_labels, header_init):
     max_name_lens = {}
     for i in range(len(header)):
-        max_name_lens[header[i]] = header_init[i]
-    for arg in args:
-        for k, v in arg.items():
+        max_name_lens[header[i]] = header_init[i] + 3
+
+    def process_dict(d, header, header_labels):
+        for k, v in d.items():
             if k not in max_name_lens:
                 max_name_lens[k] = len(str(k)) + 3
                 header += [k]
                 header_labels += [k]
-
             max_name_lens[k] = max(max_name_lens[k], len(str(v)) + 3)
+
+    for arg in obj.args:
+        process_dict(arg, header, header_labels)
+    process_dict(obj.user_counters, header, header_labels)
     row_format = {}
     for i in range(len(header)):
         row_format[header[i]] = "{:>" + str(max_name_lens[header[i]]) + "}"
@@ -182,39 +207,64 @@ def append_row(rows, row):
         rows[k].append(v)
 
 
-def create_jobs(obj):
+def get_all_jobs(obj, shuffle=False):
     jobs = []
+    i = 1
     for func in dir(obj):
         if func.startswith("benchmark"):
             for arg in obj.args:
                 config = AttrDict()
+                config.number = i
                 config.func = func
                 config.arg = arg.copy()
                 jobs.append(config)
-    random.shuffle(jobs)
+                i += 1
+    if shuffle:
+        random.shuffle(jobs)
     return jobs
 
 
-def run_benchmark_job(job, obj, settings):
+def init_row(job, obj, settings, name):
+    row = job.arg.copy()
+    row["benchmark"] = name
+    row["repetitions"] = settings.benchmark_repetitions
+    if settings.benchmark_warmup_repetitions > 0:
+        row["warmup_repetitions"] = settings.benchmark_warmup_repetitions
+    row["time_mean"] = 0
+    row["time_std"] = 0
+    row["cpu_mean"] = 0
+    row["cpu_std"] = 0
+    row["iter_mean"] = 0
+    for counter, value in obj.user_counters.items():
+        row[counter] = value
+    return row
+
+
+def run_benchmark_job(row, job, obj, settings):
     arg = job.arg
     func = getattr(obj, job.func)
-    row = arg.copy()
     row["repetitions"] = settings.benchmark_repetitions
     results = BenchmarkResults()
-    for _ in range(settings.benchmark_repetitions):
+    for i in range(
+        settings.benchmark_repetitions + settings.benchmark_warmup_repetitions
+    ):
         gc.collect()
         gc.collect()
         if "setup" in dir(obj):
             obj.setup(obj.state, AttrDict(arg))
         gc.collect()
         gc.collect()
-        results.append(run_func_benchmark(func, arg, obj.state, settings))
+        if i >= settings.benchmark_warmup_repetitions:
+            results.append(run_func_benchmark(func, arg, obj.state, settings))
         gc.collect()
         gc.collect()
         if "teardown" in dir(obj):
             obj.teardown(obj.state, AttrDict(arg))
         gc.collect()
         gc.collect()
+    for k, _ in obj.user_counters.items():
+        if k in obj.state:
+            row[k] = str(obj.state[k])
     row["time_mean"] = results.time_mean()
     row["time_std"] = results.time_std()
     row["cpu_mean"] = results.cpu_mean()
@@ -229,7 +279,9 @@ def calculate_progress(job_number, max_job_number, time_elapsed, info_format):
     info = info_format.format(
         "{}/{}".format(job_number, max_job_number),
         int(time_left / 60),
-        "{:>02d}".format(time_left % 60),
+        "{:>02d} ".format(
+            time_left % 60
+        ),  # TODO: Fix misalignment - format string shouldn't need extra space
     )
     return info
 
@@ -238,6 +290,11 @@ def run_benchmark(obj, name, settings):
     """
     Create benchmark table. All times are in microseconds.
     """
+
+    jobs = get_all_jobs(obj, settings.benchmark_shuffle)
+    if len(jobs) == 0:
+        return
+
     header = [
         "benchmark",
         "time_mean",
@@ -246,6 +303,7 @@ def run_benchmark(obj, name, settings):
         "cpu_std",
         "iter_mean",
         "repetitions",
+        "warmup_repetitions",
     ]
     header_label = [
         "Benchmark",
@@ -255,21 +313,23 @@ def run_benchmark(obj, name, settings):
         "CPU std (us)",
         "Iter. mean",
         "Rep.",
+        "Warmup Rep.",
     ]
-    header_init = [max(12, len(name) + 3), 18, 18, 18, 18, 13, 14]
+    header_init = [max(12, len(name) + 3), 18, 18, 18, 18, 13, 14, 14]
 
     row_format = make_pretty_print_row_format(
-        obj.args, header, header_label, header_init
+        obj, header, header_label, header_init
     )
     rows = {}
     for head in header:
         rows[head] = []
 
-    jobs = create_jobs(obj)
-    info_format = "{:>15} {:>10}:{:>2}"
+    info_format = "{:>15}{:>10}:{:>2}"
     hstr = info_format.format("Job number", "ETA (hh", "mm)")
+    row = init_row(jobs[0], obj, settings, name)
     for i in range(len(header)):
-        hstr += row_format[header[i]].format(str(header_label[i]))
+        if header[i] in row:
+            hstr += row_format[header[i]].format(str(header_label[i]))
     print(len(hstr) * "-")
     print(hstr)
     print(len(hstr) * "-")
@@ -279,17 +339,24 @@ def run_benchmark(obj, name, settings):
         out_csv_obj = csv.DictWriter(out_csv_fd, header)
         out_csv_obj.writeheader()
     total_time = bench_utils.timer()
-    for i in range(len(jobs)):
-        row = run_benchmark_job(jobs[i], obj, settings)
-        row["benchmark"] = name
-        append_row(rows, row)
-        if out_csv_obj:
-            out_csv_obj.writerow(row)
-            out_csv_fd.flush()
+    for job in jobs:
+        row = init_row(job, obj, settings, name)
+        if not settings.dry_run:
+            row = run_benchmark_job(row, job, obj, settings)
+            append_row(rows, row)
+            if out_csv_obj:
+                out_csv_obj.writerow(row)
+                out_csv_fd.flush()
         info = calculate_progress(
-            i + 1, len(jobs), bench_utils.timer() - total_time, info_format
+            job.number,
+            len(jobs),
+            bench_utils.timer() - total_time,
+            info_format,
         )
-        print(info + make_print_row(row, row_format, header))
+        if settings.dry_run:
+            print(info + make_print_row(row, row_format, header))
+        else:
+            print(info + make_print_row(row, row_format, header))
 
 
 def create_benchmark_object(benchmark_class):

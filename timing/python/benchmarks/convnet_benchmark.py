@@ -5,13 +5,11 @@ import torchvision.models as models
 import torch.optim as optim
 import time
 
-from framework import GridBenchmark
+from framework import GridBenchmark, AttrDict
 
 # TODO: Setup mobilenet
 # from misc.mobilenet import MobileNetV2
 # models.__dict__["mobilenet_v2"] = MobileNetV2
-
-# TODO: Record custom timings
 
 
 class Convnets(GridBenchmark):
@@ -27,7 +25,13 @@ class Convnets(GridBenchmark):
         ),
         "single_batch_size": (True, False),
         "inference": (True, True),
-        "cuda": (False,)
+        "cuda": (False,),
+    }
+    user_counters = {
+        "time_fwd_avg": 0,
+        "time_bwd_avg": 0,
+        "time_upt_avg": 0,
+        "time_total": 0,
     }
 
     def setup(self, state, arg):
@@ -35,6 +39,7 @@ class Convnets(GridBenchmark):
             import torch.backends.cudnn as cudnn
 
             cudnn.benchmark = True
+        state.counters = AttrDict()
 
     def benchmark(self, state, arg):
         steps = 10  # nb of steps in loop to average perf
@@ -92,13 +97,17 @@ class Convnets(GridBenchmark):
                 time_bwd = time_bwd + (t3 - t2)
                 time_upt = time_upt + (t4 - t3)
 
-        # time_fwd_avg = time_fwd / steps * 1000
-        # time_bwd_avg = time_bwd / steps * 1000
-        # time_upt_avg = time_upt / steps * 1000
+        time_fwd_avg = time_fwd / steps * 1000
+        time_bwd_avg = time_bwd / steps * 1000
+        time_upt_avg = time_upt / steps * 1000
 
         # update not included!
-        # time_total = time_fwd_avg + time_bwd_avg
+        time_total = time_fwd_avg + time_bwd_avg
 
+        state.time_fwd_avg = "{:2.3f}".format(time_fwd_avg)
+        state.time_bwd_avg = "{:2.3f}".format(time_bwd_avg)
+        state.time_upt_avg = "{:2.3f}".format(time_upt_avg)
+        state.time_total = "{:2.3f}".format(time_total)
         # print(
         #     "%-30s %10s %10.2f %10.2f"
         #     % (
