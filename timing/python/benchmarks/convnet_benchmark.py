@@ -39,7 +39,6 @@ class Convnets(GridBenchmark):
             import torch.backends.cudnn as cudnn
 
             cudnn.benchmark = True
-        state.counters = AttrDict()
 
     def benchmark(self, state, arg):
         steps = 10  # nb of steps in loop to average perf
