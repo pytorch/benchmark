@@ -7,3 +7,6 @@
 [submodule "python/third_party_benchmarks/PyTorch-benchmark"]
 	path = python/third_party_benchmarks/PyTorch-benchmark
 	url = https://github.com/MlWoo/PyTorch-benchmark
+[submodule "third_party/eigen"]
+	path = third_party/eigen
+	url = https://github.com/eigenteam/eigen-git-mirror
