@@ -29,10 +29,10 @@ class BenchmarkResult(dict):
         self.num_iter = num_iter
 
     def get_time(self, unit="us"):
-        return self.time * 1e6
+        return self.time * 1e6 / self.num_iter
 
     def get_cpu(self, unit="us"):
-        return self.cpu * 1e6
+        return self.cpu * 1e6 / self.num_iter
 
     def get_num_iter(self):
         """
@@ -325,7 +325,7 @@ def run_benchmark(obj, name, settings):
         rows[head] = []
 
     info_format = "{:>15}{:>10}:{:>2}"
-    hstr = info_format.format("Job number", "ETA (hh", "mm)")
+    hstr = info_format.format("Job number", "ETA (mm", "ss)")
     row = init_row(jobs[0], obj, settings, name)
     for i in range(len(header)):
         if header[i] in row:
