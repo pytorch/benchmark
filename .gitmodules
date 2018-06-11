@@ -10,3 +10,6 @@
 [submodule "third_party/eigen"]
 	path = third_party/eigen
 	url = https://github.com/eigenteam/eigen-git-mirror
+[submodule "third_party/sleef"]
+	path = third_party/sleef
+	url = https://github.com/shibatch/sleef
