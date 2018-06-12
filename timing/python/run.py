@@ -7,8 +7,8 @@ sys.path.append(os.path.abspath("framework"))
 
 from glob import glob
 from benchmarks import NumpyComparison
-from benchmarks import Convnets
+from benchmarks import Convnets, LSTMBench
 import framework
 
 if __name__ == "__main__":
-    framework.main(sys.argv, [NumpyComparison, Convnets])
+    framework.main(sys.argv, [NumpyComparison, Convnets, LSTMBench])
