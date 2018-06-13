@@ -37,13 +37,13 @@ def make_tensor(size_, dtype, cont, dim, trans):
 # Left column is torch, right column is NumPy
 # NB: Numpy doesn't support rsqrt
 ALL_UNARY_FUNCTIONS = [
+    ("exp", "exp"),
+    ("log", "log"),
     ("cos", "cos"),
     ("sin", "sin"),
     ("acos", "arccos"),
     ("asin", "arcsin"),
     ("atan", "arctan"),
-    ("exp", "exp"),
-    ("log", "log"),
     ("expm1", "expm1"),
     ("cosh", "cosh"),
     ("tan", "tan"),
@@ -55,7 +55,7 @@ ALL_UNARY_FUNCTIONS = [
     ("round", "round"),
     ("sqrt", "sqrt"),
     ("trunc", "trunc"),
-    ("erf", "erf"),
+    #    ("erf", "erf"), Needs Intel Numpy (conda)
     ("log10", "log10"),
     ("log1p", "log1p"),
     ("log2", "log2"),
@@ -65,26 +65,35 @@ ALL_UNARY_FUNCTIONS = [
 class NumpyComparison(GridBenchmark):
 
     args = {
-        "mag": (4, 3),
         "dim": (3, 5),
-        "cont": (True, False),
-        "trans": (False, True),
-        "dtype": (torch.float, torch.double),
-        "framework": ("Torch", "NumPy"),
+        "mag": (6, 7),
+        "cont": (True,),  # False),
+        "trans": (False,),  # True),
+        "dtype": (torch.float,),
         "function": ALL_UNARY_FUNCTIONS,
+        "framework": ("Torch", "NumPy"),
     }
 
-    def setup(self, state, arg):
-        size_ = int(1024 * math.pow(10, arg.mag))
-        tv = make_tensor(size_, arg.dtype, arg.cont, 3, arg.trans)
+    def setupRun(self, state, arg):
+        size_ = int(math.pow(10, arg.mag))
+        tv = make_tensor(size_, arg.dtype, arg.cont, arg.dim, arg.trans)
         state.torch_tensor = tv
-        state.numpy_tensor = state.torch_tensor.clone().numpy()
-
-    def teardown(self, state, arg):
-        pass
+        state.output = tv.clone()
+        if arg.framework == "NumPy":
+            if arg.dtype == torch.float:
+                state.numpy_tensor = state.torch_tensor.numpy().astype(
+                    np.float32
+                )
+            if arg.dtype == torch.double:
+                state.numpy_tensor = state.torch_tensor.numpy().astype(
+                    np.float64
+                )
+            state.output = state.numpy_tensor.copy()
 
     def benchmark(self, state, arg):
         if arg.framework == "Torch":
-            getattr(state.torch_tensor, arg.function[0])()
+            getattr(torch, arg.function[0])(
+                state.torch_tensor, out=state.output
+            )
         else:
-            getattr(np, arg.function[1])(state.numpy_tensor)
+            getattr(np, arg.function[1])(state.numpy_tensor, out=state.output)

@@ -5,10 +5,13 @@ import sys
 
 sys.path.append(os.path.abspath("framework"))
 
-from glob import glob
 from benchmarks import NumpyComparison
-from benchmarks import Convnets, LSTMBench
+from benchmarks import CPUConvnets
+from benchmarks import CUDALSTMBench
+from benchmarks import CPULSTMBench
 import framework
 
 if __name__ == "__main__":
-    framework.main(sys.argv, [NumpyComparison, Convnets, LSTMBench])
+    framework.main(
+        sys.argv, [NumpyComparison, CPUConvnets, CUDALSTMBench, CPULSTMBench]
+    )

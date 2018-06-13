@@ -150,13 +150,7 @@ def run_func_benchmark(func, arg, state, settings):
     cpu_start = bench_utils.cpu_timer()
     while (
         end - start <= settings.benchmark_min_time
-        or num_iter <= settings.benchmark_min_iter
     ):
-        if (
-            num_iter >= settings.benchmark_max_iter
-            or end - start >= settings.benchmark_max_time
-        ):
-            break
         func(state, AttrDict(arg))
         end = bench_utils.timer()
         num_iter += 1
@@ -245,6 +239,8 @@ def run_benchmark_job(row, job, obj, settings):
     func = getattr(obj, job.func)
     row["repetitions"] = settings.benchmark_repetitions
     results = BenchmarkResults()
+    if "setupRun" in dir(obj):
+        obj.setupRun(obj.state, AttrDict(arg))
     for i in range(
         settings.benchmark_repetitions + settings.benchmark_warmup_repetitions
     ):
@@ -262,6 +258,8 @@ def run_benchmark_job(row, job, obj, settings):
             obj.teardown(obj.state, AttrDict(arg))
         gc.collect()
         gc.collect()
+    if "teardownRun" in dir(obj):
+        obj.teardownRun(obj.state, AttrDict(arg))
     for k, _ in obj.user_counters.items():
         if k in obj.state:
             row[k] = str(obj.state[k])

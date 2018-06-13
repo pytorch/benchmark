@@ -25,16 +25,9 @@ conda update -y -n base conda
 
 conda install -q -y numpy pyyaml mkl mkl-include setuptools cmake cffi typing
 conda install -y -c mingfeima mkldnn
-conda install -y cython
+conda install -y pip future hypothesis protobuf pytest pyyaml scipy pillow typing cython
 
 pip install --upgrade pip
-pip install future
-pip install hypothesis
-pip install protobuf
-pip install pytest
-pip install pyyaml
 pip install ninja
-pip install scipy
-pip install pillow
-pip install typing
 popd
+

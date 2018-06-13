@@ -51,27 +51,9 @@ def main(argv, classes):
         type=int,
     )
     parser.add_argument(
-        "--benchmark-max-time",
-        help="Max time per benchmark",
-        default=60,
-        type=int,
-    )
-    parser.add_argument(
         "--benchmark-warmup-repetitions",
         help="Number of reptitions to ignore to warmup",
         default=0,
-        type=int,
-    )
-    parser.add_argument(
-        "--benchmark-min-iter",
-        help="Min iterations per benchmark",
-        default=1,
-        type=int,
-    )
-    parser.add_argument(
-        "--benchmark-max-iter",
-        help="Max iterations per benchmark",
-        default=10000,
         type=int,
     )
     parser.add_argument(
