@@ -49,23 +49,19 @@ class BenchmarkResults(object):
         self.results = []
 
     def time_mean(self, unit="us"):
-        return int(
-            np.mean(list(map(lambda x: x.get_time(unit), self.results)))
-        )
+        return np.mean(list(map(lambda x: x.get_time(unit), self.results)))
 
     def time_std(self, unit="us"):
-        return int(np.std(list(map(lambda x: x.get_time(unit), self.results))))
+        return np.std(list(map(lambda x: x.get_time(unit), self.results)))
 
     def cpu_mean(self, unit="us"):
-        return int(np.mean(list(map(lambda x: x.get_cpu(unit), self.results))))
+        return np.mean(list(map(lambda x: x.get_cpu(unit), self.results)))
 
     def cpu_std(self, unit="us"):
-        return int(np.std(list(map(lambda x: x.get_cpu(unit), self.results))))
+        return np.std(list(map(lambda x: x.get_cpu(unit), self.results)))
 
     def iter_mean(self):
-        return int(
-            np.mean(list(map(lambda x: x.get_num_iter(), self.results)))
-        )
+        return np.mean(list(map(lambda x: x.get_num_iter(), self.results)))
 
     def append(self, result):
         assert isinstance(result, BenchmarkResult)
@@ -127,11 +123,12 @@ class GridBenchmark(Benchmark):
 
 
 # TODO
+# TODO: Implement regex filter for benchmark args
 #           [--benchmark_filter=<regex>]
-#           [--benchmark_format=<console|json|csv>]
-#           [--benchmark_out_format=<json|console|csv>]
-#           [--benchmark_counters_tabular={true|false}]
 # DONE
+#           [--benchmark_format=<console|json|csv>] No need for choice for now
+#           [--benchmark_out_format=<json|console|csv>] No need for choice for now
+#           [--benchmark_counters_tabular={true|false}] Done by default
 #           [--v=<verbosity>]
 #           [--benchmark_list_tests={true|false}]
 #           [--benchmark_out=<filename>]
@@ -148,9 +145,7 @@ def run_func_benchmark(func, arg, state, settings):
     start = bench_utils.timer()
     end = start
     cpu_start = bench_utils.cpu_timer()
-    while (
-        end - start <= settings.benchmark_min_time
-    ):
+    while end - start <= settings.benchmark_min_time:
         func(state, AttrDict(arg))
         end = bench_utils.timer()
         num_iter += 1
@@ -163,8 +158,18 @@ def run_func_benchmark(func, arg, state, settings):
 def make_print_row(row, row_format, header):
     status_str = ""
 
+    special_fields = [
+        "time_mean",
+        "cpu_mean",
+        "time_std",
+        "cpu_std",
+        "iter_mean",
+    ]
+
     def process_header(header):
         v = row[header]
+        if header in special_fields:
+            v = int(v)
         return row_format[header].format(str(v))
 
     for i in range(len(header)):

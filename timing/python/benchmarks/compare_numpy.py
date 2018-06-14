@@ -41,6 +41,9 @@ ALL_UNARY_FUNCTIONS = [
     ("log", "log"),
     ("cos", "cos"),
     ("sin", "sin"),
+]
+ALL_UNUSED_UNARY_FUNCTIONS = [
+    ("abs", "abs"),
     ("acos", "arccos"),
     ("asin", "arcsin"),
     ("atan", "arctan"),
@@ -54,6 +57,7 @@ ALL_UNARY_FUNCTIONS = [
     ("floor", "floor"),
     ("round", "round"),
     ("sqrt", "sqrt"),
+    ("rsqrt", "rsqrt"),
     ("trunc", "trunc"),
     #    ("erf", "erf"), Needs Intel Numpy (conda)
     ("log10", "log10"),
@@ -65,10 +69,10 @@ ALL_UNARY_FUNCTIONS = [
 class NumpyComparison(GridBenchmark):
 
     args = {
-        "dim": (3, 5),
-        "mag": (6, 7),
-        "cont": (True,),  # False),
-        "trans": (False,),  # True),
+        "dim": (3,),
+        "mag": (1, 3, 6, 7),
+        "cont": (False, True),
+        "trans": (False, True),
         "dtype": (torch.float,),
         "function": ALL_UNARY_FUNCTIONS,
         "framework": ("Torch", "NumPy"),
@@ -81,13 +85,11 @@ class NumpyComparison(GridBenchmark):
         state.output = tv.clone()
         if arg.framework == "NumPy":
             if arg.dtype == torch.float:
-                state.numpy_tensor = state.torch_tensor.numpy().astype(
-                    np.float32
-                )
+                state.numpy_tensor = state.torch_tensor.numpy()
+                assert state.numpy_tensor.dtype == np.float32
             if arg.dtype == torch.double:
-                state.numpy_tensor = state.torch_tensor.numpy().astype(
-                    np.float64
-                )
+                state.numpy_tensor = state.torch_tensor.numpy()
+                assert state.numpy_tensor.dtype == np.float64
             state.output = state.numpy_tensor.copy()
 
     def benchmark(self, state, arg):
