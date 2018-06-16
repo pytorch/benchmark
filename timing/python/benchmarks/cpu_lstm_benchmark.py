@@ -3,10 +3,11 @@ import torch.nn as nn
 from torch.autograd import Variable
 import time
 
-from framework import GridBenchmark
+from framework import Benchmark
+from framework import utils
 
 
-class CPULSTMBench(GridBenchmark):
+class CPULSTMBench(Benchmark):
     sizes = [
         [64, 15, 500, 500],
         [64, 20, 500, 500],
@@ -33,7 +34,7 @@ class CPULSTMBench(GridBenchmark):
         [64, 25, 4096, 4096],
         [128, 25, 4096, 4096],
     ]
-    args = {"size": sizes, "train": (True, False)}
+    args = utils.grid({"size": sizes, "train": (True, False)})
     user_counters = {
         "duration": 0,
         "gflops": 10 * " ",

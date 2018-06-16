@@ -6,7 +6,7 @@ import torch.jit
 from torch._thnn import type2backend
 from torch.nn._functions.thnn import rnnFusedPointwise as fusedBackend
 
-from framework import ListBenchmark
+from framework import Benchmark
 
 
 def t_use(x):
@@ -67,7 +67,7 @@ def _unfused_lstm(input, hx, cx, w_ih, w_hh):
     return hy, cy
 
 
-class CUDALSTMBench(ListBenchmark):
+class CUDALSTMBench(Benchmark):
     common_arg = dict(
         gpu=0,
         batch_size=1,

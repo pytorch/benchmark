@@ -5,15 +5,16 @@ import torchvision.models as models
 import torch.optim as optim
 import time
 
-from framework import GridBenchmark
+from framework import Benchmark
+from framework import utils
 
 # TODO: Setup mobilenet
 # from misc.mobilenet import MobileNetV2
 # models.__dict__["mobilenet_v2"] = MobileNetV2
 
 
-class CPUConvnets(GridBenchmark):
-    args = {
+class CPUConvnets(Benchmark):
+    args = utils.grid({
         ("arch", "size"): (
             ("alexnet", (128, 3, 224, 224)),
             ("vgg11", (64, 3, 224, 224)),
@@ -25,7 +26,7 @@ class CPUConvnets(GridBenchmark):
         ),
         "single_batch_size": (True, False),
         "inference": (True, False),
-    }
+    })
     user_counters = {
         "time_fwd_avg": 0,
         "time_bwd_avg": 0,

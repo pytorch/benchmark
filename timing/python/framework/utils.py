@@ -12,6 +12,11 @@ cpu_timer = time.clock
 
 
 def grid(d):
+    """
+    Creates a grid of arguments and calls benchmark with each.
+    The arguments must be primited types such as strings or
+    numbers and will be shallow(!) copied as part of the setup
+    """
     result = []
     keys = list(d.keys())
     values = d.values()

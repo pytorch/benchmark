@@ -4,7 +4,8 @@ import torch
 import math
 import numpy as np
 
-from framework import GridBenchmark
+from framework import Benchmark
+from framework import utils
 
 
 def make_size(dim, size_):
@@ -37,38 +38,36 @@ def make_tensor(size_, dtype, cont, dim, trans):
 # Left column is torch, right column is NumPy
 # NB: Numpy doesn't support rsqrt
 ALL_UNARY_FUNCTIONS = [
-    ("exp", "exp"),
-    ("log", "log"),
-    ("cos", "cos"),
-    ("sin", "sin"),
-]
-ALL_UNUSED_UNARY_FUNCTIONS = [
+    #    ("erf", "erf"), Needs Intel Numpy (conda)
+    ("abs", "abs"),
     ("abs", "abs"),
     ("acos", "arccos"),
     ("asin", "arcsin"),
     ("atan", "arctan"),
-    ("expm1", "expm1"),
-    ("cosh", "cosh"),
-    ("tan", "tan"),
-    ("sinh", "sinh"),
-    ("tanh", "tanh"),
-    ("abs", "abs"),
     ("ceil", "ceil"),
+    ("cos", "cos"),
+    ("cosh", "cosh"),
+    ("exp", "exp"),
+    ("expm1", "expm1"),
     ("floor", "floor"),
-    ("round", "round"),
-    ("sqrt", "sqrt"),
-    ("rsqrt", "rsqrt"),
-    ("trunc", "trunc"),
-    #    ("erf", "erf"), Needs Intel Numpy (conda)
+    ("log", "log"),
     ("log10", "log10"),
     ("log1p", "log1p"),
     ("log2", "log2"),
+    ("round", "round"),
+    ("rsqrt", "rsqrt"),
+    ("sin", "sin"),
+    ("sinh", "sinh"),
+    ("sqrt", "sqrt"),
+    ("tan", "tan"),
+    ("tanh", "tanh"),
+    ("trunc", "trunc"),
 ]
 
 
-class NumpyComparison(GridBenchmark):
+class NumpyComparison(Benchmark):
 
-    args = {
+    args = utils.grid({
         "dim": (3,),
         "mag": (1, 3, 6, 7),
         "cont": (False, True),
@@ -76,7 +75,7 @@ class NumpyComparison(GridBenchmark):
         "dtype": (torch.float,),
         "function": ALL_UNARY_FUNCTIONS,
         "framework": ("Torch", "NumPy"),
-    }
+    })
 
     def setupRun(self, state, arg):
         size_ = int(math.pow(10, arg.mag))

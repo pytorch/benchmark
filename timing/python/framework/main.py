@@ -1,7 +1,15 @@
 import argparse
 import logging
 import utils as bench_utils
-from benchmark import create_benchmark_object, run_benchmark, get_all_jobs
+import re
+import random
+from benchmark import (
+    create_benchmark_object,
+    run_benchmark_job,
+    get_all_jobs,
+    BenchmarkLogger,
+    filter_jobs,
+)
 
 
 def main(argv, classes):
@@ -14,9 +22,8 @@ def main(argv, classes):
     )
     parser.add_argument(
         "--include",
-        help="Run only a subset of benchmarks",
+        help="Run only the specified benchmark class",
         choices=benchmark_choices,
-        nargs="?",
         default="all",
     )
     parser.add_argument(
@@ -40,6 +47,9 @@ def main(argv, classes):
         help="Do a dry run without collecting information",
     )
     parser.add_argument(
+        "--benchmark-filter", help="Run benchmarks which match specified regex"
+    )
+    parser.add_argument(
         "--benchmark-shuffle",
         action="store_true",
         help="Shuffle all benchmark jobs before executing",
@@ -60,7 +70,7 @@ def main(argv, classes):
         "--benchmark-repetitions", help="Repeat benchmark", default=1, type=int
     )
     parser.add_argument(
-        "--benchmark-out", help="Write benchmark to file", default=None
+        "--benchmark-out", help="Write benchmark results to file", default=None
     )
     argv = argv[1:]
     args = parser.parse_args(argv)
@@ -72,12 +82,19 @@ def main(argv, classes):
         if args.include is not "all":
             if member.__name__ not in args.include:
                 continue
+        obj = create_benchmark_object(member)
+        jobs = get_all_jobs(obj)
+        if args.benchmark_filter:
+            benchmark_filter = re.compile(args.benchmark_filter)
+            jobs = filter_jobs(jobs, benchmark_filter)
+        if args.benchmark_shuffle:
+            random.shuffle(jobs)
         if args.list:
-            obj = create_benchmark_object(member)
-            jobs = get_all_jobs(obj, args.benchmark_shuffle)
-            for job in jobs:
-                print(job)
+            [print(job) for job in jobs]
         else:
-            obj = create_benchmark_object(member)
-            logger.info("Running Benchmark " + str(member.__name__))
-            run_benchmark(obj, member.__name__, args)
+            blogger = BenchmarkLogger(args, obj)
+            blogger.print_header()
+            for job in jobs:
+                row = run_benchmark_job(job, obj, args)
+                blogger.print_row(row, job)
+            blogger.close()
