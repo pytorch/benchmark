@@ -10,6 +10,7 @@ from benchmarks import CPULSTMBench
 from benchmarks import CPUNNBench
 from benchmarks import CUDALSTMBench
 from benchmarks import NumpyComparison
+from benchmarks import CPUUnaryBench
 from benchmarks import NumpyReduceComparison
 
 import framework
@@ -18,11 +19,12 @@ if __name__ == "__main__":
     framework.main(
         sys.argv,
         [
-            NumpyComparison,
-            NumpyReduceComparison,
             CPUConvnets,
-            CUDALSTMBench,
             CPULSTMBench,
             CPUNNBench,
+            CPUUnaryBench,
+            CUDALSTMBench,
+            NumpyComparison,
+            NumpyReduceComparison,
         ],
     )
