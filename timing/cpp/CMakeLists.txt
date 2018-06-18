@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.0)
 project (myproject C CXX)
 find_package (Threads)
 SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3 -mavx2 -funroll-loops")
+set(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/cmake/Modules")
 set(CMAKE_BINARY_DIR "build/bin")
 set (CMAKE_CXX_STANDARD 11)
 set(Eigen3_DIR "${CMAKE_HOME_DIRECTORY}/build/eigen")
@@ -12,6 +13,9 @@ set(GBENCHMARK_LIB
     "${CMAKE_HOME_DIRECTORY}/build/benchmark_install/lib/libbenchmark.a")
 set (CAFFE2_LIBRARY "${PYTORCH_HOME}/torch/lib/tmp_install/lib/libcaffe2.so")
 set (CAFFE2_INCLUDE "${PYTORCH_HOME}/torch/lib/tmp_install/include")
+
+set(MKL_LIBS "$ENV{CONDA_PREFIX}/lib/libmkl_gf_lp64.so" "$ENV{CONDA_PREFIX}/lib/libmkl_core.so" "$ENV{CONDA_PREFIX}/lib/libmkl_gnu_thread.so")
+set(CONDA_INCLUDE "$ENV{CONDA_PREFIX}/include")
 
 # Preserve values for the main build
 set(__aten_sleef_build_shared_libs ${BUILD_SHARED_LIBS})
@@ -35,7 +39,8 @@ set(CMAKE_CXX_FLAGS ${OLD_CMAKE_CXX_FLAGS})
 set(BUILD_SHARED_LIBS ${__aten_sleef_build_shared_libs} CACHE BOOL "Build shared libs" FORCE)
 set(BUILD_TESTS ${__aten_sleef_build_tests} CACHE BOOL "Build tests" FORCE)
 
-include_directories (SYSTEM "${CAFFE2_INCLUDE}" "${GBENCHMARK_INCLUDE}")
+include_directories (SYSTEM "${CAFFE2_INCLUDE}" "${GBENCHMARK_INCLUDE}" "${CONDA_INCLUDE}")
 add_executable (example benchmarks/compare_eigen.cpp)
 target_link_libraries (example Eigen3::Eigen "${CAFFE2_LIBRARY}" "${GBENCHMARK_LIB}")
 target_link_libraries(example ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(example ${MKL_LIBS})

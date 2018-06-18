@@ -33,26 +33,25 @@ def make_tensor(size_, dtype, cont, dim, trans):
     return tv
 
 
-ALL_REDUCE_FUNCTIONS = [
-    ("mean", "mean"),
-    ("prod", "prod"),
-    ("sum", "sum")
-]
+ALL_REDUCE_FUNCTIONS = [("mean", "mean"), ("prod", "prod"), ("sum", "sum")]
 
 
 class NumpyReduceComparison(Benchmark):
 
+    # NB: NumPy doesn't parallelize it's reductions
     args = utils.grid(
         {
             "dims": ((3, None), (3, 2), (3, 1), (3, 0)),
             "mag": (6,),
-            "cont": (True,),
-            "trans": (False,),
+            "cont": (False, True),
+            "trans": (False, True),
             "dtype": (torch.float,),
             "function": ALL_REDUCE_FUNCTIONS,
-            "framework": ("Torch", "NumPy"),
+            "framework": ("Torch",),  # "NumPy"),
         }
     )
+
+    user_counters = {"shape": 10 * " "}
 
     def _benchmark(self, state, arg):
         if arg.framework == "Torch":
@@ -73,6 +72,7 @@ class NumpyReduceComparison(Benchmark):
     def setupRun(self, state, arg):
         size_ = int(math.pow(10, arg.mag))
         tv = make_tensor(size_, arg.dtype, arg.cont, arg.dims[0], arg.trans)
+        state.shape = str(tv.size())
         state.torch_tensor = tv
         state.output = None
         if arg.framework == "NumPy":
