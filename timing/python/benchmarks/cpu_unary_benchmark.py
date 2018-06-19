@@ -66,7 +66,7 @@ ALL_UNARY_FUNCTIONS = [
     ("trunc", "trunc"),
 ]
 
-TORCH_ONLY_FUNCTIONS = [("sigmoid", "rsqrt")]  # , ("relu",)]
+TORCH_ONLY_FUNCTIONS = [("sigmoid", None), ("rsqrt", None)]
 
 
 def _setupRun(self, state, arg):
