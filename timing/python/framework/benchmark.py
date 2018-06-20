@@ -1,6 +1,7 @@
 import numpy as np
 import csv
 import gc
+import sys
 import utils as bench_utils
 
 
@@ -101,7 +102,7 @@ class BenchmarkLogger(object):
     of jobs associated with given object.
     """
 
-    def __init__(self, settings, obj):
+    def __init__(self, settings, obj, format="console", out_fd=sys.stdout):
         def make_pretty_print_row_format(
             obj, header, header_labels, header_init
         ):
@@ -160,11 +161,14 @@ class BenchmarkLogger(object):
         self.info_format = "{:>15}{:>10}:{:>2}"
 
         self.total_time = bench_utils.timer()
+        self.out_fd = out_fd
+        self.format = format
 
-        self.out_obj = None
-        if settings.benchmark_out:
-            self.out_fd = open(settings.benchmark_out, "w")
-            self.out_obj = csv.DictWriter(self.out_fd, header)
+        if not (self.format == "console" or self.format == "csv"):
+            raise TypeError("Wrong format. Must be console or csv")
+
+        if self.format == "csv":
+            self.csv_writer = csv.DictWriter(self.out_fd, header)
 
     def calculate_progress(self, job_number):
         time_elapsed = bench_utils.timer() - self.total_time
@@ -194,11 +198,13 @@ class BenchmarkLogger(object):
         for i in range(len(header)):
             if header[i] in row:
                 hstr += row_format[header[i]].format(str(header_label[i]))
-        print(len(hstr) * "-")
-        print(hstr)
-        print(len(hstr) * "-")
-        if self.out_obj:
-            self.out_obj.writeheader()
+        if self.format == "console":
+            self.out_fd.write(len(hstr) * "-" + "\n")
+            self.out_fd.write(hstr + "\n")
+            self.out_fd.write(len(hstr) * "-" + "\n")
+            self.out_fd.flush()
+        else:
+            self.csv_writer.writeheader()
 
     def print_row(self, row, job):
         def make_print_row(row, row_format, header):
@@ -225,24 +231,24 @@ class BenchmarkLogger(object):
             return status_str
 
         info = self.calculate_progress(job.number)
-        if self.settings.dry_run:
-            print(info + make_print_row(row, self.row_format, self.header))
+        if self.format == "console":
+            self.out_fd.write(
+                info + make_print_row(row, self.row_format, self.header) + "\n"
+            )
+            self.out_fd.flush()
         else:
-            print(info + make_print_row(row, self.row_format, self.header))
-        if self.out_obj:
-            self.out_obj.writerow(row)
+            self.csv_writer.writerow(row)
             self.out_fd.flush()
 
     def close(self):
-        if self.out_obj:
-            self.out_fd.close()
+        pass
 
 
 # TODO: Check if userdefined functions are proper (setup, setupRun, etc.)
 # TODO: Implement regex filter for benchmark args
 #           [--benchmark_filter=<regex>]
 # DONE
-#           [--benchmark_format=<console|json|csv>] No need for now
+#           [--benchmark_format=<console|json|csv>]
 #           [--benchmark_out_format=<json|console|csv>] No need for now
 #           [--benchmark_counters_tabular={true|false}] Done by default
 #           [--v=<verbosity>]

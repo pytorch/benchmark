@@ -47,6 +47,12 @@ def main(argv, classes):
         help="Do a dry run without collecting information",
     )
     parser.add_argument(
+        "--benchmark-format",
+        default="console",
+        choices=["console", "csv"],
+        help="Choose output format for stdout",
+    )
+    parser.add_argument(
         "--benchmark-filter", help="Run benchmarks which match specified regex"
     )
     parser.add_argument(
@@ -92,9 +98,21 @@ def main(argv, classes):
         if args.list:
             [print(job) for job in jobs]
         else:
-            blogger = BenchmarkLogger(args, obj)
+            blogger = BenchmarkLogger(args, obj, format=args.benchmark_format)
+            if args.benchmark_out:
+                out_fd = open(args.benchmark_out, "w")
+                bloggerout = BenchmarkLogger(
+                    args, obj, format="csv", out_fd=out_fd
+                )
             blogger.print_header()
+            if args.benchmark_out:
+                bloggerout.print_header()
             for job in jobs:
                 row = run_benchmark_job(job, obj, args)
                 blogger.print_row(row, job)
+                if args.benchmark_out:
+                    bloggerout.print_row(row, job)
             blogger.close()
+            if args.benchmark_out:
+                bloggerout.close()
+                out_fd.close()

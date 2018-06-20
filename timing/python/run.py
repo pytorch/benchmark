@@ -9,7 +9,7 @@ from benchmarks import CPUConvnets
 from benchmarks import CPULSTMBench
 from benchmarks import CPUNNBench
 from benchmarks import CUDALSTMBench
-from benchmarks import NumpyComparison
+from benchmarks import NumpyUnaryComparison
 from benchmarks import CPUUnaryBench
 from benchmarks import NumpyReduceComparison
 
@@ -24,7 +24,7 @@ if __name__ == "__main__":
             CPUNNBench,
             CPUUnaryBench,
             CUDALSTMBench,
-            NumpyComparison,
             NumpyReduceComparison,
+            NumpyUnaryComparison,
         ],
     )

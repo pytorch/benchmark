@@ -73,10 +73,12 @@ def get_cpu_list():
 def check_cpu_governor(cpu):
     logger = logging.getLogger()
     fp = "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor".format(cpu)
+    fpd = "/sys/devices/system/cpu/cpu{}/cpufreq/scaling_driver".format(cpu)
     try:
-        with open(fp, "r") as f:
+        with open(fp, "r") as f, open(fpd, "r") as fd:
             gov = f.read().rstrip()
-            if gov != "performance":
+            driver = fd.read().rstrip()
+            if gov != "performance" and driver != "intel_pstate":
                 logger.warning(
                     "CPU {} governor is {} which could lead to"
                     " variance in performance\n"

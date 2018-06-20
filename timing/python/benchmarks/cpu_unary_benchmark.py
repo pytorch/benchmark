@@ -75,6 +75,8 @@ def _setupRun(self, state, arg):
     tv = make_tensor(size_, arg.dtype, arg.cont, arg.dim, arg.trans)
     state.torch_tensor = tv
     state.output = tv.clone()
+    state.sizes = tv.size()
+    state.strides = tv.stride()
     if arg.framework == "NumPy":
         if arg.dtype == torch.float:
             state.numpy_tensor = state.torch_tensor.numpy()
@@ -105,13 +107,15 @@ def _common_arg(d):
     return d
 
 
-class NumpyComparison(Benchmark):
+class NumpyUnaryComparison(Benchmark):
 
     args = utils.grid(
         _common_arg(
             {"function": ALL_UNARY_FUNCTIONS, "framework": ("Torch", "NumPy")}
         )
     )
+
+    user_counters = {"sizes": 30 * " ", "strides": 30 * " "}
 
     def setupRun(self, state, arg):
         _setupRun(self, state, arg)
@@ -126,6 +130,8 @@ class CPUUnaryBench(Benchmark):
             {"function": TORCH_ONLY_FUNCTIONS, "framework": ("Torch",)}
         )
     )
+
+    user_counters = {"sizes": 30 * " ", "strides": 30 * " "}
 
     def setupRun(self, state, arg):
         _setupRun(self, state, arg)

@@ -10,4 +10,4 @@ fi
 COMMIT="$1"
 LOCAL_NAME="pytorch_benchmark_cpu_""$1"
 
-docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -i -v `pwd`:/mnt/localdrive -w /mnt/localdrive -t "$LOCAL_NAME" /root/miniconda3/bin/python "${@:2}"
+docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/mnt/localdrive -w /mnt/localdrive -t "$LOCAL_NAME" /root/miniconda3/bin/python "${@:2}"

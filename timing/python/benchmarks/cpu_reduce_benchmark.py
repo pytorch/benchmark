@@ -47,11 +47,11 @@ class NumpyReduceComparison(Benchmark):
             "trans": (False, True),
             "dtype": (torch.float,),
             "function": ALL_REDUCE_FUNCTIONS,
-            "framework": ("Torch",),  # "NumPy"),
+            "framework": ("Torch", "NumPy"),
         }
     )
 
-    user_counters = {"shape": 10 * " "}
+    user_counters = {"sizes": 30 * " ", "strides": 30 * " "}
 
     def _benchmark(self, state, arg):
         if arg.framework == "Torch":
@@ -72,7 +72,8 @@ class NumpyReduceComparison(Benchmark):
     def setupRun(self, state, arg):
         size_ = int(math.pow(10, arg.mag))
         tv = make_tensor(size_, arg.dtype, arg.cont, arg.dims[0], arg.trans)
-        state.shape = str(tv.size())
+        state.sizes = tv.size()
+        state.strides = tv.stride()
         state.torch_tensor = tv
         state.output = None
         if arg.framework == "NumPy":
