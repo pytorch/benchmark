@@ -9,7 +9,6 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get -q update
 apt-get -y -q install git
 # Docker
-apt-get remove docker docker-engine docker.io
 apt-get -y -q install \
     apt-transport-https \
     ca-certificates \
