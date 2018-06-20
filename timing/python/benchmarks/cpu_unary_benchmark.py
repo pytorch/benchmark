@@ -58,7 +58,6 @@ ALL_UNARY_FUNCTIONS = [
     ("log1p", "log1p"),
     ("log2", "log2"),
     ("round", "round"),
-    ("rsqrt", "rsqrt"),
     ("sin", "sin"),
     ("sinh", "sinh"),
     ("sqrt", "sqrt"),
@@ -67,7 +66,7 @@ ALL_UNARY_FUNCTIONS = [
     ("trunc", "trunc"),
 ]
 
-TORCH_ONLY_FUNCTIONS = [("sigmoid",)]  # , ("relu",)]
+TORCH_ONLY_FUNCTIONS = [("sigmoid", "rsqrt")]  # , ("relu",)]
 
 
 def _setupRun(self, state, arg):
