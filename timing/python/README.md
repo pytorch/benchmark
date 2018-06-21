@@ -15,16 +15,13 @@ You can also visit [the docker hub](https://hub.docker.com/u/cpuhrsch/) where it
 For example
 
 ```
-$ ./build_pytorch_commit.sh b2cdd08252a089874e4f19aae3feafc7d5b98eb4
-[lots of output]
-$ ./run_pytorch_commit.sh b2cdd08252a089874e4f19aae3feafc7d5b98eb4 run.py --help
-usage: run.py [-h] [--include [{NumpyComparison,Convnets}]] [--list]
-              [--verbose {0,10,20,30,40,50}] [--dry-run] [--benchmark-shuffle]
+usage: run.py [-h]
+              [--include {CPUConvnets,CPULSTMBench,CPUNNBench,CPUUnaryBench,CUDALSTMBench,NumpyReduceComparison,NumpyUnaryComparison}]
+              [--list] [--verbose {0,10,20,30,40,50}] [--dry-run]
+              [--benchmark-format {console,csv}]
+              [--benchmark-filter BENCHMARK_FILTER] [--benchmark-shuffle]
               [--benchmark-min-time BENCHMARK_MIN_TIME]
-              [--benchmark-max-time BENCHMARK_MAX_TIME]
               [--benchmark-warmup-repetitions BENCHMARK_WARMUP_REPETITIONS]
-              [--benchmark-min-iter BENCHMARK_MIN_ITER]
-              [--benchmark-max-iter BENCHMARK_MAX_ITER]
               [--benchmark-repetitions BENCHMARK_REPETITIONS]
               [--benchmark-out BENCHMARK_OUT]
 
@@ -32,8 +29,8 @@ Run benchmarks.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --include [{NumpyComparison,Convnets}]
-                        Run only a subset of benchmarks (default: all)
+  --include {CPUConvnets,CPULSTMBench,CPUNNBench,CPUUnaryBench,CUDALSTMBench,NumpyReduceComparison,NumpyUnaryComparison}
+                        Run only the specified benchmark class (default: all)
   --list                List all benchmarks and their arguments (default:
                         False)
   --verbose {0,10,20,30,40,50}
@@ -41,22 +38,21 @@ optional arguments:
                         values lead to more verbose output (default: 30)
   --dry-run             Do a dry run without collecting information (default:
                         False)
+  --benchmark-format {console,csv}
+                        Choose output format for stdout (default: console)
+  --benchmark-filter BENCHMARK_FILTER
+                        Run benchmarks which match specified regex (default:
+                        None)
   --benchmark-shuffle   Shuffle all benchmark jobs before executing (default:
                         False)
   --benchmark-min-time BENCHMARK_MIN_TIME
                         Min time per benchmark (default: 5)
-  --benchmark-max-time BENCHMARK_MAX_TIME
-                        Max time per benchmark (default: 60)
   --benchmark-warmup-repetitions BENCHMARK_WARMUP_REPETITIONS
                         Number of reptitions to ignore to warmup (default: 0)
-  --benchmark-min-iter BENCHMARK_MIN_ITER
-                        Min iterations per benchmark (default: 1)
-  --benchmark-max-iter BENCHMARK_MAX_ITER
-                        Max iterations per benchmark (default: 10000)
   --benchmark-repetitions BENCHMARK_REPETITIONS
                         Repeat benchmark (default: 1)
   --benchmark-out BENCHMARK_OUT
-                        Write benchmark to file (default: None)
+                        Write benchmark results to file (default: None)
 ```
 
 Detailed example docker workflow

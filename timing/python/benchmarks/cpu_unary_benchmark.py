@@ -98,7 +98,7 @@ def _common_arg(d):
         {
             "dim": (3,),
             "mag": (1, 3, 6, 7),
-            "cont": (False, True),
+            "cont": (True, False),
             "trans": (False, True),
             "dtype": (torch.float,),
         }

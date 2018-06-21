@@ -98,11 +98,13 @@ def main(argv, classes):
         if args.list:
             [print(job) for job in jobs]
         else:
-            blogger = BenchmarkLogger(args, obj, format=args.benchmark_format)
+            blogger = BenchmarkLogger(
+                args, obj, len(jobs), format=args.benchmark_format
+            )
             if args.benchmark_out:
                 out_fd = open(args.benchmark_out, "w")
                 bloggerout = BenchmarkLogger(
-                    args, obj, format="csv", out_fd=out_fd
+                    args, obj, len(jobs), format="csv", out_fd=out_fd
                 )
             blogger.print_header()
             if args.benchmark_out:

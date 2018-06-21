@@ -43,7 +43,7 @@ class NumpyReduceComparison(Benchmark):
         {
             "dims": ((3, None), (3, 2), (3, 1), (3, 0)),
             "mag": (6,),
-            "cont": (False, True),
+            "cont": (True, False),
             "trans": (False, True),
             "dtype": (torch.float,),
             "function": ALL_REDUCE_FUNCTIONS,
@@ -56,15 +56,15 @@ class NumpyReduceComparison(Benchmark):
     def _benchmark(self, state, arg):
         if arg.framework == "Torch":
             if arg.dims[1]:
-                getattr(torch, arg.function[0])(
-                    state.torch_tensor, arg.dims[1], out=state.output
+                state.output = getattr(torch, arg.function[0])(
+                    state.torch_tensor, arg.dims[1]
                 )
             else:
                 getattr(torch, arg.function[0])(state.torch_tensor)
         else:
             if arg.dims[1]:
-                getattr(np, arg.function[1])(
-                    state.numpy_tensor, axis=arg.dims[1], out=state.output
+                state.output = getattr(np, arg.function[1])(
+                    state.numpy_tensor, axis=arg.dims[1]
                 )
             else:
                 getattr(np, arg.function[1])(state.numpy_tensor)

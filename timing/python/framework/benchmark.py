@@ -102,7 +102,9 @@ class BenchmarkLogger(object):
     of jobs associated with given object.
     """
 
-    def __init__(self, settings, obj, format="console", out_fd=sys.stdout):
+    def __init__(
+        self, settings, obj, num_jobs, format="console", out_fd=sys.stdout
+    ):
         def make_pretty_print_row_format(
             obj, header, header_labels, header_init
         ):
@@ -160,6 +162,7 @@ class BenchmarkLogger(object):
         self.settings = settings
         self.info_format = "{:>15}{:>10}:{:>2}"
 
+        self.num_jobs = num_jobs
         self.total_time = bench_utils.timer()
         self.out_fd = out_fd
         self.format = format
@@ -172,8 +175,7 @@ class BenchmarkLogger(object):
 
     def calculate_progress(self, job_number):
         time_elapsed = bench_utils.timer() - self.total_time
-        jobs = get_all_jobs(self.obj)
-        max_job_number = len(jobs)
+        max_job_number = self.num_jobs
         info_format = self.info_format
         # TODO: Fix misalignment - format string shouldn't need extra space
         avg_time = (float(time_elapsed)) / (job_number)
@@ -336,8 +338,9 @@ def run_benchmark_job(job, obj, settings):
             obj.setup(obj.state, AttrDict(arg))
         gc.collect()
         gc.collect()
+        result = run_func_benchmark(func, arg, obj.state, settings)
         if i >= settings.benchmark_warmup_repetitions:
-            results.append(run_func_benchmark(func, arg, obj.state, settings))
+            results.append(result)
         gc.collect()
         gc.collect()
         if "teardown" in dir(obj):
