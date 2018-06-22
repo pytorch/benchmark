@@ -9,7 +9,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 rm -rf /root/benchmark
-git clone https://github.com/cpuhrsch/benchmark /root/benchmark
+git clone https://github.com/pytorch/benchmark /root/benchmark
 cd /root/benchmark
 git fetch --quiet --tags https://github.com/pytorch/pytorch.git +refs/heads/*:refs/remotes/origin/* +refs/pull/*:refs/remotes/origin/pr/* --depth=50
 git checkout -f "$1"
