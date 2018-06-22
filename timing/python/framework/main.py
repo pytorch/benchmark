@@ -22,7 +22,13 @@ def main(argv, classes):
     )
     parser.add_argument(
         "--include",
-        help="Run only the specified benchmark class",
+        help="Only run the specified benchmarks",
+        choices=benchmark_choices,
+        default="all",
+    )
+    parser.add_argument(
+        "--exclude",
+        help="Don't run the specified benchmarks",
         choices=benchmark_choices,
         default="all",
     )
@@ -87,6 +93,9 @@ def main(argv, classes):
     for member in classes:
         if args.include is not "all":
             if member.__name__ not in args.include:
+                continue
+        if args.exclude is not "all":
+            if member.__name__ in args.exclude:
                 continue
         obj = create_benchmark_object(member)
         jobs = get_all_jobs(obj)
