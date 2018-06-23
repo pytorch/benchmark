@@ -23,6 +23,8 @@ add-apt-repository \
    stable"
 apt-get -y -q update
 apt-get -y -q install docker-ce
+# cpuset
+apt-get -y -q install cpuset
 # Disable turbo
 sudo sh -c 'echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo'
 sudo sh -c 'echo 100 > /sys/devices/system/cpu/intel_pstate/max_perf_pct'
