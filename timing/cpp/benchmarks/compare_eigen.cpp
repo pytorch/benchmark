@@ -1,69 +1,132 @@
 #define EIGEN_FAST_MATH 0
 #define EIGEN_USE_MKL_ALL 1
+#include <omp.h>
 #include <ATen/ATen.h>
 #include <Eigen/Core>
-#include <unsupported/Eigen/CXX11/Tensor>
+#include <Eigen/Dense>
 #include <benchmark/benchmark.h>
 #include <iostream>
 #include <sleef.h>
-#include <typeinfo>
 #include <stdexcept>
+#include <typeinfo>
 
-// TODO: Matrix and Tensor reductions / unary ops for non-cont. memory
+// Mimic TH alignment
+constexpr size_t _ALIGNMENT = 64;
 
-constexpr size_t _ALIGNMENT = 32;
+void make_vector(float *data_, size_t size) {
+  for (size_t i = 0; i < size; i++) {
+    data_[i] = (float)(i % 1024);
+  }
+}
+
+void make_float_data(float **data_, size_t size) {
+  if (posix_memalign((void **)data_, _ALIGNMENT, size * sizeof(float)))
+    throw std::invalid_argument("received negative value");
+  memset(*data_, 0, size * sizeof(float));
+}
+
+float get_random_value() {
+  std::random_device
+      rd; // Will be used to obtain a seed for the random number engine
+  std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+  std::uniform_int_distribution<> dis(1, 6);
+  return dis(gen);
+}
+
+float do_something(float a) {
+  benchmark::DoNotOptimize(a = a * a);
+  return a;
+}
+
+using InnerStride = Eigen::InnerStride<Eigen::Dynamic>;
+
+template <typename T>
+using EigenMatrixMap =
+    Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>,
+               Eigen::AlignmentType::Aligned64,
+               Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>;
+
+template <typename T>
+using EigenVectorMap =
+    Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, 1>,
+               Eigen::AlignmentType::Aligned64,
+               Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>;
+
+// TODO: Use Stride class
 
 #define SETTING                                                                \
-  ->Unit(benchmark::kMicrosecond)                                              \
-      ->Args({32768, 64})                                                      \
-      ->Args({65536, 64})                                                      \
-      ->Args({131072, 64})                                                     \
-      ->Args({262144, 64})                                                     \
-      ->Args({524288, 64})                                                     \
-      ->Args({1048576, 64})                                                    \
-      ->Args({2097152, 64})                                                    \
-      ->Args({4194304, 64})                                                    \
-      ->Args({8388608, 64})                                                    \
-      ->Args({64777264, 64});
+  ->Args({32768, 256})                                                         \
+      ->Args({65536, 256})                                                     \
+      ->Args({131072, 256})                                                    \
+      ->Args({262144, 256})                                                    \
+      ->Args({524288, 256})                                                    \
+      ->Args({1048576, 256})                                                   \
+      ->Args({2097152, 256})                                                   \
+      ->Args({4194304, 256})                                                   \
+      ->Args({8388608, 256})                                                   \
+      ->Args({64777264, 256});
 
 // General benchmark setup: Allocate fresh memory every 64 iterations
 // Call the op once to warmup.
+//
+// TODO: Eigen doesn't parallelize reductions?
 
-#define BM_BenchATenReduceOp(name, op, dim)                                    \
+#define BM_BenchATenReduceOp(name, op, dim, stride)                            \
   static void BM_ATenReduce##dim##name(benchmark::State &state) {              \
-    at::set_num_threads(1);                                                    \
     for (auto _ : state) {                                                     \
       state.PauseTiming();                                                     \
-      double size_ = std::cbrt((double)(state.range(0)));                      \
-      int size = (int)(size_);                                                 \
       benchmark::ClobberMemory();                                              \
-      at::Tensor a = at::rand({size, size, size}, at::CPU(at::kFloat));        \
-      at::Tensor b = at::rand({size, size}, at::CPU(at::kFloat));              \
+      double size_ = std::sqrt((double)(state.range(0)));                      \
+      int size = (int)(size_);                                                 \
+      state.counters["dim"] = dim;                                             \
+      state.counters["size"] = size;                                           \
+      state.counters["iter"] = state.range(1);                                 \
+      benchmark::ClobberMemory();                                              \
+      at::Tensor a =                                                           \
+          at::rand({size, size, stride}, at::CPU(at::kFloat)).select(2, 0);    \
+      at::Tensor b =                                                           \
+          at::rand({size, stride}, at::CPU(at::kFloat)).select(1, 0);          \
       op;                                                                      \
+      benchmark::ClobberMemory();                                              \
       benchmark::ClobberMemory();                                              \
       state.ResumeTiming();                                                    \
       for (int j = 0; j < state.range(1); ++j) {                               \
         op;                                                                    \
       }                                                                        \
+      state.PauseTiming();                                                     \
+      op;                                                                      \
+      benchmark::ClobberMemory();                                              \
+      benchmark::ClobberMemory();                                              \
+      state.ResumeTiming();                                                    \
     }                                                                          \
   }                                                                            \
   BENCHMARK(BM_ATenReduce##dim##name) SETTING;
 
-#define BM_BenchATenOp(name, op)                                               \
+#define BM_BenchATenOp(name, op, stride)                                       \
   static void BM_ATen##name(benchmark::State &state) {                         \
-    at::set_num_threads(1);                                                    \
     for (auto _ : state) {                                                     \
       state.PauseTiming();                                                     \
       benchmark::ClobberMemory();                                              \
-      at::Tensor a = at::rand({state.range(0)}, at::CPU(at::kFloat));          \
-      at::Tensor b = at::rand({state.range(0)}, at::CPU(at::kFloat));          \
+      state.counters["dim"] = -1;                                              \
+      state.counters["size"] = state.range(0);                                 \
+      state.counters["iter"] = state.range(1);                                 \
+      at::Tensor a = at::rand({state.range(0), stride}, at::CPU(at::kFloat))   \
+                         .select(1, 0);                                        \
+      at::Tensor b = at::rand({state.range(0), stride}, at::CPU(at::kFloat))   \
+                         .select(1, 0);                                        \
       at::Tensor c;                                                            \
       op;                                                                      \
+      benchmark::ClobberMemory();                                              \
       benchmark::ClobberMemory();                                              \
       state.ResumeTiming();                                                    \
       for (int j = 0; j < state.range(1); ++j) {                               \
         op;                                                                    \
       }                                                                        \
+      state.PauseTiming();                                                     \
+      op;                                                                      \
+      benchmark::ClobberMemory();                                              \
+      benchmark::ClobberMemory();                                              \
+      state.ResumeTiming();                                                    \
     }                                                                          \
   }                                                                            \
   BENCHMARK(BM_ATen##name) SETTING;
@@ -72,20 +135,37 @@ constexpr size_t _ALIGNMENT = 32;
   static void BM_EigenReduce##dim##name(benchmark::State &state) {             \
     for (auto _ : state) {                                                     \
       state.PauseTiming();                                                     \
-      benchmark::ClobberMemory();                                              \
-      double size_ = std::cbrt((double)(state.range(0)));                      \
+      double size_ = std::sqrt((double)(state.range(0)));                      \
       int size = (int)(size_);                                                 \
-      Eigen::array<int, 1> dims({dim /* dimension to reduce */});              \
-      Eigen::Tensor<float, 3> a(size, size, size);                             \
-      Eigen::Tensor<float, 2> b(size, size);                                   \
-      a.setRandom();                                                           \
-      b.setRandom();                                                           \
+      state.counters["dim"] = dim;                                             \
+      state.counters["size"] = size;                                           \
+      state.counters["iter"] = state.range(1);                                 \
+      float *data_ = NULL;                                                     \
+      make_float_data(&data_, size *size);                                     \
+      make_vector(data_, size *size);                                          \
+      float *out_data_ = NULL;                                                 \
+      make_float_data(&out_data_, size);                                       \
+      make_vector(out_data_, size);                                            \
+      EigenMatrixMap<float> a(                                                 \
+          data_, size, size,                                                   \
+          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, 1));                \
+      EigenVectorMap<float> b(                                                 \
+          out_data_, size,                                                     \
+          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, 1));                \
       op;                                                                      \
+      benchmark::ClobberMemory();                                              \
       benchmark::ClobberMemory();                                              \
       state.ResumeTiming();                                                    \
       for (int j = 0; j < state.range(1); ++j) {                               \
         op;                                                                    \
       }                                                                        \
+      state.PauseTiming();                                                     \
+      op;                                                                      \
+      free(data_);                                                             \
+      free(out_data_);                                                         \
+      benchmark::ClobberMemory();                                              \
+      benchmark::ClobberMemory();                                              \
+      state.ResumeTiming();                                                    \
     }                                                                          \
   }                                                                            \
   BENCHMARK(BM_EigenReduce##dim##name) SETTING;
@@ -94,33 +174,52 @@ constexpr size_t _ALIGNMENT = 32;
   static void BM_Eigen##name(benchmark::State &state) {                        \
     for (auto _ : state) {                                                     \
       state.PauseTiming();                                                     \
-      benchmark::ClobberMemory();                                              \
-      Eigen::ArrayXf a = Eigen::ArrayXf::Random(state.range(0));               \
-      Eigen::ArrayXf b = Eigen::ArrayXf::Random(state.range(0));               \
-      float c;                                                                 \
+      int64_t size = state.range(0);                                           \
+      state.counters["dim"] = -1;                                              \
+      state.counters["size"] = size;                                           \
+      state.counters["iter"] = state.range(1);                                 \
+      float *data_ = NULL;                                                     \
+      make_float_data(&data_, size);                                           \
+      make_vector(data_, size);                                                \
+      float *out_data_ = NULL;                                                 \
+      make_float_data(&out_data_, size);                                       \
+      make_vector(out_data_, size);                                            \
+      EigenVectorMap<float> a(                                                 \
+          data_, size, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, 1));   \
+      EigenVectorMap<float> b(                                                 \
+          out_data_, size,                                                     \
+          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, 1));                \
+      float c = get_random_value();                                            \
       op;                                                                      \
+      benchmark::ClobberMemory();                                              \
       benchmark::ClobberMemory();                                              \
       state.ResumeTiming();                                                    \
       for (int j = 0; j < state.range(1); ++j) {                               \
         op;                                                                    \
       }                                                                        \
+      state.PauseTiming();                                                     \
+      c = do_something(c);                                                     \
+      op;                                                                      \
+      free(data_);                                                             \
+      free(out_data_);                                                         \
+      benchmark::ClobberMemory();                                              \
+      benchmark::ClobberMemory();                                              \
+      state.ResumeTiming();                                                    \
     }                                                                          \
   }                                                                            \
   BENCHMARK(BM_Eigen##name) SETTING;
 
 #define BM_BenchReduceOp(op)                                                   \
-  BM_BenchEigenReduceOp(_reduce_##op, b = a.op(dims), 0);                      \
-  BM_BenchATenReduceOp(_reduce_##op, b = a.op(0), 0);                          \
-  BM_BenchEigenReduceOp(_reduce_##op, b = a.op(dims), 1);                      \
-  BM_BenchATenReduceOp(_reduce_##op, b = a.op(1), 1);                          \
-  BM_BenchEigenReduceOp(_reduce_##op, b = a.op(dims), 2);                      \
-  BM_BenchATenReduceOp(_reduce_##op, b = a.op(2), 2);                          \
-  BM_BenchEigenOp(_reduce_##op, c = a.op());                                   \
-  BM_BenchATenOp(_reduce_##op, c = a.op());
+  BM_BenchEigenOp(_reduce_##op, c += a.op());                                  \
+  BM_BenchEigenReduceOp(_reduce_##op, b = a.colwise().op(), 0);                \
+  BM_BenchEigenReduceOp(_reduce_##op, b = a.rowwise().op(), 1);                \
+  BM_BenchATenOp(_reduce_##op, c = a.op(), 1);                                 \
+  BM_BenchATenReduceOp(_reduce_##op, b = a.op(0), 0, 1);                       \
+  BM_BenchATenReduceOp(_reduce_##op, b = a.op(1), 1, 1);
 
 #define BM_BenchUnaryOp(op)                                                    \
-  BM_BenchATenOp(_unary_##op, at::op##_out(b, a));                             \
-  BM_BenchEigenOp(_unary_##op, b = a.op());
+  BM_BenchEigenOp(_unary_##op, b = a.array().op());                            \
+  BM_BenchATenOp(_unary_##op, at::op##_out(b, a), 1);
 
 #define BM_BenchUnaryWithSleefOp(op)                                           \
   static void BM_Sleef_##op(benchmark::State &state) {                         \
@@ -128,6 +227,9 @@ constexpr size_t _ALIGNMENT = 32;
       state.PauseTiming();                                                     \
       benchmark::ClobberMemory();                                              \
       int64_t size = state.range(0);                                           \
+      state.counters["dim"] = -1;                                              \
+      state.counters["size"] = state.range(0);                                 \
+      state.counters["iter"] = state.range(1);                                 \
       float *a_ptr;                                                            \
       float *b_ptr;                                                            \
       int ret =                                                                \

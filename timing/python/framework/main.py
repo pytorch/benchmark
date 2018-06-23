@@ -84,6 +84,9 @@ def main(argv, classes):
     parser.add_argument(
         "--benchmark-out", help="Write benchmark results to file", default=None
     )
+    parser.add_argument(
+        "--benchmark-out-append", help="Append if file exists", default=None
+    )
     argv = argv[1:]
     args = parser.parse_args(argv)
 
@@ -111,7 +114,10 @@ def main(argv, classes):
                 args, obj, len(jobs), format=args.benchmark_format
             )
             if args.benchmark_out:
-                out_fd = open(args.benchmark_out, "w")
+                if args.benchmark_out_append:
+                    out_fd = open(args.benchmark_out, "a")
+                else:
+                    out_fd = open(args.benchmark_out, "w")
                 bloggerout = BenchmarkLogger(
                     args, obj, len(jobs), format="csv", out_fd=out_fd
                 )

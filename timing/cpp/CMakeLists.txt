@@ -47,18 +47,23 @@ set(BUILD_TESTS ${__aten_sleef_build_tests} CACHE BOOL "Build tests" FORCE)
 
 include_directories (SYSTEM "${CAFFE2_INCLUDE}" "${GBENCHMARK_INCLUDE}" "${CONDA_INCLUDE}")
 
-SET(_ORIG_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-SET( CMAKE_CXX_FLAGS  "${_ORIG_CMAKE_CXX_FLAGS} -O3 -mavx2 -funroll-loops")
+SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3 -mavx2 -fopenmp")
+
 add_executable (compare_eigen benchmarks/compare_eigen.cpp)
 
-target_link_libraries (compare_eigen Eigen3::Eigen "${CAFFE2_LIBRARY}" "${GBENCHMARK_LIB}")
 target_link_libraries(compare_eigen ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (compare_eigen Eigen3::Eigen "${CAFFE2_LIBRARY}" "${GBENCHMARK_LIB}")
 target_link_libraries(compare_eigen ${MKL_LIBS})
 
-SET( CMAKE_CXX_FLAGS  "${_ORIG_CMAKE_CXX_FLAGS} -O3 -mavx2 -fopenmp")
 add_executable (tbb_vs_omp benchmarks/tbb_vs_omp.cpp)
 
 target_link_libraries(tbb_vs_omp ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(tbb_vs_omp TBB::tbb "${GBENCHMARK_LIB}")
 target_link_libraries(tbb_vs_omp ${CONDA_LIBS})
+
+add_executable (avx_sum benchmarks/avx_sum.cpp)
+
+target_link_libraries(avx_sum ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(avx_sum TBB::tbb "${GBENCHMARK_LIB}")
+target_link_libraries(avx_sum ${CONDA_LIBS})
