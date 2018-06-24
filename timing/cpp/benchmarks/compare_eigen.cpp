@@ -1,11 +1,11 @@
 #define EIGEN_FAST_MATH 0
 #define EIGEN_USE_MKL_ALL 1
-#include <omp.h>
 #include <ATen/ATen.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <benchmark/benchmark.h>
 #include <iostream>
+#include <omp.h>
 #include <sleef.h>
 #include <stdexcept>
 #include <typeinfo>
@@ -55,16 +55,16 @@ using EigenVectorMap =
 // TODO: Use Stride class
 
 #define SETTING                                                                \
-  ->Args({32768, 256})                                                         \
-      ->Args({65536, 256})                                                     \
-      ->Args({131072, 256})                                                    \
-      ->Args({262144, 256})                                                    \
-      ->Args({524288, 256})                                                    \
-      ->Args({1048576, 256})                                                   \
-      ->Args({2097152, 256})                                                   \
-      ->Args({4194304, 256})                                                   \
-      ->Args({8388608, 256})                                                   \
-      ->Args({64777264, 256});
+  ->Args({32768, 64})                                                          \
+      ->Args({65536, 64})                                                      \
+      ->Args({131072, 64})                                                     \
+      ->Args({262144, 64})                                                     \
+      ->Args({524288, 64})                                                     \
+      ->Args({1048576, 64})                                                    \
+      ->Args({2097152, 64})                                                    \
+      ->Args({4194304, 64})                                                    \
+      ->Args({8388608, 64})                                                    \
+      ->Args({64777264, 64});
 
 // General benchmark setup: Allocate fresh memory every 64 iterations
 // Call the op once to warmup.
@@ -72,12 +72,13 @@ using EigenVectorMap =
 // TODO: Eigen doesn't parallelize reductions?
 
 #define BM_BenchATenReduceOp(name, op, dim, stride)                            \
-  static void BM_ATenReduce##dim##name(benchmark::State &state) {              \
+  static void BM_ATenReduce##dim##stride##name(benchmark::State &state) {      \
     for (auto _ : state) {                                                     \
       state.PauseTiming();                                                     \
       benchmark::ClobberMemory();                                              \
       double size_ = std::sqrt((double)(state.range(0)));                      \
       int size = (int)(size_);                                                 \
+      state.counters["stride"] = stride;                                       \
       state.counters["dim"] = dim;                                             \
       state.counters["size"] = size;                                           \
       state.counters["iter"] = state.range(1);                                 \
@@ -100,13 +101,14 @@ using EigenVectorMap =
       state.ResumeTiming();                                                    \
     }                                                                          \
   }                                                                            \
-  BENCHMARK(BM_ATenReduce##dim##name) SETTING;
+  BENCHMARK(BM_ATenReduce##dim##stride##name) SETTING;
 
 #define BM_BenchATenOp(name, op, stride)                                       \
-  static void BM_ATen##name(benchmark::State &state) {                         \
+  static void BM_ATen##stride##name(benchmark::State &state) {                 \
     for (auto _ : state) {                                                     \
       state.PauseTiming();                                                     \
       benchmark::ClobberMemory();                                              \
+      state.counters["stride"] = stride;                                       \
       state.counters["dim"] = -1;                                              \
       state.counters["size"] = state.range(0);                                 \
       state.counters["iter"] = state.range(1);                                 \
@@ -129,29 +131,30 @@ using EigenVectorMap =
       state.ResumeTiming();                                                    \
     }                                                                          \
   }                                                                            \
-  BENCHMARK(BM_ATen##name) SETTING;
+  BENCHMARK(BM_ATen##stride##name) SETTING;
 
-#define BM_BenchEigenReduceOp(name, op, dim)                                   \
-  static void BM_EigenReduce##dim##name(benchmark::State &state) {             \
+#define BM_BenchEigenReduceOp(name, op, dim, stride)                           \
+  static void BM_EigenReduce##dim##name##stride(benchmark::State &state) {     \
     for (auto _ : state) {                                                     \
       state.PauseTiming();                                                     \
       double size_ = std::sqrt((double)(state.range(0)));                      \
       int size = (int)(size_);                                                 \
+      state.counters["stride"] = stride;                                       \
       state.counters["dim"] = dim;                                             \
       state.counters["size"] = size;                                           \
       state.counters["iter"] = state.range(1);                                 \
       float *data_ = NULL;                                                     \
-      make_float_data(&data_, size *size);                                     \
+      make_float_data(&data_, size *size *stride);                             \
       make_vector(data_, size *size);                                          \
       float *out_data_ = NULL;                                                 \
-      make_float_data(&out_data_, size);                                       \
+      make_float_data(&out_data_, size *stride);                               \
       make_vector(out_data_, size);                                            \
       EigenMatrixMap<float> a(                                                 \
           data_, size, size,                                                   \
-          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, 1));                \
+          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, stride));           \
       EigenVectorMap<float> b(                                                 \
           out_data_, size,                                                     \
-          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, 1));                \
+          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, stride));           \
       op;                                                                      \
       benchmark::ClobberMemory();                                              \
       benchmark::ClobberMemory();                                              \
@@ -168,27 +171,29 @@ using EigenVectorMap =
       state.ResumeTiming();                                                    \
     }                                                                          \
   }                                                                            \
-  BENCHMARK(BM_EigenReduce##dim##name) SETTING;
+  BENCHMARK(BM_EigenReduce##dim##name##stride) SETTING;
 
-#define BM_BenchEigenOp(name, op)                                              \
-  static void BM_Eigen##name(benchmark::State &state) {                        \
+#define BM_BenchEigenOp(name, op, stride)                                      \
+  static void BM_Eigen##name##stride(benchmark::State &state) {                \
     for (auto _ : state) {                                                     \
       state.PauseTiming();                                                     \
       int64_t size = state.range(0);                                           \
+      state.counters["stride"] = stride;                                       \
       state.counters["dim"] = -1;                                              \
       state.counters["size"] = size;                                           \
       state.counters["iter"] = state.range(1);                                 \
       float *data_ = NULL;                                                     \
-      make_float_data(&data_, size);                                           \
+      make_float_data(&data_, size *stride);                                   \
       make_vector(data_, size);                                                \
       float *out_data_ = NULL;                                                 \
-      make_float_data(&out_data_, size);                                       \
+      make_float_data(&out_data_, size *stride);                               \
       make_vector(out_data_, size);                                            \
       EigenVectorMap<float> a(                                                 \
-          data_, size, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, 1));   \
+          data_, size,                                                         \
+          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, stride));           \
       EigenVectorMap<float> b(                                                 \
           out_data_, size,                                                     \
-          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, 1));                \
+          Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(1, stride));           \
       float c = get_random_value();                                            \
       op;                                                                      \
       benchmark::ClobberMemory();                                              \
@@ -207,19 +212,19 @@ using EigenVectorMap =
       state.ResumeTiming();                                                    \
     }                                                                          \
   }                                                                            \
-  BENCHMARK(BM_Eigen##name) SETTING;
+  BENCHMARK(BM_Eigen##name##stride) SETTING;
 
-#define BM_BenchReduceOp(op)                                                   \
-  BM_BenchEigenOp(_reduce_##op, c += a.op());                                  \
-  BM_BenchEigenReduceOp(_reduce_##op, b = a.colwise().op(), 0);                \
-  BM_BenchEigenReduceOp(_reduce_##op, b = a.rowwise().op(), 1);                \
-  BM_BenchATenOp(_reduce_##op, c = a.op(), 1);                                 \
-  BM_BenchATenReduceOp(_reduce_##op, b = a.op(0), 0, 1);                       \
-  BM_BenchATenReduceOp(_reduce_##op, b = a.op(1), 1, 1);
+#define BM_BenchReduceOp(op, stride)                                           \
+  BM_BenchEigenOp(_reduce_##op, c += a.op(), stride);                          \
+  BM_BenchEigenReduceOp(_reduce_##op, b = a.colwise().op(), 0, stride);        \
+  BM_BenchEigenReduceOp(_reduce_##op, b = a.rowwise().op(), 1, stride);        \
+  BM_BenchATenOp(_reduce_##op, c = a.op(), stride);                            \
+  BM_BenchATenReduceOp(_reduce_##op, b = a.op(0), 0, stride);                  \
+  BM_BenchATenReduceOp(_reduce_##op, b = a.op(1), 1, stride);
 
-#define BM_BenchUnaryOp(op)                                                    \
-  BM_BenchEigenOp(_unary_##op, b = a.array().op());                            \
-  BM_BenchATenOp(_unary_##op, at::op##_out(b, a), 1);
+#define BM_BenchUnaryOp(op, stride)                                            \
+  BM_BenchEigenOp(_unary_##op, b = a.array().op(), stride);                    \
+  BM_BenchATenOp(_unary_##op, at::op##_out(b, a), stride);
 
 #define BM_BenchUnaryWithSleefOp(op)                                           \
   static void BM_Sleef_##op(benchmark::State &state) {                         \
@@ -227,6 +232,7 @@ using EigenVectorMap =
       state.PauseTiming();                                                     \
       benchmark::ClobberMemory();                                              \
       int64_t size = state.range(0);                                           \
+      state.counters["stride"] = 1;                                            \
       state.counters["dim"] = -1;                                              \
       state.counters["size"] = state.range(0);                                 \
       state.counters["iter"] = state.range(1);                                 \
@@ -253,27 +259,35 @@ using EigenVectorMap =
     }                                                                          \
   }                                                                            \
   BENCHMARK(BM_Sleef_##op) SETTING;                                            \
-  BM_BenchUnaryOp(op);
+  BM_BenchUnaryOp(op, 1);
 
 // Commented out means not supported
 // TODO: Add comparison between intrinsics and ATen
-BM_BenchReduceOp(sum);
-BM_BenchReduceOp(prod);
-BM_BenchReduceOp(mean);
+BM_BenchReduceOp(sum, 4);
+BM_BenchReduceOp(prod, 4);
+BM_BenchReduceOp(mean, 4);
+BM_BenchReduceOp(sum, 1);
+BM_BenchReduceOp(prod, 1);
+BM_BenchReduceOp(mean, 1);
+// BM_BenchReduceOp(sum, 16);
+// BM_BenchReduceOp(prod, 16);
+// BM_BenchReduceOp(mean, 16);
 BM_BenchUnaryWithSleefOp(exp);
 BM_BenchUnaryWithSleefOp(log);
-BM_BenchUnaryWithSleefOp(acos);
-BM_BenchUnaryWithSleefOp(asin);
-BM_BenchUnaryWithSleefOp(atan);
+// BM_BenchUnaryWithSleefOp(acos);
+// BM_BenchUnaryWithSleefOp(asin);
+// BM_BenchUnaryWithSleefOp(atan);
 // BM_BenchOp(erf);
-BM_BenchUnaryWithSleefOp(expm1);
-BM_BenchUnaryWithSleefOp(log10);
-BM_BenchUnaryWithSleefOp(log1p);
+// BM_BenchUnaryWithSleefOp(expm1);
+// BM_BenchUnaryWithSleefOp(log10);
+// BM_BenchUnaryWithSleefOp(log1p);
 // BM_BenchOp(log2);
-BM_BenchUnaryOp(ceil);
-BM_BenchUnaryOp(floor);
-BM_BenchUnaryOp(round);
-BM_BenchUnaryOp(sqrt);
+BM_BenchUnaryOp(ceil, 1);
+BM_BenchUnaryOp(floor, 1);
+BM_BenchUnaryOp(ceil, 4);
+BM_BenchUnaryOp(floor, 4);
+// BM_BenchUnaryOp(round);
+// BM_BenchUnaryOp(sqrt);
 BM_BenchUnaryWithSleefOp(tanh);
 // BM_BenchOp(trunc);
 

@@ -653,8 +653,8 @@ int main(int argc, char **argv) {
 
   int64_t min_s = 8 << 10;
   int64_t max_s = 8 << 20;
-  int64_t min_th = 4 * 1024;
-  int64_t max_th = 64 * 1024;
+  int64_t min_th = 8 * 1024;
+  int64_t max_th = 128 * 1024;
 
   int64_t min_nt = 2;
   int64_t max_nt = 16;
