@@ -85,7 +85,9 @@ def main(argv, classes):
         "--benchmark-out", help="Write benchmark results to file", default=None
     )
     parser.add_argument(
-        "--benchmark-out-append", help="Append if file exists", default=None
+        "--benchmark-out-append",
+        help="Append if file exists",
+        action="store_true",
     )
     argv = argv[1:]
     args = parser.parse_args(argv)

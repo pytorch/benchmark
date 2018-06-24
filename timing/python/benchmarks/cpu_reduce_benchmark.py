@@ -42,7 +42,7 @@ class NumpyReduceComparison(Benchmark):
     args = utils.grid(
         {
             "dims": ((3, None), (3, 2), (3, 1), (3, 0)),
-            "mag": (6,),
+            "mag": (6, 7),
             "cont": (True, False),
             "trans": (False, True),
             "dtype": (torch.float,),
