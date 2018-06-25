@@ -55,6 +55,7 @@ add_executable (compare_eigen benchmarks/compare_eigen.cpp)
 target_link_libraries(compare_eigen ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries (compare_eigen Eigen3::Eigen "${CAFFE2_LIBRARY}" "${GBENCHMARK_LIB}")
 target_link_libraries(compare_eigen ${MKL_LIBS})
+target_link_libraries(compare_eigen ${CONDA_LIBS})
 
 add_executable (tbb_vs_omp benchmarks/tbb_vs_omp.cpp)
 

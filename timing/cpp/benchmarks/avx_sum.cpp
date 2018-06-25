@@ -32,8 +32,6 @@ constexpr size_t _WIDTH = 16;
 constexpr size_t _VSIZE = 8; // 8 floats - 256bits - one fetch has 1024 bits
 constexpr size_t _ROW = 8;   // 4; // chunk of columns per tile
 constexpr size_t _COL = 8;   // 4; // chunk of vector row per tile
-constexpr size_t _SEED = 1;
-constexpr size_t _HASHES_SIZE = 1024;
 
 using namespace tbb;
 
@@ -65,7 +63,7 @@ static inline size_t _divup(size_t x, size_t y) { return ((x + y - 1) / y); }
 
 // ONECORE
 
-void sum_64(float &sum, const float *arr, size_t start, size_t end) {
+void sum_tree(float &sum, const float *arr, size_t start, size_t end) {
   register size_t k;
   float sarr[8];
   __m256 part_sum, tmp_sum[4], tmp_sum1, tmp_sum2, tmp_sum3, a[8];
@@ -90,6 +88,28 @@ void sum_64(float &sum, const float *arr, size_t start, size_t end) {
   }
 }
 
+void sum_simple(float &sum, const float *arr, size_t start, size_t end) {
+  register size_t k;
+  __m256 a[4]; // 128 bytes (two cache lines)
+  a[0] = _mm256_set1_ps(0);
+  a[1] = _mm256_set1_ps(0);
+  a[2] = _mm256_set1_ps(0);
+  a[3] = _mm256_set1_ps(0);
+  k = start;
+  for (; k < end; k += 32) {
+    for (size_t i = 0; i < 4; i++) {
+      a[i] = _mm256_add_ps(a[i], _mm256_loadu_ps(arr + k + i * 8));
+    }
+  }
+  for (size_t i = 0; i < 4; i++) {
+    float sarr[8];
+    _mm256_store_ps(sarr, a[i]);
+    for (int i = 0; i < 8; i++) {
+      sum += sarr[i];
+    }
+  }
+}
+
 void sum_width(float &sum, const float *arr, size_t start, size_t end) {
   assert(end % _WIDTH == 0);
   assert(start % _WIDTH == 0);
@@ -103,52 +123,6 @@ void sum_width(float &sum, const float *arr, size_t start, size_t end) {
   }
 }
 
-void sum_width_2(float &sum, const float *arr, size_t start, size_t end) {
-  assert((end - start) % _WIDTH == 0);
-  float sums[_WIDTH];
-  for (size_t i = 0; i < _WIDTH; i++) {
-    sums[i] = 0;
-  }
-  size_t is[_WIDTH];
-  for (size_t i = 0; i < _WIDTH; i++) {
-    is[i] = ((end - start) / _WIDTH) * i;
-  }
-  for (size_t i = start; i < end; i += _WIDTH) {
-    for (size_t j = 0; j < _WIDTH; j++) {
-      sums[j] += arr[is[j]];
-      is[j] += 1;
-    }
-  }
-  sum = 0;
-  for (size_t i = 0; i < _WIDTH; i++) {
-    sum += sums[i];
-  }
-}
-
-void sum_width_3(float &sum, const float *arr, size_t start, size_t end) {
-  assert((end - start) % _WIDTH == 0);
-  float sums[_WIDTH];
-  for (size_t i = 0; i < _WIDTH; i++) {
-    sums[i] = 0;
-  }
-  size_t is[_WIDTH];
-  for (size_t i = 0; i < _WIDTH; i++) {
-    is[i] = ((end - start) / _WIDTH) * i;
-  }
-  for (size_t i = start; i < end; i += _WIDTH * _WIDTH) {
-    for (size_t j = 0; j < _WIDTH; j++) {
-      for (size_t k = 0; k < _WIDTH; k++) {
-        sums[j] += arr[is[j] + k];
-      }
-      is[j] += _WIDTH;
-    }
-  }
-  sum = 0;
-  for (size_t i = 0; i < _WIDTH; i++) {
-    sum += sums[i];
-  }
-}
-
 void sum_naive(float &sum, const float *arr, size_t start, size_t end) {
   sum = 0;
   for (size_t i = start; i < end; i += 1) {
@@ -156,9 +130,10 @@ void sum_naive(float &sum, const float *arr, size_t start, size_t end) {
   }
 }
 
-void sum_std(float &sum, const float *arr, size_t start, size_t end) {
-  sum = std::accumulate(arr + start, arr + end, 0);
-}
+// Simply way too slow
+// void sum_std(float &sum, const float *arr, size_t start, size_t end) {
+//  sum = std::accumulate(arr + start, arr + end, 0);
+//}
 
 // PARALLEL
 
@@ -170,7 +145,7 @@ public:
   void operator()(const blocked_range<size_t> &r) {
     const float *a = my_a;
     float sum;
-    sum_64(sum, a, r.begin(), r.end());
+    sum_simple(sum, a, r.begin(), r.end());
     my_sum += sum;
   }
 
@@ -201,35 +176,35 @@ void sum_omp_naive(float &sum, const float *a, size_t start, size_t end,
   }
 }
 
-void sum_omp_64_sum_64(float &sum, const float *a, size_t start, size_t end,
+void sum_omp_64_sum_simple(float &sum, const float *a, size_t start, size_t end,
                        size_t threshold, size_t max_num_thread) {
   (void)max_num_thread;
   (void)threshold;
 #pragma omp parallel for reduction(+ : sum)
   for (size_t i = start; i < end; i += 64) {
     float sum_l = 0;
-    sum_64(sum_l, a, i, i + 64);
+    sum_simple(sum_l, a, i, i + 64);
     sum += sum_l;
   }
 }
 
-void sum_omp_threshold_sum_64(float &sum, const float *a, size_t start,
+void sum_omp_threshold_sum_simple(float &sum, const float *a, size_t start,
                               size_t end, size_t threshold,
                               size_t max_num_thread) {
   (void)max_num_thread;
   if (start + threshold > end) {
-    sum_64(sum, a, start, end);
+    sum_simple(sum, a, start, end);
   } else {
 #pragma omp parallel for reduction(+ : sum)
     for (size_t i = start; i < end; i += threshold) {
       float sum_l = 0;
-      sum_64(sum_l, a, i, i + threshold);
+      sum_simple(sum_l, a, i, i + threshold);
       sum += sum_l;
     }
   }
 }
 
-void sum_tbb_for_sum_64(float &sum, const float *a, size_t start, size_t end,
+void sum_tbb_for_sum_simple(float &sum, const float *a, size_t start, size_t end,
                         size_t threshold, size_t max_num_thread) {
   (void)max_num_thread;
   if (threshold > (end - start))
@@ -241,7 +216,7 @@ void sum_tbb_for_sum_64(float &sum, const float *a, size_t start, size_t end,
   tbb::parallel_for(blocked_range<size_t>(start, end, threshold),
                     [=](const blocked_range<size_t> &r) {
                       float sum_l;
-                      sum_64(sum_l, a, r.begin(), r.end());
+                      sum_simple(sum_l, a, r.begin(), r.end());
                       result[r.begin() / threshold] = sum_l;
                     });
   for (size_t i = 0; i < (end - start) / threshold; i++) {
@@ -277,7 +252,7 @@ void sum_tbb_ap_arena(float &sum, const float *a, size_t start, size_t end,
       {4, tbb::task_arena(4)},   {8, tbb::task_arena(8)},
       {16, tbb::task_arena(16)}, {32, tbb::task_arena(32)}};
   if (end - start < threshold) {
-    sum_64(sum, a, start, end);
+    sum_simple(sum, a, start, end);
   } else {
     size_t max_tasks = ((end - start) / threshold);
     SumFoo sf(a);
@@ -300,7 +275,7 @@ void sum_tbb_simp(float &sum, const float *a, size_t start, size_t end,
                   size_t threshold, size_t max_num_thread) {
   (void)max_num_thread;
   if (end - start < threshold) {
-    sum_64(sum, a, start, end);
+    sum_simple(sum, a, start, end);
   } else {
     SumFoo sf(a);
     static simple_partitioner ap;
@@ -313,7 +288,7 @@ void sum_tbb_ap(float &sum, const float *a, size_t start, size_t end,
                 size_t threshold, size_t max_num_thread) {
   (void)max_num_thread;
   if (end - start < threshold) {
-    sum_64(sum, a, start, end);
+    sum_simple(sum, a, start, end);
   } else {
     SumFoo sf(a);
     static affinity_partitioner ap;
@@ -326,7 +301,7 @@ void sum_tbb_default(float &sum, const float *a, size_t start, size_t end,
                      size_t threshold, size_t max_num_thread) {
   (void)max_num_thread;
   if (end - start < threshold) {
-    sum_64(sum, a, start, end);
+    sum_simple(sum, a, start, end);
   } else {
     SumFoo sf(a);
     parallel_reduce(blocked_range<size_t>(start, end, threshold), sf);
@@ -406,26 +381,6 @@ void reducesum_impl_64(const float *arr, float *outarr, size_t size1b,
     }
     for (int ib = 0; ib < 8; ib++) {
       _mm256_storeu_ps(outarr + k + ib * 8, b[ib]);
-    }
-  }
-}
-
-void reducesum_impl_inverse(const float *arr, float *outarr, size_t size1b,
-                            size_t size1e, size_t size2b, size_t size2e,
-                            size_t size2) {
-  register size_t k;
-  for (size_t i = size1b; i < size1e; i += 1) {
-    k = size2b;
-    size_t end = size2e > 7 ? size2e - 8 : 0;
-    for (; k < end; k += 8) {
-      register __m256 a, b;
-      a = _mm256_loadu_ps(arr + i * size2 + k);
-      b = _mm256_loadu_ps(outarr + k);
-      a = _mm256_add_ps(a, b);
-      _mm256_storeu_ps(outarr + k, a);
-    }
-    for (; k < size2e; k++) {
-      outarr[k] += arr[i * size2 + k];
     }
   }
 }
@@ -612,19 +567,16 @@ int main(int argc, char **argv) {
   std::map<std::string, void (*)(float &, const float *, size_t, size_t)>
       sum_funcs;
 
-  sum_funcs["sum_64"] = &sum_64;
   sum_funcs["sum_naive"] = &sum_naive;
-  sum_funcs["sum_std"] = &sum_std;
+  sum_funcs["sum_simple"] = &sum_simple;
+  sum_funcs["sum_tree"] = &sum_tree;
   sum_funcs["sum_width"] = &sum_width;
-  sum_funcs["sum_width_2"] = &sum_width_2;
-  sum_funcs["sum_width_3"] = &sum_width_3;
 
   std::map<std::string, void (*)(const float *, float *, size_t, size_t, size_t,
                                  size_t, size_t)>
       reducesum_funcs;
 
   reducesum_funcs["reducesum_impl_64"] = &reducesum_impl_64;
-  reducesum_funcs["reducesum_impl_inverse"] = &reducesum_impl_inverse;
   reducesum_funcs["reducesum_impl_naive"] = &reducesum_impl_naive;
   reducesum_funcs["reducesum_impl_simple"] = &reducesum_impl_simple;
   reducesum_funcs["reducesum_impl_tile"] = &reducesum_impl_tile;
@@ -636,9 +588,9 @@ int main(int argc, char **argv) {
 
   parallelsum_funcs["sum_omp_naive_simd"] = &sum_omp_naive_simd;
   parallelsum_funcs["sum_omp_naive"] = &sum_omp_naive;
-  parallelsum_funcs["sum_omp_64_sum_64"] = &sum_omp_64_sum_64;
-  parallelsum_funcs["sum_omp_threshold_sum_64"] = &sum_omp_threshold_sum_64;
-  parallelsum_funcs["sum_tbb_for_sum_64"] = &sum_tbb_for_sum_64;
+  parallelsum_funcs["sum_omp_64_sum_simple"] = &sum_omp_64_sum_simple;
+  parallelsum_funcs["sum_omp_threshold_sum_simple"] = &sum_omp_threshold_sum_simple;
+  parallelsum_funcs["sum_tbb_for_sum_simple"] = &sum_tbb_for_sum_simple;
   parallelsum_funcs["sum_tbb_sum_naive"] = &sum_tbb_sum_naive;
   parallelsum_funcs["sum_tbb_ap_arena"] = &sum_tbb_ap_arena;
   parallelsum_funcs["sum_tbb_simp"] = &sum_tbb_simp;
@@ -651,54 +603,48 @@ int main(int argc, char **argv) {
 
   parallelreducesum_funcs["reducesum_tbb"] = &reducesum_tbb;
 
-  int64_t min_s = 8 << 10;
-  int64_t max_s = 8 << 20;
+  int64_t min_s = 8 << 12;
+  int64_t max_s = 8 << 24;
+  int64_t ratio_s = max_s / min_s;
   int64_t min_th = 8 * 1024;
   int64_t max_th = 128 * 1024;
 
-  int64_t min_nt = 2;
-  int64_t max_nt = 16;
 
-  for (int64_t s = min_s; s < max_s; s *= 2) {
+  int64_t min_nt = 2;
+  int64_t max_nt = 20;
+
+  for (int64_t s = min_s; s < max_s; s *= 4) {
     for (auto &kv : sum_funcs) {
-      benchmark::RegisterBenchmark(kv.first.c_str(), &BM_ONECORE_SUM, s, 1024,
+      benchmark::RegisterBenchmark(kv.first.c_str(), &BM_ONECORE_SUM, s, 128,
                                    kv.second);
     }
   }
 
-  for (int64_t so = min_s; so < max_s; so *= 2) {
-    for (int64_t si = min_s; si < max_s; si *= 2) {
-      if (so * si > max_s)
-        continue;
-      for (auto &kv : reducesum_funcs) {
-        benchmark::RegisterBenchmark(kv.first.c_str(), &BM_ONECORE_REDUCESUM,
-                                     so, si, 128, kv.second);
-      }
+  for (int64_t k = 2; k < ratio_s; k = k * 2) {
+    int64_t so = max_s / (ratio_s  * k);
+    int64_t si = ratio_s * k;
+    for (auto &kv : reducesum_funcs) {
+      benchmark::RegisterBenchmark(kv.first.c_str(), &BM_ONECORE_REDUCESUM, so,
+                                   si, 16, kv.second);
     }
   }
 
-  for (int64_t nt = min_nt; nt < max_nt; nt *= 2) {
-    for (int64_t s = min_s; s < max_s; s *= 2) {
-      for (int64_t th = min_th; th < max_th; th *= 2) {
+  for (int64_t nt = min_nt; nt < max_nt; nt *= 4) {
+    for (int64_t s = min_s; s < max_s; s *= 4) {
+      for (int64_t th = min_th; th < max_th; th *= 4) {
         for (auto &kv : parallelsum_funcs) {
           benchmark::RegisterBenchmark(kv.first.c_str(), &BM_PARALLEL_SUM, s,
-                                       2048, th, nt, kv.second);
+                                       128, th, nt, kv.second);
         }
       }
     }
-  }
-
-  for (int64_t nt = min_nt; nt < max_nt; nt *= 2) {
-    for (int64_t so = min_s; so < max_s; so *= 2) {
-      for (int64_t si = min_s; si < max_s; si *= 2) {
-        if (so * si > max_s)
-          continue;
-        for (int64_t th = min_th; th < max_th; th *= 2) {
-          for (auto &kv : parallelreducesum_funcs) {
-            benchmark::RegisterBenchmark(kv.first.c_str(),
-                                         &BM_PARALLEL_REDUCESUM, so, si, 128,
-                                         th, nt, kv.second);
-          }
+    for (int64_t k = 2; k < ratio_s; k = k * 2) {
+      int64_t so = max_s / (ratio_s * k);
+      int64_t si = ratio_s * k;
+      for (int64_t th = min_th; th < max_th; th *= 4) {
+        for (auto &kv : parallelreducesum_funcs) {
+          benchmark::RegisterBenchmark(kv.first.c_str(), &BM_PARALLEL_REDUCESUM,
+                                       so, si, 128, th, nt, kv.second);
         }
       }
     }
