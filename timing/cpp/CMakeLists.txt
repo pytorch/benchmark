@@ -20,7 +20,7 @@ message("CONDA_INCLUDE: ${CONDA_INCLUDE}")
 message("CONDA_LIBS: ${CONDA_LIBS}")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/tbb/cmake/TBBGet.cmake")
-tbb_get(TBB_ROOT tbb_root CONFIG_DIR TBB_DIR)
+tbb_get(TBB_ROOT tbb_root RELEASE_TAG 2018_U4 CONFIG_DIR TBB_DIR)
 find_package(TBB REQUIRED)
 
 # Preserve values for the main build
@@ -48,7 +48,7 @@ set(BUILD_TESTS ${__aten_sleef_build_tests} CACHE BOOL "Build tests" FORCE)
 include_directories (SYSTEM "${CAFFE2_INCLUDE}" "${GBENCHMARK_INCLUDE}" "${CONDA_INCLUDE}")
 
 
-SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3 -mavx2 -fopenmp")
+SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O0 -g -mavx2 -fopenmp")
 
 add_executable (compare_eigen benchmarks/compare_eigen.cpp)
 
