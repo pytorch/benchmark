@@ -42,7 +42,6 @@ def make_tensor(size_, dtype, cont, dim, trans):
 # NB: Numpy doesn't support rsqrt
 ALL_UNARY_FUNCTIONS = [
     ("abs", "abs"),
-    ("abs", "abs"),
     ("acos", "arccos"),
     ("asin", "arcsin"),
     ("atan", "arctan"),
