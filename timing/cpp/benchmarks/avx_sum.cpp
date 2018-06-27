@@ -112,6 +112,52 @@ void sum_simple_128(float &sum, const float *arr, size_t start, size_t end) {
   sum_naive(sum, arr, start + ((end - start) / 32) * 32, end);
 }
 
+void sum_simple_128_aligned(float &sum, const float *arr, size_t start, size_t end) {
+  __m256 a[4]; // 128 bytes (two cache lines)
+  a[0] = _mm256_set1_ps(0);
+  a[1] = _mm256_set1_ps(0);
+  a[2] = _mm256_set1_ps(0);
+  a[3] = _mm256_set1_ps(0);
+  for (int64_t k = 0; k < (end - start) / 32; k++) {
+    for (size_t i = 0; i < 4; i++) {
+      a[i] = _mm256_add_ps(a[i], _mm256_load_ps(arr + start + k * 32 + i * 8));
+    }
+  }
+  for (size_t i = 0; i < 4; i++) {
+    float sarr[8];
+    _mm256_store_ps(sarr, a[i]);
+    for (int i = 0; i < 8; i++) {
+      sum += sarr[i];
+    }
+  }
+  sum_naive(sum, arr, start + ((end - start) / 32) * 32, end);
+}
+
+void sum_simple_256(float &sum, const float *arr, size_t start, size_t end) {
+  __m256 a[8]; // 128 bytes (two cache lines)
+  a[0] = _mm256_set1_ps(0);
+  a[1] = _mm256_set1_ps(0);
+  a[2] = _mm256_set1_ps(0);
+  a[3] = _mm256_set1_ps(0);
+  a[4] = _mm256_set1_ps(0);
+  a[5] = _mm256_set1_ps(0);
+  a[6] = _mm256_set1_ps(0);
+  a[7] = _mm256_set1_ps(0);
+  for (int64_t k = 0; k < (end - start) / 64; k++) {
+    for (size_t i = 0; i < 8; i++) {
+      a[i] = _mm256_add_ps(a[i], _mm256_loadu_ps(arr + start + k * 64 + i * 8));
+    }
+  }
+  for (size_t i = 0; i < 8; i++) {
+    float sarr[8];
+    _mm256_store_ps(sarr, a[i]);
+    for (int i = 0; i < 8; i++) {
+      sum += sarr[i];
+    }
+  }
+  sum_naive(sum, arr, start + ((end - start) / 64) * 64, end);
+}
+
 void sum_simple(float &sum, const float *arr, size_t start, size_t end) {
   register size_t k;
   __m256 a; // 128 bytes (two cache lines)
@@ -215,25 +261,6 @@ void sum_tbb_ap(float &sum, const float *a, size_t start, size_t end,
         return result;
       },
       std::plus<float>(), ap);
-}
-
-void sum_tbb_ap_arena(float &sum, const float *a, size_t start, size_t end,
-                      size_t threshold, size_t max_num_thread) {
-  static std::map<int64_t, tbb::task_arena> arenas = {
-      {1, tbb::task_arena(1)},   {2, tbb::task_arena(2)},
-      {4, tbb::task_arena(4)},   {8, tbb::task_arena(8)},
-      {16, tbb::task_arena(16)}, {32, tbb::task_arena(32)}};
-  size_t max_tasks = ((end - start) / threshold);
-  static affinity_partitioner ap;
-  if (max_tasks < max_num_thread) {
-    if (arenas.count(max_tasks) == 0) {
-      std::cout << "need arena for " << max_tasks << std::endl;
-    }
-    arenas[max_tasks].execute(
-        [&] { sum_tbb_ap(sum, a, start, end, threshold, max_num_thread); });
-  } else {
-    sum_tbb_ap(sum, a, start, end, threshold, max_num_thread);
-  }
 }
 
 void sum_tbb_default(float &sum, const float *a, size_t start, size_t end,
@@ -462,6 +489,8 @@ void test_sum(std::string name,
   float *data_ = NULL;
   make_float_data(&data_, size);
   make_random_vector(data_, size);
+  task_scheduler_init init(10);
+  omp_set_num_threads(10);
   for (int64_t offset = 0; offset < 1000; offset = (offset + 3) * 13) {
     float sum_ref = 0;
     float sum_comp = 0;
@@ -478,6 +507,7 @@ void test_sum(std::string name,
                                " - error: " + std::to_string(ratio));
     }
   }
+  init.terminate();
   free(data_);
 }
 
@@ -607,6 +637,8 @@ int main(int argc, char **argv) {
   sum_funcs["sum_naive_32"] = &sum_naive_32;
   sum_funcs["sum_simple"] = &sum_simple;
   sum_funcs["sum_simple_128"] = &sum_simple_128;
+  sum_funcs["sum_simple_128_aligned"] = &sum_simple_128_aligned;
+  sum_funcs["sum_simple_256"] = &sum_simple_256;
 
   for (auto &kv : sum_funcs) {
     std::cout << "Testing: " << kv.first << std::endl;
@@ -621,7 +653,6 @@ int main(int argc, char **argv) {
   parallelsum_funcs["sum_omp_naive"] = &sum_omp_naive;
   parallelsum_funcs["sum_omp_simple_128"] = &sum_omp_simple_128;
   parallelsum_funcs["sum_omp_reduce_128"] = &sum_omp_reduce_128;
-  parallelsum_funcs["sum_tbb_ap_arena"] = &sum_tbb_ap_arena;
   parallelsum_funcs["sum_tbb_simp"] = &sum_tbb_simp;
   parallelsum_funcs["sum_tbb_ap"] = &sum_tbb_ap;
   parallelsum_funcs["sum_tbb_default"] = &sum_tbb_default;
@@ -656,7 +687,7 @@ int main(int argc, char **argv) {
     test_parallelreducesum(kv.first, kv.second);
   }
 
-  int64_t min_s = 8 << 12;
+  int64_t min_s = (8 << 12) / 2;
   int64_t max_s = 8 << 25;
   int64_t ratio_s = max_s / min_s;
   int64_t min_th = 8 * 1024;
@@ -665,7 +696,7 @@ int main(int argc, char **argv) {
   int64_t min_nt = 2;
   int64_t max_nt = 20;
 
-  for (int64_t s = min_s; s < max_s; s *= 4) {
+  for (int64_t s = min_s; s < max_s; s *= 2) {
     for (auto &kv : sum_funcs) {
       benchmark::RegisterBenchmark(kv.first.c_str(), &BM_ONECORE_SUM, s, 128,
                                    kv.second);
@@ -682,7 +713,7 @@ int main(int argc, char **argv) {
   }
 
   for (int64_t nt = min_nt; nt < max_nt; nt *= 4) {
-    for (int64_t s = min_s; s < max_s; s *= 4) {
+    for (int64_t s = min_s; s < max_s; s *= 2) {
       for (int64_t th = min_th; th < max_th; th *= 4) {
         for (auto &kv : parallelsum_funcs) {
           benchmark::RegisterBenchmark(kv.first.c_str(), &BM_PARALLEL_SUM, s,

@@ -48,7 +48,7 @@ set(BUILD_TESTS ${__aten_sleef_build_tests} CACHE BOOL "Build tests" FORCE)
 include_directories (SYSTEM "${CAFFE2_INCLUDE}" "${GBENCHMARK_INCLUDE}" "${CONDA_INCLUDE}")
 
 
-SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O0 -g -mavx2 -fopenmp")
+SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3 -mavx2 -fopenmp")
 
 add_executable (compare_eigen benchmarks/compare_eigen.cpp)
 
