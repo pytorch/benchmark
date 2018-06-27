@@ -657,7 +657,7 @@ int main(int argc, char **argv) {
   }
 
   int64_t min_s = 8 << 12;
-  int64_t max_s = 8 << 24;
+  int64_t max_s = 8 << 25;
   int64_t ratio_s = max_s / min_s;
   int64_t min_th = 8 * 1024;
   int64_t max_th = 128 * 1024;
