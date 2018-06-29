@@ -99,7 +99,7 @@ def _common_arg(d):
             "mag": (6, 7),
             "cont": (True, False),
             "trans": (False, True),
-            "dtype": (torch.float,),
+            "dtype": (torch.float, torch.double),
         }
     )
     return d
