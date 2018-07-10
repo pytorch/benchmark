@@ -96,7 +96,7 @@ def _common_arg(d):
     d.update(
         {
             "dim": (3,),
-            "mag": (6, 7),
+            "mag": (1, 3, 6, 7),
             "cont": (True, False),
             "trans": (False, True),
             "dtype": (torch.float, torch.double),
