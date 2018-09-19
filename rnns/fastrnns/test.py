@@ -51,6 +51,9 @@ def test_rnns(experim_creator, control_creator, check_grad=True, verbose=False,
     if verbose:
         print(experim_rnn.graph_for(*experim_inputs))
 
+        # hack
+        print(backward_graph(experim_rnn))
+
 
 if __name__ == '__main__':
     test_rnns(script_lstm_creator, pytorch_lstm_creator, device='cpu', verbose=True)
