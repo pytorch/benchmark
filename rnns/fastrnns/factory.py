@@ -1,6 +1,6 @@
 import torch
 
-from .cells import lstm_cell
+from .cells import lstm_cell, premul_lstm_cell
 
 
 # list[list[T]] -> list[T]
@@ -43,6 +43,20 @@ def script_lstm_flat_inputs_creator(seqLength=100, numLayers=1, inputSize=512,
     wih, whh, bih, bhh = stack_weights(params)
     flat_args = [input, hidden[0], hidden[1], wih, whh, bih, bhh]
     return lstm_factory_flat(lstm_cell), flat_args, flatten_list(params)
+
+
+def script_lstm_flat_inputs_premul_creator(seqLength=100, numLayers=1,
+                                           inputSize=512,
+                                           hiddenSize=512, miniBatch=64,
+                                           device='cuda',
+                                           seed=None):
+    input_args = dict(seqLength=seqLength, numLayers=numLayers,
+                      inputSize=inputSize, hiddenSize=hiddenSize,
+                      miniBatch=miniBatch, device=device, seed=seed)
+    input, hidden, params, _ = lstm_inputs(return_module=False, **input_args)
+    wih, whh, bih, bhh = stack_weights(params)
+    flat_args = [input, hidden[0], hidden[1], wih, whh, bih, bhh]
+    return lstm_factory_flat_premul(premul_lstm_cell), flat_args, flatten_list(params)
 
 
 def pytorch_lstm_creator(seqLength=100, numLayers=1, inputSize=512,
@@ -124,6 +138,7 @@ def lstm_factory(cell):
     return dynamic_rnn
 
 
+# flat: flat inputs (no tuples)
 def lstm_factory_flat(cell):
     @torch.jit.script
     def dynamic_rnn(input, hx, cx, lwih, lwhh, lbih, lbhh):
@@ -141,6 +156,38 @@ def lstm_factory_flat(cell):
             bhh = lbhh[layer]
             for seq_idx in range(seq_len):
                 hy, cy = cell(input[seq_idx], (hy, cy), wih, whh, bih, bhh)
+                output += [hy]
+        return torch.stack(output), (hy.unsqueeze(0), cy.unsqueeze(0))
+
+    return dynamic_rnn
+
+
+# flat: flat inputs (no tuples)
+# premul: we're going to premultiply the inputs & weights
+def lstm_factory_flat_premul(premul_cell):
+    @torch.jit.script
+    def dynamic_rnn(input, hx, cx, lwih, lwhh, lbih, lbhh):
+        output = []
+        num_layers = hx.size(0)
+        seq_len = input.size(0)
+        minibatch = input.size(1)
+        input_size = input.size(2)
+        hidden_size = hx.size(2)
+        hy = hx  # for scoping
+        cy = cx  # for scoping
+        for layer in range(num_layers):
+            hy = hx[layer]
+            cy = cx[layer]
+            wih = lwih[layer]
+            whh = lwhh[layer]
+            bih = lbih[layer]
+            bhh = lbhh[layer]
+
+            # NB: requires some contiguity guarantees (which we do have)
+            igates = input.view(seq_len * minibatch, input_size).mm(wih.t()).view(seq_len, minibatch, 4 * hidden_size)
+
+            for seq_idx in range(seq_len):
+                hy, cy = premul_cell(igates[seq_idx], (hy, cy), whh, bih, bhh)
                 output += [hy]
         return torch.stack(output), (hy.unsqueeze(0), cy.unsqueeze(0))
 
