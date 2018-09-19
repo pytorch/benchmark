@@ -1,3 +1,4 @@
+import argparse
 from collections import namedtuple
 import torch
 import gc
@@ -98,26 +99,24 @@ def bench(rnn_runners, sep=' ', **params):
             print(pretty_print(result, sep=sep))
 
 
-def bench_single_layer(rnn_runners, sep=' '):
-    print('Benchmarking single layer lstm...')
-    params = dict(nloops=200,
-                  seqLength=100, numLayers=1, inputSize=512, hiddenSize=512,
-                  miniBatch=64, device='cuda', seed=None)
-    bench(rnn_runners, sep=sep, **params)
-    print('')
-
-
-def bench_multi_layer(rnn_runners, sep=' '):
-    print('Benchmarking multi layer lstm...')
-    params = dict(nloops=200,
-                  seqLength=100, numLayers=4, inputSize=512, hiddenSize=512,
-                  miniBatch=64, device='cuda', seed=None)
-    bench(rnn_runners, sep=sep, **params)
-    print('')
-
-
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Profile RNNs')
+
+    parser.add_argument('--seqLength', default='100', type=int)
+    parser.add_argument('--numLayers', default='1', type=int)
+    parser.add_argument('--inputSize', default='512', type=int)
+    parser.add_argument('--hiddenSize', default='512', type=int)
+    parser.add_argument('--miniBatch', default='64', type=int)
+    parser.add_argument('--warmup', default='10', type=int)
+    parser.add_argument('--nloops', default='100', type=int)
+    parser.add_argument('--device', default='cuda', type=str)
+    parser.add_argument('--sep', default=' ', type=str)
+
+    args = parser.parse_args()
+    print(args)
+
     rnn_runners = get_rnn_runners('cudnn', 'aten', 'jit_flat', 'jit')
 
-    bench_single_layer(rnn_runners)
-    bench_multi_layer(rnn_runners)
+    print('Benchmarking...')
+    bench(rnn_runners, **vars(args))
+    print('')
