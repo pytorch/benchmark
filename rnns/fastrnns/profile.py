@@ -88,6 +88,7 @@ def full_profile(rnns, **args):
     profile_args = []
     for k, v in args.items():
         profile_args.append('--{}={}'.format(k, v))
+    profile_args.append('--rnns {}'.format(' '.join(rnns)))
 
     outpath = nvprof_output_filename(rnns, **args)
 
@@ -109,17 +110,19 @@ if __name__ == '__main__':
     parser.add_argument('--sleep_between_seconds', default='1', type=int)
     parser.add_argument('--nloops', default='5', type=int)
 
+    parser.add_argument('--rnns', nargs='*',
+                        help='What to run. cudnn, aten, jit, etc')
+
     # if internal_run, we actually run the rnns.
     # if not internal_run, we shell out to nvprof with internal_run=T
     parser.add_argument('--internal_run', default=False, type=bool,
                         help='Don\'t use this')
     args = parser.parse_args()
-
-    # TODO: command line options
-    #rnns = ['cudnn', 'aten', 'jit_flat']
-    rnns = ['jit_flat']
+    if args.rnns is None:
+        args.rnns = ['cudnn', 'aten', 'jit']
+    print(args)
 
     if args.internal_run:
-        profile(rnns, **vars(args))
+        profile(**vars(args))
     else:
-        full_profile(rnns, **vars(args))
+        full_profile(**vars(args))

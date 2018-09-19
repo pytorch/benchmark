@@ -111,12 +111,18 @@ if __name__ == '__main__':
     parser.add_argument('--nloops', default='100', type=int)
     parser.add_argument('--device', default='cuda', type=str)
     parser.add_argument('--sep', default=' ', type=str)
+    parser.add_argument('--rnns', nargs='*',
+                        help='What to run. cudnn, aten, jit, etc')
 
     args = parser.parse_args()
+    if args.rnns is None:
+        args.rnns = ['cudnn', 'aten', 'jit_flat', 'jit_premul', 'jit']
     print(args)
 
-    rnn_runners = get_rnn_runners('cudnn', 'aten', 'jit_flat', 'jit_premul', 'jit')
+    rnn_runners = get_rnn_runners(*args.rnns)
+    bench_args = vars(args)
+    del bench_args['rnns']
 
     print('Benchmarking...')
-    bench(rnn_runners, **vars(args))
+    bench(rnn_runners, **bench_args)
     print('')
