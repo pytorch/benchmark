@@ -11,7 +11,7 @@ BenchResult = namedtuple('BenchResult', [
 ])
 
 
-def fit_str(string, colwidth=8):
+def fit_str(string, colwidth=12):
     if len(string) < colwidth:
         return (colwidth - len(string)) * ' ' + string
     else:
@@ -24,14 +24,14 @@ def to_str(item):
     return str(item)
 
 
-def print_header(colwidth=8, sep=' '):
+def print_header(colwidth=12, sep=' '):
     items = []
     for item in BenchResult._fields:
         items.append(fit_str(item))
     return sep.join(items)
 
 
-def pretty_print(benchresult, colwidth=8, sep=' '):
+def pretty_print(benchresult, colwidth=12, sep=' '):
     items = []
     for thing in benchresult:
         items.append(fit_str(to_str(thing)))
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
 
-    rnn_runners = get_rnn_runners('cudnn', 'aten', 'jit_flat', 'jit')
+    rnn_runners = get_rnn_runners('cudnn', 'aten', 'jit_flat', 'jit_premul', 'jit')
 
     print('Benchmarking...')
     bench(rnn_runners, **vars(args))
