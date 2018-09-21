@@ -2,6 +2,8 @@ import argparse
 from collections import namedtuple
 import torch
 import gc
+import sys
+import json
 
 from .runner import get_rnn_runners
 
@@ -91,12 +93,30 @@ def trainbench(name, rnn_creator, nloops=100, warmup=10,
                        std_bwd=bwd_times.std().item())
 
 
-def bench(rnn_runners, sep=' ', **params):
-    print(print_header(sep=sep))
+def print_stderr(*args, **kwargs):
+    return print(*args, **kwargs, file=sys.stderr)
+
+
+def bench(rnn_runners, print_json=False, sep=' ', **params):
+
+    print_stderr(print_header(sep=sep))
+    results = {}
     for name, creator, context in rnn_runners:
         with context():
-            result = trainbench(name, creator, **params)
-            print(pretty_print(result, sep=sep))
+            try:
+                result = trainbench(name, creator, **params)
+                print_stderr(pretty_print(result, sep=sep))
+                results[name] = result
+            except Exception as e:
+                if not print_json:
+                    raise
+
+    if print_json:
+        results = {
+            'lstm': {k: v.avg_fwd for k, v in results.items()},
+            'lstm-backward': {k: v.avg_bwd for k, v in results.items()},
+        }
+        print(json.dumps(results))
 
 
 if __name__ == '__main__':
@@ -111,18 +131,19 @@ if __name__ == '__main__':
     parser.add_argument('--nloops', default='100', type=int)
     parser.add_argument('--device', default='cuda', type=str)
     parser.add_argument('--sep', default=' ', type=str)
+    parser.add_argument('--print-json', action='store_true')
     parser.add_argument('--rnns', nargs='*',
                         help='What to run. cudnn, aten, jit, etc')
 
     args = parser.parse_args()
     if args.rnns is None:
         args.rnns = ['cudnn', 'aten', 'jit_flat', 'jit_premul', 'jit']
-    print(args)
+    print_stderr(args)
 
     rnn_runners = get_rnn_runners(*args.rnns)
     bench_args = vars(args)
     del bench_args['rnns']
 
-    print('Benchmarking...')
+    print_stderr('Benchmarking...')
     bench(rnn_runners, **bench_args)
-    print('')
+    print_stderr('')
