@@ -1,7 +1,9 @@
+import argparse
 import torch
 
 from .cells import lstm_cell
-from .factory import *
+from .factory import pytorch_lstm_creator
+from .runner import get_rnn_runners
 
 
 def barf():
@@ -50,13 +52,37 @@ def test_rnns(experim_creator, control_creator, check_grad=True, verbose=False,
 
     if verbose:
         print(experim_rnn.graph_for(*experim_inputs))
+    print('')
 
 
 if __name__ == '__main__':
-    test_rnns(script_lstm_creator, pytorch_lstm_creator, device='cpu', verbose=True)
-    test_rnns(script_lstm_flat_inputs_creator, pytorch_lstm_creator, device='cpu', verbose=True)
-    test_rnns(script_lstm_flat_inputs_premul_creator, pytorch_lstm_creator, device='cpu', verbose=True)
-    if torch.cuda.is_available():
-        test_rnns(script_lstm_creator, pytorch_lstm_creator, device='cuda', verbose=True)
-        test_rnns(script_lstm_flat_inputs_creator, pytorch_lstm_creator, device='cuda', verbose=True)
-        test_rnns(script_lstm_flat_inputs_premul_creator, pytorch_lstm_creator, device='cuda', verbose=True)
+    parser = argparse.ArgumentParser(description='Test lstm correctness')
+
+    parser.add_argument('--seqLength', default='100', type=int)
+    parser.add_argument('--numLayers', default='1', type=int)
+    parser.add_argument('--inputSize', default='512', type=int)
+    parser.add_argument('--hiddenSize', default='512', type=int)
+    parser.add_argument('--miniBatch', default='64', type=int)
+    parser.add_argument('--device', default='cuda', type=str)
+    parser.add_argument('--check_grad', default='True', type=bool)
+    parser.add_argument('--seed', default='17', type=int)
+    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--rnns', nargs='*',
+                        help='What to run. jit_flat, jit_premul, jit, etc')
+    args = parser.parse_args()
+    if args.rnns is None:
+        args.rnns = ['jit_flat', 'jit_premul', 'jit']
+    print(args)
+
+    if 'cuda' in args.device:
+        assert torch.cuda.is_available()
+
+    rnn_runners = get_rnn_runners(*args.rnns)
+
+    test_args = vars(args)
+    del test_args['rnns']
+
+    for name, creator, context in rnn_runners:
+        with context():
+            print('testing {}...'.format(name))
+            test_rnns(creator, pytorch_lstm_creator, **test_args)
