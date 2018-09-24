@@ -106,7 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--numLayers', default='1', type=int)
     parser.add_argument('--inputSize', default='512', type=int)
     parser.add_argument('--hiddenSize', default='512', type=int)
-    parser.add_argument('--miniBatch', default='512', type=int)
+    parser.add_argument('--miniBatch', default='64', type=int)
     parser.add_argument('--sleep_between_seconds', default='1', type=int)
     parser.add_argument('--nloops', default='5', type=int)
 
