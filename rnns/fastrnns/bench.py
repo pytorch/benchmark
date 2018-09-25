@@ -98,7 +98,6 @@ def print_stderr(*args, **kwargs):
 
 
 def bench(rnn_runners, print_json=False, sep=' ', **params):
-
     print_stderr(print_header(sep=sep))
     results = {}
     for name, creator, context in rnn_runners:
@@ -138,6 +137,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.rnns is None:
         args.rnns = ['cudnn', 'aten', 'jit_flat', 'jit_premul', 'jit']
+    if args.print_json:
+        print_stderr = lambda *args, **kwargs: None
     print_stderr(args)
 
     rnn_runners = get_rnn_runners(*args.rnns)

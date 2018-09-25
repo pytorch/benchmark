@@ -11,7 +11,7 @@ REPO_URL = 'https://github.com/pytorch/pytorch'
 REPO_DIR = 'repo'
 OUTPUT_PATH = 'results.json'
 HERE = os.path.dirname(os.path.abspath(__file__))
-MAX_BENCHES = 100
+MAX_BENCHES = 80
 BENCH_EVERY = 10 # th commit
 
 run = partial(subprocess.check_call, cwd=REPO_DIR)
@@ -46,18 +46,46 @@ def get_history():
     return all_commits[::BENCH_EVERY][-MAX_BENCHES:]
 
 
+def container_name(commit_hash):
+    return 'pytorch_bench_' + commit_hash
+
 
 def build(commit_hash):
-    os.environ['NO_TEST'] = '1'
-    os.environ['BUILD_CAFFE2_OPS'] = '0'
     start = time.time()
-    run(['git', 'checkout', commit_hash], **silent)
-    run(['git', 'clean', '-xfd'], **silent)
-    run(['git', 'submodule', 'update', '--init', '--recursive'], **silent)
-    run(['python', 'setup.py', 'install'])
+    cname = container_name(commit_hash)
+    run(['docker', 'run',
+           '--runtime=nvidia',
+           '-v', os.path.join(HERE, '..') + ':/mnt/localdrive',
+           '--name', cname,
+           '-t', 'pytorch_bench',
+           '/bin/bash', '/mnt/localdrive/timing/python/install_pytorch.sh', commit_hash])
+    run(['docker', 'commit', cname, cname])
     end = time.time()
     diff = int(end - start)
     print('    (Build took {} min {} s)'.format(diff // 60, diff % 60))
+
+
+def cleanup(commit_hash):
+    # TODO: DON'T REMOVE ALL CONTAINERS!
+    run('docker ps -a -q | xargs docker rm', shell=True)
+    run(['docker', 'image', 'rm', container_name(commit_hash)])
+
+
+def run_benchmark(commit_hash, args, **kwargs):
+    # TODO: USE REAL CPUSET CPUS
+    BENCH_CPUS = '0-11'
+    BENCH_MEMS = '0'
+    return run_with_output(['docker', 'run',
+            '--cap-add=SYS_PTRACE',
+            '--runtime=nvidia',
+            '--security-opt',
+            'seccomp=unconfined',
+            '-v', os.path.join(HERE, '..') + ':/mnt/localdrive',
+            '-w', '/mnt/localdrive',
+            '--cpuset-cpus=' + BENCH_CPUS,
+            '--cpuset-mems=' + BENCH_MEMS,
+            '-t', container_name(commit_hash),
+            *args], **kwargs).decode('utf8')
 
 
 def load_results():
@@ -72,7 +100,6 @@ def align_commits(commits, results):
         return commits
 
     def find_offset():
-        # TODO: it's enough to check boundaries (mutually)
         # This could easily be improved to run in O(n log(n)), but who cares.
         for i, c in enumerate(commits):
             for j, result in enumerate(results):
@@ -117,7 +144,7 @@ def print_plan(to_bench):
 
 
 BENCHMARKS = [
-    dict(args=['python', '-m', 'fastrnns.bench', '--print-json'], cwd=os.path.join(HERE, '..', 'rnns')),
+    dict(args=['python', '-m', 'rnns.fastrnns.bench', '--print-json']),
 ]
 
 fetch_repo()
@@ -135,11 +162,12 @@ try:
             build(commit['hash'])
             times = {}
             for args in BENCHMARKS:
-                output = run_with_output(**args).decode('utf8')
+                output = run_benchmark(commit['hash'], **args)
                 merge_into(times, json.loads(output))
             commit['times'] = times
+            cleanup(commit['hash'])
         except Exception as e:
-            print('Interrupted by an exception! Saving partial results...')
+            print('Interrupted by an exception!')
             print(e)
 except KeyboardInterrupt:
     print('Received an interrupt. Saving partial results...')
