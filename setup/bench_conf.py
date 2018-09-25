@@ -1,3 +1,4 @@
+import argparse
 import subprocess
 from pprint import pprint
 from collections import namedtuple
@@ -39,7 +40,7 @@ def disable_ht():
     for cpu in cpus:
         key = (cpu.physical_id, cpu.core_id)
         if key in seen_phys_cores:
-            cpus_to_disable.append(cpu)
+            cpus_to_disable.add(cpu)
         else:
             seen_phys_cores.add(key)
 
@@ -49,8 +50,6 @@ def disable_ht():
         print('    Disabling {} CPUs.'.format(len(cpus_to_disable)))
     else:
         raise RuntimeError('Expected to disable either exactly half or no CPUs. This might be a bug.')
-
-    return
 
     for cpu in cpus_to_disable:
         set_cpu_state(cpu, False)
@@ -68,7 +67,6 @@ def enable_ht():
 ################################################################################
 
 def shield_cpus(bench_cpus, bg_cpus):
-    return
     bench_cpuspec = ','.join(str(cpu.processor) for cpu in bench_cpus)
     bg_cpuspec = ','.join(str(cpu.processor) for cpu in bg_cpus)
     # Set up our cpusets
@@ -98,7 +96,7 @@ def isolate_bench_subset(cpus):
     bench_cpus = [cpu for cpu in cpus if cpu.physical_id == 0]
     bg_cpus = [cpu for cpu in cpus if cpu.physical_id != 0]
     assert len(bench_cpus) > 0, "No CPUs on NUMA node 0!"
-    assert len(remaining_cpus) > 0, "Expected at least two NUMA nodes!"
+    assert len(bg_cpus) > 0, "Expected at least two NUMA nodes!"
     return bench_cpus, bg_cpus
 
 ################################################################################
@@ -110,6 +108,8 @@ def setup_benchmark_env():
     all_active_cpus = disable_ht()
     bench_cpus, bg_cpus = isolate_bench_subset(all_active_cpus)
     shield_cpus(bench_cpus, bg_cpus)
+    with open('bench_cpus', 'w') as f:
+        f.write(','.join(str(cpu.processor) for cpu in bench_cpus))
 
 def teardown_benchmark_env():
     remove_shield()
@@ -122,10 +122,12 @@ def main():
     parser.add_argument('--teardown', action='store_true')
     args = parser.parse_args()
 
-    assert not args.setup and args.teardown
-    assert args.setup or args.teardown
+    assert args.setup ^ args.teardown
 
     if args.setup:
         setup_benchmark_env()
     else:
         teardown_benchmark_env()
+
+if __name__ == '__main__':
+    main()
