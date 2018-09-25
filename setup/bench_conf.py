@@ -99,7 +99,7 @@ def isolate_bench_subset(cpus):
     bench_cpus = [cpu for cpu in cpus if cpu.physical_id == 0]
     bg_cpus = [cpu for cpu in cpus if cpu.physical_id != 0]
     assert len(bench_cpus) > 0, "No CPUs on NUMA node 0!"
-    assert len(remaining_cpus) > 0, "Expected at least two NUMA nodes!"
+    assert len(bg_cpus) > 0, "Expected at least two NUMA nodes!"
     return bench_cpus, bg_cpus
 
 ################################################################################
