@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 
-import os
 import argparse
-from os.path import join
-from datetime import datetime
-import logging
-from tqdm import tqdm
-import os
 import gc
 import itertools
-import sys
+import logging
+import os
 import shlex
 import subprocess
+import sys
+from datetime import datetime
+from os.path import join
+
 import torchvision.models as models
+from tqdm import tqdm
 
-
+model_names = sorted(name for name in models.__dict__
+                     if not (not (name.islower() and not name.startswith("__"))
+                             or not callable(models.__dict__[name])))
 
 parser = argparse.ArgumentParser(description="PyTorch model accuracy benchmark.")
 parser.add_argument('--repeat', type=int, default=5,
@@ -27,11 +29,6 @@ parser.add_argument('--filename', type=str, default='perf_test',
                     help='name of the output file')
 parser.add_argument('--data-dir', type=str, required=True,
                     help='path to imagenet dataset')
-
-
-model_names = sorted(name for name in models.__dict__
-                     if not (not (name.islower() and not name.startswith("__"))
-                             or not callable(models.__dict__[name])))
 
 
 def get_env_pytorch_examples():
@@ -89,6 +86,7 @@ def cmd_string(examples_home, model, data_path):
 
     cmd = ' '.join(['python3', examples_home, '-a', model, '--lr', str(lr), data_path])
     return cmd
+
 
 def log_init():
     if not os.path.exists(temp_dir):
