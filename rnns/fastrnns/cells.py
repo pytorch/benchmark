@@ -1,7 +1,6 @@
 import torch
 
 
-@torch.jit.script
 def milstm_cell(x, hx, cx, w_ih, w_hh, alpha, beta_i, beta_h, bias):
     Wx = x.mm(w_ih.t())
     Uz = hx.mm(w_hh.t())
@@ -23,7 +22,6 @@ def milstm_cell(x, hx, cx, w_ih, w_hh, alpha, beta_i, beta_h, bias):
     return hy, cy
 
 
-@torch.jit.script
 def lstm_cell(input, hidden, w_ih, w_hh, b_ih, b_hh):
     # type: (Tensor, Tuple[Tensor, Tensor], Tensor, Tensor, Tensor, Tensor) -> Tuple[Tensor, Tensor]
     hx, cx = hidden
@@ -42,7 +40,23 @@ def lstm_cell(input, hidden, w_ih, w_hh, b_ih, b_hh):
     return hy, cy
 
 
-@torch.jit.script
+def flat_lstm_cell(input, hx, cx, w_ih, w_hh, b_ih, b_hh):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor) -> Tuple[Tensor, Tensor]
+    gates = torch.mm(input, w_ih.t()) + torch.mm(hx, w_hh.t()) + b_ih + b_hh
+
+    ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
+
+    ingate = torch.sigmoid(ingate)
+    forgetgate = torch.sigmoid(forgetgate)
+    cellgate = torch.tanh(cellgate)
+    outgate = torch.sigmoid(outgate)
+
+    cy = (forgetgate * cx) + (ingate * cellgate)
+    hy = outgate * torch.tanh(cy)
+
+    return hy, cy
+
+
 def premul_lstm_cell(igates, hidden, w_hh, b_ih, b_hh):
     # type: (Tensor, Tuple[Tensor, Tensor], Tensor, Tensor, Tensor) -> Tuple[Tensor, Tensor]
     hx, cx = hidden
@@ -75,14 +89,12 @@ def gru_cell(input, hidden, w_ih, w_hh, b_ih, b_hh):
     return hy
 
 
-@torch.jit.script
 def rnn_relu_cell(input, hidden, w_ih, w_hh, b_ih, b_hh):
     igates = torch.mm(input, w_ih.t()) + b_ih
     hgates = torch.mm(hidden, w_hh.t()) + b_hh
     return torch.relu(igates + hgates)
 
 
-@torch.jit.script
 def rnn_tanh_cell(input, hidden, w_ih, w_hh, b_ih, b_hh):
     igates = torch.mm(input, w_ih.t()) + b_ih
     hgates = torch.mm(hidden, w_hh.t()) + b_hh

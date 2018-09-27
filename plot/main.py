@@ -11,7 +11,7 @@ REPO_URL = 'https://github.com/pytorch/pytorch'
 REPO_DIR = 'repo'
 OUTPUT_PATH = 'results.json'
 HERE = os.path.dirname(os.path.abspath(__file__))
-MAX_BENCHES = 80
+MAX_BENCHES = 30
 BENCH_EVERY = 10 # th commit
 
 run = partial(subprocess.check_call, cwd=REPO_DIR)
@@ -147,30 +147,31 @@ BENCHMARKS = [
     dict(args=['python', '-m', 'rnns.fastrnns.bench', '--print-json']),
 ]
 
-fetch_repo()
-new_commits = get_history()
-existing_results = load_results()
-all_commits = align_commits(new_commits, existing_results)
-to_bench = [commit for commit in all_commits if 'times' not in commit][-MAX_BENCHES:]
-print_plan(to_bench)
-try:
-    for i, commit in enumerate(to_bench):
-        if 'times' in commit:
-            continue
-        try:
-            print('> Building {} ({}/{})...'.format(commit['hash'], i + 1, len(to_bench)))
-            build(commit['hash'])
-            times = {}
-            for args in BENCHMARKS:
-                output = run_benchmark(commit['hash'], **args)
-                merge_into(times, json.loads(output))
-            commit['times'] = times
-            cleanup(commit['hash'])
-        except Exception as e:
-            print('Interrupted by an exception!')
-            print(e)
-except KeyboardInterrupt:
-    print('Received an interrupt. Saving partial results...')
+if __name__ == '__main__':
+    fetch_repo()
+    new_commits = get_history()
+    existing_results = load_results()
+    all_commits = align_commits(new_commits, existing_results)
+    to_bench = [commit for commit in all_commits if 'times' not in commit][-MAX_BENCHES:]
+    print_plan(to_bench)
+    try:
+        for i, commit in enumerate(to_bench):
+            if 'times' in commit:
+                continue
+            try:
+                print('> Building {} ({}/{})...'.format(commit['hash'], i + 1, len(to_bench)))
+                build(commit['hash'])
+                times = {}
+                for args in BENCHMARKS:
+                    output = run_benchmark(commit['hash'], **args)
+                    merge_into(times, json.loads(output))
+                commit['times'] = times
+                cleanup(commit['hash'])
+            except Exception as e:
+                print('Interrupted by an exception!')
+                print(e)
+    except KeyboardInterrupt:
+        print('Received an interrupt. Saving partial results...')
 
-with open(OUTPUT_PATH, 'w') as f:
-    json.dump(all_commits, f)
+    with open(OUTPUT_PATH, 'w') as f:
+        json.dump(all_commits, f)
