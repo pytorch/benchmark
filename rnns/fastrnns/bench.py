@@ -13,7 +13,7 @@ BenchResult = namedtuple('BenchResult', [
 ])
 
 
-def fit_str(string, colwidth=12):
+def fit_str(string, colwidth=16):
     if len(string) < colwidth:
         return (colwidth - len(string)) * ' ' + string
     else:
@@ -26,21 +26,21 @@ def to_str(item):
     return str(item)
 
 
-def print_header(colwidth=12, sep=' '):
+def print_header(colwidth=16, sep=' '):
     items = []
     for item in BenchResult._fields:
         items.append(fit_str(item))
     return sep.join(items)
 
 
-def pretty_print(benchresult, colwidth=12, sep=' '):
+def pretty_print(benchresult, colwidth=16, sep=' '):
     items = []
     for thing in benchresult:
         items.append(fit_str(to_str(thing)))
     return sep.join(items)
 
 
-def trainbench(name, rnn_creator, nloops=100, warmup=10,
+def trainbench(name, rnn_creator, nloops=300, warmup=20,
                seqLength=100, numLayers=1, inputSize=512, hiddenSize=512,
                miniBatch=64, device='cuda', seed=None):
     def train_batch(rnn, inputs, params):
@@ -112,8 +112,8 @@ def bench(rnn_runners, print_json=False, sep=' ', **params):
 
     if print_json:
         results = {
-            'lstm': {k: v.avg_fwd for k, v in results.items()},
-            'lstm-backward': {k: v.avg_bwd for k, v in results.items()},
+            'lstm': {k: (v.avg_fwd, v.std_fwd) for k, v in results.items()},
+            'lstm-backward': {k: (v.avg_bwd, v.std_bwd) for k, v in results.items()},
         }
         print(json.dumps(results))
 
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     if args.rnns is None:
-        args.rnns = ['cudnn', 'aten', 'jit_flat', 'jit_premul', 'jit']
+        args.rnns = ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple', 'jit_multilayer', 'py']
     if args.print_json:
         print_stderr = lambda *args, **kwargs: None
     print_stderr(args)

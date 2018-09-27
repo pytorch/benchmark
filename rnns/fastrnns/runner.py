@@ -1,9 +1,9 @@
 from collections import namedtuple
+from functools import partial
 import torch
 
-from .factory import pytorch_lstm_creator, script_lstm_creator
-from .factory import script_lstm_flat_inputs_creator
-from .factory import script_lstm_flat_inputs_premul_creator
+from .factory import pytorch_lstm_creator, lstm_creator, lstm_premul_creator, \
+    lstm_multilayer_creator, lstm_simple_creator
 
 
 class DisableCuDNN():
@@ -45,9 +45,9 @@ def get_rnn_runners(*names):
 rnn_runners = {
     'cudnn': RNNRunner('cudnn', pytorch_lstm_creator, DummyContext),
     'aten': RNNRunner('aten', pytorch_lstm_creator, DisableCuDNN),
-    'jit_flat': RNNRunner('jit_flat', script_lstm_flat_inputs_creator, DummyContext),
-    'jit_premul': RNNRunner('jit_premul', script_lstm_flat_inputs_premul_creator, DummyContext),
-    'jit': RNNRunner('jit', script_lstm_creator, DummyContext),
-    'py': RNNRunner('py', script_lstm_creator, AssertNoJIT),
-    'pyflat': RNNRunner('pyflat', script_lstm_flat_inputs_creator, AssertNoJIT),
+    'jit': RNNRunner('jit', lstm_creator, DummyContext),
+    'jit_premul': RNNRunner('jit_premul', lstm_premul_creator, DummyContext),
+    'jit_simple': RNNRunner('jit_simple', lstm_simple_creator, DummyContext),
+    'jit_multilayer': RNNRunner('jit_multilayer', lstm_multilayer_creator, DummyContext),
+    'py': RNNRunner('py', partial(lstm_creator, script=False), DummyContext),
 }

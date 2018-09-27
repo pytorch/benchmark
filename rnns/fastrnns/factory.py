@@ -1,6 +1,8 @@
 import torch
 
-from .cells import lstm_cell, premul_lstm_cell
+from collections import namedtuple
+
+from .cells import lstm_cell, premul_lstm_cell, flat_lstm_cell
 
 
 # list[list[T]] -> list[T]
@@ -16,58 +18,34 @@ def flatten_list(lst):
 # flat_rnn_params: List[Tensor] all requires_grad=True parameters in a list
 # One can call rnn(rnn_inputs) using the outputs of the creator.
 
-# Full script-mode lstm. Returns (inputs, fn) so that one can fn(*inputs)
-# The graph executor takes (Tensor, Tuple[Tensor, Tensor], List[Tensor]) args
-def script_lstm_creator(seqLength=100, numLayers=1, inputSize=512, hiddenSize=512,
-                        miniBatch=64, device='cuda',
-                        seed=None):
-    input_args = dict(seqLength=seqLength, numLayers=numLayers,
-                      inputSize=inputSize, hiddenSize=hiddenSize,
-                      miniBatch=miniBatch, device=device, seed=seed)
-    input, hidden, params, _ = lstm_inputs(return_module=False, **input_args)
-    inputs = [input, hidden, stack_weights(params)]
-    return lstm_factory(lstm_cell), inputs, flatten_list(params)
 
-
-# Script-mode lstm. This graph executor only takes tensors.
-# I'm not sure if it matters that this only takes tensors,
-# but it is here to be safe.
-def script_lstm_flat_inputs_creator(seqLength=100, numLayers=1, inputSize=512,
-                                    hiddenSize=512, miniBatch=64,
-                                    device='cuda',
-                                    seed=None):
-    input_args = dict(seqLength=seqLength, numLayers=numLayers,
-                      inputSize=inputSize, hiddenSize=hiddenSize,
-                      miniBatch=miniBatch, device=device, seed=seed)
-    input, hidden, params, _ = lstm_inputs(return_module=False, **input_args)
-    wih, whh, bih, bhh = stack_weights(params)
-    flat_args = [input, hidden[0], hidden[1], wih, whh, bih, bhh]
-    return lstm_factory_flat(lstm_cell), flat_args, flatten_list(params)
-
-
-def script_lstm_flat_inputs_premul_creator(seqLength=100, numLayers=1,
-                                           inputSize=512,
-                                           hiddenSize=512, miniBatch=64,
-                                           device='cuda',
-                                           seed=None):
-    input_args = dict(seqLength=seqLength, numLayers=numLayers,
-                      inputSize=inputSize, hiddenSize=hiddenSize,
-                      miniBatch=miniBatch, device=device, seed=seed)
-    input, hidden, params, _ = lstm_inputs(return_module=False, **input_args)
-    wih, whh, bih, bhh = stack_weights(params)
-    flat_args = [input, hidden[0], hidden[1], wih, whh, bih, bhh]
-    return lstm_factory_flat_premul(premul_lstm_cell), flat_args, flatten_list(params)
-
-
-def pytorch_lstm_creator(seqLength=100, numLayers=1, inputSize=512,
-                         hiddenSize=512, miniBatch=64,
-                         return_module=False, device='cuda',
-                         seed=None):
-    input_args = dict(seqLength=seqLength, numLayers=numLayers,
-                      inputSize=inputSize, hiddenSize=hiddenSize,
-                      miniBatch=miniBatch, device=device, seed=seed)
-    input, hidden, _, module = lstm_inputs(return_module=True, **input_args)
+def pytorch_lstm_creator(**kwargs):
+    input, hidden, _, module = lstm_inputs(return_module=True, **kwargs)
     return module, [input, hidden], flatten_list(module.all_weights)
+
+
+def lstm_creator(script=True, **kwargs):
+    input, hidden, params, _ = lstm_inputs(return_module=False, **kwargs)
+    inputs = [input, hidden] + params[0]
+    return lstm_factory(lstm_cell, script), inputs, flatten_list(params)
+
+
+def lstm_premul_creator(script=True, **kwargs):
+    input, hidden, params, _ = lstm_inputs(return_module=False, **kwargs)
+    inputs = [input, hidden] + params[0]
+    return lstm_factory_premul(premul_lstm_cell, script), inputs, flatten_list(params)
+
+
+def lstm_simple_creator(script=True, **kwargs):
+    input, hidden, params, _ = lstm_inputs(return_module=False, **kwargs)
+    inputs = [input] + [h[0] for h in hidden] + params[0]
+    return lstm_factory_simple(flat_lstm_cell, script), inputs, flatten_list(params)
+
+
+def lstm_multilayer_creator(script=True, **kwargs):
+    input, hidden, params, _ = lstm_inputs(return_module=False, **kwargs)
+    inputs = [input, hidden, flatten_list(params)]
+    return lstm_factory_multilayer(lstm_cell, script), inputs, flatten_list(params)
 
 
 # input: lstm.all_weights format (wih, whh, bih, bhh = lstm.all_weights[layer])
@@ -113,103 +91,87 @@ def lstm_inputs(seqLength=100, numLayers=1, inputSize=512, hiddenSize=512,
         return x, (hx, cx), lstm.all_weights, None
 
 
-def lstm_factory(cell):
-    @torch.jit.script
-    def dynamic_rnn(input, state, params):
-        # type: (Tensor, Tuple[Tensor, Tensor], List[Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
-        output = []
-        hx, cx = state
-        num_layers = hx.size(0)
-        seq_len = input.size(0)
-        hy = hx  # for scoping
-        cy = cx  # for scoping
-        for layer in range(num_layers):
-            hy = hx[layer]
-            cy = cx[layer]
-            wih = params[0][layer]
-            whh = params[1][layer]
-            bih = params[2][layer]
-            bhh = params[3][layer]
-            for seq_idx in range(seq_len):
-                hy, cy = cell(input[seq_idx], (hy, cy), wih, whh, bih, bhh)
-                output += [hy]
-        return torch.stack(output), (hy.unsqueeze(0), cy.unsqueeze(0))
+def lstm_factory(cell, script):
+    def dynamic_rnn(input, hidden, wih, whh, bih, bhh):
+        # type: (Tensor, Tuple[Tensor, Tensor], Tensor, Tensor, Tensor, Tensor) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
+        hx, cx = hidden
+        outputs = []
+        inputs = input.unbind(0)
+        hy, cy = hx[0], cx[0]
+        for seq_idx in range(len(inputs)):
+            hy, cy = cell(inputs[seq_idx], (hy, cy), wih, whh, bih, bhh)
+            outputs += [hy]
+        return torch.stack(outputs), (hy.unsqueeze(0), cy.unsqueeze(0))
+
+    if script:
+        cell = torch.jit.script(cell)
+        dynamic_rnn = torch.jit.script(dynamic_rnn)
 
     return dynamic_rnn
 
 
-# flat: flat inputs (no tuples)
-def lstm_factory_flat(cell):
-    @torch.jit.script
-    def dynamic_rnn(input, hx, cx, lwih, lwhh, lbih, lbhh):
-        output = []
-        num_layers = hx.size(0)
-        seq_len = input.size(0)
-        hy = hx  # for scoping
-        cy = cx  # for scoping
-        for layer in range(num_layers):
-            hy = hx[layer]
-            cy = cx[layer]
-            wih = lwih[layer]
-            whh = lwhh[layer]
-            bih = lbih[layer]
-            bhh = lbhh[layer]
-            for seq_idx in range(seq_len):
-                hy, cy = cell(input[seq_idx], (hy, cy), wih, whh, bih, bhh)
-                output += [hy]
-        return torch.stack(output), (hy.unsqueeze(0), cy.unsqueeze(0))
 
-    return dynamic_rnn
-
-
-# flat: flat inputs (no tuples)
 # premul: we're going to premultiply the inputs & weights
-def lstm_factory_flat_premul(premul_cell):
-    @torch.jit.script
-    def dynamic_rnn(input, hx, cx, lwih, lwhh, lbih, lbhh):
-        output = []
-        num_layers = hx.size(0)
-        seq_len = input.size(0)
-        minibatch = input.size(1)
-        input_size = input.size(2)
-        hidden_size = hx.size(2)
-        hy = hx  # for scoping
-        cy = cx  # for scoping
-        for layer in range(num_layers):
-            hy = hx[layer]
-            cy = cx[layer]
-            wih = lwih[layer]
-            whh = lwhh[layer]
-            bih = lbih[layer]
-            bhh = lbhh[layer]
+def lstm_factory_premul(premul_cell, script):
+    def dynamic_rnn(input, hidden, wih, whh, bih, bhh):
+        # type: (Tensor, Tuple[Tensor, Tensor], Tensor, Tensor, Tensor, Tensor) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
+        hx, cx = hidden
+        outputs = []
+        inputs = torch.matmul(input, wih.t()).unbind(0)
+        hy, cy = hx[0], cx[0]
+        for seq_idx in range(len(inputs)):
+            hy, cy = premul_cell(inputs[seq_idx], (hy, cy), whh, bih, bhh)
+            outputs += [hy]
+        return torch.stack(outputs), (hy.unsqueeze(0), cy.unsqueeze(0))
 
-            # NB: requires some contiguity guarantees (which we do have)
-            igates = input.view(seq_len * minibatch, input_size).mm(wih.t()).view(seq_len, minibatch, 4 * hidden_size)
-
-            for seq_idx in range(seq_len):
-                hy, cy = premul_cell(igates[seq_idx], (hy, cy), whh, bih, bhh)
-                output += [hy]
-        return torch.stack(output), (hy.unsqueeze(0), cy.unsqueeze(0))
+    if script:
+        premul_cell = torch.jit.script(premul_cell)
+        dynamic_rnn = torch.jit.script(dynamic_rnn)
 
     return dynamic_rnn
 
 
-def rnn_factory(cell):
-    @torch.jit.script
-    def dynamic_rnn(input, state, params):
-        # type: (Tensor, Tensor, List[Tensor]) -> Tuple[Tensor, Tensor]]
-        output = []
-        num_layers = state.size(0)
-        seq_len = input.size(0)
-        for layer in range(num_layers):
-            hy = state[layer]
-            wih = params[0][layer]
-            whh = params[1][layer]
-            bih = params[2][layer]
-            bhh = params[3][layer]
-            for seq_idx in range(seq_len):
-                hy, cy = cell(input[seq_idx], state, wih, whh, bih, bhh)
-                output += [hy]
-        return torch.stack(output), hy.unsqueeze(0)
+# simple: flat inputs (no tuples), no list to accumulate outputs
+#         useful mostly for benchmarking older JIT versions
+def lstm_factory_simple(cell, script):
+    def dynamic_rnn(input, hx, cx, wih, whh, bih, bhh):
+        hy = hx  # for scoping
+        cy = cx  # for scoping
+        inputs = input.unbind(0)
+        for seq_idx in range(len(inputs)):
+            hy, cy = cell(inputs[seq_idx], hy, cy, wih, whh, bih, bhh)
+        return hy, cy
+
+    if script:
+        cell = torch.jit.script(cell)
+        dynamic_rnn = torch.jit.script(dynamic_rnn)
+
+    return dynamic_rnn
+
+
+def lstm_factory_multilayer(cell, script):
+    def dynamic_rnn(input, hidden, params):
+        # type: (Tensor, Tuple[Tensor, Tensor], List[Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
+        params_stride = 4  # NB: this assumes that biases are there
+        hx, cx = hidden
+        hy, cy = hidden  # for scoping...
+        inputs, outputs = input.unbind(0), []
+        for layer in range(hx.size(0)):
+            hy = hx[layer]
+            cy = cx[layer]
+            base_idx = layer * params_stride
+            wih = params[base_idx]
+            whh = params[base_idx + 1]
+            bih = params[base_idx + 2]
+            bhh = params[base_idx + 3]
+            for seq_idx in range(len(inputs)):
+                hy, cy = cell(inputs[seq_idx], (hy, cy), wih, whh, bih, bhh)
+                outputs += [hy]
+            inputs, outputs = outputs, []
+        return torch.stack(inputs), (hy.unsqueeze(0), cy.unsqueeze(0))
+
+    if script:
+        cell = torch.jit.script(cell)
+        dynamic_rnn = torch.jit.script(dynamic_rnn)
 
     return dynamic_rnn
