@@ -1,9 +1,10 @@
 from collections import namedtuple
 from functools import partial
 import torch
+import torchvision.models as cnn
 
 from .factory import pytorch_lstm_creator, lstm_creator, lstm_premul_creator, \
-    lstm_multilayer_creator, lstm_simple_creator
+    lstm_multilayer_creator, lstm_simple_creator, imagenet_cnn_creator
 
 
 class DisableCuDNN():
@@ -50,4 +51,8 @@ rnn_runners = {
     'jit_simple': RNNRunner('jit_simple', lstm_simple_creator, DummyContext),
     'jit_multilayer': RNNRunner('jit_multilayer', lstm_multilayer_creator, DummyContext),
     'py': RNNRunner('py', partial(lstm_creator, script=False), DummyContext),
+    'resnet18': RNNRunner('resnet18', imagenet_cnn_creator(cnn.resnet18, jit=False), DummyContext),
+    'resnet18_jit': RNNRunner('resnet18_jit', imagenet_cnn_creator(cnn.resnet18), DummyContext),
+    'resnet50': RNNRunner('resnet50', imagenet_cnn_creator(cnn.resnet50, jit=False), DummyContext),
+    'resnet50_jit': RNNRunner('resnet50_jit', imagenet_cnn_creator(cnn.resnet50), DummyContext),
 }

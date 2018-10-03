@@ -48,6 +48,17 @@ def lstm_multilayer_creator(script=True, **kwargs):
     return lstm_factory_multilayer(lstm_cell, script), inputs, flatten_list(params)
 
 
+def imagenet_cnn_creator(arch, jit=True):
+    def creator(device='cuda', **kwargs):
+        model = arch().to(device)
+        x = torch.randn(32, 3, 224, 224, device=device)
+        if jit:
+            model = torch.jit.trace(model, x)
+        return model, (x,), list(model.parameters())
+
+    return creator
+
+
 # input: lstm.all_weights format (wih, whh, bih, bhh = lstm.all_weights[layer])
 # output: packed_weights with format
 # packed_weights[0] is wih with size (layer, 4*hiddenSize, inputSize)
@@ -175,3 +186,4 @@ def lstm_factory_multilayer(cell, script):
         dynamic_rnn = torch.jit.script(dynamic_rnn)
 
     return dynamic_rnn
+

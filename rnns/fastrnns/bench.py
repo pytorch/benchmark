@@ -40,7 +40,7 @@ def pretty_print(benchresult, colwidth=16, sep=' '):
     return sep.join(items)
 
 
-def trainbench(name, rnn_creator, nloops=300, warmup=20,
+def trainbench(name, rnn_creator, nloops=100, warmup=10,
                seqLength=100, numLayers=1, inputSize=512, hiddenSize=512,
                miniBatch=64, device='cuda', seed=None):
     def train_batch(rnn, inputs, params):
@@ -53,8 +53,10 @@ def trainbench(name, rnn_creator, nloops=300, warmup=20,
         gc.collect()
 
         fwd_start_event.record()
-        output, hiddens = rnn(*inputs)
+        output = rnn(*inputs)
         fwd_end_event.record()
+        if isinstance(output, tuple):
+            output = output[0]
 
         grads = torch.rand_like(output)
         gc.collect()
@@ -97,7 +99,7 @@ def print_stderr(*args, **kwargs):
     return print(*args, **kwargs, file=sys.stderr)
 
 
-def bench(rnn_runners, print_json=False, sep=' ', **params):
+def bench(rnn_runners, group_name, print_json=False, sep=' ', **params):
     print_stderr(print_header(sep=sep))
     results = {}
     for name, creator, context in rnn_runners:
@@ -110,12 +112,10 @@ def bench(rnn_runners, print_json=False, sep=' ', **params):
                 if not print_json:
                     raise
 
-    if print_json:
-        results = {
-            'lstm': {k: (v.avg_fwd, v.std_fwd) for k, v in results.items()},
-            'lstm-backward': {k: (v.avg_bwd, v.std_bwd) for k, v in results.items()},
-        }
-        print(json.dumps(results))
+    return {
+        group_name: {k: v.avg_fwd for k, v in results.items()},
+        group_name + '-backward': {k: v.avg_bwd for k, v in results.items()},
+    }
 
 
 if __name__ == '__main__':
@@ -135,16 +135,23 @@ if __name__ == '__main__':
                         help='What to run. cudnn, aten, jit, etc')
 
     args = parser.parse_args()
-    if args.rnns is None:
-        args.rnns = ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple', 'jit_multilayer', 'py']
+    rnns = args.rnns or ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple', 'jit_multilayer', 'py']
+    cnns = ['resnet18', 'resnet18_jit', 'resnet50', 'resnet50_jit']
     if args.print_json:
         print_stderr = lambda *args, **kwargs: None
     print_stderr(args)
 
-    rnn_runners = get_rnn_runners(*args.rnns)
     bench_args = vars(args)
     del bench_args['rnns']
 
-    print_stderr('Benchmarking...')
-    bench(rnn_runners, **bench_args)
+    print_stderr('Benchmarking LSTMs...')
+    rnn_results = bench(get_rnn_runners(*rnns), 'lstm', **bench_args)
     print_stderr('')
+
+    print_stderr('Benchmarking ResNets...')
+    cnn_results = bench(get_rnn_runners(*cnns), 'resnet', **bench_args)
+    print_stderr('')
+
+    if args.print_json:
+        rnn_results.update(cnn_results)
+        print(json.dumps(rnn_results))
