@@ -12,7 +12,7 @@ REPO_URL = 'https://github.com/pytorch/pytorch'
 REPO_DIR = 'repo'
 OUTPUT_PATH = 'results.json'
 HERE = os.path.dirname(os.path.abspath(__file__))
-MAX_BENCHES = 160
+MAX_BENCHES = 80
 BENCH_TIMES = 4
 BENCH_EVERY = 10 # th commit
 
@@ -75,7 +75,7 @@ def cleanup(commit_hash):
 
 def run_benchmark(commit_hash, args, **kwargs):
     # TODO: USE REAL CPUSET CPUS
-    BENCH_CPUS = '0-11'
+    BENCH_CPUS = '0-2'
     BENCH_MEMS = '0'
     return run_with_output(['docker', 'run',
             '--cap-add=SYS_PTRACE',
@@ -185,6 +185,7 @@ if __name__ == '__main__':
                 build(commit['hash'])
             except Exception as e:
                 print('Build has failed!')
+                print(e)
                 continue
 
             try:

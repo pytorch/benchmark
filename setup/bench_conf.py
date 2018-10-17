@@ -69,8 +69,9 @@ def enable_ht():
 def shield_cpus(bench_cpus, bg_cpus):
     bench_cpuspec = ','.join(str(cpu.processor) for cpu in bench_cpus)
     bg_cpuspec = ','.join(str(cpu.processor) for cpu in bg_cpus)
+    max_proc = max(cpu.physical_id for cpu in bg_cpus)
     # Set up our cpusets
-    srun(['cset', 'set', '--set=bg', '--cpu=' + bg_cpuspec, '--mem=1'])
+    srun(['cset', 'set', '--set=bg', '--cpu=' + bg_cpuspec, '--mem=' + str(max_proc)])
     srun(['cset', 'set', '--set=bench', '--cpu=' + bench_cpuspec, '--mem=0'])
     # Move as many tasks (both userspace and kernel) as we can to the bg cpuset
     srun(['cset', 'proc', '--move', '--fromset=root', '--toset=bg', '--kthread'])
@@ -93,10 +94,8 @@ def set_turbo(value):
 ################################################################################
 
 def isolate_bench_subset(cpus):
-    bench_cpus = [cpu for cpu in cpus if cpu.physical_id == 0]
-    bg_cpus = [cpu for cpu in cpus if cpu.physical_id != 0]
-    assert len(bench_cpus) > 0, "No CPUs on NUMA node 0!"
-    assert len(bg_cpus) > 0, "Expected at least two NUMA nodes!"
+    bench_cpus = cpus[:len(cpus) // 2]
+    bg_cpus = cpus[len(cpus) // 2:]
     return bench_cpus, bg_cpus
 
 ################################################################################
