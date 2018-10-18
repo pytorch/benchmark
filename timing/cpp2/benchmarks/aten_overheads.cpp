@@ -16,6 +16,33 @@ static void BM_Type(benchmark::State& state) {
 }
 BENCHMARK(BM_Type);
 
+static void BM_CudaGetDevice(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+  int32_t device;
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(cudaGetDevice(&device));
+  }
+}
+BENCHMARK(BM_CudaGetDevice);
+
+static void BM_CudaSetDevice(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+  int32_t device;
+  cudaGetDevice(&device);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(cudaSetDevice(device));
+  }
+}
+BENCHMARK(BM_CudaSetDevice);
+
 static void BM_GetDeviceFromStorageImpl(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
 
