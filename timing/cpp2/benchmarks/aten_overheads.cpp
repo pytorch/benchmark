@@ -16,6 +16,46 @@ static void BM_Type(benchmark::State& state) {
 }
 BENCHMARK(BM_Type);
 
+static void BM_GetDeviceFromStorageImpl(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+  auto* storage_impl = tmp.unsafeGetTensorImpl()->storage().unsafeGetStorageImpl();
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(storage_impl->device().index());
+  }
+}
+BENCHMARK(BM_GetDeviceFromStorageImpl);
+
+static void BM_GetDeviceFromTensorImpl(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+  auto* tensor_impl = tmp.unsafeGetTensorImpl();
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(
+        tensor_impl->storage().unsafeGetStorageImpl()->device().index());
+  }
+}
+BENCHMARK(BM_GetDeviceFromTensorImpl);
+
+static void BM_THGetDevice(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(at::_th_get_device(tmp));
+  }
+
+}
+BENCHMARK(BM_THGetDevice);
+
 static void BM_GetDevice(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
 
@@ -28,7 +68,6 @@ static void BM_GetDevice(benchmark::State& state) {
 
 }
 BENCHMARK(BM_GetDevice);
-
 
 static void BM_DeviceGuardCtor(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
