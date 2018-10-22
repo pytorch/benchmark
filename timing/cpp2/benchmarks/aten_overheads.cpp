@@ -3,6 +3,19 @@
 #include <torch/torch.h>
 #include <ATen/cuda/CUDAContext.h>
 
+static void BM_TensorTypeId(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+  std::vector<long int> sizes({64, 2048});
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+
+  for (auto _ : state) {
+    tmp.unsafeGetTensorImpl()->type_id();
+  }
+}
+BENCHMARK(BM_TensorTypeId);
+
 static void BM_TensorType(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
   std::vector<long int> sizes({64, 2048});
@@ -46,6 +59,42 @@ static void BM_TensorIsCuda(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_TensorIsCuda);
+
+static void BM_TensorDim(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(tmp.dim());
+  }
+}
+BENCHMARK(BM_TensorDim);
+
+static void BM_TensorIsSparse(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(tmp.is_sparse());
+  }
+}
+BENCHMARK(BM_TensorIsSparse);
+
+static void BM_TensorTypeIsCuda(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(tmp.type().is_cuda());
+  }
+}
+BENCHMARK(BM_TensorTypeIsCuda);
 
 static void BM_TensorNumel(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);

@@ -9,4 +9,7 @@ NB: There are other benchmarks in cpp. Move all of the ones in cpp2 to cpp.
 ```
 cmake .. -DCMAKE_PREFIX_PATH=/scratch/rzou/pt/master/torch/lib/tmp_install && make -j $(nproc)
 ```
-5. Run benchmarks or add new ones
+5. Run benchmarks:
+```
+./aten_overheads [--benchmark_format=json]
+```
