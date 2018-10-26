@@ -23,3 +23,5 @@ git clone --quiet https://github.com/pytorch/vision
 pushd vision
 python setup.py install
 popd
+
+rm -rf pytorch vision
