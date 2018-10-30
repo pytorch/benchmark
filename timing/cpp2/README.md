@@ -12,4 +12,6 @@ cmake .. -DCMAKE_PREFIX_PATH=/scratch/rzou/pt/master/torch/lib/tmp_install && ma
 5. Run benchmarks:
 ```
 ./aten_overheads [--benchmark_format=json]
+./tensor_shape [--benchmark_format=json]
 ```
+and there are others, check the benchmarks/ folder.

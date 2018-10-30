@@ -20,7 +20,26 @@ SET( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3 -mavx2 -fopenmp")
 find_package(Torch REQUIRED)
 
 add_executable (aten_overheads benchmarks/aten_overheads.cpp)
-
 target_link_libraries(aten_overheads ${CMAKE_THREAD_LIBS_INIT})
-target_link_libraries (aten_overheads "${GBENCHMARK_LIB}")
+target_link_libraries(aten_overheads "${GBENCHMARK_LIB}")
 target_link_libraries(aten_overheads "${TORCH_LIBRARIES}")
+
+add_executable (tensor_properties benchmarks/tensor_properties.cpp)
+target_link_libraries(tensor_properties ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(tensor_properties "${GBENCHMARK_LIB}")
+target_link_libraries(tensor_properties "${TORCH_LIBRARIES}")
+
+add_executable (torch_empty benchmarks/torch_empty.cpp)
+target_link_libraries(torch_empty ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(torch_empty "${GBENCHMARK_LIB}")
+target_link_libraries(torch_empty "${TORCH_LIBRARIES}")
+
+add_executable (tensor_shape benchmarks/tensor_shape.cpp)
+target_link_libraries(tensor_shape ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(tensor_shape "${GBENCHMARK_LIB}")
+target_link_libraries(tensor_shape "${TORCH_LIBRARIES}")
+
+add_executable (tensor_allocation benchmarks/tensor_allocation.cpp)
+target_link_libraries(tensor_allocation ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(tensor_allocation "${GBENCHMARK_LIB}")
+target_link_libraries(tensor_allocation "${TORCH_LIBRARIES}")
