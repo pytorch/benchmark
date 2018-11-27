@@ -5,7 +5,9 @@ static void BM_AtenEmpty_0(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
 
   // initialize some cuda...
-  auto tmp = at::empty({0}, options);
+  for (int i = 0; i < 100; i++) {
+    auto tmp = at::empty({0}, options);
+  }
 
   for (auto _ : state) {
     auto tensor = at::empty({0}, options);

@@ -4,27 +4,148 @@
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/ExpandUtils.h>
 
+// Global variables.
+constexpr size_t kBiggerThanCacheSize = 51200 * 1024;
+long* kBuffer = new long[kBiggerThanCacheSize];
+
+static inline void clearCache(benchmark::State& state) {
+  state.PauseTiming();
+	for (int i = 0; i < kBiggerThanCacheSize; ++i) {
+	  kBuffer[i]++;
+  }
+  state.ResumeTiming();
+}
+
+static void BM_InferType(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({64, 2048}, options);
+
+  for (auto _ : state) {
+    at::detail::infer_type(tmp);
+  }
+}
+BENCHMARK(BM_InferType);
+
+static void BM_SmallVectorAssign1(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({64, 2048}, options);
+  std::vector<int64_t> foo({1, 2, 3, 4, 5});
+  at::IntList fooref = foo;
+  at::SmallVector<int64_t,5> smallvec;
+  smallvec.resize(5);
+
+  for (auto _ : state) {
+    smallvec = fooref;
+  }
+}
+BENCHMARK(BM_SmallVectorAssign1);
+
+static void BM_SmallVectorAssign2(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({64, 2048}, options);
+  std::vector<int64_t> foo({1, 2, 3, 4, 5});
+  at::IntList fooref = foo;
+  at::SmallVector<int64_t,5> smallvec;
+  smallvec.resize(5);
+
+  for (auto _ : state)
+    smallvec = foo;
+}
+BENCHMARK(BM_SmallVectorAssign2);
+
+static void BM_SmallVectorAssign3(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({64, 2048}, options);
+  std::vector<int64_t> foo({1, 2, 3, 4, 5});
+  at::IntList fooref = foo;
+  at::SmallVector<int64_t,5> smallvec;
+  smallvec.resize(5);
+
+  for (auto _ : state) {
+    smallvec.resize(5);
+    for (int64_t i = 0; i < foo.size(); ++i) {
+      smallvec[i] = foo[i];
+    }
+  }
+}
+BENCHMARK(BM_SmallVectorAssign3);
+
+static void BM_SmallVectorAssign4(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({64, 2048}, options);
+  std::vector<int64_t> foo({1, 2, 3, 4, 5});
+  at::IntList fooref = foo;
+  at::SmallVector<int64_t,5> smallvec;
+  smallvec.resize(5);
+
+  for (auto _ : state) {
+    smallvec.assign(foo.begin(), foo.end());
+  }
+}
+BENCHMARK(BM_SmallVectorAssign4);
+
+static void BM_SmallVectorAssign5(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({64, 2048}, options);
+  std::vector<int64_t> foo({1, 2, 3, 4, 5});
+  at::IntList fooref = foo;
+  at::SmallVector<int64_t,5> smallvec;
+  smallvec.resize(5);
+
+  for (auto _ : state) {
+    smallvec = fooref.vec();
+  }
+}
+BENCHMARK(BM_SmallVectorAssign5);
+
 static void BM_VectorAllocation(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
 
   // initialize some cuda...
   auto tmp = at::empty({64, 2048}, options);
 
-  for (auto _ : state)
+  for (auto _ : state) {
     benchmark::DoNotOptimize(std::vector<int64_t>(5));
+  }
 }
 BENCHMARK(BM_VectorAllocation);
 
-//static void BM_SmallVectorAllocation(benchmark::State& state) {
-//  auto options = at::TensorOptions(at::kCUDA);
-//
-//  // initialize some cuda...
-//  auto tmp = at::empty({64, 2048}, options);
-//
-//  for (auto _ : state)
-//    benchmark::DoNotOptimize(at::SmallVector<int64_t,false>(5));
-//}
-//BENCHMARK(BM_SmallVectorAllocation);
+static void BM_SmallVectorAllocation(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({64, 2048}, options);
+
+  for (auto _ : state)
+    benchmark::DoNotOptimize(at::SmallVector<int64_t,5>());
+}
+BENCHMARK(BM_SmallVectorAllocation);
+
+static void BM_IntArrayAllocation(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({64, 2048}, options);
+
+  for (auto _ : state) {
+    // yes, this leaks memory
+    benchmark::DoNotOptimize(new int64_t[3]);
+  }
+}
+BENCHMARK(BM_IntArrayAllocation);
+
 
 static void BM_THCCachingAllocatorAllocate(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
@@ -168,21 +289,21 @@ static void BM_VariableGetDevice(benchmark::State& state) {
 }
 BENCHMARK(BM_VariableGetDevice);
 
-static void BM_DeviceGuardCtor(benchmark::State& state) {
-  auto options = at::TensorOptions(at::kCUDA);
-
-  // initialize some cuda...
-  auto tmp = at::empty({0}, options);
-  void* mem = malloc(sizeof(at::DeviceGuard));
-
-  for (auto _ : state) {
-    benchmark::DoNotOptimize(new (mem) at::DeviceGuard(tmp));
-  }
-
-  free(mem);
-}
-BENCHMARK(BM_DeviceGuardCtor);
-
+//static void BM_DeviceGuardCtor(benchmark::State& state) {
+//  auto options = at::TensorOptions(at::kCUDA);
+//
+//  // initialize some cuda...
+//  auto tmp = at::empty({0}, options);
+//  void* mem = malloc(sizeof(at::DeviceGuard));
+//
+//  for (auto _ : state) {
+//    benchmark::DoNotOptimize(new (mem) at::DeviceGuard(tmp));
+//  }
+//
+//  free(mem);
+//}
+//BENCHMARK(BM_DeviceGuardCtor);
+//
 static void BM_DeviceGuard(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
 
@@ -191,11 +312,27 @@ static void BM_DeviceGuard(benchmark::State& state) {
 
   for (auto _ : state) {
     {
-      const at::DeviceGuard guard(tmp);
+      const at::OptionalDeviceGuard guard(device_of(tmp));
     }
   }
 }
 BENCHMARK(BM_DeviceGuard);
+
+static void BM_DeviceGuardFromDevice(benchmark::State& state) {
+  auto options = at::TensorOptions(at::kCUDA);
+
+  // initialize some cuda...
+  auto tmp = at::empty({0}, options);
+  auto device = options.device();
+
+  for (auto _ : state) {
+    {
+      const at::DeviceGuard guard(device);
+    }
+  }
+}
+BENCHMARK(BM_DeviceGuardFromDevice);
+
 
 static void BM_CheckedTensorUnwrap(benchmark::State& state) {
   auto options = at::TensorOptions(at::kCUDA);
