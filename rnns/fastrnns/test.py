@@ -16,7 +16,7 @@ def assertEqual(tensor, expected, threshold=0.001):
         for t, e in zip(tensor, expected):
             assertEqual(t, e)
     else:
-        if (tensor - expected).max() > threshold:
+        if (tensor - expected).abs().max() > threshold:
             barf()
 
 
