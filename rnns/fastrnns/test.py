@@ -32,26 +32,35 @@ def test_rnns(experim_creator, control_creator, check_grad=True, verbose=False,
                         miniBatch=miniBatch, device=device, seed=seed)
 
     print("Setting up...")
-    control_rnn, control_inputs, control_params = control_creator(**creator_args)
-    experim_rnn, experim_inputs, experim_params = experim_creator(**creator_args)
+    control = control_creator(**creator_args)
+    experim = experim_creator(**creator_args)
+
+    # Precondition
+    assertEqual(experim.inputs, control.inputs)
+    assertEqual(experim.params, control.params)
 
     print("Checking outputs...")
-    control_outputs = control_rnn(*control_inputs)
-    experim_outputs = experim_rnn(*experim_inputs)
+    control_outputs = control.forward(*control.inputs)
+    experim_outputs = experim.forward(*experim.inputs)
     assertEqual(experim_outputs, control_outputs)
 
     print("Checking grads...")
-    # NB: control_outputs[0] is always the output of a RNN and we are
-    # backpropping against this.
-    control_output = control_outputs[0]
-    experim_output = experim_outputs[0]
-    grad = torch.randn_like(control_output)
-    control_grads = torch.autograd.grad([control_output], control_params, grad)
-    experim_grads = torch.autograd.grad([experim_output], experim_params, grad)
+    assert control.backward_setup is not None
+    assert experim.backward_setup is not None
+    assert control.backward is not None
+    assert experim.backward is not None
+    control_backward_inputs = control.backward_setup(control_outputs, seed)
+    experim_backward_inputs = experim.backward_setup(experim_outputs, seed)
+
+    control.backward(*control_backward_inputs)
+    experim.backward(*experim_backward_inputs)
+
+    control_grads = [p.grad for p in control.params]
+    experim_grads = [p.grad for p in experim.params]
     assertEqual(experim_grads, control_grads)
 
     if verbose:
-        print(experim_rnn.graph_for(*experim_inputs))
+        print(experim.forward.graph_for(*experim.inputs))
     print('')
 
 
@@ -68,10 +77,10 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default='17', type=int)
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--rnns', nargs='*',
-                        help='What to run. jit_flat, jit_premul, jit, etc')
+                        help='What to run. jit_premul, jit, etc')
     args = parser.parse_args()
     if args.rnns is None:
-        args.rnns = ['jit_flat', 'jit_premul', 'jit']
+        args.rnns = ['jit_premul', 'jit']
     print(args)
 
     if 'cuda' in args.device:

@@ -43,7 +43,7 @@ def pretty_print(benchresult, colwidth=16, sep=' '):
 def trainbench(name, rnn_creator, nloops=100, warmup=10,
                seqLength=100, numLayers=1, inputSize=512, hiddenSize=512,
                miniBatch=64, device='cuda', seed=None):
-    def train_batch(rnn, inputs, params):
+    def train_batch(modeldef):
         # CUDA events for timing
         fwd_start_event = torch.cuda.Event(enable_timing=True)
         fwd_end_event = torch.cuda.Event(enable_timing=True)
@@ -53,19 +53,22 @@ def trainbench(name, rnn_creator, nloops=100, warmup=10,
         gc.collect()
 
         fwd_start_event.record()
-        output = rnn(*inputs)
+        forward_output = modeldef.forward(*modeldef.inputs)
         fwd_end_event.record()
-        if isinstance(output, tuple):
-            output = output[0]
 
-        grads = torch.rand_like(output)
+        if modeldef.backward_setup is not None:
+            backward_input = modeldef.backward_setup(forward_output)
+        else:
+            backward_input = forward_output
+
         gc.collect()
 
         bwd_start_event.record()
-        output.backward(grads)
+        if modeldef.backward is not None:
+            modeldef.backward(*backward_input)
         bwd_end_event.record()
 
-        for param in params:
+        for param in modeldef.params:
             param.grad.data.zero_()
 
         torch.cuda.synchronize()
@@ -78,11 +81,11 @@ def trainbench(name, rnn_creator, nloops=100, warmup=10,
     creator_args = dict(seqLength=seqLength, numLayers=numLayers,
                         inputSize=inputSize, hiddenSize=hiddenSize,
                         miniBatch=miniBatch, device=device, seed=seed)
-    rnn, inputs, params = rnn_creator(**creator_args)
+    modeldef = rnn_creator(**creator_args)
 
-    [train_batch(rnn, inputs, params) for _ in range(warmup)]
+    [train_batch(modeldef) for _ in range(warmup)]
 
-    results = [train_batch(rnn, inputs, params) for _ in range(nloops)]
+    results = [train_batch(modeldef) for _ in range(nloops)]
     fwd_times, bwd_times = zip(*results)
 
     fwd_times = torch.tensor(fwd_times)

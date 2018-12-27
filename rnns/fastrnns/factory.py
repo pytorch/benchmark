@@ -12,40 +12,98 @@ def flatten_list(lst):
         result.extend(inner)
     return result
 
-# Define a creator as a function: (sizes) -> (rnn, rnn_inputs, flat_rnn_params)
-# rnn: function / graph executor / module
-# rnn_inputs: the inputs to the returned 'rnn'
-# flat_rnn_params: List[Tensor] all requires_grad=True parameters in a list
-# One can call rnn(rnn_inputs) using the outputs of the creator.
+
+'''
+Define a creator as a function:
+(options) -> (inputs, params, forward, backward_setup, backward)
+inputs: the inputs to the returned 'forward'. One can call
+    forward(*inputs) directly.
+params: List[Tensor] all requires_grad=True parameters.
+forward: function / graph executor / module
+    One can call rnn(rnn_inputs) using the outputs of the creator.
+backward_setup: backward_inputs = backward_setup(*outputs)
+    Then, we pass backward_inputs to backward. If None, then it is assumed to
+    be the identity function.
+backward: Given `output = backward_setup(*forward(*inputs))`, performs
+    backpropagation. If None, then nothing happens.
+
+fastrnns.bench times the forward and backward invocations.
+'''
+
+
+ModelDef = namedtuple('ModelDef', [
+    'inputs', 'params', 'forward', 'backward_setup', 'backward'])
+
+
+def lstm_backward_setup(lstm_outputs, seed=None):
+    hx, _ = lstm_outputs
+    return simple_backward_setup(hx, seed)
+
+
+def simple_backward_setup(output, seed=None):
+    assert isinstance(output, torch.Tensor)
+    if seed:
+        torch.manual_seed(seed)
+    grad_output = torch.randn_like(output)
+    return output, grad_output
+
+
+def simple_backward(output, grad_output):
+    return output.backward(grad_output)
 
 
 def pytorch_lstm_creator(**kwargs):
     input, hidden, _, module = lstm_inputs(return_module=True, **kwargs)
-    return module, [input, hidden], flatten_list(module.all_weights)
+    return ModelDef(
+        inputs=[input, hidden],
+        params=flatten_list(module.all_weights),
+        forward=module,
+        backward_setup=lstm_backward_setup,
+        backward=simple_backward)
 
 
 def lstm_creator(script=True, **kwargs):
     input, hidden, params, _ = lstm_inputs(return_module=False, **kwargs)
     inputs = [input, hidden] + params[0]
-    return lstm_factory(lstm_cell, script), inputs, flatten_list(params)
+    return ModelDef(
+        inputs=inputs,
+        params=flatten_list(params),
+        forward=lstm_factory(lstm_cell, script),
+        backward_setup=lstm_backward_setup,
+        backward=simple_backward)
 
 
 def lstm_premul_creator(script=True, **kwargs):
     input, hidden, params, _ = lstm_inputs(return_module=False, **kwargs)
     inputs = [input, hidden] + params[0]
-    return lstm_factory_premul(premul_lstm_cell, script), inputs, flatten_list(params)
+    return ModelDef(
+        inputs=inputs,
+        params=flatten_list(params),
+        forward=lstm_factory_premul(premul_lstm_cell, script),
+        backward_setup=lstm_backward_setup,
+        backward=simple_backward)
 
 
 def lstm_simple_creator(script=True, **kwargs):
     input, hidden, params, _ = lstm_inputs(return_module=False, **kwargs)
     inputs = [input] + [h[0] for h in hidden] + params[0]
-    return lstm_factory_simple(flat_lstm_cell, script), inputs, flatten_list(params)
+    return ModelDef(
+        inputs=inputs,
+        params=flatten_list(params),
+        forward=lstm_factory_simple(flat_lstm_cell, script),
+        backward_setup=lstm_backward_setup,
+        backward=simple_backward)
 
 
 def lstm_multilayer_creator(script=True, **kwargs):
     input, hidden, params, _ = lstm_inputs(return_module=False, **kwargs)
     inputs = [input, hidden, flatten_list(params)]
-    return lstm_factory_multilayer(lstm_cell, script), inputs, flatten_list(params)
+    return ModelDef(
+        inputs=inputs,
+        params=flatten_list(params),
+        forward=lstm_factory_multilayer(lstm_cell, script),
+        backward_setup=lstm_backward_setup,
+        backward=simple_backward)
 
 
 def imagenet_cnn_creator(arch, jit=True):
@@ -54,7 +112,12 @@ def imagenet_cnn_creator(arch, jit=True):
         x = torch.randn(32, 3, 224, 224, device=device)
         if jit:
             model = torch.jit.trace(model, x)
-        return model, (x,), list(model.parameters())
+        return ModelDef(
+            inputs=(x,),
+            params=list(model.parameters()),
+            forward=model,
+            backward_setup=simple_backward_setup,
+            backward=simple_backward)
 
     return creator
 
