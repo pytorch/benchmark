@@ -68,8 +68,10 @@ def trainbench(name, rnn_creator, nloops=100, warmup=10,
             modeldef.backward(*backward_input)
         bwd_end_event.record()
 
-        for param in modeldef.params:
-            param.grad.data.zero_()
+        if modeldef.backward is not None:
+            for param in modeldef.params:
+                assert param.grad is not None
+                param.grad.data.zero_()
 
         torch.cuda.synchronize()
 
@@ -132,6 +134,10 @@ if __name__ == '__main__':
     parser.add_argument('--warmup', default='10', type=int)
     parser.add_argument('--nloops', default='100', type=int)
     parser.add_argument('--device', default='cuda', type=str)
+    parser.add_argument('--variable_lstms', action='store_true',
+                        help='Also benchmark variable sequence length lstms '
+                        'Note that some of these run really slowly '
+                        'and that the `seqLength` flag will be ignored.')
     parser.add_argument('--sep', default=' ', type=str)
     parser.add_argument('--print-json', action='store_true')
     parser.add_argument('--rnns', nargs='*',
@@ -139,13 +145,25 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     rnns = args.rnns or ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple', 'jit_multilayer', 'py']
+    vlrnns = ['vl_cudnn', 'vl_jit', 'vl_py']
     cnns = ['resnet18', 'resnet18_jit', 'resnet50', 'resnet50_jit']
     if args.print_json:
         print_stderr = lambda *args, **kwargs: None
     print_stderr(args)
 
     bench_args = vars(args)
+    should_bench_varlen_lstms = args.variable_lstms
     del bench_args['rnns']
+    del bench_args['variable_lstms']
+
+    if should_bench_varlen_lstms:
+        if args.nloops + args.warmup > 30:
+            print_stderr(
+                'WARNING: some of the variable sequence length lstms are '
+                'very unoptimized and therefore take forever to run.')
+        print_stderr('Benchmarking variable-length sequence LSTMs...')
+        rnn_results = bench(get_rnn_runners(*vlrnns), 'vl_lstm', **bench_args)
+        print_stderr('')
 
     print_stderr('Benchmarking LSTMs...')
     rnn_results = bench(get_rnn_runners(*rnns), 'lstm', **bench_args)
