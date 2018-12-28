@@ -122,6 +122,107 @@ def imagenet_cnn_creator(arch, jit=True):
     return creator
 
 
+def varlen_lstm_inputs(minlen=30, maxlen=100,
+                       numLayers=1, inputSize=512, hiddenSize=512,
+                       miniBatch=64, return_module=False, device='cuda',
+                       seed=None, **kwargs):
+    if seed is not None:
+        torch.manual_seed(seed)
+    lengths = torch.randint(
+        low=minlen, high=maxlen, size=[miniBatch],
+        dtype=torch.long, device=device)
+    x = [torch.randn(length, inputSize, device=device)
+         for length in lengths]
+    hx = torch.randn(numLayers, miniBatch, hiddenSize, device=device)
+    cx = torch.randn(numLayers, miniBatch, hiddenSize, device=device)
+    lstm = torch.nn.LSTM(inputSize, hiddenSize, numLayers).to(device)
+
+    if return_module:
+        return x, lengths, (hx, cx), lstm.all_weights, lstm
+    else:
+        # NB: lstm.all_weights format:
+        # wih, whh, bih, bhh = lstm.all_weights[layer]
+        return x, lengths, (hx, cx), lstm.all_weights, None
+
+
+def varlen_lstm_backward_setup(forward_output, seed=None):
+    if seed:
+        torch.manual_seed(seed)
+    rnn_utils = torch.nn.utils.rnn
+    sequences = forward_output[0]
+    padded = rnn_utils.pad_sequence(sequences)
+    grad = torch.randn_like(padded)
+    return padded, grad
+
+
+def varlen_pytorch_lstm_creator(**kwargs):
+    rnn_utils = torch.nn.utils.rnn
+    sequences, _, hidden, _, module = varlen_lstm_inputs(
+        return_module=True, **kwargs)
+
+    def forward(sequences, hidden):
+        packed = rnn_utils.pack_sequence(sequences, enforce_sorted=False)
+        out, new_hidden = module(packed, hidden)
+        padded, lengths = rnn_utils.pad_packed_sequence(out)
+        # XXX: It's more efficient to store the output in its padded form,
+        # but that might not be conducive to loss computation.
+        # Un-padding the output also makes the backward pass 2x slower...
+        # return [padded[:lengths[i], i, :] for i in range(lengths.size(0))]
+        return padded, new_hidden
+
+    return ModelDef(
+        inputs=[sequences, hidden],
+        params=flatten_list(module.all_weights),
+        forward=forward,
+        backward_setup=lstm_backward_setup,
+        backward=simple_backward)
+
+
+def varlen_lstm_factory(cell, script):
+    def dynamic_rnn(sequences, hiddens, wih, whh, bih, bhh):
+        # type: (List[Tensor], Tuple[Tensor, Tensor], Tensor, Tensor, Tensor, Tensor) -> Tuple[List[Tensor], Tuple[List[Tensor], List[Tensor]]]
+        hx, cx = hiddens
+        hxs = hx.unbind(1)
+        cxs = cx.unbind(1)
+        # List of: (output, hx, cx)
+        outputs = []
+        hx_outs = []
+        cx_outs = []
+
+        for batch in range(len(sequences)):
+            output = []
+            hy, cy = hxs[batch], cxs[batch]
+            inputs = sequences[batch].unbind(0)
+
+            for seq_idx in range(len(inputs)):
+                hy, cy = cell(
+                    inputs[seq_idx].unsqueeze(0), (hy, cy), wih, whh, bih, bhh)
+                output += [hy]
+            outputs += [torch.stack(output)]
+            hx_outs += [hy.unsqueeze(0)]
+            cx_outs += [cy.unsqueeze(0)]
+
+        return outputs, (hx_outs, cx_outs)
+
+    if script:
+        cell = torch.jit.script(cell)
+        dynamic_rnn = torch.jit.script(dynamic_rnn)
+
+    return dynamic_rnn
+
+
+def varlen_lstm_creator(script=False, **kwargs):
+    sequences, _,  hidden, params, _ = varlen_lstm_inputs(
+        return_module=False, **kwargs)
+    inputs = [sequences, hidden] + params[0]
+    return ModelDef(
+        inputs=inputs,
+        params=flatten_list(params),
+        forward=varlen_lstm_factory(lstm_cell, script),
+        backward_setup=varlen_lstm_backward_setup,
+        backward=simple_backward)
+
+
 # input: lstm.all_weights format (wih, whh, bih, bhh = lstm.all_weights[layer])
 # output: packed_weights with format
 # packed_weights[0] is wih with size (layer, 4*hiddenSize, inputSize)
@@ -249,4 +350,3 @@ def lstm_factory_multilayer(cell, script):
         dynamic_rnn = torch.jit.script(dynamic_rnn)
 
     return dynamic_rnn
-
