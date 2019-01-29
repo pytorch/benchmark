@@ -52,6 +52,30 @@ def script_lstm(input_size, hidden_size, num_layers, bias=True,
                                         hidden_size])
 
 
+def script_lnlstm(input_size, hidden_size, num_layers, bias=True,
+                  batch_first=False, dropout=False, bidirectional=False):
+    '''Returns a ScriptModule that mimics a PyTorch native LSTM.'''
+
+    # The following are not implemented.
+    assert bias
+    assert not batch_first
+    assert not dropout
+
+    if bidirectional:
+        stack_type = StackedLSTM2
+        layer_type = BidirLSTMLayer
+        dirs = 2
+    else:
+        stack_type = StackedLSTM
+        layer_type = LSTMLayer
+        dirs = 1
+
+    return stack_type(num_layers, layer_type,
+                      first_layer_args=[LayerNormLSTMCell, input_size, hidden_size],
+                      other_layer_args=[LayerNormLSTMCell, hidden_size * dirs,
+                                        hidden_size])
+
+
 LSTMState = namedtuple('LSTMState', ['hx', 'cx'])
 
 
@@ -88,6 +112,41 @@ class LSTMCell(jit.ScriptModule):
 
         return hy, (hy, cy)
 
+
+class LayerNormLSTMCell(jit.ScriptModule):
+    def __init__(self, input_size, hidden_size):
+        super(LayerNormLSTMCell, self).__init__()
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.weight_ih = Parameter(torch.randn(4 * hidden_size, input_size))
+        self.weight_hh = Parameter(torch.randn(4 * hidden_size, hidden_size))
+        self.bias_ih = Parameter(torch.randn(4 * hidden_size))
+        self.bias_hh = Parameter(torch.randn(4 * hidden_size))
+
+        self.layernorm_i = nn.LayerNorm(4 * hidden_size)
+        self.layernorm_h = nn.LayerNorm(4 * hidden_size)
+        self.layernorm_c = nn.LayerNorm(hidden_size)
+
+    @jit.script_method
+    def forward(self, input, state):
+        # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
+        hx, cx = state
+        igates = self.layernorm_i(torch.mm(input, self.weight_ih.t()) +
+                                  self.bias_ih)
+        hgates = self.layernorm_h(torch.mm(hx, self.weight_hh.t()) +
+                                  self.bias_hh)
+        gates = igates + hgates
+        ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
+
+        ingate = torch.sigmoid(ingate)
+        forgetgate = torch.sigmoid(forgetgate)
+        cellgate = torch.tanh(cellgate)
+        outgate = torch.sigmoid(outgate)
+
+        cy = self.layernorm_c((forgetgate * cx) + (ingate * cellgate))
+        hy = outgate * torch.tanh(cy)
+
+        return hy, (hy, cy)
 
 class LSTMLayer(jit.ScriptModule):
     def __init__(self, cell, *cell_args):
@@ -297,6 +356,19 @@ def test_script_stacked_bidir_rnn(seq_len, batch, input_size, hidden_size,
     assert (custom_state[1] - lstm_out_state[1]).abs().max() < 1e-5
 
 
+def test_script_stacked_lnlstm(seq_len, batch, input_size, hidden_size,
+                               num_layers):
+    inp = torch.randn(seq_len, batch, input_size)
+    states = [LSTMState(torch.randn(batch, hidden_size),
+                        torch.randn(batch, hidden_size))
+              for _ in range(num_layers)]
+    rnn = script_lnlstm(input_size, hidden_size, num_layers)
+
+    # just a smoke test
+    out, out_state = rnn(inp, states)
+
+
 test_script_rnn_layer(5, 2, 3, 7)
 test_script_stacked_rnn(5, 2, 3, 7, 4)
 test_script_stacked_bidir_rnn(5, 2, 3, 7, 4)
+test_script_stacked_lnlstm(5, 2, 3, 7, 4)
