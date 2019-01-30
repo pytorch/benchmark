@@ -5,6 +5,7 @@ import torch.jit as jit
 from collections import namedtuple
 from typing import List, Tuple
 from torch import Tensor
+import numbers
 
 '''
 Some helper classes for writing custom TorchScript LSTMs.
@@ -53,7 +54,8 @@ def script_lstm(input_size, hidden_size, num_layers, bias=True,
 
 
 def script_lnlstm(input_size, hidden_size, num_layers, bias=True,
-                  batch_first=False, dropout=False, bidirectional=False):
+                  batch_first=False, dropout=False, bidirectional=False,
+                  decompose_layernorm=False):
     '''Returns a ScriptModule that mimics a PyTorch native LSTM.'''
 
     # The following are not implemented.
@@ -71,9 +73,10 @@ def script_lnlstm(input_size, hidden_size, num_layers, bias=True,
         dirs = 1
 
     return stack_type(num_layers, layer_type,
-                      first_layer_args=[LayerNormLSTMCell, input_size, hidden_size],
+                      first_layer_args=[LayerNormLSTMCell, input_size, hidden_size,
+                                        decompose_layernorm],
                       other_layer_args=[LayerNormLSTMCell, hidden_size * dirs,
-                                        hidden_size])
+                                        hidden_size, decompose_layernorm])
 
 
 LSTMState = namedtuple('LSTMState', ['hx', 'cx'])
@@ -113,8 +116,34 @@ class LSTMCell(jit.ScriptModule):
         return hy, (hy, cy)
 
 
+class LayerNorm(jit.ScriptModule):
+    def __init__(self, normalized_shape):
+        super(LayerNorm, self).__init__()
+        if isinstance(normalized_shape, numbers.Integral):
+            normalized_shape = (normalized_shape,)
+        normalized_shape = torch.Size(normalized_shape)
+
+        # XXX: This is true for our LSTM / NLP use case and helps simplify code
+        assert len(normalized_shape) == 1
+
+        self.weight = Parameter(torch.ones(normalized_shape))
+        self.bias = Parameter(torch.zeros(normalized_shape))
+        self.normalized_shape = normalized_shape
+
+    @jit.script_method
+    def compute_layernorm_stats(self, input):
+        mu = input.mean(-1, keepdim=True)
+        sigma = input.std(-1, keepdim=True, unbiased=False)
+        return mu, sigma
+
+    @jit.script_method
+    def forward(self, input):
+        mu, sigma = self.compute_layernorm_stats(input)
+        return (input - mu) / sigma * self.weight + self.bias
+
+
 class LayerNormLSTMCell(jit.ScriptModule):
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, hidden_size, decompose_layernorm=False):
         super(LayerNormLSTMCell, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -123,9 +152,14 @@ class LayerNormLSTMCell(jit.ScriptModule):
         self.bias_ih = Parameter(torch.randn(4 * hidden_size))
         self.bias_hh = Parameter(torch.randn(4 * hidden_size))
 
-        self.layernorm_i = nn.LayerNorm(4 * hidden_size)
-        self.layernorm_h = nn.LayerNorm(4 * hidden_size)
-        self.layernorm_c = nn.LayerNorm(hidden_size)
+        if decompose_layernorm:
+            ln = LayerNorm
+        else:
+            ln = nn.LayerNorm
+
+        self.layernorm_i = ln(4 * hidden_size)
+        self.layernorm_h = ln(4 * hidden_size)
+        self.layernorm_c = ln(hidden_size)
 
     @jit.script_method
     def forward(self, input, state):

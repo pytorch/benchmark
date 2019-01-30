@@ -3,9 +3,7 @@ from functools import partial
 import torch
 import torchvision.models as cnn
 
-from .factory import pytorch_lstm_creator, lstm_creator, lstm_premul_creator, \
-    lstm_multilayer_creator, lstm_simple_creator, imagenet_cnn_creator, \
-    varlen_pytorch_lstm_creator, varlen_lstm_creator
+from .factory import *
 
 
 class DisableCuDNN():
@@ -54,6 +52,10 @@ rnn_runners = {
     'jit_premul': RNNRunner('jit_premul', lstm_premul_creator, DummyContext),
     'jit_simple': RNNRunner('jit_simple', lstm_simple_creator, DummyContext),
     'jit_multilayer': RNNRunner('jit_multilayer', lstm_multilayer_creator, DummyContext),
+    'jit_layernorm': RNNRunner('jit_layernorm', lnlstm_creator, DummyContext),
+    'jit_layernorm_decom': RNNRunner('jit_layernorm_decom',
+                                     partial(lnlstm_creator, decompose_layernorm=True),
+                                     DummyContext),
     'py': RNNRunner('py', partial(lstm_creator, script=False), DummyContext),
     'resnet18': RNNRunner('resnet18', imagenet_cnn_creator(cnn.resnet18, jit=False), DummyContext),
     'resnet18_jit': RNNRunner('resnet18_jit', imagenet_cnn_creator(cnn.resnet18), DummyContext),

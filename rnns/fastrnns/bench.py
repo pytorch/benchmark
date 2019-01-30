@@ -56,6 +56,9 @@ def trainbench(name, rnn_creator, nloops=100, warmup=10,
         forward_output = modeldef.forward(*modeldef.inputs)
         fwd_end_event.record()
 
+        # XXX: Use if need to print something
+        # print(modeldef.forward.graph_for(*modeldef.inputs))
+
         if modeldef.backward_setup is not None:
             backward_input = modeldef.backward_setup(forward_output)
         else:
@@ -144,7 +147,10 @@ if __name__ == '__main__':
                         help='What to run. cudnn, aten, jit, etc')
 
     args = parser.parse_args()
-    rnns = args.rnns or ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple', 'jit_multilayer', 'py']
+    rnns = args.rnns or ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple',
+                         'jit_multilayer', 'py']
+    # TODO: Maybe add a separate section for the layernorm lstms
+    # 'jit_layernorm', 'jit_layernom_decom', 'jit'
     vlrnns = ['vl_cudnn', 'vl_jit', 'vl_py']
     cnns = ['resnet18', 'resnet18_jit', 'resnet50', 'resnet50_jit']
     if args.print_json:
