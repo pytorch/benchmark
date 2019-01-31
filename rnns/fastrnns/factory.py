@@ -91,8 +91,8 @@ def lnlstm_creator(script=True, decompose_layernorm=False, **kwargs):
         inputs=[input, states],
         params=ge.parameters(),
         forward=ge,
-        backward_setup=lambda *args: args,
-        backward=None)
+        backward_setup=lstm_backward_setup,
+        backward=simple_backward)
 
 
 def lstm_premul_creator(script=True, **kwargs):
