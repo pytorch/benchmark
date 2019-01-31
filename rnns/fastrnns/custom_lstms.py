@@ -149,8 +149,7 @@ class LayerNormLSTMCell(jit.ScriptModule):
         self.hidden_size = hidden_size
         self.weight_ih = Parameter(torch.randn(4 * hidden_size, input_size))
         self.weight_hh = Parameter(torch.randn(4 * hidden_size, hidden_size))
-        self.bias_ih = Parameter(torch.randn(4 * hidden_size))
-        self.bias_hh = Parameter(torch.randn(4 * hidden_size))
+        # The layernorms provide learnable biases
 
         if decompose_layernorm:
             ln = LayerNorm
@@ -165,10 +164,8 @@ class LayerNormLSTMCell(jit.ScriptModule):
     def forward(self, input, state):
         # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
         hx, cx = state
-        igates = self.layernorm_i(torch.mm(input, self.weight_ih.t()) +
-                                  self.bias_ih)
-        hgates = self.layernorm_h(torch.mm(hx, self.weight_hh.t()) +
-                                  self.bias_hh)
+        igates = self.layernorm_i(torch.mm(input, self.weight_ih.t()))
+        hgates = self.layernorm_h(torch.mm(hx, self.weight_hh.t()))
         gates = igates + hgates
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
 
@@ -181,6 +178,7 @@ class LayerNormLSTMCell(jit.ScriptModule):
         hy = outgate * torch.tanh(cy)
 
         return hy, (hy, cy)
+
 
 class LSTMLayer(jit.ScriptModule):
     def __init__(self, cell, *cell_args):
