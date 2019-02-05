@@ -36,7 +36,6 @@ def script_lstm(input_size, hidden_size, num_layers, bias=True,
     # The following are not implemented.
     assert bias
     assert not batch_first
-    assert not dropout
 
     if bidirectional:
         stack_type = StackedLSTM2
@@ -47,10 +46,17 @@ def script_lstm(input_size, hidden_size, num_layers, bias=True,
         layer_type = LSTMLayer
         dirs = 1
 
-    return stack_type(num_layers, layer_type,
-                      first_layer_args=[LSTMCell, input_size, hidden_size],
-                      other_layer_args=[LSTMCell, hidden_size * dirs,
-                                        hidden_size])
+    if dropout:
+        return stack_type(num_layers, layer_type,
+                          first_layer_args=[LSTMCell, input_size, hidden_size],
+                          other_layer_args=[LSTMCell, hidden_size * dirs,
+                                            hidden_size],
+                          dropout=0.4)
+    else:
+        return stack_type(num_layers, layer_type,
+                          first_layer_args=[LSTMCell, input_size, hidden_size],
+                          other_layer_args=[LSTMCell, hidden_size * dirs,
+                                            hidden_size])
 
 
 def script_lnlstm(input_size, hidden_size, num_layers, bias=True,
@@ -246,12 +252,20 @@ def init_stacked_lstm(num_layers, layer, first_layer_args, other_layer_args):
 
 
 class StackedLSTM(jit.ScriptModule):
-    __constants__ = ['layers']  # Necessary for iterating through self.layers
+    # Necessary for iterating through self.layers and dropout support
+    __constants__ = ['layers', 'num_layers', 'dropout']
 
-    def __init__(self, num_layers, layer, first_layer_args, other_layer_args):
+    def __init__(self, num_layers, layer, first_layer_args, other_layer_args,
+                 dropout=0.0):
         super(StackedLSTM, self).__init__()
         self.layers = init_stacked_lstm(num_layers, layer, first_layer_args,
                                         other_layer_args)
+        # If non-zero, introduces a Dropout layer on the outputs of each LSTM
+        # layer except the last layer, with dropout probability = dropout.
+        self.dropout = dropout
+        self.num_layers = num_layers
+        self.dropout_layer = jit.trace(nn.Dropout(dropout), torch.randn(2, 2),
+                                       check_trace=False)
 
     @jit.script_method
     def forward(self, input, states):
@@ -264,6 +278,9 @@ class StackedLSTM(jit.ScriptModule):
         for rnn_layer in self.layers:
             state = states[i]
             output, out_state = rnn_layer(output, state)
+            # Apply the dropout layer except the last layer
+            if self.dropout != 0 and i < self.num_layers - 1:
+                    output = self.dropout_layer(output)
             output_states += [out_state]
             i += 1
         return output, output_states
@@ -274,12 +291,20 @@ class StackedLSTM(jit.ScriptModule):
 # except we don't support overriding script methods.
 # https://github.com/pytorch/pytorch/issues/10733
 class StackedLSTM2(jit.ScriptModule):
-    __constants__ = ['layers']  # Necessary for iterating through self.layers
+    # Necessary for iterating through self.layers and dropout support
+    __constants__ = ['layers', 'num_layers', 'dropout']
 
-    def __init__(self, num_layers, layer, first_layer_args, other_layer_args):
+    def __init__(self, num_layers, layer, first_layer_args, other_layer_args,
+                 dropout=0.0):
         super(StackedLSTM2, self).__init__()
         self.layers = init_stacked_lstm(num_layers, layer, first_layer_args,
                                         other_layer_args)
+        # If non-zero, introduces a Dropout layer on the outputs of each LSTM
+        # layer except the last layer, with dropout probability = dropout.
+        self.dropout = dropout
+        self.num_layers = num_layers
+        self.dropout_layer = jit.trace(nn.Dropout(dropout), torch.randn(2, 2),
+                                       check_trace=False)
 
     @jit.script_method
     def forward(self, input, states):
@@ -293,6 +318,9 @@ class StackedLSTM2(jit.ScriptModule):
         for rnn_layer in self.layers:
             state = states[i]
             output, out_state = rnn_layer(output, state)
+            # Apply the dropout layer except the last layer
+            if self.dropout != 0 and i < self.num_layers - 1:
+                    output = self.dropout_layer(output)
             output_states += [out_state]
             i += 1
         return output, output_states
@@ -388,6 +416,18 @@ def test_script_stacked_bidir_rnn(seq_len, batch, input_size, hidden_size,
     assert (custom_state[1] - lstm_out_state[1]).abs().max() < 1e-5
 
 
+def test_script_stacked_lstm_dropout(seq_len, batch, input_size, hidden_size,
+                                     num_layers):
+    inp = torch.randn(seq_len, batch, input_size)
+    states = [LSTMState(torch.randn(batch, hidden_size),
+                        torch.randn(batch, hidden_size))
+              for _ in range(num_layers)]
+    rnn = script_lstm(input_size, hidden_size, num_layers, dropout=True)
+
+    # just a smoke test
+    out, out_state = rnn(inp, states)
+
+
 def test_script_stacked_lnlstm(seq_len, batch, input_size, hidden_size,
                                num_layers):
     inp = torch.randn(seq_len, batch, input_size)
@@ -403,4 +443,5 @@ def test_script_stacked_lnlstm(seq_len, batch, input_size, hidden_size,
 test_script_rnn_layer(5, 2, 3, 7)
 test_script_stacked_rnn(5, 2, 3, 7, 4)
 test_script_stacked_bidir_rnn(5, 2, 3, 7, 4)
+test_script_stacked_lstm_dropout(5, 2, 3, 7, 4)
 test_script_stacked_lnlstm(5, 2, 3, 7, 4)
