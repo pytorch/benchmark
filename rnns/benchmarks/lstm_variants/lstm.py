@@ -198,8 +198,8 @@ class LSTM(nn.Module):
         c_t = th.mul(c, f_t) + th.mul(i_t, g_t)
 
         if do_dropout and self.dropout_method == 'moon':
-                c_t.data.set_(th.mul(c_t, self.mask).data)
-                c_t.data *= 1.0/(1.0 - self.dropout)
+            c_t.data.set_(th.mul(c_t, self.mask).data)
+            c_t.data *= 1.0 / (1.0 - self.dropout)
 
         h_t = th.mul(o_t, c_t.tanh())
 
@@ -208,8 +208,8 @@ class LSTM(nn.Module):
             if self.dropout_method == 'pytorch':
                 F.dropout(h_t, p=self.dropout, training=self.training, inplace=True)
             if self.dropout_method == 'gal':
-                    h_t.data.set_(th.mul(h_t, self.mask).data)
-                    h_t.data *= 1.0/(1.0 - self.dropout)
+                h_t.data.set_(th.mul(h_t, self.mask).data)
+                h_t.data *= 1.0 / (1.0 - self.dropout)
 
         h_t = h_t.view(1, h_t.size(0), -1)
         c_t = c_t.view(1, c_t.size(0), -1)
@@ -237,6 +237,7 @@ class MoonLSTM(LSTM):
     'RNNDrop: A Novel Dropout for RNNs in ASR'
     https://www.stat.berkeley.edu/~tsmoon/files/Conference/asru2015.pdf
     """
+
     def __init__(self, *args, **kwargs):
         super(MoonLSTM, self).__init__(*args, **kwargs)
         self.dropout_method = 'moon'
@@ -249,6 +250,7 @@ class SemeniutaLSTM(LSTM):
     'Recurrent Dropout without Memory Loss'
     https://arxiv.org/pdf/1603.05118.pdf
     """
+
     def __init__(self, *args, **kwargs):
         super(SemeniutaLSTM, self).__init__(*args, **kwargs)
         self.dropout_method = 'semeniuta'
@@ -275,8 +277,8 @@ class LayerNormLSTM(LSTM):
                                             dropout=dropout,
                                             dropout_method=dropout_method)
         if ln_preact:
-            self.ln_i2h = LayerNorm(4*hidden_size, learnable=learnable)
-            self.ln_h2h = LayerNorm(4*hidden_size, learnable=learnable)
+            self.ln_i2h = LayerNorm(4 * hidden_size, learnable=learnable)
+            self.ln_h2h = LayerNorm(4 * hidden_size, learnable=learnable)
         self.ln_preact = ln_preact
         self.ln_cell = LayerNorm(hidden_size, learnable=learnable)
 
@@ -309,8 +311,8 @@ class LayerNormLSTM(LSTM):
         c_t = th.mul(c, f_t) + th.mul(i_t, g_t)
 
         if do_dropout and self.dropout_method == 'moon':
-                c_t.data.set_(th.mul(c_t, self.mask).data)
-                c_t.data *= 1.0/(1.0 - self.dropout)
+            c_t.data.set_(th.mul(c_t, self.mask).data)
+            c_t.data *= 1.0 / (1.0 - self.dropout)
 
         c_t = self.ln_cell(c_t)
         h_t = th.mul(o_t, c_t.tanh())
@@ -320,8 +322,8 @@ class LayerNormLSTM(LSTM):
             if self.dropout_method == 'pytorch':
                 F.dropout(h_t, p=self.dropout, training=self.training, inplace=True)
             if self.dropout_method == 'gal':
-                    h_t.data.set_(th.mul(h_t, self.mask).data)
-                    h_t.data *= 1.0/(1.0 - self.dropout)
+                h_t.data.set_(th.mul(h_t, self.mask).data)
+                h_t.data *= 1.0 / (1.0 - self.dropout)
 
         h_t = h_t.view(1, h_t.size(0), -1)
         c_t = c_t.view(1, c_t.size(0), -1)
@@ -333,6 +335,7 @@ class LayerNormGalLSTM(LayerNormLSTM):
     """
     Mixes GalLSTM's Dropout with Layer Normalization
     """
+
     def __init__(self, *args, **kwargs):
         super(LayerNormGalLSTM, self).__init__(*args, **kwargs)
         self.dropout_method = 'gal'
@@ -344,6 +347,7 @@ class LayerNormMoonLSTM(LayerNormLSTM):
     """
     Mixes MoonLSTM's Dropout with Layer Normalization
     """
+
     def __init__(self, *args, **kwargs):
         super(LayerNormMoonLSTM, self).__init__(*args, **kwargs)
         self.dropout_method = 'moon'
@@ -355,6 +359,7 @@ class LayerNormSemeniutaLSTM(LayerNormLSTM):
     """
     Mixes SemeniutaLSTM's Dropout with Layer Normalization
     """
+
     def __init__(self, *args, **kwargs):
         super(LayerNormSemeniutaLSTM, self).__init__(*args, **kwargs)
         self.dropout_method = 'semeniuta'

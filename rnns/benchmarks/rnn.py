@@ -5,6 +5,7 @@ from . import *
 
 # This file is not in use
 
+
 class WLM(Benchmark):
     default_params = dict(rnn_type='LSTM', num_tokens=10000, embedding_size=200,
                           hidden_size=200, num_layers=2, batch_size=20, bptt=35,
@@ -17,7 +18,8 @@ class WLM(Benchmark):
                 return getattr(nn, p.rnn_type)(p.embedding_size, p.hidden_size, p.num_layers, dropout=p.dropout)
             else:
                 nonlinearity = {'RNN_TANH': 'tanh', 'RNN_RELU': 'relu'}[p.rnn_type]
-                return nn.RNN(p.embedding_size, p.hidden_size, p.num_layers, nonlinearity=nonlinearity, dropout=p.dropout)
+                return nn.RNN(p.embedding_size, p.hidden_size, p.num_layers, nonlinearity=nonlinearity,
+                              dropout=p.dropout)
 
         class Model(nn.Module):
             def __init__(self):
@@ -54,5 +56,3 @@ class WLM(Benchmark):
             total_loss += loss.data  # CUDA sync point
         if p.cuda:
             torch.cuda.synchronize()
-
-

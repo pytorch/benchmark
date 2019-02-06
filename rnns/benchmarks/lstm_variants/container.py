@@ -17,7 +17,7 @@ class MultiLayerLSTM(nn.Module):
 
     """
     MultiLayer LSTM of any type.
-    
+
     Note: Dropout is deactivated on the last layer.
     """
 
@@ -64,4 +64,3 @@ class MultiLayerLSTM(nn.Module):
             x, new_h = l(x, h)
             new_hiddens.append(new_h)
         return x, new_hiddens
-

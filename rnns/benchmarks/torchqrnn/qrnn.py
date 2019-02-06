@@ -9,15 +9,21 @@ else:
 
 # code copied from https://github.com/salesforce/pytorch-qrnn/tree/master/torchqrnn
 
+
 class QRNNLayer(nn.Module):
     r"""Applies a single layer Quasi-Recurrent Neural Network (QRNN) to an input sequence.
     Args:
         input_size: The number of expected features in the input x.
         hidden_size: The number of features in the hidden state h. If not specified, the input size is used.
-        save_prev_x: Whether to store previous inputs for use in future convolutional windows (i.e. for a continuing sequence such as in language modeling). If true, you must call reset to remove cached previous values of x. Default: False.
-        window: Defines the size of the convolutional window (how many previous tokens to look when computing the QRNN values). Supports 1 and 2. Default: 1.
-        zoneout: Whether to apply zoneout (i.e. failing to update elements in the hidden state) to the hidden state updates. Default: 0.
-        output_gate: If True, performs QRNN-fo (applying an output gate to the output). If False, performs QRNN-f. Default: True.
+        save_prev_x: Whether to store previous inputs for use in future convolutional windows
+                     (i.e. for a continuing sequence such as in language modeling). If true, you must call
+                     reset to remove cached previous values of x. Default: False.
+        window: Defines the size of the convolutional window (how many previous tokens to look when computing
+                the QRNN values). Supports 1 and 2. Default: 1.
+        zoneout: Whether to apply zoneout (i.e. failing to update elements in the hidden state)
+                 to the hidden state updates. Default: 0.
+        output_gate: If True, performs QRNN-fo (applying an output gate to the output).
+                     If False, performs QRNN-f. Default: True.
         use_kernel: If True, uses fast custom CUDA kernel. If False, uses naive for loop. Default: True.
     Inputs: X, hidden
         - X (seq_len, batch, input_size): tensor containing the features of the input sequence.
@@ -27,10 +33,12 @@ class QRNNLayer(nn.Module):
         - h_n (batch, hidden_size): tensor containing the hidden state for t=seq_len
     """
 
-    def __init__(self, input_size, hidden_size=None, save_prev_x=False, zoneout=0, window=1, output_gate=True, use_kernel=True, jit=False):
+    def __init__(self, input_size, hidden_size=None, save_prev_x=False, zoneout=0, window=1,
+                 output_gate=True, use_kernel=True, jit=False):
         super(QRNNLayer, self).__init__()
 
-        assert window in [1, 2], "This QRNN implementation currently only handles convolutional window of size 1 or size 2"
+        assert window in [
+            1, 2], "This QRNN implementation currently only handles convolutional window of size 1 or size 2"
         self.window = window
         self.input_size = input_size
         self.hidden_size = hidden_size if hidden_size else input_size
@@ -43,7 +51,8 @@ class QRNNLayer(nn.Module):
         assert not (use_kernel and jit)
 
         # One large matmul with concat is faster than N small matmuls and no concat
-        self.linear = nn.Linear(self.window * self.input_size, 3 * self.hidden_size if self.output_gate else 2 * self.hidden_size)
+        self.linear = nn.Linear(self.window * self.input_size, 3 *
+                                self.hidden_size if self.output_gate else 2 * self.hidden_size)
 
         self.forget_mult = ForgetMult(use_kernel, jit)
 
@@ -120,10 +129,15 @@ class QRNN(torch.nn.Module):
         hidden_size: The number of features in the hidden state h. If not specified, the input size is used.
         num_layers: The number of QRNN layers to produce.
         layers: List of preconstructed QRNN layers to use for the QRNN module (optional).
-        save_prev_x: Whether to store previous inputs for use in future convolutional windows (i.e. for a continuing sequence such as in language modeling). If true, you must call reset to remove cached previous values of x. Default: False.
-        window: Defines the size of the convolutional window (how many previous tokens to look when computing the QRNN values). Supports 1 and 2. Default: 1.
-        zoneout: Whether to apply zoneout (i.e. failing to update elements in the hidden state) to the hidden state updates. Default: 0.
-        output_gate: If True, performs QRNN-fo (applying an output gate to the output). If False, performs QRNN-f. Default: True.
+        save_prev_x: Whether to store previous inputs for use in future convolutional windows
+                     (i.e. for a continuing sequence such as in language modeling). If true, you must call
+                     reset to remove cached previous values of x. Default: False.
+        window: Defines the size of the convolutional window (how many previous tokens to look when computing
+                the QRNN values). Supports 1 and 2. Default: 1.
+        zoneout: Whether to apply zoneout (i.e. failing to update elements in the hidden state)
+                 to the hidden state updates. Default: 0.
+        output_gate: If True, performs QRNN-fo (applying an output gate to the output).
+                     If False, performs QRNN-f. Default: True.
         use_kernel: If True, uses fast custom CUDA kernel. If False, uses naive for loop. Default: True.
     Inputs: X, hidden
         - X (seq_len, batch, input_size): tensor containing the features of the input sequence.
@@ -136,13 +150,14 @@ class QRNN(torch.nn.Module):
     def __init__(self, input_size, hidden_size,
                  num_layers=1, bias=True, batch_first=False,
                  dropout=0, bidirectional=False, layers=None, **kwargs):
-        assert bidirectional == False, 'Bidirectional QRNN is not yet supported'
-        assert batch_first == False, 'Batch first mode is not yet supported'
-        assert bias == True, 'Removing underlying bias is not yet supported'
+        assert bidirectional is False, 'Bidirectional QRNN is not yet supported'
+        assert batch_first is False, 'Batch first mode is not yet supported'
+        assert bias is True, 'Removing underlying bias is not yet supported'
 
         super(QRNN, self).__init__()
 
-        self.layers = torch.nn.ModuleList(layers if layers else [QRNNLayer(input_size if l == 0 else hidden_size, hidden_size, **kwargs) for l in range(num_layers)])
+        self.layers = torch.nn.ModuleList(layers if layers else [QRNNLayer(
+            input_size if l == 0 else hidden_size, hidden_size, **kwargs) for l in range(num_layers)])
 
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -201,6 +216,6 @@ if __name__ == '__main__':
     assert diff < 1e-5, 'CUDA and non-CUDA QRNN layers return different results'
 
     from torch.autograd import gradcheck
-    inputs = [X,]
+    inputs = [X, ]
     test = gradcheck(QRNNLayer(hidden_size, hidden_size).cuda(), inputs)
     print(test)

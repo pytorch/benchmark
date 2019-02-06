@@ -14,12 +14,13 @@ OUTPUT_PATH = 'results.json'
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAX_BENCHES = 160
 BENCH_TIMES = 4
-BENCH_EVERY = 10 # th commit
+BENCH_EVERY = 10  # th commit
 
 run = partial(subprocess.check_call, cwd=REPO_DIR)
 run_with_output = partial(subprocess.check_output, cwd=REPO_DIR)
 run_toplevel = subprocess.check_call
 silent = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
 
 def fetch_repo():
     if os.path.exists(REPO_DIR):
@@ -29,6 +30,7 @@ def fetch_repo():
         return
     print('> Cloning repository...')
     run_toplevel(['git', 'clone', '--recursive', REPO_URL, REPO_DIR], **silent)
+
 
 def get_history():
     # git log --format='%H %an %ae %at' -n <num commits>
@@ -56,11 +58,11 @@ def build(commit_hash):
     start = time.time()
     cname = container_name(commit_hash)
     run(['docker', 'run',
-           '--runtime=nvidia',
-           '-v', os.path.join(HERE, '..') + ':/mnt/localdrive',
-           '--name', cname,
-           '-t', 'pytorch_bench',
-           '/bin/bash', '/mnt/localdrive/timing/python/install_pytorch.sh', commit_hash], **silent)
+         '--runtime=nvidia',
+         '-v', os.path.join(HERE, '..') + ':/mnt/localdrive',
+         '--name', cname,
+         '-t', 'pytorch_bench',
+         '/bin/bash', '/mnt/localdrive/timing/python/install_pytorch.sh', commit_hash], **silent)
     run(['docker', 'commit', cname, cname], **silent)
     end = time.time()
     diff = int(end - start)
@@ -78,16 +80,16 @@ def run_benchmark(commit_hash, args, **kwargs):
     BENCH_CPUS = '0-11'
     BENCH_MEMS = '0'
     return run_with_output(['docker', 'run',
-            '--cap-add=SYS_PTRACE',
-            '--runtime=nvidia',
-            '--security-opt',
-            'seccomp=unconfined',
-            '-v', os.path.join(HERE, '..') + ':/mnt/localdrive',
-            '-w', '/mnt/localdrive',
-            '--cpuset-cpus=' + BENCH_CPUS,
-            '--cpuset-mems=' + BENCH_MEMS,
-            '-t', container_name(commit_hash),
-            *args], **kwargs).decode('utf8')
+                            '--cap-add=SYS_PTRACE',
+                            '--runtime=nvidia',
+                            '--security-opt',
+                            'seccomp=unconfined',
+                            '-v', os.path.join(HERE, '..') + ':/mnt/localdrive',
+                            '-w', '/mnt/localdrive',
+                            '--cpuset-cpus=' + BENCH_CPUS,
+                            '--cpuset-mems=' + BENCH_MEMS,
+                            '-t', container_name(commit_hash),
+                            *args], **kwargs).decode('utf8')
 
 
 def load_results():
@@ -137,12 +139,14 @@ def merge_into(original, new):
         else:
             original[key] = new[key]
 
+
 def print_plan(to_bench):
     if not to_bench:
         print('> Nothing to do!')
         return
     print('> Building {} commits:'.format(len(to_bench)))
-    print('\n'.join('    - {} from {}'.format(result['hash'], datetime.fromtimestamp(result['commit_time'])) for result in to_bench))
+    print('\n'.join('    - {} from {}'.format(result['hash'],
+                                              datetime.fromtimestamp(result['commit_time'])) for result in to_bench))
 
 
 BENCHMARKS = [
@@ -150,22 +154,27 @@ BENCHMARKS = [
 ]
 
 # List[Dict[Dict[Int]]] -> Dict[Dict[List[Int]]]
+
+
 def transpose_results(results):
     def get_keys(result):
         return sorted([(outer, inner) for outer in result for inner in result[outer]])
     keys = get_keys(results[0])
     assert all(get_keys(result) == keys for result in results)
     any_result = results[0]
-    return {outer: {inner: [result[outer][inner] for result in results] for inner in any_result[outer]} for outer in any_result}
+    return {outer: {inner: [result[outer][inner] for result in results] for inner in any_result[outer]}
+            for outer in any_result}
 
 
 def result_stats(result):
     def mean(l):
         return sum(l) / len(l)
+
     def std(l):
         m = mean(l)
         return math.sqrt(sum([(v - m) ** 2 for v in l]))
-    return {outer: {inner: (mean(innerv), std(innerv)) for inner, innerv in outerv.items()} for outer, outerv in result.items()}
+    return {outer: {inner: (mean(innerv), std(innerv)) for inner, innerv in outerv.items()}
+            for outer, outerv in result.items()}
 
 
 if __name__ == '__main__':

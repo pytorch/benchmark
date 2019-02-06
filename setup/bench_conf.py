@@ -8,11 +8,12 @@ srun = run
 
 CPUInfo = namedtuple('CPUInfo', ['processor', 'physical_id', 'core_id'])
 
+
 def get_cpus():
     with open('/proc/cpuinfo', 'r') as f:
         raw_out = f.read()
     relevant_lines = [l for l in raw_out.split('\n')
-                    if 'processor' in l or 'physical id' in l or 'core id' in l]
+                      if 'processor' in l or 'physical id' in l or 'core id' in l]
     assert len(relevant_lines) % 3 == 0
     line_data = [int(l[l.index(':') + 1:].strip()) for l in relevant_lines]
 
@@ -84,6 +85,7 @@ def remove_shield():
 # CPU Turbo Mode
 ################################################################################
 
+
 def set_turbo(value):
     with open('/sys/devices/system/cpu/intel_pstate/no_turbo', 'w') as f:
         f.write('0' if value else '1')
@@ -91,6 +93,7 @@ def set_turbo(value):
 ################################################################################
 # Helpers
 ################################################################################
+
 
 def isolate_bench_subset(cpus):
     bench_cpus = [cpu for cpu in cpus if cpu.physical_id == 0]
@@ -103,6 +106,7 @@ def isolate_bench_subset(cpus):
 # Setup/Teardown
 ################################################################################
 
+
 def setup_benchmark_env():
     set_turbo(False)
     all_active_cpus = disable_ht()
@@ -111,10 +115,12 @@ def setup_benchmark_env():
     with open('bench_cpus', 'w') as f:
         f.write(','.join(str(cpu.processor) for cpu in bench_cpus))
 
+
 def teardown_benchmark_env():
     remove_shield()
     enable_ht()
     set_turbo(True)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Configure benchmarking environment')

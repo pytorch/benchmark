@@ -48,5 +48,5 @@ class LayerNorm(nn.Module):
         x = x.view(x.size(0), -1)
         x = (x - th.mean(x, 1).unsqueeze(1)) / th.sqrt(th.var(x, 1).unsqueeze(1) + self.epsilon)
         if self.learnable:
-            x =  self.alpha.expand_as(x) * x + self.beta.expand_as(x)
+            x = self.alpha.expand_as(x) * x + self.beta.expand_as(x)
         return x.view(size)

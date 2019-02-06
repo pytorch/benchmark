@@ -16,15 +16,15 @@ class POSTagger(Benchmark):
                         18, 18, 31, 26, 5, 29, 16, 19]
 
     default_params = dict(
-        embedding_size = 50,
-        rnn_size = 51,
-        hidden_size = 52,
-        action_embedding_size = 5,
-        num_input_tokens = 32,
-        num_labels = 32,
-        minibatch_size = 5,
-        preprocess_minibatch = True,
-        cuda = False)
+        embedding_size=50,
+        rnn_size=51,
+        hidden_size=52,
+        action_embedding_size=5,
+        num_input_tokens=32,
+        num_labels=32,
+        minibatch_size=5,
+        preprocess_minibatch=True,
+        cuda=False)
     params = make_params(preprocess_minibatch=over(True, False))
 
     def prepare(self, p):
@@ -40,10 +40,14 @@ class POSTagger(Benchmark):
             for module in [self.embed_word, self.gru, self.embed_action, self.combine_arh, self.policy, self.loss_fn]:
                 module.cuda()
             self.LongTensor = torch.cuda.LongTensor
-            cast = lambda t: t.cuda()
+
+            def cast(t):
+                return t.cuda()
         else:
             self.LongTensor = torch.LongTensor
-            cast = lambda t: t
+
+            def cast(t):
+                return t
         self.cast = cast
 
         self.initial_h = Variable(cast(torch.zeros(1, p.hidden_size)), requires_grad=True)

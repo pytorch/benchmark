@@ -84,7 +84,7 @@ class Bench(object):
         assert not self.timing
 
         def mean_min_max(lst):
-            return SummaryStats(sum(lst)/len(lst), min(lst), max(lst))
+            return SummaryStats(sum(lst) / len(lst), min(lst), max(lst))
 
         gpu_msecs, cpu_msecs = zip(*self.results)
         warmup = self.warmup_iters

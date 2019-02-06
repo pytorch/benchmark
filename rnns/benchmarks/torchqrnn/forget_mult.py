@@ -39,7 +39,8 @@ __global__ void recurrent_forget_mult(float *dst, const float *f, const float *x
   }
 }
 extern "C"
-__global__ void bwd_recurrent_forget_mult(const float *h, const float *f, const float *x, const float *gh, float *gf, float *gx, float *ghinit, int SEQ, int BATCH, int HIDDEN)
+__global__ void bwd_recurrent_forget_mult(const float *h, const float *f, const float *x, const float *gh, float *gf,
+                                          float *gx, float *ghinit, int SEQ, int BATCH, int HIDDEN)
 {
   /*
   Note: h is assumed to be one timestep longer than f, x, gf, gx, or gh where dst[0] = h_{-1}
@@ -172,7 +173,8 @@ class ForgetMult(torch.nn.Module):
         - X (seq_len, batch, input_size): tensor containing the features of the input sequence.
         - F (seq_len, batch, input_size): tensor containing the forget gate values, assumed in range [0, 1].
         - hidden_init (batch, input_size): tensor containing the initial hidden state for the recurrence (h_{t-1}).
-        - use_kernel: If True, use the fast element-wise CUDA kernel for recurrence. If False, uses naive for loop. Default: True.
+        - use_kernel: If True, use the fast element-wise CUDA kernel for recurrence.
+                      If False, uses naive for loop. Default: True.
     """
 
     def __init__(self, use_kernel=False, jit=False):
@@ -217,15 +219,15 @@ def test_accuracy():
     seq, batch, hidden = 35, 20, 650
     # Larger input (batch * seq * hidden) results in excessive memory for gradient check
     seq, batch, hidden = 3, 7, 19
-    a      = Variable(torch.rand(seq, batch, hidden).cuda(), requires_grad=True)
+    a = Variable(torch.rand(seq, batch, hidden).cuda(), requires_grad=True)
     forget = Variable(torch.rand(seq, batch, hidden).cuda(), requires_grad=True)
     last_h = Variable(torch.rand(batch, hidden).cuda(), requires_grad=True)
 
-    #seq, batch, hidden = 4, 1, 1
-    #a = Variable(torch.Tensor([0.75, 0.5, 0.9, 0.8]).view(seq, batch, hidden).cuda(), requires_grad=True)
-    #forget = Variable(torch.Tensor([0.25, 0.25, 0.5, 0.4]).view(seq, batch, hidden).cuda(), requires_grad=True)
-    #last_h = Variable(torch.Tensor([0]).view(batch, hidden).cuda(), requires_grad=True)
-    #print(forget, a, last_h)
+    # seq, batch, hidden = 4, 1, 1
+    # a = Variable(torch.Tensor([0.75, 0.5, 0.9, 0.8]).view(seq, batch, hidden).cuda(), requires_grad=True)
+    # forget = Variable(torch.Tensor([0.25, 0.25, 0.5, 0.4]).view(seq, batch, hidden).cuda(), requires_grad=True)
+    # last_h = Variable(torch.Tensor([0]).view(batch, hidden).cuda(), requires_grad=True)
+    # print(forget, a, last_h)
 
     print('CUDA forget mult')
     print('=-=-' * 5)

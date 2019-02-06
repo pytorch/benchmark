@@ -6,14 +6,12 @@ from os.path import join
 from datetime import datetime
 import logging
 from tqdm import tqdm
-import os
 import gc
 import itertools
 import sys
 import shlex
 import subprocess
 import torchvision.models as models
-
 
 
 parser = argparse.ArgumentParser(description="PyTorch model accuracy benchmark.")
@@ -89,6 +87,7 @@ def cmd_string(examples_home, model, data_path):
 
     cmd = ' '.join(['python3', examples_home, '-a', model, '--lr', str(lr), data_path])
     return cmd
+
 
 def log_init():
     if not os.path.exists(temp_dir):

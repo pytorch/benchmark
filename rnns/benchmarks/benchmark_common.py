@@ -4,6 +4,7 @@ import sys
 
 # Copied and pasted from benchmark_common under benchmark/scripts
 
+
 def benchmark_init(cpu, gpu, skip_cpu_governor_check=False):
     cpu_pin(cpu)
     if not skip_cpu_governor_check:
@@ -32,5 +33,7 @@ def check_cpu_governor(cpu):
                       "The file '{}' is not readable.\n"
                       "More information:\n\n{}".format(fp, e))
 
+
 def print_results_usecs(name, i, gpu_usecs, cpu_usecs, divide_by):
-    print("{}({:2d}): {:8.3f} usecs ({:8.3f} usecs cpu)".format(name, i, gpu_usecs/divide_by, cpu_usecs/divide_by, file=sys.stderr))
+    print("{}({:2d}): {:8.3f} usecs ({:8.3f} usecs cpu)".format(
+        name, i, gpu_usecs / divide_by, cpu_usecs / divide_by, file=sys.stderr))

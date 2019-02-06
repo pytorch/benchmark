@@ -52,12 +52,12 @@ def run_mlstm(cpu=0, gpu=0, batch_size=1, input_size=205, hidden_size=1900, embe
     device = torch.device(gpu)
 
     input = torch.randn(seq_len, batch_size, input_size, requires_grad=requires_grad, device=device)
-    hx    = torch.randn(batch_size, hidden_size, requires_grad=requires_grad, device=device)
-    cx    = torch.randn(batch_size, hidden_size, requires_grad=requires_grad, device=device)
-    w_xm  = torch.randn(embed_size, input_size, requires_grad=requires_grad, device=device)
-    w_hm  = torch.randn(embed_size, hidden_size, requires_grad=requires_grad, device=device)
-    w_ih  = torch.randn(4 * hidden_size, input_size, requires_grad=requires_grad, device=device)
-    w_mh  = torch.randn(4 * hidden_size, embed_size, requires_grad=requires_grad, device=device)
+    hx = torch.randn(batch_size, hidden_size, requires_grad=requires_grad, device=device)
+    cx = torch.randn(batch_size, hidden_size, requires_grad=requires_grad, device=device)
+    w_xm = torch.randn(embed_size, input_size, requires_grad=requires_grad, device=device)
+    w_hm = torch.randn(embed_size, hidden_size, requires_grad=requires_grad, device=device)
+    w_ih = torch.randn(4 * hidden_size, input_size, requires_grad=requires_grad, device=device)
+    w_mh = torch.randn(4 * hidden_size, embed_size, requires_grad=requires_grad, device=device)
     params = [input, hx, cx, w_xm, w_hm, w_ih, w_mh]
 
     if jit:
@@ -81,19 +81,20 @@ def run_mlstm(cpu=0, gpu=0, batch_size=1, input_size=205, hidden_size=1900, embe
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PyTorch mLSTM benchmark.")
-    parser.add_argument('--cpu',                     type=int, default=0,     help="CPU to run on")
-    parser.add_argument('--gpu',                     type=int, default=0,     help="GPU to run on")
-    parser.add_argument('--batch-size',              type=int, default=1,     help="Batch size")
-    parser.add_argument('--input-size',              type=int, default=205,   help="Input size")
-    parser.add_argument('--hidden-size',             type=int, default=1900,  help="Hidden size")
-    parser.add_argument('--embed-size',              type=int, default=None,  help="Embed size")
-    parser.add_argument('--seq-len',                 type=int, default=20,    help="Sequence length")
-    parser.add_argument('--warmup',                  type=int, default=10,    help="Warmup iterations")
-    parser.add_argument('--benchmark',               type=int, default=20,    help="Benchmark iterations")
-    parser.add_argument('--autograd',                action='store_true',     help="Use autograd")
-    parser.add_argument('--jit',                     action='store_true',     help="Use JIT compiler (implies --autograd)")
-    parser.add_argument('--backward',                action='store_true',     help="benchmark forward + backward (implies --autograd)")
-    parser.add_argument('--skip-cpu-governor-check', action='store_true',     help="Skip checking whether CPU governor is set to `performance`")
+    parser.add_argument('--cpu', type=int, default=0, help="CPU to run on")
+    parser.add_argument('--gpu', type=int, default=0, help="GPU to run on")
+    parser.add_argument('--batch-size', type=int, default=1, help="Batch size")
+    parser.add_argument('--input-size', type=int, default=205, help="Input size")
+    parser.add_argument('--hidden-size', type=int, default=1900, help="Hidden size")
+    parser.add_argument('--embed-size', type=int, default=None, help="Embed size")
+    parser.add_argument('--seq-len', type=int, default=20, help="Sequence length")
+    parser.add_argument('--warmup', type=int, default=10, help="Warmup iterations")
+    parser.add_argument('--benchmark', type=int, default=20, help="Benchmark iterations")
+    parser.add_argument('--autograd', action='store_true', help="Use autograd")
+    parser.add_argument('--jit', action='store_true', help="Use JIT compiler (implies --autograd)")
+    parser.add_argument('--backward', action='store_true', help="benchmark forward + backward (implies --autograd)")
+    parser.add_argument('--skip-cpu-governor-check', action='store_true',
+                        help="Skip checking whether CPU governor is set to `performance`")
     args = parser.parse_args()
 
     pprint.pprint(vars(args))
