@@ -41,22 +41,19 @@ def script_lstm(input_size, hidden_size, num_layers, bias=True,
         stack_type = StackedLSTM2
         layer_type = BidirLSTMLayer
         dirs = 2
+    elif dropout:
+        stack_type = StackedLSTMWithDropout
+        layer_type = LSTMLayer
+        dirs = 1
     else:
         stack_type = StackedLSTM
         layer_type = LSTMLayer
         dirs = 1
 
-    if dropout:
-        return stack_type(num_layers, layer_type,
-                          first_layer_args=[LSTMCell, input_size, hidden_size],
-                          other_layer_args=[LSTMCell, hidden_size * dirs,
-                                            hidden_size],
-                          dropout=0.4)
-    else:
-        return stack_type(num_layers, layer_type,
-                          first_layer_args=[LSTMCell, input_size, hidden_size],
-                          other_layer_args=[LSTMCell, hidden_size * dirs,
-                                            hidden_size])
+    return stack_type(num_layers, layer_type,
+                      first_layer_args=[LSTMCell, input_size, hidden_size],
+                      other_layer_args=[LSTMCell, hidden_size * dirs,
+                                        hidden_size])
 
 
 def script_lnlstm(input_size, hidden_size, num_layers, bias=True,
@@ -252,20 +249,12 @@ def init_stacked_lstm(num_layers, layer, first_layer_args, other_layer_args):
 
 
 class StackedLSTM(jit.ScriptModule):
-    # Necessary for iterating through self.layers and dropout support
-    __constants__ = ['layers', 'num_layers', 'dropout']
+    __constants__ = ['layers']  # Necessary for iterating through self.layers
 
-    def __init__(self, num_layers, layer, first_layer_args, other_layer_args,
-                 dropout=0.0):
+    def __init__(self, num_layers, layer, first_layer_args, other_layer_args):
         super(StackedLSTM, self).__init__()
         self.layers = init_stacked_lstm(num_layers, layer, first_layer_args,
                                         other_layer_args)
-        # If non-zero, introduces a Dropout layer on the outputs of each LSTM
-        # layer except the last layer, with dropout probability = dropout.
-        self.dropout = dropout
-        self.num_layers = num_layers
-        self.dropout_layer = jit.trace(nn.Dropout(dropout), torch.randn(2, 2),
-                                       check_trace=False)
 
     @jit.script_method
     def forward(self, input, states):
@@ -278,9 +267,6 @@ class StackedLSTM(jit.ScriptModule):
         for rnn_layer in self.layers:
             state = states[i]
             output, out_state = rnn_layer(output, state)
-            # Apply the dropout layer except the last layer
-            if self.dropout != 0 and i < self.num_layers - 1:
-                    output = self.dropout_layer(output)
             output_states += [out_state]
             i += 1
         return output, output_states
@@ -291,20 +277,12 @@ class StackedLSTM(jit.ScriptModule):
 # except we don't support overriding script methods.
 # https://github.com/pytorch/pytorch/issues/10733
 class StackedLSTM2(jit.ScriptModule):
-    # Necessary for iterating through self.layers and dropout support
-    __constants__ = ['layers', 'num_layers', 'dropout']
+    __constants__ = ['layers']  # Necessary for iterating through self.layers
 
-    def __init__(self, num_layers, layer, first_layer_args, other_layer_args,
-                 dropout=0.0):
+    def __init__(self, num_layers, layer, first_layer_args, other_layer_args):
         super(StackedLSTM2, self).__init__()
         self.layers = init_stacked_lstm(num_layers, layer, first_layer_args,
                                         other_layer_args)
-        # If non-zero, introduces a Dropout layer on the outputs of each LSTM
-        # layer except the last layer, with dropout probability = dropout.
-        self.dropout = dropout
-        self.num_layers = num_layers
-        self.dropout_layer = jit.trace(nn.Dropout(dropout), torch.randn(2, 2),
-                                       check_trace=False)
 
     @jit.script_method
     def forward(self, input, states):
@@ -318,8 +296,37 @@ class StackedLSTM2(jit.ScriptModule):
         for rnn_layer in self.layers:
             state = states[i]
             output, out_state = rnn_layer(output, state)
+            output_states += [out_state]
+            i += 1
+        return output, output_states
+
+
+class StackedLSTMWithDropout(jit.ScriptModule):
+    # Necessary for iterating through self.layers and dropout support
+    __constants__ = ['layers', 'num_layers']
+
+    def __init__(self, num_layers, layer, first_layer_args, other_layer_args):
+        super(StackedLSTM, self).__init__()
+        self.layers = init_stacked_lstm(num_layers, layer, first_layer_args,
+                                        other_layer_args)
+        # Introduces a Dropout layer on the outputs of each LSTM layer except
+        # the last layer, with dropout probability = 0.4.
+        self.num_layers = num_layers
+        self.dropout_layer = nn.Dropout(0.4)
+
+    @jit.script_method
+    def forward(self, input, states):
+        # type: (Tensor, List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, List[Tuple[Tensor, Tensor]]]
+        # List[LSTMState]: One state per layer
+        output_states = jit.annotate(List[Tuple[Tensor, Tensor]], [])
+        output = input
+        # XXX: enumerate https://github.com/pytorch/pytorch/issues/14471
+        i = 0
+        for rnn_layer in self.layers:
+            state = states[i]
+            output, out_state = rnn_layer(output, state)
             # Apply the dropout layer except the last layer
-            if self.dropout != 0 and i < self.num_layers - 1:
+            if i < self.num_layers - 1:
                     output = self.dropout_layer(output)
             output_states += [out_state]
             i += 1
