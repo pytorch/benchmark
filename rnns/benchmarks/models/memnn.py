@@ -24,13 +24,13 @@ class MemNN(nn.Module):
         self.extra_features_slots = 0
         if opt['time_features']:
             self.time_features = torch.LongTensor(range(num_features,
-                num_features + self.num_time_features))
+                                                        num_features + self.num_time_features))
             num_features += self.num_time_features
             self.extra_features_slots += 1
 
         def embedding():
             return Embed(num_features, opt['embedding_size'],
-                position_encoding=opt['position_encoding'], padding_idx=0)
+                         position_encoding=opt['position_encoding'], padding_idx=0)
 
         self.query_embedder = embedding()
         self.answer_embedder = embedding()
@@ -83,7 +83,7 @@ class MemNN(nn.Module):
 
         for _ in range(self.opt['hops']):
             query_embeddings = self.memory_hop(query_embeddings,
-                    in_memory_embeddings, out_memory_embeddings, attention_mask)
+                                               in_memory_embeddings, out_memory_embeddings, attention_mask)
         return query_embeddings
 
 
@@ -106,7 +106,7 @@ class Embed(nn.Embedding):
         for i, row in enumerate(lengths_mat):
             for j, length in enumerate(row):
                 if length > 0:
-                    input[i, j, :length] = indices[offset:offset+length]
+                    input[i, j, :length] = indices[offset:offset + length]
                 offset += length
 
         for i, row in enumerate(lengths_mat):
@@ -137,11 +137,11 @@ class Embed(nn.Embedding):
         # for k in range(1, d+1):
         #     for j in range(1, J+1):
         #         m[j-1, k-1] = (1 - j/J) - (k/d) * (1 - 2 * j/J)
-        k = torch.arange(d+1, dtype=torch.float)[1:].unsqueeze(0).expand(J, d)
-        j = torch.arange(J+1, dtype=torch.float)[1:].unsqueeze(1).expand(J, d)
+        k = torch.arange(d + 1, dtype=torch.float)[1:].unsqueeze(0).expand(J, d)
+        j = torch.arange(J + 1, dtype=torch.float)[1:].unsqueeze(1).expand(J, d)
         J = float(J)
         d = float(d)
-        out = (1. - j/J) - (k/d) * (1. - 2. * j/J)
+        out = (1. - j / J) - (k / d) * (1. - 2. * j / J)
         return out
 
     @staticmethod

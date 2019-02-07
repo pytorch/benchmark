@@ -44,7 +44,7 @@ def run_memnn(warmup=2, benchmark=18, jit=False, cuda=False):
         [  # memories, queries, memory_lengths, query_lengths
             torch.zeros(params.batch_size * params.mem_size, dtype=torch.long, device=device),
             torch.zeros(params.batch_size * 28             , dtype=torch.long, device=device),
-            torch.ones (params.batch_size, params.mem_size , dtype=torch.long, device=device),
+            torch.ones(params.batch_size, params.mem_size , dtype=torch.long, device=device),
             torch.full((params.batch_size,), 28            , dtype=torch.long, device=device),
         ]
         for _ in range(params.num_batches)
@@ -87,10 +87,10 @@ def run_memnn(warmup=2, benchmark=18, jit=False, cuda=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="PyTorch memnn bench")
-    parser.add_argument('--warmup',     type=int, default=2,   help="Warmup iterations")
-    parser.add_argument('--benchmark',  type=int, default=10,  help="Benchmark iterations")
-    parser.add_argument('--jit',        action='store_true',   help="Use JIT compiler")
-    parser.add_argument('--cuda',       action='store_true',   help="use cuda")
+    parser.add_argument('--warmup', type=int, default=2, help="Warmup iterations")
+    parser.add_argument('--benchmark', type=int, default=10, help="Benchmark iterations")
+    parser.add_argument('--jit', action='store_true', help="Use JIT compiler")
+    parser.add_argument('--cuda', action='store_true', help="use cuda")
     args = parser.parse_args()
     pprint.pprint(vars(args))
 

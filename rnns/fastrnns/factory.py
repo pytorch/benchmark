@@ -202,7 +202,7 @@ def varlen_pytorch_lstm_creator(**kwargs):
 
 def varlen_lstm_factory(cell, script):
     def dynamic_rnn(sequences, hiddens, wih, whh, bih, bhh):
-        # type: (List[Tensor], Tuple[Tensor, Tensor], Tensor, Tensor, Tensor, Tensor) -> Tuple[List[Tensor], Tuple[List[Tensor], List[Tensor]]]
+        # type: (List[Tensor], Tuple[Tensor, Tensor], Tensor, Tensor, Tensor, Tensor) -> Tuple[List[Tensor], Tuple[List[Tensor], List[Tensor]]]    # noqa
         hx, cx = hiddens
         hxs = hx.unbind(1)
         cxs = cx.unbind(1)
@@ -234,7 +234,7 @@ def varlen_lstm_factory(cell, script):
 
 
 def varlen_lstm_creator(script=False, **kwargs):
-    sequences, _,  hidden, params, _ = varlen_lstm_inputs(
+    sequences, _, hidden, params, _ = varlen_lstm_inputs(
         return_module=False, **kwargs)
     inputs = [sequences, hidden] + params[0]
     return ModelDef(
@@ -305,7 +305,6 @@ def lstm_factory(cell, script):
         dynamic_rnn = torch.jit.script(dynamic_rnn)
 
     return dynamic_rnn
-
 
 
 # premul: we're going to premultiply the inputs & weights

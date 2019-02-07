@@ -56,7 +56,6 @@ def run_bnlstm(hidden_size=100, max_length=784, pmnist=False, num_batches=5,
         model.cuda()
         criterion.cuda()
 
-
     total_loss = 0
     for data, targets in zip(data_batches, target_batches):
         gc.collect()
@@ -71,13 +70,13 @@ def run_bnlstm(hidden_size=100, max_length=784, pmnist=False, num_batches=5,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="PyTorch BNLSTM benchmark.")
-    parser.add_argument('--num_batches',  type=int, default=1,   help="num batches")
-    parser.add_argument('--hidden-size',  type=int, default=100, help="Hidden size")
-    parser.add_argument('--max-length',   type=int, default=784, help="max seq len")
-    parser.add_argument('--warmup',       type=int, default=10,  help="Warmup iterations")
-    parser.add_argument('--benchmark',    type=int, default=20,  help="Benchmark iterations")
-    parser.add_argument('--jit',          action='store_true',   help="Use JIT")
-    parser.add_argument('--cuda',         action='store_true',   help="Use cuda")
+    parser.add_argument('--num_batches', type=int, default=1, help="num batches")
+    parser.add_argument('--hidden-size', type=int, default=100, help="Hidden size")
+    parser.add_argument('--max-length', type=int, default=784, help="max seq len")
+    parser.add_argument('--warmup', type=int, default=10, help="Warmup iterations")
+    parser.add_argument('--benchmark', type=int, default=20, help="Benchmark iterations")
+    parser.add_argument('--jit', action='store_true', help="Use JIT")
+    parser.add_argument('--cuda', action='store_true', help="Use cuda")
     args = parser.parse_args()
 
     pprint.pprint(vars(args))

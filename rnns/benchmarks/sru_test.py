@@ -25,15 +25,15 @@ def run_sru(cpu=0, gpu=0, jit=False, use_kernel=False, backward=False,
     input_size, hidden_size = 128, 128
 
     rnn = SRU(input_size, hidden_size,
-        num_layers = 2,          # number of stacking RNN layers
-        dropout = 0.00001,           # dropout applied between RNN layers
-        rnn_dropout = 0.0001,       # variational dropout applied on linear transformation
-        use_tanh = 1,            # use tanh?
-        use_relu = 0,            # use ReLU?
-        bidirectional = False,    # bidirectional RNN ?
-        use_kernel=use_kernel,
-        jit=jit,
-    )
+              num_layers=2,          # number of stacking RNN layers
+              dropout=0.00001,           # dropout applied between RNN layers
+              rnn_dropout=0.0001,       # variational dropout applied on linear transformation
+              use_tanh=1,            # use tanh?
+              use_relu=0,            # use ReLU?
+              bidirectional=False,    # bidirectional RNN ?
+              use_kernel=use_kernel,
+              jit=jit,
+              )
     rnn.cuda()
 
     kernel_tag = '_kernel' if use_kernel else ''
@@ -55,13 +55,13 @@ def run_sru(cpu=0, gpu=0, jit=False, use_kernel=False, backward=False,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="PyTorch mLSTM benchmark.")
-    parser.add_argument('--cpu',                     type=int, default=0,     help="CPU to run on")
-    parser.add_argument('--gpu',                     type=int, default=0,     help="GPU to run on")
-    parser.add_argument('--warmup',                  type=int, default=10,    help="Warmup iterations")
-    parser.add_argument('--benchmark',               type=int, default=20,    help="Benchmark iterations")
-    parser.add_argument('--jit',                     action='store_true',     help="Use JIT compiler")
-    parser.add_argument('--use-kernel',              action='store_true',     help="Use specialized kernel")
-    parser.add_argument('--backward',                action='store_true',     help="benchmark forward + backward")
+    parser.add_argument('--cpu', type=int, default=0, help="CPU to run on")
+    parser.add_argument('--gpu', type=int, default=0, help="GPU to run on")
+    parser.add_argument('--warmup', type=int, default=10, help="Warmup iterations")
+    parser.add_argument('--benchmark', type=int, default=20, help="Benchmark iterations")
+    parser.add_argument('--jit', action='store_true', help="Use JIT compiler")
+    parser.add_argument('--use-kernel', action='store_true', help="Use specialized kernel")
+    parser.add_argument('--backward', action='store_true', help="benchmark forward + backward")
     args = parser.parse_args()
 
     pprint.pprint(vars(args))

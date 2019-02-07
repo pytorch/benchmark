@@ -22,8 +22,12 @@ else:
 # This file copied from scripts/lstm.py.
 
 # If you swap the transpose here, you can test the effect of pre-transposing.
+
+
 def t_use(x):
     return x
+
+
 def t_def(x):
     return x.t()
 
@@ -66,7 +70,7 @@ def wrap_hidden(fn):
 
 def _unfused_lstm(input, hx, cx, w_ih, w_hh):
     hx, cx
-    #return hx.clone(), cx.clone()
+    # return hx.clone(), cx.clone()
     gates = input.mm(t_use(w_ih)) + hx.mm(t_use(w_hh))
 
     ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
@@ -104,17 +108,20 @@ def run_lstm(cpu=0, gpu=0, batch_size=1, input_size=256, hidden_size=512,
     benchmark_init(cpu, gpu, skip_cpu_governor_check)
 
     if variable:
-        V = lambda x, requires_grad=False: Variable(x, requires_grad=False)
+        def V(x, requires_grad=False):
+            return Variable(x, requires_grad=False)
     elif autograd:
-        V = lambda x, requires_grad=False: Variable(x, requires_grad=requires_grad)
+        def V(x, requires_grad=False):
+            return Variable(x, requires_grad=requires_grad)
     else:
-        V = lambda x, requires_grad=False: x
+        def V(x, requires_grad=False):
+            return x
 
     input = V(torch.randn(batch_size, input_size).cuda(device=gpu))
-    hx0   = V(torch.randn(batch_size, hidden_size).cuda(device=gpu), requires_grad=True)
-    cx0   = V(torch.randn(batch_size, hidden_size).cuda(device=gpu), requires_grad=True)
-    w_ih  = V(t_def(torch.randn(4 * hidden_size, input_size)).cuda(device=gpu), requires_grad=True)
-    w_hh  = V(t_def(torch.randn(4 * hidden_size, hidden_size)).cuda(device=gpu), requires_grad=True)
+    hx0 = V(torch.randn(batch_size, hidden_size).cuda(device=gpu), requires_grad=True)
+    cx0 = V(torch.randn(batch_size, hidden_size).cuda(device=gpu), requires_grad=True)
+    w_ih = V(t_def(torch.randn(4 * hidden_size, input_size)).cuda(device=gpu), requires_grad=True)
+    w_hh = V(t_def(torch.randn(4 * hidden_size, hidden_size)).cuda(device=gpu), requires_grad=True)
 
     if fused:
         if backward:
@@ -148,20 +155,22 @@ def run_lstm(cpu=0, gpu=0, batch_size=1, input_size=256, hidden_size=512,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PyTorch LSTM benchmark.")
-    parser.add_argument('--cpu',                     type=int, default=0,     help="CPU to run on")
-    parser.add_argument('--gpu',                     type=int, default=0,     help="GPU to run on")
-    parser.add_argument('--batch-size',              type=int, default=1,     help="Batch size")
-    parser.add_argument('--input-size',              type=int, default=256,   help="Input size")
-    parser.add_argument('--hidden-size',             type=int, default=512,   help="Hidden size")
-    parser.add_argument('--seq-len',                 type=int, default=None,  help="Sequence length")
-    parser.add_argument('--warmup',                  type=int, default=10,    help="Warmup iterations")
-    parser.add_argument('--benchmark',               type=int, default=20,    help="Benchmark iterations")
-    parser.add_argument('--autograd',                action='store_true',     help="Use autograd")
-    parser.add_argument('--variable',                action='store_true',     help="Use Variable, but not autograd (measure baseline overhead)")
-    parser.add_argument('--fused',                   action='store_true',     help="Use fused cell")
-    parser.add_argument('--jit',                     action='store_true',     help="Use JIT compiler (implies --autograd)")
-    parser.add_argument('--backward',                action='store_true',     help="Run backwards computation")
-    parser.add_argument('--skip-cpu-governor-check', action='store_true',     help="Skip checking whether CPU governor is set to `performance`")
+    parser.add_argument('--cpu', type=int, default=0, help="CPU to run on")
+    parser.add_argument('--gpu', type=int, default=0, help="GPU to run on")
+    parser.add_argument('--batch-size', type=int, default=1, help="Batch size")
+    parser.add_argument('--input-size', type=int, default=256, help="Input size")
+    parser.add_argument('--hidden-size', type=int, default=512, help="Hidden size")
+    parser.add_argument('--seq-len', type=int, default=None, help="Sequence length")
+    parser.add_argument('--warmup', type=int, default=10, help="Warmup iterations")
+    parser.add_argument('--benchmark', type=int, default=20, help="Benchmark iterations")
+    parser.add_argument('--autograd', action='store_true', help="Use autograd")
+    parser.add_argument('--variable', action='store_true',
+                        help="Use Variable, but not autograd (measure baseline overhead)")
+    parser.add_argument('--fused', action='store_true', help="Use fused cell")
+    parser.add_argument('--jit', action='store_true', help="Use JIT compiler (implies --autograd)")
+    parser.add_argument('--backward', action='store_true', help="Run backwards computation")
+    parser.add_argument('--skip-cpu-governor-check', action='store_true',
+                        help="Skip checking whether CPU governor is set to `performance`")
     args = parser.parse_args()
 
     pprint.pprint(vars(args))

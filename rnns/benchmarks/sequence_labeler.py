@@ -10,7 +10,7 @@ The decoder updates hidden state based on:
  - most recent word
  - the previous action (aka predicted label).
  - the previous hidden state
- 
+
 Can it be faster?!?!?!?!?!?
 
 (Adapted from https://gist.github.com/hal3/8c170c4400576eb8d0a8bd94ab231232.)
@@ -35,11 +35,13 @@ else:
 # Assuming this script is being called from the benchmark/rnns dir
 wsj_default_path = './wsj.pkl'
 
+
 def reseed(seed=90210):
     random.seed(seed)
     torch.manual_seed(seed)
 
 reseed()
+
 
 @torch.jit.script
 def gru_cell(input_, hidden, w_hh, b_hh):
@@ -119,11 +121,13 @@ class Example(object):
         self.labels = labels
         self.n_labels = n_labels
 
+
 def minibatch(data, minibatch_size, reshuffle):
     if reshuffle:
         random.shuffle(data)
     for n in range(0, len(data), minibatch_size):
-        yield data[n:n+minibatch_size]
+        yield data[n:n + minibatch_size]
+
 
 def test_wsj(jit=False, epochs=6, wsj_path=wsj_default_path, cuda=False):
     jit_tag = '_jit' if jit else ''
@@ -155,7 +159,7 @@ def test_wsj(jit=False, epochs=6, wsj_path=wsj_default_path, cuda=False):
     initial_h_tensor = torch.Tensor(1, d_hid)
     initial_h_tensor.zero_()
     initial_h = Parameter(initial_h_tensor)
-    
+
     initial_actemb_tensor = torch.Tensor(1, d_actemb)
     initial_actemb_tensor.zero_()
     initial_actemb = Parameter(initial_actemb_tensor)
@@ -178,7 +182,7 @@ def test_wsj(jit=False, epochs=6, wsj_path=wsj_default_path, cuda=False):
         total_loss = 0
         prof = None
         with iter_timer:
-        #with torch.autograd.profiler.profile() as prof:
+            # with torch.autograd.profiler.profile() as prof:
             for batch in minibatch(data, minibatch_size, True):
                 optimizer.zero_grad()
                 loss = 0
@@ -197,11 +201,11 @@ def test_wsj(jit=False, epochs=6, wsj_path=wsj_default_path, cuda=False):
                         all_rnn_out = all_rnn_out.cpu()
                     else:
                         all_rnn_out, _ = gru(all_e)
-                
+
                 for ex in batch:
                     N = len(ex.tokens)
                     if preprocess_minibatch:
-                        rnn_out = all_rnn_out[0,:,:].view(-1, 1, 2 * d_rnn)
+                        rnn_out = all_rnn_out[0, :, :].view(-1, 1, 2 * d_rnn)
                     else:
                         e = embed_word(Variable(torch.LongTensor(ex.tokens), requires_grad=False)).view(N, 1, -1)
                         [rnn_out, _] = gru(e)
@@ -238,7 +242,7 @@ def test_wsj(jit=False, epochs=6, wsj_path=wsj_default_path, cuda=False):
             print(prof.key_averages())
         print(total_loss)
     return iter_timer
-    
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=10,

@@ -7,6 +7,8 @@ import torch.nn.functional as F
 
 # This is slightly different to the most commonly used LSTM variant, where the output gate is
 # applied after the hyperbolic tangent.
+
+
 def KrauseLSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
     # Terminology matchup:
     #   - This implementation uses the trick of having all gates concatenated
@@ -28,6 +30,7 @@ def KrauseLSTMCell(input, hidden, w_ih, w_hh, b_ih=None, b_hh=None):
     hy = F.tanh(cy * outgate)
 
     return hy, cy
+
 
 def MultiplicativeLSTMCell(input, hidden, w_xm, w_hm, w_ih, w_mh, b_xm=None, b_hm=None, b_ih=None, b_mh=None):
     # w_ih holds W_hx, W_ix, W_ox, W_fx

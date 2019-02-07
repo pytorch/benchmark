@@ -52,6 +52,7 @@ class MobileNetV2(nn.Module):
     `"Inverted Residuals and Linear Bottlenecks: Mobile Networks for Classification, Detection and Segmentation"
     <https://arxiv.org/pdf/1801.04381>`_paper.
     """
+
     def __init__(self, n_class=1000, input_size=224, width_mult=1.):
         super(MobileNetV2, self).__init__()
         # setting of inverted residual blocks
@@ -82,7 +83,7 @@ class MobileNetV2(nn.Module):
                 input_channel = output_channel
         # building last several layers
         self.features.append(conv_1x1_bn(input_channel, self.last_channel))
-        self.features.append(nn.AvgPool2d(int(input_size/32)))
+        self.features.append(nn.AvgPool2d(int(input_size / 32)))
         # make it nn.Sequential
         self.features = nn.Sequential(*self.features)
 
@@ -114,4 +115,3 @@ class MobileNetV2(nn.Module):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
-

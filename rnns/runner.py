@@ -6,13 +6,13 @@ from benchmarks.memnn import run_memnn
 from benchmarks.mlstm import run_mlstm
 from benchmarks.lstm import run_lstm
 from benchmarks.cudnn_lstm import run_cudnn_lstm
-from benchmarks.tensor import run_tensor 
+from benchmarks.tensor import run_tensor
 from benchmarks.lstm_variants_test import run_lstm_variant
 from benchmarks.bnlstm import run_bnlstm
 from benchmarks.sru_test import run_sru
 from benchmarks.qrnn import run_qrnn
 
-from benchmarks.sequence_labeler import test_wsj 
+from benchmarks.sequence_labeler import test_wsj
 from benchmarks.sequence_labeler import Example
 
 from benchmarks.common import AttrDict
@@ -124,7 +124,7 @@ def discover_benchmarks():
 
 def title(text='title', width=80):
     reserve = len(text) + 2
-    num_lines = int((width - reserve)/2)
+    num_lines = int((width - reserve) / 2)
     lines = '-' * num_lines
     return '{} {} {}'.format(lines, text, lines)
 
@@ -138,11 +138,11 @@ def summarize(result):
     if gpu_summary.max == 0 and gpu_summary.min == 0:
         use_summary = cpu_summary
 
-    range_middle = (use_summary.max + use_summary.min)/2
+    range_middle = (use_summary.max + use_summary.min) / 2
     deviation = use_summary.max - range_middle
 
     return '{2:10.4f} ± {3:8.4f} msec (average {1:10.4f} msec, {4} samples) [{0}]'.format(
-          result.name, use_summary.mean, range_middle, deviation, samples)
+        result.name, use_summary.mean, range_middle, deviation, samples)
 
 
 def main():

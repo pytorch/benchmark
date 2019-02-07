@@ -154,7 +154,7 @@ if __name__ == '__main__':
     vlrnns = ['vl_cudnn', 'vl_jit', 'vl_py']
     cnns = ['resnet18', 'resnet18_jit', 'resnet50', 'resnet50_jit']
     if args.print_json:
-        print_stderr = lambda *args, **kwargs: None
+        print_stderr = lambda *args, **kwargs: None    # noqa
     print_stderr(args)
 
     bench_args = vars(args)

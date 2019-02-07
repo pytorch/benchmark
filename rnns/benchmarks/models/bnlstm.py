@@ -127,7 +127,7 @@ class LSTMCell(nn.Module):
         wi = torch.mm(input_, self.weight_ih)
         f, i, o, g = torch.split(wh_b + wi,
                                  self.hidden_size, dim=1)
-        c_1 = torch.sigmoid(f)*c_0 + torch.sigmoid(i)*torch.tanh(g)
+        c_1 = torch.sigmoid(f) * c_0 + torch.sigmoid(i) * torch.tanh(g)
         h_1 = torch.sigmoid(o) * torch.tanh(c_1)
         return h_1, c_1
 
@@ -140,7 +140,7 @@ class LSTMCell(nn.Module):
 def bnlstm_helper(c_0, bn_wh, bn_wi, bias_batch):
     f, i, o, g = torch.chunk(bn_wh + bn_wi + bias_batch,
                              chunks=4, dim=1)
-    c_1 = torch.sigmoid(f)*c_0 + torch.sigmoid(i)*torch.tanh(g)
+    c_1 = torch.sigmoid(f) * c_0 + torch.sigmoid(i) * torch.tanh(g)
     return c_1, o
 
 
@@ -230,7 +230,7 @@ class BNLSTMCell(nn.Module):
 
         f, i, o, g = torch.split(bn_wh + bn_wi + bias_batch,
                                  self.hidden_size, dim=1)
-        c_1 = torch.sigmoid(f)*c_0 + torch.sigmoid(i)*torch.tanh(g)
+        c_1 = torch.sigmoid(f) * c_0 + torch.sigmoid(i) * torch.tanh(g)
         h_1 = torch.sigmoid(o) * torch.tanh(self.bn_c(c_1, time=time))
         return h_1, c_1
 
@@ -277,8 +277,8 @@ class LSTM(nn.Module):
             else:
                 h_next, c_next = cell(input_=input_[time], hx=hx)
             mask = (time < length).float().unsqueeze(1).expand_as(h_next)
-            h_next = h_next*mask + hx[0]*(1 - mask)
-            c_next = c_next*mask + hx[1]*(1 - mask)
+            h_next = h_next * mask + hx[0] * (1 - mask)
+            c_next = c_next * mask + hx[1] * (1 - mask)
             hx_next = (h_next, c_next)
             output.append(h_next)
             hx = hx_next

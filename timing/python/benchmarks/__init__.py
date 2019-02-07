@@ -5,4 +5,3 @@ from benchmarks.cpu_reduce_benchmark import NumpyReduceComparison
 from benchmarks.cpu_unary_benchmark import CPUUnaryBench
 from benchmarks.cpu_unary_benchmark import NumpyUnaryComparison
 from benchmarks.cuda_lstm_benchmark import CUDALSTMBench
-
