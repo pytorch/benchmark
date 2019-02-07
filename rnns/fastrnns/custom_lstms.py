@@ -306,7 +306,7 @@ class StackedLSTMWithDropout(jit.ScriptModule):
     __constants__ = ['layers', 'num_layers']
 
     def __init__(self, num_layers, layer, first_layer_args, other_layer_args):
-        super(StackedLSTM, self).__init__()
+        super(StackedLSTMWithDropout, self).__init__()
         self.layers = init_stacked_lstm(num_layers, layer, first_layer_args,
                                         other_layer_args)
         # Introduces a Dropout layer on the outputs of each LSTM layer except

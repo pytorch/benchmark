@@ -56,6 +56,7 @@ rnn_runners = {
     'jit_layernorm_decom': RNNRunner('jit_layernorm_decom',
                                      partial(lnlstm_creator, decompose_layernorm=True),
                                      DummyContext),
+    'jit_dropout': RNNRunner('jit_dropout', dropoutlstm_creator, DummyContext),
     'py': RNNRunner('py', partial(lstm_creator, script=False), DummyContext),
     'resnet18': RNNRunner('resnet18', imagenet_cnn_creator(cnn.resnet18, jit=False), DummyContext),
     'resnet18_jit': RNNRunner('resnet18_jit', imagenet_cnn_creator(cnn.resnet18), DummyContext),

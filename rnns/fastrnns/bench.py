@@ -149,8 +149,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     rnns = args.rnns or ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple',
                          'jit_multilayer', 'py']
-    # TODO: Maybe add a separate section for the layernorm lstms
-    # 'jit_layernorm', 'jit_layernom_decom', 'jit'
+    # TODO: Maybe add a separate section for the layernorm/dropout lstms
+    # 'jit_layernorm', 'jit_layernom_decom', 'jit', 'jit_dropout'
     vlrnns = ['vl_cudnn', 'vl_jit', 'vl_py']
     cnns = ['resnet18', 'resnet18_jit', 'resnet50', 'resnet50_jit']
     if args.print_json:
