@@ -36,12 +36,15 @@ def script_lstm(input_size, hidden_size, num_layers, bias=True,
     # The following are not implemented.
     assert bias
     assert not batch_first
-    assert not dropout
 
     if bidirectional:
         stack_type = StackedLSTM2
         layer_type = BidirLSTMLayer
         dirs = 2
+    elif dropout:
+        stack_type = StackedLSTMWithDropout
+        layer_type = LSTMLayer
+        dirs = 1
     else:
         stack_type = StackedLSTM
         layer_type = LSTMLayer
@@ -298,6 +301,38 @@ class StackedLSTM2(jit.ScriptModule):
         return output, output_states
 
 
+class StackedLSTMWithDropout(jit.ScriptModule):
+    # Necessary for iterating through self.layers and dropout support
+    __constants__ = ['layers', 'num_layers']
+
+    def __init__(self, num_layers, layer, first_layer_args, other_layer_args):
+        super(StackedLSTM, self).__init__()
+        self.layers = init_stacked_lstm(num_layers, layer, first_layer_args,
+                                        other_layer_args)
+        # Introduces a Dropout layer on the outputs of each LSTM layer except
+        # the last layer, with dropout probability = 0.4.
+        self.num_layers = num_layers
+        self.dropout_layer = nn.Dropout(0.4)
+
+    @jit.script_method
+    def forward(self, input, states):
+        # type: (Tensor, List[Tuple[Tensor, Tensor]]) -> Tuple[Tensor, List[Tuple[Tensor, Tensor]]]
+        # List[LSTMState]: One state per layer
+        output_states = jit.annotate(List[Tuple[Tensor, Tensor]], [])
+        output = input
+        # XXX: enumerate https://github.com/pytorch/pytorch/issues/14471
+        i = 0
+        for rnn_layer in self.layers:
+            state = states[i]
+            output, out_state = rnn_layer(output, state)
+            # Apply the dropout layer except the last layer
+            if i < self.num_layers - 1:
+                    output = self.dropout_layer(output)
+            output_states += [out_state]
+            i += 1
+        return output, output_states
+
+
 def flatten_states(states):
     states = list(zip(*states))
     assert len(states) == 2
@@ -388,6 +423,18 @@ def test_script_stacked_bidir_rnn(seq_len, batch, input_size, hidden_size,
     assert (custom_state[1] - lstm_out_state[1]).abs().max() < 1e-5
 
 
+def test_script_stacked_lstm_dropout(seq_len, batch, input_size, hidden_size,
+                                     num_layers):
+    inp = torch.randn(seq_len, batch, input_size)
+    states = [LSTMState(torch.randn(batch, hidden_size),
+                        torch.randn(batch, hidden_size))
+              for _ in range(num_layers)]
+    rnn = script_lstm(input_size, hidden_size, num_layers, dropout=True)
+
+    # just a smoke test
+    out, out_state = rnn(inp, states)
+
+
 def test_script_stacked_lnlstm(seq_len, batch, input_size, hidden_size,
                                num_layers):
     inp = torch.randn(seq_len, batch, input_size)
@@ -403,4 +450,5 @@ def test_script_stacked_lnlstm(seq_len, batch, input_size, hidden_size,
 test_script_rnn_layer(5, 2, 3, 7)
 test_script_stacked_rnn(5, 2, 3, 7, 4)
 test_script_stacked_bidir_rnn(5, 2, 3, 7, 4)
+test_script_stacked_lstm_dropout(5, 2, 3, 7, 4)
 test_script_stacked_lnlstm(5, 2, 3, 7, 4)
