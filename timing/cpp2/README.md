@@ -7,7 +7,7 @@ NB: There are other benchmarks in cpp. Move all of the ones in cpp2 to cpp.
 3. Build dependencies using build_deps.sh (make sure you checked out all the third_party submodules)
 4. From within build run (Replace CMAKE_PREFIX_PATH with your install path)
 ```
-cmake .. -DCMAKE_PREFIX_PATH=/scratch/rzou/pt/master/torch/lib/tmp_install && make -j $(nproc)
+cmake .. -DCMAKE_PREFIX_PATH=<path-to-your-env>/site-packages/torch/share/cmake/ && make -j $(nproc)
 ```
 5. Run benchmarks:
 ```
