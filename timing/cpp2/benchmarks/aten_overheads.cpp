@@ -3,6 +3,7 @@
 #include <torch/torch.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/ExpandUtils.h>
+#include <c10/cuda/CUDAFunctions.h>
 
 // Global variables.
 constexpr size_t kBiggerThanCacheSize = 51200 * 1024;
@@ -198,10 +199,9 @@ static void BM_DynamicCUDAInterfaceGetDevice(benchmark::State& state) {
 
   // initialize some cuda...
   auto tmp = at::empty({0}, options);
-  int32_t device;
 
   for (auto _ : state) {
-    at::detail::DynamicCUDAInterface::get_device(&device);
+    c10::cuda::current_device();
   }
 }
 BENCHMARK(BM_DynamicCUDAInterfaceGetDevice);
@@ -215,7 +215,7 @@ static void BM_DynamicCUDAInterfaceSetDevice(benchmark::State& state) {
   cudaGetDevice(&device);
 
   for (auto _ : state) {
-    at::detail::DynamicCUDAInterface::set_device(device);
+    c10::cuda::set_device(device);
   }
 }
 BENCHMARK(BM_DynamicCUDAInterfaceSetDevice);
