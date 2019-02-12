@@ -44,6 +44,7 @@ def get_rnn_runners(*names):
 
 rnn_runners = {
     'cudnn': RNNRunner('cudnn', pytorch_lstm_creator, DummyContext),
+    'cudnn_dropout': RNNRunner('cudnn_dropout', partial(pytorch_lstm_creator, dropout=0.4), DummyContext),
     'vl_cudnn': RNNRunner('vl_cudnn', varlen_pytorch_lstm_creator, DummyContext),
     'vl_jit': RNNRunner('vl_jit', partial(varlen_lstm_creator, script=True), DummyContext),
     'vl_py': RNNRunner('vl_py', varlen_lstm_creator, DummyContext),
@@ -56,6 +57,7 @@ rnn_runners = {
     'jit_layernorm_decom': RNNRunner('jit_layernorm_decom',
                                      partial(lnlstm_creator, decompose_layernorm=True),
                                      DummyContext),
+    'jit_dropout': RNNRunner('jit_dropout', dropoutlstm_creator, DummyContext),
     'py': RNNRunner('py', partial(lstm_creator, script=False), DummyContext),
     'resnet18': RNNRunner('resnet18', imagenet_cnn_creator(cnn.resnet18, jit=False), DummyContext),
     'resnet18_jit': RNNRunner('resnet18_jit', imagenet_cnn_creator(cnn.resnet18), DummyContext),
