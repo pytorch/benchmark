@@ -44,6 +44,7 @@ def get_rnn_runners(*names):
 
 rnn_runners = {
     'cudnn': RNNRunner('cudnn', pytorch_lstm_creator, DummyContext),
+    'cudnn_dropout': RNNRunner('cudnn_dropout', partial(pytorch_lstm_creator, dropout=0.4), DummyContext),
     'vl_cudnn': RNNRunner('vl_cudnn', varlen_pytorch_lstm_creator, DummyContext),
     'vl_jit': RNNRunner('vl_jit', partial(varlen_lstm_creator, script=True), DummyContext),
     'vl_py': RNNRunner('vl_py', varlen_lstm_creator, DummyContext),

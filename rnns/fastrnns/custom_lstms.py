@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Parameter
 import torch.jit as jit
+import warnings
 from collections import namedtuple
 from typing import List, Tuple
 from torch import Tensor
@@ -312,6 +313,12 @@ class StackedLSTMWithDropout(jit.ScriptModule):
         # Introduces a Dropout layer on the outputs of each LSTM layer except
         # the last layer, with dropout probability = 0.4.
         self.num_layers = num_layers
+
+        if (num_layers == 1):
+            warnings.warn("dropout lstm adds dropout layers after all but last "
+                          "recurrent layer, it expects num_layers greater than "
+                          "1, but got num_layers = 1")
+
         self.dropout_layer = nn.Dropout(0.4)
 
     @jit.script_method
@@ -327,7 +334,7 @@ class StackedLSTMWithDropout(jit.ScriptModule):
             output, out_state = rnn_layer(output, state)
             # Apply the dropout layer except the last layer
             if i < self.num_layers - 1:
-                    output = self.dropout_layer(output)
+                output = self.dropout_layer(output)
             output_states += [out_state]
             i += 1
         return output, output_states

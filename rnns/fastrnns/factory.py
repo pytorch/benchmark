@@ -97,17 +97,18 @@ def lnlstm_creator(script=True, decompose_layernorm=False, **kwargs):
 
 def dropoutlstm_creator(script=True, **kwargs):
     assert script is True
-    from .custom_lstms import script_lstm
+    from .custom_lstms import script_lstm, LSTMState
     input_size = kwargs['inputSize']
     hidden_size = kwargs['hiddenSize']
     seq_len = kwargs['seqLength']
     batch_size = kwargs['miniBatch']
-    ge = script_lstm(input_size, hidden_size, 1, dropout=True).cuda()
+    num_layers = kwargs['numLayers']
+    ge = script_lstm(input_size, hidden_size, num_layers, dropout=True).cuda()
 
     input = torch.randn(seq_len, batch_size, input_size, device='cuda')
-    states = [(torch.randn(batch_size, hidden_size, device='cuda'),
-               torch.randn(batch_size, hidden_size, device='cuda'))]
-
+    states = [LSTMState(torch.randn(batch_size, hidden_size, device='cuda'),
+                        torch.randn(batch_size, hidden_size, device='cuda'))
+              for _ in range(num_layers)]
     return ModelDef(
         inputs=[input, states],
         params=ge.parameters(),
@@ -291,13 +292,13 @@ def stack_weights(weights):
 
 # returns: x, (hx, cx), all_weights, lstm module with all_weights as params
 def lstm_inputs(seqLength=100, numLayers=1, inputSize=512, hiddenSize=512,
-                miniBatch=64, return_module=False, device='cuda', seed=None):
+                miniBatch=64, dropout=0.0, return_module=False, device='cuda', seed=None):
     if seed is not None:
         torch.manual_seed(seed)
     x = torch.randn(seqLength, miniBatch, inputSize, device=device)
     hx = torch.randn(numLayers, miniBatch, hiddenSize, device=device)
     cx = torch.randn(numLayers, miniBatch, hiddenSize, device=device)
-    lstm = torch.nn.LSTM(inputSize, hiddenSize, numLayers)
+    lstm = torch.nn.LSTM(inputSize, hiddenSize, numLayers, dropout=dropout)
     if 'cuda' in device:
         lstm = lstm.cuda()
 
