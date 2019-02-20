@@ -4,7 +4,6 @@ import time
 
 import torch.jit
 from torch._thnn import type2backend
-from torch.nn._functions.thnn import rnnFusedPointwise as fusedBackend
 
 from framework import Benchmark
 
