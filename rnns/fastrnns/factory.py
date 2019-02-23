@@ -267,6 +267,43 @@ def varlen_lstm_creator(script=False, **kwargs):
         backward=simple_backward)
 
 
+# cudnn_layernorm_lstm: since cudnn does not have Layernorm LSTM, we cannot benchmark
+# the lowerbound directly. Instead, we only benchmark the foward pass by mimicing the
+# computation of a cudnn lstm + seq_len * 3 layernorm computation. This should serve
+# as a perf lowerbound for the Layernorm LSTM forward pass(given that Layernorm itself
+# is invariant), the lowerbound of backward pass is hard to get since we lose the
+# intermediate results, we can still optimize the layernorm implementation to make
+# a faster foward lowerbound though.
+def layernorm_pytorch_lstm_creator(**kwargs):
+    input, hidden, _, module = lstm_inputs(return_module=True, **kwargs)
+    batch_size = kwargs['miniBatch']
+    hidden_size = kwargs['hiddenSize']
+    ln_i = torch.nn.LayerNorm(4 * hidden_size).cuda()
+    ln_h = torch.nn.LayerNorm(4 * hidden_size).cuda()
+    ln_c = torch.nn.LayerNorm(hidden_size).cuda()
+    ln_input1 = torch.randn(batch_size, 4 * hidden_size, device='cuda')
+
+    def forward(input, hidden):
+        out, new_hidden = module(input, hidden)
+        # plus (seq_len * three laynorm cell computation) to mimic the lower bound of
+        # Layernorm cudnn LSTM in the forward pass
+        seq_len = len(input.unbind(0))
+        hy, cy = new_hidden
+        for i in range(seq_len):
+            ln_i_output = ln_i(ln_input1)
+            ln_h_output = ln_h(ln_input1)
+            cy = ln_c(cy)
+
+        return out, (hy, cy)
+
+    return ModelDef(
+        inputs=[input, hidden],
+        params=flatten_list(module.all_weights),
+        forward=forward,
+        backward_setup=lstm_backward_setup,
+        backward=None)
+
+
 # input: lstm.all_weights format (wih, whh, bih, bhh = lstm.all_weights[layer])
 # output: packed_weights with format
 # packed_weights[0] is wih with size (layer, 4*hiddenSize, inputSize)
