@@ -301,7 +301,7 @@ def layernorm_pytorch_lstm_creator(**kwargs):
         params=flatten_list(module.all_weights),
         forward=forward,
         backward_setup=lstm_backward_setup,
-        backward=simple_backward)
+        backward=None)
 
 
 # input: lstm.all_weights format (wih, whh, bih, bhh = lstm.all_weights[layer])
