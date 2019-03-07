@@ -38,11 +38,11 @@ RNNRunner = namedtuple('RNNRunner', [
 ])
 
 
-def get_rnn_runners(*names):
-    return [rnn_runners[name] for name in names]
+def get_nn_runners(*names):
+    return [nn_runners[name] for name in names]
 
 
-rnn_runners = {
+nn_runners = {
     'cudnn': RNNRunner('cudnn', pytorch_lstm_creator, DummyContext),
     'cudnn_dropout': RNNRunner('cudnn_dropout', partial(pytorch_lstm_creator, dropout=0.4), DummyContext),
     'cudnn_layernorm': RNNRunner('cudnn_layernorm', layernorm_pytorch_lstm_creator, DummyContext),
