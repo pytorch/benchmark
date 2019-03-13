@@ -137,6 +137,8 @@ def bench_group(model_list, bench_name, bench_group, bench_args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Profile RNNs')
 
+    default_groups = ['cnns', 'rnns']
+
     parser.add_argument('--seqLength', default='100', type=int)
     parser.add_argument('--numLayers', default='1', type=int)
     parser.add_argument('--inputSize', default='512', type=int)
@@ -155,7 +157,7 @@ if __name__ == '__main__':
                         help='What to run. cudnn, aten, jit, etc')
     parser.add_argument('--cnns', nargs='*',
                         help='What to run. resnet18, resnet18_jit, resnet50, etc')
-    parser.add_argument('--group', nargs='*', default=['cnns', 'rnns'], help='Specify which test group to run')
+    parser.add_argument('--group', nargs='*', default=default_groups, help='Which group to run. cnns, rnns, etc.')
 
     args = parser.parse_args()
     rnns = args.rnns or ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple',
