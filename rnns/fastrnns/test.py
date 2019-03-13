@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from .cells import lstm_cell
 from .factory import pytorch_lstm_creator, varlen_pytorch_lstm_creator
-from .runner import get_rnn_runners
+from .runner import get_nn_runners
 
 
 def barf():
@@ -70,7 +70,7 @@ def test_vl_py(**test_args):
     # It's done this way because those two don't give the same outputs so
     # the result isn't an apples-to-apples comparison right now.
     control_creator = varlen_pytorch_lstm_creator
-    name, experim_creator, context = get_rnn_runners('vl_py')[0]
+    name, experim_creator, context = get_nn_runners('vl_py')[0]
     with context():
         print('testing {}...'.format(name))
         creator_keys = [
@@ -143,7 +143,7 @@ if __name__ == '__main__':
     if 'cuda' in args.device:
         assert torch.cuda.is_available()
 
-    rnn_runners = get_rnn_runners(*args.rnns)
+    rnn_runners = get_nn_runners(*args.rnns)
 
     should_test_varlen_lstms = args.variable_lstms
     test_args = vars(args)

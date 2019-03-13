@@ -4,8 +4,9 @@ import torch
 import gc
 import sys
 import json
+import copy
 
-from .runner import get_rnn_runners
+from .runner import get_nn_runners
 
 
 BenchResult = namedtuple('BenchResult', [
@@ -126,8 +127,20 @@ def bench(rnn_runners, group_name, print_json=False, sep=' ', **params):
     }
 
 
+def bench_group(model_list, bench_name, bench_group, bench_args):
+    print_stderr('Benchmarking {}s...'.format(bench_name))
+    nn_results = bench(get_nn_runners(*model_list), bench_group, **bench_args)
+    print_stderr('')
+    return nn_results
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Profile RNNs')
+
+    # groups help control which test group you want to run
+    # if you only want to run one/two benchmark, run it with
+    # e.g: python -m fastrnns.bench --rnns jit and --group rnns
+    default_groups = ['cnns', 'rnns']
 
     parser.add_argument('--seqLength', default='100', type=int)
     parser.add_argument('--numLayers', default='1', type=int)
@@ -145,41 +158,42 @@ if __name__ == '__main__':
     parser.add_argument('--print-json', action='store_true')
     parser.add_argument('--rnns', nargs='*',
                         help='What to run. cudnn, aten, jit, etc')
+    parser.add_argument('--cnns', nargs='*',
+                        help='What to run. resnet18, resnet18_jit, resnet50, etc')
+    parser.add_argument('--group', nargs='*', default=default_groups, help='Which group to run. cnns, rnns, etc.')
 
     args = parser.parse_args()
     rnns = args.rnns or ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple',
                          'jit_multilayer', 'py']
+    cnns = args.cnns or ['resnet18', 'resnet18_jit', 'resnet50', 'resnet50_jit']
     # TODO: Maybe add a separate section for the layernorm/dropout lstms
     # 'cudnn_layernorm', jit_layernorm', 'jit_layernom_decom',
     # 'jit', 'jit_dropout', 'cudnn_dropout'
     vlrnns = ['vl_cudnn', 'vl_jit', 'vl_py']
-    cnns = ['resnet18', 'resnet18_jit', 'resnet50', 'resnet50_jit']
+
     if args.print_json:
         print_stderr = lambda *args, **kwargs: None    # noqa
     print_stderr(args)
 
-    bench_args = vars(args)
+    bench_args = copy.deepcopy(vars(args))
     should_bench_varlen_lstms = args.variable_lstms
+    del bench_args['group']
     del bench_args['rnns']
+    del bench_args['cnns']
     del bench_args['variable_lstms']
 
+    results = dict()
     if should_bench_varlen_lstms:
         if args.nloops + args.warmup > 30:
             print_stderr(
                 'WARNING: some of the variable sequence length lstms are '
                 'very unoptimized and therefore take forever to run.')
-        print_stderr('Benchmarking variable-length sequence LSTMs...')
-        rnn_results = bench(get_rnn_runners(*vlrnns), 'vl_lstm', **bench_args)
-        print_stderr('')
+        results.update(bench_group(vlrnns, 'variable-length sequence LSTM', 'vl_lstm', bench_args))
 
-    print_stderr('Benchmarking LSTMs...')
-    rnn_results = bench(get_rnn_runners(*rnns), 'lstm', **bench_args)
-    print_stderr('')
-
-    print_stderr('Benchmarking ResNets...')
-    cnn_results = bench(get_rnn_runners(*cnns), 'resnet', **bench_args)
-    print_stderr('')
+    if 'rnns' in args.group:
+        results.update(bench_group(rnns, 'LSTM', 'lstm', bench_args))
+    if 'cnns' in args.group:
+        results.update(bench_group(cnns, 'ResNet', 'resnet', bench_args))
 
     if args.print_json:
-        rnn_results.update(cnn_results)
-        print(json.dumps(rnn_results))
+        print(json.dumps(results))
