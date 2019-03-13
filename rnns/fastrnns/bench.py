@@ -155,6 +155,7 @@ if __name__ == '__main__':
                         help='What to run. cudnn, aten, jit, etc')
     parser.add_argument('--cnns', nargs='*',
                         help='What to run. resnet18, resnet18_jit, resnet50, etc')
+    parser.add_argument('--group', nargs='*', default=['cnns', 'rnns'], help='Specify which test group to run')
 
     args = parser.parse_args()
     rnns = args.rnns or ['cudnn', 'aten', 'jit', 'jit_premul', 'jit_simple',
@@ -164,33 +165,30 @@ if __name__ == '__main__':
     # 'cudnn_layernorm', jit_layernorm', 'jit_layernom_decom',
     # 'jit', 'jit_dropout', 'cudnn_dropout'
     vlrnns = ['vl_cudnn', 'vl_jit', 'vl_py']
+
     if args.print_json:
         print_stderr = lambda *args, **kwargs: None    # noqa
     print_stderr(args)
 
     bench_args = copy.deepcopy(vars(args))
     should_bench_varlen_lstms = args.variable_lstms
+    del bench_args['group']
     del bench_args['rnns']
     del bench_args['cnns']
     del bench_args['variable_lstms']
 
+    results = dict()
     if should_bench_varlen_lstms:
         if args.nloops + args.warmup > 30:
             print_stderr(
                 'WARNING: some of the variable sequence length lstms are '
                 'very unoptimized and therefore take forever to run.')
-        results = bench_group(vlrnns, 'variable-length sequence LSTM', 'vl_lstm', bench_args)
+        results.update(bench_group(vlrnns, 'variable-length sequence LSTM', 'vl_lstm', bench_args))
 
-    run_both = (args.cnns and args.rnns) or (not args.cnns and not args.rnns)
-
-    if run_both:
-        rnn_results = bench_group(rnns, 'LSTM', 'lstm', bench_args)
-        cnn_results = bench_group(cnns, 'ResNet', 'resnet', bench_args)
-        results = rnn_results.update(cnn_results)
-    elif args.rnns:
-        results = bench_group(rnns, 'LSTM', 'lstm', bench_args)
-    elif args.cnns:
-        results = bench_group(cnns, 'ResNet', 'resnet', bench_args)
+    if 'rnns' in args.group:
+        results.update(bench_group(rnns, 'LSTM', 'lstm', bench_args))
+    if 'cnns' in args.group:
+        results.update(bench_group(cnns, 'ResNet', 'resnet', bench_args))
 
     if args.print_json:
         print(json.dumps(results))
