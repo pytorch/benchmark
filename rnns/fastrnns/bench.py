@@ -137,6 +137,9 @@ def bench_group(model_list, bench_name, bench_group, bench_args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Profile RNNs')
 
+    # groups help control which test group you want to run
+    # if you only want to run one/two benchmark, run it with
+    # e.g: python -m fastrnns.bench --rnns jit and --group rnns
     default_groups = ['cnns', 'rnns']
 
     parser.add_argument('--seqLength', default='100', type=int)
