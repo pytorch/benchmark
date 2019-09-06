@@ -185,11 +185,10 @@ class LSTM(nn.Module):
         preact = self.i2h(x) + self.h2h(h)
 
         # activations
-        gates = preact[:, :3 * self.hidden_size].sigmoid()
-        g_t = preact[:, 3 * self.hidden_size:].tanh()
-        i_t = gates[:, :self.hidden_size]
-        f_t = gates[:, self.hidden_size:2 * self.hidden_size]
-        o_t = gates[:, -self.hidden_size:]
+        g_t = preact[:, 2*self.hidden_size:3*self.hidden_size].tanh_()
+        i_t = preact[:, :self.hidden_size].sigmoid_()
+        f_t = preact[:, self.hidden_size:2*self.hidden_size].sigmoid_()
+        o_t = preact[:, -self.hidden_size:].sigmoid_()
 
         # cell computations
         if do_dropout and self.dropout_method == 'semeniuta':
