@@ -1,0 +1,7 @@
+*.pyc
+*.py~
+
+data/
+*.pkl
+
+output/*

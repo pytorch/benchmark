@@ -1,0 +1,2 @@
+data/LJ001-0001.wav|Printing, in the only sense with which we are at present concerned, differs from most if not from all the arts and crafts represented in the Exhibition|Printing, in the only sense with which we are at present concerned, differs from most if not from all the arts and crafts represented in the Exhibition
+data/LJ001-0002.wav|in being comparatively modern.|in being comparatively modern.

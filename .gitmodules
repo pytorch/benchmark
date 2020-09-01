@@ -1,5 +1,5 @@
 [submodule "third_party/benchmark"]
-	path = third_party/benchmark
+	path = legacy/third_party/benchmark
 	url = https://github.com/google/benchmark
 [submodule "setup/third_party/pytorch-dockerfiles"]
 	path = setup/third_party/pytorch-dockerfiles
@@ -8,11 +8,11 @@
 	path = python/third_party_benchmarks/PyTorch-benchmark
 	url = https://github.com/MlWoo/PyTorch-benchmark
 [submodule "third_party/eigen"]
-	path = third_party/eigen
+	path = legacy/third_party/eigen
 	url = https://github.com/eigenteam/eigen-git-mirror
 [submodule "third_party/sleef"]
-	path = third_party/sleef
+	path = legacy/third_party/sleef
 	url = https://github.com/shibatch/sleef
 [submodule "third_party/tbb"]
-	path = third_party/tbb
+	path = legacy/third_party/tbb
 	url = https://github.com/01org/tbb
