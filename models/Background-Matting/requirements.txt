@@ -1,0 +1,8 @@
+numpy
+opencv-python
+pandas
+Pillow
+scikit-image
+scipy
+tqdm
+tensorboardX
