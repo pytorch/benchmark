@@ -1,3 +1,5 @@
+.benchmarks
+.data
 */**/__pycache__
 */**/*.pyc
 *.out*
