@@ -13,11 +13,9 @@ import torch
 import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
-import torch.distributed as dist
 import torch.optim
 import torch.multiprocessing as mp
 import torch.utils.data
-import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
@@ -32,7 +30,7 @@ cudnn.deterministic = True
 
 
 class Model:
-    def __init__(self, device='cuda', jit=False):
+    def __init__(self, device='cpu', jit=False):
         """ Required """
         self.device = device
         self.jit = jit
@@ -54,32 +52,26 @@ class Model:
             'aug_plus': False,
             'cos': False,
             'fake_data': True,
-            'distributed': True,
         })
 
-        if device != "cuda":
-            return
-
-        try:
-            dist.init_process_group(backend='nccl', init_method='tcp://localhost:10001',
-                                    world_size=1, rank=0)
-        except RuntimeError:
-            pass # already initialized?
-
+        self.gpu = device == 'cuda'
 
         self.model = moco.builder.MoCo(
             models.__dict__[self.opt.arch],
-            self.opt.moco_dim, self.opt.moco_k, self.opt.moco_m, self.opt.moco_t, self.opt.mlp)
+            self.opt.moco_dim, self.opt.moco_k, self.opt.moco_m, self.opt.moco_t, self.opt.mlp, self.gpu)
 
-        self.model.cuda(0)
-        self.model = torch.nn.parallel.DistributedDataParallel(
-            self.model, device_ids=[0])
 
-        # if self.jit:
-        #     self.model = torch.jit.script(self.model)
+        if self.jit:
+            # self.model = torch.jit.script(self.model)
+            raise NotImplementedError("not scripted")
 
         # define loss function (criterion) and optimizer
-        self.criterion = nn.CrossEntropyLoss().cuda(0)
+
+        if self.gpu:
+            self.model.cuda(0)
+            self.criterion = nn.CrossEntropyLoss().cuda(0)
+        else:
+            self.criterion = nn.CrossEntropyLoss()
 
         self.optimizer = torch.optim.SGD(self.model.parameters(), self.opt.lr,
                                          momentum=self.opt.momentum,
@@ -97,9 +89,10 @@ class Model:
         self.train_loader = torch.utils.data.DataLoader(
             range(2), collate_fn=collate_fn)
 
-        for i, (images, _) in enumerate(self.train_loader):
-            images[0] = images[0].cuda(device=0, non_blocking=True)
-            images[1] = images[1].cuda(device=0, non_blocking=True)
+        if self.gpu:
+          for i, (images, _) in enumerate(self.train_loader):
+              images[0] = images[0].cuda(device=0, non_blocking=True)
+              images[1] = images[1].cuda(device=0, non_blocking=True)
 
     def get_module(self):
         """ Recommended
@@ -108,8 +101,9 @@ class Model:
         Both model and example_inputs should be on self.device properly.
         `model(*example_inputs)` should execute one step of model forward.
         """
-        if self.device != "cuda":
-            raise NotImplementedError("GPU only")
+        if not self.gpu:
+            # cpu does work but takes minutes, weird
+            raise NotImplementedError("too slow")
 
         images = []
         for (i, _) in self.train_loader:
@@ -127,9 +121,6 @@ class Model:
 
         Leave warmup to the caller (e.g. don't do it inside)        
         """
-        if self.device != "cuda":
-            raise NotImplementedError("GPU only")
-
         self.model.train()
         for e in range(niterations):
             adjust_learning_rate(self.optimizer, e, self.opt)
@@ -155,16 +146,12 @@ class Model:
 
         Leave warmup to the caller (e.g. don't do it inside)    
         """
-        if self.device != "cuda":
-            raise NotImplementedError("GPU only")
-
         for i in range(niterations):
             for i, (images, _) in enumerate(self.train_loader):
                 self.model(im_q=images[0], im_k=images[1])
 
 
 if __name__ == '__main__':
-
     m = Model(device='cuda', jit=False)
     module, example_inputs = m.get_module()
     module(*example_inputs)
