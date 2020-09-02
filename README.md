@@ -35,7 +35,7 @@ Currently, models run on nightly pytorch builds and push data to scuba.
 See [Unidash](https://www.internalfb.com/intern/unidash/dashboard/pytorch_benchmarks/hub_detail/) (internal only)
 
 ## Adding new models
-Instructions for adding new models are currently under development in a quip.  At a high level, each model exists in its own repository, usually forked from an original open source repository and modified to add `install.py` and `hubconf.py` files which enable the top-level scripts to interact with a known API.
+See [Adding Models](models/ADDING_MODELS.md).
 
 ## Legacy
 See `legacy` for rnn benchmarks and related scripts that were previously at the top level of this repo.
