@@ -5,8 +5,6 @@ import sys
 import torch
 from urllib import request
 
-git_submodule_suggestion = "Have you run\n`" \
-                           "`git submodule update --init --recursive`?"
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
                    "Do you need to use a proxy?"
@@ -30,7 +28,6 @@ def _install_deps(model_path):
         subprocess.check_call([sys.executable, install_file], cwd=model_path)
     else:
         print('No install.py is found in {}.'.format(model_path))
-        print(git_submodule_suggestion)
         sys.exit(-1)
 
 
@@ -53,7 +50,7 @@ class workdir():
 
 def list_model_paths():
     p = Path(__file__).parent.joinpath(model_dir)
-    return [str(child.absolute()) for child in p.iterdir()]
+    return [str(child.absolute()) for child in p.iterdir() if child.is_dir()]
 
 
 def setup():
@@ -74,7 +71,6 @@ def list_models():
                 hub_module = torch.hub.import_module(hubconf_file, hubconf_file)
                 Model = getattr(hub_module, 'Model', None)
             except FileNotFoundError:
-                raise RuntimeError(f"Unable to find {hubconf_file} in {model_path}.\n"
-                                   "{git_submodule_suggestion")
+                raise RuntimeError(f"Unable to find {hubconf_file} in {model_path}.")
             models.append(Model)
     return zip(models, list_model_paths())
