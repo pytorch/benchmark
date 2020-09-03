@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INSTALL_DIR=$1
-
+set -e
 # APEX warned that non-gcc compiler wouldn't work with pytorch:w
 
 export CC=gcc
