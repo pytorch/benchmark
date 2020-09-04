@@ -33,13 +33,13 @@ torch.backends.cudnn.benchmark = False
 
 class Model:
     def __init__(self, device='cpu', jit=False):
-        self.device = cfg.MODEL.DEVICE = device
+        self.device = device
         self.jit = jit
 
         # TODO - currently not supported
         if self.device == 'cpu':
             return
-
+        assert cfg.MODEL.DEVICE == 'cuda'
         cfg.merge_from_file('configs/e2e_mask_rcnn_R_50_FPN_1x.yaml')
         cfg.merge_from_list(['SOLVER.IMS_PER_BATCH', '2', 
                              'SOLVER.BASE_LR', '0.0025',
@@ -48,7 +48,6 @@ class Model:
                              'TEST.IMS_PER_BATCH', '1', 
                              'MODEL.RPN.FPN_POST_NMS_TOP_N_TRAIN', '2000'])
         cfg.freeze()
-        save_config(cfg, "hubconf.config.yml")
         self.module = build_detection_model(cfg)
         start_iter = 0
         is_distributed = False
