@@ -2,6 +2,7 @@
 set -e
 
 # Install basics
+sudo apt-get -y update
 sudo apt-get install vim
 
 # Install miniconda

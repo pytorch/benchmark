@@ -8,9 +8,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Setup CI environment
-          command: ./scripts/setup_ci.sh
-      - run:
           name: Install Conda
           command: ./scripts/install_basics.sh
       - run:
