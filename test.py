@@ -44,9 +44,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--setup_only', action='store_true',
                         help='run setup steps only, then exit.')
+    parser.add_argument('--run_only', action='store_true',
+                        help='run models only, then exit.')
     args = parser.parse_args()
 
-    setup()
+    if not args.run_only:
+        setup()
 
     if not args.setup_only:
         run_models()

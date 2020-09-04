@@ -21,7 +21,7 @@ jobs:
           command: ./scripts/install_nightlies.sh
       - run:
           name: Validate training benchmark suite
-          command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py
+          command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py --setup_only; python test.py --run_only
       - run:
           name: Validate pytest-benchmark invocation of training suite
           command: ./scripts/run_bench_and_upload.sh
