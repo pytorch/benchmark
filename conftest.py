@@ -5,7 +5,7 @@ def pytest_addoption(parser):
     parser.addoption("--fuser", help="fuser to use for benchmarks")
 
 def set_fuser(fuser):
-    if fuser == "legacy":
+    if fuser == "old":
         torch._C._jit_set_profiling_executor(False)
         torch._C._jit_set_profiling_mode(False)
         torch._C._jit_override_can_fuse_on_gpu(True)
