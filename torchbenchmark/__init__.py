@@ -4,6 +4,8 @@ import subprocess
 import sys
 import torch
 from urllib import request
+import importlib
+
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
                    "Do you need to use a proxy?"
