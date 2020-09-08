@@ -23,14 +23,10 @@ def _load_test(model_class, model_path, device):
     dir, name = os.path.split(model_path)
     name = re.sub('[^A-Za-z0-9_]+', '_', name)
 
-    _obj = None
     def model_object(self):
         if device == 'cuda' and not torch.cuda.is_available():
             self.skipTest("torch.cuda not available")
-        nonlocal _obj
-        if _obj is None:
-            _obj = model_class(device=device)
-        return _obj
+        return model_class(device=device)
 
     def example(self):
         with workdir(model_path):
