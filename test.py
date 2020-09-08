@@ -6,7 +6,7 @@ Make sure to enable an https proxy if necessary, or the setup steps may hang.
 # This file shows how to use the benchmark suite from user end.
 import argparse
 import time
-from bench_utils import workdir, setup, list_models
+from torchbenchmark import workdir, setup, list_models
 from unittest import TestCase
 import re, sys, unittest
 import os.path
