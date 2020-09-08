@@ -1,4 +1,4 @@
-from . import slomo_model
+from . import slomo_model as model
 import torch
 import torchvision
 import torch.nn as nn

@@ -1,5 +1,5 @@
 from .dataloader import SuperSloMo
-from .model_wrapper import Model
+from .model_wrapper import Model as ModelWrapper
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -20,7 +20,7 @@ class Model:
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
-        self.module = Model(device)
+        self.module = ModelWrapper(device)
         if jit:
             self.module = torch.jit.script(self.module)
 
