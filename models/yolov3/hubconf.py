@@ -33,7 +33,7 @@ class Model:
         if self.jit:
             raise NotImplementedError()
         parser = argparse.ArgumentParser()
-        dirname = os.path.dirname(__file__)
+        dirname = os.path.dirname(os.path.abspath(__file__)) 
         parser.add_argument('--cfg', type=str, default=f'{dirname}/cfg/yolov3-spp.cfg', help='*.cfg path')
         parser.add_argument('--names', type=str, default=f'{dirname}/data/coco.names', help='*.names path')
         parser.add_argument('--weights', type=str, default='weights/yolov3-spp-ultralytics.pt', help='weights path')
