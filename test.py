@@ -29,33 +29,30 @@ def _load_test(model_class, model_path, device):
         return model_class(device=device)
 
     def example(self):
-        with workdir(model_path):
-            m = model_object(self)
-            try:
-                module, example_inputs = m.get_module()
-                module(*example_inputs)
-            except NotImplementedError:
-                self.skipTest('Method get_module is not implemented, skipping...')
+        m = model_object(self)
+        try:
+            module, example_inputs = m.get_module()
+            module(*example_inputs)
+        except NotImplementedError:
+            self.skipTest('Method get_module is not implemented, skipping...')
 
     def train(self):
-        with workdir(model_path):
-            m = model_object(self)
-            try:
-                start = time.time()
-                m.train()
-                print('Finished training on device: {} in {}s.'.format(device, time.time() - start))
-            except NotImplementedError:
-                self.skipTest('Method train is not implemented, skipping...')
+        m = model_object(self)
+        try:
+            start = time.time()
+            m.train()
+            print('Finished training on device: {} in {}s.'.format(device, time.time() - start))
+        except NotImplementedError:
+            self.skipTest('Method train is not implemented, skipping...')
 
     def eval(self):
-        with workdir(model_path):
-            m = model_object(self)
-            try:
-                start = time.time()
-                m.eval()
-                print('Finished eval on device: {} in {}s.'.format(device, time.time() - start))
-            except NotImplementedError:
-                self.skipTest('Method eval is not implemented, skipping...')
+        m = model_object(self)
+        try:
+            start = time.time()
+            m.eval()
+            print('Finished eval on device: {} in {}s.'.format(device, time.time() - start))
+        except NotImplementedError:
+            self.skipTest('Method eval is not implemented, skipping...')
 
     setattr(TestBenchmark, f'test_{name}_example_{device}', example)
     setattr(TestBenchmark, f'test_{name}_train_{device}', train)

@@ -10,6 +10,7 @@ from .yolo_models import *
 from .yolo_utils.datasets import *
 from .yolo_utils.utils import *
 from .yolo_utils.parse_config import parse_data_cfg
+from pathlib import Path
 
 def prepare_training_loop(args):
     mixed_precision = True
@@ -393,11 +394,12 @@ def prepare_training_loop(args):
             return results
         return train_loop
 
+    root = str(Path(__file__).parent)
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=300)  # 500200 batches at bs 16, 117263 COCO images = 273 epochs
     parser.add_argument('--batch-size', type=int, default=16)  # effective bs = batch_size * accumulate = 16 * 4 = 64
-    parser.add_argument('--cfg', type=str, default='cfg/yolov3-spp.cfg', help='*.cfg path')
-    parser.add_argument('--data', type=str, default='data/coco2017.data', help='*.data path')
+    parser.add_argument('--cfg', type=str, default=f'{root}/cfg/yolov3-spp.cfg', help='*.cfg path')
+    parser.add_argument('--data', type=str, default=f'{root}/data/coco2017.data', help='*.data path')
     parser.add_argument('--multi-scale', action='store_true', help='adjust (67%% - 150%%) img_size every 10 batches')
     parser.add_argument('--img-size', nargs='+', type=int, default=[320, 640], help='[min_train, max-train, test]')
     parser.add_argument('--rect', action='store_true', help='rectangular training')
@@ -417,6 +419,7 @@ def prepare_training_loop(args):
     opt.weights = last if opt.resume else opt.weights
     check_git_status()
     opt.cfg = check_file(opt.cfg)  # check file
+    print(opt.data)
     opt.data = check_file(opt.data)  # check file
     opt.img_size.extend([opt.img_size[-1]] * (3 - len(opt.img_size)))  # extend to 3 sizes (min, max, test)
     device = torch_utils.select_device(opt.device, apex=mixed_precision, batch_size=opt.batch_size)
