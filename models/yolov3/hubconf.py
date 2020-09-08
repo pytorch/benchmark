@@ -25,7 +25,7 @@ class Model:
         self.device = device
         self.jit = jit
         device_spec = "0" if device == 'cuda' else 'cpu'
-        train_args = split(f"--data coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {device_spec} --weights ''")
+        train_args = split(f"--data data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {device_spec} --weights ''")
         print(train_args)
         self.training_loop = prepare_training_loop(train_args)
 
