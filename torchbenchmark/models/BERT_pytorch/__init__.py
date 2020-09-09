@@ -4,10 +4,10 @@ import torch
 
 import numpy as np
 
-from bert_pytorch import parse_args
-from bert_pytorch.trainer import BERTTrainer
-from bert_pytorch.dataset import BERTDataset, WordVocab
-from bert_pytorch.model import BERT
+from .bert_pytorch import parse_args
+from .bert_pytorch.trainer import BERTTrainer
+from .bert_pytorch.dataset import BERTDataset, WordVocab
+from .bert_pytorch.model import BERT
 from torch.utils.data import DataLoader
 
 torch.manual_seed(1337)
