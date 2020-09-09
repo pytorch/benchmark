@@ -27,8 +27,14 @@ class Model:
         train_args = split(f"--data data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {device} --weights ''")
         print(train_args)
         self.training_loop = prepare_training_loop(train_args)
+        self._model, self._example = self._get_module()
 
     def get_module(self):
+        if self.jit:
+            raise NotImplementedError()
+        return self._model, self._example
+
+    def _get_module(self):
         if self.jit:
             raise NotImplementedError()
         parser = argparse.ArgumentParser()
