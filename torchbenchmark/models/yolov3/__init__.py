@@ -56,7 +56,7 @@ class Model:
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)
         model.to(opt.device).eval()
-        input = (torch.rand(1, 3, 384, 512),)
+        input = (torch.rand(1, 3, 384, 512).to(opt.device),)
         return model, input
         
     def train(self, niterations=2):
