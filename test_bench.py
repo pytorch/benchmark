@@ -15,7 +15,7 @@ import os
 import pytest
 import time
 import torch
-from bench_utils import workdir, list_model_paths
+from torchbenchmark import workdir, list_model_paths
 
 
 def pytest_generate_tests(metafunc, display_len=24):
