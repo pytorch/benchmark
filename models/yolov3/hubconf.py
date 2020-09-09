@@ -14,11 +14,11 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 from shlex import split
-from .yolo_train import prepare_training_loop
+from yolo_train import prepare_training_loop
 
-from .yolo_models import *  # set ONNX_EXPORT in models.py
-from .yolo_utils.datasets import *
-from .yolo_utils.utils import *
+from yolo_models import *  # set ONNX_EXPORT in models.py
+from yolo_utils.datasets import *
+from yolo_utils.utils import *
 
 class Model:
     def __init__(self, device='cpu', jit=False):
