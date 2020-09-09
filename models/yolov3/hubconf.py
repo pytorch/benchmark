@@ -24,8 +24,7 @@ class Model:
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit
-        device_spec = "0" if device == 'cuda' else 'cpu'
-        train_args = split(f"--data data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {device_spec} --weights ''")
+        train_args = split(f"--data data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {device} --weights ''")
         print(train_args)
         self.training_loop = prepare_training_loop(train_args)
 
@@ -50,7 +49,7 @@ class Model:
         parser.add_argument('--classes', nargs='+', type=int, help='filter by class')
         parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
         parser.add_argument('--augment', action='store_true', help='augmented inference')
-        opt = parser.parse_args(['--device', "0" if self.device == 'cuda' else 'cpu'])
+        opt = parser.parse_args(['--device', self.device])
         opt.cfg = check_file(opt.cfg)  # check file
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)
