@@ -10,6 +10,7 @@ from yolo_models import *
 from yolo_utils.datasets import *
 from yolo_utils.utils import *
 from yolo_utils.parse_config import parse_data_cfg
+from pathlib import Path
 
 def prepare_training_loop(args):
     mixed_precision = True
@@ -393,10 +394,11 @@ def prepare_training_loop(args):
             return results
         return train_loop
 
+    root = str(Path(__file__).parent.resolve())
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=300)  # 500200 batches at bs 16, 117263 COCO images = 273 epochs
     parser.add_argument('--batch-size', type=int, default=16)  # effective bs = batch_size * accumulate = 16 * 4 = 64
-    parser.add_argument('--cfg', type=str, default='cfg/yolov3-spp.cfg', help='*.cfg path')
+    parser.add_argument('--cfg', type=str, default=f'{root}/cfg/yolov3-spp.cfg', help='*.cfg path')
     parser.add_argument('--data', type=str, default='data/coco2017.data', help='*.data path')
     parser.add_argument('--multi-scale', action='store_true', help='adjust (67%% - 150%%) img_size every 10 batches')
     parser.add_argument('--img-size', nargs='+', type=int, default=[320, 640], help='[min_train, max-train, test]')

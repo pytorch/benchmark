@@ -15,6 +15,7 @@ torch.backends.cudnn.benchmark = False
 
 from shlex import split
 from yolo_train import prepare_training_loop
+import yolo_train
 
 from yolo_models import *  # set ONNX_EXPORT in models.py
 from yolo_utils.datasets import *
@@ -25,7 +26,7 @@ class Model:
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit
-        root = str(Path(__file__).parent)
+        root = str(Path(yolo_train.__file__).parent.absolute())
         train_args = split(f"--data {root}/data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {device} --weights ''")
         print(train_args)
         self.training_loop = prepare_training_loop(train_args)
@@ -34,9 +35,9 @@ class Model:
         if self.jit:
             raise NotImplementedError()
         parser = argparse.ArgumentParser()
-        dirname = os.path.dirname(os.path.abspath(__file__)) 
-        parser.add_argument('--cfg', type=str, default=f'{dirname}/cfg/yolov3-spp.cfg', help='*.cfg path')
-        parser.add_argument('--names', type=str, default=f'{dirname}/data/coco.names', help='*.names path')
+        root = str(Path(yolo_train.__file__).parent.absolute())
+        parser.add_argument('--cfg', type=str, default=f'{root}/cfg/yolov3-spp.cfg', help='*.cfg path')
+        parser.add_argument('--names', type=str, default=f'{root}/data/coco.names', help='*.names path')
         parser.add_argument('--weights', type=str, default='weights/yolov3-spp-ultralytics.pt', help='weights path')
         parser.add_argument('--source', type=str, default='data/samples', help='source')  # input file/folder, 0 for webcam
         parser.add_argument('--output', type=str, default='output', help='output folder')  # output folder
