@@ -394,7 +394,7 @@ def prepare_training_loop(args):
             return results
         return train_loop
 
-    root = str(Path(__file__).parent)
+    root = str(Path(__file__).parent.resolve())
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=300)  # 500200 batches at bs 16, 117263 COCO images = 273 epochs
     parser.add_argument('--batch-size', type=int, default=16)  # effective bs = batch_size * accumulate = 16 * 4 = 64
