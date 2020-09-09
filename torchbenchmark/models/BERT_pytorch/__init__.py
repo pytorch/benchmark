@@ -15,15 +15,17 @@ random.seed(1337)
 np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+from pathlib import Path
 
 class Model:
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
+        root = str(Path(__file__).parent)
         args = parse_args(args=[
-            '--train_dataset', 'data/corpus.small',
-            '--test_dataset', 'data/corpus.small',
-            '--vocab_path', 'data/vocab.small',
+            '--train_dataset', f'{root}/data/corpus.small',
+            '--test_dataset', f'{root}/data/corpus.small',
+            '--vocab_path', f'{root}/data/vocab.small',
             '--output_path', 'bert.model',
         ]) # Avoid reading sys.argv here
         args.with_cuda = self.device == 'cuda'

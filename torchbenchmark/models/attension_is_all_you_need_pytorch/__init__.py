@@ -16,6 +16,7 @@ from .transformer.Optim import ScheduledOptim
 from .train import prepare_dataloaders, cal_performance, patch_src, patch_trg
 import random
 import numpy as np
+from pathlib import Path
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -27,6 +28,7 @@ class Model:
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
+        root = str(Path(__file__).parent)
         self.opt = Namespace(**{
             'batch_size': 128,
             'd_inner_hid': 2048,
@@ -34,7 +36,7 @@ class Model:
             'd_model': 512,
             'd_word_vec': 512,
             'd_v': 64,
-            'data_pkl': 'm30k_deen_shr.pkl',
+            'data_pkl': f'{root}/m30k_deen_shr.pkl',
             'debug': '',
             'dropout': 0.1,
             'embs_share_weight': False,

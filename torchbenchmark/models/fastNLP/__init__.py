@@ -16,6 +16,7 @@ random.seed(1337)
 np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+from pathlib import Path
 
 class Model:
     def __init__(self, device=None, jit=False):
@@ -25,8 +26,8 @@ class Model:
         embed_dim = 64
         epochs = 5
         num_labels = 4
-
-        with open("example_batch.pkl", "rb") as f:
+        root = str(Path(__file__).parent)
+        with open(f"{root}/example_batch.pkl", "rb") as f:
             batch_size, vocab_size, text, offsets, cls = pickle.load(f)
         self.text, self.offsets, self.cls = [t.to(self.device) for t in (text, offsets, cls)]
 
