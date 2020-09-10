@@ -27,7 +27,7 @@ def _collate_filter_none(batch):
 
 
 class Model:
-    def __init__(self, device=None, jit=True):
+    def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
         self.opt = Namespace(**{
@@ -72,7 +72,7 @@ class Model:
         netD = MultiscaleDiscriminator(
             input_nc=3, num_D=1, norm_layer=nn.InstanceNorm2d, ndf=64)
         netD.apply(conv_init)
-        netD = nn.DataParallel(netD)
+        # netD = nn.DataParallel(netD)
         self.netD = netD
         if self.device == 'cuda':
             self.netD.cuda()

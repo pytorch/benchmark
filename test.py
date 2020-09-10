@@ -13,7 +13,14 @@ import os.path
 import torch
 
 class TestBenchmark(TestCase):
-    pass
+    def setUp(self):
+        if 'cuda' in str(self):
+            self.memory = torch.cuda.memory_allocated()
+
+    def tearDown(self):
+        if 'cuda' in str(self):
+            memory = torch.cuda.memory_allocated()
+            self.assertEqual(self.memory, memory)
 
 def run_model(model_class, model_path, device):
     m = model_class(device=device)
