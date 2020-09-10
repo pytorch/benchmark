@@ -26,10 +26,6 @@ class Model:
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit
-        root = str(Path(yolo_train.__file__).parent.absolute())
-        train_args = split(f"--data {root}/data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {device} --weights ''")
-        print(train_args)
-        self.training_loop = prepare_training_loop(train_args)
         
     def get_module(self):
         if self.jit:
@@ -64,7 +60,13 @@ class Model:
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
-        return self.training_loop(niterations)
+        
+        root = str(Path(yolo_train.__file__).parent.absolute())
+        train_args = split(f"--data {root}/data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {self.device} --weights ''")
+        print(train_args)
+        training_loop = prepare_training_loop(train_args)
+
+        return training_loop(niterations)
 
     
     def eval(self, niterations=1):
