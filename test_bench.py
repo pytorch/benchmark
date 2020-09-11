@@ -11,6 +11,7 @@ e.g. --benchmark-autosave
      -k <filter expression>
      ...
 """
+import gc
 import os
 import pytest
 import time
@@ -29,21 +30,38 @@ def pytest_generate_tests(metafunc, display_len=24):
             short = short[:display_len] + "..."
         short_names.append(short)
     metafunc.parametrize('model_path', all_models,
-                         ids=short_names, scope="class")
-    metafunc.parametrize('device', ['cpu', 'cuda'], scope='class')
-    metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
+                         ids=short_names, scope="module")
+    metafunc.parametrize('device', ['cpu', 'cuda'], scope='module')
+    metafunc.parametrize('compiler', ['jit', 'eager'], scope='module')
+
+
+def get_cuda_mem_in_use():
+    if torch.has_cuda and torch.cuda.is_available():
+        return torch.cuda.memory_allocated()
+    else:
+        return 0
+
+
+def assert_cuda_mem(used, device):
+    """Sanity check, it's easy to accidentally add a new model which purportedly
+    supports cuda/cpu but silently runs on the other.
+    """
+    if device == 'cuda':
+        assert used > 0, "Model allocated no gpu memory in cuda mode"
+    else:
+        assert used == 0, "Model configured in cpu mode used gpu memory"
 
 
 @pytest.fixture(scope='class')
-def hub_model(request, model_path, device, compiler):
+def model_cfg(request, model_path, device, compiler):
     """Constructs a model object for pytests to use.
     Any pytest function that consumes a 'modeldef' arg will invoke this
     automatically, and reuse it for each test that takes that combination
     of arguments within the module.
-
-    If reusing the module between tests isn't safe, change 'scope' parameter.
     """
     hubconf_file = 'hubconf.py'
+    dbgname = os.path.split(model_path)[1]
+    cuda_mem_initial = get_cuda_mem_in_use()
     with workdir(model_path):
         hub_module = torch.hub.import_module(hubconf_file, hubconf_file)
         Model = getattr(hub_module, 'Model', None)
@@ -51,7 +69,15 @@ def hub_model(request, model_path, device, compiler):
             raise RuntimeError('Missing class Model in {}/hubconf.py'
                                .format(model_path))
         use_jit = compiler == 'jit'
-        return Model(device=device, jit=use_jit)
+        m = {'model': Model(device=device, jit=use_jit)}
+        yield m
+        assert_cuda_mem(get_cuda_mem_in_use() - cuda_mem_initial, device)
+
+        # The thing yielded from the fixture is kept alive until after all tests run, but
+        # we want the model resources to be deallocated before the next model runs.
+        del m['model']
+        gc.collect()
+        assert torch.cuda.memory_allocated() == 0
 
 
 def cuda_timer():
@@ -72,14 +98,14 @@ class TestBenchNetwork:
     This test class will get instantiated once for each 'model_stuff' provided
     by the fixture above, for each device listed in the device parameter.
     """
-    def test_train(self, hub_model, benchmark):
+    def test_train(self, model_cfg, benchmark):
         try:
-            benchmark(hub_model.train)
+            benchmark(model_cfg['model'].train)
         except NotImplementedError:
             print('Method train is not implemented, skipping...')
 
-    def test_eval(self, hub_model, benchmark):
+    def test_eval(self, model_cfg, benchmark):
         try:
-            benchmark(hub_model.eval)
+            benchmark(model_cfg['model'].eval)
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')
