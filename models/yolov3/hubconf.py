@@ -60,7 +60,10 @@ class Model:
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
-        
+
+        if self.device == 'cpu':
+            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
+
         root = str(Path(yolo_train.__file__).parent.absolute())
         train_args = split(f"--data {root}/data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {self.device} --weights ''")
         print(train_args)

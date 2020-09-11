@@ -57,11 +57,17 @@ class Model:
         return self.module, self.example_inputs
 
     def eval(self, niter=1):
+        if self.device == 'cpu':
+            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
+
         self.module.eval()
         for _ in range(niter):
             self.module(*self.example_inputs)
 
     def train(self, niter=1):
+        if self.device == 'cpu':
+            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
+
         self.module.train()
         for _ in range(niter):
             self.optimizer.zero_grad()
