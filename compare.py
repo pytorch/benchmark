@@ -4,19 +4,20 @@ from collections import namedtuple
 
 Result = namedtuple("Result", ["name", "base_time", "diff_time"])
 
-def get_times(pytest_data):
-    return {b["name"]: b["stats"]["mean"] for b in pytest_data["benchmarks"]}
+def get_times(pytest_data, aggregate):
+    return {b["name"]: b["stats"][aggregate] for b in pytest_data["benchmarks"]}
 
 parser = argparse.ArgumentParser("compare two pytest jsons")
 parser.add_argument('base', help="base json file")
 parser.add_argument('diff', help='diff json file')
 parser.add_argument('--format', default='md', type=str, help='output format (csv, md, json, table)')
+parser.add_argument('--aggregate', default='min', type=str, help='aggregation method to use (min, max, mean, median, stddev)')
 args = parser.parse_args()
 
 with open(args.base, "r") as base:
-    base_times = get_times(json.load(base))
+    base_times = get_times(json.load(base), args.aggregate)
 with open(args.diff, "r") as diff:
-    diff_times = get_times(json.load(diff))
+    diff_times = get_times(json.load(diff), args.aggregate)
 
 all_keys = set(base_times.keys()).union(diff_times.keys())
 results = [
