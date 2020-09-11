@@ -56,7 +56,7 @@ class Model:
         input = (torch.rand(1, 3, 384, 512).to(opt.device),)
         return model, input
         
-    def train(self, niterations=2):
+    def train(self, niterations=1):
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
