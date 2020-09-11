@@ -256,6 +256,8 @@ def prepare_training_loop(args):
                 print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
                 pbar = tqdm(enumerate(dataloader), total=nb)  # progress bar
                 for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
+                    if i > 3:
+                        break
                     ni = i + nb * epoch  # number integrated batches (since train start)
                     imgs = imgs.to(device).float() / 255.0  # uint8 to float32, 0 - 255 to 0.0 - 1.0
                     targets = targets.to(device)
@@ -325,17 +327,17 @@ def prepare_training_loop(args):
                 # Process epoch results
                 ema.update_attr(model)
                 final_epoch = epoch + 1 == epochs
-                if not opt.notest or final_epoch:  # Calculate mAP
-                    is_coco = any([x in data for x in ['coco.data', 'coco2014.data', 'coco2017.data']]) and model.nc == 80
-                    results, maps = test(cfg,
-                                            data,
-                                            batch_size=batch_size,
-                                            imgsz=imgsz_test,
-                                            model=ema.ema,
-                                            save_json=final_epoch and is_coco,
-                                            single_cls=opt.single_cls,
-                                            dataloader=testloader,
-                                            multi_label=ni > n_burn)
+                # if not opt.notest or final_epoch:  # Calculate mAP
+                #     is_coco = any([x in data for x in ['coco.data', 'coco2014.data', 'coco2017.data']]) and model.nc == 80
+                #     results, maps = test(cfg,
+                #                             data,
+                #                             batch_size=batch_size,
+                #                             imgsz=imgsz_test,
+                #                             model=ema.ema,
+                #                             save_json=final_epoch and is_coco,
+                #                             single_cls=opt.single_cls,
+                #                             dataloader=testloader,
+                #                             multi_label=ni > n_burn)
 
                 # Write
                 with open(results_file, 'a') as f:
