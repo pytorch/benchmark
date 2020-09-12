@@ -1,6 +1,6 @@
 import subprocess
 import sys
-
+from torchbenchmark import setup
 
 def pip_install_requirements():
     subprocess.check_call([sys.executable, '-m',
@@ -9,3 +9,4 @@ def pip_install_requirements():
 
 if __name__ == '__main__':
     pip_install_requirements()
+    setup()

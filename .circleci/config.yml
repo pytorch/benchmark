@@ -15,7 +15,10 @@ jobs:
           command: ./scripts/install_basics.sh
       - run:
           name: Install PyTorch nightly
-          command: ./scripts/install_nightlies.sh
+          command: ./scripts/install_nightlies.sh'
+      - run:
+          name: Setup benchmark suite dependencies
+          command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python install.py
       - run:
           name: Validate training benchmark suite
           command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py
