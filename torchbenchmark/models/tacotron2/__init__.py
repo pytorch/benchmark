@@ -3,6 +3,7 @@ import torch
 from .loss_function import Tacotron2Loss
 from argparse import Namespace
 from .text import symbols
+from pathlib import Path
 
 class Model:
     def __init__(self, device='cpu', jit=False):
@@ -20,7 +21,7 @@ class Model:
 
     def create_hparams(hparams_string=None, verbose=False):
         """Create model hyperparameters. Parse nondefault from given string."""
-
+        root = str(Path(__file__).parent)
         hparams = Namespace(**{
             ################################
             # Experiment Parameters        #
@@ -41,8 +42,8 @@ class Model:
             # Data Parameters             #
             ################################
             'load_mel_from_disk':False,
-            'training_files':'filelists/ljs_audio_text_train_filelist.txt',
-            'validation_files':'filelists/ljs_audio_text_val_filelist.txt',
+            'training_files':f'{root}/filelists/ljs_audio_text_train_filelist.txt',
+            'validation_files':f'{root}/filelists/ljs_audio_text_val_filelist.txt',
             'text_cleaners':['english_cleaners'],
 
             ################################
