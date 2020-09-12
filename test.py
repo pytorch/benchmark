@@ -6,7 +6,7 @@ Make sure to enable an https proxy if necessary, or the setup steps may hang.
 # This file shows how to use the benchmark suite from user end.
 import argparse
 import time
-from bench_utils import workdir, setup, list_models
+from torchbenchmark import workdir, setup, list_models
 from unittest import TestCase
 import re, sys, unittest
 import os.path
@@ -74,20 +74,6 @@ def _load_tests():
         for device in ('cpu', 'cuda'):
             _load_test(model, model_path, device)
 
+_load_tests()
 if __name__ == '__main__':    
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--setup_only', action='store_true',
-                        help='run setup steps only, then exit.')
-    parser.add_argument('--no_setup', action='store_true',
-                        help='skip the setup process.')
-
-    args, unknown = parser.parse_known_args()
-
-    if not args.no_setup:
-        setup()
-    if not args.setup_only:
-        _load_tests()
-        unittest.main(argv=[sys.argv[0]] + unknown)
-else:
-    # being run as part of a test suite, assume setup has already been run separately
-    _load_tests()
+    unittest.main()
