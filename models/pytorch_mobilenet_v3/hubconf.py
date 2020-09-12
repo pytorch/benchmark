@@ -8,11 +8,11 @@ class Model:
         """ Required """
         self.device = device
         self.jit = jit
-        self.model = MobileNetV3()
+        self.model = MobileNetV3().to(device)
         if self.jit:
             self.model = torch.jit.script(self.model)
         input_size = (1, 3, 224, 224)
-        self.example_inputs = (torch.randn(input_size),)
+        self.example_inputs = (torch.randn(input_size, device=device),)
 
     def get_module(self):
         return self.model, self.example_inputs
@@ -23,7 +23,9 @@ class Model:
         for _ in range(niter):
             optimizer.zero_grad()
             pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long).random_(pred.shape[1])
+            y = torch.empty(
+                pred.shape[0], dtype=torch.long, device=self.device
+            ).random_(pred.shape[1])
             loss(pred, y).backward()
             optimizer.step()
 
