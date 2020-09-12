@@ -8,6 +8,7 @@ import random
 import numpy as np
 
 from argparse import Namespace
+from pathlib import Path
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -24,8 +25,9 @@ class Model:
         if jit:
             self.module = torch.jit.script(self.module)
 
+        root = str(Path(__file__).parent)
         self.args = args = Namespace(**{
-            'dataset_root': 'dataset',
+            'dataset_root': f'{root}/dataset',
             'train_batch_size': 6,
             'init_learning_rate': 0.0001,
         })

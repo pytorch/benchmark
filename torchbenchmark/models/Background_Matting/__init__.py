@@ -13,6 +13,7 @@ from .networks import ResnetConditionHR, MultiscaleDiscriminator, conv_init
 from .loss_functions import alpha_loss, compose_loss, alpha_gradient_loss, GANloss
 import random
 import numpy as np
+from pathlib import Path
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -40,7 +41,8 @@ class Model:
 
         scriptdir = os.path.dirname(os.path.realpath(__file__))
         csv_file = "Video_data_train_processed.csv"
-        with open("Video_data_train.csv", "r") as r:
+        root = str(Path(__file__).parent)
+        with open(f"{root}/Video_data_train.csv", "r") as r:
             with open(csv_file, "w") as w:
                 w.write(r.read().format(scriptdir=scriptdir))
         data_config_train = {

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.io.wavfile import read
 import torch
+from pathlib import Path
 
 
 def get_mask_from_lengths(lengths):
@@ -16,8 +17,13 @@ def load_wav_to_torch(full_path):
 
 
 def load_filepaths_and_text(filename, split="|"):
+    root = str(Path(__file__).parent)
     with open(filename, encoding='utf-8') as f:
-        filepaths_and_text = [line.strip().split(split) for line in f]
+        filepaths_and_text = []
+        for line in f:
+            filename, *text = line.strip().split(split)
+            filename = f'{root}/{filename}'
+            filepaths_and_text.append((filename, *text))
     return filepaths_and_text
 
 

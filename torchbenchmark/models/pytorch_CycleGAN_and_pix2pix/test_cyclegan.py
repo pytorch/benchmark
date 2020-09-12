@@ -33,7 +33,7 @@ from .models import create_model
 from .util.visualizer import save_images
 from .util import html
 import torch
-
+from pathlib import Path
 
 def get_model(script):
     args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test --no_dropout"
@@ -45,7 +45,8 @@ def get_model(script):
     opt.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
     model = create_model(opt)      # create a model given opt.model and other options
     model = model.netG.module
-    data = torch.load('example_input.pt')    
+    root = str(Path(__file__).parent)
+    data = torch.load(f'{root}/example_input.pt')    
     input = data['A'].cuda()
         
     if script:

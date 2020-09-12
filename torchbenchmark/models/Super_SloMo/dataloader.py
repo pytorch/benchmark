@@ -166,7 +166,6 @@ class SuperSloMo(data.Dataset):
                 samples without randomization. Default: True
         """
 
-
         # Populate the list with image paths for all the
         # frame in `root`.
         framesPath = _make_dataset(root)
