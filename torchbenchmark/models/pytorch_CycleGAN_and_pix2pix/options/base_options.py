@@ -78,7 +78,7 @@ class BaseOptions():
 
         # modify dataset-related parser options
         dataset_name = opt.dataset_mode
-        dataset_option_setter = get_option_setter_(dataset_name)
+        dataset_option_setter = get_option_setter_data(dataset_name)
         parser = dataset_option_setter(parser, self.isTrain)
 
         # save and return the parser

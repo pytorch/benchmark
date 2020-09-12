@@ -62,7 +62,6 @@ def list_models():
     for model_path in list_model_paths():
         model_name = os.path.basename(model_path)
         module = importlib.import_module(f'.models.{model_name}', package=__name__)
-        print(dir(module), module.__file__)
         Model = getattr(module, 'Model')
         models.append(Model)
     return zip(models, list_model_paths())
