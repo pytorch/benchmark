@@ -107,6 +107,9 @@ class Model:
         return self.model, (self.example_input,)
 
     def train(self, niterations=1):
+        if self.device == 'cpu':
+            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
+
         self.model.train()
         for _ in range(niterations):
             self.model.zero_grad()
