@@ -30,20 +30,7 @@ def _install_deps(model_path):
         print('No install.py is found in {}.'.format(model_path))
         sys.exit(-1)
 
-
-class workdir():
-    def __init__(self, path):
-        self.path = path
-        self.cwd = os.getcwd()
-
-    def __enter__(self):
-        os.chdir(self.path)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        os.chdir(self.cwd)
-
-
-def list_model_paths():
+def _list_model_paths():
     p = Path(__file__).parent.joinpath(model_dir)
     return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
 
@@ -53,15 +40,17 @@ def setup():
         print(proxy_suggestion)
         sys.exit(-1)
 
-    for model_path in list_model_paths():
+    for model_path in _list_model_paths():
         _install_deps(model_path)
 
 
 def list_models():
     models = []
-    for model_path in list_model_paths():
+    for model_path in _list_model_paths():
         model_name = os.path.basename(model_path)
         module = importlib.import_module(f'.models.{model_name}', package=__name__)
         Model = getattr(module, 'Model')
+        if not hasattr(Model, 'name'):
+            Model.name = model_name
         models.append(Model)
-    return zip(models, list_model_paths())
+    return models
