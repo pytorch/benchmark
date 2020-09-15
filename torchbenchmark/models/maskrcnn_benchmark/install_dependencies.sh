@@ -21,11 +21,11 @@ pushd cityscapesScripts
 python setup.py build_ext install
 popd
 
-echo "----------Installing apex--------------"
-git clone https://github.com/NVIDIA/apex.git
-pushd apex
-python setup.py install --cuda_ext --cpp_ext
-popd
+# echo "----------Installing apex--------------"
+# git clone https://github.com/NVIDIA/apex.git
+# pushd apex
+# python setup.py install --cuda_ext --cpp_ext
+# popd
 
 popd #INSTALL_DIR
 

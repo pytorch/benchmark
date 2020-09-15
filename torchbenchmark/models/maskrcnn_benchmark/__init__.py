@@ -17,11 +17,16 @@ from .maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
+# try:
+    # from apex import amp
+    # from apex.amp._amp_state import _amp_state
+# except ImportError:
+    # raise ImportError('Use APEX for multi-precision via apex.amp')
 
+# disabled amp becuase A) we were using it in fp32 mode anyway,
+# B) it was causing a small gpu memory leak by holding this reference, which
+# trips our test assertion that gpu memory is free after test completion
+# https://github.com/NVIDIA/apex/blob/2ec84ebdca59278eaf15e8ddf32476d9d6d8b904/apex/amp/_initialize.py#L2299
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -62,8 +67,8 @@ class Model:
         self.optimizer = make_optimizer(cfg, self.module)
         self.scheduler = make_lr_scheduler(cfg, self.optimizer)
         
-        self.module, self.optimizer = amp.initialize(
-            self.module, self.optimizer, opt_level='O0')
+        # self.module, self.optimizer = amp.initialize(
+            # self.module, self.optimizer, opt_level='O0')
 
         self.train_loader = make_data_loader(
             cfg,
@@ -106,8 +111,9 @@ class Model:
             self.optimizer.zero_grad()
 
             # Note: no-op since fp32 dtype used
-            with amp.scale_loss(losses, self.optimizer) as scaled_losses:
-                scaled_losses.backward()
+            # with amp.scale_loss(losses, self.optimizer) as scaled_losses:
+                # scaled_losses.backward()
+            losses.backward()
 
             self.optimizer.step()
             self.scheduler.step()
