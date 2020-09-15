@@ -29,10 +29,11 @@ def pytest_generate_tests(metafunc, display_len=24):
             short = short[:display_len] + "..."
         short_names.append(short)
 
-    metafunc.parametrize('model', all_models,
-                         ids=short_names, scope="class")
-    metafunc.parametrize('device', ['cpu', 'cuda'], scope='class')
-    metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
+    if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
+        metafunc.parametrize('model', all_models,
+                             ids=short_names, scope="class")
+        metafunc.parametrize('device', ['cpu', 'cuda'], scope='class')
+        metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
 
 
 @pytest.fixture(scope='class')
