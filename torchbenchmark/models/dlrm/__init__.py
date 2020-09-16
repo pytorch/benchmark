@@ -1,25 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# miscellaneous
-import builtins
-import functools
-# import bisect
-# import shutil
-import time
-import json
 # data generation
-import dlrm_data_pytorch as dp
+from . import dlrm_data_pytorch as dp
 
 # numpy
 import numpy as np
-
-# onnx
-# The onnx import causes deprecation warnings every time workers
-# are spawned during testing. So, we filter out those warnings.
-import warnings
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-import onnx
 
 # pytorch
 import torch
@@ -27,19 +12,15 @@ import torch.nn as nn
 from torch.nn.parallel.parallel_apply import parallel_apply
 from torch.nn.parallel.replicate import replicate
 from torch.nn.parallel.scatter_gather import gather, scatter
-
 # quotient-remainder trick
-from tricks.qr_embedding_bag import QREmbeddingBag
+from .tricks.qr_embedding_bag import QREmbeddingBag
 # mixed-dimension trick
-from tricks.md_embedding_bag import PrEmbeddingBag, md_solver
+from .tricks.md_embedding_bag import PrEmbeddingBag, md_solver
 
-import sklearn.metrics
-import sys
 from torch.optim.lr_scheduler import _LRScheduler
-from dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
-from argparse import Namespace
 
-exc = getattr(builtins, "IOError", "FileNotFoundError")
+from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
+from argparse import Namespace
 
 class Model:
     def __init__(self, device='cpu', jit=False):
@@ -96,7 +77,7 @@ class Model:
         })
 
         if self.jit:
-            raise NotImplementedError()
+            raise NotImplementedError("JIT not supported")
 
         ### some basic setup ###
         np.random.seed(self.opt.numpy_rand_seed)
@@ -166,6 +147,8 @@ class Model:
                     else lS_o.to(self.device)
                 train_ld[j] = (X.to(self.device), lS_o, lS_i, T.to(self.device))
 
+        X,lS_o,lS_i,self.targets = next(iter(self.train_ld))
+
         # Setting Loss Function
         if self.opt.loss_function == "mse":
             self.loss_fn = torch.nn.MSELoss(reduction="mean")
@@ -178,7 +161,7 @@ class Model:
             sys.exit("ERROR: --loss-function=" + self.opt.loss_function + " is not supported")
 
         self.module = dlrm.to(self.device)
-        self.example_inputs = self.train_ld
+        self.example_inputs = (X, lS_o, lS_i)
         self.loss_fn = torch.nn.MSELoss(reduction="mean")
         self.optimizer = torch.optim.SGD(dlrm.parameters(), lr=self.opt.learning_rate)
         self.lr_scheduler = LRPolicyScheduler(self.optimizer, self.opt.lr_num_warmup_steps, self.opt.lr_decay_start_step,
@@ -187,17 +170,17 @@ class Model:
     def get_module(self):
         return self.module, self.example_inputs
 
-    def eval(self, X, lS_o, lS_i, niter=1):
+    def eval(self, niter=1):
         self.module.eval()
         for _ in range(niter):
-            self.module(X,lS_o,lS_i)
+            self.module(*self.example_inputs)
 
-    def train(self, Z, T, niter=1):
+    def train(self, niter=1):
         self.module.train()
-
+        gen = self.module(*self.example_inputs)
         for _ in range(niter):
             self.optimizer.zero_grad()
-            loss = self.loss_fn(Z, T)
+            loss = self.loss_fn(gen, self.targets)
             if self.opt.loss_function == "wbce":
                 loss_ws_ = self.loss_ws[T.data.view(-1).long()].view_as(T)
                 loss = loss_ws_ * loss
@@ -209,7 +192,6 @@ class Model:
 if __name__ == '__main__':
     m = Model(device='cpu', jit=False)
     module, example_inputs = m.get_module()
-    for (X, lS_o, lS_i, T) in example_inputs:
-        Z = module(X,lS_o,lS_i)
-        m.train(Z, T, niter=1)
-        m.eval(X, lS_o, lS_i, niter=1)
+    module(*example_inputs)
+    m.train()
+    m.eval()

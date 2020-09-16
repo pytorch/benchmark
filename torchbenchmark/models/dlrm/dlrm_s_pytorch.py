@@ -61,7 +61,7 @@ import functools
 import time
 import json
 # data generation
-import dlrm_data_pytorch as dp
+from . import dlrm_data_pytorch as dp
 
 # numpy
 import numpy as np
@@ -81,9 +81,9 @@ from torch.nn.parallel.parallel_apply import parallel_apply
 from torch.nn.parallel.replicate import replicate
 from torch.nn.parallel.scatter_gather import gather, scatter
 # quotient-remainder trick
-from tricks.qr_embedding_bag import QREmbeddingBag
+from .tricks.qr_embedding_bag import QREmbeddingBag
 # mixed-dimension trick
-from tricks.md_embedding_bag import PrEmbeddingBag, md_solver
+from .tricks.md_embedding_bag import PrEmbeddingBag, md_solver
 
 import sklearn.metrics
 
