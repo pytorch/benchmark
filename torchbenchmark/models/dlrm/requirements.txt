@@ -1,0 +1,8 @@
+future
+numpy
+onnx
+pydot
+torch
+torchviz
+scikit-learn
+tqdm
