@@ -42,9 +42,15 @@ git config --global --unset url.ssh://git@github.com.insteadof || true
 # separate master and pull_requests just for conveneince in the UI
 if [ "$CIRCLE_BRANCH" = "master" ]
 then
+<<<<<<< HEAD
     SUBDIR="${CIRCLE_PROJECT_REPONAME}/master"
 else
     SUBDIR="${CIRCLE_PROJECT_REPONAME}/pull_requests"
+=======
+    SUBDIR='${CIRCLE_PROJECT_REPONAME}/master'
+else
+    SUBDIR='${CIRCLE_PROJECT_REPONAME}/pull_requests'
+>>>>>>> Add logic to push benchmark json to github to archive
 fi
 mkdir -p $SUBDIR/
 cp ${BENCHMARK_ABS_FILENAME} $SUBDIR/
