@@ -74,6 +74,7 @@ if __name__ == "__main__":
     parser.add_argument("--compare_tolerance", type=float, default=3.0,
                         help="how many standard deviations with respect to the "
                              "old mean to allow before flagging a change")
+    parser.add_argument("--assert_on_regression", action='store_true')
 
     args = parser.parse_args()
     old = json.load(args.old)
@@ -81,4 +82,7 @@ if __name__ == "__main__":
     
     check_machine_info(old['machine_info'], new['machine_info'], args.ignore_machine_mismatch)
 
-    assert compare_benchmarks(old['benchmarks'], new['benchmarks'], tolerance=args.compare_tolerance), "Regressions Detected"
+
+    result = compare_benchmarks(old['benchmarks'], new['benchmarks'], tolerance=args.compare_tolerance)
+    if args.assert_on_regression:
+        assert result, "Regressions Detected"
