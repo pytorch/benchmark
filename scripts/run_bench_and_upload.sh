@@ -32,7 +32,6 @@ else
     python scripts/upload_scribe.py --pytest_bench_json ${BENCHMARK_ABS_FILENAME}
 fi
 
-
 git clone https://github.com/wconstab/pytorch_benchmark_data
 pushd pytorch_benchmark_data
 git config --global user.name "pytorchbot"
@@ -63,3 +62,11 @@ fi
 git commit -m"Add ${BENCHMARK_FILENAME} - to reproduce results, see pytorch and machine versions in .json"
 git push origin master
 popd
+
+if [ "$CIRCLE_BRANCH" != "master" ]
+then
+    echo "Running benchmark comparison step"
+    python scripts/compare_benchmark.py \
+        --old pytorch_benchmark_data/benchmark/master/latest \
+        --new ${BENCHMARK_ABS_FILENAME}
+fi
