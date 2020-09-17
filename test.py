@@ -12,7 +12,6 @@ import re, sys, unittest
 import os.path
 import torch
 import gc
-import pprint
 
 class TestBenchmark(TestCase):
     def setUp(self):
@@ -22,13 +21,11 @@ class TestBenchmark(TestCase):
     def tearDown(self):
         if 'cuda' in str(self):
             memory = torch.cuda.memory_allocated()
-            n = gc.collect()
-            print('Unreachable objects:', n)
-            print('Remaining Garbage:', pprint.pprint(gc.garbage))
+            gc.collect()
+            # Deleting any tensors which were not picked up by GC
             for obj in gc.get_objects():
                 try:
                     if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                        print(type(obj), obj.size())
                         del obj
                 except: pass
             torch.cuda.empty_cache()

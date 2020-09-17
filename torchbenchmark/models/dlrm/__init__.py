@@ -170,11 +170,17 @@ class Model:
         return self.module, self.example_inputs
 
     def eval(self, niter=1):
+        if self.jit:
+            raise NotImplementedError("JIT not supported")
+
         self.module.eval()
         for _ in range(niter):
             self.module(*self.example_inputs)
 
     def train(self, niter=1):
+        if self.jit:
+            raise NotImplementedError("JIT not supported")
+
         self.module.train()
         gen = self.module(*self.example_inputs)
         for _ in range(niter):
