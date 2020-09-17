@@ -27,13 +27,11 @@ class TestBenchmark(TestCase):
             print('Remaining Garbage:', pprint.pprint(gc.garbage))
             for obj in gc.get_objects():
                 try:
-                    print("Garbage Collection: Start*****")
                     if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
                         print(type(obj), obj.size())
                         del obj
                 except: pass
             torch.cuda.empty_cache()
-            print("Garbage Collection: End*****")
             self.assertEqual(self.memory, memory)
 
 def run_model(model_class, model_path, device):
