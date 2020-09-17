@@ -145,7 +145,7 @@ class Model:
                     else lS_i.to(self.device)
                 lS_o = [S_o.to(self.device) for S_o in lS_o] if isinstance(lS_o, list) \
                     else lS_o.to(self.device)
-                train_ld[j] = (X.to(self.device), lS_o, lS_i, T.to(self.device))
+                self.train_ld[j] = (X.to(self.device), lS_o, lS_i, T.to(self.device))
 
         X,lS_o,lS_i,self.targets = next(iter(self.train_ld))
 
