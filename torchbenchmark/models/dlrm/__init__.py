@@ -139,15 +139,14 @@ class Model:
         )
 
         # Preparing data
-        for j, (X, lS_o, lS_i, T) in enumerate(self.train_ld):
-            if self.device == "cuda":
-                lS_i = [S_i.to(self.device) for S_i in lS_i] if isinstance(lS_i, list) \
-                    else lS_i.to(self.device)
-                lS_o = [S_o.to(self.device) for S_o in lS_o] if isinstance(lS_o, list) \
-                    else lS_o.to(self.device)
-                self.train_ld[j] = (X.to(self.device), lS_o, lS_i, T.to(self.device))
-
         X,lS_o,lS_i,self.targets = next(iter(self.train_ld))
+        if self.device == "cuda":
+            X = X.to(self.device)
+            lS_i = [S_i.to(self.device) for S_i in lS_i] if isinstance(lS_i, list) \
+                    else lS_i.to(self.device)
+            lS_o = [S_o.to(self.device) for S_o in lS_o] if isinstance(lS_o, list) \
+                    else lS_o.to(self.device)
+            self.targets = self.targets.to(self.device)
 
         # Setting Loss Function
         if self.opt.loss_function == "mse":
@@ -190,7 +189,7 @@ class Model:
             self.lr_scheduler.step()
 
 if __name__ == '__main__':
-    m = Model(device='cpu', jit=False)
+    m = Model(device='cuda', jit=False)
     module, example_inputs = m.get_module()
     module(*example_inputs)
     m.train()
