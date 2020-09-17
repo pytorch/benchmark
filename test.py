@@ -11,6 +11,7 @@ from unittest import TestCase
 import re, sys, unittest
 import os.path
 import torch
+import gc
 
 class TestBenchmark(TestCase):
     def setUp(self):
@@ -20,6 +21,7 @@ class TestBenchmark(TestCase):
     def tearDown(self):
         if 'cuda' in str(self):
             memory = torch.cuda.memory_allocated()
+            gc.collect()
             self.assertEqual(self.memory, memory)
 
 def run_model(model_class, model_path, device):
@@ -72,5 +74,5 @@ def _load_tests():
             _load_test(model, model_path, device)
 
 _load_tests()
-if __name__ == '__main__':    
+if __name__ == '__main__':
     unittest.main()
