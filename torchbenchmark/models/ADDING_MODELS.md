@@ -1,7 +1,7 @@
 # How to add a new model
 
 ## Overview
-- copy the model code into a subdirectory of models/
+- copy the model code into a subdirectory of `torchbenchmark/models`
 - prepare a mini dataset for fast benchmark iterations
 - add scripts conform to our API that install the dependencies and run the model
 - (optional) modify the model to support JIT compilation
@@ -10,11 +10,13 @@
 
 ### Adding the model code
 The intent is to preserve the original user code as much as possible while 
-adding support for a standardized interface to the benchmark suite.
+adding support for a standardized interface to the benchmark suite and making sure
+the code can run from any directory and in a process with other models.
 
 In many case it is fine to simply copy the entire original repo into a subdirectory
 as a starting point, paying attention to avoid the .git folder, and not to add any 
-large unnecessary data files unintentionally.  
+large unnecessary data files unintentionally.  The subdirectory name should be a valid
+Python identifier because it will become a module in Python and needs to be importable.
 
 Create a new file 'origin' that contains the url to the git repo you're copying, 
 so it's easy to trace the code back to where it came from.
@@ -39,7 +41,7 @@ not easy to build, there may be easier models to target.
 By the time install.py script runs, a miniature version of the dataset is expected to be 
 staged and ready for use.  It's fine to use install.py to download and prepare the data
 if the download is quick.  Otherwise, prepare the dataset manually, checking in the required
-artifacts and modifying the hubconf.py script as needed to use them.
+artifacts and modifying the __init__.py script as needed to use them.
 
 - the easiest approach may be to run the dataloader an iteration, pickle its output, and check
 that file in
@@ -49,7 +51,21 @@ TODO
 - list examples of different styles
 - provide table of existing datasets that can be reused 
 
-### Creating hubconf.py
+### Making the benchmark code run robustly
+
+We want to make it easy to write custom scripts that measure various things about our benchmark code.
+Benchmark code should run regardless of the current working directory. It should also clean up all of its
+GPU memory when the Model object associated with the run is freed. Our tests scripts will test these properties.
+Model code will require some small tweaks to make it work in these conditions:
+
+- switch within-model package imports from absolute imports to relative ones `import utils -> from . import utils`, or
+  `from utils import Foo -> from .utils import Foo`
+- Make the paths of dataset files relative to the package location. You can do this using the `__file__` attribute of
+  the source file that specifies the data set. `str(pathlib.Path(__file__).parent)` is the path to the directory that the source
+  file lives in.
+- Look for errors in `test.py` tearDown. They might indicate that the model is not cleaning up GPU memory.
+
+### Creating yourbenchmark/__init__.py
 This file should define two things:
 - `class Model`, with the API described below
 - `__main__` function, which exercises the model APIs for local testing
@@ -92,7 +108,7 @@ a model object from __init__ but raise NotImplementedError() from all its method
             for i in range(niterations):
                 model(*example_inputs)
 
-[example hubconf.py](attention-is-all-you-need-pytorch/hubconf.py)
+[example __init__.py](attention-is-all-you-need-pytorch/__init__.py)
 
 ### JIT
 As an optional step, make whatever modifications necessary to the model code to enable it to script or trace.  If doing this,

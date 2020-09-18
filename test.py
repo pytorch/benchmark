@@ -6,7 +6,7 @@ Make sure to enable an https proxy if necessary, or the setup steps may hang.
 # This file shows how to use the benchmark suite from user end.
 import argparse
 import time
-from torchbenchmark import workdir, setup, list_models
+from torchbenchmark import list_models
 from unittest import TestCase
 import re, sys, unittest
 import os.path
@@ -26,10 +26,7 @@ def run_model(model_class, model_path, device):
     m = model_class(device=device)
 
 
-def _load_test(model_class, model_path, device):
-    dir, name = os.path.split(model_path)
-    name = re.sub('[^A-Za-z0-9_]+', '_', name)
-
+def _load_test(model_class, device):
     def model_object(self):
         if device == 'cuda' and not torch.cuda.is_available():
             self.skipTest("torch.cuda not available")
@@ -61,15 +58,15 @@ def _load_test(model_class, model_path, device):
         except NotImplementedError:
             self.skipTest('Method eval is not implemented, skipping...')
 
-    setattr(TestBenchmark, f'test_{name}_example_{device}', example)
-    setattr(TestBenchmark, f'test_{name}_train_{device}', train)
-    setattr(TestBenchmark, f'test_{name}_eval_{device}', eval)
+    setattr(TestBenchmark, f'test_{model_class.name}_example_{device}', example)
+    setattr(TestBenchmark, f'test_{model_class.name}_train_{device}', train)
+    setattr(TestBenchmark, f'test_{model_class.name}_eval_{device}', eval)
 
 
 def _load_tests():
-    for model, model_path in list_models():
+    for Model in list_models():
         for device in ('cpu', 'cuda'):
-            _load_test(model, model_path, device)
+            _load_test(Model, device)
 
 _load_tests()
 if __name__ == '__main__':    
