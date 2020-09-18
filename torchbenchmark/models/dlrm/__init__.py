@@ -76,9 +76,6 @@ class Model:
             'arch_sparse_feature_size': 2,
         })
 
-        if self.jit:
-            raise NotImplementedError("JIT not supported")
-
         ### some basic setup ###
         np.random.seed(self.opt.numpy_rand_seed)
         torch.manual_seed(self.opt.numpy_rand_seed)
