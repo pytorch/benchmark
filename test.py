@@ -15,14 +15,14 @@ import gc
 
 class TestBenchmark(TestCase):
     def setUp(self):
+        gc.collect()
         if 'cuda' in str(self):
             self.memory = torch.cuda.memory_allocated()
 
     def tearDown(self):
         if 'cuda' in str(self):
-            memory = torch.cuda.memory_allocated()
             gc.collect()
-            torch.cuda.empty_cache()
+            memory = torch.cuda.memory_allocated()
             self.assertEqual(self.memory, memory)
 
 def run_model(model_class, model_path, device):
