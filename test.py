@@ -28,9 +28,9 @@ class TestBenchmark(TestCase):
                     if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
                         refs = gc.get_referrers(obj)
                         print(refs)
-                        del obj
+                        #del obj
                 except: pass
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
             self.assertEqual(self.memory, memory)
 
 def run_model(model_class, model_path, device):

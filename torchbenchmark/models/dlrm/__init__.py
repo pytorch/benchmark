@@ -22,6 +22,10 @@ from torch.optim.lr_scheduler import _LRScheduler
 from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
 from argparse import Namespace
 
+### some basic setup ###
+np.random.seed(123)
+torch.manual_seed(123)
+
 class Model:
     def __init__(self, device='cpu', jit=False):
         self.device = device
@@ -75,10 +79,6 @@ class Model:
             'numpy_rand_seed': 123,
             'arch_sparse_feature_size': 2,
         })
-
-        ### some basic setup ###
-        np.random.seed(self.opt.numpy_rand_seed)
-        torch.manual_seed(self.opt.numpy_rand_seed)
 
         if self.device == "cuda":
             torch.cuda.manual_seed_all(self.opt.numpy_rand_seed)
