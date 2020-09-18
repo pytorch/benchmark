@@ -10,6 +10,10 @@ class Model:
         """ Required """
         self.device = device
         self.jit = jit
+        if device == 'cpu' or jit:
+            # TODO - currently load_model assumes cuda
+            return
+
         self.hparams = self.create_hparams()
         self.model = load_model(self.hparams).to(device=device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.hparams.learning_rate,
@@ -105,12 +109,17 @@ class Model:
 
 
     def get_module(self):
+        if self.device == 'cpu':
+            raise NotImplementedError('CPU not supported')
+        if self.jit:
+            raise NotImplementedError('JIT not supported')
         return self.model, (self.example_input,)
 
     def train(self, niterations=1):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
+        if self.jit:
+            raise NotImplementedError('JIT not supported')
         self.model.train()
         for _ in range(niterations):
             self.model.zero_grad()
@@ -122,6 +131,10 @@ class Model:
 
 
     def eval(self, niterations=1):
+        if self.device == 'cpu':
+            raise NotImplementedError('CPU not supported')
+        if self.jit:
+            raise NotImplementedError('JIT not supported')
         self.model.eval()
         for _ in range(niterations):
             self.model(self.example_input)

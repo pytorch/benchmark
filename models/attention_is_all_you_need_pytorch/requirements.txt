@@ -1,0 +1,4 @@
+dill
+tqdm
+numpy
+spacy
