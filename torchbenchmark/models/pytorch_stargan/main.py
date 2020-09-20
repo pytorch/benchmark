@@ -1,19 +1,17 @@
 import os
 import argparse
-from solver import Solver
-from data_loader import get_loader
-from torch.backends import cudnn
 import torch
+from torch.backends import cudnn
+from .solver import Solver
+from .data_loader import get_loader
 
 
 def str2bool(v):
     return v.lower() in ('true')
 
-def main(config):
-    # For fast training.
-    cudnn.benchmark = True
 
-    # Create directories if not exist.
+def makedirs(config):
+    "Create directories if not exist."
     if not os.path.exists(config.log_dir):
         os.makedirs(config.log_dir)
     if not os.path.exists(config.model_save_dir):
@@ -22,6 +20,13 @@ def main(config):
         os.makedirs(config.sample_dir)
     if not os.path.exists(config.result_dir):
         os.makedirs(config.result_dir)
+
+
+def main(config):
+    # For fast training.
+    cudnn.benchmark = True
+
+    makedirs(config)
 
     # Fix seed for determinism
     if config.deterministic is not None:
@@ -39,7 +44,7 @@ def main(config):
         rafd_loader = get_loader(config.rafd_image_dir, None, None,
                                  config.rafd_crop_size, config.image_size, config.batch_size,
                                  'RaFD', config.mode, config.num_workers)
-    
+
 
     # Solver for training and testing StarGAN.
     solver = Solver(celeba_loader, rafd_loader, config, should_script=config.should_script)
@@ -56,7 +61,7 @@ def main(config):
             solver.test_multi()
 
 
-if __name__ == '__main__':
+def parse_config():
     parser = argparse.ArgumentParser()
 
     # Model configuration.
@@ -72,7 +77,7 @@ if __name__ == '__main__':
     parser.add_argument('--lambda_cls', type=float, default=1, help='weight for domain classification loss')
     parser.add_argument('--lambda_rec', type=float, default=10, help='weight for reconstruction loss')
     parser.add_argument('--lambda_gp', type=float, default=10, help='weight for gradient penalty')
-    
+
     # Training configuration.
     parser.add_argument('--dataset', type=str, default='CelebA', choices=['CelebA', 'RaFD', 'Both'])
     parser.add_argument('--batch_size', type=int, default=16, help='mini-batch size')
@@ -94,6 +99,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', type=int, default=1)
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'test'])
     parser.add_argument('--use_tensorboard', type=str2bool, default=True)
+    parser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'cuda'])
 
     # Directories.
     parser.add_argument('--celeba_image_dir', type=str, default='data/celeba/images')
@@ -118,5 +124,10 @@ if __name__ == '__main__':
     parser.add_argument('--should_script', type=bool, default=False)
 
     config = parser.parse_args()
+    return config
+
+
+if __name__ == '__main__':
+    config = parse_config()
     print(config)
     main(config)

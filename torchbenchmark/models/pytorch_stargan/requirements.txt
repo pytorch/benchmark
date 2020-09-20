@@ -1,1 +1,2 @@
 # Nothing else aside from PyTorch!
+tensorflow>2.0
