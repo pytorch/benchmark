@@ -57,11 +57,12 @@ def setup():
         _install_deps(model_path)
 
 
-def list_models():
+def list_models(skip_models=['yolov3']):
     models = []
     for model_path in list_model_paths():
         model_name = os.path.basename(model_path)
-        module = importlib.import_module(f'.models.{model_name}', package=__name__)
-        Model = getattr(module, 'Model')
-        models.append(Model)
+        if model_name not in skip_models:
+            module = importlib.import_module(f'.models.{model_name}', package=__name__)
+            Model = getattr(module, 'Model')
+            models.append(Model)
     return zip(models, list_model_paths())
