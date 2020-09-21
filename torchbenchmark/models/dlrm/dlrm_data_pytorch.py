@@ -23,7 +23,7 @@ from os import path
 import bisect
 import collections
 
-import data_utils
+from . import data_utils
 
 # numpy
 import numpy as np
@@ -34,7 +34,7 @@ from numpy import random as ra
 import torch
 from torch.utils.data import Dataset, RandomSampler
 
-import data_loader_terabyte
+from . import data_loader_terabyte
 
 
 # Kaggle Display Advertising Challenge Dataset
