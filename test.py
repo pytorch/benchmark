@@ -22,6 +22,7 @@ class TestBenchmark(TestCase):
     def tearDown(self):
         gc.collect()
         if 'cuda' in str(self):
+            gc.collect()
             memory = torch.cuda.memory_allocated()
             self.assertEqual(self.memory, memory)
             torch.cuda.empty_cache()
@@ -73,5 +74,5 @@ def _load_tests():
             _load_test(Model, device)
 
 _load_tests()
-if __name__ == '__main__':    
+if __name__ == '__main__':
     unittest.main()
