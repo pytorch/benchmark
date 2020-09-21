@@ -25,7 +25,7 @@ class Model:
         config = parse_config()
         config.celeba_image_dir = os.path.join(os.path.dirname(__file__), 'data/celeba/images')
         config.attr_path = os.path.join(os.path.dirname(__file__), 'data/celeba/list_attr_celeba.txt')
-        config.num_iters = 1000
+        config.num_iters = 100
         config.batch_size = 24
         config.device = device
         config.should_script = jit
