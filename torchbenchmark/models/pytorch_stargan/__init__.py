@@ -27,6 +27,7 @@ class Model:
         config.attr_path = os.path.join(os.path.dirname(__file__), 'data/celeba/list_attr_celeba.txt')
         config.num_iters = 1
         config.batch_size = 24
+        config.use_tensorboard = False
         config.device = device
         config.should_script = jit
 

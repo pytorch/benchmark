@@ -7,7 +7,6 @@ import time
 import datetime
 from .model import Generator
 from .model import Discriminator
-from .logger import Logger
 
 
 class Solver(object):
@@ -110,6 +109,7 @@ class Solver(object):
 
     def build_tensorboard(self):
         """Build a tensorboard logger."""
+        from .logger import Logger
         self.logger = Logger(self.log_dir)
 
     def update_lr(self, g_lr, d_lr):
