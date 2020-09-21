@@ -12,6 +12,7 @@ e.g. --benchmark-autosave
      ...
 """
 import os
+import gc
 import pytest
 import time
 import torch
@@ -46,6 +47,10 @@ def hub_model(request, model_class, device, compiler):
     """
     use_jit = compiler == 'jit'
     return model_class(device=device, jit=use_jit)
+
+    gc.collect()
+    if device == 'cuda':
+        torch.cuda.empty_cache()
 
 
 def cuda_timer():

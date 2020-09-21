@@ -11,16 +11,20 @@ from unittest import TestCase
 import re, sys, unittest
 import os.path
 import torch
+import gc
 
 class TestBenchmark(TestCase):
     def setUp(self):
+        gc.collect()
         if 'cuda' in str(self):
             self.memory = torch.cuda.memory_allocated()
 
     def tearDown(self):
+        gc.collect()
         if 'cuda' in str(self):
             memory = torch.cuda.memory_allocated()
             self.assertEqual(self.memory, memory)
+            torch.cuda.empty_cache()
 
 def run_model(model_class, model_path, device):
     m = model_class(device=device)
