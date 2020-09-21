@@ -61,7 +61,7 @@ def main(config):
             solver.test_multi()
 
 
-def parse_config():
+def parse_config(args=[]):
     parser = argparse.ArgumentParser()
 
     # Model configuration.
@@ -123,7 +123,7 @@ def parse_config():
     parser.add_argument('--deterministic', type=bool, default=False)
     parser.add_argument('--should_script', type=bool, default=False)
 
-    config = parser.parse_args()
+    config = parser.parse_args(args)
     return config
 
 
