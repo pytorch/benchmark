@@ -419,7 +419,7 @@ def prepare_training_loop(args):
     parser.add_argument('--freeze-layers', action='store_true', help='Freeze non-output layers')
     opt = parser.parse_args(args)
     opt.weights = last if opt.resume else opt.weights
-    check_git_status()
+    # check_git_status()
     opt.cfg = check_file(opt.cfg)  # check file
     print(opt.data)
     opt.data = check_file(opt.data)  # check file
