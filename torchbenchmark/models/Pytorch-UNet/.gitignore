@@ -1,0 +1,8 @@
+*.pyc
+data/
+__pycache__/
+checkpoints/
+*.pth
+*.jpg
+SUBMISSION*
+venv/
