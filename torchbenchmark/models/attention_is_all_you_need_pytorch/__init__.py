@@ -55,7 +55,7 @@ class Model:
             'val_path': None,
         })
 
-        _, validation_data = prepare_dataloaders(self.opt, self.device)
+        self.train_data, validation_data = prepare_dataloaders(self.opt, self.device)
         transformer = Transformer(
             self.opt.src_vocab_size,
             self.opt.trg_vocab_size,
@@ -90,18 +90,25 @@ class Model:
         for _ in range(niter):
             self.module(*self.example_inputs)
 
-    def train(self, niter=1):
+    def train(self, niter=20):
         optimizer = ScheduledOptim(
             optim.Adam(self.module.parameters(), betas=(0.9, 0.98), eps=1e-09),
             2.0, self.opt.d_model, self.opt.n_warmup_steps)
-        for _ in range(niter):
+        
+        for i, batch in enumerate(self.train_data):
+
+            src_seq = patch_src(batch.src, self.opt.src_pad_idx).to(self.device)
+            trg_seq, gold = map(lambda x: x.to(self.device), patch_trg(batch.trg, self.opt.trg_pad_idx))
+
             optimizer.zero_grad()
-            pred = self.module(*self.example_inputs)
+            pred = self.module(src_seq, trg_seq)
 
             loss, n_correct, n_word = cal_performance(
-                pred, self.gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
+                pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
             optimizer.step_and_update_lr()
+            if i == niter - 1:
+                break;
 
 
 if __name__ == '__main__':
