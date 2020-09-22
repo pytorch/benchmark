@@ -7,7 +7,7 @@ if [ "$CIRCLE_BRANCH" = "master" ]
 then
     PYTEST_FILTER=""
 else
-    PYTEST_FILTER="not cyclegan"
+    PYTEST_FILTER="(not cyclegan) and (not (stargan and train and cpu))"
 fi
 
 BENCHMARK_DATA=".data"
