@@ -5,6 +5,8 @@ import torch.nn as nn
 from .utils.dataset import BasicDataset
 from torch.utils.data import DataLoader
 from pathlib import Path
+import random
+import numpy as np
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -51,8 +53,8 @@ class Model:
         # TODO: consider evaling a full image
         with torch.no_grad():
             for _ in range(niter):
-                output = self.model(self.text, self.offsets)
-                loss = self.criterion(output, self.cls)
+                output = self.model(self.imgs)
+                loss = self.criterion(output, self.true_masks)
 
     def train(self, niter=1):
         for _ in range(niter):
