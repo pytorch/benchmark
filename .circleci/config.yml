@@ -20,6 +20,9 @@ jobs:
           name: Install PyTorch nightly
           command: ./scripts/install_nightlies.sh
       - run:
+          name: Housekeeping
+          command: ./scripts/housekeeping.sh
+      - run:
           name: Setup benchmark suite dependencies
           command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python install.py
       - run:

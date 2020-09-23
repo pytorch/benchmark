@@ -43,6 +43,10 @@ staged and ready for use.  It's fine to use install.py to download and prepare t
 if the download is quick.  Otherwise, prepare the dataset manually, checking in the required
 artifacts and modifying the __init__.py script as needed to use them.
 
+Be intentional about the size of the binary artifacts you add to the repo.  While there isn't currently
+a limit specified, scripts/housekeeping.sh does provide a way to see how your model compares to others,
+and encourage you to avoid bloating the repo if possible.
+
 - the easiest approach may be to run the dataloader an iteration, pickle its output, and check
 that file in
 - it's also fine to manually modify the raw data files to include only a small fraction, but make sure not to run the dataloader during train/eval measurements
