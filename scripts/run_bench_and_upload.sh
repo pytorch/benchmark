@@ -25,7 +25,7 @@ pytest test_bench.py --setup-show --benchmark-sort=Name --benchmark-json=${BENCH
 
 
 # Compute benchmark score
-TORCHBENCH_SCORE=$(python score/compute_score.py --configuration score/torchbench_0.0.yaml --benchmark_data ${BENCHMARK_DATA}/hub.json)
+TORCHBENCH_SCORE=$(python score/compute_score.py --configuration score/torchbench_0.0.yaml --benchmark_data_file ${BENCHMARK_DATA}/hub.json)
 # Token is only present for certain jobs, only upload if present
 if [ -z "$SCRIBE_GRAPHQL_ACCESS_TOKEN" ]
 then
