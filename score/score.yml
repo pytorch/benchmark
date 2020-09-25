@@ -2,8 +2,8 @@
 heirarchy:
   model:
     computer vision:
-      segmentation:
-        maskrcnn_benchmark:
+      # segmentation:
+        # maskrcnn_benchmark:
       classification:
         pytorch_mobilenet_v3:
       detection:
