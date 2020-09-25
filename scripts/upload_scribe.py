@@ -85,7 +85,7 @@ class PytorchBenchmarkUploader(ScribeUploader):
                 'circle_build_num', 'circle_project_reponame',
             ],
             'float': [
-                'stddev', 'min', 'median', 'max', 'mean',
+                'stddev', 'min', 'median', 'max', 'mean', 'torchbench_score',
             ]
         }
 
@@ -125,13 +125,44 @@ class PytorchBenchmarkUploader(ScribeUploader):
             messages.append(m)
         self.upload(messages)
 
+    def post_torchbench_score(self, pytest_json, score):
+        machine_info = pytest_json['machine_info']
+        commit_info = pytest_json['commit_info']
+        upload_time = int(time.time())
+        m = self.format_message({
+            "time": upload_time,
+            "benchmark_time": pytest_json['datetime'],
+            "git_repo": commit_info['project'],
+            "git_commit_id": commit_info['id'],
+            "git_branch": commit_info['branch'],
+            "git_commit_time": commit_info['time'],
+            "git_dirty": commit_info['dirty'],
+            "pytorch_version": machine_info.get('pytorch_version', None),
+            "torchtext_version": machine_info.get('torchtext_version', None),
+            "torchvision_version": machine_info.get('torchvision_version', None),
+            "python_version": machine_info['python_implementation_version'],
+            "machine_kernel": machine_info['release'],
+            "machine_processor": machine_info['processor'],
+            "machine_hostname": machine_info['node'],
+            "circle_build_num": machine_info.get('circle_build_num', None),
+            "circle_project_reponame": machine_info.get('circle_project_name', None),
+            "torchbench_score": score,
+        })
+        self.upload(m)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pytest_bench_json", type=argparse.FileType('r'),
+    parser.add_argument("--pytest_bench_json", required=True,
+                        type=argparse.FileType('r'),
                         help='Upload json data formatted by pytest-benchmark module')
+    parser.add_argument("--torchbench_score", type=float,
+                        help="optional torchbench score to include")
     args = parser.parse_args()
-    if args.pytest_bench_json:
-        benchmark_uploader = PytorchBenchmarkUploader()
-        json_data = json.load(args.pytest_bench_json)
-        benchmark_uploader.post_pytest_benchmarks(json_data)
+    
+    benchmark_uploader = PytorchBenchmarkUploader()
+    json_data = json.load(args.pytest_bench_json)
+    benchmark_uploader.post_pytest_benchmarks(json_data)
+    
+    if args.torchbench_score is not None:
+        benchmark_uploader.post_torchbench_score(json_data, args.torchbench_score)

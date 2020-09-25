@@ -16,7 +16,7 @@ def compute_score(config, data):
         weight_sum += weight
         measured_mean = [b['stats']['mean'] for b in data['benchmarks'] if b['name'] == name][0]
         benchmark_score = (norm / measured_mean) ** weight
-        print(f"{name}: {benchmark_score}")
+        # print(f"{name}: {benchmark_score}")
         score *= benchmark_score
 
     score = score ** (1.0 / len(config['benchmarks']))
@@ -38,4 +38,5 @@ if __name__ == "__main__":
         data = json.load(data_file)
 
     score = compute_score(config, data)
-    print(f"Benchmark Score: {score} (rounded) {int(round(score))}")
+    print(score)
+    # print(f"Benchmark Score: {score} (rounded) {int(round(score))}")
