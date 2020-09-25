@@ -43,8 +43,6 @@ In each model repo, the assumption is that the user would already have all of th
 Note: setup steps require connectivity, make sure to enable a proxy if needed.
 
 ### Using pytest-benchmark driver
-Run `python test.py --setup_only` first to cause setup steps for each model to happen.
-
 `pytest test_bench.py` invokes the benchmark driver.  See `--help` for a complete list of options.  
 
 Some useful options include
