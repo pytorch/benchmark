@@ -92,6 +92,9 @@ class Model:
             raise NotImplementedError("JIT not supported")
         if self.device == 'cpu':
             raise NotImplementedError("CPU not supported")
+        
+        # see backtrace: https://gist.github.com/wconstab/6aee9bc4326a4f89dbf1592d88ead8f4
+        raise NotImplementedError("TODO fix this, intermittent failure on CI")
 
         self.module.eval()
         with torch.no_grad():
