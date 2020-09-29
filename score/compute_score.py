@@ -4,27 +4,31 @@ Compute the benchmark score given a frozen score configuration and current bench
 """
 import argparse
 import json
+import math
 import os
 import yaml
 
 from tabulate import tabulate
 
-def compute_score(config, data):
+def compute_score(config, data, fake_data=None):
     target = config['target']
-    score = 1.0
+    score = 0.0
     weight_sum = 0.0
     for name in config['benchmarks']:
         cfg = config['benchmarks'][name]
         weight, norm = cfg['weight'], cfg['norm']
         weight_sum += weight
         measured_mean = [b['stats']['mean'] for b in data['benchmarks'] if b['name'] == name][0]
-        benchmark_score = (norm / measured_mean) ** weight
+        if fake_data is not None and name in fake_data:
+            # used for sanity checks on the sensitivity of the score metric
+            measured_mean = fake_data[name]
+        benchmark_score = weight * math.log(norm / measured_mean)
         # print(f"{name}: {benchmark_score}")
-        score *= benchmark_score
+        score += benchmark_score
 
-    score = score ** (1.0 / len(config['benchmarks']))
+    score = target * math.exp(score)
     assert abs(weight_sum - 1.0) < 1e-6, f"Bad configuration, weights don't sum to 1, but {weight_sum}"
-    return score * target    
+    return score
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -34,8 +38,8 @@ if __name__ == "__main__":
         help="pytest-benchmark json file with current benchmark data")
     parser.add_argument("--benchmark_data_dir",
         help="directory containing multiple .json files for each of which to compute a score")
+    parser.add_argument('--hack_data', nargs=2, action='append', help="keyword to match benchmark names, and multiplicative factor to adjust their measurement")
     args = parser.parse_args()
-
     with open(args.configuration) as cfg_file:
         config = yaml.full_load(cfg_file)
 
@@ -45,6 +49,16 @@ if __name__ == "__main__":
 
         score = compute_score(config, data)
         print(score)
+        if args.hack_data:
+            fake_data = {}
+            for keyword, factor in args.hack_data:
+                for b in data['benchmarks']:
+                    if keyword.lower() in b['name'].lower():
+                        fake_data[b['name']] =  b['stats']['mean'] * float(factor)
+
+            hacked_score = compute_score(config, data, fake_data)
+            print(f"Using hacks {args.hack_data}, hacked_score {hacked_score}")
+
     elif args.benchmark_data_dir is not None:
         scores = [('File', 'Score')]
         for f in os.listdir(args.benchmark_data_dir):
