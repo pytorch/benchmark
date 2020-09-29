@@ -18,7 +18,9 @@ def compute_score(config, data, fake_data=None):
         cfg = config['benchmarks'][name]
         weight, norm = cfg['weight'], cfg['norm']
         weight_sum += weight
-        measured_mean = [b['stats']['mean'] for b in data['benchmarks'] if b['name'] == name][0]
+        measured_mean = [b['stats']['mean'] for b in data['benchmarks'] if b['name'] == name]
+        assert len(measured_mean) == 1, f"Missing data for {name}, unable to compute score"
+        measured_mean = measured_mean[0]
         if fake_data is not None and name in fake_data:
             # used for sanity checks on the sensitivity of the score metric
             measured_mean = fake_data[name]
