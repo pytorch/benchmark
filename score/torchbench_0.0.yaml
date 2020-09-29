@@ -25,10 +25,10 @@ benchmarks:
     weight: 0.020833333333333332
   test_eval[Super_SloMo-cuda-eager]:
     norm: 0.5727992373999768
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_eval[Super_SloMo-cuda-jit]:
     norm: 0.5758905388000131
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_eval[attention_is_all_you_nee...-cpu-eager]:
     norm: 0.8630710880000152
     weight: 0.006944444444444444
@@ -77,36 +77,18 @@ benchmarks:
   test_eval[moco-cuda-jit]:
     norm: 0.6464073749999443
     weight: 0.013888888888888888
-  test_eval[pytorch_CycleGAN_and_pix...-cuda-eager]:
-    norm: 0.037252862678558686
-    weight: 0.006944444444444444
-  test_eval[pytorch_CycleGAN_and_pix...-cuda-jit]:
-    norm: 0.03734425745829147
-    weight: 0.006944444444444444
   test_eval[pytorch_mobilenet_v3-cpu-eager]:
     norm: 0.02729150021618684
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_eval[pytorch_mobilenet_v3-cpu-jit]:
     norm: 0.027794305918903136
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_eval[pytorch_mobilenet_v3-cuda-eager]:
     norm: 0.02729599686483345
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_eval[pytorch_mobilenet_v3-cuda-jit]:
     norm: 0.02273801193330453
-    weight: 0.005208333333333333
-  test_eval[pytorch_stargan-cpu-eager]:
-    norm: 1.030070522799997
-    weight: 0.0026041666666666665
-  test_eval[pytorch_stargan-cpu-jit]:
-    norm: 1.0323324262000824
-    weight: 0.0026041666666666665
-  test_eval[pytorch_stargan-cuda-eager]:
-    norm: 0.10837374479997379
-    weight: 0.0026041666666666665
-  test_eval[pytorch_stargan-cuda-jit]:
-    norm: 0.10870929039992916
-    weight: 0.0026041666666666665
+    weight: 0.006944444444444444
   test_eval[pytorch_struct-cpu-eager]:
     norm: 0.002562631041459985
     weight: 0.006944444444444444
@@ -124,10 +106,10 @@ benchmarks:
     weight: 0.08333333333333333
   test_eval[yolov3-cpu-eager]:
     norm: 0.8865785995999431
-    weight: 0.013888888888888888
+    weight: 0.018518518518518517
   test_eval[yolov3-cuda-eager]:
     norm: 0.5735116551998545
-    weight: 0.013888888888888888
+    weight: 0.018518518518518517
   test_train[BERT_pytorch-cpu-eager]:
     norm: 0.27472745519994535
     weight: 0.006944444444444444
@@ -142,10 +124,10 @@ benchmarks:
     weight: 0.006944444444444444
   test_train[Background_Matting-cuda-eager]:
     norm: 4.454985670599944
-    weight: 0.010416666666666666
+    weight: 0.013888888888888888
   test_train[Background_Matting-cuda-jit]:
     norm: 4.3299996296000245
-    weight: 0.010416666666666666
+    weight: 0.013888888888888888
   test_train[LearningToPaint-cpu-eager]:
     norm: 0.06769545181248304
     weight: 0.020833333333333332
@@ -160,10 +142,10 @@ benchmarks:
     weight: 0.020833333333333332
   test_train[Super_SloMo-cuda-eager]:
     norm: 1.4887921610000376
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_train[Super_SloMo-cuda-jit]:
     norm: 1.4842954989999726
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_train[attention_is_all_you_nee...-cpu-eager]:
     norm: 2.8790815572000157
     weight: 0.006944444444444444
@@ -212,33 +194,18 @@ benchmarks:
   test_train[moco-cuda-jit]:
     norm: 1.3050591925999924
     weight: 0.013888888888888888
-  test_train[pytorch_CycleGAN_and_pix...-cuda-eager]:
-    norm: 53.70666004940008
-    weight: 0.006944444444444444
   test_train[pytorch_mobilenet_v3-cpu-eager]:
     norm: 0.25344906619993707
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_train[pytorch_mobilenet_v3-cpu-jit]:
     norm: 0.23886577479997867
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_train[pytorch_mobilenet_v3-cuda-eager]:
     norm: 0.2574923820000549
-    weight: 0.005208333333333333
+    weight: 0.006944444444444444
   test_train[pytorch_mobilenet_v3-cuda-jit]:
     norm: 0.24167844399989918
-    weight: 0.005208333333333333
-  test_train[pytorch_stargan-cpu-eager]:
-    norm: 4.203840443199988
-    weight: 0.0026041666666666665
-  test_train[pytorch_stargan-cpu-jit]:
-    norm: 4.67151848600015
-    weight: 0.0026041666666666665
-  test_train[pytorch_stargan-cuda-eager]:
-    norm: 0.9323661928000547
-    weight: 0.0026041666666666665
-  test_train[pytorch_stargan-cuda-jit]:
-    norm: 0.9228581516000304
-    weight: 0.0026041666666666665
+    weight: 0.006944444444444444
   test_train[pytorch_struct-cpu-eager]:
     norm: 1.2756745926000803
     weight: 0.006944444444444444
@@ -256,5 +223,5 @@ benchmarks:
     weight: 0.08333333333333333
   test_train[yolov3-cuda-eager]:
     norm: 6.38542746819985
-    weight: 0.013888888888888888
+    weight: 0.018518518518518517
 target: 1000

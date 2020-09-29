@@ -8,9 +8,9 @@ heirarchy:
         pytorch_mobilenet_v3:
       detection:
         yolov3:
-      generation:
-        pytorch_CycleGAN_and_pix...:
-        pytorch_stargan:
+      # generation:
+        # pytorch_CycleGAN_and_pix...:
+        # pytorch_stargan:
       other computer vision:
         Background_Matting:
         Super_SloMo:
