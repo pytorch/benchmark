@@ -85,17 +85,17 @@ class PytorchBenchmarkUploader(ScribeUploader):
                 'circle_build_num', 'circle_project_reponame',
             ],
             'float': [
-                'stddev', 'min', 'median', 'max', 'mean',
+                'stddev', 'min', 'median', 'max', 'mean',  'runtime'
             ]
         }
 
-    def post_pytest_benchmarks(self, pytest_json):
+    def post_pytest_benchmarks(self, pytest_json, max_data_upload=100):
         machine_info = pytest_json['machine_info']
         commit_info = pytest_json['commit_info']
         upload_time = int(time.time())
         messages = []
         for b in pytest_json['benchmarks']:
-            m = self.format_message({
+            base_msg = {
                 "time": upload_time,
                 "benchmark_group": b['group'],
                 "benchmark_name": b['name'],
@@ -115,14 +115,24 @@ class PytorchBenchmarkUploader(ScribeUploader):
                 "machine_hostname": machine_info['node'],
                 "circle_build_num": machine_info.get('circle_build_num', None),
                 "circle_project_reponame": machine_info.get('circle_project_name', None),
-                "stddev": b['stats']['stddev'],
+            }
+
+            stats_msg = {"stddev": b['stats']['stddev'],
                 "rounds": b['stats']['rounds'],
                 "min": b['stats']['min'],
                 "median": b['stats']['median'],
                 "max": b['stats']['max'],
                 "mean": b['stats']['mean'],
-            })
-            messages.append(m)
+            }
+            stats_msg.update(base_msg)
+            messages.append(self.format_message(stats_msg))
+
+            if 'data' in b['stats']:
+                for runtime in b['stats']['data'][:max_data_upload]:
+                    runtime_msg = {"runtime":  runtime}
+                    runtime_msg.update(base_msg)
+                    messages.append(self.format_message(runtime_msg))
+
         self.upload(messages)
 
 
