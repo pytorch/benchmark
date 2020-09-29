@@ -32,12 +32,10 @@ Normalization Data
 ------------------
 Used to 'fill in the gaps' in the human written specification. 
 
-Benchmark configurations (train/eval, device, compiler/runtime) present in 
-this data are frozen into the configuration and weighted equally if weights
-specific weights aren't provided in the specification.
-
-Normalization values are the benchmark measurements taken from this data, used
-to produce a value of 1.0 for each benchmark before applying weights and combining.
+- particular configurations (train/eval, device, compiler/runtime) present in 
+this data are used to compute benchmark weights
+- measurements from this data are used as normalization factors in score computation
+  such that new data is scored relative to this data.
 
 ####
 TODO
