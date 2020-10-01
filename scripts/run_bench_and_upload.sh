@@ -24,12 +24,14 @@ BENCHMARK_ABS_FILENAME=${BENCHMARK_DATA}/${BENCHMARK_FILENAME}
 pytest test_bench.py --setup-show --benchmark-sort=Name --benchmark-json=${BENCHMARK_ABS_FILENAME} -k "$PYTEST_FILTER"
 
 
+# Compute benchmark score
+TORCHBENCH_SCORE=$(python score/compute_score.py --configuration score/torchbench_0.0.yaml --benchmark_data_file ${BENCHMARK_ABS_FILENAME})
 # Token is only present for certain jobs, only upload if present
 if [ -z "$SCRIBE_GRAPHQL_ACCESS_TOKEN" ]
 then
     echo "Skipping benchmark upload, token is missing."
 else
-    python scripts/upload_scribe.py --pytest_bench_json ${BENCHMARK_ABS_FILENAME}
+    python scripts/upload_scribe.py --pytest_bench_json ${BENCHMARK_ABS_FILENAME} --torchbench_score ${TORCHBENCH_SCORE}
 fi
 
 

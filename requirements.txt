@@ -1,2 +1,4 @@
 pytest
 pytest-benchmark
+requests
+tabulate
