@@ -4,7 +4,7 @@ specification and a complete source of benchmark data.
 
 Specification File
 ------------------
-Score heirarchy input intended to be as easy to construct as possible,
+Score hierarchy input intended to be as easy to construct as possible,
 relying on automatic inference of unspecified weights, benchmark configs,
 and normalization factors given a particular instance of benchmark data.
 
@@ -21,7 +21,7 @@ Structure:
               - device                |  provide specific weights or 
                 - compiler/runtime   _|  exclude particular configs by omission
 
-Rules for describing the weight heirarchy
+Rules for describing the weight hierarchy
 - everything is a dict, since at any level you could specify a weight
 - if a weight is not specified, it is computed automatically with respect
 its direct siblings.
@@ -56,11 +56,11 @@ def generate_bench_cfg(spec, norm, target):
     benchmark_names = [b['name'] for b in norm['benchmarks']]
     benchmark_norms = {b['name']: b['stats']['mean'] for b in norm['benchmarks']}
 
-    assert len(spec['heirarchy']) > 0, "Must specify at least one category"
-    category_weight = 1.0 / len(spec['heirarchy'])
-    for category in spec['heirarchy']:
+    assert len(spec['hierarchy']) > 0, "Must specify at least one category"
+    category_weight = 1.0 / len(spec['hierarchy'])
+    for category in spec['hierarchy']:
         
-        category_spec = spec['heirarchy'][category]
+        category_spec = spec['hierarchy'][category]
         assert isinstance(category_spec, dict), f"Category {category} in spec must be non-empty"
         assert 'weight' not in category_spec, "TODO implement manual category weights"
         domain_weight = 1.0 / len(category_spec)
@@ -97,7 +97,7 @@ def generate_bench_cfg(spec, norm, target):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--specification", required=True,
-        help="yaml file describing weight heirarchy")
+        help="yaml file describing weight hierarchy")
     parser.add_argument("--normalization_data", required=True,
         help="pytest-benchmark json file used for generating normalization "
              "values and filling in unspecified benchmark configurations")
