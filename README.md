@@ -19,7 +19,9 @@ Install pytorch, torchvision and torchtext
 Install the benchmark suite, which will recursively install dependencies for all the models
 `python install.py`
 
+
 ### Notes
+- Setup steps require connectivity, make sure to enable a proxy if needed.
 - See the [CI scripts](scripts/) and their orchestration in [config.yml](.circleci/config.yml) 
 for hints about how to replicate the CI environment if you have issues
 - PyTorch versions before 1.6 are not compatible with all the models in torchbenchmark.  See branch [wconstab/compare_torch_versions](https://github.com/pytorch/benchmark/tree/wconstab/compare_torch_versions) for a set of models that worked back to torch 1.4.0.
@@ -38,9 +40,7 @@ test_bench.py is a pytest-benchmark script that leverages the same infrastructur
 In each model repo, the assumption is that the user would already have all of the torch family of packages installed (torch, torchtext, torchvision, ...) but it installs the rest of the dependencies for the model.
 
 ### Using `test.py`
-`python test.py` will execute the setup and run steps for each model.
-
-Note: setup steps require connectivity, make sure to enable a proxy if needed.
+`python test.py` will execute the APIs for each model, as a sanity check.  For benchmarking, use test_bench.py.  It is based on unittest, and supports filtering via CLI.
 
 ### Using pytest-benchmark driver
 `pytest test_bench.py` invokes the benchmark driver.  See `--help` for a complete list of options.  
