@@ -35,13 +35,13 @@ class ScribeUploader:
                                  "be intentional about adding new fields".format(field))
         return message
 
-    def _upload_intern(self, messages):
+    def _upload_intern(self, messages: list):
         for m in messages:
             json_str = json.dumps(m)
             cmd = ['scribe_cat', self.category, json_str]
             subprocess.run(cmd)
 
-    def upload(self, messages):
+    def upload(self, messages: list):
         if os.environ.get('SCRIBE_INTERN'):
             return self._upload_intern(messages)
         access_token = os.environ.get("SCRIBE_GRAPHQL_ACCESS_TOKEN")
@@ -158,7 +158,7 @@ class PytorchBenchmarkUploader(ScribeUploader):
             "circle_project_reponame": machine_info.get('circle_project_name', None),
             "torchbench_score": score,
         })
-        self.upload(m)
+        self.upload([m])
 
 
 if __name__ == "__main__":
