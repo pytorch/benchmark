@@ -1,0 +1,79 @@
+import json
+import os
+import pandas as pd
+import typing
+
+class BenchmarkData:
+    def __init__(self):
+        self._benchmark_data = {}
+        self._machine_info = {}
+        self._commit_info = {}
+        self._names_all = set()
+        self._names_common = set()
+
+    def add_json_data(self, tag, json_data):
+        names = set([b['name'] for b in json_data['benchmarks']])
+        self._names_all.update(names)
+        if len(self._benchmark_data) == 0:
+            self._names_common.update(names)
+        else:
+            self._names_common.intersection_update(names)
+        self._benchmark_data[tag] = {b['name']: b for b in json_data['benchmarks']}
+        self._machine_info[tag] = json_data['machine_info']
+        self._commit_info[tag] = json_data['commit_info']
+
+    def benchmark_names(self, mode='common', keyword_filter=None):
+        """
+        Return the names of benchmarks across the dataset.
+        
+        mode:
+            'common': intersection across dataset files - useful for comparison plot
+            'all': union across dataset files
+            'outliers': union - intersection across dataset files
+        """
+        if mode == 'common':
+            names = self._names_common
+        elif mode == 'all':
+            names = self._names_all
+        elif mode == 'outliers':
+            names = self._names_all - self._names_common
+
+        if keyword_filter is not None:
+            if isinstance(keyword_filter, str):
+                keyword_filter = [keyword_filter]
+            for kw in keyword_filter:
+                names = [n for n in names if kw not in n]
+        
+        return names 
+
+    def as_dataframe(self, name):
+        df = pd.DataFrame()
+        for tag in self._benchmark_data:
+            benchmark = self._benchmark_data[tag][name]
+            df = df.append(pd.DataFrame()
+                .assign(time=benchmark['stats']['data'])
+                .assign(tag=tag)
+                .assign(git_repo=self._commit_info[tag]['project'])
+                .assign(git_commit=self._commit_info[tag]['id'])
+                .assign(torch=self._machine_info[tag]['pytorch_version'])
+                .assign(torchtext=self._machine_info[tag]['torchtext_version'])
+                .assign(torchvision=self._machine_info[tag]['torchvision_version'])
+                .assign(date=self._commit_info[tag]['time']), ignore_index=True)
+        return df
+
+
+def load_data_dir(data_dir, most_recent_files=None, use_history_file=True):
+    """
+    load all the files in the given data dir, up to N most recent.  
+
+    if use_history_file=True, find most recent files using order in history file. 
+    """
+    
+    pass
+
+def load_data_files(files: typing.List[str]):
+    data = BenchmarkData()
+    for fname in files:
+        with open(fname) as f:
+            data.add_json_data(fname, json.load(f))
+    return data
