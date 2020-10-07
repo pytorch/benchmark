@@ -10,30 +10,6 @@ import pandas as pd
 import sys
 from tools.data import load_data_dir, load_data_files
 
-# def load_json(filename):
-#     with open(filename) as f:
-#         data = json.load(f)
-#     return data
-# te_raw = load_json('te.json')
-# old_raw = load_json('old.json')
-
-# te_data = te_raw['benchmarks'][0]['stats']['data']
-# old_data = old_raw['benchmarks'][0]['stats']['data']
-# data = {
-#     'fuser' : ['te'] * len(te_data) + ['old'] * len(old_data),
-#     'time': te_data + old_data
-# }
-# datasrc = ColumnDataSource(data)
-# p1 = figure(x_range=['old', 'te'], title="Transformer: Old vs TE fuser")
-# p1.xgrid.grid_line_color = None
-# p1.circle(x=data['fuser'], y=data['time'])
-
-# p2 = figure(x_range=['old', 'te'], title="Transformer: Old vs TE fuser")
-# p2.xgrid.grid_line_color = None
-# p2.circle(x='fuser', y='time', source=datasrc)
-# import ipdb; ipdb.set_trace()
-# output_file("te_old.html")
-# show(column(p1, p2))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -53,39 +29,12 @@ if __name__ == "__main__":
 
     data = load_data_files(args.compare_files)
     names = data.benchmark_names(keyword_filter=args.benchmark_names)
-    # if args.benchmark_names is None or len(args.benchmark_names) == 0:
-    #     with open(args.compare_files[0]) as f:
-    #         json_data = json.load(f)
-    #         names = [json_data['benchmarks'][i]['name'] for i in range(len(json_data['benchmarks']))]
-    #         # print("Please specify list of benchmark names to plot."
-    #             #   " Found these benchmarks in provided json:")
-    #         # for name in names:
-    #             # print(name)
-    #         # sys.exit(-1)
-    # else:
-    #     names = args.benchmark_names
-
-    # data = {name: pd.DataFrame() for name in names}
-    # tags = [name for name in args.compare_files]
-    # for fname in args.compare_files:
-    #     with open(fname) as f:
-    #         json_data = json.load(f)
-    #         tag = fname
-    #         for benchmark in json_data['benchmarks']:
-    #             if benchmark['name'] in data:
-    #                 new_df = pd.DataFrame()  \
-    #                     .assign(time=benchmark['stats']['data']) \
-    #                     .assign(tag=tag) \
-    #                     .assign(commit=json_data['commit_info']['id']) \
-    #                     .assign(date=json_data['commit_info']['time'])
-    #                 data[benchmark['name']] = data[benchmark['name']].append(new_df,
-    #                                                                         ignore_index=True)
     tags = args.compare_files
     plots = []
     for name in names:
         p = figure(x_range=tags, title=name)
         p.xgrid.grid_line_color = None
-        # p.xaxis.major_label_orientation = "vertitcal"
+        # p.xaxis.major_label_orientation = "vertical"
         p.circle(x='tag', y='time', source=data.as_dataframe(name))
         plots.append(p)
     output_file(args.output_html)
