@@ -10,6 +10,7 @@ class BenchmarkData:
         self._commit_info = {}
         self._names_all = set()
         self._names_common = set()
+        self._tags = set()
 
     def add_json_data(self, tag, json_data):
         names = set([b['name'] for b in json_data['benchmarks']])
@@ -21,6 +22,9 @@ class BenchmarkData:
         self._benchmark_data[tag] = {b['name']: b for b in json_data['benchmarks']}
         self._machine_info[tag] = json_data['machine_info']
         self._commit_info[tag] = json_data['commit_info']
+
+    def tags(self):
+        return list(self._benchmark_data.keys())
 
     def benchmark_names(self, mode='common', keyword_filter=None):
         """
@@ -42,16 +46,16 @@ class BenchmarkData:
             if isinstance(keyword_filter, str):
                 keyword_filter = [keyword_filter]
             for kw in keyword_filter:
-                names = [n for n in names if kw not in n]
+                names = [n for n in names if kw in n]
         
         return names 
 
-    def as_dataframe(self, name):
+    def as_dataframe(self, name, max_data=30):
         df = pd.DataFrame()
         for tag in self._benchmark_data:
             benchmark = self._benchmark_data[tag][name]
             df = df.append(pd.DataFrame()
-                .assign(time=benchmark['stats']['data'])
+                .assign(time=benchmark['stats']['data'][:max_data])
                 .assign(tag=tag)
                 .assign(git_repo=self._commit_info[tag]['project'])
                 .assign(git_commit=self._commit_info[tag]['id'])
@@ -62,15 +66,19 @@ class BenchmarkData:
         return df
 
 
-def load_data_dir(data_dir, most_recent_files=None, use_history_file=True):
+def load_data_dir(data_dir, most_recent_files:int =None, use_history_file=True):
     """
     load all the files in the given data dir, up to N most recent.  
 
     if use_history_file=True, find most recent files using order in history file. 
     """
-    
-    pass
-
+    history_file = os.path.join(data_dir, 'history')
+    with open(history_file) as hf:
+        history = hf.read().splitlines()
+    files = [os.path.join(data_dir, f) for f in history]
+    if most_recent_files is not None:
+        files = files[:most_recent_files]
+    return load_data_files(files)
 def load_data_files(files: typing.List[str]):
     data = BenchmarkData()
     for fname in files:
