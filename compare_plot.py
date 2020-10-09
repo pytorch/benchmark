@@ -10,9 +10,12 @@ from collections import defaultdict
 import argparse
 import json
 import pandas as pd
+import os
 import sys
 import re
 from tools.data import load_data_dir, load_data_files
+from bokeh.models import ColumnDataSource, DataTable, DateFormatter, TableColumn
+
 
 
 if __name__ == "__main__":
@@ -55,11 +58,30 @@ if __name__ == "__main__":
         plots = []
         tags = [str(i) for i in range(ntags)]
         colors = Spectral6
-
         regexp = "test_(.*)\[(.*)-(.*)-(.*)\]"
         model_names = set([re.search(regexp, x).groups()[1] for x in all_names])
+
+        doc_title = Div(text="<h1>TorchBenchmark Comparison Plot</h1>")
+        model_list = Div(text="<h2>Models in this benchmark</h2>" + '<p>'.join(model_names))
+
+        uberlegend_data = dict(
+                tags=tags,
+            )
+        uberlegend_columns = [
+                TableColumn(field="tags", title="Tag"),
+            ]
+        for dataset in compare_datasets:
+            dataset_tags = compare_datasets[dataset].tags()
+            dataset_tags = [os.path.relpath(fullname, dataset) for fullname in dataset_tags]
+            uberlegend_data[dataset] = dataset_tags + [""] * (ntags - len(dataset_tags))
+            uberlegend_columns.append(TableColumn(field=dataset, title=dataset))
+        uberlegend_source = ColumnDataSource(uberlegend_data)
+        uberlegend_title = Div(text="<h2>Datasets in this benchmark</h2>")
+        uberlegend = DataTable(source=uberlegend_source, columns=uberlegend_columns, height=200, width=1000)
+
         column_groups = (('cpu', 'eager'), ('cpu', 'jit'), ('cuda', 'eager'), ('cuda', 'jit'))
         row_plots = defaultdict(dict)
+        legends = {}
         for name in all_names:
             test, model, device, compiler = re.search(regexp, name).groups()
             p = figure(x_range=tags, title=f"{device}, {compiler}", plot_height=plot_height, plot_width=plot_width)
@@ -73,18 +95,25 @@ if __name__ == "__main__":
                 legend_items.append((dataset, [series,] ))
             legend = Legend(items=legend_items, location=(0,0))
             legend.click_policy = 'hide'
-            # p.add_layout(legend, 'above')
-            # plots.append(p)
             row_plots[(test, model)][(device, compiler)] = p
 
+            legends[(test, model)] = legend
+            # if (device, compiler) == column_groups[-1]:
+                # p.add_layout(legend, 'right')
+            p.add_layout(legend, 'below')
 
-        plots = []
-        for name in row_plots:
+
+        plots = [doc_title, model_list, uberlegend_title, uberlegend]
+        for key in row_plots:
+            gp = gridplot([row_plots[key].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups],
+                        ncols=len(column_groups),
+                        plot_height=plot_height, plot_width=plot_width)
+            # lp = figure()
+            # lp.add_layout(legends[key])
             plots.append(layout([
-                [Div(text=f"<h3>test_{name[0]}[{name[1]}]</h3>")],
-                gridplot([row_plots[name].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups],
-                         ncols=len(column_groups),
-                         plot_height=plot_height, plot_width=plot_width)
+                [Div(text=f"<h3>test_{key[0]}[{key[1]}]</h3>")],
+                # lp,
+                gp,
             ]))
     
     else:
