@@ -57,7 +57,7 @@ class BenchmarkData:
             df = df.append(pd.DataFrame()
                 .assign(time=benchmark['stats']['data'][:max_data])
                 .assign(tag=tag)
-                .assign(file_idx=i)
+                .assign(file_idx=str(i))
                 .assign(git_repo=self._commit_info[tag]['project'])
                 .assign(git_commit=self._commit_info[tag]['id'])
                 .assign(torch=self._machine_info[tag]['pytorch_version'])
