@@ -34,8 +34,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--output_html", default='plot.html', help="html file to write")
     args = parser.parse_args()
-    plot_height = 200
-    plot_width = 240
+    plot_height = 150
+    plot_width = 200
 
     if args.data_dir is not None:
         if len(args.data_dir) > 1:
@@ -68,7 +68,6 @@ if __name__ == "__main__":
         model_names = set([re.search(regexp, x).groups()[1] for x in all_names])
 
         doc_title = Div(text="<h1>TorchBenchmark Comparison Plot</h1>")
-        model_list = Div(text="<h2>Models in this benchmark</h2>" + '<p>'.join(model_names))
 
         uberlegend_data = dict(
                 tags=tags,
@@ -85,7 +84,7 @@ if __name__ == "__main__":
         uberlegend_title = Div(text="<h2>Datasets in this benchmark</h2>")
         uberlegend = DataTable(source=uberlegend_source, columns=uberlegend_columns, height=200, width=2000)
 
-        column_groups = (('cpu', 'eager'), ('cpu', 'jit'), ('cuda', 'eager'), ('cuda', 'jit'))
+        column_groups = [(a, b, c) for a in ('train', 'eval') for b in ('cpu', 'cuda') for c in ('eager', 'jit')]
         row_plots = defaultdict(dict)
         legends = {}
         for name in all_names:
@@ -93,30 +92,43 @@ if __name__ == "__main__":
             p = figure(title=f"{device}, {compiler}",
                        plot_height=plot_height, plot_width=plot_width,
                        x_axis_label='Time (S)', y_axis_label='KDE')
-
+            p.yaxis.visible = False
+            # p.xaxis.grid_line_color = None
+            p.xaxis.minor_tick_line_color = None
+            p.xaxis.ticker.desired_num_ticks = 3
+            # p.yaxis.grid_line_color = None
+            legend_items = []
             for i, dataset in enumerate(compare_datasets):
                 data = compare_datasets[dataset].as_dataframe(name, max_data=-1)
                 xdata = linspace(0, data.time.max() * 1.25, 125)
+                dataset_series = []
                 for idx in tags:
                     if len(data[data.file_idx==idx]) > 0:
 
                         pdf = gaussian_kde(data[data.file_idx==idx].time)
-                        series = p.line(y=pdf(xdata), x=xdata, color=colors[i], 
-                                        legend_label=dataset)
-                        p.legend.location = 'top_left'
-                        p.legend.label_text_font_size = '8pt'
-            row_plots[(test, model)][(device, compiler)] = p
+                        series = p.line(y=pdf(xdata), x=xdata, color=colors[i])
+                                        # legend_label=dataset)
+                        # p.legend.location = 'top_left'
+                        # p.legend.label_text_font_size = '8pt'
+                        dataset_series.append(series)
+                legend_items.append((dataset, dataset_series))
+            l = Legend(items=legend_items)
+            l.click_policy = 'hide'
+            # p.add_layout(l, 'right')j
+            row_plots[model][(test, device, compiler)] = p
 
             p.y_range.start = 0
 
 
-        plots = [doc_title, model_list, uberlegend_title, uberlegend]
-        for key in sorted(row_plots):
-            gp = gridplot([row_plots[key].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups],
-                        ncols=len(column_groups),
+        plots = [doc_title, uberlegend_title, uberlegend]
+        for model in sorted(row_plots):
+
+            gp = gridplot([[row_plots[model].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups if 'train' in col],
+                           [row_plots[model].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups if 'eval' in col],
+                        ],
                         plot_height=plot_height, plot_width=plot_width)
             plots.append(layout([
-                [Div(text=f"<h3>{key[1]} - {key[0]}</h3>")],
+                [Div(text=f"<h3>{model}</h3>")],
                 gp,
             ]))
     
