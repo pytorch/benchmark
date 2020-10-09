@@ -50,7 +50,7 @@ class BenchmarkData:
         
         return names 
 
-    def as_dataframe(self, name, max_data=30):
+    def as_dataframe(self, name, max_data=100):
         df = pd.DataFrame()
         for tag in self._benchmark_data:
             benchmark = self._benchmark_data[tag][name]
