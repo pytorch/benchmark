@@ -52,11 +52,12 @@ class BenchmarkData:
 
     def as_dataframe(self, name, max_data=100):
         df = pd.DataFrame()
-        for tag in self._benchmark_data:
+        for i, tag in enumerate(self._benchmark_data):
             benchmark = self._benchmark_data[tag][name]
             df = df.append(pd.DataFrame()
                 .assign(time=benchmark['stats']['data'][:max_data])
                 .assign(tag=tag)
+                .assign(file_idx=i)
                 .assign(git_repo=self._commit_info[tag]['project'])
                 .assign(git_commit=self._commit_info[tag]['id'])
                 .assign(torch=self._machine_info[tag]['pytorch_version'])
