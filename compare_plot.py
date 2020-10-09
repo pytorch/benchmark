@@ -1,11 +1,12 @@
 from bokeh.layouts import column, row, layout, gridplot
-from bokeh.models import ColumnDataSource, CategoricalTicker, Div
 from bokeh.plotting import figure, output_file, show
 from bokeh.sampledata.autompg import autompg
 from bokeh.transform import jitter
-from bokeh.palettes import Spectral6
+from bokeh.palettes import Category10
 from bokeh.models import Legend
-from collections import defaultdict
+from bokeh.models import ColumnDataSource, CategoricalTicker, Div
+from bokeh.models import ColumnDataSource, DataTable, DateFormatter, TableColumn
+from bokeh.transform import jitter
 
 import argparse
 import json
@@ -13,8 +14,8 @@ import pandas as pd
 import os
 import sys
 import re
+from collections import defaultdict
 from tools.data import load_data_dir, load_data_files
-from bokeh.models import ColumnDataSource, DataTable, DateFormatter, TableColumn
 
 
 
@@ -31,8 +32,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--output_html", default='plot.html', help="html file to write")
     args = parser.parse_args()
-    plot_height = 300
-    plot_width = 400
+    plot_height = 400
+    plot_width = 500
 
     if args.data_dir is not None:
         if len(args.data_dir) > 1:
@@ -45,6 +46,9 @@ if __name__ == "__main__":
     else:
         data = load_data_files(args.compare_files)
 
+    # TODO
+    # Fix y axis 0
+    # fix alpha
     if compare_datasets:
         all_names = set()
         ntags = 0
@@ -56,8 +60,8 @@ if __name__ == "__main__":
             ntags = max(ntags, len(tags[dataset]))
         
         plots = []
-        tags = [str(i) for i in range(ntags)]
-        colors = Spectral6
+        tags = [i for i in range(ntags)]
+        colors = Category10[10]
         regexp = "test_(.*)\[(.*)-(.*)-(.*)\]"
         model_names = set([re.search(regexp, x).groups()[1] for x in all_names])
 
@@ -77,30 +81,34 @@ if __name__ == "__main__":
             uberlegend_columns.append(TableColumn(field=dataset, title=dataset))
         uberlegend_source = ColumnDataSource(uberlegend_data)
         uberlegend_title = Div(text="<h2>Datasets in this benchmark</h2>")
-        uberlegend = DataTable(source=uberlegend_source, columns=uberlegend_columns, height=200, width=1000)
+        uberlegend = DataTable(source=uberlegend_source, columns=uberlegend_columns, height=200, width=2000)
 
         column_groups = (('cpu', 'eager'), ('cpu', 'jit'), ('cuda', 'eager'), ('cuda', 'jit'))
         row_plots = defaultdict(dict)
         legends = {}
         for name in all_names:
             test, model, device, compiler = re.search(regexp, name).groups()
-            p = figure(x_range=tags, title=f"{device}, {compiler}", plot_height=plot_height, plot_width=plot_width)
+            p = figure(title=f"{device}, {compiler}", plot_height=plot_height, plot_width=plot_width)
             p.xgrid.grid_line_color = None
+            p.xaxis.ticker = tags
+
             # p.xaxis.major_label_orientation = "vertical"
             legend_items = []
             for i, dataset in enumerate(compare_datasets):
 
                 data = compare_datasets[dataset]
-                series = p.circle(x='file_idx', y='time', source=data.as_dataframe(name), color=colors[i])
+                series = p.circle(x=jitter('file_idx', 0.3), y='time',
+                                  source=data.as_dataframe(name),
+                                  color=colors[i],
+                                  alpha=0.5)
                 legend_items.append((dataset, [series,] ))
             legend = Legend(items=legend_items, location=(0,0))
             legend.click_policy = 'hide'
             row_plots[(test, model)][(device, compiler)] = p
 
             legends[(test, model)] = legend
-            # if (device, compiler) == column_groups[-1]:
-                # p.add_layout(legend, 'right')
             p.add_layout(legend, 'below')
+            p.y_range.start = 0
 
 
         plots = [doc_title, model_list, uberlegend_title, uberlegend]
@@ -108,11 +116,8 @@ if __name__ == "__main__":
             gp = gridplot([row_plots[key].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups],
                         ncols=len(column_groups),
                         plot_height=plot_height, plot_width=plot_width)
-            # lp = figure()
-            # lp.add_layout(legends[key])
             plots.append(layout([
-                [Div(text=f"<h3>test_{key[0]}[{key[1]}]</h3>")],
-                # lp,
+                [Div(text=f"<h3>{key[0]}:{key[1]}</h3>")],
                 gp,
             ]))
     
