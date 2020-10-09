@@ -73,9 +73,13 @@ def load_data_dir(data_dir, most_recent_files:int =None, use_history_file=True):
     if use_history_file=True, find most recent files using order in history file. 
     """
     history_file = os.path.join(data_dir, 'history')
-    with open(history_file) as hf:
-        history = hf.read().splitlines()
-    files = [os.path.join(data_dir, f) for f in history]
+    if os.path.isfile(history_file):
+        with open(history_file) as hf:
+            history = hf.read().splitlines()
+            files = [os.path.join(data_dir, f) for f in history]
+    else:
+        files = sorted([os.path.join(data_dir, f) for f in os.listdir(data_dir) if os.path.splitext(f)[1] == '.json'])
+
     if most_recent_files is not None:
         files = files[:most_recent_files]
     return load_data_files(files)
