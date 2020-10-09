@@ -112,12 +112,12 @@ if __name__ == "__main__":
 
 
         plots = [doc_title, model_list, uberlegend_title, uberlegend]
-        for key in row_plots:
+        for key in sorted(row_plots):
             gp = gridplot([row_plots[key].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups],
                         ncols=len(column_groups),
                         plot_height=plot_height, plot_width=plot_width)
             plots.append(layout([
-                [Div(text=f"<h3>{key[0]}:{key[1]}</h3>")],
+                [Div(text=f"<h3>{key[1]} - {key[0]}</h3>")],
                 gp,
             ]))
     
