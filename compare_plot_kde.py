@@ -34,8 +34,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--output_html", default='plot.html', help="html file to write")
     args = parser.parse_args()
-    plot_height = 150
-    plot_width = 200
+    plot_height = 125
+    plot_width = 225
 
     if args.data_dir is not None:
         if len(args.data_dir) > 1:
@@ -69,20 +69,24 @@ if __name__ == "__main__":
 
         doc_title = Div(text="<h1>TorchBenchmark Comparison Plot</h1>")
 
-        uberlegend_data = dict(
-                tags=tags,
-            )
-        uberlegend_columns = [
-                TableColumn(field="tags", title="Tag"),
-            ]
-        for dataset in compare_datasets:
-            dataset_tags = compare_datasets[dataset].tags()
-            dataset_tags = [os.path.relpath(fullname, dataset) for fullname in dataset_tags]
-            uberlegend_data[dataset] = dataset_tags + [""] * (ntags - len(dataset_tags))
-            uberlegend_columns.append(TableColumn(field=dataset, title=dataset))
-        uberlegend_source = ColumnDataSource(uberlegend_data)
-        uberlegend_title = Div(text="<h2>Datasets in this benchmark</h2>")
-        uberlegend = DataTable(source=uberlegend_source, columns=uberlegend_columns, height=200, width=2000)
+        # uberlegend_data = dict(
+        #         tags=tags,
+        #     )
+        # uberlegend_columns = [
+        #         TableColumn(field="tags", title="Tag"),
+        #     ]
+        # for dataset in compare_datasets:
+        #     dataset_tags = compare_datasets[dataset].tags()
+        #     dataset_tags = [os.path.relpath(fullname, dataset) for fullname in dataset_tags]
+        #     uberlegend_data[dataset] = dataset_tags + [""] * (ntags - len(dataset_tags))
+        #     uberlegend_columns.append(TableColumn(field=dataset, title=dataset))
+        # uberlegend_source = ColumnDataSource(uberlegend_data)
+        # uberlegend_title = Div(text="<h2>Datasets in this benchmark</h2>")
+        # uberlegend = DataTable(source=uberlegend_source, columns=uberlegend_columns, height=200, width=2000)
+        color_legend = [[Div(text="<h3>Legend</h3>")]]
+        for i, dataset in enumerate(compare_datasets):
+            color_legend.append([Div(text=f"{dataset}:"), Div(text="---", style={'color': colors[i], 'background-color': colors[i]})])
+        color_legend = gridplot(color_legend)
 
         column_groups = [(a, b, c) for a in ('train', 'eval') for b in ('cpu', 'cuda') for c in ('eager', 'jit')]
         row_plots = defaultdict(dict)
@@ -93,10 +97,10 @@ if __name__ == "__main__":
                        plot_height=plot_height, plot_width=plot_width,
                        x_axis_label='Time (S)', y_axis_label='KDE')
             p.yaxis.visible = False
-            # p.xaxis.grid_line_color = None
+            p.xgrid.grid_line_color = None
             p.xaxis.minor_tick_line_color = None
             p.xaxis.ticker.desired_num_ticks = 3
-            # p.yaxis.grid_line_color = None
+            p.ygrid.grid_line_color = None
             legend_items = []
             for i, dataset in enumerate(compare_datasets):
                 data = compare_datasets[dataset].as_dataframe(name, max_data=-1)
@@ -120,11 +124,11 @@ if __name__ == "__main__":
             p.y_range.start = 0
 
 
-        plots = [doc_title, uberlegend_title, uberlegend]
+        plots = [doc_title, color_legend] #uberlegend_title, uberlegend]
         for model in sorted(row_plots):
 
-            gp = gridplot([[row_plots[model].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups if 'train' in col],
-                           [row_plots[model].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups if 'eval' in col],
+            gp = gridplot([[Div(text='train')] + [row_plots[model].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups if 'train' in col],
+                           [Div(text='eval')] + [row_plots[model].get(col, Div(width=plot_width, height=plot_height)) for col in column_groups if 'eval' in col],
                         ],
                         plot_height=plot_height, plot_width=plot_width)
             plots.append(layout([
