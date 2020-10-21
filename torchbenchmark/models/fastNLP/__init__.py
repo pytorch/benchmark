@@ -1,7 +1,6 @@
 import torch
 import torchtext
 from fastNLP.models import BertForSequenceClassification
-from torchtext.experimental.datasets import AG_NEWS
 from torch.utils.data import DataLoader
 import time
 from torch.utils.data.dataset import random_split
@@ -10,6 +9,11 @@ import random
 import numpy as np
 import pickle
 import os
+
+if torchtext.__version__ >= "0.8.0":
+    from torchtext.datasets import AG_NEWS
+else:
+    from torchtext.experimental.datasets import AG_NEWS
 
 torch.manual_seed(1337)
 random.seed(1337)
