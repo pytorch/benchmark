@@ -10,9 +10,10 @@ import numpy as np
 import pickle
 import os
 
-if torchtext.__version__ >= "0.8.0":
+try:
     from torchtext.datasets import AG_NEWS
-else:
+except ImportError:
+    # In older version of torchtext AG_NEWS is inside experimental module
     from torchtext.experimental.datasets import AG_NEWS
 
 torch.manual_seed(1337)
