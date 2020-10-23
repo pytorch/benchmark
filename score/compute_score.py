@@ -55,7 +55,7 @@ if __name__ == "__main__":
             data = json.load(data_file)
             with open(SPEC_FILE_DEFAULT) as spec_file:
                 spec = yaml.full_load(spec_file)
-            config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
+                config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
     elif args.benchmark_data_dir is not None:
         # get the config from the first json file in the dir
         for f in os.listdir(args.benchmark_data_dir):
@@ -65,8 +65,8 @@ if __name__ == "__main__":
                     data = json.load(data_file)
                     with open(SPEC_FILE_DEFAULT) as spec_file:
                         spec = yaml.full_load(spec_file)
-                    config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
-                    break
+                        config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
+                        break
     else: # if nothing is specfied, give up
         print("Bad command-line argument. You must specify a config, a data file, or a data dir.")
 
