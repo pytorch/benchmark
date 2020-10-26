@@ -5,6 +5,7 @@ Compute the benchmark score given a frozen score configuration and current bench
 import argparse
 import json
 import math
+import sys
 import os
 import yaml
 
@@ -50,25 +51,23 @@ if __name__ == "__main__":
     if args.configuration is not None:
         with open(args.configuration) as cfg_file:
             config = yaml.full_load(cfg_file)
-    elif args.benchmark_data_file is not None:
-        with open(args.benchmark_data_file) as data_file:
-            data = json.load(data_file)
-            with open(SPEC_FILE_DEFAULT) as spec_file:
-                spec = yaml.full_load(spec_file)
-                config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
-    elif args.benchmark_data_dir is not None:
-        # get the config from the first json file in the dir
-        for f in os.listdir(args.benchmark_data_dir):
-            path = os.path.join(args.benchmark_data_dir, f)
-            if os.path.isfile(path) and os.path.splitext(path)[1] == '.json':
-                with open(path) as data_file:
-                    data = json.load(data_file)
-                    with open(SPEC_FILE_DEFAULT) as spec_file:
-                        spec = yaml.full_load(spec_file)
-                        config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
-                        break
-    else: # if nothing is specfied, give up
-        print("Bad command-line argument. You must specify a config, a data file, or a data dir.")
+    else:
+        if args.benchmark_data_file is None and args.benchmark_data_dir is None:
+            parser.print_help(sys.stderr)
+            raise ValueError("Invalid command-line arguments. You must specify a config, a data file, or a data dir.")
+        if args.benchmark_data_file is not None:
+            with open(args.benchmark_data_file) as data_file:
+                data = json.load(data_file)
+        elif args.benchmark_data_dir is not None:
+            # get the config from the first json file in the dir
+            for f in os.listdir(args.benchmark_data_dir):
+                path = os.path.join(args.benchmark_data_dir, f)
+                if os.path.isfile(path) and os.path.splitext(path)[1] == '.json':
+                    with open(path) as data_file:
+                        data = json.load(data_file)
+        with open(SPEC_FILE_DEFAULT) as spec_file:
+            spec = yaml.full_load(spec_file)
+            config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
 
     if args.benchmark_data_file is not None:
         with open(args.benchmark_data_file) as data_file:
