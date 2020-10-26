@@ -87,7 +87,6 @@ if __name__ == "__main__":
                         config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
                     score = compute_score(config, data)
                     scores.append((f, score))
-
         print(tabulate(scores, headers='firstrow'))
 
     # print(f"Benchmark Score: {score} (rounded) {int(round(score))}")
