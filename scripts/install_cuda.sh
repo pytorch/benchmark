@@ -115,7 +115,7 @@ function install_110 {
     # install CUDA 11.0 CuDNN
     # cuDNN license: https://developer.nvidia.com/cudnn/license_agreement
     mkdir tmp_cudnn && cd tmp_cudnn
-    wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.0.3/cudnn-11.0-linux-x64-v8.0.3.33.tgz -O cudnn-8.0.tgz
+    wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.0.4/cudnn-11.0-linux-x64-v8.0.4.30.tgz -O cudnn-8.0.tgz
     tar xf cudnn-8.0.tgz
     cp -a cuda/include/* /usr/local/cuda/include/
     cp -a cuda/lib64/* /usr/local/cuda/lib64/
