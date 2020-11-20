@@ -6,7 +6,7 @@ from    torch.utils.data import TensorDataset, DataLoader
 from    torch import optim
 import  numpy as np
 
-from    .learner import Learner
+from    learner import Learner
 from    copy import deepcopy
 
 
@@ -115,7 +115,7 @@ class Meta(nn.Module):
                 # 2. compute grad on theta_pi
                 grad = torch.autograd.grad(loss, fast_weights)
                 # 3. theta_pi = theta_pi - train_lr * grad
-                fast_weights = [p[1] - self.update_lr * p[0] for p in zip(grad, fast_weights)]
+                fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(grad, fast_weights)))
 
                 logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
                 # loss_q will be overwritten and just keep the loss_q on last update step.

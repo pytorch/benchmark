@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .meta import Meta
+from meta import Meta
 
 
 import random
@@ -58,27 +58,21 @@ class Model:
 
         
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         return self.module, self.example_inputs
 
     def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         self.module.eval()
         for _ in range(niter):
             self.module.finetunning(*[i[0] for i in self.example_inputs])
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         self.module.train()
         for _ in range(niter):
             self.module(*self.example_inputs)
         
 
 if __name__ == '__main__':
-    m = Model(device='cpu', jit=False)
+    m = Model(device='cuda', jit=False)
     module, example_inputs = m.get_module()
     module(*example_inputs)
     m.train(niter=1)
