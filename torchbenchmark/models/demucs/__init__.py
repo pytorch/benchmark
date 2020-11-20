@@ -16,6 +16,18 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
+class DemucsWrapper(torch.nn.Module):
+    def __init__(self, model, augment):
+        super().__init__()
+        self.model = model
+        self.augment = augment
+
+    def forward(self, streams):
+        sources = streams[:, 1:]
+        sources = self.augment(sources)
+        mix = sources.sum(dim=1)
+        estimates = self.model(mix)
+        return estimates
 
 class Model:
     def __init__(self, device=None, jit=False):
@@ -49,14 +61,7 @@ class Model:
             self.augment = Shift(args.data_stride)
 
     def get_module(self):
-        # TODO: merge this with train and eval
-        def helper(streams):
-            streams = streams.to(self.device)
-            sources = streams[:, 1:]
-            sources = self.augment(sources)
-            mix = sources.sum(dim=1)
-            estimates = self.model(mix)
-        return helper, self.example_inputs
+        return DemucsWrapper(self.model, self.augment), tuple(eg.to(self.device) for eg in self.example_inputs)
 
     def eval(self, niter=1):
         # TODO: implement the eval version

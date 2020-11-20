@@ -30,27 +30,27 @@ def _install_deps(model_path):
         print('No install.py is found in {}.'.format(model_path))
         sys.exit(-1)
 
-def _list_model_paths():
-    p = Path(__file__).parent.joinpath(model_dir)
-    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
+def _model_folder():
+    return Path(__file__).parent / model_dir
 
+def model_names():
+    return sorted(child.name for child in _model_folder().iterdir() if child.is_dir())
 
 def setup():
     if not _test_https():
         print(proxy_suggestion)
         sys.exit(-1)
 
-    for model_path in _list_model_paths():
-        _install_deps(model_path)
+    for model_name in model_names():
+        _install_deps(str((_model_folder() / model_name).absolute()))
 
 
 def list_models():
-    models = []
-    for model_path in _list_model_paths():
-        model_name = os.path.basename(model_path)
-        module = importlib.import_module(f'.models.{model_name}', package=__name__)
-        Model = getattr(module, 'Model')
-        if not hasattr(Model, 'name'):
-            Model.name = model_name
-        models.append(Model)
-    return models
+    return (load_model(model_name) for model_name in model_names())
+
+def load_model(model_name):
+    module = importlib.import_module(f'.models.{model_name}', package=__name__)
+    Model = getattr(module, 'Model')
+    if not hasattr(Model, 'name'):
+        Model.name = model_name
+    return Model
