@@ -78,7 +78,7 @@ class Model:
         
 
 if __name__ == '__main__':
-    m = Model(device='cpu', jit=False)
+    m = Model(device='cuda', jit=False)
     module, example_inputs = m.get_module()
     module(*example_inputs)
     m.train(niter=1)
