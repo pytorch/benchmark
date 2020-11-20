@@ -5,3 +5,4 @@
 *.out*
 *.swp
 build/
+.ipynb_checkpoints/
