@@ -1,6 +1,4 @@
 import torch
-import torchvision
-import torchvision.transforms as transforms
 import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,9 +8,9 @@ import numpy as np
 class down(nn.Module):
     """
     A class for creating neural network blocks containing layers:
-    
+
     Average Pooling --> Convlution + Leaky ReLU --> Convolution + Leaky ReLU
-    
+
     This is used in the UNet Class to create a UNet like NN architecture.
 
     ...
@@ -45,7 +43,7 @@ class down(nn.Module):
         # Initialize convolutional layers.
         self.conv1 = nn.Conv2d(inChannels,  outChannels, filterSize, stride=1, padding=int((filterSize - 1) / 2))
         self.conv2 = nn.Conv2d(outChannels, outChannels, filterSize, stride=1, padding=int((filterSize - 1) / 2))
-           
+
     def forward(self, x):
         """
         Returns output tensor after passing input `x` to the neural network
@@ -70,13 +68,13 @@ class down(nn.Module):
         # Convolution + Leaky ReLU
         x = F.leaky_relu(self.conv2(x), negative_slope = 0.1)
         return x
-    
+
 class up(nn.Module):
     """
     A class for creating neural network blocks containing layers:
-    
+
     Bilinear interpolation --> Convlution + Leaky ReLU --> Convolution + Leaky ReLU
-    
+
     This is used in the UNet Class to create a UNet like NN architecture.
 
     ...
@@ -101,13 +99,13 @@ class up(nn.Module):
                 the second convolutional layer.
         """
 
-        
+
         super(up, self).__init__()
         # Initialize convolutional layers.
         self.conv1 = nn.Conv2d(inChannels,  outChannels, 3, stride=1, padding=1)
         # (2 * outChannels) is used for accommodating skip connection.
         self.conv2 = nn.Conv2d(2 * outChannels, outChannels, 3, stride=1, padding=1)
-           
+
     def forward(self, x, skpCn):
         """
         Returns output tensor after passing input `x` to the neural network
@@ -140,7 +138,7 @@ class UNet(nn.Module):
     """
     A class for creating UNet like architecture as specified by the
     Super SloMo paper.
-    
+
     ...
 
     Methods
@@ -161,7 +159,7 @@ class UNet(nn.Module):
                 number of output channels for the UNet.
         """
 
-        
+
         super(UNet, self).__init__()
         # Initialize neural network blocks.
         self.conv1 = nn.Conv2d(inChannels, 32, 7, stride=1, padding=3)
@@ -177,7 +175,7 @@ class UNet(nn.Module):
         self.up4   = up(128, 64)
         self.up5   = up(64, 32)
         self.conv3 = nn.Conv2d(32, outChannels, 3, stride=1, padding=1)
-        
+
     def forward(self, x):
         """
         Returns output tensor after passing input `x` to the neural network.
@@ -216,7 +214,7 @@ class backWarp(nn.Module):
 
     This is used for backwarping to an image:
 
-    Given optical flow from frame I0 to I1 --> F_0_1 and frame I1, 
+    Given optical flow from frame I0 to I1 --> F_0_1 and frame I1,
     it generates I0 <-- backwarp(F_0_1, I1).
 
     ...
@@ -238,7 +236,7 @@ class backWarp(nn.Module):
             H : int
                 height of the image.
             device : device
-                computation device (cpu/cuda). 
+                computation device (cpu/cuda).
         """
 
 
@@ -249,7 +247,7 @@ class backWarp(nn.Module):
         self.H = H
         self.gridX = torch.tensor(gridX, requires_grad=False, device=device)
         self.gridY = torch.tensor(gridY, requires_grad=False, device=device)
-        
+
     def forward(self, img, flow):
         """
         Returns output tensor after passing input `img` and `flow` to the backwarping
@@ -286,7 +284,7 @@ class backWarp(nn.Module):
 
 
 # Creating an array of `t` values for the 7 intermediate frames between
-# reference frames I0 and I1. 
+# reference frames I0 and I1.
 
 def getFlowCoeff (indices, device: torch.device):
     """
@@ -308,7 +306,7 @@ def getFlowCoeff (indices, device: torch.device):
             indices corresponding to the intermediate frame positions
             of all samples in the batch.
         device : device
-                computation device (cpu/cuda). 
+                computation device (cpu/cuda).
 
     Returns
     -------
@@ -328,7 +326,7 @@ def getFlowCoeff (indices, device: torch.device):
 
 def getWarpCoeff (indices, device: torch.device):
     """
-    Gets coefficients used for calculating final intermediate 
+    Gets coefficients used for calculating final intermediate
     frame `It_gen` from backwarped images using flows F_t_0 and F_t_1.
 
     It_gen = (C0 x V_t_0 x g_I_0_F_t_0 + C1 x V_t_1 x g_I_1_F_t_1) / (C0 x V_t_0 + C1 x V_t_1)
@@ -346,7 +344,7 @@ def getWarpCoeff (indices, device: torch.device):
             indices corresponding to the intermediate frame positions
             of all samples in the batch.
         device : device
-                computation device (cpu/cuda). 
+                computation device (cpu/cuda).
 
     Returns
     -------
