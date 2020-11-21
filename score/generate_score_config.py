@@ -50,7 +50,7 @@ import yaml
 
 def generate_bench_cfg(spec, norm, target):
     cfg = {
-        'target': target,
+        'target': float(target),
         'benchmarks': {},
     }
     benchmark_names = [b['name'] for b in norm['benchmarks']]
