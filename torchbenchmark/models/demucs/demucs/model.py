@@ -59,7 +59,7 @@ def downsample(x, stride):
     return x[:, :, ::stride]
 
 
-class Demucs(th.jit.ScriptModule):
+class Demucs(th.nn.Module):
     __constants__ = ["stride"]
 
     @capture_init

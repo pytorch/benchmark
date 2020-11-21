@@ -103,7 +103,7 @@ class LRPolicyScheduler(_LRScheduler):
         self.num_decay_steps = num_decay_steps
 
         if self.decay_start_step < self.num_warmup_steps:
-            sys.exit("Learning rate warmup must finish before the decay starts")
+            raise Exception("Learning rate warmup must finish before the decay starts")
 
         super(LRPolicyScheduler, self).__init__(optimizer)
 
@@ -192,7 +192,7 @@ class DLRM_Net(nn.Module):
                 EE.embs.weight.data = torch.tensor(W, requires_grad=True)
 
             else:
-                EE = nn.EmbeddingBag(n, m, mode="sum", sparse=True)
+                EE = nn.EmbeddingBag(int(n), int(m), mode="sum", sparse=True)
 
                 # initialize embeddings
                 # nn.init.uniform_(EE.weight, a=-np.sqrt(1 / n), b=np.sqrt(1 / n))
@@ -325,7 +325,7 @@ class DLRM_Net(nn.Module):
             # concatenation features (into a row vector)
             R = torch.cat([x] + ly, dim=1)
         else:
-            sys.exit(
+            raise Exception(
                 "ERROR: --arch-interaction-op="
                 + self.arch_interaction_op
                 + " is not supported"
@@ -399,7 +399,7 @@ class DLRM_Net(nn.Module):
         dense_x = scatter(dense_x, device_ids, dim=0)
         # distribute sparse features (model parallelism)
         if (len(self.emb_l) != len(lS_o)) or (len(self.emb_l) != len(lS_i)):
-            sys.exit("ERROR: corrupted model input detected in parallel_forward call")
+            raise Exception("ERROR: corrupted model input detected in parallel_forward call")
 
         t_list = []
         i_list = []
@@ -433,7 +433,7 @@ class DLRM_Net(nn.Module):
         # Therefore, matching the distribution of output of bottom mlp, so that both
         # could be used for subsequent interactions on each device.
         if len(self.emb_l) != len(ly):
-            sys.exit("ERROR: corrupted intermediate result in parallel_forward call")
+            raise Exception("ERROR: corrupted intermediate result in parallel_forward call")
 
         t_list = []
         for k, _ in enumerate(self.emb_l):
@@ -501,7 +501,6 @@ def dash_separated_floats(value):
 
 if __name__ == "__main__":
     ### import packages ###
-    import sys
     import argparse
 
     ### parse arguments ###
@@ -661,7 +660,7 @@ if __name__ == "__main__":
     elif args.arch_interaction_op == "cat":
         num_int = num_fea * m_den_out
     else:
-        sys.exit(
+        raise Exception(
             "ERROR: --arch-interaction-op="
             + args.arch_interaction_op
             + " is not supported"
@@ -671,7 +670,7 @@ if __name__ == "__main__":
 
     # sanity check: feature sizes and mlp dimensions must match
     if m_den != ln_bot[0]:
-        sys.exit(
+        raise Exception(
             "ERROR: arch-dense-feature-size "
             + str(m_den)
             + " does not match first dim of bottom mlp "
@@ -679,7 +678,7 @@ if __name__ == "__main__":
         )
     if args.qr_flag:
         if args.qr_operation == "concat" and 2 * m_spa != m_den_out:
-            sys.exit(
+            raise Exception(
                 "ERROR: 2 arch-sparse-feature-size "
                 + str(2 * m_spa)
                 + " does not match last dim of bottom mlp "
@@ -687,7 +686,7 @@ if __name__ == "__main__":
                 + " (note that the last dim of bottom mlp must be 2x the embedding dim)"
             )
         if args.qr_operation != "concat" and m_spa != m_den_out:
-            sys.exit(
+            raise Exception(
                 "ERROR: arch-sparse-feature-size "
                 + str(m_spa)
                 + " does not match last dim of bottom mlp "
@@ -695,14 +694,14 @@ if __name__ == "__main__":
             )
     else:
         if m_spa != m_den_out:
-            sys.exit(
+            raise Exception(
                 "ERROR: arch-sparse-feature-size "
                 + str(m_spa)
                 + " does not match last dim of bottom mlp "
                 + str(m_den_out)
             )
     if num_int != ln_top[0]:
-        sys.exit(
+        raise Exception(
             "ERROR: # of feature interactions "
             + str(num_int)
             + " does not match first dimension of top mlp "
@@ -819,7 +818,7 @@ if __name__ == "__main__":
         loss_ws = torch.tensor(np.fromstring(args.loss_weights, dtype=float, sep="-"))
         loss_fn = torch.nn.BCELoss(reduction="none")
     else:
-        sys.exit("ERROR: --loss-function=" + args.loss_function + " is not supported")
+        raise Exception("ERROR: --loss-function=" + args.loss_function + " is not supported")
 
     if not args.inference_only:
         # specify the optimizer algorithm
@@ -1244,7 +1243,7 @@ if __name__ == "__main__":
 
     # plot compute graph
     if args.plot_compute_graph:
-        sys.exit(
+        raise Exception(
             "ERROR: Please install pytorchviz package in order to use the"
             + " visualization. Then, uncomment its import above as well as"
             + " three lines below and run the code again."

@@ -1,7 +1,8 @@
 import torch.nn.functional as F
 
-from .utils import *
-
+# from .utils import *
+import torch.nn as nn
+import torch
 
 def make_divisible(v, divisor):
     # Function ensures all layers have a channel number that is divisible by 8
