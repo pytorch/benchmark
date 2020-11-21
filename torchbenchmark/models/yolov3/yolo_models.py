@@ -1,6 +1,7 @@
 from .yolo_utils.google_utils import *
 from .yolo_utils.layers import *
 from .yolo_utils.parse_config import *
+from .yolo_utils import torch_utils
 
 ONNX_EXPORT = False
 

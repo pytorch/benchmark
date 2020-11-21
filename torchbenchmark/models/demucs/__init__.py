@@ -9,10 +9,8 @@ from .demucs.parser import get_name, get_parser
 from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
 from .demucs.utils import capture_init, center_trim
 
-
 torch.manual_seed(1337)
 random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
@@ -37,8 +35,9 @@ class Model:
         self.args = self.parser.parse_args([])
         args = self.args
         self.model = Demucs(channels=32)  # Change the channel to 32 to fit 16-GB GPU
-        self.dmodel = self.model
         self.model.to(device)
+        if jit:
+            self.model =  torch.jit.script(self.model)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
 
         if 1:
