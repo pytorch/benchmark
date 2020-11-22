@@ -1,4 +1,4 @@
-from    omniglot import Omniglot
+from    .omniglot import Omniglot
 import  torchvision.transforms as transforms
 from    PIL import Image
 import  os.path

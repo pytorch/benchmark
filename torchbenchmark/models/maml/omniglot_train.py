@@ -1,9 +1,9 @@
 import  torch, os
 import  numpy as np
-from    omniglotNShot import OmniglotNShot
+from    .omniglotNShot import OmniglotNShot
 import  argparse
 
-from    meta import Meta
+from    .meta import Meta
 import time
 
 def main(args):
@@ -52,8 +52,10 @@ def main(args):
         x_spt, y_spt, x_qry, y_qry = torch.from_numpy(x_spt).to(device), torch.from_numpy(y_spt).to(device), \
                                      torch.from_numpy(x_qry).to(device), torch.from_numpy(y_qry).to(device)
         # set traning=True to update running_mean, running_variance, bn_weights, bn_bias
+        import time
+        begin = time.time()
         accs = maml(x_spt, y_spt, x_qry, y_qry)
-
+        print(time.time()-begin)
         if step % 50 == 0:
             print('step:', step, '\ttraining acc:', accs)
 
@@ -67,7 +69,11 @@ def main(args):
 
                 # split to single task each time
                 for x_spt_one, y_spt_one, x_qry_one, y_qry_one in zip(x_spt, y_spt, x_qry, y_qry):
+                    begin = time.time()
+
                     test_acc = maml.finetunning(x_spt_one, y_spt_one, x_qry_one, y_qry_one)
+                    print(time.time()-begin)
+
                     accs.append( test_acc )
 
             # [b, update_step+1]

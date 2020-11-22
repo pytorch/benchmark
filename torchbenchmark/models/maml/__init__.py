@@ -20,7 +20,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 class Model:
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit
         root = str(Path(__file__).parent)
@@ -81,5 +81,10 @@ if __name__ == '__main__':
     m = Model(device='cpu', jit=False)
     module, example_inputs = m.get_module()
     module(*example_inputs)
+    import time
+    begin = time.time()
     m.train(niter=1)
+    print(time.time() - begin)
+    begin = time.time()
     m.eval(niter=1)
+    print(time.time() - begin)
