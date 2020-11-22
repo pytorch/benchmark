@@ -123,6 +123,6 @@ class Model:
 
 
 if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
+    m = Model(device='cpu', jit=False)
     m.train(niter=1)
     m.eval(niter=1)
