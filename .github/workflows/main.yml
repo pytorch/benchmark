@@ -1,0 +1,30 @@
+name: pytorch-nightly-benchmarking
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *' # run at 8 AM UTC
+
+jobs:
+  build-docker:
+    runs-on: [self-hosted, bm-ec2]
+    steps:
+      - uses: actions/checkout@v2
+      - run: bash ./.github/scripts/build-docker.sh
+  build-benchmark-docker:
+    needs: build-docker
+    runs-on: [self-hosted, bm-ec2]
+    steps:
+      - run: bash ./.github/scripts/build-benchmark-docker.sh
+  run-benchmark:
+    needs: build-benchmark-docker
+    runs-on: [self-hosted, bm-ec2]
+    timeout-minutes: 1440
+    steps:
+      - run: bash ./.github/scripts/run-docker.sh /runner/.github/scripts/run-benchmark.sh
+  upload-scribe:
+    needs: run-benchmark
+    runs-on: [self-hosted, bm-ec2]
+    env:
+      SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+    steps:
+      - run: bash ./.github/scripts/run-docker.sh /runner/.github/scripts/upload-scribe.sh
