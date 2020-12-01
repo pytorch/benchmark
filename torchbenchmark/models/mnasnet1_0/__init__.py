@@ -7,7 +7,7 @@ class Model:
     def __init__(self, device="cpu", jit=False):
         self.device = device
         self.jit = jit
-        self.model = models.resnet18()
+        self.model = models.mnasnet1_0()
         if self.jit:
             self.model = torch.jit.script(self.model)
         self.example_inputs = (torch.randn((32, 3, 224, 224)),)

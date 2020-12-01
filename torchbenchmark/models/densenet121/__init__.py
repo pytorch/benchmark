@@ -1,17 +1,16 @@
+
 import torch
 import torch.optim as optim
 import torchvision.models as models
 
 class Model:
     def __init__(self, device="cpu", jit=False):
-        """ Required """
         self.device = device
         self.jit = jit
         self.model = models.densenet121()
         if self.jit:
             self.model = torch.jit.script(self.model)
-        input_size = (32, 3, 224, 224)
-        self.example_inputs = (torch.randn(input_size),)
+        self.example_inputs = (torch.randn((32, 3, 224, 224)),)
 
     def get_module(self):
         return self.model, self.example_inputs
@@ -34,8 +33,9 @@ class Model:
 
 
 if __name__ == "__main__":
-    m = Model(device="cuda", jit=False)
+    m = Model(device="cuda", jit=True)
     module, example_inputs = m.get_module()
-    module(example_inputs)
+    module(*example_inputs)
     m.train(niter=1)
     m.eval(niter=1)
+    
