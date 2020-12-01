@@ -11,7 +11,7 @@ class Model:
         if self.jit:
             self.model = torch.jit.script(self.model)
         input_size = (32, 3, 224, 224)
-        self.example_inputs = torch.randn(input_size)
+        self.example_inputs = (torch.randn(input_size),)
 
     def get_module(self):
         return self.model, self.example_inputs
@@ -21,14 +21,14 @@ class Model:
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
             optimizer.zero_grad()
-            pred = self.model(self.example_inputs)
+            pred = self.model(*self.example_inputs)
             y = torch.empty(pred.shape[0], dtype=torch.long).random_(pred.shape[1])
             loss(pred, y).backward()
             optimizer.step()
 
     def eval(self, niter=1):
         model, example_inputs = self.get_module()
-        example_inputs = example_inputs[0].unsqueeze(0)
+        example_inputs = example_inputs[0][0].unsqueeze(0)
         for i in range(niter):
             model(example_inputs)
 
