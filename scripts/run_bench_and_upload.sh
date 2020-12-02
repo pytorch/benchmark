@@ -51,6 +51,6 @@ then
     git add ${SUBDIR}/latest ${SUBDIR}/history
     git commit -m"Add ${BENCHMARK_FILENAME} - to reproduce results, see pytorch and machine versions in .json"
     git push origin master
+    popd
 fi
 
-popd
