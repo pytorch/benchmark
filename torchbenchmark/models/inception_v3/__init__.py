@@ -11,7 +11,7 @@ class Model:
         self.model = models.inception_v3()
         if self.jit:
             self.model = torch.jit.script(self.model)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)),)
+        self.example_inputs = (torch.randn((32, 3, 299, 299)),)
 
     def get_module(self):
         return self.model, self.example_inputs

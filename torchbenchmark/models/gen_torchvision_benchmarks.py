@@ -3,14 +3,12 @@ from pathlib import Path
 
 class_models = ['alexnet', 'vgg16', 'resnet18', 'resnet50', 'squeezenet1_1', 'densenet121', 'inception_v3', 'mobilenet_v2', 'shufflenet_v2_x1_0', 'resnext50_32x4d', 'mnasnet1_0']
 for class_model in class_models:
-
     folder = Path(class_model)
     if not os.path.isdir(folder):
         os.makedirs(folder)
-    model = class_model
+    input_shape = (32, 3, 224, 224)
     if class_model == 'inception_v3': # Exception among imagenet models
         input_shape = (32, 3, 299, 299)
-    input_shape = (32, 3, 224, 224)
     example_inputs = f'(torch.randn({input_shape}),)'
     eval_inputs = 'example_inputs[0][0].unsqueeze(0)'
     init_program = f"""
@@ -23,7 +21,7 @@ class Model:
     def __init__(self, device="cpu", jit=False):
         self.device = device
         self.jit = jit
-        self.model = models.{model}()
+        self.model = models.{class_model}()
         if self.jit:
             self.model = torch.jit.script(self.model)
         self.example_inputs = {example_inputs}
