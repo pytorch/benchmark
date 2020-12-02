@@ -8,7 +8,7 @@ for class_model in class_models:
     if not os.path.isdir(folder):
         os.makedirs(folder)
     model = class_model
-    if class_models == 'inception_v3':
+    if class_model == 'inception_v3': # Exception among imagenet models
         input_shape = (32, 3, 299, 299)
     input_shape = (32, 3, 224, 224)
     example_inputs = f'(torch.randn({input_shape}),)'
