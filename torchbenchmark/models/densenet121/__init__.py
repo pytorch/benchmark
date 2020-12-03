@@ -32,11 +32,9 @@ class Model:
         for i in range(niter):
             model(example_inputs)
 
-
 if __name__ == "__main__":
     m = Model(device="cuda", jit=True)
     module, example_inputs = m.get_module()
     module(*example_inputs)
     m.train(niter=1)
     m.eval(niter=1)
-    
