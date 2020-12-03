@@ -17,6 +17,7 @@ class Model:
         return self.model, self.example_inputs
 
     def train(self, niter=3):
+        self.model.train()
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
@@ -27,6 +28,7 @@ class Model:
             optimizer.step()
 
     def eval(self, niter=1):
+        self.model.eval()
         model, example_inputs = self.get_module()
         example_inputs = example_inputs[0][0].unsqueeze(0)
         for i in range(niter):
