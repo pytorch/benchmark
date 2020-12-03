@@ -7,17 +7,16 @@ CONFIG_VER=v0
 
 # Run Parameters
 RUN_SCRIPT=$1
-TODAY=$(date +"%Y%m%d")
 CONFIG_DIR=${PWD}/.github/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
-DATA_DIR=${HOME}/benchmark-results/${TODAY}_gh${GITHUB_RUN_ID}
+DATA_DIR=${HOME}/benchmark-results/gh${GITHUB_RUN_ID}
 
 # Load environment variables
 set -a;
 source ${CONFIG_ENV}
 set +a;
 
-# Use the latest pytorch image
+# Use the latest pytorch-benchmark image
 TORCH_IMAGE=$(docker images | grep "pytorch-benchmark" | sed -n '1 p')
 TORCH_IMAGE_ID=$(echo $TORCH_IMAGE | tr -s ' ' | cut -d' ' -f3)
 
@@ -44,4 +43,4 @@ docker run \
        $TORCH_IMAGE_ID \
        bash ${RUN_SCRIPT}
 
-echo "Benchmark finished successfully. Output data dir is benchmark-results/${TODAY}_gh${GITHUB_RUN_ID}."
+echo "Benchmark finished successfully. Output data dir is benchmark-results/gh${GITHUB_RUN_ID}."
