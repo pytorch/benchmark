@@ -19,6 +19,8 @@ fi
 # Build the nightly docker
 pushd $PYTORCH_SRC
 
+# Clear docker cache
+docker system prune -f
 make -f docker.Makefile PYTHON_VERSION=3.7 \
      CUDA_VERSION=10.2 CUDNN_VERSION=7 \
      INSTALL_CHANNEL=pytorch-nightly BUILD_TYPE=official devel-image
