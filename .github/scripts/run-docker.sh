@@ -10,17 +10,16 @@ RUN_SCRIPT=$1
 CONFIG_DIR=${PWD}/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
 DATA_DIR=${HOME}/benchmark-results/gh${GITHUB_RUN_ID}
+# Use the latest pytorch-benchmark image
+TORCH_IMAGE_ID=torchbench/pytorch-benchmark:latest
 
 # Load environment variables
 set -a;
 source ${CONFIG_ENV}
 set +a;
 
-# Use the latest pytorch-benchmark image
-TORCH_IMAGE=$(docker images | grep "pytorch-benchmark" | sed -n '1 p')
-TORCH_IMAGE_ID=$(echo $TORCH_IMAGE | tr -s ' ' | cut -d' ' -f3)
-
-echo "Running pytorch-benchmark image ${TORCH_IMAGE_ID}, config ${CONFIG_VER}"
+TORCHBENCH_IMAGE=$(cat $DATA_DIR/summary.txt |head -n 2)
+echo "Running pytorch-benchmark image ${TORCHBENCH_IMAGE}, config version ${CONFIG_VER}"
 
 mkdir -p ${DATA_DIR}
 
