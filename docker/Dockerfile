@@ -1,4 +1,4 @@
-FROM pytorch
+FROM torchbench/pytorch:latest
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV BENCHMARK_REPO https://github.com/pytorch/benchmark
