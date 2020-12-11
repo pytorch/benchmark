@@ -6,4 +6,5 @@ jobs:
   run-sweep:
     runs-on: [self-hosted, bm-ec2]
     steps:
+      - uses: actions/checkout@v2
       - run: bash ./.github/scripts/run-sweep.sh
