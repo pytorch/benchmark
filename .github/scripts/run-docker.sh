@@ -9,9 +9,13 @@ CONFIG_VER=v0
 RUN_SCRIPT=$1
 CONFIG_DIR=${PWD}/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
-DATA_DIR=${HOME}/benchmark-results/gh${GITHUB_RUN_ID}
 # Use the latest pytorch-benchmark image
 TORCH_IMAGE_ID=torchbench/pytorch-benchmark:latest
+if [ -z "$2" ]; then
+    DATA_DIR=${HOME}/benchmark-results/gh${GITHUB_RUN_ID}
+else
+    DATA_DIR=$2
+fi
 
 # Load environment variables
 set -a;
