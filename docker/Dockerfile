@@ -17,6 +17,7 @@ RUN apt-get update
 RUN apt-get install git jq ffmpeg libsm6 libxext6 -y
 
 # Install pytorch, torchvision, and torchtext nightly with conda
+RUN /opt/conda/bin/conda uninstall torch torchvision torchtext
 RUN /opt/conda/bin/conda install -c "${INSTALL_CHANNEL}" -y python=${PYTHON_VERSION} \
     pytorch torchvision torchtext "cudatoolkit=${CUDA_VERSION}" && \
     /opt/conda/bin/conda clean -ya
