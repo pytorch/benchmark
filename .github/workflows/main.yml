@@ -5,15 +5,11 @@ on:
     - cron: '0 8 * * *' # run at 8 AM UTC
 
 jobs:
-  build-docker:
-    runs-on: [self-hosted, bm-ec2]
-    steps:
-      - uses: actions/checkout@v2
-      - run: bash ./.github/scripts/build-docker.sh
   build-benchmark-docker:
     needs: build-docker
     runs-on: [self-hosted, bm-ec2]
     steps:
+      - uses: actions/checkout@v2
       - run: bash ./.github/scripts/build-benchmark-docker.sh
   run-benchmark:
     needs: build-benchmark-docker
