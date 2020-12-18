@@ -8,12 +8,12 @@ RUN /opt/conda/bin/conda clean -tipsy && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
 
-RUN /opt/conda/bin/conda uninstall --force pytorch torchvision torchtext
-RUN /opt/conda/bin/conda install -c pytorch-nightly pytorch torchvision torchtext
+RUN /opt/conda/bin/conda uninstall --force torch torchvision torchtext
+RUN /opt/conda/bin/conda install -c pytorch-nightly torch torchvision torchtext
 
 # Need to add as per https://stackoverflow.com/questions/55313610
 RUN apt-get update
 RUN apt-get install git jq ffmpeg libsm6 libxext6 -y
 
-RUN git clone ${BENCHMARK_REPO} /workspace/benchmark
+RUN git clone -b 0.1 --single-branch ${BENCHMARK_REPO} /workspace/benchmark
 RUN cd /workspace/benchmark; python install.py
