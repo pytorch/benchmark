@@ -13,7 +13,7 @@ CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
 TORCH_IMAGE_ID=torchbench/pytorch-benchmark:latest
 NO_TURBO_FILE="/sys/devices/system/cpu/intel_pstate/no_turbo"
 if [ -z "$2" ]; then
-    DATA_DIR=${HOME}/benchmark-results/gh${GITHUB_RUN_ID}
+    DATA_DIR=${HOME}/benchmark-results-v0.1/gh${GITHUB_RUN_ID}
 else
     DATA_DIR=$2
 fi
@@ -48,4 +48,4 @@ docker run \
        $TORCH_IMAGE_ID \
        bash ${RUN_SCRIPT}
 
-echo "Benchmark finished successfully. Output data dir is benchmark-results/gh${GITHUB_RUN_ID}."
+echo "Benchmark finished successfully. Output data dir is benchmark-results-v0.1/gh${GITHUB_RUN_ID}."
