@@ -8,7 +8,7 @@ RUN /opt/conda/bin/conda clean -tipsy && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
 
-RUN /opt/conda/bin/conda uninstall --force torch torchvision torchtext
+RUN /opt/conda/bin/conda uninstall --force pytorch torchvision torchtext
 RUN /opt/conda/bin/conda install -c pytorch-nightly pytorch torchvision torchtext
 
 # Need to add as per https://stackoverflow.com/questions/55313610
