@@ -14,11 +14,11 @@ jobs:
     runs-on: [self-hosted, bm-ec2]
     timeout-minutes: 1440
     steps:
-      - run: bash ./.github/scripts/run-docker.sh /runner/.github/scripts/run-benchmark.sh
+      - run: bash ./.github/scripts/run-docker.sh /workspace/benchmark/.github/scripts/run-benchmark.sh
   upload-scribe:
     needs: run-benchmark
     runs-on: [self-hosted, bm-ec2]
     env:
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
     steps:
-      - run: bash ./.github/scripts/run-docker.sh /runner/.github/scripts/upload-scribe.sh
+      - run: bash ./.github/scripts/run-docker.sh /workspace/benchmark/.github/scripts/upload-scribe.sh
