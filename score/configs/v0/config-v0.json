@@ -1,0 +1,209 @@
+benchmarks:
+  test_eval[BERT_pytorch-cpu-eager]:
+    norm: 0.06524784317007289
+    weight: 0.008333333333333333
+  test_eval[BERT_pytorch-cpu-jit]:
+    norm: 0.05946713422890752
+    weight: 0.008333333333333333
+  test_eval[BERT_pytorch-cuda-eager]:
+    norm: 0.016467521566378533
+    weight: 0.008333333333333333
+  test_eval[BERT_pytorch-cuda-jit]:
+    norm: 0.011918723785921055
+    weight: 0.008333333333333333
+  test_eval[LearningToPaint-cpu-eager]:
+    norm: 0.016371976273755234
+    weight: 0.025
+  test_eval[LearningToPaint-cpu-jit]:
+    norm: 0.016168027761436644
+    weight: 0.025
+  test_eval[LearningToPaint-cuda-eager]:
+    norm: 0.0020313551820336133
+    weight: 0.025
+  test_eval[LearningToPaint-cuda-jit]:
+    norm: 0.002039040769900448
+    weight: 0.025
+  test_eval[attention_is_all_you_nee...-cpu-eager]:
+    norm: 0.38397554683033375
+    weight: 0.008333333333333333
+  test_eval[attention_is_all_you_nee...-cpu-jit]:
+    norm: 0.3719744472182356
+    weight: 0.008333333333333333
+  test_eval[attention_is_all_you_nee...-cuda-eager]:
+    norm: 0.13747212503803893
+    weight: 0.008333333333333333
+  test_eval[attention_is_all_you_nee...-cuda-jit]:
+    norm: 0.1360242504859343
+    weight: 0.008333333333333333
+  test_eval[demucs-cpu-eager]:
+    norm: 0.12430916004814208
+    weight: 0.008333333333333333
+  test_eval[demucs-cpu-jit]:
+    norm: 0.12390620468650013
+    weight: 0.008333333333333333
+  test_eval[demucs-cuda-eager]:
+    norm: 0.06248024456435815
+    weight: 0.008333333333333333
+  test_eval[demucs-cuda-jit]:
+    norm: 0.062399500038009134
+    weight: 0.008333333333333333
+  test_eval[dlrm-cpu-eager]:
+    norm: 0.0007330011223282
+    weight: 0.05
+  test_eval[dlrm-cuda-eager]:
+    norm: 0.0007833193059840047
+    weight: 0.05
+  test_eval[fastNLP-cpu-eager]:
+    norm: 0.0003254156021861695
+    weight: 0.008333333333333333
+  test_eval[fastNLP-cpu-jit]:
+    norm: 0.00029742424015663705
+    weight: 0.008333333333333333
+  test_eval[fastNLP-cuda-eager]:
+    norm: 0.00014646514801848042
+    weight: 0.008333333333333333
+  test_eval[fastNLP-cuda-jit]:
+    norm: 0.0001298300159275003
+    weight: 0.008333333333333333
+  test_eval[moco-cuda-eager]:
+    norm: 0.41514113284647464
+    weight: 0.016666666666666666
+  test_eval[moco-cuda-jit]:
+    norm: 0.40663610365008934
+    weight: 0.016666666666666666
+  test_eval[pytorch_mobilenet_v3-cpu-eager]:
+    norm: 0.037187335547059774
+    weight: 0.008333333333333333
+  test_eval[pytorch_mobilenet_v3-cpu-jit]:
+    norm: 0.03400175709587832
+    weight: 0.008333333333333333
+  test_eval[pytorch_mobilenet_v3-cuda-eager]:
+    norm: 0.03722701307075719
+    weight: 0.008333333333333333
+  test_eval[pytorch_mobilenet_v3-cuda-jit]:
+    norm: 0.034008854231797156
+    weight: 0.008333333333333333
+  test_eval[pytorch_struct-cpu-eager]:
+    norm: 0.0027899790930102546
+    weight: 0.008333333333333333
+  test_eval[pytorch_struct-cpu-jit]:
+    norm: 0.0025013175035591226
+    weight: 0.008333333333333333
+  test_eval[pytorch_struct-cuda-eager]:
+    norm: 0.0011600479483604431
+    weight: 0.008333333333333333
+  test_eval[pytorch_struct-cuda-jit]:
+    norm: 0.000901374162032052
+    weight: 0.008333333333333333
+  test_eval[yolov3-cpu-eager]:
+    norm: 0.5239714803756215
+    weight: 0.02222222222222222
+  test_eval[yolov3-cuda-eager]:
+    norm: 0.4387891161371954
+    weight: 0.02222222222222222
+  test_train[BERT_pytorch-cpu-eager]:
+    norm: 0.2673388356459327
+    weight: 0.008333333333333333
+  test_train[BERT_pytorch-cpu-jit]:
+    norm: 0.26020356910303233
+    weight: 0.008333333333333333
+  test_train[BERT_pytorch-cuda-eager]:
+    norm: 0.06873117719078436
+    weight: 0.008333333333333333
+  test_train[BERT_pytorch-cuda-jit]:
+    norm: 0.06409363846760244
+    weight: 0.008333333333333333
+  test_train[Background_Matting-cuda-eager]:
+    norm: 3.2375511662801726
+    weight: 0.03333333333333333
+  test_train[Background_Matting-cuda-jit]:
+    norm: 3.1401835000142455
+    weight: 0.03333333333333333
+  test_train[LearningToPaint-cpu-eager]:
+    norm: 0.06435760752065108
+    weight: 0.025
+  test_train[LearningToPaint-cpu-jit]:
+    norm: 0.06391987743554636
+    weight: 0.025
+  test_train[LearningToPaint-cuda-eager]:
+    norm: 0.012984445745892385
+    weight: 0.025
+  test_train[LearningToPaint-cuda-jit]:
+    norm: 0.012938288729512007
+    weight: 0.025
+  test_train[attention_is_all_you_nee...-cpu-eager]:
+    norm: 1.534062866307795
+    weight: 0.008333333333333333
+  test_train[attention_is_all_you_nee...-cpu-jit]:
+    norm: 1.5008701110607945
+    weight: 0.008333333333333333
+  test_train[attention_is_all_you_nee...-cuda-eager]:
+    norm: 0.4003811914124526
+    weight: 0.008333333333333333
+  test_train[attention_is_all_you_nee...-cuda-jit]:
+    norm: 0.3960590936942026
+    weight: 0.008333333333333333
+  test_train[demucs-cpu-eager]:
+    norm: 0.5079498262377455
+    weight: 0.008333333333333333
+  test_train[demucs-cpu-jit]:
+    norm: 0.4847838448593393
+    weight: 0.008333333333333333
+  test_train[demucs-cuda-eager]:
+    norm: 0.13385433438234032
+    weight: 0.008333333333333333
+  test_train[demucs-cuda-jit]:
+    norm: 0.13377458753529936
+    weight: 0.008333333333333333
+  test_train[dlrm-cpu-eager]:
+    norm: 0.0017144845532855453
+    weight: 0.05
+  test_train[dlrm-cuda-eager]:
+    norm: 0.002243253945507851
+    weight: 0.05
+  test_train[fastNLP-cpu-eager]:
+    norm: 0.003055774698101508
+    weight: 0.008333333333333333
+  test_train[fastNLP-cpu-jit]:
+    norm: 0.0030127215873820327
+    weight: 0.008333333333333333
+  test_train[fastNLP-cuda-eager]:
+    norm: 0.0014317966151229167
+    weight: 0.008333333333333333
+  test_train[fastNLP-cuda-jit]:
+    norm: 0.0014074026242601805
+    weight: 0.008333333333333333
+  test_train[moco-cuda-eager]:
+    norm: 0.8577832871465944
+    weight: 0.016666666666666666
+  test_train[moco-cuda-jit]:
+    norm: 0.8417287322808988
+    weight: 0.016666666666666666
+  test_train[pytorch_mobilenet_v3-cpu-eager]:
+    norm: 0.3875341592472978
+    weight: 0.008333333333333333
+  test_train[pytorch_mobilenet_v3-cpu-jit]:
+    norm: 0.3767234008410014
+    weight: 0.008333333333333333
+  test_train[pytorch_mobilenet_v3-cuda-eager]:
+    norm: 0.38706094995141027
+    weight: 0.008333333333333333
+  test_train[pytorch_mobilenet_v3-cuda-jit]:
+    norm: 0.37686712394934146
+    weight: 0.008333333333333333
+  test_train[pytorch_struct-cpu-eager]:
+    norm: 1.6595029419171623
+    weight: 0.008333333333333333
+  test_train[pytorch_struct-cpu-jit]:
+    norm: 1.777217530726921
+    weight: 0.008333333333333333
+  test_train[pytorch_struct-cuda-eager]:
+    norm: 0.212453852314502
+    weight: 0.008333333333333333
+  test_train[pytorch_struct-cuda-jit]:
+    norm: 0.21210659145144745
+    weight: 0.008333333333333333
+  test_train[yolov3-cuda-eager]:
+    norm: 9.4928129260079
+    weight: 0.02222222222222222
+target: 1000.0
