@@ -1,4 +1,4 @@
-name: pytorch-nightly-benchmarking
+name: pytorch-nightly-benchmarking-v0.1
 on:
   workflow_dispatch:
   schedule:
