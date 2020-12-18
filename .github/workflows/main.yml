@@ -8,6 +8,9 @@ jobs:
   build-benchmark-docker:
     runs-on: [self-hosted, bm-ec2]
     steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: 0.1
       - run: bash ./.github/scripts/build-benchmark-docker.sh
   run-benchmark:
     needs: build-benchmark-docker
