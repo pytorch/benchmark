@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -euo pipefail
+set -eo pipefail
 
 # Version of the config
 CONFIG_VER=v0
