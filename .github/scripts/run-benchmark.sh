@@ -7,13 +7,7 @@ DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 
-NO_TURBO_FILE="/sys/devices/system/cpu/intel_pstate/no_turbo"
-
 conda init bash; conda run /bin/bash
-
-if [[ -e ${NO_TURBO_FILE} ]]; then
-    sh -c "echo 1 > ${NO_TURBO_FILE}"
-fi
 
 pushd /workspace/benchmark
 
