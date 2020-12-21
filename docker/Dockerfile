@@ -20,7 +20,10 @@ RUN git clone -b 0.1 --single-branch ${BENCHMARK_REPO} /workspace/benchmark
 # use local multi30k training data to workaround the connection failure
 COPY multi30k.tar.gz /workspace/benchmark/torchbenchmark/models/attention_is_all_you_need_pytorch/
 RUN cd /workspace/benchmark/torchbenchmark/models/attention_is_all_you_need_pytorch/ && \
-    mkdir -p .data && \
-    tar xzvf multi30k.tar.gz -C .data --strip 1
+    mkdir -p .data/multi30k && \
+    tar xzvf multi30k.tar.gz -C .data --strip 1 && \
+    tar xzvf .data/training.tar.gz -C .data/multi30k && \
+    tar xzvf .data/validation.tar.gz -C .data/multi30k && \
+    tar xzvf .data/mmt_task1_test2016.tar.gz -C .data/multi30k
 
 RUN cd /workspace/benchmark; python install.py
