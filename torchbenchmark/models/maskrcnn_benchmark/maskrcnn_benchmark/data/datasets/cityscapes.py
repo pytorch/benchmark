@@ -28,7 +28,7 @@ class CityScapesDataset(AbstractDataset):
         mini=None,
     ):
         """
-        Arguments:
+        Args:
             img_dir: /path/to/leftImg8bit/      has to contain {train,val,test}
             ann_dir: /path/to/gtFine/           has to contain {train,val,test}
             split: "train" or "val" or "test"

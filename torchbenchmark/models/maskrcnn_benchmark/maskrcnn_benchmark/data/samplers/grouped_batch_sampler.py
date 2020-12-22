@@ -13,7 +13,7 @@ class GroupedBatchSampler(BatchSampler):
     It also tries to provide mini-batches which follows an ordering which is
     as close as possible to the ordering from the original sampler.
 
-    Arguments:
+    Args:
         sampler (Sampler): Base sampler.
         batch_size (int): Size of mini-batch.
         drop_uneven (bool): If ``True``, the sampler will drop the batches whose

@@ -32,7 +32,7 @@ class GeneralizedRCNN(nn.Module):
 
     def forward(self, images, targets=None):
         """
-        Arguments:
+        Args:
             images (list[Tensor] or ImageList): images to be processed
             targets (list[BoxList]): ground-truth boxes present in the image (optional)
 

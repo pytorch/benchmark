@@ -14,7 +14,7 @@ class ImageList(object):
 
     def __init__(self, tensors, image_sizes):
         """
-        Arguments:
+        Args:
             tensors (tensor)
             image_sizes (list[tuple[int, int]])
         """

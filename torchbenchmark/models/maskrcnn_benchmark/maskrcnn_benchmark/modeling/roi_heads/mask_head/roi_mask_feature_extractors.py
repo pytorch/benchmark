@@ -21,7 +21,7 @@ class MaskRCNNFPNFeatureExtractor(nn.Module):
 
     def __init__(self, cfg, in_channels):
         """
-        Arguments:
+        Args:
             num_classes (int): number of output classes
             input_size (int): number of channels of the input once it's flattened
             representation_size (int): size of the intermediate representation

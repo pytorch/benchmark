@@ -11,7 +11,7 @@ def boxlist_nms(boxlist, nms_thresh, max_proposals=-1, score_field="scores"):
     Performs non-maximum suppression on a boxlist, with scores specified
     in a boxlist field via score_field.
 
-    Arguments:
+    Args:
         boxlist(BoxList)
         nms_thresh (float)
         max_proposals (int): if > 0, then only the top max_proposals are kept
@@ -35,7 +35,7 @@ def remove_small_boxes(boxlist, min_size):
     """
     Only keep boxes with both sides >= min_size
 
-    Arguments:
+    Args:
         boxlist (Boxlist)
         min_size (int)
     """
@@ -54,7 +54,7 @@ def boxlist_iou(boxlist1, boxlist2):
     """Compute the intersection over union of two set of boxes.
     The box order must be (xmin, ymin, xmax, ymax).
 
-    Arguments:
+    Args:
       box1: (BoxList) bounding boxes, sized [N,4].
       box2: (BoxList) bounding boxes, sized [M,4].
 
@@ -105,7 +105,7 @@ def cat_boxlist(bboxes):
     Concatenates a list of BoxList (having the same image size) into a
     single BoxList
 
-    Arguments:
+    Args:
         bboxes (list[BoxList])
     """
     assert isinstance(bboxes, (list, tuple))

@@ -27,7 +27,7 @@ class RPNPostProcessor(torch.nn.Module):
         fpn_post_nms_per_batch=True,
     ):
         """
-        Arguments:
+        Args:
             pre_nms_top_n (int)
             post_nms_top_n (int)
             nms_thresh (float)
@@ -52,7 +52,7 @@ class RPNPostProcessor(torch.nn.Module):
 
     def add_gt_proposals(self, proposals, targets):
         """
-        Arguments:
+        Args:
             proposals: list[BoxList]
             targets: list[BoxList]
         """
@@ -75,7 +75,7 @@ class RPNPostProcessor(torch.nn.Module):
 
     def forward_for_single_feature_map(self, anchors, objectness, box_regression):
         """
-        Arguments:
+        Args:
             anchors: list[BoxList]
             objectness: tensor of size N, A, H, W
             box_regression: tensor of size N, A * 4, H, W
@@ -124,7 +124,7 @@ class RPNPostProcessor(torch.nn.Module):
 
     def forward(self, anchors, objectness, box_regression, targets=None):
         """
-        Arguments:
+        Args:
             anchors: list[list[BoxList]]
             objectness: list[tensor]
             box_regression: list[tensor]

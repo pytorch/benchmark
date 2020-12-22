@@ -37,7 +37,7 @@ class BinaryMaskList(object):
 
     def __init__(self, masks, size):
         """
-            Arguments:
+            Args:
                 masks: Either torch.tensor of [num_instances, H, W]
                     or list of torch.tensors of [H, W] with num_instances elems,
                     or RLE (Run Length Encoding) - interpreted as list of dicts,
@@ -214,7 +214,7 @@ class PolygonInstance(object):
 
     def __init__(self, polygons, size):
         """
-            Arguments:
+            Args:
                 a list of lists of numbers.
                 The first level refers to all the polygons that compose the
                 object, and the second level to the polygon coordinates.
@@ -352,7 +352,7 @@ class PolygonList(object):
 
     def __init__(self, polygons, size):
         """
-        Arguments:
+        Args:
             polygons:
                 a list of list of lists of numbers. The first
                 level of the list correspond to individual instances,
@@ -484,7 +484,7 @@ class SegmentationMask(object):
 
     def __init__(self, instances, size, mode="poly"):
         """
-        Arguments:
+        Args:
             instances: two types
                 (1) polygon
                 (2) binary mask

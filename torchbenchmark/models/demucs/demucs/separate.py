@@ -36,7 +36,7 @@ def download_file(url, target):
     """
     Download a file with a progress bar.
 
-    Arguments:
+    Args:
         url (str): url to download
         target (Path): target path to write to
         sha256 (str or None): expected sha256 hexdigest of the file

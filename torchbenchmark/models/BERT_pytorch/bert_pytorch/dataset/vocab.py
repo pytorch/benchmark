@@ -16,7 +16,7 @@ class TorchVocab(object):
     def __init__(self, counter, max_size=None, min_freq=1, specials=['<pad>', '<oov>'],
                  vectors=None, unk_init=None, vectors_cache=None):
         """Create a Vocab object from a collections.Counter.
-        Arguments:
+        Args:
             counter: collections.Counter object holding the frequencies of
                 each value found in the data.
             max_size: The maximum size of the vocabulary, or None for no
