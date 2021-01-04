@@ -17,7 +17,7 @@ import pytest
 import time
 import torch
 from torchbenchmark import list_models
-from util.machine_config import get_machine_state
+from torchbenchmark.util.machine_config import get_machine_state
 
 def pytest_generate_tests(metafunc, display_len=24):
     # This is where the list of models to test can be configured

@@ -1,16 +1,10 @@
 import os
 import pytest
 import torch
-import util.machine_config as mc
+from torchbenchmark.util.machine_config import get_machine_config
 
 def pytest_addoption(parser):
     parser.addoption("--fuser", help="fuser to use for benchmarks")
-    parser.addoption("--ignore_machine_config", action="store_true", help="Disable check for machine being configured for stable benchmarking.")
-
-@pytest.fixture(scope="session", autouse=True)
-def check_machine_configured(request):
-    if not request.config.getoption('ignore_machine_config'):
-        mc.check_machine_configured()
 
 def set_fuser(fuser):
     if fuser == "old":
@@ -46,5 +40,5 @@ def pytest_benchmark_update_machine_info(config, machine_info):
 
     machine_info['circle_build_num'] = os.environ.get("CIRCLE_BUILD_NUM")
     machine_info['circle_project_name'] = os.environ.get("CIRCLE_PROJECT_REPONAME")
-    machine_info['torchbench_machine_config'] = mc.get_machine_config()
-    machine_info['torchbench_machine_state'] = mc.get_machine_state()
+
+    machine_info['torchbench_machine_config'] = get_machine_config()

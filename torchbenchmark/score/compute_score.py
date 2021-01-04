@@ -77,7 +77,7 @@ if __name__ == "__main__":
             print(f"Using hacks {args.hack_data}, hacked_score {hacked_score}")
 
     elif args.benchmark_data_dir is not None:
-        scores = [('File', 'Score')]
+        scores = [('File', 'Score', 'PyTorch Version')]
         for f in os.listdir(args.benchmark_data_dir):
             path = os.path.join(args.benchmark_data_dir, f)
             if os.path.isfile(path) and os.path.splitext(path)[1] == '.json':
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                     if config is None:
                         config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
                     score = compute_score(config, data)
-                    scores.append((f, score))
+                    scores.append((f, score, data['machine_info']['pytorch_version']))
 
         print(tabulate(scores, headers='firstrow'))
 
