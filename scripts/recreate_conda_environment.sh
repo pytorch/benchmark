@@ -6,7 +6,7 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.7}
 source $(conda info --base)/etc/profile.d/conda.sh
 
 # delete the old one if needed
-(conda info --envs | grep -q $NAME) && conda remove --name $NAME --all -y
+conda remove --name $NAME --all -y || true
 
 conda create -y -n $NAME python=$PYTHON_VERSION
 conda activate $NAME
