@@ -10,14 +10,25 @@ The benchmark suite should be self contained in terms of dependencies,
 except for the torch products which are intended to be installed separately so
 different torch versions can be benchmarked.
 
-Use python 3.7 as currently there are compatibility issues with 3.8+.  Conda is optional but suggested.
-`conda install -y python=3.7`
+Use python 3.7 as currently there are compatibility issues with 3.8+.  Conda is optional but suggested.  To switch to python 3.7 in conda:
+```
+# using your current conda enviroment:
+conda install -y python=3.7
+
+# or, using a new conda environment
+conda create -n torchbenchmark python=3.7
+conda activate torchbenchmark
+```
 
 Install pytorch, torchvision and torchtext
-`conda install -y pytorch torchtext torchvision -c pytorch-nightly`
+```
+conda install -y pytorch torchtext torchvision -c pytorch-nightly
+```
 
 Install the benchmark suite, which will recursively install dependencies for all the models
-`python install.py`
+```
+python install.py
+```
 
 
 ### Notes
