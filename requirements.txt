@@ -1,4 +1,3 @@
-bokeh
 bs4
 py-cpuinfo
 distro

@@ -26,9 +26,9 @@ then
   exit 1
 fi
 
-sudo sh -c "echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo"
+#sudo sh -c "echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo"
 sudo nvidia-smi -ac 5001,900
-CORE_LIST="4-47"
+CORE_LIST="24-47"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 export CUDA_VISIBLE_DEVICES=0
 
@@ -40,10 +40,11 @@ do
     ENV_PATH="${CONDA_ENVS_DIR}/${ENV_NAME}"
     conda activate "${ENV_PATH}"
 
-    # python -c "import torch; print(f'${ENV_NAME}: {torch.__version__}')"
+    #python -c "import torch; print(f'${ENV_NAME}: {torch.__version__}')"
 
+    #pip --version
+    #pip install distro py-cpuinfo
     echo "Run benchmark for ${ENV_NAME}"
-    # pip install distro py-cpuinfo
 
     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" --benchmark-min-rounds 20 --benchmark-json ${DATA_DIR}/$(date +"%Y%m%d_%H%M%S")_${c}.json
     conda deactivate
