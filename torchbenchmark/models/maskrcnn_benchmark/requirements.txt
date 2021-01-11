@@ -4,3 +4,4 @@ cython
 matplotlib
 tqdm
 opencv-python
+six
