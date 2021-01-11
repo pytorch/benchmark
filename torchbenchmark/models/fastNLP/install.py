@@ -10,7 +10,7 @@ def pip_install_requirements():
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
 
 def setup_install():
-    subprocess.check_call([sys.executable, 'setup.py', 'install'])
+    subprocess.check_call([sys.executable, 'setup.py', 'develop'])
 
 def generate_batch(batch):
     label = torch.tensor([entry[0] for entry in batch])
