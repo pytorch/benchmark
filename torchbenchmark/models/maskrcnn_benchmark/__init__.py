@@ -14,6 +14,7 @@ from .maskrcnn_benchmark.data import make_data_loader
 from .maskrcnn_benchmark.solver import make_lr_scheduler
 from .maskrcnn_benchmark.solver import make_optimizer
 from .maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
+import pycocotools.coco
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
@@ -37,6 +38,9 @@ torch.backends.cudnn.benchmark = False
 dirname = os.path.dirname(__file__)
 config_filename = os.path.join(dirname, 'configs/e2e_mask_rcnn_R_50_FPN_1x.yaml')
 
+# COCO is spammy
+pycocotools.coco.print = lambda *args: None
+
 
 class Model:
     def __init__(self, device='cpu', jit=False):
@@ -55,7 +59,8 @@ class Model:
                              'SOLVER.MAX_ITER', '720000', 
                              'SOLVER.STEPS', '(480000, 640000)', 
                              'TEST.IMS_PER_BATCH', '1', 
-                             'MODEL.RPN.FPN_POST_NMS_TOP_N_TRAIN', '2000'])
+                             'MODEL.RPN.FPN_POST_NMS_TOP_N_TRAIN', '2000',
+                             'OUTPUT_DIR', dirname])
 
         cfg.freeze()
         self.module = build_detection_model(cfg)

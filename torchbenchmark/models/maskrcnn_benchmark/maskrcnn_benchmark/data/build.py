@@ -127,7 +127,7 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_
         num_iters = None
         start_iter = 0
 
-    if images_per_gpu > 1:
+    if images_per_gpu > 2:
         logger = logging.getLogger(__name__)
         logger.warning(
             "When using more than one image per GPU you may encounter "

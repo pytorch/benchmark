@@ -54,8 +54,6 @@ class CelebA(data.Dataset):
             else:
                 self.train_dataset.append([filename, label])
 
-        print('Finished preprocessing the CelebA dataset...')
-
     def __getitem__(self, index):
         """Return one image and its corresponding attribute label."""
         dataset = self.train_dataset if self.mode == 'train' else self.test_dataset
