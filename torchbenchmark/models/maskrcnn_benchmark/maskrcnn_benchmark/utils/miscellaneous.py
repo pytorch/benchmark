@@ -28,7 +28,6 @@ def save_labels(dataset_list, output_dir):
 
         if ids_to_labels:
             labels_file = os.path.join(output_dir, 'labels.json')
-            logger.info("Saving labels mapping into {}".format(labels_file))
             with open(labels_file, 'w') as f:
                 json.dump(ids_to_labels, f, indent=2)
 
