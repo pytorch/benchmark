@@ -55,7 +55,7 @@ class Model:
             sources = streams[:, 1:]
             sources = self.augment(sources)
             mix = sources.sum(dim=1)
-            estimates = self.model(mix)
+            return self.model(mix)
         return helper, self.example_inputs
 
     def eval(self, niter=1):
