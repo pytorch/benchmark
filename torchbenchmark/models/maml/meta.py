@@ -61,8 +61,13 @@ class Meta(nn.Module):
 
         return total_norm/counter
 
-
     def forward(self, x_spt, y_spt, x_qry, y_qry):
+        if self.training:
+            return self.forward_train(x_spt, y_spt, x_qry, y_qry)
+        else:
+            return self.finetunning(x_spt[0], y_spt[0], x_qry[0], y_qry[0])
+
+    def forward_train(self, x_spt, y_spt, x_qry, y_qry):
         """
 
         :param x_spt:   [b, setsz, c_, h, w]
@@ -142,7 +147,7 @@ class Meta(nn.Module):
         self.meta_optim.step()
 
 
-        accs = np.array(corrects) / (querysz * task_num)
+        accs = torch.tensor(corrects) / (querysz * task_num)
 
         return accs
 
@@ -213,7 +218,7 @@ class Meta(nn.Module):
 
         del net
 
-        accs = np.array(corrects) / querysz
+        accs = torch.tensor(corrects) / querysz
 
         return accs
 
