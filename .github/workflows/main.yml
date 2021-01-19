@@ -2,15 +2,19 @@ name: pytorch-nightly-benchmarking-v0.1
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *' # run at 8 AM UTC
+    - cron: '0 13 * * *' # run at 1 PM UTC
 
 jobs:
-  build-benchmark-docker:
+  checkout:
     runs-on: [self-hosted, bm-metal]
     steps:
       - uses: actions/checkout@v2
         with:
           ref: 0.1
+  build-benchmark-docker:
+    needs: checkout
+    runs-on: [self-hosted, bm-metal]
+    steps:
       - run: bash ./.github/scripts/build-benchmark-docker.sh
   run-benchmark:
     needs: build-benchmark-docker
