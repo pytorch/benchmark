@@ -8,12 +8,43 @@ import math
 import sys
 import os
 import yaml
-
-from .generate_score_config import generate_bench_cfg
+from pathlib import Path
+import importlib
+import collections
+sys.path.append("/data/users/nikithamalgi/benchmark")
+from torchbenchmark import list_models
+from generate_score_config import generate_bench_cfg
 from tabulate import tabulate
 
-SPEC_FILE_DEFAULT = "score.yml"
 TARGET_SCORE_DEFAULT = 1000
+
+def generate_spec():
+    """
+    Helper function which constructs the spec dictionary by iterating
+    over the existing models. This API is used for generating the
+    default spec hierarchy configuration.
+    return type:
+        Returns a dictionary of type collections.defaultdict. Defaultdict
+        handles `None` or missing values and hence, no explicit `None` check
+        is required.
+
+    Arguments: `None`
+    Note: Only those models with `domain` and `task` class attributes are
+          used to construct the spec hierarchy.
+    """
+    spec = {'hierarchy':{'model':collections.defaultdict(dict)}}
+
+    for model in list_models():
+        if hasattr(model, 'domain'):
+            if model.name == "attention_is_all_you_need_pytorch":
+                model.name = "attention_is_all_you_nee..."
+            if not spec['hierarchy']['model'][model.domain]:
+                spec['hierarchy']['model'][model.domain] = collections.defaultdict(dict)
+            if not spec['hierarchy']['model'][model.domain][model.task]:
+                spec['hierarchy']['model'][model.domain][model.task] = collections.defaultdict(dict)
+            spec['hierarchy']['model'][model.domain][model.task][model.name] = None
+
+    return spec
 
 def compute_score(config, data, fake_data=None):
     target = config['target']
@@ -56,8 +87,8 @@ if __name__ == "__main__":
         if args.benchmark_data_file is None and args.benchmark_data_dir is None:
             parser.print_help(sys.stderr)
             raise ValueError("Invalid command-line arguments. You must specify a config, a data file, or a data dir.")
-        with open(SPEC_FILE_DEFAULT) as spec_file:
-            spec = yaml.full_load(spec_file)
+        # Generate default spec by iterating over the existing models.
+        spec = generate_spec()
 
     if args.benchmark_data_file is not None:
         with open(args.benchmark_data_file) as data_file:
