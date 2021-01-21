@@ -9,7 +9,7 @@ import sys
 import os
 import yaml
 
-from generate_score_config import generate_bench_cfg
+from torchbenchmark.score.generate_score_config import generate_bench_cfg
 from tabulate import tabulate
 
 SPEC_FILE_DEFAULT = "score.yml"

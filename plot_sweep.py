@@ -1,7 +1,7 @@
 import argparse
 import json
 # import pandas as pd
-# import os
+import os
 # import sys
 # import re
 import yaml
@@ -70,8 +70,15 @@ if __name__ == "__main__":
         ys.append(scores)
 
     colors = Category10[10][:len(compare_datasets)]
-    p.multi_line(xs, ys, color=colors, line_width=2)
+    basenames = map(os.path.basename, args.data_dir)
+
+    for x, y, color in zip(xs, ys, colors):
+        p.line(x, y, color=color, line_width=2, legend_label=next(basenames))
+
     for x, y, color in zip(xs, ys, colors):
         p.circle(x, y, color=color)
+
+    p.legend.location = "bottom_right"
+
     output_file(args.output_html)
     show(p)
