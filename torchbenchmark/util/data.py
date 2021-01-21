@@ -86,9 +86,15 @@ def load_data_dir(data_dir, most_recent_files:int =None, use_history_file=True):
     if most_recent_files is not None:
         files = files[:most_recent_files]
     return load_data_files(files)
+
+
 def load_data_files(files: typing.List[str]):
     data = BenchmarkData()
     for fname in files:
-        with open(fname) as f:
-            data.add_json_data(fname, json.load(f))
+        try:
+            with open(fname) as f:
+                data.add_json_data(fname, json.load(f))
+        except:
+            print(f"Error loading {fname}")
+            raise
     return data

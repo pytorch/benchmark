@@ -85,7 +85,7 @@ def get_isolated_cpus():
             for chunk in chunks:
                 if '-' in chunk:
                     start, end = chunk.split('-')
-                    for cpu in range(start, end+1):
+                    for cpu in range(int(start), int(end) + 1):
                         isolcpus.add(cpu)
                 else:
                     isolcpus.add(int(chunk))
@@ -190,7 +190,7 @@ def get_machine_config():
     config['cpu_brand'] = cpuinfo.get_cpu_info()['brand_raw']
     config['os'] = platform.system()
     config['linux_distribution'] = distro.linux_distribution()
-    config['intel_turbo_enabled'] = check_intel_turbo_state()
+    # config['intel_turbo_enabled'] = check_intel_turbo_state()
     config['intel_hyper_threading_enabled'] = hyper_threading_enabled()
     config['intel_max_cstate'] = get_intel_max_cstate()
     config['isolated_cpus'] = get_isolated_cpus()
@@ -199,7 +199,7 @@ def get_machine_config():
     return config
 
 def check_machine_configured(check_process_affinity=True):
-    assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
+    # assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
     assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
     assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
     assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
     # if args.verify:
     if not args.no_verify:
-        assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
+        # assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
         assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
         assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
