@@ -1,10 +1,14 @@
 import os
 import pytest
 import torch
-from torchbenchmark.util.machine_config import get_machine_config
+from torchbenchmark.util.machine_config import get_machine_config, check_machine_configured
+
 
 def pytest_addoption(parser):
     parser.addoption("--fuser", help="fuser to use for benchmarks")
+    parser.addoption("--ignore_machine_config",
+                     action='store_true',
+                     help="Disable checks/assertions for machine configuration for stable benchmarks")
 
 def set_fuser(fuser):
     if fuser == "old":
@@ -20,6 +24,10 @@ def set_fuser(fuser):
         torch._C._jit_override_can_fuse_on_cpu(False)
         torch._C._jit_override_can_fuse_on_gpu(True)
         torch._C._jit_set_texpr_fuser_enabled(True)
+
+def pytest_sessionstart(session):
+    if not session.config.getoption('ignore_machine_config'):
+        check_machine_configured()
 
 def pytest_configure(config):
     set_fuser(config.getoption("fuser"))
@@ -41,4 +49,9 @@ def pytest_benchmark_update_machine_info(config, machine_info):
     machine_info['circle_build_num'] = os.environ.get("CIRCLE_BUILD_NUM")
     machine_info['circle_project_name'] = os.environ.get("CIRCLE_PROJECT_REPONAME")
 
-    machine_info['torchbench_machine_config'] = get_machine_config()
+    try:
+        # if running on unexpected machine/os, get_machine_config _may_ not work
+        machine_info['torchbench_machine_config'] = get_machine_config()
+    except Exception:
+        if not config.getoption('ignore_machine_config'):
+            raise
