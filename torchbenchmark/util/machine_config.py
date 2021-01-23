@@ -5,6 +5,7 @@ Written for Amazon linux and Intel CPU, Nvidia GPU althogh many utilities will o
 import argparse
 import cpuinfo
 import distro
+import enum
 import os
 import platform
 import psutil
@@ -123,8 +124,9 @@ def get_nvidia_gpu_temps(device_ids: typing.List[int] = None):
     return temps
 
 def set_nvidia_graphics_clock(device_id=0, clock=900):
-    # nvidia-smi -ac 5001,900 
-    raise NotImplementedError("TODO, wrap the above call and check for error")
+    if has_nvidia_smi():
+        return subprocess.check_call(['nvidia-smi', '-ac', '5001,900'])
+    return False
 
 def get_nvidia_throttle_reasons(device_ids: typing.List[int] = None):
     """ See 'nvidia-smi --help-query-gpu for explanation of throttle reasons
@@ -140,13 +142,21 @@ def get_nvidia_throttle_reasons(device_ids: typing.List[int] = None):
         throttle_reasons.append(gpu_reasons)
     return throttle_reasons
 
-def get_os_name():
-    return platform.system()
+MACHINE = enum.Enum('MACHINE', ['AMAZON_LINUX', 'UNKNOWN'])
+def get_machine_type():
+    # It's tricky to write platform setup code that works on different OS/configs.
+    # initially, just intend to identify a known environment and for any other 
+    # environment revert to no-op.  Expand functionality over time as needed.
+    if platform.system() == 'Linux':
+        name = distro.linux_distribution()[0]
+        if name == "Amazon Linux":
+            return MACHINE.AMAZON_LINUX
+
+    return MACHINE.UNKNOWN
 
 def get_cpu_temp():
-    os_name = get_os_name()
     temps = {}
-    if os_name == "Linux":
+    if MACHINE.AMAZON_LINUX == get_machine_type():
         thermal_path = Path('/sys/class/thermal/')
         for zone in os.listdir(thermal_path):
             temps[zone] = int(read_sys_file(thermal_path / zone / "temp")) / 1000.
@@ -159,11 +169,22 @@ def is_using_isolated_cpus():
     lscpu = parse_lscpu_cpu_core_list()
     assert len(lscpu) > 0, "unable to parse current CPUs"
     for cpu, core, active in lscpu:
-        if active and cpu in isolated_cpus:
-            if cpu not in using_cpus or cpu not in omp_using_cpus:
-                return False
-        elif (cpu in using_cpus or cpu in omp_using_cpus) and cpu not in isolated_cpus:
+
+        # check that all used cpus are isolated ones (more critical)
+        if (cpu in using_cpus or cpu in omp_using_cpus) and cpu not in isolated_cpus:
             return False
+
+        # check all isolated cpus are used (less critical)
+        elif active and cpu in isolated_cpus:
+            if cpu not in using_cpus:
+                # currently after importing torch, process cpu affinity mask changes from e.g. 4-47 to 4.
+                # since we can't assert that all intended cores are being used, we can at least assert that
+                # the first core in the range of isolated cores is used.
+                # see https://github.com/pytorch/pytorch/issues/49971
+                # return False
+                pass
+            if cpu not in omp_using_cpus:
+                return False
     return True
 
 def get_omp_affinity():
@@ -187,33 +208,41 @@ def get_omp_affinity():
 
 def get_machine_config():
     config = {}
+    machine_type = get_machine_type()
+    config['machine_type'] = machine_type
     config['cpu_brand'] = cpuinfo.get_cpu_info()['brand_raw']
-    config['os'] = platform.system()
-    config['linux_distribution'] = distro.linux_distribution()
-    # config['intel_turbo_enabled'] = check_intel_turbo_state()
-    config['intel_hyper_threading_enabled'] = hyper_threading_enabled()
-    config['intel_max_cstate'] = get_intel_max_cstate()
-    config['isolated_cpus'] = get_isolated_cpus()
-    config['process_cpu_affinity'] = get_process_cpu_affinity()
-    config['is_using_isolated_cpus'] = is_using_isolated_cpus()
+    if MACHINE.AMAZON_LINUX == machine_type():
+        config['linux_distribution'] = distro.linux_distribution()
+        config['intel_turbo_enabled'] = check_intel_turbo_state()
+        config['intel_hyper_threading_enabled'] = hyper_threading_enabled()
+        config['intel_max_cstate'] = get_intel_max_cstate()
+        config['isolated_cpus'] = get_isolated_cpus()
+        config['process_cpu_affinity'] = get_process_cpu_affinity()
+        config['is_using_isolated_cpus'] = is_using_isolated_cpus()
     return config
 
 def check_machine_configured(check_process_affinity=True):
-    # assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
-    assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
-    assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
-    assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
-    assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
-    assert is_using_isolated_cpus(), "taskset or GOMP_CPU_AFFINITY not specified or not matching kernel isolated cpus"
+    if MACHINE.AMAZON_LINUX == get_machine_type():
+        assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
+        assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
+        assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
+        assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
+        assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
+        assert is_using_isolated_cpus(), "taskset or GOMP_CPU_AFFINITY not specified or not matching kernel isolated cpus"
+    else:
+        raise RuntimeError(f"Unsupported machine type {get_machine_type()}")
 
 def get_machine_state():
     state = {}
-    state['cpu_temps'] = get_cpu_temp()
-    if has_nvidia_smi():
-        state['nvidia_gpu_temps'] = get_nvidia_gpu_temps()
-        state['nvidia_gpu_clocks'] = get_nvidia_gpu_clocks()
-        state['nvidia_gpu_throttle_reasons'] = get_nvidia_throttle_reasons()
-        state['process_cpu_affinity'] = get_process_cpu_affinity()
+    machine_type = get_machine_type()
+    state['machine_type'] = machine_type
+    if MACHINE.AMAZON_LINUX == machine_type:
+        state['cpu_temps'] = get_cpu_temp()
+        if has_nvidia_smi():
+            state['nvidia_gpu_temps'] = get_nvidia_gpu_temps()
+            state['nvidia_gpu_clocks'] = get_nvidia_gpu_clocks()
+            state['nvidia_gpu_throttle_reasons'] = get_nvidia_throttle_reasons()
+            state['process_cpu_affinity'] = get_process_cpu_affinity()
     return state
 
 if __name__ == "__main__":
@@ -223,6 +252,9 @@ if __name__ == "__main__":
     parser.add_argument("--no_verify", action="store_true", help="Skip verifying machine is configured for benchmarking")
     args = parser.parse_args()
 
+    machine_type = get_machine_type()
+    if not MACHINE.AMAZON_LINUX == machine_type:
+        raise RuntimeError(f"Unsupported machine type {machine_type}")
 
     if args.enable_ht:
         set_hyper_threading(True)
@@ -232,11 +264,10 @@ if __name__ == "__main__":
         set_hyper_threading(False)
         set_nvidia_graphics_clock()
 
-    # if args.verify:
     if not args.no_verify:
-        # assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
+        assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
         assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
         assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
         assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
-        # assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
+        assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
