@@ -18,7 +18,7 @@ class ROIKeypointHead(torch.nn.Module):
 
     def forward(self, features, proposals, targets=None):
         """
-        Arguments:
+        Args:
             features (list[Tensor]): feature-maps from possibly several levels
             proposals (list[BoxList]): proposal boxes
             targets (list[BoxList], optional): the ground-truth targets.

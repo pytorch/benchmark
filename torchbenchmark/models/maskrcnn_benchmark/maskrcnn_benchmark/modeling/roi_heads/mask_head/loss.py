@@ -16,7 +16,7 @@ def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
     boxes. This prepares the masks for them to be fed to the
     loss computation as the targets.
 
-    Arguments:
+    Args:
         segmentation_masks: an instance of SegmentationMask
         proposals: an instance of BoxList
     """
@@ -45,7 +45,7 @@ def project_masks_on_boxes(segmentation_masks, proposals, discretization_size):
 class MaskRCNNLossComputation(object):
     def __init__(self, proposal_matcher, discretization_size):
         """
-        Arguments:
+        Args:
             proposal_matcher (Matcher)
             discretization_size (int)
         """
@@ -101,7 +101,7 @@ class MaskRCNNLossComputation(object):
 
     def __call__(self, proposals, mask_logits, targets):
         """
-        Arguments:
+        Args:
             proposals (list[BoxList])
             mask_logits (Tensor)
             targets (list[BoxList])

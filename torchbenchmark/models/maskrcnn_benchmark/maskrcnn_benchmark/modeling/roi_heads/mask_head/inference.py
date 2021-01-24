@@ -26,7 +26,7 @@ class MaskPostProcessor(nn.Module):
 
     def forward(self, x, boxes):
         """
-        Arguments:
+        Args:
             x (Tensor): the mask logits
             boxes (list[BoxList]): bounding boxes that are used as
                 reference, one for each image

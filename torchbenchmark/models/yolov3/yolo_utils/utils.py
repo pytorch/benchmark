@@ -281,7 +281,7 @@ def box_iou(box1, box2):
     """
     Return intersection-over-union (Jaccard index) of boxes.
     Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
-    Arguments:
+    Args:
         box1 (Tensor[N, 4])
         box2 (Tensor[M, 4])
     Returns:

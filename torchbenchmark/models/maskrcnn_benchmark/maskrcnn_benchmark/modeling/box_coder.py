@@ -12,7 +12,7 @@ class BoxCoder(object):
 
     def __init__(self, weights, bbox_xform_clip=math.log(1000. / 16)):
         """
-        Arguments:
+        Args:
             weights (4-element tuple)
             bbox_xform_clip (float)
         """
@@ -24,7 +24,7 @@ class BoxCoder(object):
         Encode a set of proposals with respect to some
         reference boxes
 
-        Arguments:
+        Args:
             reference_boxes (Tensor): reference boxes
             proposals (Tensor): boxes to be encoded
         """
@@ -54,7 +54,7 @@ class BoxCoder(object):
         From a set of original boxes and encoded relative box offsets,
         get the decoded boxes.
 
-        Arguments:
+        Args:
             rel_codes (Tensor): encoded boxes
             boxes (Tensor): reference boxes.
         """

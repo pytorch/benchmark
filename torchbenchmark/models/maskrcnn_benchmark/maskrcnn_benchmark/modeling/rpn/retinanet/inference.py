@@ -27,7 +27,7 @@ class RetinaNetPostProcessor(RPNPostProcessor):
         box_coder=None,
     ):
         """
-        Arguments:
+        Args:
             pre_nms_thresh (float)
             pre_nms_top_n (int)
             nms_thresh (float)
@@ -59,7 +59,7 @@ class RetinaNetPostProcessor(RPNPostProcessor):
     def forward_for_single_feature_map(
             self, anchors, box_cls, box_regression):
         """
-        Arguments:
+        Args:
             anchors: list[BoxList]
             box_cls: tensor of size N, A * C, H, W
             box_regression: tensor of size N, A * 4, H, W

@@ -15,7 +15,7 @@ class LevelMapper(object):
 
     def __init__(self, k_min, k_max, canonical_scale=224, canonical_level=4, eps=1e-6):
         """
-        Arguments:
+        Args:
             k_min (int)
             k_max (int)
             canonical_scale (int)
@@ -30,7 +30,7 @@ class LevelMapper(object):
 
     def __call__(self, boxlists):
         """
-        Arguments:
+        Args:
             boxlists (list[BoxList])
         """
         # Compute level ids
@@ -54,7 +54,7 @@ class Pooler(nn.Module):
 
     def __init__(self, output_size, scales, sampling_ratio):
         """
-        Arguments:
+        Args:
             output_size (list[tuple[int]] or list[int]): output size for the pooled region
             scales (list[float]): scales for each Pooler
             sampling_ratio (int): sampling ratio for ROIAlign
@@ -90,7 +90,7 @@ class Pooler(nn.Module):
 
     def forward(self, x, boxes):
         """
-        Arguments:
+        Args:
             x (list[Tensor]): feature maps for each level
             boxes (list[BoxList]): boxes to be used to perform the pooling operation.
         Returns:

@@ -15,7 +15,7 @@ class DistributedSampler(Sampler):
     and load a subset of the original dataset that is exclusive to it.
     .. note::
         Dataset is assumed to be of constant size.
-    Arguments:
+    Args:
         dataset: Dataset used for sampling.
         num_replicas (optional): Number of processes participating in
             distributed training.

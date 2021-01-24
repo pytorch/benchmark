@@ -26,7 +26,7 @@ class PostProcessor(nn.Module):
         bbox_aug_enabled=False
     ):
         """
-        Arguments:
+        Args:
             score_thresh (float)
             nms (float)
             detections_per_img (int)
@@ -44,7 +44,7 @@ class PostProcessor(nn.Module):
 
     def forward(self, x, boxes):
         """
-        Arguments:
+        Args:
             x (tuple[tensor, tensor]): x contains the class logits
                 and the box_regression from the model.
             boxes (list[BoxList]): bounding boxes that are used as

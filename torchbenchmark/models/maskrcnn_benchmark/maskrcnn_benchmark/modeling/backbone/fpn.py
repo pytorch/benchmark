@@ -15,7 +15,7 @@ class FPN(nn.Module):
         self, in_channels_list, out_channels, conv_block, top_blocks=None
     ):
         """
-        Arguments:
+        Args:
             in_channels_list (list[int]): number of channels for each feature map that
                 will be fed
             out_channels (int): number of channels of the FPN representation
@@ -42,7 +42,7 @@ class FPN(nn.Module):
 
     def forward(self, x):
         """
-        Arguments:
+        Args:
             x (list[Tensor]): feature maps for each feature level.
         Returns:
             results (tuple[Tensor]): feature maps after FPN layers.

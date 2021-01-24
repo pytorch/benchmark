@@ -15,7 +15,7 @@ def keep_only_positive_boxes(boxes):
     Given a set of BoxList containing the `labels` field,
     return a set of BoxList for which `labels > 0`.
 
-    Arguments:
+    Args:
         boxes (list of BoxList)
     """
     assert isinstance(boxes, (list, tuple))
@@ -45,7 +45,7 @@ class ROIMaskHead(torch.nn.Module):
 
     def forward(self, features, proposals, targets=None):
         """
-        Arguments:
+        Args:
             features (list[Tensor]): feature-maps from possibly several levels
             proposals (list[BoxList]): proposal boxes
             targets (list[BoxList], optional): the ground-truth targets.

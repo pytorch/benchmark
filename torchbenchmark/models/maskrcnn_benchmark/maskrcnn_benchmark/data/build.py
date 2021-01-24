@@ -17,7 +17,7 @@ from .transforms import build_transforms
 
 def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True):
     """
-    Arguments:
+    Args:
         dataset_list (list[str]): Contains the names of the datasets, i.e.,
             coco_2014_train, coco_2014_val, etc
         transforms (callable): transforms to apply to each (image, target) sample

@@ -198,7 +198,7 @@ class COCODemo(object):
 
     def run_on_opencv_image(self, image):
         """
-        Arguments:
+        Args:
             image (np.ndarray): an image as returned by OpenCV
 
         Returns:
@@ -223,7 +223,7 @@ class COCODemo(object):
 
     def compute_prediction(self, original_image):
         """
-        Arguments:
+        Args:
             original_image (np.ndarray): an image as returned by OpenCV
 
         Returns:
@@ -263,7 +263,7 @@ class COCODemo(object):
         Select only predictions which have a `score` > self.confidence_threshold,
         and returns the predictions in descending order of score
 
-        Arguments:
+        Args:
             predictions (BoxList): the result of the computation by the model.
                 It should contain the field `scores`.
 
@@ -291,7 +291,7 @@ class COCODemo(object):
         """
         Adds the predicted boxes on top of the image
 
-        Arguments:
+        Args:
             image (np.ndarray): an image as returned by OpenCV
             predictions (BoxList): the result of the computation by the model.
                 It should contain the field `labels`.
@@ -315,7 +315,7 @@ class COCODemo(object):
         Adds the instances contours for each predicted object.
         Each label has a different color.
 
-        Arguments:
+        Args:
             image (np.ndarray): an image as returned by OpenCV
             predictions (BoxList): the result of the computation by the model.
                 It should contain the field `mask` and `labels`.
@@ -350,7 +350,7 @@ class COCODemo(object):
         Create a montage showing the probability heatmaps for each one one of the
         detected objects
 
-        Arguments:
+        Args:
             image (np.ndarray): an image as returned by OpenCV
             predictions (BoxList): the result of the computation by the model.
                 It should contain the field `mask`.
@@ -386,7 +386,7 @@ class COCODemo(object):
         Adds detected class names and scores in the positions defined by the
         top-left corner of the predicted bounding box
 
-        Arguments:
+        Args:
             image (np.ndarray): an image as returned by OpenCV
             predictions (BoxList): the result of the computation by the model.
                 It should contain the field `scores` and `labels`.

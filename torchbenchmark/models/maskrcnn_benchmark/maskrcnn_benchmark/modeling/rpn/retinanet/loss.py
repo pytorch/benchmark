@@ -27,7 +27,7 @@ class RetinaNetLossComputation(RPNLossComputation):
                  bbox_reg_beta=0.11,
                  regress_norm=1.0):
         """
-        Arguments:
+        Args:
             proposal_matcher (Matcher)
             box_coder (BoxCoder)
         """
@@ -42,7 +42,7 @@ class RetinaNetLossComputation(RPNLossComputation):
 
     def __call__(self, anchors, box_cls, box_regression, targets):
         """
-        Arguments:
+        Args:
             anchors (list[BoxList])
             box_cls (list[Tensor])
             box_regression (list[Tensor])

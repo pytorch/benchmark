@@ -54,7 +54,7 @@ def _within_box(points, boxes):
 class KeypointRCNNLossComputation(object):
     def __init__(self, proposal_matcher, fg_bg_sampler, discretization_size):
         """
-        Arguments:
+        Args:
             proposal_matcher (Matcher)
             fg_bg_sampler (BalancedPositiveNegativeSampler)
             discretization_size (int)
@@ -114,7 +114,7 @@ class KeypointRCNNLossComputation(object):
         the sampled proposals.
         Note: this function keeps a state.
 
-        Arguments:
+        Args:
             proposals (list[BoxList])
             targets (list[BoxList])
         """

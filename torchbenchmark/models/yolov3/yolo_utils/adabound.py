@@ -7,7 +7,7 @@ from torch.optim.optimizer import Optimizer
 class AdaBound(Optimizer):
     """Implements AdaBound algorithm.
     It has been proposed in `Adaptive Gradient Methods with Dynamic Bound of Learning Rate`_.
-    Arguments:
+    Args:
         params (iterable): iterable of parameters to optimize or dicts defining
             parameter groups
         lr (float, optional): Adam learning rate (default: 1e-3)
@@ -50,7 +50,7 @@ class AdaBound(Optimizer):
 
     def step(self, closure=None):
         """Performs a single optimization step.
-        Arguments:
+        Args:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
         """
@@ -122,7 +122,7 @@ class AdaBound(Optimizer):
 class AdaBoundW(Optimizer):
     """Implements AdaBound algorithm with Decoupled Weight Decay (arxiv.org/abs/1711.05101)
     It has been proposed in `Adaptive Gradient Methods with Dynamic Bound of Learning Rate`_.
-    Arguments:
+    Args:
         params (iterable): iterable of parameters to optimize or dicts defining
             parameter groups
         lr (float, optional): Adam learning rate (default: 1e-3)
@@ -165,7 +165,7 @@ class AdaBoundW(Optimizer):
 
     def step(self, closure=None):
         """Performs a single optimization step.
-        Arguments:
+        Args:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
         """
