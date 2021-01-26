@@ -21,7 +21,7 @@ BENCHMARK_DATA="`pwd`/.data"
 mkdir -p ${BENCHMARK_DATA}
 BENCHMARK_FILENAME=${CIRCLE_SHA1}_$(date +"%Y%m%d_%H%M%S").json
 BENCHMARK_ABS_FILENAME=${BENCHMARK_DATA}/${BENCHMARK_FILENAME}
-pytest test_bench.py --setup-show --benchmark-sort=Name --benchmark-json=${BENCHMARK_ABS_FILENAME} -k "$PYTEST_FILTER"
+pytest test_bench.py --ignore_machine_config --setup-show --benchmark-sort=Name --benchmark-json=${BENCHMARK_ABS_FILENAME} -k "$PYTEST_FILTER"
 
 
 # Compute benchmark score
