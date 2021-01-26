@@ -28,7 +28,6 @@ def prepare_training_loop(args):
     opt = TrainOptions().parse(args)   # get training options
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
     dataset_size = len(dataset)    # get the number of images in the dataset.
-    print('The number of training images = %d' % dataset_size)
 
     model = create_model(opt)      # create a model given opt.model and other options
     model.setup(opt)               # regular setup: load and print networks; create schedulers
@@ -67,12 +66,10 @@ def prepare_training_loop(args):
                         visualizer.plot_current_losses(epoch, float(epoch_iter) / dataset_size, losses)
 
                 if total_iters % opt.save_latest_freq == 0:   # cache our latest model every <save_latest_freq> iterations
-                    print('saving the latest model (epoch %d, total_iters %d)' % (epoch, total_iters))
                     save_suffix = 'iter_%d' % total_iters if opt.save_by_iter else 'latest'
                     model.save_networks(save_suffix)
 
                 iter_data_time = time.time()
             
-            print('End of epoch %d / %d \t Time Taken: %d sec' % (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
             model.update_learning_rate()                     # update learning rates at the end of every epoch.
     return training_loop
