@@ -1,0 +1,11 @@
+fastai==1.0.57
+torch==1.4.0
+torchvision==0.5.0
+wandb
+tensorboardX==1.6
+ffmpeg
+ffmpeg-python==0.1.17
+youtube-dl>=2019.4.17
+jupyterlab
+opencv-python>=3.3.0.10
+pillow==6.2.2
