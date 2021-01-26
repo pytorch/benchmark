@@ -23,10 +23,10 @@ def write_sys_file(sysfile: Path, content: str):
     with open(sysfile, 'w') as f:
         f.write(content)
 
-def check_intel_turbo_state(turbo_file='/sys/devices/system/cpu/intel_pstate/no_turbo'):
+def check_intel_no_turbo_state(turbo_file='/sys/devices/system/cpu/intel_pstate/no_turbo'):
     return int(read_sys_file(turbo_file))
 
-def set_intel_turbo_state(state: int, turbo_file='/sys/devices/system/cpu/intel_pstate/no_turbo'):
+def set_intel_no_turbo_state(state: int, turbo_file='/sys/devices/system/cpu/intel_pstate/no_turbo'):
     assert state in [0, 1]
     write_sys_file(turbo_file, str(state))
 
@@ -213,7 +213,7 @@ def get_machine_config():
     config['cpu_brand'] = cpuinfo.get_cpu_info()['brand_raw']
     if MACHINE.AMAZON_LINUX == machine_type():
         config['linux_distribution'] = distro.linux_distribution()
-        config['intel_turbo_enabled'] = check_intel_turbo_state()
+        config['intel_turbo_disabled'] = check_intel_no_turbo_state()
         config['intel_hyper_threading_enabled'] = hyper_threading_enabled()
         config['intel_max_cstate'] = get_intel_max_cstate()
         config['isolated_cpus'] = get_isolated_cpus()
@@ -223,7 +223,7 @@ def get_machine_config():
 
 def check_machine_configured(check_process_affinity=True):
     if MACHINE.AMAZON_LINUX == get_machine_type():
-        assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
+        assert 1 == check_intel_no_turbo_state(), "Turbo Boost is not disabled"
         assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
         assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
@@ -260,12 +260,12 @@ if __name__ == "__main__":
         set_hyper_threading(True)
 
     if args.configure:
-        set_intel_turbo_state(0)
+        set_intel_no_turbo_state(1)
         set_hyper_threading(False)
         set_nvidia_graphics_clock()
 
     if not args.no_verify:
-        assert 0 == check_intel_turbo_state(), "Turbo Boost is not disabled"
+        assert 1 == check_intel_no_turbo_state(), "Turbo Boost is not disabled"
         assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
         assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
