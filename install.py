@@ -20,6 +20,7 @@ def pip_install_requirements():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--continue_on_fail", action="store_true")
+    parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
     success, errmsg = pip_install_requirements()
@@ -28,6 +29,6 @@ if __name__ == '__main__':
         print(errmsg)
         if not args.continue_on_fail:
             sys.exit(-1)
-    success &= setup(verbose=True, continue_on_fail=args.continue_on_fail)
+    success &= setup(verbose=args.verbose, continue_on_fail=args.continue_on_fail)
     if not success:
         raise RuntimeError("Failed to complete setup")

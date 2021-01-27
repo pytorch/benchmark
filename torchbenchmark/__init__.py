@@ -23,12 +23,20 @@ def _test_https(test_url='https://github.com', timeout=0.5):
     return True
 
 
-def _install_deps(model_path):
+def _install_deps(model_path, verbose=True):
+    run_args = [
+        [sys.executable, install_file],
+    ]
+    run_kwargs = {
+        'cwd': model_path,
+        'check': True,
+    }
     try:
         if os.path.exists(os.path.join(model_path, install_file)):
-            subprocess.run([sys.executable, install_file],
-                           cwd=model_path, check=True,
-                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            if not verbose:
+                run_kwargs['stderr'] = subprocess.STDOUT
+                run_kwargs['stdout'] = subprocess.PIPE
+            subprocess.run(*run_args, **run_kwargs)
         else:
             return (False, f"No install.py is found in {model_path}.")
     except subprocess.CalledProcessError as e:
@@ -52,7 +60,7 @@ def setup(verbose=True, continue_on_fail=False):
     failures = {}
     for model_path in _list_model_paths():
         print(f"running setup for {model_path}...", end="", flush=True)
-        success, errmsg = _install_deps(model_path)
+        success, errmsg = _install_deps(model_path, verbose=verbose)
         if success:
             print("OK")
         else:
