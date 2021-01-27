@@ -24,4 +24,4 @@ pytest test_bench.py --ignore_machine_config --setup-show --benchmark-max-time=0
 
 # Compute benchmark score, just to check that the script is not crashing
 # real score computation is handled by pytorch CI using a performance-tuned machine
-TORCHBENCH_SCORE=$(python score/compute_score.py --configuration score/torchbench_0.0.yaml --benchmark_data_file ${BENCHMARK_ABS_FILENAME})
+TORCHBENCH_SCORE=$(python compute_score.py --configuration torchbenchmark/score/torchbench_0.0.yaml --benchmark_data_file ${BENCHMARK_ABS_FILENAME})
