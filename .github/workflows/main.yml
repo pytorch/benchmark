@@ -5,22 +5,26 @@ on:
     - cron: '0 13 * * *' # run at 1 PM UTC
 
 jobs:
-  build-benchmark-docker:
-    runs-on: [self-hosted, bm-ec2]
+  checkout:
+    runs-on: [self-hosted, bm-metal]
     steps:
       - uses: actions/checkout@v2
         with:
           ref: 0.1
+  build-benchmark-docker:
+    needs: checkout
+    runs-on: [self-hosted, bm-metal]
+    steps:
       - run: bash ./.github/scripts/build-benchmark-docker.sh
   run-benchmark:
     needs: build-benchmark-docker
-    runs-on: [self-hosted, bm-ec2]
+    runs-on: [self-hosted, bm-metal]
     timeout-minutes: 1440
     steps:
       - run: bash ./.github/scripts/run-docker.sh /workspace/benchmark/.github/scripts/run-benchmark.sh
   upload-scribe:
     needs: run-benchmark
-    runs-on: [self-hosted, bm-ec2]
+    runs-on: [self-hosted, bm-metal]
     env:
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
     steps:
