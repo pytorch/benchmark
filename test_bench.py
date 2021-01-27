@@ -17,7 +17,7 @@ import pytest
 import time
 import torch
 from torchbenchmark import list_models
-
+from torchbenchmark.util.machine_config import get_machine_state
 
 def pytest_generate_tests(metafunc, display_len=24):
     # This is where the list of models to test can be configured
@@ -74,11 +74,13 @@ class TestBenchNetwork:
     def test_train(self, hub_model, benchmark):
         try:
             benchmark(hub_model.train)
+            benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method train is not implemented, skipping...')
 
     def test_eval(self, hub_model, benchmark):
         try:
             benchmark(hub_model.eval)
+            benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')

@@ -9,33 +9,9 @@ import sys
 import os
 import yaml
 
-from generate_score_config import generate_bench_cfg
+from torchbenchmark.score.compute_score import compute_score
+from torchbenchmark.score.generate_score_config import generate_bench_cfg
 from tabulate import tabulate
-
-SPEC_FILE_DEFAULT = "score.yml"
-TARGET_SCORE_DEFAULT = 1000
-
-def compute_score(config, data, fake_data=None):
-    target = config['target']
-    score = 0.0
-    weight_sum = 0.0
-    for name in config['benchmarks']:
-        cfg = config['benchmarks'][name]
-        weight, norm = cfg['weight'], cfg['norm']
-        weight_sum += weight
-        measured_mean = [b['stats']['mean'] for b in data['benchmarks'] if b['name'] == name]
-        assert len(measured_mean) == 1, f"Missing data for {name}, unable to compute score"
-        measured_mean = measured_mean[0]
-        if fake_data is not None and name in fake_data:
-            # used for sanity checks on the sensitivity of the score metric
-            measured_mean = fake_data[name]
-        benchmark_score = weight * math.log(norm / measured_mean)
-        # print(f"{name}: {benchmark_score}")
-        score += benchmark_score
-
-    score = target * math.exp(score)
-    assert abs(weight_sum - 1.0) < 1e-6, f"Bad configuration, weights don't sum to 1, but {weight_sum}"
-    return score
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -77,7 +53,7 @@ if __name__ == "__main__":
             print(f"Using hacks {args.hack_data}, hacked_score {hacked_score}")
 
     elif args.benchmark_data_dir is not None:
-        scores = [('File', 'Score')]
+        scores = [('File', 'Score', 'PyTorch Version')]
         for f in os.listdir(args.benchmark_data_dir):
             path = os.path.join(args.benchmark_data_dir, f)
             if os.path.isfile(path) and os.path.splitext(path)[1] == '.json':
@@ -86,7 +62,7 @@ if __name__ == "__main__":
                     if config is None:
                         config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
                     score = compute_score(config, data)
-                    scores.append((f, score))
+                    scores.append((f, score, data['machine_info']['pytorch_version']))
 
         print(tabulate(scores, headers='firstrow'))
 
