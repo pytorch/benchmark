@@ -10,8 +10,6 @@ for CONFIG in /output/configs/*; do
     . activate ${CONFIG_VER}
     pip install -r $CONFIG
     pushd /workspace/benchmark
-    # workaround the maskrcnn_benchmark undefined symbol problem
-    find . -name "*.so" -delete
     python install.py
     bash /workspace/benchmark/.github/scripts/run-benchmark.sh
 done
