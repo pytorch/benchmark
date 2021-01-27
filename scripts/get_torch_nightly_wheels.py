@@ -31,7 +31,7 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
     links = soup.find_all('a')
     data = defaultdict(dict)
     for link in soup.find_all('a'):
-        pkg, version, py, py_m, platform = re.search("([a-z]*)-(.*)-(.*)-(.*)-(.*)\.whl", link.text).groups()
+        pkg, version, py, py_m, platform = re.search("([a-z_]*)-(.*)-(.*)-(.*)-(.*)\.whl", link.text).groups()
         if py == py_version and platform == platform_version:
             full_url = os.path.join(torch_wheel_nightly_base, link.text)
             data[pkg][version] = full_url
