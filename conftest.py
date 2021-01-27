@@ -26,8 +26,11 @@ def set_fuser(fuser):
         torch._C._jit_set_texpr_fuser_enabled(True)
 
 def pytest_sessionstart(session):
-    if not session.config.getoption('ignore_machine_config'):
+    try:
         check_machine_configured()
+    except AssertionError as e:
+        if not session.config.getoption('ignore_machine_config'):
+            pytest.exit(f"{e}\nUse --ignore_machine_config arg if not running with recommended tuning settings")
 
 def pytest_configure(config):
     set_fuser(config.getoption("fuser"))
