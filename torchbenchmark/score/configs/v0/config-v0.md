@@ -55,7 +55,7 @@ Below is the complete list of the models we test in V0:
 - pytorch_mobilenet_v3
 - yolov3
 - Background_Matting
-- attention_is_all_you_nee...
+- attention_is_all_you_need_pytorch
 - BERT_pytorch
 - fastNLP
 - dlrm
