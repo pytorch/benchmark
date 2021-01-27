@@ -28,7 +28,7 @@ def set_fuser(fuser):
 def pytest_sessionstart(session):
     try:
         check_machine_configured()
-    except AssertionError as e:
+    except Exception as e:
         if not session.config.getoption('ignore_machine_config'):
             pytest.exit(f"{e}\nUse --ignore_machine_config arg if not running with recommended tuning settings")
 
