@@ -1,0 +1,38 @@
+---
+hierarchy:
+  model:
+    computer vision:
+      # segmentation:
+        # maskrcnn_benchmark:
+      classification:
+        pytorch_mobilenet_v3:
+      detection:
+        yolov3:
+      # generation:
+        # pytorch_CycleGAN_and_pix...:
+        # pytorch_stargan:
+      other computer vision:
+        Background_Matting:
+        # Super_SloMo:
+    natural language processing:
+      translation:
+        attention_is_all_you_nee...:
+      language_modeling:
+        BERT_pytorch:
+      other nlp:
+        fastNLP:
+    # speech:
+      # synthesis:
+        # tacotron2:
+    recommendation:
+      recommendation:
+        dlrm:
+    reinforcement learning:
+      other rl:
+        LearningToPaint:
+    other:
+      other tasks:
+        moco:
+        demucs:
+        pytorch_struct:
+...

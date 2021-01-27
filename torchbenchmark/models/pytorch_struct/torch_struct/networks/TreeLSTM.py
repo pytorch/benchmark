@@ -2,8 +2,13 @@
 import torch
 import torch as th
 import torch.nn as nn
-import dgl
 from torch_struct import CKY
+from unittest.mock import patch
+from io import StringIO
+
+with patch("sys.stderr", StringIO()):
+    # importing dgl is spammy
+    import dgl
 
 
 class TreeLSTMCell(nn.Module):

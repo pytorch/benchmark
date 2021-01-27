@@ -29,6 +29,7 @@ class Model:
 
     def eval(self, niter=1):
         model, example_inputs = self.get_module()
+        model.eval()
         for i in range(niter):
             model(*example_inputs)
 

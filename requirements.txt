@@ -1,3 +1,6 @@
+bs4
+py-cpuinfo
+distro
 pytest
 pytest-benchmark
 requests

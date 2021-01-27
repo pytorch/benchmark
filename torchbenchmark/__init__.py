@@ -25,10 +25,15 @@ def _test_https(test_url='https://github.com', timeout=0.5):
 
 def _install_deps(model_path):
     if os.path.exists(os.path.join(model_path, install_file)):
-        subprocess.check_call([sys.executable, install_file], cwd=model_path)
+        try:
+            subprocess.check_call([sys.executable, install_file], cwd=model_path)
+        except subprocess.CalledProcessError:
+            print(f"Error while running {model_path}/{install_file}")
+            sys.exit(-1)
     else:
         print('No install.py is found in {}.'.format(model_path))
         sys.exit(-1)
+
 
 def _list_model_paths():
     p = Path(__file__).parent.joinpath(model_dir)

@@ -120,8 +120,6 @@ class BaseOptions():
             suffix = ('_' + opt.suffix.format(**vars(opt))) if opt.suffix != '' else ''
             opt.name = opt.name + suffix
 
-        self.print_options(opt)
-
         # set gpu ids
         str_ids = opt.gpu_ids.split(',')
         opt.gpu_ids = []

@@ -30,25 +30,20 @@ class Model:
         ]) # Avoid reading sys.argv here
         args.with_cuda = self.device == 'cuda'
         args.script = self.jit
-        print("Loading Vocab", args.vocab_path)
         vocab = WordVocab.load_vocab(args.vocab_path)
-        print("Vocab Size: ", len(vocab))
 
         train_dataset = BERTDataset(args.train_dataset, vocab, seq_len=args.seq_len,
                                     corpus_lines=args.corpus_lines, on_memory=args.on_memory)
         test_dataset = BERTDataset(args.test_dataset, vocab, seq_len=args.seq_len, on_memory=args.on_memory) \
             if args.test_dataset is not None else None
 
-        print("Creating Dataloader")
         train_data_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         test_data_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers) \
             if test_dataset is not None else None
 
-        print("Building BERT model")
         bert = BERT(len(vocab), hidden=args.hidden, n_layers=args.layers, attn_heads=args.attn_heads)
 
         if args.script:
-            print("Scripting BERT model")
             bert = torch.jit.script(bert)
 
         self.trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,

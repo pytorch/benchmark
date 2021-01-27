@@ -401,7 +401,8 @@ class SentCFG(StructDistribution):
     """
 
     struct = CKY
-
+    arg_constraints = { }
+    
     def __init__(self, log_potentials, lengths=None):
         batch_shape = log_potentials[0].shape[:1]
         event_shape = log_potentials[0].shape[1:]
