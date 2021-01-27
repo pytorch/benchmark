@@ -10,6 +10,7 @@ import os
 import platform
 import psutil
 import subprocess
+import re
 import sys
 import typing
 from pathlib import Path
@@ -206,6 +207,49 @@ def get_omp_affinity():
         affinity.extend(parse_block(raw))
     return affinity
 
+def get_pstate_frequency():
+    CPU_FREQ_BASE_DIR = '/sys/devices/system/cpu'
+    CPU_FREQ_FILES = ["scaling_min_freq", "scaling_max_freq", "scaling_cur_freq"]
+    cpu_dirs = [f for f in os.listdir(CPU_FREQ_BASE_DIR) if re.match(r'cpu[0-9]+', f)]
+    output = dict()
+    for cpu_dir in cpu_dirs:
+        full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
+        freq_paths = [os.path.join(full_path, x) for x in CPU_FREQ_FILES]
+        all_exist = True
+        for path in freq_paths:
+            all_exist = all_exist and os.path.exists(path)
+        if all_exist:
+            output[cpu_dir] = dict()
+            for i, path in enumerate(freq_paths):
+                output[cpu_dir][CPU_FREQ_FILES[i]] = int(read_sys_file(path)) / 1000
+    return output
+
+def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
+    CPU_FREQ_BASE_DIR = '/sys/devices/system/cpu'
+    CPU_FREQ_FILES = ["scaling_min_freq", "scaling_max_freq", "scaling_cur_freq"]
+    cpu_dirs = [f for f in os.listdir(CPU_FREQ_BASE_DIR) if re.match(r'cpu[0-9]+', f)]
+    for cpu_dir in cpu_dirs:
+        full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
+        freq_paths = [os.path.join(full_path, x) for x in CPU_FREQ_FILES]
+        all_exist = True
+        for path in freq_paths:
+            all_exist = all_exist and os.path.exists(path)
+        if all_exist:
+            write_sys_file(freq_paths[0], min_freq * 1000)
+            write_sys_file(freq_paths[1], max_freq * 1000)
+
+def check_pstate_frequency_pin(pin_freq = 2500):
+    FREQ_THRESHOLD = 10  # Allow 10 MHz difference maximum
+    all_freq = get_pstate_frequency()
+    for cpuid in all_freq:
+        for attr in all_freq[cpuid]:
+            freq = all_freq[cpuid][attr]
+            difference = abs(freq - pin_freq)
+            if difference > FREQ_THRESHOLD:
+                print(f"Specify frequency {pin_freq} Mhz, find setting {cpuid} {attr}: {freq}.")
+                return False
+    return True
+
 def get_machine_config():
     config = {}
     machine_type = get_machine_type()
@@ -229,6 +273,7 @@ def check_machine_configured(check_process_affinity=True):
         assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
         assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
         assert is_using_isolated_cpus(), "taskset or GOMP_CPU_AFFINITY not specified or not matching kernel isolated cpus"
+        assert check_pstate_frequency_pin(), "Must pin CPU frequency to a fixed number in MHz"
     else:
         raise RuntimeError(f"Unsupported machine type {get_machine_type()}")
 
