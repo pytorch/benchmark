@@ -315,4 +315,6 @@ if __name__ == "__main__":
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
         assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
         assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
-        assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
+        # doesn't make too much sense to ask the user to run this configure script with the isolated cpu cores
+        # that check is more important to be done at runtime of benchmark, and is checked by conftest.py
+        #assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
