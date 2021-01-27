@@ -11,7 +11,7 @@ if [[ ! -v SCRIBE_GRAPHQL_ACCESS_TOKEN ]]; then
     exit 1
 fi
 
-pushd /workspace/benchmark/score
+pushd /workspace/benchmark/torchbenchmark/score
 
 TORCHBENCH_SCORE=$(python compute_score.py --configuration ${CONFIG_FILE} --benchmark_data_dir /output | awk 'NR>2' )
 
