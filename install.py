@@ -1,3 +1,4 @@
+import argparse
 import subprocess
 import sys
 from torchbenchmark import setup, _test_https, proxy_suggestion
@@ -17,9 +18,16 @@ def pip_install_requirements():
     return True, None
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--continue_on_fail", action="store_true")
+    args = parser.parse_args()
+
     success, errmsg = pip_install_requirements()
     if not success:
         print("Failed to install torchbenchmark requirements:")
         print(errmsg)
-        sys.exit(-1)
-    setup(verbose=True)
+        if not args.continue_on_fail:
+            sys.exit(-1)
+    success &= setup(verbose=True, continue_on_fail=args.continue_on_fail)
+    if not success:
+        raise RuntimeError("Failed to complete setup")

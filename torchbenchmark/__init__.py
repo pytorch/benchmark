@@ -44,7 +44,7 @@ def _list_model_paths():
     return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
 
 
-def setup(verbose=False):
+def setup(verbose=True, continue_on_fail=False):
     if not _test_https():
         print(proxy_suggestion)
         sys.exit(-1)
@@ -57,7 +57,13 @@ def setup(verbose=False):
             print("OK")
         else:
             print("FAIL")
+            try:
+                errmsg = errmsg.decode()
+            except:
+                pass
             failures[model_path] = errmsg
+            if not continue_on_fail:
+                break
     if verbose and len(failures):
         for model_path in failures:
             print(f"Error for {model_path}:")
@@ -66,6 +72,7 @@ def setup(verbose=False):
             print("---------------------------------------------------------------------------")
             print()
 
+    return len(failures) == 0
 
 def list_models():
     models = []
