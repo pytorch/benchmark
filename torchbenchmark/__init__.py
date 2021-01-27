@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import subprocess
-import sys
+import sys 
 import torch
 from urllib import request
 import importlib
@@ -24,29 +24,47 @@ def _test_https(test_url='https://github.com', timeout=0.5):
 
 
 def _install_deps(model_path):
-    if os.path.exists(os.path.join(model_path, install_file)):
-        try:
-            subprocess.check_call([sys.executable, install_file], cwd=model_path)
-        except subprocess.CalledProcessError:
-            print(f"Error while running {model_path}/{install_file}")
-            sys.exit(-1)
-    else:
-        print('No install.py is found in {}.'.format(model_path))
-        sys.exit(-1)
+    try:
+        if os.path.exists(os.path.join(model_path, install_file)):
+            subprocess.run([sys.executable, install_file],
+                           cwd=model_path, check=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        else:
+            return (False, f"No install.py is found in {model_path}.")
+    except subprocess.CalledProcessError as e:
+        return (False, e.output)
+    except Exception as e:
+        return (False, e)
 
+    return (True,  None)
+    
 
 def _list_model_paths():
     p = Path(__file__).parent.joinpath(model_dir)
     return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
 
 
-def setup():
+def setup(verbose=False):
     if not _test_https():
         print(proxy_suggestion)
         sys.exit(-1)
 
+    failures = {}
     for model_path in _list_model_paths():
-        _install_deps(model_path)
+        print(f"running setup for {model_path}...", end="", flush=True)
+        success, errmsg = _install_deps(model_path)
+        if success:
+            print("OK")
+        else:
+            print("FAIL")
+            failures[model_path] = errmsg
+    if verbose and len(failures):
+        for model_path in failures:
+            print(f"Error for {model_path}:")
+            print("---------------------------------------------------------------------------")
+            print(failures[model_path])
+            print("---------------------------------------------------------------------------")
+            print()
 
 
 def list_models():
