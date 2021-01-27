@@ -3,7 +3,7 @@ import sys
 
 
 def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
 def spacy_download(language):
     subprocess.check_call([sys.executable, '-m', 'spacy', 'download', language])
