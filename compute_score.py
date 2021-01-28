@@ -9,9 +9,11 @@ import sys
 import os
 import yaml
 
-from torchbenchmark.score.compute_score import compute_score
+from torchbenchmark.score.compute_score import compute_score, generate_spec
 from torchbenchmark.score.generate_score_config import generate_bench_cfg
 from tabulate import tabulate
+
+TARGET_SCORE_DEFAULT = 1000
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -32,8 +34,8 @@ if __name__ == "__main__":
         if args.benchmark_data_file is None and args.benchmark_data_dir is None:
             parser.print_help(sys.stderr)
             raise ValueError("Invalid command-line arguments. You must specify a config, a data file, or a data dir.")
-        with open(SPEC_FILE_DEFAULT) as spec_file:
-            spec = yaml.full_load(spec_file)
+        # Generate the default spec
+        spec = generate_spec()
 
     if args.benchmark_data_file is not None:
         with open(args.benchmark_data_file) as data_file:
