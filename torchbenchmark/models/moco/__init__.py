@@ -22,6 +22,8 @@ cudnn.deterministic = True
 
 
 class Model:
+    domain = "other"
+    task = "other tasks"
     def __init__(self, device='cuda', jit=False):
         """ Required """
         self.device = device

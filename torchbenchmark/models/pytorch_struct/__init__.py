@@ -13,6 +13,8 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = True
 
 class Model:
+  domain = "other"
+  task = "other tasks"
   def __init__(self, device='cpu', jit=False):
     self.device = device
     self.jit = jit

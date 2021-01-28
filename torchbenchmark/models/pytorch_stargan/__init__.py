@@ -18,6 +18,8 @@ torch.backends.cudnn.benchmark = False
 
 
 class Model:
+    domain = "computer vision"
+    task = "generation"
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit

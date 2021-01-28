@@ -6,6 +6,8 @@ from .text import symbols
 from pathlib import Path
 
 class Model:
+    domain = "speech"
+    task = "synthesis"
     def __init__(self, device='cpu', jit=False):
         """ Required """
         self.device = device

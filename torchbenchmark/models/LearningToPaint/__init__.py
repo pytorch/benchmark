@@ -18,6 +18,8 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 class Model:
+    domain = "reinforcement learning"
+    task = "other rl"
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit

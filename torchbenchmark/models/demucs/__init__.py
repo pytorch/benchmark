@@ -18,6 +18,8 @@ torch.backends.cudnn.benchmark = False
 
 
 class Model:
+    domain = "other"
+    task = "other tasks"
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit

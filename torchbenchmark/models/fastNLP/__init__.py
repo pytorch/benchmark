@@ -24,6 +24,8 @@ torch.backends.cudnn.benchmark = False
 from pathlib import Path
 
 class Model:
+    domain = "natural language processing"
+    task = "other nlp"
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
