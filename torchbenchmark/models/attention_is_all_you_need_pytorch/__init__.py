@@ -7,7 +7,7 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import NLP
 from torchtext.data import Field, Dataset, BucketIterator
 from torchtext.datasets import TranslationDataset
 
@@ -26,8 +26,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 class Model:
-    domain = Domain.NLP
-    task = Task.TRANSLATION
+    task = NLP.TRANSLATION
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit

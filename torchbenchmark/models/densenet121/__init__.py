@@ -3,11 +3,10 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model:
-    domain = Domain.COMPUTER_VISION
-    task = Task.CLASSIFICATION
+    task = COMPUTER_VISION.CLASSIFICATION
     def __init__(self, device="cpu", jit=False):
         self.device = device
         self.jit = jit

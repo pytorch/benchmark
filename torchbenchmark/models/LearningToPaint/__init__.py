@@ -11,7 +11,7 @@ from .baseline.Renderer.model import FCN
 from .baseline.Renderer.stroke_gen import *
 
 from argparse import Namespace
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 torch.manual_seed(1337)
 np.random.seed(1337)
@@ -19,8 +19,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 class Model:
-    domain = Domain.REINFORCEMENT_LEARNING
-    task = Task.OTHER_RL
+    task = REINFORCEMENT_LEARNING.OTHER_RL
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit

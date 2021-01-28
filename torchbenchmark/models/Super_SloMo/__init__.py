@@ -10,6 +10,8 @@ import numpy as np
 from argparse import Namespace
 from pathlib import Path
 
+from torchbenchmark.tasks import COMPUTER_VISION
+
 torch.manual_seed(1337)
 random.seed(1337)
 np.random.seed(1337)
@@ -18,6 +20,7 @@ torch.backends.cudnn.benchmark = False
 
 
 class Model:
+    task = COMPUTER_VISION.OTHER_COMPUTER_VISION
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
