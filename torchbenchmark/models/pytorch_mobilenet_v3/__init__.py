@@ -4,6 +4,8 @@ from .mobilenetv3 import MobileNetV3
 
 
 class Model:
+    domain = "computer vision"
+    task = "classification"
     def __init__(self, device="cpu", jit=False):
         """ Required """
         self.device = device

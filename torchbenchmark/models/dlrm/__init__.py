@@ -36,6 +36,8 @@ np.random.seed(123)
 torch.manual_seed(123)
 
 class Model:
+    domain = "recommendation"
+    task = "recommendation"
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit

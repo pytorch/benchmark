@@ -20,6 +20,8 @@ def nyi():
     raise NotImplementedError()
 
 class Model:
+    domain = "computer vision"
+    task = "generation"
     def __init__(self, device='cpu', jit=False):
         if device != 'cuda': # NYI implemented for things that aren't on the GPU
             self.get_module = self.train = self.eval = nyi
