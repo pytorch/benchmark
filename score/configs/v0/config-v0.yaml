@@ -23,16 +23,16 @@ benchmarks:
   test_eval[LearningToPaint-cuda-jit]:
     norm: 0.0024050240096045172
     weight: 0.025
-  test_eval[attention_is_all_you_nee...-cpu-eager]:
+  test_eval[attention_is_all_you_need_pytorch-cpu-eager]:
     norm: 0.25790401795004525
     weight: 0.008333333333333333
-  test_eval[attention_is_all_you_nee...-cpu-jit]:
+  test_eval[attention_is_all_you_need_pytorch-cpu-jit]:
     norm: 0.23751217155001997
     weight: 0.008333333333333333
-  test_eval[attention_is_all_you_nee...-cuda-eager]:
+  test_eval[attention_is_all_you_need_pytorch-cuda-eager]:
     norm: 0.14071995145000074
     weight: 0.008333333333333333
-  test_eval[attention_is_all_you_nee...-cuda-jit]:
+  test_eval[attention_is_all_you_need_pytorch-cuda-jit]:
     norm: 0.14165502375003597
     weight: 0.008333333333333333
   test_eval[demucs-cpu-eager]:
@@ -131,16 +131,16 @@ benchmarks:
   test_train[LearningToPaint-cuda-jit]:
     norm: 0.015754736360674138
     weight: 0.025
-  test_train[attention_is_all_you_nee...-cpu-eager]:
+  test_train[attention_is_all_you_need_pytorch-cpu-eager]:
     norm: 1.1197607331500194
     weight: 0.008333333333333333
-  test_train[attention_is_all_you_nee...-cpu-jit]:
+  test_train[attention_is_all_you_need_pytorch-cpu-jit]:
     norm: 1.1107250554500296
     weight: 0.008333333333333333
-  test_train[attention_is_all_you_nee...-cuda-eager]:
+  test_train[attention_is_all_you_need_pytorch-cuda-eager]:
     norm: 0.43750642099992093
     weight: 0.008333333333333333
-  test_train[attention_is_all_you_nee...-cuda-jit]:
+  test_train[attention_is_all_you_need_pytorch-cuda-jit]:
     norm: 0.43786742414999935
     weight: 0.008333333333333333
   test_train[demucs-cpu-eager]:
