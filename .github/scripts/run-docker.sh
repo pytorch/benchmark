@@ -7,7 +7,7 @@ CONFIG_VER=v0
 
 # Run Parameters
 RUN_SCRIPT=$1
-CONFIG_DIR=${PWD}/score/configs/${CONFIG_VER}
+CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
 # Use the latest pytorch-benchmark image
 TORCH_IMAGE_ID=torchbench/pytorch-benchmark:latest
