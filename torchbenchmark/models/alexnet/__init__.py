@@ -6,8 +6,13 @@ import torchvision.models as models
 from torchbenchmark import Domain, Task
 
 class Model:
+<<<<<<< HEAD
     domain = Domain.COMPUTER_VISION
     task = Task.CLASSIFICATION
+=======
+    domain = "computer vision"
+    task = "classification"
+>>>>>>> 25cd2f93730a5952d765f3b6a9c7eb4ef89d4dbb
     def __init__(self, device="cpu", jit=False):
         self.device = device
         self.jit = jit
