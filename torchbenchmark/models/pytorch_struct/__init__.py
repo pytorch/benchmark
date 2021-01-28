@@ -6,7 +6,7 @@ from torch_struct import SentCFG
 from torch_struct.networks import NeuralCFG
 import torch_struct.data
 
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -16,7 +16,7 @@ torch.backends.cudnn.benchmark = True
 
 class Model:
   domain = Domain.OTHER
-  task = Task.OTHER_TASKS
+  task = OTHER.OTHER_TASKS
   def __init__(self, device='cpu', jit=False):
     self.device = device
     self.jit = jit

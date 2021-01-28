@@ -30,15 +30,14 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
 from argparse import Namespace
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import RECOMMENDATION
 
 ### some basic setup ###
 np.random.seed(123)
 torch.manual_seed(123)
 
 class Model:
-    domain = Domain.RECOMMENDATION
-    task = Task.RECOMMENDATION
+    task = RECOMMENDATION.RECOMMENDATION
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit

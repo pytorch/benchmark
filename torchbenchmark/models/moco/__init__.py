@@ -15,7 +15,7 @@ import torchvision.models as models
 
 from .moco.builder import MoCo
 from .main_moco import adjust_learning_rate
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1058467)
 random.seed(1058467)
@@ -24,7 +24,7 @@ cudnn.deterministic = True
 
 class Model:
     domain = Domain.OTHER
-    task = Task.OTHER_TASKS
+    task = OTHER.OTHER_TASKS
     def __init__(self, device='cuda', jit=False):
         """ Required """
         self.device = device

@@ -15,32 +15,6 @@ this_dir = Path(__file__).parent.absolute()
 model_dir = 'models'
 install_file = 'install.py'
 
-# Enum class to hold all the available domain names
-class Domain(Enum):
-    COMPUTER_VISION = "computer vision"
-    OTHER_COMPUTER_VISION = "other computer vision"
-    NLP = "natural language processing"
-    SPEECH = "speech"
-    RECOMMENDATION = "recommendation"
-    REINFORCEMENT_LEARNING = "reinforcement learning"
-    OTHER = "other"
-
-# Enum class to hold all the available task names
-class Task(Enum):
-    SEGMENTATION = "segmentation"
-    CLASSIFICATION = "classification"
-    DETECTION = "detection"
-    BACKGROUND_MATTING = "background matting"
-    TRANSLATION = "translation"
-    LANGUAGE_MODELING = "language modeling"
-    OTHER_NLP = "other nlp"
-    SYNTHESIS = "synthesis"
-    RECOMMENDATION = "recommendation"
-    GENERATION = "generation"
-    OTHER_RL = "other rl"
-    OTHER_TASKS = "other tasks"
-
-
 def _test_https(test_url='https://github.com', timeout=0.5):
     try:
         request.urlopen(test_url, timeout=timeout)

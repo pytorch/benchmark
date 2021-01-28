@@ -4,7 +4,7 @@ from fastNLP.models import BertForSequenceClassification
 from torch.utils.data import DataLoader
 import time
 from torch.utils.data.dataset import random_split
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import NLP
 import argparse
 import random
 import numpy as np
@@ -25,8 +25,7 @@ torch.backends.cudnn.benchmark = False
 from pathlib import Path
 
 class Model:
-    domain = Domain.NLP
-    task = Task.OTHER_NLP
+    task = NLP.OTHER_NLP
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit

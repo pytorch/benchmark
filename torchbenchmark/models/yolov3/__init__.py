@@ -21,12 +21,14 @@ from .yolo_models import *  # set ONNX_EXPORT in models.py
 from .yolo_utils.datasets import *
 from .yolo_utils.utils import *
 from pathlib import Path
+from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model:
+    task = COMPUTER_VISION.SEGMENTATION
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit
-        
+
     def get_module(self):
         if self.jit:
             raise NotImplementedError()

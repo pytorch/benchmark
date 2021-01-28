@@ -5,11 +5,10 @@ from argparse import Namespace
 from .text import symbols
 from pathlib import Path
 
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import SPEECH
 
 class Model:
-    domain = Domain.SPEECH
-    task = Task.SYNTHESIS
+    task = SPEECH.SYNTHESIS
     def __init__(self, device='cpu', jit=False):
         """ Required """
         self.device = device

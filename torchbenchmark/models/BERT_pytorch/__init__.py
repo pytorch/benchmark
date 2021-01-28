@@ -9,7 +9,7 @@ from .bert_pytorch.trainer import BERTTrainer
 from .bert_pytorch.dataset import BERTDataset, WordVocab
 from .bert_pytorch.model import BERT
 from torch.utils.data import DataLoader
-from torchbenchmark import Domain, Task
+from torchbenchmark.tasks import NLP
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -19,8 +19,7 @@ torch.backends.cudnn.benchmark = False
 from pathlib import Path
 
 class Model:
-    domain = Domain.NLP
-    task = Task.TRANSLATION
+    task = NLP.LANGUAGE_MODELING
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
