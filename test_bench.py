@@ -19,20 +19,13 @@ import torch
 from torchbenchmark import list_models
 
 
-def pytest_generate_tests(metafunc, display_len=24):
+def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
     # e.g. by using info in metafunc.config
     all_models = list_models()
-    short_names = []
-    for model_class in all_models:
-        short = model_class.name
-        if len(short) > display_len:
-            short = short[:display_len] + "..."
-        short_names.append(short)
-
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         metafunc.parametrize('model_class', all_models,
-                             ids=short_names, scope="class")
+                             ids=[m.name for m in all_models], scope="class")
         metafunc.parametrize('device', ['cpu', 'cuda'], scope='class')
         metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
 
