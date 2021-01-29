@@ -13,7 +13,7 @@ hierarchy:
         # pytorch_stargan:
       other computer vision:
         Background_Matting:
-        Super_SloMo:
+        # Super_SloMo:
     natural language processing:
       translation:
         attention_is_all_you_need_pytorch:
@@ -21,9 +21,9 @@ hierarchy:
         BERT_pytorch:
       other nlp:
         fastNLP:
-    speech:
-      synthesis:
-        tacotron2:
+    # speech:
+      # synthesis:
+        # tacotron2:
     recommendation:
       recommendation:
         dlrm:
