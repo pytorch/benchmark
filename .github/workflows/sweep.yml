@@ -1,10 +1,13 @@
-name: pytorch-nightly-sweep
+name: pytorch-sweep-benchmarking-v0.1
 on:
   workflow_dispatch:
 
 jobs:
   run-sweep:
-    runs-on: [self-hosted, bm-ec2]
+    runs-on: [self-hosted, bm-metal]
+    timeout-minutes: 2880 # 48 hours
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: 0.1
       - run: bash ./.github/scripts/run-sweep.sh
