@@ -13,6 +13,9 @@ def check_results(m, config):
         m.check_results()
 
 class BenchmarkModel():
+    def __init__(self):
+        self.eager_results = {}
+        self.jit_results = {}
 
     def check_results(self):
 
@@ -37,11 +40,11 @@ class BenchmarkModel():
             
 
 
-    def save_results(self, results, train: bool):
+    def save_results(self, results, train: bool = False):
         if train:
             # TODO: NYI
             return
-        if jit:
+        if self.jit:
             self.jit_results[(train, self.device)] = results
         else:
             self.eager_results[(train, self.device)] = results
