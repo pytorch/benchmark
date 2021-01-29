@@ -2,10 +2,12 @@ import torch
 import torch.optim as optim
 from .mobilenetv3 import MobileNetV3
 
+from torchbenchmark import Domain, Task
+
 
 class Model:
-    domain = "computer vision"
-    task = "classification"
+    domain = Domain.COMPUTER_VISION
+    task = Task.CLASSIFICATION
     def __init__(self, device="cpu", jit=False):
         """ Required """
         self.device = device

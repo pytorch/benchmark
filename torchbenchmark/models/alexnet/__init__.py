@@ -42,3 +42,4 @@ if __name__ == "__main__":
     module(*example_inputs)
     m.train(niter=1)
     m.eval(niter=1)
+    

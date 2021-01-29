@@ -36,8 +36,10 @@ class Task(Enum):
     OTHER_NLP = "other nlp"
     SYNTHESIS = "synthesis"
     RECOMMENDATION = "recommendation"
+    GENERATION = "generation"
     OTHER_RL = "other rl"
     OTHER_TASKS = "other tasks"
+
 
 def _test_https(test_url='https://github.com', timeout=0.5):
     try:

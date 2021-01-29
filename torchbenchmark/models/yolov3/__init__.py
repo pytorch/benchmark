@@ -23,12 +23,10 @@ from .yolo_utils.utils import *
 from pathlib import Path
 
 class Model:
-    domain = "computer vision"
-    task = "detection"
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit
-
+        
     def get_module(self):
         if self.jit:
             raise NotImplementedError()

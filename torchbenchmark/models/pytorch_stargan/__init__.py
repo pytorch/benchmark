@@ -8,7 +8,7 @@ from .solver import Solver
 from .data_loader import get_loader
 from .main import parse_config, makedirs
 
-
+from torchbenchmark import Domain, Task
 # Make all randomness deterministic
 random.seed(1337)
 torch.manual_seed(1337)
@@ -18,8 +18,8 @@ torch.backends.cudnn.benchmark = False
 
 
 class Model:
-    domain = "computer vision"
-    task = "generation"
+    domain = Domain.COMPUTER_VISION
+    task = Task.GENERATION
     def __init__(self, device='cpu', jit=False):
         self.device = device
         self.jit = jit

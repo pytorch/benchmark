@@ -6,6 +6,8 @@ from torch_struct import SentCFG
 from torch_struct.networks import NeuralCFG
 import torch_struct.data
 
+from torchbenchmark import Domain, Task
+
 torch.manual_seed(1337)
 random.seed(1337)
 np.random.seed(1337)
@@ -13,8 +15,8 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = True
 
 class Model:
-  domain = "other"
-  task = "other tasks"
+  domain = Domain.OTHER
+  task = Task.OTHER_TASKS
   def __init__(self, device='cpu', jit=False):
     self.device = device
     self.jit = jit

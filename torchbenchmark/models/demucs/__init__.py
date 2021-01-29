@@ -3,6 +3,7 @@ import torch
 import random
 import numpy as np
 from fractions import Fraction
+from torchbenchmark import Domain, Task
 
 from .demucs.model import Demucs
 from .demucs.parser import get_name, get_parser
@@ -18,8 +19,8 @@ torch.backends.cudnn.benchmark = False
 
 
 class Model:
-    domain = "other"
-    task = "other tasks"
+    domain = Domain.OTHER
+    task = Task.OTHER_TASKS
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
