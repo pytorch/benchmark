@@ -257,7 +257,7 @@ def get_machine_config():
     machine_type = get_machine_type()
     config['machine_type'] = machine_type
     config['cpu_brand'] = cpuinfo.get_cpu_info()['brand_raw']
-    if machine_type() in [MACHINE.AMAZON_LINUX, MACHINE.UBUNTU]:
+    if machine_type in [MACHINE.AMAZON_LINUX, MACHINE.UBUNTU]:
         config['linux_distribution'] = distro.linux_distribution()
         config['intel_turbo_disabled'] = check_intel_no_turbo_state()
         config['intel_hyper_threading_enabled'] = hyper_threading_enabled()
@@ -268,7 +268,7 @@ def get_machine_config():
     return config
 
 def check_machine_configured(check_process_affinity=True):
-    if get_machine_type() in [MACHINE.AMAZON_LINUX, MACHINE.UBUNTU]:
+    if machine_type in [MACHINE.AMAZON_LINUX, MACHINE.UBUNTU]:
         assert 1 == check_intel_no_turbo_state(), "Turbo Boost is not disabled"
         assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
