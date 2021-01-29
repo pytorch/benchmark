@@ -53,7 +53,7 @@ Some useful options include
 ## Nightly CI runs
 Currently, models run on nightly pytorch builds and push data to scuba.
 
-See [Unidash](https://www.internalfb.com/intern/unidash/dashboard/pytorch_benchmarks/hub_detail/) (internal only)
+See [Unidash](https://www.internalfb.com/intern/unidash/dashboard/pytorch_benchmarks/torchbenchmark_v0/) (internal only)
 
 ## Adding new models
 
