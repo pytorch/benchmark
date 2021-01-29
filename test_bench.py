@@ -18,6 +18,8 @@ import time
 import torch
 from torchbenchmark import list_models
 from torchbenchmark.util.machine_config import get_machine_state
+from torchbenchmark.util.model import check_results
+
 
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
@@ -50,7 +52,6 @@ def cuda_timer():
     torch.cuda.synchronize()
     return time.perf_counter()
 
-
 @pytest.mark.benchmark(
     warmup=True,
     warmup_iterations=3,
@@ -59,6 +60,7 @@ def cuda_timer():
                          torch.cuda.is_available()) else time.perf_counter,
     group='hub',
 )
+
 class TestBenchNetwork:
     """
     This test class will get instantiated once for each 'model_stuff' provided
@@ -71,9 +73,10 @@ class TestBenchNetwork:
         except NotImplementedError:
             print('Method train is not implemented, skipping...')
 
-    def test_eval(self, hub_model, benchmark):
+    def test_eval(self, hub_model, benchmark, pytestconfig):
         try:
             benchmark(hub_model.eval)
+            check_results(hub_model.eval, pytestconfig)
             benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')
