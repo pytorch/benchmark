@@ -1,9 +1,10 @@
 import os
 import re
 import requests
-from datetime import date, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
+from datetime import datetime, date, timedelta
+from pathlib import Path
 
 torch_wheel_nightly_base ="https://download.pytorch.org/whl/nightly/cu102/" 
 torch_nightly_wheel_index = "https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html" 
@@ -57,7 +58,7 @@ def get_nightly_wheel_urls(packages:list, date:date,
 
         full_url = pkg_versions[keys[0]]
         versions.append(full_url)
-    print(f"   \"{dbg_key}\"  \\")
+    #print(f"   \"{dbg_key}\"  \\")
     return tuple(versions)
 
 def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
@@ -82,9 +83,43 @@ def get_n_prior_nightly_wheels(packages:list, n:int,
                                        py_version=py_version, platform_version=platform_version)
 
 
+def create_requirements_files(root: Path, packages: list, start_date: date, end_date: date,
+                              py_version='cp37', platform_version='linux_x86_64'):
+    root = Path(root)
+    curr_date = start_date
+    while curr_date < end_date:
+        curr_wheels = get_nightly_wheel_urls(packages, curr_date,
+                                             py_version=py_version,
+                                             platform_version=platform_version)
+        if curr_wheels is not None:
+            filename = root / f"requirements-{str(curr_date)}.txt"
+            with open(filename, 'w') as f:
+                for pkg in curr_wheels:
+                    f.write(pkg)
+        curr_date += timedelta(days=1)
+
+def parse_date_str(s: str):
+    return datetime.strptime(s, '%Y%m%d').date() 
+
 if __name__ == "__main__":
-    from tabulate import tabulate
+    # from tabulate import tabulate
     # print(tabulate(get_n_prior_nightly_wheels(['torch', 'torchvision', 'torchtext'], 200)))
-    wheels = get_n_prior_nightly_wheels(['torch', 'torchvision', 'torchtext'], 200)
-    for a, b, c in wheels:
-        print(f"   \"{a} {b} {c}\"  \\")
+    # wheels = get_n_prior_nightly_wheels(['torch', 'torchvision', 'torchtext'], 200)
+    # for a, b, c in wheels:
+        # print(f"   \"{a} {b} {c}\"  \\")
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('action', choices=['create_requirements'])
+    parser.add_argument('--start_date', type=parse_date_str)
+    parser.add_argument('--end_date', default=date.today(),
+                        type=parse_date_str)
+    parser.add_argument('--packages', nargs='+', default=['torch', 'torchvision', 'torchtext'])
+    parser.add_argument('--output_dir')
+    args = parser.parse_args()
+    if args.action == 'create_requirements':
+        assert args.start_date is not None
+        assert args.end_date is not None
+        assert args.output_dir is not None
+        assert not os.path.exists(args.output_dir), "provide non-existing output dir"
+        os.mkdir(args.output_dir)
+        create_requirements_files(args.output_dir, args.packages, args.start_date, args.end_date)
