@@ -152,7 +152,7 @@ def get_machine_type():
         name = distro.linux_distribution()[0]
         if name == "Amazon Linux":
             return MACHINE.AMAZON_LINUX
-	elif name == "Ubuntu":
+        elif name == "Ubuntu":
             return MACHINE.UBUNTU
 
     return MACHINE.UNKNOWN
