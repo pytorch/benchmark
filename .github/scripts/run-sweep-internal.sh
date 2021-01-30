@@ -2,7 +2,7 @@
 
 set -xeo pipefail
 
-for CONFIG in /output/configs/*; do
+for CONFIG in /output/configs/*.txt; do
     # Create a new conda version from base
     CONFIG_BASE=$(basename ${CONFIG})
     CONFIG_ENV_NAME=$(echo ${CONFIG} | sed 's/.*-\(.*\)\.txt/\1/')
@@ -17,5 +17,5 @@ for CONFIG in /output/configs/*; do
     python install.py
     bash /workspace/benchmark/.github/scripts/run-benchmark.sh
     . activate base
-    conda env remove --name {CONFIG_ENV_NAME}
+    conda env remove --name ${CONFIG_ENV_NAME}
 done
