@@ -9,6 +9,9 @@ def pytest_addoption(parser):
     parser.addoption("--ignore_machine_config",
                      action='store_true',
                      help="Disable checks/assertions for machine configuration for stable benchmarks")
+    parser.addoption("--check_results",
+                     action='store_true',
+                     help="Check that eager and jit results match")
 
 def set_fuser(fuser):
     if fuser == "old":

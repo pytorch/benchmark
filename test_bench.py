@@ -76,7 +76,7 @@ class TestBenchNetwork:
     def test_eval(self, hub_model, benchmark, pytestconfig):
         try:
             benchmark(hub_model.eval)
-            check_results(hub_model.eval, pytestconfig)
+            check_results(hub_model, pytestconfig)
             benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')

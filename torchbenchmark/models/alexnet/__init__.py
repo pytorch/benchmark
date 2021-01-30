@@ -3,9 +3,11 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
+from ...util.model import BenchmarkModel
 
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device="cpu", jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.alexnet()
@@ -30,6 +32,7 @@ class Model:
         model, example_inputs = self.get_module()
         example_inputs = example_inputs[0][0].unsqueeze(0)
         for i in range(niter):
+            #self.save_results(model(example_inputs), False)
             model(example_inputs)
 
 

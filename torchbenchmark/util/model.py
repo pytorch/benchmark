@@ -29,11 +29,14 @@ class BenchmarkModel():
                 for i in range(len(a)):
                     bench_allclose(a[i], b[i])
 
+        
+        print(len(self.jit_results))
         if len(self.jit_results) == 0 or len(self.eager_results) == 0:
             return
 
-        assert(len(self.jit_results) == len(self.eager_results))
+        print("!!!!!!!!!!!!!!!BEFORE bench_allclose!!!!!!!!!!!!!!!!")
 
+        assert(len(self.jit_results) == len(self.eager_results))
         for k, r in self.jit_results.items():
             assert(k in self.eager_results)
             bench_allclose(self.eager_results[k], r)
@@ -41,10 +44,13 @@ class BenchmarkModel():
 
 
     def save_results(self, results, train: bool = False):
+        
         if train:
             # TODO: NYI
             return
         if self.jit:
             self.jit_results[(train, self.device)] = results
+            print("!!!!!!!!!!!!!!!save_results jit!!!!!!!!!!!!!!!!")
         else:
             self.eager_results[(train, self.device)] = results
+            print("!!!!!!!!!!!!!!!save_results eager!!!!!!!!!!!!!!!!")
