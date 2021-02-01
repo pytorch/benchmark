@@ -1,4 +1,4 @@
 dill
 tqdm
 numpy
-spacy
+spacy==2.3.5
