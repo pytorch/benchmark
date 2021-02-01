@@ -16,6 +16,7 @@ for CONFIG in /output/configs/*.txt; do
     pushd /workspace/benchmark
     python install.py
     bash /workspace/benchmark/.github/scripts/run-benchmark.sh
+    popd
     . activate base
     conda env remove --name ${CONFIG_ENV_NAME}
 done
