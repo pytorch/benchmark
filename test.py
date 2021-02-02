@@ -45,7 +45,7 @@ def _load_test(model_class, device):
         except NotImplementedError:
             self.skipTest('Method get_module is not implemented, skipping...')
 
-    def set_train(self):
+    def train(self):
         m = model_object(self)
         try:
             start = time.time()
@@ -54,7 +54,7 @@ def _load_test(model_class, device):
         except NotImplementedError:
             self.skipTest('Method train is not implemented, skipping...')
 
-    def set_eval(self):
+    def eval(self):
         m = model_object(self)
         try:
             start = time.time()
