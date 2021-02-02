@@ -87,7 +87,7 @@ class BaseModel(ABC):
             load_suffix = 'iter_%d' % opt.load_iter if opt.load_iter > 0 else opt.epoch
             self.load_networks(load_suffix)
 
-    def set_eval(self):
+    def eval(self):
         """Make models eval mode during test time"""
         for name in self.model_names:
             if isinstance(name, str):

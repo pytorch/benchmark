@@ -200,13 +200,13 @@ class DDPG(object):
         save_gan(path)
         self.choose_device()
 
-    def set_eval(self):
+    def eval(self):
         self.actor.eval()
         self.actor_target.eval()
         self.critic.eval()
         self.critic_target.eval()
     
-    def set_train(self):
+    def train(self):
         self.actor.train()
         self.actor_target.train()
         self.critic.train()
