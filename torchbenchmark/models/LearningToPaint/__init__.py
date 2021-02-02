@@ -54,9 +54,17 @@ class Model:
     def get_module(self):
         return self.module,[self.example_inputs]
 
-    def train(self, niter=1):
-        self.module.train()
+    def set_eval(self):
+        self.set_mode(False)
 
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        (model, _) = self.get_module()
+        model.train(train)
+
+    def train(self, niter=1):
         for _ in range(niter):
             gen = self.module(self.example_inputs)
             self.optimizer.zero_grad()
@@ -65,7 +73,6 @@ class Model:
             self.optimizer.step()
 
     def eval(self, niter=1):
-        self.module.eval()
         for _ in range(niter):
             self.module(self.example_inputs)
 

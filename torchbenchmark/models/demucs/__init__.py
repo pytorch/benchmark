@@ -58,9 +58,18 @@ class Model:
             return self.model(mix)
         return helper, self.example_inputs
 
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        (model, _) = self.get_module()
+        model.train(train)
+
     def eval(self, niter=1):
         # TODO: implement the eval version
-        self.model.eval()
         for _ in range(niter):
             streams, = self.example_inputs
             streams = streams.to(self.device)
@@ -73,7 +82,6 @@ class Model:
             loss = self.criterion(estimates, sources)
 
     def train(self, niter=1):
-        self.model.train()
         for _ in range(niter):
             streams, = self.example_inputs
             streams = streams.to(self.device)

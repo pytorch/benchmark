@@ -106,6 +106,16 @@ class Model:
             images = (i[0], i[1])
         return (self.model, images)
 
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        (model, _) = self.get_module()
+        model.train(train)
+
     def train(self, niterations=1):
         """ Recommended
         Runs training on model for `niterations` times. When `niterations` is left

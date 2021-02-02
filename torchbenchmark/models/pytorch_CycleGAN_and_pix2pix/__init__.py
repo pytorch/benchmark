@@ -34,6 +34,21 @@ class Model:
     def get_module(self):
         return self.model, self.input
         
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        if not train:
+            (model, _) = self.get_module()
+            model.eval()
+        else:
+            # another model instance is used for training
+            # and the train mode is on by default
+            pass
+
     def train(self, niterations=None):
         # the training process is not patched to use scripted models
         if self.jit:

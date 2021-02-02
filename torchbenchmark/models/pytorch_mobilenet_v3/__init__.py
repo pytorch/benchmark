@@ -17,6 +17,16 @@ class Model:
     def get_module(self):
         return self.model, self.example_inputs
 
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        (model, _) = self.get_module()
+        model.train(train)
+
     def train(self, niter=3):
         optimizer = optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-09)
         loss = torch.nn.CrossEntropyLoss()

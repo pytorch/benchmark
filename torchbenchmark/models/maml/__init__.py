@@ -53,20 +53,37 @@ class Model:
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        self.module.eval()
         return self.module, self.example_inputs
+
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        (model, _) = self.get_module()
+        model.train(train)
+
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        (model, _) = self.get_module()
+        model.train(train)
 
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError()
-        self.module.eval()
         for _ in range(niter):
             self.module(*self.example_inputs)
 
     def train(self, niter=1):
         if self.jit:
             raise NotImplementedError()
-        self.module.train()
         for _ in range(niter):
             self.module(*self.example_inputs)
 

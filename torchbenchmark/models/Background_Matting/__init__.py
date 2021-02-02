@@ -114,6 +114,18 @@ class Model:
     def get_module(self):
         raise NotImplementedError()
 
+    def get_module(self):
+        return self.model, self.example_inputs
+
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        pass
+
     def train(self, niterations=1):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")

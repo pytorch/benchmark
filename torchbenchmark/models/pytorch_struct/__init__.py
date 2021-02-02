@@ -53,6 +53,16 @@ class Model:
       words = words.long()
       return self.model, (words.to(device=self.device).transpose(0, 1),)
 
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        (model, _) = self.get_module()
+        model.train(train)
+
   def train(self, niter=1):
     for _ in range(niter):
       losses = []

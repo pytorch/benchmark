@@ -66,6 +66,7 @@ class TestBenchNetwork:
     """
     def test_train(self, hub_model, benchmark):
         try:
+            hub_model.set_train()
             benchmark(hub_model.train)
             benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
@@ -73,6 +74,7 @@ class TestBenchNetwork:
 
     def test_eval(self, hub_model, benchmark):
         try:
+            hub_model.set_eval()
             benchmark(hub_model.eval)
             benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:

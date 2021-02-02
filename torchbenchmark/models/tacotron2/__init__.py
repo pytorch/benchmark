@@ -115,6 +115,16 @@ class Model:
             raise NotImplementedError('JIT not supported')
         return self.model, (self.example_input,)
 
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        (model, _) = self.get_module()
+        model.train(train)
+
     def train(self, niterations=1):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")

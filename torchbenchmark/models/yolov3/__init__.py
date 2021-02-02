@@ -52,9 +52,24 @@ class Model:
         opt.cfg = check_file(opt.cfg)  # check file
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)
-        model.to(opt.device).eval()
+        model.to(opt.device)
         input = (torch.rand(1, 3, 384, 512).to(opt.device),)
         return model, input
+
+    def set_eval(self):
+        self.set_mode(False)
+
+    def set_train(self):
+        self.set_mode(True)
+
+    def set_mode(self, train):
+        if not train:
+            (model, _) = self.get_module()
+            model.eval()
+        else:
+            # another model instance is used for training
+            # and the train mode is on by default
+            pass
         
     def train(self, niterations=1):
         # the training process is not patched to use scripted models
