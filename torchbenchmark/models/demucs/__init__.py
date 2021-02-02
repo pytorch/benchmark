@@ -17,6 +17,19 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
+class DemucsWrapper(torch.nn.Module):
+    def __init__(self, model, augment):
+        super(DemucsWrapper, self).__init__()
+        self.model = model
+        self.augment = augment
+
+    def forward(self, streams):
+        sources = streams[:, 1:]
+        sources = self.augment(sources)
+        mix = sources.sum(dim=1)
+        return sources, self.model(mix)
+
+
 class Model:
     def __init__(self, device=None, jit=False):
         self.device = device
@@ -32,7 +45,7 @@ class Model:
         if 1:
             samples = 80000
             # TODO: calculate the right shape
-            self.example_inputs = (torch.rand([4, 5, 2, 135576]), )
+            self.example_inputs = (torch.rand([4, 5, 2, 135576], device=device),)
 
         self.duration = Fraction(samples + args.data_stride, args.samplerate)
         self.stride = Fraction(args.data_stride, args.samplerate)
@@ -48,40 +61,24 @@ class Model:
         else:
             self.augment = Shift(args.data_stride)
 
+        self.model = DemucsWrapper(self.model, self.augment)
+
     def get_module(self):
-        # TODO: merge this with train and eval
-        def helper(streams):
-            streams = streams.to(self.device)
-            sources = streams[:, 1:]
-            sources = self.augment(sources)
-            mix = sources.sum(dim=1)
-            return self.model(mix)
-        return helper, self.example_inputs
+        self.model.eval()
+        return self.model, self.example_inputs
 
     def eval(self, niter=1):
         # TODO: implement the eval version
         self.model.eval()
         for _ in range(niter):
-            streams, = self.example_inputs
-            streams = streams.to(self.device)
-            sources = streams[:, 1:]
-            sources = self.augment(sources)
-            mix = sources.sum(dim=1)
-
-            estimates = self.model(mix)
+            sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
 
     def train(self, niter=1):
         self.model.train()
         for _ in range(niter):
-            streams, = self.example_inputs
-            streams = streams.to(self.device)
-            sources = streams[:, 1:]
-            sources = self.augment(sources)
-            mix = sources.sum(dim=1)
-
-            estimates = self.model(mix)
+            sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
             loss.backward()
