@@ -15,6 +15,15 @@ class Model(BenchmarkModel):
             self.model = torch.jit.script(self.model)
         self.example_inputs = (torch.randn((32, 3, 224, 224)),)
 
+    def eval(self):
+        self.set_mode(self, False)
+    
+    def train(self):
+        self.set_mode(self, True)
+
+    def set_mode(self, train = True):
+        self.model.train(train)
+
     def get_module(self):
         return self.model, self.example_inputs
 
@@ -31,9 +40,10 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         model, example_inputs = self.get_module()
         example_inputs = example_inputs[0][0].unsqueeze(0)
+        results = None
         for i in range(niter):
-            #self.save_results(model(example_inputs), False)
-            model(example_inputs)
+            results = model(example_inputs)
+        return results
 
 
 if __name__ == "__main__":
