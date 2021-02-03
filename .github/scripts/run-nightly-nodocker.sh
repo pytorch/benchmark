@@ -60,7 +60,7 @@ for c in $(seq 1 $NUM_ITER); do
     mv ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json.tmp ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
 done
 
-. activate base
+conda deactivate
 conda env remove --name ${CONDA_ENV_NAME}
 
 # Upload data to Sribe
