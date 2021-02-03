@@ -5,7 +5,6 @@ set -euo pipefail
 CONFIG_VER=v0
 CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
-DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 SWEEP_DIR="${HOME}/nightly-sweep"
 
 # Load environment variables
@@ -30,6 +29,7 @@ for CONFIG in ${SWEEP_DIR}/configs/*.txt; do
     # Create a new conda version from base
     CONFIG_BASE=$(basename ${CONFIG})
     CONFIG_ENV_NAME=gh-$(echo ${CONFIG} | sed 's/.*-\(.*\)\.txt/\1/')
+    DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
     conda create -y -q --name ${CONFIG_ENV_NAME} python=${PYTHON_VERSION}
     . activate ${CONFIG_ENV_NAME}
     # Workaround of the torchtext dependency bug
@@ -49,7 +49,7 @@ for CONFIG in ${SWEEP_DIR}/configs/*.txt; do
            ${SWEEP_DIR}/${DATA_JSON_PREFIX}_${c}.json > ${SWEEP_DIR}/${DATA_JSON_PREFIX}_${c}.json.tmp
         mv ${SWEEP_DIR}/${DATA_JSON_PREFIX}_${c}.json.tmp ${SWEEP_DIR}/${DATA_JSON_PREFIX}_${c}.json
     done
-    . activate base
+    conda deactivate
     conda env remove --name ${CONFIG_ENV_NAME}
 done
 
