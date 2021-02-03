@@ -50,7 +50,6 @@ python install.py
 
 # Run the benchmark
 for c in $(seq 1 $NUM_ITER); do
-    echo "Run pytorch/benchmark for ${TORCH_VER} iter ${c}"
     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
             --benchmark-min-rounds "${NUM_ROUNDS}" \
             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
