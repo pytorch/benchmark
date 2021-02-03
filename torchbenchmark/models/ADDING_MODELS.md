@@ -89,24 +89,6 @@ a model object from __init__ but raise NotImplementedError() from all its method
             """
             raise NotImplementedError()
 
-        def set_eval(self):
-            """ This method is usually not needed to be overriden. See `set_mode`
-            """
-            self.set_mode(False)
-
-        def set_train(self):
-            """ This method is usually not needed to be overriden. See `set_mode`
-            """
-            self.set_mode(True)
-
-        def set_mode(self, train):
-            """ Changes model's mode for training or evaluation.
-            if a model uses a separate instance of training, 
-            you should make `set_train` no-op
-            """
-            (model, _) = self.get_module()
-            model.train(train)
-
         def train(self, niterations=1):
             """ Run training on model for `niterations` times.
             Leave warmup to the caller (e.g. don't do it inside)
@@ -127,6 +109,10 @@ a model object from __init__ but raise NotImplementedError() from all its method
                 model(*example_inputs)
 
 [example __init__.py](attention-is-all-you-need-pytorch/__init__.py)
+
+### `set_eval()` and `set_train()`
+
+`set_eval()` and `set_train()` are used by `test_bench.py` to set `train` or `eval` mode on an underlying model. The default implementation uses `get_module()` to get the underlying model instance. You should override these methods if your `Model` uses more than one underlying model (for training and inference)
 
 ### JIT
 As an optional step, make whatever modifications necessary to the model code to enable it to script or trace.  If doing this,
