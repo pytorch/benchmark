@@ -49,7 +49,7 @@ def _install_deps(model_path, verbose=True):
 
 def _list_model_paths():
     p = Path(__file__).parent.joinpath(model_dir)
-    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
+    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and "alexnet" in str(child.absolute())  )
 
 
 def setup(verbose=True, continue_on_fail=False):
