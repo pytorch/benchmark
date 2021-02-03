@@ -5,7 +5,7 @@ set -euo pipefail
 CONFIG_VER=v0
 CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
-
+DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 SWEEP_DIR="${HOME}/nightly-sweep"
 
 # Load environment variables
