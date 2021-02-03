@@ -3,8 +3,11 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
+from ...util.model import BenchmarkModel
 
-class Model:
+class Model(BenchmarkModel):
+    def __init__(self, device=None, jit=False):
+        super().__init__()
     def __init__(self, device="cpu", jit=False):
         self.device = device
         self.jit = jit
@@ -15,16 +18,6 @@ class Model:
 
     def get_module(self):
         return self.model, self.example_inputs
-
-    def set_eval(self):
-        self.set_mode(False)
-
-    def set_train(self):
-        self.set_mode(True)
-
-    def set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
 
     def train(self, niter=3):
         optimizer = optim.Adam(self.model.parameters())

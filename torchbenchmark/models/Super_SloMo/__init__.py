@@ -9,6 +9,7 @@ import numpy as np
 
 from argparse import Namespace
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -17,8 +18,9 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.module = ModelWrapper(device)
@@ -57,16 +59,6 @@ class Model:
 
     def get_module(self):
         return self.module, self.example_inputs
-
-    def set_eval(self):
-        self.set_mode(False)
-
-    def set_train(self):
-        self.set_mode(True)
-
-    def set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
 
     def eval(self, niter=1):
         if self.device == 'cpu':

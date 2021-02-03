@@ -4,9 +4,11 @@ from .loss_function import Tacotron2Loss
 from argparse import Namespace
 from .text import symbols
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
-class Model:
-    def __init__(self, device='cpu', jit=False):
+class Model(BenchmarkModel):
+    def __init__(self, device=None, jit=False):
+        super().__init__()
         """ Required """
         self.device = device
         self.jit = jit
@@ -114,16 +116,6 @@ class Model:
         if self.jit:
             raise NotImplementedError('JIT not supported')
         return self.model, (self.example_input,)
-
-    def set_eval(self):
-        self.set_mode(False)
-
-    def set_train(self):
-        self.set_mode(True)
-
-    def set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
 
     def train(self, niterations=1):
         if self.device == 'cpu':

@@ -8,6 +8,7 @@ from .demucs.model import Demucs
 from .demucs.parser import get_name, get_parser
 from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
 from .demucs.utils import capture_init, center_trim
+from ...util.model import BenchmarkModel
 
 
 torch.manual_seed(1337)
@@ -16,9 +17,9 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.parser = get_parser()
@@ -57,16 +58,6 @@ class Model:
             mix = sources.sum(dim=1)
             return self.model(mix)
         return helper, self.example_inputs
-
-    def set_eval(self):
-        self.set_mode(False)
-
-    def set_train(self):
-        self.set_mode(True)
-
-    def set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
 
     def eval(self, niter=1):
         # TODO: implement the eval version

@@ -5,6 +5,7 @@ import torch
 from argparse import Namespace
 from .meta import Meta
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -13,8 +14,9 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
-class Model:
-    def __init__(self, device='cpu', jit=False):
+class Model(BenchmarkModel):
+    def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         root = str(Path(__file__).parent)
@@ -54,26 +56,6 @@ class Model:
         if self.jit:
             raise NotImplementedError()
         return self.module, self.example_inputs
-
-    def set_eval(self):
-        self.set_mode(False)
-
-    def set_train(self):
-        self.set_mode(True)
-
-    def set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
-
-    def set_eval(self):
-        self.set_mode(False)
-
-    def set_train(self):
-        self.set_mode(True)
-
-    def set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
 
     def eval(self, niter=1):
         if self.jit:

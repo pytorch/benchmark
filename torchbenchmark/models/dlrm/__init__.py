@@ -30,13 +30,15 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
 from argparse import Namespace
+from ...util.model import BenchmarkModel
 
 ### some basic setup ###
 np.random.seed(123)
 torch.manual_seed(123)
 
-class Model:
-    def __init__(self, device='cpu', jit=False):
+class Model(BenchmarkModel):
+    def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.opt = Namespace(**{
@@ -174,16 +176,6 @@ class Model:
 
     def get_module(self):
         return self.module, self.example_inputs
-
-    def set_eval(self):
-        self.set_mode(False)
-
-    def set_train(self):
-        self.set_mode(True)
-
-    def set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
 
     def eval(self, niter=1):
         if self.jit:
