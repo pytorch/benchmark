@@ -17,7 +17,6 @@ fi
 CONFIG_VER=v0
 CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
-CONFIG_NORM_FILE=${CONFIG_DIR}/${CONFIG_FILE}
 CONDA_ENV_NAME=gh${GITHUB_RUN_ID}
 DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 DATA_DIR=${HOME}/benchmark-results-v0.1/gh${GITHUB_RUN_ID}
@@ -65,6 +64,7 @@ conda deactivate
 conda env remove --name ${CONDA_ENV_NAME}
 
 # Upload data to Sribe
+CONFIG_NORM_FILE=${CONFIG_DIR}/${CONFIG_FILE}
 TORCHBENCH_SCORE=$(python compute_score.py --configuration ${CONFIG_NORM_FILE} --benchmark_data_dir ${DATA_DIR} | awk 'NR>2' )
 
 IFS=$'\n'
