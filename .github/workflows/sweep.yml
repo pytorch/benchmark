@@ -3,11 +3,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-sweep:
+  checkout:
     runs-on: [self-hosted, bm-metal]
-    timeout-minutes: 2880 # 48 hours
     steps:
       - uses: actions/checkout@v2
         with:
           ref: 0.1
-      - run: bash ./.github/scripts/run-sweep.sh
+  run-benchmark:
+    runs-on: [self-hosted, bm-metal]
+    timeout-minutes: 2880 # 48 hours
+    needs: checkout
+    steps:
+      - run: bash ./.github/scripts/run-sweep-nodocker.sh
