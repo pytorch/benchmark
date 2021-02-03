@@ -114,13 +114,9 @@ class Model(BenchmarkModel):
     def get_module(self):
         raise NotImplementedError()
 
-    def get_module(self):
-        return self.model, self.example_inputs
-
-
     # eval() isn't implemented
     # train() is on by default
-    def _set_mode(self):
+    def _set_mode(self, train):
         pass
 
     def train(self, niterations=1):
