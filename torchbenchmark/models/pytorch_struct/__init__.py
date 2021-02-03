@@ -14,8 +14,8 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = True
 
 class Model(BenchmarkModel):
-    def __init__(self, device=None, jit=False):
-        super().__init__()
+  def __init__(self, device=None, jit=False):
+    super().__init__()
     self.device = device
     self.jit = jit
 
