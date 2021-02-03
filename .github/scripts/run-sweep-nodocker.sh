@@ -41,7 +41,6 @@ for CONFIG in ${SWEEP_DIR}/configs/*.txt; do
     # Run the benchmark
     conda init bash; conda run /bin/bash
     for c in $(seq 1 $NUM_ITER); do
-        echo "Run pytorch/benchmark for ${TORCH_VER} iter ${c}"
         taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" --benchmark-min-rounds "${NUM_ROUNDS}" \
                 --benchmark-json ${SWEEP_DIR}/${DATA_JSON_PREFIX}_${c}.json
         # Fill in circle_build_num and circle_project_reponame
