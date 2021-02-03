@@ -14,5 +14,7 @@ jobs:
   run-benchmark:
     needs: checkout
     runs-on: [self-hosted, bm-metal]
+    env:
+      SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
     steps:
       - run: bash ./.github/scripts/run-nightly-nodocker.sh
