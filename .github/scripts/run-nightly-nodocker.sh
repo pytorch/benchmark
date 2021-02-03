@@ -18,13 +18,13 @@ CONFIG_VER=v0
 CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
 CONDA_ENV_NAME=gh${GITHUB_RUN_ID}
+DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 DATA_DIR=${HOME}/benchmark-results-v0.1/gh${GITHUB_RUN_ID}
 
 # Load environment variables
 set -a;
 source ${CONFIG_ENV}
 set +a;
-DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
