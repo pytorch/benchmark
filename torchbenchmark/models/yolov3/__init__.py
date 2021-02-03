@@ -54,7 +54,7 @@ class Model(BenchmarkModel):
         opt.cfg = check_file(opt.cfg)  # check file
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)
-        model.to(opt.device)
+        model.to(opt.device).eval()
         input = (torch.rand(1, 3, 384, 512).to(opt.device),)
         return model, input
 
