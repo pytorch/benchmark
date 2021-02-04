@@ -9,6 +9,7 @@ import torch.optim as optim
 from .baseline.utils.tensorboard import TensorBoard
 from .baseline.Renderer.model import FCN
 from .baseline.Renderer.stroke_gen import *
+from ...util.model import BenchmarkModel
 
 from argparse import Namespace
 
@@ -17,7 +18,7 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
@@ -53,16 +54,6 @@ class Model:
 
     def get_module(self):
         return self.module,[self.example_inputs]
-
-    def set_eval(self):
-        self.set_mode(False)
-
-    def set_train(self):
-        self.set_mode(True)
-
-    def set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
 
     def train(self, niter=1):
         for _ in range(niter):

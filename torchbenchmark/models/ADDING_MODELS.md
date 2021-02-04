@@ -67,7 +67,7 @@ Model code will require some small tweaks to make it work in these conditions:
 
 ### Creating yourbenchmark/__init__.py
 This file should define two things:
-- `class Model`, with the API described below
+- `class Model`, extending `BenchmarkModel` with the API described below
 - `__main__` function, which exercises the model APIs for local testing
 
 Important: be deliberate about support for cpu/gpu and jit/no-jit.  In the case that
@@ -107,6 +107,25 @@ a model object from __init__ but raise NotImplementedError() from all its method
             model, example_inputs = self.get_module()
             for i in range(niterations):
                 model(*example_inputs)
+
+        def set_eval(self):
+            """ Set the evaluation mode on a model for `eval()` calls. See the next section
+            (optional api)
+            """
+            self._set_mode(False)
+
+        def set_train(self):
+            """ Set the training mode on a model for `train()` calls. See the next section
+            (optional api)
+            """
+            self._set_mode(True)
+
+        def _set_mode(self, train):
+            """ A helper for implementing `set_train` and `set_eval`
+            (optional api)
+            """
+            (model, _) = self.get_module()
+            model.train(train)
 
 [example __init__.py](attention-is-all-you-need-pytorch/__init__.py)
 
