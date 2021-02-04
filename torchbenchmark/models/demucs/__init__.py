@@ -49,6 +49,9 @@ class Model(BenchmarkModel):
         else:
             self.augment = Shift(args.data_stride)
 
+    def _set_mode(self, train):
+        self.model.train(train)
+
     def get_module(self):
         # TODO: merge this with train and eval
         def helper(streams):
