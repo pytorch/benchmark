@@ -95,7 +95,7 @@ def create_requirements_files(root: Path, packages: list, start_date: date, end_
             filename = root / f"requirements-{str(curr_date)}.txt"
             with open(filename, 'w') as f:
                 for pkg in curr_wheels:
-                    f.write(pkg)
+                    f.write(pkg + '\n')
         curr_date += timedelta(days=1)
 
 def parse_date_str(s: str):
