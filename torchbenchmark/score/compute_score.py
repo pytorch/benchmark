@@ -13,6 +13,11 @@ from collections import defaultdict
 from tabulate import tabulate
 from torchbenchmark import list_models
 
+<<<<<<< HEAD
+=======
+#SPEC_FILE_DEFAULT = "score.yml"
+
+>>>>>>> fa9c3b67367e2cabd3f45ef767b1f10fa8169e93
 def generate_spec():
     """
     Helper function which constructs the spec dictionary by iterating
@@ -23,14 +28,23 @@ def generate_spec():
         handles `None` or missing values and hence, no explicit `None` check
         is required.
     Arguments: `None`
+<<<<<<< HEAD
     Note: Only those models available inside the required_models list are
           used to construct the default spec hierarchy.
+=======
+    Note: Only those models with `domain` and `task` class attributes are
+          used to construct the spec hierarchy.
+>>>>>>> fa9c3b67367e2cabd3f45ef767b1f10fa8169e93
     """
     spec = {'hierarchy':{'model':defaultdict(dict)}}
     # These are the models required to generate the default spec.
     # Please update this list if any new model needs to be a part of
+<<<<<<< HEAD
     # the default spec configuration. Before you update, please consult
     # with someone in the benchmark team.
+=======
+    # the default spec configuration.
+>>>>>>> fa9c3b67367e2cabd3f45ef767b1f10fa8169e93
     required_models = ['pytorch_mobilenet_v3', 'yolov3', 'attention_is_all_you_need_pytorch', \
                        'BERT_pytorch', 'fastNLP', 'dlrm', 'LearningToPaint', 'moco', 'demucs', \
                        'pytorch_struct']
