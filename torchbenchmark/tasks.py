@@ -1,6 +1,6 @@
 from enum import Enum
 
-# Enum class for each Domain fro the model and the respective tasks
+# Enum class for each Domain for the model and the respective tasks
 # that is available in the domain.
 class COMPUTER_VISION(Enum):
     SEGMENTATION = "segmentation"
