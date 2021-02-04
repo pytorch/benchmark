@@ -266,6 +266,7 @@ def get_machine_config():
     return config
 
 def check_machine_configured(check_process_affinity=True):
+    check_environment()
     if MACHINE.AMAZON_LINUX == get_machine_type():
         assert 1 == check_intel_no_turbo_state(), "Turbo Boost is not disabled"
         assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
@@ -318,3 +319,15 @@ if __name__ == "__main__":
         # doesn't make too much sense to ask the user to run this configure script with the isolated cpu cores
         # that check is more important to be done at runtime of benchmark, and is checked by conftest.py
         #assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
+
+def check_environment():
+    checks = [
+        # VAR_NAME, blacklist
+        ("DEBUG", None),
+        ("MKLDNN_VERBOSE", None),
+        ("PYTORCH_JIT_LOG_LEVEL", None)
+    ]
+
+    for check in checks:
+        if check[0] in os.environ and (check[1] == None or os.environ[check[0]] in check[1]):
+            raise RuntimeError(f"{check[0]} is set")

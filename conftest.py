@@ -25,18 +25,6 @@ def set_fuser(fuser):
         torch._C._jit_override_can_fuse_on_gpu(True)
         torch._C._jit_set_texpr_fuser_enabled(True)
 
-def check_environment():
-    checks = [
-        # VAR_NAME, forbidden value
-        ("DEBUG", None),
-        ("MKLDNN_VERBOSE", None),
-        ("PYTORCH_JIT_LOG_LEVEL", None)
-    ]
-
-    for check in checks:
-        if check[0] in os.environ and (check[1] == None or os.environ[check[0]] == check[1]):
-            raise RuntimeError(f"{check[0]} is set")
-
 def pytest_sessionstart(session):
     try:
         check_environment()
