@@ -1,0 +1,27 @@
+name: Instruction Count Nightly Testing
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *' # run at 2 PM UTC
+jobs:
+  checkout:
+    runs-on: [self-hosted, bm-metal]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+  create-nightly-env:
+    runs-on: [self-hosted, bm-metal]
+    steps:
+      - run: |
+          bash .github/scripts/instr-count-benchmark/create-nightly-env.sh
+  run-benchmark:
+    runs-on: [self-hosted, bm-metal]
+    steps:
+      - run: |
+          bash .github/scripts/instr-count-benchmark/run-benchmark.sh
+  remove-nightly-env:
+    runs-on: [self-hosted, bm-metal]
+    steps:
+      - run: |
+          bash .github/scripts/instr-count-benchmark/remove-nightly-env.sh
