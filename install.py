@@ -31,4 +31,7 @@ if __name__ == '__main__':
             sys.exit(-1)
     success &= setup(verbose=args.verbose, continue_on_fail=args.continue_on_fail)
     if not success:
-        raise RuntimeError("Failed to complete setup")
+        if args.continue_on_fail:
+            print("Warning: some benchmarks were not installed due to failure")
+        else:
+            raise RuntimeError("Failed to complete setup")
