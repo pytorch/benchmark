@@ -4,9 +4,11 @@ from .loss_function import Tacotron2Loss
 from argparse import Namespace
 from .text import symbols
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
-class Model:
-    def __init__(self, device='cpu', jit=False):
+class Model(BenchmarkModel):
+    def __init__(self, device=None, jit=False):
+        super().__init__()
         """ Required """
         self.device = device
         self.jit = jit

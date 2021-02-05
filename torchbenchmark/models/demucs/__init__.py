@@ -8,6 +8,7 @@ from .demucs.model import Demucs
 from .demucs.parser import get_name, get_parser
 from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
 from .demucs.utils import capture_init, center_trim
+from ...util.model import BenchmarkModel
 
 
 torch.manual_seed(1337)
@@ -16,9 +17,9 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.parser = get_parser()
@@ -48,6 +49,9 @@ class Model:
         else:
             self.augment = Shift(args.data_stride)
 
+    def _set_mode(self, train):
+        self.model.train(train)
+
     def get_module(self):
         # TODO: merge this with train and eval
         def helper(streams):
@@ -60,7 +64,6 @@ class Model:
 
     def eval(self, niter=1):
         # TODO: implement the eval version
-        self.model.eval()
         for _ in range(niter):
             streams, = self.example_inputs
             streams = streams.to(self.device)
@@ -73,7 +76,6 @@ class Model:
             loss = self.criterion(estimates, sources)
 
     def train(self, niter=1):
-        self.model.train()
         for _ in range(niter):
             streams, = self.example_inputs
             streams = streams.to(self.device)

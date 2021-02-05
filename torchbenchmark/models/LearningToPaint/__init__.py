@@ -9,6 +9,7 @@ import torch.optim as optim
 from .baseline.utils.tensorboard import TensorBoard
 from .baseline.Renderer.model import FCN
 from .baseline.Renderer.stroke_gen import *
+from ...util.model import BenchmarkModel
 
 from argparse import Namespace
 
@@ -17,7 +18,7 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
@@ -55,8 +56,6 @@ class Model:
         return self.module,[self.example_inputs]
 
     def train(self, niter=1):
-        self.module.train()
-
         for _ in range(niter):
             gen = self.module(self.example_inputs)
             self.optimizer.zero_grad()
@@ -65,7 +64,6 @@ class Model:
             self.optimizer.step()
 
     def eval(self, niter=1):
-        self.module.eval()
         for _ in range(niter):
             self.module(self.example_inputs)
 
