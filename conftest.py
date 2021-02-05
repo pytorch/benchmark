@@ -27,7 +27,6 @@ def set_fuser(fuser):
 
 def pytest_sessionstart(session):
     try:
-        check_environment()
         check_machine_configured()
     except Exception as e:
         if not session.config.getoption('ignore_machine_config'):
