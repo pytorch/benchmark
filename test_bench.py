@@ -18,6 +18,7 @@ import time
 import torch
 from torchbenchmark import list_models
 from torchbenchmark.util.machine_config import get_machine_state
+from torchbenchmark.util.model import no_grad
 
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
@@ -72,10 +73,12 @@ class TestBenchNetwork:
         except NotImplementedError:
             print('Method train is not implemented, skipping...')
 
-    def test_eval(self, hub_model, benchmark):
+    def test_eval(self, hub_model, benchmark, pytestconfig):
         try:
-            hub_model.set_eval()
-            benchmark(hub_model.eval)
-            benchmark.extra_info['machine_state'] = get_machine_state()
+            ng_flag = hub_model.eval_in_nograd() and not pytestconfig.getoption("disable_nograd")
+            with no_grad(ng_flag):
+                hub_model.set_eval()
+                benchmark(hub_model.eval)
+                benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')

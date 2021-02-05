@@ -69,6 +69,8 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             self.module(*self.example_inputs)
 
+    def eval_in_nograd(self):
+        return False
 
 if __name__ == '__main__':
     m = Model(device='cpu', jit=False)
