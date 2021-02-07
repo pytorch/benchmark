@@ -15,14 +15,16 @@ import torchvision.models as models
 
 from .moco.builder import MoCo
 from .main_moco import adjust_learning_rate
+from ...util.model import BenchmarkModel
 
 torch.manual_seed(1058467)
 random.seed(1058467)
 cudnn.deterministic = True
 
 
-class Model:
-    def __init__(self, device='cuda', jit=False):
+class Model(BenchmarkModel):
+    def __init__(self, device=None, jit=False):
+        super().__init__()
         """ Required """
         self.device = device
         self.jit = jit

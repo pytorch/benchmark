@@ -22,9 +22,11 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
 

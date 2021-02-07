@@ -14,6 +14,7 @@ from .loss_functions import alpha_loss, compose_loss, alpha_gradient_loss, GANlo
 import random
 import numpy as np
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -21,14 +22,13 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-
 def _collate_filter_none(batch):
     batch = list(filter(lambda x: x is not None, batch))
     return torch.utils.data.dataloader.default_collate(batch)
 
-
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.opt = Namespace(**{
@@ -113,6 +113,11 @@ class Model:
 
     def get_module(self):
         raise NotImplementedError()
+
+    # eval() isn't implemented
+    # train() is on by default
+    def _set_mode(self, train):
+        pass
 
     def train(self, niterations=1):
         if self.device == 'cpu':

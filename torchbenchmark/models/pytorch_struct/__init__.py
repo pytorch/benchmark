@@ -5,6 +5,7 @@ import pytest
 from torch_struct import SentCFG
 from torch_struct.networks import NeuralCFG
 import torch_struct.data
+from ...util.model import BenchmarkModel
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -12,8 +13,9 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = True
 
-class Model:
-  def __init__(self, device='cpu', jit=False):
+class Model(BenchmarkModel):
+  def __init__(self, device=None, jit=False):
+    super().__init__()
     self.device = device
     self.jit = jit
 

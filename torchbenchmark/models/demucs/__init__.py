@@ -8,6 +8,7 @@ from .demucs.model import Demucs
 from .demucs.parser import get_name, get_parser
 from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
 from .demucs.utils import capture_init, center_trim
+from ...util.model import BenchmarkModel
 
 
 torch.manual_seed(1337)
@@ -30,8 +31,9 @@ class DemucsWrapper(torch.nn.Module):
         return sources, self.model(mix)
 
 
-class Model:
+class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.parser = get_parser()
@@ -63,20 +65,21 @@ class Model:
 
         self.model = DemucsWrapper(self.model, self.augment)
 
+    def _set_mode(self, train):
+        self.model.train(train)
+
     def get_module(self):
         self.model.eval()
         return self.model, self.example_inputs
 
     def eval(self, niter=1):
         # TODO: implement the eval version
-        self.model.eval()
         for _ in range(niter):
             sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
 
     def train(self, niter=1):
-        self.model.train()
         for _ in range(niter):
             sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)

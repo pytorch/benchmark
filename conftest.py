@@ -9,6 +9,8 @@ def pytest_addoption(parser):
     parser.addoption("--ignore_machine_config",
                      action='store_true',
                      help="Disable checks/assertions for machine configuration for stable benchmarks")
+    parser.addoption("--disable_nograd", action='store_true', 
+                    help="Disable no_grad for eval() runs")
 
 def set_fuser(fuser):
     if fuser == "old":

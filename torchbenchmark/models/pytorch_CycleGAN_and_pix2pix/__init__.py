@@ -12,6 +12,7 @@ torch.manual_seed(1337)
 np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+from ...util.model import BenchmarkModel
 
 from .train_cyclegan import prepare_training_loop
 from .test_cyclegan import get_model
@@ -19,8 +20,9 @@ from .test_cyclegan import get_model
 def nyi():
     raise NotImplementedError()
 
-class Model:
-    def __init__(self, device='cpu', jit=False):
+class Model(BenchmarkModel):
+    def __init__(self, device=None, jit=False):
+        super().__init__()
         if device != 'cuda': # NYI implemented for things that aren't on the GPU
             self.get_module = self.train = self.eval = nyi
             return
@@ -34,6 +36,11 @@ class Model:
     def get_module(self):
         return self.model, self.input
         
+    def set_train(self):
+        # another model instance is used for training
+        # and the train mode is on by default
+        pass
+
     def train(self, niterations=None):
         # the training process is not patched to use scripted models
         if self.jit:
