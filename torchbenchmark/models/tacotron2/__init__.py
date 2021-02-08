@@ -4,6 +4,7 @@ from .loss_function import Tacotron2Loss
 from argparse import Namespace
 from .text import symbols
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
 from torchbenchmark.tasks import SPEECH
 

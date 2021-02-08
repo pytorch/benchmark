@@ -18,6 +18,7 @@ from .train import prepare_dataloaders, cal_performance, patch_src, patch_trg
 import random
 import numpy as np
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -28,6 +29,7 @@ torch.backends.cudnn.benchmark = False
 class Model:
     task = NLP.TRANSLATION
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         root = str(Path(__file__).parent)

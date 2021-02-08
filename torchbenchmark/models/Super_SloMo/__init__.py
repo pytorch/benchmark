@@ -9,6 +9,7 @@ import numpy as np
 
 from argparse import Namespace
 from pathlib import Path
+from ...util.model import BenchmarkModel
 
 from torchbenchmark.tasks import COMPUTER_VISION
 
@@ -22,6 +23,7 @@ torch.backends.cudnn.benchmark = False
 class Model:
     task = COMPUTER_VISION.OTHER_COMPUTER_VISION
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.module = ModelWrapper(device)
@@ -65,7 +67,6 @@ class Model:
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
-        self.module.eval()
         for _ in range(niter):
             self.module(*self.example_inputs)
 
@@ -73,12 +74,11 @@ class Model:
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
-        self.module.train()
         for _ in range(niter):
             self.optimizer.zero_grad()
-            
+
             Ft_p, loss = self.module(*self.example_inputs)
-            
+
             loss.backward()
             self.optimizer.step()
 

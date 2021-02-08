@@ -31,6 +31,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
 from argparse import Namespace
 from torchbenchmark.tasks import RECOMMENDATION
+from ...util.model import BenchmarkModel
 
 ### some basic setup ###
 np.random.seed(123)
@@ -181,7 +182,6 @@ class Model:
         if self.jit:
             raise NotImplementedError("JIT not supported")
 
-        self.module.eval()
         for _ in range(niter):
             self.module(*self.example_inputs)
 
@@ -189,7 +189,6 @@ class Model:
         if self.jit:
             raise NotImplementedError("JIT not supported")
 
-        self.module.train()
         gen = self.module(*self.example_inputs)
         for _ in range(niter):
             self.optimizer.zero_grad()

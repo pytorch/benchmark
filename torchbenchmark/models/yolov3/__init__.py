@@ -21,11 +21,13 @@ from .yolo_models import *  # set ONNX_EXPORT in models.py
 from .yolo_utils.datasets import *
 from .yolo_utils.utils import *
 from pathlib import Path
+from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-class Model:
+class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
-    def __init__(self, device='cpu', jit=False):
+    def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
 
@@ -57,7 +59,12 @@ class Model:
         model.to(opt.device).eval()
         input = (torch.rand(1, 3, 384, 512).to(opt.device),)
         return model, input
-        
+
+    def set_train(self):
+        # another model instance is used for training
+        # and the train mode is on by default
+        pass
+
     def train(self, niterations=1):
         # the training process is not patched to use scripted models
         if self.jit:
@@ -73,7 +80,7 @@ class Model:
 
         return training_loop(niterations)
 
-    
+
     def eval(self, niterations=1):
         model, example_inputs = self.get_module()
         img = example_inputs[0]

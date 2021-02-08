@@ -12,6 +12,7 @@ torch.manual_seed(1337)
 np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+from ...util.model import BenchmarkModel
 
 from .train_cyclegan import prepare_training_loop
 from .test_cyclegan import get_model
@@ -35,7 +36,12 @@ class Model:
 
     def get_module(self):
         return self.model, self.input
-        
+
+    def set_train(self):
+        # another model instance is used for training
+        # and the train mode is on by default
+        pass
+
     def train(self, niterations=None):
         # the training process is not patched to use scripted models
         if self.jit:
@@ -46,7 +52,7 @@ class Model:
 
         return self.training_loop(niterations)
 
-    
+
     def eval(self, niterations=1):
         model, example_inputs = self.get_module()
         for i in range(niterations):

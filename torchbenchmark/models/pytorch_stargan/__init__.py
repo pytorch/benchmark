@@ -7,6 +7,7 @@ import numpy as np
 from .solver import Solver
 from .data_loader import get_loader
 from .main import parse_config, makedirs
+from ...util.model import BenchmarkModel
 
 from torchbenchmark.tasks import COMPUTER_VISION
 # Make all randomness deterministic
@@ -54,6 +55,11 @@ class Model:
 
     def get_module(self):
         return self.model, self.example_inputs
+
+    def set_train(self):
+        # another model instance is used for training
+        # and the train mode is on by default
+        pass
 
     def train(self, niterations=1):
         for _ in range(niterations):

@@ -9,6 +9,7 @@ import torch.optim as optim
 from .baseline.utils.tensorboard import TensorBoard
 from .baseline.Renderer.model import FCN
 from .baseline.Renderer.stroke_gen import *
+from ...util.model import BenchmarkModel
 
 from argparse import Namespace
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
@@ -57,8 +58,6 @@ class Model:
         return self.module,[self.example_inputs]
 
     def train(self, niter=1):
-        self.module.train()
-
         for _ in range(niter):
             gen = self.module(self.example_inputs)
             self.optimizer.zero_grad()
@@ -67,7 +66,6 @@ class Model:
             self.optimizer.step()
 
     def eval(self, niter=1):
-        self.module.eval()
         for _ in range(niter):
             self.module(self.example_inputs)
 
@@ -79,4 +77,3 @@ if __name__ == '__main__':
         if m.step%100 == 0:
             m.eval(niter=1)
         m.step += 1
-

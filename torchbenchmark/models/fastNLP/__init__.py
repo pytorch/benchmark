@@ -23,10 +23,13 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 from pathlib import Path
+from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import NLP
 
 class Model:
     task = NLP.OTHER_NLP
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
 

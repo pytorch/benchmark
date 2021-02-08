@@ -5,6 +5,7 @@ import pytest
 from torch_struct import SentCFG
 from torch_struct.networks import NeuralCFG
 import torch_struct.data
+from ...util.model import BenchmarkModel
 
 from torchbenchmark.tasks import OTHER
 

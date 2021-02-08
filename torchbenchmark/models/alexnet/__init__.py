@@ -3,11 +3,13 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
+from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model:
     task = COMPUTER_VISION.CLASSIFICATION
     def __init__(self, device="cpu", jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.alexnet()
@@ -41,4 +43,3 @@ if __name__ == "__main__":
     module(*example_inputs)
     m.train(niter=1)
     m.eval(niter=1)
-    

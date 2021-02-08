@@ -21,6 +21,7 @@ from pathlib import Path
 class Model:
     task = NLP.LANGUAGE_MODELING
     def __init__(self, device=None, jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         root = str(Path(__file__).parent)

@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 import torch
 
 def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
 def setup_install():
     subprocess.check_call([sys.executable, 'setup.py', 'develop'])

@@ -3,7 +3,9 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
-from torchbenchmark.COMPUTER_VISION import Domain, Task
+from ...util.model import BenchmarkModel
+
+from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model:
     task = COMPUTER_VISION.CLASSIFICATION
@@ -41,4 +43,3 @@ if __name__ == "__main__":
     module(*example_inputs)
     m.train(niter=1)
     m.eval(niter=1)
-    

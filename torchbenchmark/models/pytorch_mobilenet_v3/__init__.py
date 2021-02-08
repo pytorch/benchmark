@@ -1,9 +1,9 @@
 import torch
 import torch.optim as optim
 from .mobilenetv3 import MobileNetV3
+from ...util.model import BenchmarkModel
 
 from torchbenchmark.tasks import COMPUTER_VISION
-
 
 class Model:
     task = COMPUTER_VISION.CLASSIFICATION
