@@ -4,27 +4,19 @@ on:
   schedule:
     - cron: '0 14 * * *' # run at 2 PM UTC
 jobs:
-  checkout:
+  run-benchmark:
     runs-on: [self-hosted, bm-metal]
     steps:
-      - uses: actions/checkout@v2
+      - name: Check out
+        uses: actions/checkout@v2
         with:
           ref: master
-  create-nightly-env:
-    needs: checkout
-    runs-on: [self-hosted, bm-metal]
-    steps:
-      - run: |
+      - name: Create Conda nightly env
+        run: |
           bash .github/scripts/instr-count-benchmark/create-nightly-env.sh
-  run-benchmark:
-    needs: create-nightly-env
-    runs-on: [self-hosted, bm-metal]
-    steps:
-      - run: |
+      - name: Run benchmark
+        run: |
           bash .github/scripts/instr-count-benchmark/run-benchmark.sh
-  remove-nightly-env:
-    needs: run-benchmark
-    runs-on: [self-hosted, bm-metal]
-    steps:
-      - run: |
+      - name: Clean up environment
+        run: |
           bash .github/scripts/instr-count-benchmark/remove-nightly-env.sh
