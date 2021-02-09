@@ -4,11 +4,7 @@ import torch
 import torch.optim as optim
 import torchvision.models as models
 from ...util.model import BenchmarkModel
-<<<<<<< HEAD
 from torchbenchmark.tasks import COMPUTER_VISION
-=======
-from torchbenchmark import COMPUTER_VISION
->>>>>>> fd88ff9a8fb97ae709545935b8eb9601c95163cf
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
