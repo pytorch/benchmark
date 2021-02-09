@@ -213,7 +213,7 @@ def get_pstate_frequency():
 
     if hyper_threading_enabled():
         return None
-    cpus_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2])
+    cpu_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2]]
     output = dict()
     for cpu_dir in cpu_dirs:
         full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
@@ -234,7 +234,7 @@ def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
     if hyper_threading_enabled():
         print(f"Must disable hyperthreading before setting CPU frequency.")
         return
-    cpus_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2])
+    cpu_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2]]
     for cpu_dir in cpu_dirs:
         full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
         freq_paths = [os.path.join(full_path, x) for x in CPU_FREQ_FILES]
