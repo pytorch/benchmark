@@ -31,12 +31,14 @@ from torch.optim.lr_scheduler import _LRScheduler
 from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
 from argparse import Namespace
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import RECOMMENDATION
 
 ### some basic setup ###
 np.random.seed(123)
 torch.manual_seed(123)
 
 class Model(BenchmarkModel):
+    task = RECOMMENDATION.RECOMMENDATION
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device

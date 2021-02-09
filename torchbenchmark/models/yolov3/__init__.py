@@ -22,13 +22,15 @@ from .yolo_utils.datasets import *
 from .yolo_utils.utils import *
 from pathlib import Path
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model(BenchmarkModel):
+    task = COMPUTER_VISION.SEGMENTATION
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit
-        
+
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
@@ -78,7 +80,7 @@ class Model(BenchmarkModel):
 
         return training_loop(niterations)
 
-    
+
     def eval(self, niterations=1):
         model, example_inputs = self.get_module()
         img = example_inputs[0]

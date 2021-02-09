@@ -13,6 +13,7 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import COMPUTER_VISION
 
 from .train_cyclegan import prepare_training_loop
 from .test_cyclegan import get_model
@@ -21,6 +22,7 @@ def nyi():
     raise NotImplementedError()
 
 class Model(BenchmarkModel):
+    task = COMPUTER_VISION.GENERATION
     def __init__(self, device=None, jit=False):
         super().__init__()
         if device != 'cuda': # NYI implemented for things that aren't on the GPU
@@ -35,7 +37,7 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         return self.model, self.input
-        
+
     def set_train(self):
         # another model instance is used for training
         # and the train mode is on by default
@@ -51,7 +53,7 @@ class Model(BenchmarkModel):
 
         return self.training_loop(niterations)
 
-    
+
     def eval(self, niterations=1):
         model, example_inputs = self.get_module()
         for i in range(niterations):
