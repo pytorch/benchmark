@@ -213,8 +213,7 @@ def get_pstate_frequency():
 
     if hyper_threading_enabled():
         return None
-    active_cpus = parse_lscpu_cpu_core_list()
-    cpu_dirs = ["cpu" + f for f in active_cpus]
+    cpus_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2])
     output = dict()
     for cpu_dir in cpu_dirs:
         full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
@@ -234,9 +233,8 @@ def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
 
     if hyper_threading_enabled():
         print(f"Must disable hyperthreading before setting CPU frequency.")
-        return None
-    active_cpus = parse_lscpu_cpu_core_list()
-    cpu_dirs = ["cpu" + f for f in active_cpus]
+        return
+    cpus_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2])
     for cpu_dir in cpu_dirs:
         full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
         freq_paths = [os.path.join(full_path, x) for x in CPU_FREQ_FILES]
@@ -329,6 +327,7 @@ if __name__ == "__main__":
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
         assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
         assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
+        assert check_pstate_frequency_pin(), "CPU frequency is not correctly pinned, which is required to minimize noise."
         # doesn't make too much sense to ask the user to run this configure script with the isolated cpu cores
         # that check is more important to be done at runtime of benchmark, and is checked by conftest.py
         #assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
