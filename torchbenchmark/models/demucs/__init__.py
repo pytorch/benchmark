@@ -9,6 +9,7 @@ from .demucs.parser import get_name, get_parser
 from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
 from .demucs.utils import capture_init, center_trim
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import OTHER
 
 
 torch.manual_seed(1337)
@@ -19,6 +20,7 @@ torch.backends.cudnn.benchmark = False
 
 
 class DemucsWrapper(torch.nn.Module):
+    task = OTHER.OTHER_TASKS
     def __init__(self, model, augment):
         super(DemucsWrapper, self).__init__()
         self.model = model

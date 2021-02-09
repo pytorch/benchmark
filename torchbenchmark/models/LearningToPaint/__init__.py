@@ -10,6 +10,7 @@ from .baseline.utils.tensorboard import TensorBoard
 from .baseline.Renderer.model import FCN
 from .baseline.Renderer.stroke_gen import *
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from argparse import Namespace
 
@@ -19,6 +20,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
+    task = REINFORCEMENT_LEARNING.OTHER_RL
     def __init__(self, device=None, jit=False):
         self.device = device
         self.jit = jit
@@ -75,4 +77,3 @@ if __name__ == '__main__':
         if m.step%100 == 0:
             m.eval(niter=1)
         m.step += 1
-

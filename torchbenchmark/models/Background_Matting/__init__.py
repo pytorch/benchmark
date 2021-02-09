@@ -15,6 +15,7 @@ import random
 import numpy as np
 from pathlib import Path
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import COMPUTER_VISION
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -27,6 +28,7 @@ def _collate_filter_none(batch):
     return torch.utils.data.dataloader.default_collate(batch)
 
 class Model(BenchmarkModel):
+    task = COMPUTER_VISION.OTHER_COMPUTER_VISION
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
