@@ -16,6 +16,7 @@ import torchvision.models as models
 from .moco.builder import MoCo
 from .main_moco import adjust_learning_rate
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1058467)
 random.seed(1058467)
@@ -23,6 +24,7 @@ cudnn.deterministic = True
 
 
 class Model(BenchmarkModel):
+    task = OTHER.OTHER_TASKS
     def __init__(self, device=None, jit=False):
         super().__init__()
         """ Required """
@@ -95,7 +97,7 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         """ Recommended
-        Returns model, example_inputs 
+        Returns model, example_inputs
         model should be torchscript model if self.jit is True.
         Both model and example_inputs should be on self.device properly.
         `model(*example_inputs)` should execute one step of model forward.
@@ -117,7 +119,7 @@ class Model(BenchmarkModel):
 
         Avoid unnecessary benchmark noise by keeping any tensor creation, memcopy operations in __init__.
 
-        Leave warmup to the caller (e.g. don't do it inside)        
+        Leave warmup to the caller (e.g. don't do it inside)
         """
         if self.device != "cuda":
             raise NotImplementedError("GPU only")
@@ -138,14 +140,14 @@ class Model(BenchmarkModel):
     def eval(self, niterations=1):
         """ Recommended
         Run evaluation on model for `niterations` inputs. One iteration should be sufficient
-        to warm up the model for the purpose of profiling. 
+        to warm up the model for the purpose of profiling.
         In most cases this can use the `get_module` API but in some cases libraries
         do not have a single Module object used for inference. In these case, you can
-        write a custom eval function. 
+        write a custom eval function.
 
         Avoid unnecessary benchmark noise by keeping any tensor creation, memcopy operations in __init__.
 
-        Leave warmup to the caller (e.g. don't do it inside)    
+        Leave warmup to the caller (e.g. don't do it inside)
         """
         if self.device != "cuda":
             raise NotImplementedError("GPU only")

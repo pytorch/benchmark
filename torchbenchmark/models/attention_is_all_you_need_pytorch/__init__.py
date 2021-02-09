@@ -18,6 +18,7 @@ import random
 import numpy as np
 from pathlib import Path
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import NLP
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -26,6 +27,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
+    task = NLP.TRANSLATION
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device

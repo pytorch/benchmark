@@ -2,9 +2,11 @@ import torch
 import torch.optim as optim
 from .mobilenetv3 import MobileNetV3
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import COMPUTER_VISION
 
 
 class Model(BenchmarkModel):
+    task = COMPUTER_VISION.CLASSIFICATION
     def __init__(self, device=None, jit=False):
         super().__init__()
         """ Required """

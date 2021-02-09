@@ -5,8 +5,11 @@ from argparse import Namespace
 from .text import symbols
 from pathlib import Path
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import SPEECH
+
 
 class Model(BenchmarkModel):
+    task = SPEECH.SYNTHESIS
     def __init__(self, device=None, jit=False):
         super().__init__()
         """ Required """

@@ -8,6 +8,7 @@ from .solver import Solver
 from .data_loader import get_loader
 from .main import parse_config, makedirs
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import COMPUTER_VISION
 
 
 # Make all randomness deterministic
@@ -19,6 +20,7 @@ torch.backends.cudnn.benchmark = False
 
 
 class Model(BenchmarkModel):
+    task = COMPUTER_VISION.GENERATION
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device

@@ -17,7 +17,9 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 from pathlib import Path
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import NLP
 class Model(BenchmarkModel):
+    task = NLP.LANGUAGE_MODELING
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
