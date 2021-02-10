@@ -1,4 +1,4 @@
-name: Instruction Count Nightly Testing
+name: Instruction count nightly
 on:
   workflow_dispatch:
   schedule:
