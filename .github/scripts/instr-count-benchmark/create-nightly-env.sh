@@ -8,7 +8,7 @@ source ${BASEDIR}/config.env
 set +a;
 
 conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
-conda activate ${CONDA_ENV_NAME}
+. activate ${CONDA_ENV_NAME}
 
 # Install PyTorch nightly from pip
 pip install --pre torch \
