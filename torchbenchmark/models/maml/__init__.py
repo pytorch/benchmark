@@ -6,6 +6,7 @@ from argparse import Namespace
 from .meta import Meta
 from pathlib import Path
 from ...util.model import BenchmarkModel
+from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -15,6 +16,7 @@ torch.backends.cudnn.benchmark = False
 
 
 class Model(BenchmarkModel):
+    task = OTHER.OTHER_TASKS
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
