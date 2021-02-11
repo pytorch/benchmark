@@ -210,9 +210,6 @@ def get_omp_affinity():
 def get_pstate_frequency():
     CPU_FREQ_BASE_DIR = '/sys/devices/system/cpu'
     CPU_FREQ_FILES = ["scaling_min_freq", "scaling_max_freq", "scaling_cur_freq"]
-
-    if hyper_threading_enabled():
-        return None
     cpu_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2]]
     output = dict()
     for cpu_dir in cpu_dirs:
@@ -230,10 +227,6 @@ def get_pstate_frequency():
 def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
     CPU_FREQ_BASE_DIR = '/sys/devices/system/cpu'
     CPU_FREQ_FILES = ["scaling_min_freq", "scaling_max_freq", "scaling_cur_freq"]
-
-    if hyper_threading_enabled():
-        print(f"Must disable hyperthreading before setting CPU frequency.")
-        return
     cpu_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2]]
     for cpu_dir in cpu_dirs:
         full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
@@ -248,9 +241,6 @@ def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
 def check_pstate_frequency_pin(pin_freq = 2500):
     FREQ_THRESHOLD = 10  # Allow 10 MHz difference maximum
     all_freq = get_pstate_frequency()
-    if all_freq is None:
-        print(f"Failed to get CPU frequency from pstate driver. Must disable hyper-threading first.")
-        return False
     for cpuid in all_freq:
         for attr in all_freq[cpuid]:
             freq = all_freq[cpuid][attr]
