@@ -28,10 +28,6 @@ git checkout $ORIG_BRANCH_NAME
 git submodule sync 2>&1 > /dev/null
 git submodule update --init --recursive 2>&1 > /dev/null
 echo "Builing PyTorch"
-export USE_CUDA=1
-export BUILD_CAFFE2_OPS=0
-export USE_XNNPACK=0
-export USE_MKLDNN=1
 python setup.py install 2>&1 > /dev/null
 test $? -eq 0 || { echo "PyTorch build failed!"; exit; }
 
