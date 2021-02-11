@@ -1,17 +1,17 @@
-name: pytorch-sweep-benchmarking-v0.1
+name: TorchBench sweep v0.1
 on:
   workflow_dispatch:
 
 jobs:
-  checkout:
-    runs-on: [self-hosted, bm-metal]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: 0.1
   run-benchmark:
+    if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-metal]
     timeout-minutes: 2880 # 48 hours
-    needs: checkout
     steps:
-      - run: bash ./.github/scripts/run-sweep-nodocker.sh
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: 0.1
+      - name: Run benchmark
+        run: |
+          bash ./.github/scripts/run-sweep-nodocker.sh

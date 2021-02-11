@@ -1,10 +1,11 @@
-name: Instruction Count Nightly Testing
+name: Instruction count nightly
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 14 * * *' # run at 2 PM UTC
 jobs:
   run-benchmark:
+    if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-metal]
     steps:
       - name: Check out
