@@ -6,25 +6,34 @@ Usage:
   python bisection.py --pytorch-src <PYTORCH_SRC_DIR> \
     --torchbench-src <TORCHBENCH_SRC_DIR> \
     --start <SHA> --end <SHA> --threshold <SCORE_THRESHOLD> \
-    --timeout <TIMEOUT_IN_MINS>
-
-# threshold: the TorchBench threshold to identify regression
-# timeout: if a PR execution exceeds timeout limit, it will be terminated with score zero
+    --timeout <TIMEOUT_IN_MINS> --env-name <CONDA_ENV_NAME>
 """
 
 import os
+import json
 import argparse
+import typing
+import re
+import subprocess
 
 # Bisection Algorithm: for the bisection range [start, end]
 # Step 1: Fetch commit list: [start, ..., mid, ..., end]
 # Step 2: Put pair (start, end) into queue bisectq
-# Step 3: Get the first pair (start, end) in bisectq. If end.index - start.index == 1, return pair(start, end)
-# Step 4: Else, test benchmark on commit start and end
-# If abs(end.score - start.score) < threshold: delete this range
-# If abs(end.score - start.score) > threshold:
-#     Test mid, if abs(end.score - mid.score) > threshold: insert (mid, end) into the bisectq
+# Step 3: Get the first pair (start, end) in bisectq.
+# Step 4: Run benchmark for start and end. If abs(start.score-end.score)>threshold ...
+#         ... and start/end are adjacent, add pair(start, end) to result
+# Step 4: If abs(start.score-end.score)>threshold, but start/end are not adjacent ...
+#         ... test benchmark on commit mid, and:
+#               if abs(end.score - mid.score) > threshold: insert (mid, end) into the bisectq
 #               if abs(start.score - mid.score) > threshold: insert (start, mid) into the bisectq
 # Step 5: goto step 2 until bisectq is empty
+
+# Workdir Organization:
+# WORKDIR/
+#    commit-shas.txt
+#    <COMMIT-SHA1>.json
+#    <COMMIT-SHA2>.json
+#    ...
 
 ## Helper functions
 def exist_dir_path(string):
@@ -36,27 +45,7 @@ def exist_dir_path(string):
 ## Class definitions
 class Commit:
     sha: str
-    score: float
-
-class TorchBench:
-    srcpath: str # path to pytorch/benchmark source code
-    branch: str
-    timeout_limit: int # timeout limit in minutes
-
-    def __init__(self, srcpath: str,
-                 branch: str = "0.1"):
-        self.srcpath = srcpath
-        self.branch = branch
-
-    def verify(self) -> bool:
-        pass
-        
-    def build_benchmark(self):
-        # Checkout branch
-        pass
-
-    def run_benchmark(self):
-        pass
+    score: Option[float]
 
 class TorchSource:
     srcpath: str
@@ -66,21 +55,58 @@ class TorchSource:
     def __init__(self, srcpath: str):
         self.srcpath = srcpath
 
-    def verify() -> bool:
+    def prep() -> bool:
+        # Verify the code in srcpath is pytorch/pytorch
+        # Update the code
         pass
  
-    def init_commits(self, start: str, end: str) -> List[str]:
+    # Get all commits between start and end, save them in commits
+    def init_commits(self, start: str, end: str):
         pass
     
-    def get_mid_commit(start: str, end: str) -> Option[str]:
+    def get_mid_commit(self, left: Commit, right: Commit) -> Option[Commit]:
+        left_index = commit_dict[left.sha]
+        right_index = commit_dict[right.sha]
+        if right_index == left_index + 1:
+            return None
+        else:
+            return commits[(left_index + right_index) / 2]
+
+    # TODO: optimize building speed with ccache
+    # TODO: check conda build environment
+    def checkout_build(self, commit: Commit):
         pass
 
-    def checkout(self, commit: str):
+class TorchBench:
+    srcpath: str # path to pytorch/benchmark source code
+    branch: str
+    timeout_limit: int # timeout limit in minutes
+    torch_src: TorchSource
+
+    def __init__(self, srcpath: str,
+                 torch_src: TorchSource,
+                 branch: str = "0.1"):
+        self.srcpath = srcpath
+        self.branch = branch
+        self.torch_src = torch_src
+
+    def prep(self) -> bool:
+        # Verify the code in srcpath is pytorch/benchmark
+        # Update the code
+        # Checkout branch and test success
+        pass
+        
+    def build_benchmark(self):
         pass
 
-    def build(self, commit: str):
+    def run_benchmark(self):
         pass
 
+    def get_score(self, commit: Commit) -> float:
+        if commit.score is not None:
+            return commit.score
+        # compile
+        
 class TorchBenchBisection:
     start: str
     end: str
@@ -89,50 +115,75 @@ class TorchBenchBisection:
     output: str
     bisectq: List[Tuple[str, str]]
     result: List[Tuple[Commit, Commit]]
-    
     torch_src: TorchSource
     bench: TorchBench
+    conda_env: str
     output_json: str
 
     def __init__(self,
                  workdir: str,
-                 pytorch_src: str,
+                 torch_src: str,
                  bench_src: str,
                  start: str,
                  end: str,
                  threshold: int,
                  timeout: int,
-                 output_json: str):
+                 output_json: str,
+                 conda_env: str):
         self.start = start
         self.end = end
         self.threshold = threshold
         self.timeout = timeout
         self.output = output
         self.bisectq = list()
-        self.torch_src = TorchSource(srcpath=pytorch_src)
-        self.bench = TorchBench(srcpath=bench_src)
+        self.torch_src = TorchSource(srcpath = torch_src)
+        self.bench = TorchBench(srcpath = bench_src,
+                                torch_src = torch_src)
         self.output_json = output_json
+        self.conda_env = conda_env
 
-    # verify all working conditions satisfy
-    def verify(self):
-        pass
+    def regression(self, left: Commit, right: Commit) -> bool:
+        assert left.score is not None
+        assert right.score is not None
+        return abs(left.score - right.score) >= threshold
 
-    def prep_bisection(self):
-        def get_commits(self) -> bool:
-            commits = torch_src.get_commits(start, end)
-            self.bisectq.append(commits)
+    def prep(self) -> bool:
+        if not torch_src.prep() or not bench.prep():
+            return False
+        if not torch_src.init_commits(start, end):
+            return False
+        # Activate the conda environment
+        if not subprocess.call(". activate " + conda_env) == 0:
+            return False
+        return True
         
-    def run_bisection(self):
-        while len(commit_ranges):
-
-    def print_result(self):
-        print(f"PR Bisection from {start} to {end} is successful.")
-        for pair in result:
-            print(f"\tcommit {pair[0].sha} score {pair[0].score}, commit {pair[1].sha} score {pair[1].score}")
-
+    def run(self):
+        while not commit_ranges.empty():
+            (left, right) = commit_ranges[0]
+            left.score = tbench.get_score(left)
+            right.score = tbench.get_score(right)
+            if self.regression(left, right):
+                mid = torch_src.get_mid_commit(left, right)
+                if mid == None:
+                    result.append((left, right))
+                else:
+                    mid.score = tbench.get_score(mid_commit)
+                    if self.regression(left, mid):
+                        commit_ranges.append(left, mid)
+                    if self.regression(mid, right):
+                        commit_ranges.append(right, mid)
+            
     def dump_result(self):
-        
-        
+        json_obj = dict()
+        json_obj["start"] = self.start
+        json_obj["end"] = self.end
+        json_obj["threshold"] = self.threshold
+        json_obj["timeout"] = self.timeout
+        json_obj["torchbench_branch"] = self.bench.branch
+        json_obj["result"] = self.result
+        with open(self.output_json, 'w') as outfile:
+            json.dump(json_obj, outfile)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-dir",
@@ -164,6 +215,9 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         help="the output json file",
                         required=True)
+    parser.add_argument("--conda-env",
+                        help="name of the conda environment that contains build dependencies",
+                        required=True)
     args = parser.parse_args()
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     pytorch_src=args.pytorch_src,
@@ -171,10 +225,9 @@ if __name__ == "__main__":
                                     start=args.start,
                                     end=args.end,
                                     threshold=args.threshold,
-                                    timeout=args.timeout
-                                    output=args.output)
-    assert bisection.verify(), "The working condition of bisection is not satisfied."
-    bisection.prep()
+                                    timeout=args.timeout,
+                                    output_json=args.output,
+                                    conda_env=args.conda_env)
+    assert bisection.prep(), "The working condition of bisection is not satisfied."
     bisection.run()
-    bisection.print_result()
     bisection.dump_result()
