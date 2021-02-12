@@ -1,4 +1,12 @@
 #!/bin/bash
+################################################################################
+# The purpose of this script is to automate a TorchBenchmark set-up that uses
+# a custom PyTorch built from a given branch and repository.
+# This is useful for quickly testing an impact of a particular optimization/change
+# Arguments:
+#   BRANCH_NAME
+#   REPO
+#######################################
 
 if [ "$1" = "-h" -o "$1" = "--help" ]; then
   echo "Usage: prog BRANCH_NAME REPO"
@@ -21,13 +29,13 @@ conda activate $BRANCH_NAME
 echo "Installing PyTorch dependencies"
 conda install -y numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six requests dataclasses 2>&1 > /dev/null
 conda install -y -c pytorch magma-cuda100 2>&1 > /dev/null
-echo "Checking out $"
+echo "Checking out $ORIG_BRANCH_NAME"
 git clone $REPO $BRANCH_NAME
-cd $BRANCH_NAME
+pushd $BRANCH_NAME
 git checkout $ORIG_BRANCH_NAME
 git submodule sync 2>&1 > /dev/null
 git submodule update --init --recursive 2>&1 > /dev/null
-echo "Builing PyTorch"
+echo "Building PyTorch"
 export USE_CUDA=1
 export BUILD_CAFFE2_OPS=0
 export USE_XNNPACK=0
@@ -44,25 +52,25 @@ test $? -eq 0 || { echo "PyTorch build failed!"; exit; }
 unset CMAKE_PREFIX_PATH
 
 git clone --recursive  https://github.com/pytorch/vision.git torchvision
-cd torchvision
+pushd torchvision
 python setup.py install 2>&1 > /dev/null
 test $? -eq 0 || { echo "torchvision build failed!"; exit; }
-cd .. 
+popd
 
 git clone --recursive https://github.com/pytorch/audio.git torchaudio
-cd torchaudio
+pushd torchaudio
 BUILD_SOX=1 python setup.py install 2>&1 > /dev/null
 test $? -eq 0 || { echo "torchaudio build failed!"; exit; }
-cd ..
+popd
 
 git clone https://github.com/pytorch/text torchtext
-cd torchtext
+pushd torchtext
 git submodule update --init --recursive
 python setup.py clean install 2>&1 > /dev/null
 test $? -eq 0 || { echo "torchtext build failed!"; exit; }
-cd ..
+popd
 
 git clone --recursive https://github.com/pytorch/benchmark.git
-cd benchmark
+pushd benchmark
 python install.py
 
