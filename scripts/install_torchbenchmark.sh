@@ -74,3 +74,6 @@ git clone --recursive https://github.com/pytorch/benchmark.git
 pushd benchmark
 python install.py
 
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+printf "${RED}REMINDER:${NC} Don't forget to run 'conda activate ${BRANCH_NAME}'\n"
