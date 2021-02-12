@@ -9,8 +9,7 @@ import sys
 import os
 import yaml
 
-from torchbenchmark.score.compute_score import compute_score
-from torchbenchmark.score.generate_score_config import generate_bench_cfg
+from torchbenchmark.score.compute_score import compute_score, get_benchmark_norms, get_weights_from_spec
 from tabulate import tabulate
 
 if __name__ == "__main__":
@@ -25,22 +24,27 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = None
+    weight_db = None
     if args.configuration is not None:
         with open(args.configuration) as cfg_file:
             config = yaml.full_load(cfg_file)
+            weight_db = get_weights_from_spec(config)
     else:
         if args.benchmark_data_file is None and args.benchmark_data_dir is None:
             parser.print_help(sys.stderr)
             raise ValueError("Invalid command-line arguments. You must specify a config, a data file, or a data dir.")
         with open(SPEC_FILE_DEFAULT) as spec_file:
             spec = yaml.full_load(spec_file)
+            weight_db = get_weights_from_spec(spec)
+
 
     if args.benchmark_data_file is not None:
+        norm = None
         with open(args.benchmark_data_file) as data_file:
             data = json.load(data_file)
-            if config is None:
-                config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
-        score = compute_score(config, data)
+            if norm is None:
+                norm = get_benchmark_norms(data)
+        score = compute_score(weight_db, data, TARGET_SCORE_DEFAULT, norm)
         print(score)
         if args.hack_data:
             fake_data = {}
@@ -49,19 +53,20 @@ if __name__ == "__main__":
                     if keyword.lower() in b['name'].lower():
                         fake_data[b['name']] =  b['stats']['mean'] * float(factor)
 
-            hacked_score = compute_score(config, data, fake_data)
+            hacked_score = compute_score(weight_db, data, TARGET_SCORE_DEFAULT, fake_data)
             print(f"Using hacks {args.hack_data}, hacked_score {hacked_score}")
 
     elif args.benchmark_data_dir is not None:
         scores = [('File', 'Score', 'PyTorch Version')]
+        norm = None
         for f in os.listdir(args.benchmark_data_dir):
             path = os.path.join(args.benchmark_data_dir, f)
             if os.path.isfile(path) and os.path.splitext(path)[1] == '.json':
                 with open(path) as data_file:
                     data = json.load(data_file)
-                    if config is None:
-                        config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
-                    score = compute_score(config, data)
+                    if norm is None:
+                        norm = get_benchmark_norms(data)
+                    score = compute_score(weight_db, data, TARGET_SCORE_DEFAULT, norm)
                     scores.append((f, score, data['machine_info']['pytorch_version']))
 
         print(tabulate(scores, headers='firstrow'))
