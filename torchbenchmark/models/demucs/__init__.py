@@ -20,7 +20,6 @@ torch.backends.cudnn.benchmark = False
 
 
 class DemucsWrapper(torch.nn.Module):
-    task = OTHER.OTHER_TASKS
     def __init__(self, model, augment):
         super(DemucsWrapper, self).__init__()
         self.model = model
@@ -34,6 +33,7 @@ class DemucsWrapper(torch.nn.Module):
 
 
 class Model(BenchmarkModel):
+    task = OTHER.OTHER_TASKS
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
