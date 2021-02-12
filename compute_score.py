@@ -7,10 +7,8 @@ import json
 import math
 import sys
 import os
-import yaml
 
-from torchbenchmark.score.compute_score import compute_score
-from torchbenchmark.score.generate_score_config import generate_bench_cfg
+from torchbenchmark.score.compute_score import TorchBenchScore
 from tabulate import tabulate
 
 if __name__ == "__main__":
@@ -24,23 +22,19 @@ if __name__ == "__main__":
     parser.add_argument('--hack_data', nargs=2, action='append', help="keyword to match benchmark names, and multiplicative factor to adjust their measurement")
     args = parser.parse_args()
 
-    config = None
     if args.configuration is not None:
         with open(args.configuration) as cfg_file:
-            config = yaml.full_load(cfg_file)
+            score_config = TorchBenchScore(cfg_file)
     else:
         if args.benchmark_data_file is None and args.benchmark_data_dir is None:
             parser.print_help(sys.stderr)
             raise ValueError("Invalid command-line arguments. You must specify a config, a data file, or a data dir.")
-        with open(SPEC_FILE_DEFAULT) as spec_file:
-            spec = yaml.full_load(spec_file)
+        score_config = TorchBenchScore()
 
     if args.benchmark_data_file is not None:
         with open(args.benchmark_data_file) as data_file:
             data = json.load(data_file)
-            if config is None:
-                config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
-        score = compute_score(config, data)
+        score = score_config.compute_score(data)
         print(score)
         if args.hack_data:
             fake_data = {}
@@ -48,8 +42,8 @@ if __name__ == "__main__":
                 for b in data['benchmarks']:
                     if keyword.lower() in b['name'].lower():
                         fake_data[b['name']] =  b['stats']['mean'] * float(factor)
-
-            hacked_score = compute_score(config, data, fake_data)
+            score_config = TorchBenchScore(fake_data, TARGET_SCORE_DEFAULT)
+            hacked_score = score_config.compute_score(data)
             print(f"Using hacks {args.hack_data}, hacked_score {hacked_score}")
 
     elif args.benchmark_data_dir is not None:
@@ -59,9 +53,7 @@ if __name__ == "__main__":
             if os.path.isfile(path) and os.path.splitext(path)[1] == '.json':
                 with open(path) as data_file:
                     data = json.load(data_file)
-                    if config is None:
-                        config = generate_bench_cfg(spec, data, TARGET_SCORE_DEFAULT)
-                    score = compute_score(config, data)
+                    score = score_config.compute_score(data)
                     scores.append((f, score, data['machine_info']['pytorch_version']))
 
         print(tabulate(scores, headers='firstrow'))

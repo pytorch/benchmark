@@ -49,43 +49,6 @@ import json
 import yaml
 from collections import defaultdict
 
-def generate_bench_cfg(spec, norm, target):
-    cfg = {
-        'target': float(target),
-        'benchmarks': {},
-    }
-    benchmark_names = [b['name'] for b in norm['benchmarks']]
-    benchmark_norms = {b['name']: b['stats']['mean'] for b in norm['benchmarks']}
-
-    category_weight = 1.0 / len(spec['hierarchy'])
-    for category in spec['hierarchy']:
-        
-        category_spec = spec['hierarchy'][category]
-        domain_weight = 1.0 / len(category_spec)
-        
-        for domain in category_spec:
-            
-            tasks = category_spec[domain]        
-            task_weight = 1.0 / len(tasks)
-            
-            for task in tasks:
-                
-                benchmarks = tasks[task]
-                benchmark_weight = 1.0 / len(benchmarks)
-                
-                for benchmark in benchmarks:
-                    
-                    found_benchmarks = [name for name in benchmark_names if benchmark in name]
-                    assert len(found_benchmarks) > 0, f"No normalization data found for {benchmark}"
-                    config_weight = 1.0 / len(found_benchmarks)
-                    for b in found_benchmarks:
-                        weight = domain_weight * task_weight * benchmark_weight * config_weight
-                        cfg['benchmarks'][b] = {
-                                'weight': weight,
-                                'norm': benchmark_norms[b],
-                        }
-    return cfg
-
 # Support generate a config from benchmark data that runs partial of the spec
 def generate_bench_cfg_partial(spec, norm, target):
     benchmark_names = [b['name'] for b in norm['benchmarks']]
