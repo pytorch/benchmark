@@ -263,6 +263,7 @@ def get_machine_config():
         config['isolated_cpus'] = get_isolated_cpus()
         config['process_cpu_affinity'] = get_process_cpu_affinity()
         config['is_using_isolated_cpus'] = is_using_isolated_cpus()
+        config['cpu_pstate_frequency'] = get_pstate_frequency()
     return config
 
 def check_machine_configured(check_process_affinity=True):
