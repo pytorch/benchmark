@@ -26,59 +26,155 @@ import argparse
 #               if abs(start.score - mid.score) > threshold: insert (start, mid) into the bisectq
 # Step 5: goto step 2 until bisectq is empty
 
+## Helper functions
+def exist_dir_path(string):
+    if os.path.isdir(string):
+        return string
+    else:
+        raise NotADirectoryError(string)
+
+## Class definitions
 class Commit:
     sha: str
     score: float
-    index: int
 
 class TorchBench:
-    path: str # path to pytorch/benchmark source code
-    output_dir: str # output directory that stores result
+    srcpath: str # path to pytorch/benchmark source code
+    branch: str
     timeout_limit: int # timeout limit in minutes
-    def build_benchmark():
+
+    def __init__(self, srcpath: str,
+                 branch: str = "0.1"):
+        self.srcpath = srcpath
+        self.branch = branch
+
+    def verify(self) -> bool:
         pass
-    def run_benchmark():
+        
+    def build_benchmark(self):
+        # Checkout branch
+        pass
+
+    def run_benchmark(self):
         pass
 
 class TorchSource:
-    path: str
+    srcpath: str
     commits: List[Commit]
     # Map from commit SHA to index in commits
     commit_dict: Dict[str, int]
-    def get_commits(start: str, end: str) -> List[str]:
+    def __init__(self, srcpath: str):
+        self.srcpath = srcpath
+
+    def verify() -> bool:
         pass
-    def checkout(commit):
+ 
+    def init_commits(self, start: str, end: str) -> List[str]:
         pass
-    def build():
+    
+    def get_mid_commit(start: str, end: str) -> Option[str]:
+        pass
+
+    def checkout(self, commit: str):
+        pass
+
+    def build(self, commit: str):
         pass
 
 class TorchBenchBisection:
     start: str
     end: str
+    workdir: str
     threshold: int
-    commit_ranges: List[List[str]]
-    torch_src: TorchSource
-
-    def run_bisection():
-        while len(commit_ranges):
-            
-    def get_commits(start: str, end: str):
-        commits = torch_src.get_commits(start, end)
-        commit_ranges.append(commits)
+    output: str
+    bisectq: List[Tuple[str, str]]
+    result: List[Tuple[Commit, Commit]]
     
+    torch_src: TorchSource
+    bench: TorchBench
+    output_json: str
+
+    def __init__(self,
+                 workdir: str,
+                 pytorch_src: str,
+                 bench_src: str,
+                 start: str,
+                 end: str,
+                 threshold: int,
+                 timeout: int,
+                 output_json: str):
+        self.start = start
+        self.end = end
+        self.threshold = threshold
+        self.timeout = timeout
+        self.output = output
+        self.bisectq = list()
+        self.torch_src = TorchSource(srcpath=pytorch_src)
+        self.bench = TorchBench(srcpath=bench_src)
+        self.output_json = output_json
+
+    # verify all working conditions satisfy
+    def verify(self):
+        pass
+
+    def prep_bisection(self):
+        def get_commits(self) -> bool:
+            commits = torch_src.get_commits(start, end)
+            self.bisectq.append(commits)
+        
+    def run_bisection(self):
+        while len(commit_ranges):
+
+    def print_result(self):
+        print(f"PR Bisection from {start} to {end} is successful.")
+        for pair in result:
+            print(f"\tcommit {pair[0].sha} score {pair[0].score}, commit {pair[1].sha} score {pair[1].score}")
+
+    def dump_result(self):
+        
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--work-dir",
+                        help="bisection working directory",
+                        type=exist_dir_path,
+                        required=True)
     parser.add_argument("--pytorch-src",
-                        help="the directory of pytorch source code git repository")
+                        help="the directory of pytorch source code git repository",
+                        type=exist_dir_path,
+                        required=True)
     parser.add_argument("--torchbench-src",
-                        help="the directory of torchbench source code git repository")
+                        help="the directory of torchbench source code git repository",
+                        type=exist_dir_path,
+                        required=True)
     parser.add_argument("--start",
-                        help="7-digit SHA hash of the start commit to bisect")
+                        help="7-digit SHA hash of the start commit to bisect",
+                        required=True)
     parser.add_argument("--end",
-                        help="7-digit SHA hash of the end commit to bisect")
+                        help="7-digit SHA hash of the end commit to bisect",
+                        required=True)
     parser.add_argument("--threshold",
-                        help="the torchbench score threshold to report a regression")
+                        help="the torchbench score threshold to report a regression",
+                        type=float,
+                        required=True)
     parser.add_argument("--timeout",
-                        help="the maximum time to run the benchmark")
+                        type=int,
+                        help="the maximum time to run the benchmark in minutes",
+                        required=True)
     parser.add_argument("--output",
-                        help="the output file name and path")
+                        help="the output json file",
+                        required=True)
+    args = parser.parse_args()
+    bisection = TorchBenchBisection(workdir=args.work_dir,
+                                    pytorch_src=args.pytorch_src,
+                                    bench_src=args.torchbench_src,
+                                    start=args.start,
+                                    end=args.end,
+                                    threshold=args.threshold,
+                                    timeout=args.timeout
+                                    output=args.output)
+    assert bisection.verify(), "The working condition of bisection is not satisfied."
+    bisection.prep()
+    bisection.run()
+    bisection.print_result()
+    bisection.dump_result()
