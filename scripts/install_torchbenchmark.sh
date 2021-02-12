@@ -28,8 +28,20 @@ git checkout $ORIG_BRANCH_NAME
 git submodule sync 2>&1 > /dev/null
 git submodule update --init --recursive 2>&1 > /dev/null
 echo "Builing PyTorch"
+export USE_CUDA=1
+export BUILD_CAFFE2_OPS=0
+export USE_XNNPACK=0
+export USE_MKLDNN=1
+export USE_MKL=1
+export USE_CUDNN=1
+# if USE_LLVM isn't set check in common locations
+if ! [ -z ${USE_LLVM} ]; then
+    [ -e /usr/lib/llvm-9/ ] && export USE_LLVM=/usr/lib/llvm-9/
+fi
+export CMAKE_PREFIX_PATH=$CONDA_PREFIX
 python setup.py install 2>&1 > /dev/null
 test $? -eq 0 || { echo "PyTorch build failed!"; exit; }
+unset CMAKE_PREFIX_PATH
 
 git clone --recursive  https://github.com/pytorch/vision.git torchvision
 cd torchvision
