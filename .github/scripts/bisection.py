@@ -1,6 +1,7 @@
 """bisection.py
 Runs bisection to determine PRs that cause performance regression.
 Performance regression is defined by TorchBench score drop greater than the threshold.
+By default, the torchvision and torchtext package version will be fixed to the latest nightly.
 
 Usage:
   python bisection.py --pytorch-src <PYTORCH_SRC_DIR> \
@@ -15,6 +16,7 @@ import argparse
 import typing
 import re
 import subprocess
+from . import gitutils
 
 # Bisection Algorithm: for the bisection range [start, end]
 # Step 1: Fetch commit list: [start, ..., mid, ..., end]
@@ -42,6 +44,9 @@ def exist_dir_path(string):
     else:
         raise NotADirectoryError(string)
 
+TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
+TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
+
 ## Class definitions
 class Commit:
     sha: str
@@ -57,9 +62,8 @@ class TorchSource:
 
     def prep() -> bool:
         # Verify the code in srcpath is pytorch/pytorch
-        # Update the code
-        pass
- 
+        return
+
     # Get all commits between start and end, save them in commits
     def init_commits(self, start: str, end: str):
         pass
@@ -229,5 +233,5 @@ if __name__ == "__main__":
                                     output_json=args.output,
                                     conda_env=args.conda_env)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
-    bisection.run()
-    bisection.dump_result()
+    # bisection.run()
+    # bisection.dump_result()
