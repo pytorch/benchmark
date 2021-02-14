@@ -5,7 +5,6 @@ Make sure to enable an https proxy if necessary, or the setup steps may hang.
 """
 # This file shows how to use the benchmark suite from user end.
 import gc
-import time
 import unittest
 from unittest import TestCase
 from unittest.mock import patch
@@ -38,7 +37,6 @@ class TestBenchmark(TestCase):
             # just run one model to make sure things aren't completely broken
             main(["--repeat=1", "--filter=pytorch_struct", "--device=cpu"])
             self.assertGreaterEqual(mock_save.call_count, 1)
-
 
 
 def _load_test(model_class, device):

@@ -181,7 +181,7 @@ def iter_models(args):
             pass
 
 
-def main(args):
+def main(args=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--filter", "-k", action="append",
                         help="filter benchmarks")
