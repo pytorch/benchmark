@@ -34,9 +34,11 @@ class TestBenchmark(TestCase):
         except ImportError:  # older versions of PyTorch
             raise unittest.SkipTest("Requires torch>=1.8")
         from fx_profile import main, ProfileAggregate
-        with patch.object(ProfileAggregate, "save"):
+        with patch.object(ProfileAggregate, "save") as mock_save:
             # just run one model to make sure things aren't completely broken
             main(["--repeat=1", "--filter=pytorch_struct", "--device=cpu"])
+            self.assertGreaterEqual(mock_save.call_count, 1)
+
 
 
 def _load_test(model_class, device):
@@ -63,7 +65,6 @@ def _load_test(model_class, device):
     def eval(self):
         m = model_object(self)
         try:
-            start = time.time()
             m.eval()
         except NotImplementedError:
             self.skipTest('Method eval is not implemented, skipping...')
