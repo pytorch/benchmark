@@ -4,14 +4,15 @@ Setup and Run hub models.
 Make sure to enable an https proxy if necessary, or the setup steps may hang.
 """
 # This file shows how to use the benchmark suite from user end.
-import argparse
-import time
-from torchbenchmark import list_models
-from unittest import TestCase
-import re, sys, unittest
-import os.path
-import torch
 import gc
+import time
+import unittest
+from unittest import TestCase
+from unittest.mock import patch
+
+import torch
+from torchbenchmark import list_models
+
 
 class TestBenchmark(TestCase):
     def setUp(self):
@@ -27,8 +28,15 @@ class TestBenchmark(TestCase):
             self.assertEqual(self.memory, memory)
             torch.cuda.empty_cache()
 
-def run_model(model_class, model_path, device):
-    m = model_class(device=device)
+    def test_fx_profile(self):
+        try:
+            from torch.fx.interpreter import Interpreter
+        except ImportError:  # older versions of PyTorch
+            raise unittest.SkipTest("Requires torch>=1.8")
+        from fx_profile import main, ProfileAggregate
+        with patch.object(ProfileAggregate, "save"):
+            # just run one model to make sure things aren't completely broken
+            main(["--repeat=1", "--filter=pytorch_struct", "--device=cpu"])
 
 
 def _load_test(model_class, device):
@@ -48,9 +56,7 @@ def _load_test(model_class, device):
     def train(self):
         m = model_object(self)
         try:
-            start = time.time()
             m.train()
-            print('Finished training on device: {} in {}s.'.format(device, time.time() - start))
         except NotImplementedError:
             self.skipTest('Method train is not implemented, skipping...')
 
@@ -59,7 +65,6 @@ def _load_test(model_class, device):
         try:
             start = time.time()
             m.eval()
-            print('Finished eval on device: {} in {}s.'.format(device, time.time() - start))
         except NotImplementedError:
             self.skipTest('Method eval is not implemented, skipping...')
 
@@ -72,6 +77,7 @@ def _load_tests():
     for Model in list_models():
         for device in ('cpu', 'cuda'):
             _load_test(Model, device)
+
 
 _load_tests()
 if __name__ == '__main__':
