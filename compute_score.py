@@ -32,6 +32,7 @@ if __name__ == "__main__":
         score_config = TorchBenchScore()
 
     if args.benchmark_data_file is not None:
+        norm = None
         with open(args.benchmark_data_file) as data_file:
             data = json.load(data_file)
         score = score_config.compute_score(data)
@@ -48,6 +49,7 @@ if __name__ == "__main__":
 
     elif args.benchmark_data_dir is not None:
         scores = [('File', 'Score', 'PyTorch Version')]
+        norm = None
         for f in os.listdir(args.benchmark_data_dir):
             path = os.path.join(args.benchmark_data_dir, f)
             if os.path.isfile(path) and os.path.splitext(path)[1] == '.json':
