@@ -61,8 +61,12 @@ class TorchSource:
         self.srcpath = srcpath
 
     def prep() -> bool:
-        # Verify the code in srcpath is pytorch/pytorch
-        return
+        repo_origin_url = get_git_origin(srcpath)
+        if not repo_origin_url == TORCH_GITREPO:
+            return False
+        if not update_git_repo(srcpath, "master"):
+            return False
+        return True
 
     # Get all commits between start and end, save them in commits
     def init_commits(self, start: str, end: str):
@@ -96,9 +100,15 @@ class TorchBench:
 
     def prep(self) -> bool:
         # Verify the code in srcpath is pytorch/benchmark
+        repo_origin_url = get_git_origin(srcpath)
+        if not repo_origin_url == TORCHBENCH_GITREPO:
+            return False
+        # Checkout branch
+        if not checkout_git_branch(srcpath, branch):
+            return False
         # Update the code
-        # Checkout branch and test success
-        pass
+        if not update_git_repo(srcpath, branch):
+            return False
         
     def build_benchmark(self):
         pass

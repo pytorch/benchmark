@@ -7,9 +7,41 @@ import os
 from typing import Optional, List
 import subprocess
 
-def get_git_origin(repo: str):
-    pass
+def update_git_repo(repo: str, branch: str) -> bool:
+    try:
+        command = f"git pull origin {branch}"
+        out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
+        return out
+    except subprocess.CalledProcessError:
+        print(f"Failed to update git repo branch: {repo}/{branch}")
+        return None
 
+def checkout_git_branch(repo: str, branch: str) -> bool:
+    try:
+        command = f"git checkout --track=origin/{branch} {branch}"
+        out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
+        return out
+    except subprocess.CalledProcessError:
+        print(f"Failed to checkout git branch: {repo}/{branch}")
+        return None
+
+def get_curreent_branch(repo: str) -> Optional[str]:
+    try:
+        command = "git branch --show-current"
+        out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
+        return out
+    except subprocess.CalledProcessError:
+        print(f"Failed to get current branch name for repo {repo}")
+        return None
+
+def get_git_origin(repo: str) -> Optional[str]:
+    try:
+        command = "git remote get-url origin"
+        out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
+        return out
+    except:
+        print(f"git command {command} returns non-zero status in repo {repo}")
+        return None
 
 def get_git_commits(repo: str, start: str, end: str) -> Optional[List[str]]:
     try:
@@ -17,7 +49,7 @@ def get_git_commits(repo: str, start: str, end: str) -> Optional[List[str]]:
         out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip().split("\n")
         return out
     except subprocess.CalledProcessError:
-        print(f"git command {command} returns non-zero status.")
+        print(f"git command {command} returns non-zero status in repo {repo}")
         return None
 
 def get_current_commit(repo: str) -> Optional[str]:
