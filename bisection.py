@@ -1,7 +1,7 @@
 """bisection.py
 Runs bisection to determine PRs that cause performance regression.
 Performance regression is defined by TorchBench score drop greater than the threshold.
-By default, the torchvision and torchtext package version will be fixed to the latest nightly.
+By default, the torchvision and torchtext package version will be fixed to the latest version in the conda defaults channel.
 
 Usage:
   python bisection.py --pytorch-src <PYTORCH_SRC_DIR> \
@@ -53,6 +53,11 @@ TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 class Commit:
     sha: str
     score: Optional[float]
+    result: Optional[str]
+    def __init__(self, sha, score):
+        self.sha = sha
+        self.score = score
+        self.result = None
 
 class TorchSource:
     srcpath: str
@@ -61,6 +66,8 @@ class TorchSource:
     commit_dict: Dict[str, int]
     def __init__(self, srcpath: str):
         self.srcpath = srcpath
+        self.commits = []
+        self.commit_dict = dict()
 
     def prep(self) -> bool:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
@@ -68,10 +75,16 @@ class TorchSource:
             print(f"Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
             return False
         return True
-
+    
     # Get all commits between start and end, save them in commits
-    def init_commits(self, start: str, end: str):
-        pass
+    def init_commits(self, start: str, end: str) -> bool:
+        commits = gitutils.get_git_commits(self.srcpath, start, end)
+        if not commits:
+            return False
+        for count, commit in enumerate(commits):
+            self.commits.append(Commit(sha=commit, score=None))
+            self.commit_dict[commit] = count
+        return True
     
     def get_mid_commit(self, left: Commit, right: Commit) -> Optional[Commit]:
         left_index = commit_dict[left.sha]
@@ -81,19 +94,35 @@ class TorchSource:
         else:
             return commits[(left_index + right_index) / 2]
 
-    # TODO: optimize building speed with ccache
-    # TODO: check conda build environment
-    def checkout_build(self, commit: Commit):
-        pass
+    def setup_build_env(self, env):
+        env["USE_CUDA"] = 1
+        env["BUILD_CAFFE2_OPS"] = 0
+        env["USE_XNNPACK"] = 0
+        env["USE_MKLDNN"] = 1
+        env["USE_MKL"] = 1
+        env["USE_CUDNN"] = 1
+        env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
+        return env
+
+    def build(self, commit: Commit):
+        # checkout pytorch commit
+        gitutils.checkout_git_commit(self.srcpath, commit.sha)
+        # setup environment variables
+        build_env = self.setup_build_env(os.environ.copy())
+        # build pytorch
+        command = "python setup.py install 2>&1 > /dev/null"
+        subprocess.check_call(command, cwd=self.srcpath, env=build_env)
 
 class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
     branch: str
     timeout_limit: int # timeout limit in minutes
+    workdir: str
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
+                 workdir: str
                  branch: str = "0.1"):
         self.srcpath = srcpath
         self.branch = branch
@@ -109,15 +138,33 @@ class TorchBench:
             return False
         return True
  
-    def build_benchmark(self):
+    def build(self):
+        command = "python install.py"
+        subprocess.check_call(command, cwd=self.srcpath)
+
+    # Install dependencies such as torchtext and torchvision
+    def install_deps(self):
+        pass
+    
+    def run_benchmark(self) -> str:
+        # Benchmark output dir: self.
         pass
 
-    def run_benchmark(self):
+    def compute_score(self, result_json: str): -> float:
         pass
-
+    
     def get_score(self, commit: Commit) -> float:
+        # Score is cached before
         if commit.score is not None:
             return commit.score
+        # Build pytorch
+        torch_src.build(commit)
+        # Build benchmark and install deps
+        self.install_deps()
+        self.build()
+        # Run benchmark
+        commit.result = self.run_benchmark()
+        commit.score = self.compute_score(commit.result)
         
 class TorchBenchBisection:
     start: str
@@ -142,6 +189,7 @@ class TorchBenchBisection:
                  timeout: int,
                  output_json: str,
                  conda_env: str):
+        self.workdir = workdir
         self.start = start
         self.end = end
         self.threshold = threshold
@@ -150,7 +198,8 @@ class TorchBenchBisection:
         self.bisectq = list()
         self.torch_src = TorchSource(srcpath = torch_src)
         self.bench = TorchBench(srcpath = bench_src,
-                                torch_src = torch_src)
+                                torch_src = torch_src,
+                                workdir = self.workdir)
         self.output_json = output_json
         self.conda_env = conda_env
 
@@ -162,8 +211,8 @@ class TorchBenchBisection:
     def prep(self) -> bool:
         if not self.torch_src.prep() or not self.bench.prep():
             return False
-        # if not self.torch_src.init_commits(start, end):
-        #     return False
+        if not self.torch_src.init_commits(self.start, self.end):
+            return False
         # # Activate the conda environment
         # if not subprocess.call(". activate " + conda_env) == 0:
         #     return False
@@ -185,6 +234,12 @@ class TorchBenchBisection:
                     if self.regression(mid, right):
                         commit_ranges.append(right, mid)
             
+    def cleanup(self):
+        # # Deativate the conda environment
+        # if not subprocess.call(". deactivate " + conda_env) == 0:
+        #     return False
+        pass
+ 
     def dump_result(self):
         json_obj = dict()
         json_obj["start"] = self.start
@@ -244,3 +299,4 @@ if __name__ == "__main__":
     print("Preparation steps ok.")
     # bisection.run()
     # bisection.dump_result()
+    bisection.cleanup()

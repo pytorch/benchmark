@@ -13,7 +13,7 @@ def update_git_repo(repo: str, branch: str) -> bool:
         out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
         return out
     except subprocess.CalledProcessError:
-        print(f"Failed to update git repo branch: {repo}/{branch}")
+        print(f"Failed to update git repo {repo}, branch {branch}")
         return None
 
 def check_git_exist_local_branch(repo: str, branch: str) -> bool:
@@ -30,7 +30,7 @@ def checkout_git_branch(repo: str, branch: str) -> bool:
         retcode = subprocess.call(command, cwd=repo, shell=True)
         return (retcode == 0)
     except subprocess.CalledProcessError:
-        print(f"Failed to checkout git branch: {repo}/{branch}")
+        print(f"Failed to checkout git repo {repo}, branch {branch}")
         return None
 
 def get_current_branch(repo: str) -> Optional[str]:
@@ -100,5 +100,5 @@ def test_checkout_commit():
 
 if __name__ == "__main__":
     # test_get_git_commits()
-    test_checkout_commit()
-    
+    # test_checkout_commit()
+    pass
