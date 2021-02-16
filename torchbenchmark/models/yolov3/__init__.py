@@ -30,10 +30,9 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.init_model()
 
-    def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
+    def init_model(self):
         parser = argparse.ArgumentParser()
         root = str(Path(yolo_train.__file__).parent.absolute())
         parser.add_argument('--cfg', type=str, default=f'{root}/cfg/yolov3-spp.cfg', help='*.cfg path')
@@ -56,9 +55,13 @@ class Model(BenchmarkModel):
         opt.cfg = check_file(opt.cfg)  # check file
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)
-        model.to(opt.device).eval()
-        input = (torch.rand(1, 3, 384, 512).to(opt.device),)
-        return model, input
+        self.model = model.to(opt.device)
+
+    def get_module(self):
+        if self.jit:
+            raise NotImplementedError()
+        self.init_model()
+        return (self.model, (torch.rand(1, 3, 384, 512).to(self.device),))
 
     def set_train(self):
         # another model instance is used for training
