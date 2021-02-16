@@ -16,7 +16,9 @@ import argparse
 import typing
 import re
 import subprocess
-from . import gitutils
+from typing import Optional, List, Dict, Tuple
+
+from torchbenchmark.util import gitutils
 
 # Bisection Algorithm: for the bisection range [start, end]
 # Step 1: Fetch commit list: [start, ..., mid, ..., end]
@@ -50,7 +52,7 @@ TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 ## Class definitions
 class Commit:
     sha: str
-    score: Option[float]
+    score: Optional[float]
 
 class TorchSource:
     srcpath: str
@@ -60,11 +62,10 @@ class TorchSource:
     def __init__(self, srcpath: str):
         self.srcpath = srcpath
 
-    def prep() -> bool:
-        repo_origin_url = get_git_origin(srcpath)
+    def prep(self) -> bool:
+        repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCH_GITREPO:
-            return False
-        if not update_git_repo(srcpath, "master"):
+            print(f"Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
             return False
         return True
 
@@ -72,7 +73,7 @@ class TorchSource:
     def init_commits(self, start: str, end: str):
         pass
     
-    def get_mid_commit(self, left: Commit, right: Commit) -> Option[Commit]:
+    def get_mid_commit(self, left: Commit, right: Commit) -> Optional[Commit]:
         left_index = commit_dict[left.sha]
         right_index = commit_dict[right.sha]
         if right_index == left_index + 1:
@@ -100,16 +101,14 @@ class TorchBench:
 
     def prep(self) -> bool:
         # Verify the code in srcpath is pytorch/benchmark
-        repo_origin_url = get_git_origin(srcpath)
+        repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCHBENCH_GITREPO:
             return False
         # Checkout branch
-        if not checkout_git_branch(srcpath, branch):
+        if not gitutils.checkout_git_branch(self.srcpath, self.branch):
             return False
-        # Update the code
-        if not update_git_repo(srcpath, branch):
-            return False
-        
+        return True
+ 
     def build_benchmark(self):
         pass
 
@@ -119,7 +118,6 @@ class TorchBench:
     def get_score(self, commit: Commit) -> float:
         if commit.score is not None:
             return commit.score
-        # compile
         
 class TorchBenchBisection:
     start: str
@@ -148,7 +146,7 @@ class TorchBenchBisection:
         self.end = end
         self.threshold = threshold
         self.timeout = timeout
-        self.output = output
+        self.output = output_json
         self.bisectq = list()
         self.torch_src = TorchSource(srcpath = torch_src)
         self.bench = TorchBench(srcpath = bench_src,
@@ -162,13 +160,13 @@ class TorchBenchBisection:
         return abs(left.score - right.score) >= threshold
 
     def prep(self) -> bool:
-        if not torch_src.prep() or not bench.prep():
+        if not self.torch_src.prep() or not self.bench.prep():
             return False
-        if not torch_src.init_commits(start, end):
-            return False
-        # Activate the conda environment
-        if not subprocess.call(". activate " + conda_env) == 0:
-            return False
+        # if not self.torch_src.init_commits(start, end):
+        #     return False
+        # # Activate the conda environment
+        # if not subprocess.call(". activate " + conda_env) == 0:
+        #     return False
         return True
         
     def run(self):
@@ -234,7 +232,7 @@ if __name__ == "__main__":
                         required=True)
     args = parser.parse_args()
     bisection = TorchBenchBisection(workdir=args.work_dir,
-                                    pytorch_src=args.pytorch_src,
+                                    torch_src=args.pytorch_src,
                                     bench_src=args.torchbench_src,
                                     start=args.start,
                                     end=args.end,
@@ -243,5 +241,6 @@ if __name__ == "__main__":
                                     output_json=args.output,
                                     conda_env=args.conda_env)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
+    print("Preparation steps ok.")
     # bisection.run()
     # bisection.dump_result()

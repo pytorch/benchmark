@@ -16,16 +16,24 @@ def update_git_repo(repo: str, branch: str) -> bool:
         print(f"Failed to update git repo branch: {repo}/{branch}")
         return None
 
+def check_git_exist_local_branch(repo: str, branch: str) -> bool:
+    command = f"git rev-parse --verify {branch} &> /dev/null "
+    retcode = subprocess.call(command, cwd=repo, shell=True)
+    return (retcode == 0)
+
 def checkout_git_branch(repo: str, branch: str) -> bool:
     try:
-        command = f"git checkout --track=origin/{branch} {branch}"
-        out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
-        return out
+        if check_git_exist_local_branch(repo, branch):
+            command = f"git checkout {branch} &> /dev/null "
+        else:
+            command = f"git checkout --track origin/{branch} &> /dev/null"
+        retcode = subprocess.call(command, cwd=repo, shell=True)
+        return (retcode == 0)
     except subprocess.CalledProcessError:
         print(f"Failed to checkout git branch: {repo}/{branch}")
         return None
 
-def get_curreent_branch(repo: str) -> Optional[str]:
+def get_current_branch(repo: str) -> Optional[str]:
     try:
         command = "git branch --show-current"
         out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
@@ -74,11 +82,6 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
         print(f"Failed to checkout commit f{commit} in repo {repo}")
         return False
 
-def update_from_remote(repo: str) -> bool:
-    if not checkout_git_commit(repo, "master"):
-        return False
-    try:
-        
 def test_get_git_commits():
     repo = os.path.expandvars("${HOME}/pytorch")
     start = "94e328c"

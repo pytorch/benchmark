@@ -11,11 +11,16 @@ set -a
 source $BISECTION_CONFIG
 set +a
 
-pushd $PYTORCH_SRC_DIR
-git pull origin master
-popd
+# pushd $PYTORCH_SRC_DIR
+# git pull origin master
+# popd
 
-python $BASEDIR/bisection.py --pytorch-src ${PYTORCH_SRC_DIR} \
+python bisection.py --work-dir ${BISECTION_BASE} \
+       --pytorch-src ${PYTORCH_SRC_DIR} \
+       --torchbench-src ${TORCHBENCH_SRC_DIR} \
        --start ${BISECT_START} \
        --end ${BISECT_END} \
-       --threshold ${BISECT_THRESHOLD}
+       --threshold ${BISECT_THRESHOLD} \
+       --timeout 60 \
+       --output ${HOME}/bisection/output.json \
+       --conda-env ${BISECT_CONDA_ENV}
