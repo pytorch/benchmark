@@ -134,8 +134,8 @@ class TorchBench:
                  workdir: str,
                  branch: str = "0.1"):
         self.srcpath = srcpath
-        self.branch = branch
         self.torch_src = torch_src
+        self.branch = branch
 
     def prep(self) -> bool:
         # Verify the code in srcpath is pytorch/benchmark
@@ -235,7 +235,7 @@ class TorchBenchBisection:
         self.bisectq = list()
         self.torch_src = TorchSource(srcpath = torch_src)
         self.bench = TorchBench(srcpath = bench_src,
-                                torch_src = torch_src,
+                                torch_src = self.torch_src,
                                 workdir = self.workdir)
         self.output_json = output_json
 
