@@ -117,8 +117,10 @@ class TorchSource:
         # setup environment variables
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
+        print(f"Building pytorch commit {commit.sha}...", end="", flush=True)
         command = "python setup.py install 2>&1 > /dev/null"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env)
+        print("done")
 
 class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
@@ -193,7 +195,7 @@ class TorchBench:
         if commit.score is not None:
             return commit.score
         # Build pytorch
-        torch_src.build(commit)
+        self.torch_src.build(commit)
         # Build benchmark and install deps
         self.install_deps(commit)
         # Run benchmark
