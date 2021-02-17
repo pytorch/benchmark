@@ -248,11 +248,12 @@ class TorchBenchBisection:
             return False
         if not self.torch_src.init_commits(self.start, self.end):
             return False
+        left_commit = self.torch_src.[]
         return True
         
     def run(self):
-        while not commit_ranges.empty():
-            (left, right) = commit_ranges[0]
+        while not bisectq.empty():
+            (left, right) = bisectq[0]
             left.score = tbench.get_score(left)
             right.score = tbench.get_score(right)
             if self.regression(left, right):
@@ -262,9 +263,9 @@ class TorchBenchBisection:
                 else:
                     mid.score = tbench.get_score(mid_commit)
                     if self.regression(left, mid):
-                        commit_ranges.append(left, mid)
+                        bisectq.append(left, mid)
                     if self.regression(mid, right):
-                        commit_ranges.append(right, mid)
+                        bisectq.append(right, mid)
             
     def cleanup(self):
         pass

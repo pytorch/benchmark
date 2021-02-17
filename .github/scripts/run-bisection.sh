@@ -16,7 +16,8 @@ set +a
 # get torch_nightly.html
 curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
 
-. activate ${BISECT_CONDA_ENV}
+. activate ${BISECT_CONDA_ENV} &> /dev/null
+
 python bisection.py --work-dir ${BISECT_BASE} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
