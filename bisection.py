@@ -256,14 +256,14 @@ class TorchBenchBisection:
     def run(self):
         while not len(self.bisectq) == 0:
             (left, right) = self.bisectq[0]
-            left.score = self.tbench.get_score(left)
-            right.score = self.tbench.get_score(right)
+            left.score = self.bench.get_score(left)
+            right.score = self.bench.get_score(right)
             if self.regression(left, right):
                 mid = self.torch_src.get_mid_commit(left, right)
                 if mid == None:
                     result.append((left, right))
                 else:
-                    mid.score = self.tbench.get_score(mid_commit)
+                    mid.score = self.bench.get_score(mid_commit)
                     if self.regression(left, mid):
                         self.bisectq.append(left, mid)
                     if self.regression(mid, right):
