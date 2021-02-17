@@ -160,7 +160,7 @@ class TorchBench:
         assert nightly_wheel_urls, f"Failed to get dependency wheels version: {commit.ctime} from nightly html"
         # Install the wheels
         wheels = [nightly_wheel_urls[pkg]["wheel"] for pkg in packages]
-        command = "pip install " + " ".join(wheels) + " &> /dev/null"
+        command = "pip install --no-deps " + " ".join(wheels) + " &> /dev/null"
         subprocess.check_call(command, cwd=self.srcpath)
     
     def run_benchmark(self, commit: Commit) -> str:
@@ -172,7 +172,7 @@ class TorchBench:
             filelist = [ f for f in os.listdir(output_dir) ]
             for f in filelist:
                 os.remove(os.path.join(output_dir, f))
-        command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> /dev/null"
+        command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> {output_dir}/benchmark.log"
         subprocess.check_call(command, cwd=self.srcpath)
         return output_dir
 
@@ -195,8 +195,10 @@ class TorchBench:
         # Build benchmark and install deps
         self.install_deps(commit)
         # Run benchmark
+        print(f"Running TorchBench for commit: {commit.sha} ...", end="", flush=True)
         result_dir = self.run_benchmark()
         commit.score = self.compute_score(result_dir)
+        print(f" score: {commit.score}")
         return commit.score
         
 class TorchBenchBisection:
@@ -246,9 +248,9 @@ class TorchBenchBisection:
             return False
         if not self.torch_src.init_commits(self.start, self.end):
             return False
-        # # Activate the conda environment
-        # if not subprocess.call(". activate " + conda_env) == 0:
-        #     return False
+        # Activate the conda environment
+        if not subprocess.call(". activate " + conda_env) == 0:
+            return False
         return True
         
     def run(self):
