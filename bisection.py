@@ -85,7 +85,8 @@ class TorchSource:
     # Get all commits between start and end, save them in commits
     def init_commits(self, start: str, end: str) -> bool:
         commits = gitutils.get_git_commits(self.srcpath, start, end)
-        if not commits:
+        if not commits or len(commits) < 2:
+            print(f"Failed to retrieve commits from {start} to {end} in {self.srcpath}.")
             return False
         for count, commit in enumerate(commits):
             ctime = gitutils.get_git_commit_date(self.srcpath, commit)
