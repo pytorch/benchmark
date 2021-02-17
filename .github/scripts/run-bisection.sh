@@ -4,16 +4,14 @@ set -xeuo pipefail
 
 SCRIPTPATH=$(realpath $0)
 BASEDIR=$(dirname $SCRIPTPATH)
-BISECTION_BASE=${HOME}/bisection
+BISECTION_BASE=${HOME}/bisection/gh${GITHUB_RUN_ID}
 
 BISECTION_CONFIG=${BISECTION_BASE}/config.env
 set -a
 source $BISECTION_CONFIG
 set +a
 
-# pushd $PYTORCH_SRC_DIR
-# git pull origin master
-# popd
+# TODO: update the code using `git pull`
 
 # get torch_nightly.html
 curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
