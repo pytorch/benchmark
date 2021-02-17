@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -xeuo pipefail
+set -xeo pipefail
 
 SCRIPTPATH=$(realpath $0)
 BASEDIR=$(dirname $SCRIPTPATH)
