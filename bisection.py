@@ -103,12 +103,12 @@ class TorchSource:
             return commits[(left_index + right_index) / 2]
 
     def setup_build_env(self, env):
-        env["USE_CUDA"] = 1
-        env["BUILD_CAFFE2_OPS"] = 0
-        env["USE_XNNPACK"] = 0
-        env["USE_MKLDNN"] = 1
-        env["USE_MKL"] = 1
-        env["USE_CUDNN"] = 1
+        env["USE_CUDA"] = "1"
+        env["BUILD_CAFFE2_OPS"] = "0"
+        env["USE_XNNPACK"] = "0"
+        env["USE_MKLDNN"] = "1"
+        env["USE_MKL"] = "1"
+        env["USE_CUDNN"] = "1"
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
         return env
 
@@ -119,7 +119,7 @@ class TorchSource:
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
         print(f"Building pytorch commit {commit.sha}...", end="", flush=True)
-        command = "python setup.py install 2>&1 > /dev/null"
+        command = "python setup.py install &> /dev/null"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env)
         print("done")
 
