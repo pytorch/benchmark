@@ -182,7 +182,8 @@ class TorchBench:
         # benchmark data file
         data_file = os.path.join(result_dir, filelist[0])
         # configuration
-        config = os.path.join(self.workdir, TORCHBENCH_SCORE_CONFIG)
+        config_file = os.path.join(self.workdir, TORCHBENCH_SCORE_CONFIG)
+        config = yaml.full_load(config_file)
         data = json.load(data_file)
         return compute_score(config, data)
     
@@ -238,10 +239,11 @@ class TorchBenchBisection:
         self.output_json = output_json
         self.conda_env = conda_env
 
+    # Left: older commit; right: newer commit
     def regression(self, left: Commit, right: Commit) -> bool:
         assert left.score is not None
         assert right.score is not None
-        return abs(left.score - right.score) >= threshold
+        return left.score - right.score >= threshold
 
     def prep(self) -> bool:
         if not self.torch_src.prep() or not self.bench.prep():
@@ -273,7 +275,7 @@ class TorchBenchBisection:
         # Deativate the conda environment
         subprocess.check_call(". deactivate " + conda_env)
            
-    def dump_result(self):
+    def output(self):
         json_obj = dict()
         json_obj["start"] = self.start
         json_obj["end"] = self.end
@@ -331,5 +333,5 @@ if __name__ == "__main__":
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok.")
     bisection.run()
-    bisection.dump_result()
+    bisection.output()
     bisection.cleanup()
