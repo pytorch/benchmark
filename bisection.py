@@ -254,24 +254,21 @@ class TorchBenchBisection:
         return True
         
     def run(self):
-        while not bisectq.empty():
-            (left, right) = bisectq[0]
-            left.score = tbench.get_score(left)
-            right.score = tbench.get_score(right)
+        while not self.bisectq.empty():
+            (left, right) = self.bisectq[0]
+            left.score = self.tbench.get_score(left)
+            right.score = self.tbench.get_score(right)
             if self.regression(left, right):
-                mid = torch_src.get_mid_commit(left, right)
+                mid = self.torch_src.get_mid_commit(left, right)
                 if mid == None:
                     result.append((left, right))
                 else:
-                    mid.score = tbench.get_score(mid_commit)
+                    mid.score = self.tbench.get_score(mid_commit)
                     if self.regression(left, mid):
-                        bisectq.append(left, mid)
+                        self.bisectq.append(left, mid)
                     if self.regression(mid, right):
-                        bisectq.append(right, mid)
-            
-    def cleanup(self):
-        pass
-           
+                        self.bisectq.append(right, mid)
+ 
     def output(self):
         json_obj = dict()
         json_obj["start"] = self.start
@@ -327,4 +324,3 @@ if __name__ == "__main__":
     print("Preparation steps ok.")
     bisection.run()
     bisection.output()
-    bisection.cleanup()
