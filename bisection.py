@@ -120,7 +120,7 @@ class TorchSource:
         # build pytorch
         print(f"Building pytorch commit {commit.sha}...", end="", flush=True)
         command = "python setup.py install &> /dev/null"
-        subprocess.check_call(command, cwd=self.srcpath, env=build_env)
+        subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
 
 class TorchBench:
