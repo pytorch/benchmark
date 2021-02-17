@@ -88,7 +88,7 @@ class TorchSource:
             return False
         for count, commit in enumerate(commits):
             ctime = gitutils.get_git_commit_date(self.srcpath, commit)
-            self.commits.append(Commit(sha=commit, datetime=ctime, score=None))
+            self.commits.append(Commit(sha=commit, ctime=ctime, score=None))
             self.commit_dict[commit] = count
         return True
     
