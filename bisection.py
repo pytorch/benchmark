@@ -206,7 +206,7 @@ class TorchBench:
         self.install_deps(commit)
         # Run benchmark
         print(f"Running TorchBench for commit: {commit.sha} ...", end="", flush=True)
-        result_dir = self.run_benchmark()
+        result_dir = self.run_benchmark(commit)
         commit.score = self.compute_score(result_dir)
         print(f" score: {commit.score}")
         return commit.score
