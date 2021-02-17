@@ -17,8 +17,8 @@ from collections import defaultdict
 
 SPEC_FILE_DEFAULT = "torchbenchmark/score/score.yml"
 TARGET_SCORE_DEFAULT = 1000
-TORCHBENCH_V0_SCORE = "torchbenchmark/score/torchbench_0.0.yaml"
-TORCHBENCH_V1_SCORE = "" # Placeholder for v1 score
+TORCHBENCH_V0_REF_DATA = "torchbenchmark/score/torchbench_0.0.yaml"
+TORCHBENCH_V1_REF_DATA = "" # Placeholder for v1 score
 
 def _get_model_task(model_name):
     """
@@ -40,7 +40,11 @@ class TorchBenchScore:
         self.weights = None
         self.norm = None
 
-    def setup_weights(self):
+        # Setup weights and benchmark norms
+        self._setup_weights()
+        self._setup_benchmark_norms()
+
+    def _setup_weights(self):
         """
         Calculates the static benchmark weights by iterating the spec
         file and constructs a dictionary with (key, value) pair
@@ -64,12 +68,13 @@ class TorchBenchScore:
                 benchmark_weight = 1.0 / len(benchmarks)
                 self.weights[task] = domain_weight * task_weight * benchmark_weight
 
-    def setup_benchmark_norms(self):
+    def _setup_benchmark_norms(self):
         """
         Helper function which gets the normalization values per benchmark
         by going through the reference data file.
         """
-        if self.ref_data in [TORCHBENCH_V0_SCORE, TORCHBENCH_V1_SCORE]:
+        if not self.ref_data: return
+        elif self.ref_data in [TORCHBENCH_V0_REF_DATA, TORCHBENCH_V1_REF_DATA]:
             if Path(self.ref_data).exists():
                 with open(self.ref_data) as ref_file:
                     ref = yaml.full_load(ref_file)
@@ -123,14 +128,16 @@ class TorchBenchScore:
         that was run  by reading the data (.json) file.
         The weights are then calibrated to the target score.
         """
-        if self.norm is None:
-            if self.ref_data is None: self.ref_data = data
-            self.setup_benchmark_norms()
-        if self.weights is None:
-            self.setup_weights()
+        if not self.ref_data:
+            self.ref_data = data
+            self._setup_benchmark_norms()
 
         score = 0.0
         score_db = self.get_score_per_config(data)
         score = sum(score_db.values())
         score = self.target * math.exp(score)
         return score
+
+TORCHBENCH_V0_SCORE = TorchBenchScore(ref_data=TORCHBENCH_V0_REF_DATA)
+# TODO: Enable TORCHBENCH_V1_SCORE once TORCHBENCH_V1_REF_DATA is available
+# TORCHBENCH_V1_SCORE = TorchBenchScore(ref_data=TORCHBENCH_V1_REF_DATA)
