@@ -156,12 +156,7 @@ class TorchBench:
         datetime_obj = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
         present = datetime.now()
         packages = ["torchtext", "torchvision", "torchaudio"]
-        while datetime_obj <= present:
-            nightly_wheel_urls = torch_nightly.get_nightly_wheel_urls(packages, datetime_obj)
-            if nightly_wheel_urls:
-                break
-            else:
-                datetime_obj += timedelta(days=1)
+        nightly_wheel_urls = torch_nightly.get_nightly_wheel_urls(packages, datetime_obj)
         assert nightly_wheel_urls, f"Failed to get dependency wheels version: {commit.ctime} from nightly html"
         # Install the wheels
         wheels = [nightly_wheel_urls[pkg]["wheel"] for pkg in packages]
