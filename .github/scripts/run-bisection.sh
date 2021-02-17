@@ -16,6 +16,7 @@ set +a
 # get torch_nightly.html
 curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
 
+. activate ${BISECT_CONDA_ENV}
 python bisection.py --work-dir ${BISECT_BASE} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
@@ -23,5 +24,4 @@ python bisection.py --work-dir ${BISECT_BASE} \
        --end ${BISECT_END} \
        --threshold ${BISECT_THRESHOLD} \
        --timeout 60 \
-       --output ${BISECT_BASE}/output.json \
-       --conda-env ${BISECT_CONDA_ENV}
+       --output ${BISECT_BASE}/output.json

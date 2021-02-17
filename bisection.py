@@ -7,7 +7,7 @@ Usage:
   python bisection.py --pytorch-src <PYTORCH_SRC_DIR> \
     --torchbench-src <TORCHBENCH_SRC_DIR> \
     --start <SHA> --end <SHA> --threshold <SCORE_THRESHOLD> \
-    --timeout <TIMEOUT_IN_MINS> --env-name <CONDA_ENV_NAME>
+    --timeout <TIMEOUT_IN_MINS> --output <OUTPUT_FILE_PATH>
 """
 
 import os
@@ -79,6 +79,7 @@ class TorchSource:
         if not repo_origin_url == TORCH_GITREPO:
             print(f"Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
             return False
+        # TODO: check conda packages dependencies are installed
         return True
     
     # Get all commits between start and end, save them in commits
@@ -212,7 +213,6 @@ class TorchBenchBisection:
     result: List[Tuple[Commit, Commit]]
     torch_src: TorchSource
     bench: TorchBench
-    conda_env: str
     output_json: str
 
     def __init__(self,
@@ -223,8 +223,7 @@ class TorchBenchBisection:
                  end: str,
                  threshold: int,
                  timeout: int,
-                 output_json: str,
-                 conda_env: str):
+                 output_json: str):
         self.workdir = workdir
         self.start = start
         self.end = end
@@ -237,7 +236,6 @@ class TorchBenchBisection:
                                 torch_src = torch_src,
                                 workdir = self.workdir)
         self.output_json = output_json
-        self.conda_env = conda_env
 
     # Left: older commit; right: newer commit
     def regression(self, left: Commit, right: Commit) -> bool:
@@ -249,9 +247,6 @@ class TorchBenchBisection:
         if not self.torch_src.prep() or not self.bench.prep():
             return False
         if not self.torch_src.init_commits(self.start, self.end):
-            return False
-        # Activate the conda environment
-        if not subprocess.call(". activate " + self.conda_env) == 0:
             return False
         return True
         
@@ -272,8 +267,7 @@ class TorchBenchBisection:
                         commit_ranges.append(right, mid)
             
     def cleanup(self):
-        # Deativate the conda environment
-        subprocess.check_call(". deactivate " + conda_env)
+        pass
            
     def output(self):
         json_obj = dict()
@@ -317,9 +311,6 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         help="the output json file",
                         required=True)
-    parser.add_argument("--conda-env",
-                        help="name of the conda environment that contains build dependencies",
-                        required=True)
     args = parser.parse_args()
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_src=args.pytorch_src,
@@ -328,8 +319,7 @@ if __name__ == "__main__":
                                     end=args.end,
                                     threshold=args.threshold,
                                     timeout=args.timeout,
-                                    output_json=args.output,
-                                    conda_env=args.conda_env)
+                                    output_json=args.output)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok.")
     bisection.run()
