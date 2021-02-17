@@ -14,10 +14,10 @@ import os
 import json
 import yaml
 import argparse
-import datetime
 import typing
 import re
 import subprocess
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Tuple
 
 from torchbenchmark.score.compute_score import compute_score
@@ -137,6 +137,7 @@ class TorchBench:
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.branch = branch
+        self.workdir = workdir
 
     def prep(self) -> bool:
         # Verify the code in srcpath is pytorch/benchmark
@@ -152,7 +153,7 @@ class TorchBench:
     def install_deps(self, commit: Commit):
         # Find the matching torchtext/torchvision version
         # Sometimes the nightly wheel is unavailable, increase version until the first available date
-        datetime_obj = datetime.datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
+        datetime_obj = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
         present = datetime.now()
         packages = ["torchtext", "torchvision", "torchaudio"]
         while datetime_obj <= present:
@@ -200,7 +201,7 @@ class TorchBench:
         if commit.score is not None:
             return commit.score
         # Build pytorch
-        self.torch_src.build(commit)
+        # self.torch_src.build(commit)
         # Build benchmark and install deps
         self.install_deps(commit)
         # Run benchmark
