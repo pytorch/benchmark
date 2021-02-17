@@ -254,7 +254,7 @@ class TorchBenchBisection:
         return True
         
     def run(self):
-        while not self.bisectq.empty():
+        while not len(self.bisectq) == 0:
             (left, right) = self.bisectq[0]
             left.score = self.tbench.get_score(left)
             right.score = self.tbench.get_score(right)
