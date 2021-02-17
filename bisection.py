@@ -165,19 +165,23 @@ class TorchBench:
         # Install the wheels
         wheels = [nightly_wheel_urls[pkg]["wheel"] for pkg in packages]
         command = "pip install --no-deps " + " ".join(wheels) + " &> /dev/null"
-        subprocess.check_call(command, cwd=self.srcpath)
+        print("Installing deps: " + command)
+        subprocess.check_call(command, cwd=self.srcpath, shell=True)
     
     def run_benchmark(self, commit: Commit) -> str:
         # Benchmark output dir: self
         # Return the result json file
         output_dir = os.path.join(self.workdir, commit.sha)
         # If the directory exists, delete its contents
-        if os.path.exists(output_dir) and not len(output_dir) == 0:
+        if os.path.exists(output_dir):
+            assert os.path.isdir(output_dir), "Must specify output directory: {output_dir}"
             filelist = [ f for f in os.listdir(output_dir) ]
             for f in filelist:
                 os.remove(os.path.join(output_dir, f))
+        else:
+            os.mkdir(output_dir)
         command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> {output_dir}/benchmark.log"
-        subprocess.check_call(command, cwd=self.srcpath)
+        subprocess.check_call(command, cwd=self.srcpath, shell=True)
         return output_dir
 
     def compute_score(self, result_dir: str) -> float:
