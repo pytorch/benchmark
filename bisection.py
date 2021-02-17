@@ -251,7 +251,7 @@ class TorchBenchBisection:
         if not self.torch_src.init_commits(self.start, self.end):
             return False
         # Activate the conda environment
-        if not subprocess.call(". activate " + conda_env) == 0:
+        if not subprocess.call(". activate " + self.conda_env) == 0:
             return False
         return True
         
