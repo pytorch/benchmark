@@ -209,7 +209,7 @@ class TorchBenchBisection:
     workdir: str
     threshold: int
     output: str
-    bisectq: List[Tuple[str, str]]
+    bisectq: List[Tuple[Commit, Commit]]
     result: List[Tuple[Commit, Commit]]
     torch_src: TorchSource
     bench: TorchBench
@@ -248,7 +248,9 @@ class TorchBenchBisection:
             return False
         if not self.torch_src.init_commits(self.start, self.end):
             return False
-        left_commit = self.torch_src.[]
+        left_commit = self.torch_src.commits[0]
+        right_commit = self.torch_src.commits[-1]
+        self.bisectq.append((left_commit, right_commit))
         return True
         
     def run(self):
