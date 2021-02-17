@@ -176,7 +176,7 @@ class TorchBench:
         subprocess.check_call(command, cwd=self.srcpath)
         return output_dir
 
-    def compute_score(self, result_dir: str): -> float:
+    def compute_score(self, result_dir: str) -> float:
         filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
         assert len(filelist) > 0, f"Can't compute score in an empty directory {result_dir}."
         # benchmark data file
