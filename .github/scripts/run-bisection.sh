@@ -15,6 +15,9 @@ set +a
 # git pull origin master
 # popd
 
+# get torch_nightly.html
+curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
+
 python bisection.py --work-dir ${BISECTION_BASE} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \

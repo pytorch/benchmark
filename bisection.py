@@ -12,13 +12,17 @@ Usage:
 
 import os
 import json
+import yaml
 import argparse
+import datetime
 import typing
 import re
 import subprocess
 from typing import Optional, List, Dict, Tuple
 
+from torchbenchmark.score.compute_score import compute_score
 from torchbenchmark.util import gitutils
+from torchbenchmark.util import torch_nightly
 
 # Bisection Algorithm: for the bisection range [start, end]
 # Step 1: Fetch commit list: [start, ..., mid, ..., end]
@@ -48,16 +52,17 @@ def exist_dir_path(string):
 
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
+TORCHBENCH_SCORE_CONFIG="torchbenchmark/score/configs/v0/config-v0.yaml"
 
 ## Class definitions
 class Commit:
     sha: str
+    ctime: str
     score: Optional[float]
-    result: Optional[str]
-    def __init__(self, sha, score):
+    def __init__(self, sha, ctime, score):
         self.sha = sha
+        self.ctime = ctime
         self.score = score
-        self.result = None
 
 class TorchSource:
     srcpath: str
@@ -82,7 +87,8 @@ class TorchSource:
         if not commits:
             return False
         for count, commit in enumerate(commits):
-            self.commits.append(Commit(sha=commit, score=None))
+            ctime = gitutils.get_git_commit_date(self.srcpath, commit)
+            self.commits.append(Commit(sha=commit, datetime=ctime, score=None))
             self.commit_dict[commit] = count
         return True
     
@@ -138,33 +144,60 @@ class TorchBench:
             return False
         return True
  
-    def build(self):
-        command = "python install.py"
-        subprocess.check_call(command, cwd=self.srcpath)
-
     # Install dependencies such as torchtext and torchvision
-    def install_deps(self):
-        pass
+    def install_deps(self, commit: Commit):
+        # Find the matching torchtext/torchvision version
+        # Sometimes the nightly wheel is unavailable, increase version until the first available date
+        datetime_obj = datetime.datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
+        present = datetime.now()
+        packages = ["torchtext", "torchvision", "torchaudio"]
+        while datetime_obj <= present:
+            nightly_wheel_urls = torch_nightly.get_nightly_wheel_urls(packages, datetime_obj)
+            if nightly_wheel_urls:
+                break
+            else:
+                datetime_obj += timedelta(days=1)
+        assert nightly_wheel_urls, f"Failed to get dependency wheels version: {commit.ctime} from nightly html"
+        # Install the wheels
+        wheels = [nightly_wheel_urls[pkg]["wheel"] for pkg in packages]
+        command = "pip install " + " ".join(wheels) + " &> /dev/null"
+        subprocess.check_call(command, cwd=self.srcpath)
     
-    def run_benchmark(self) -> str:
-        # Benchmark output dir: self.
-        pass
+    def run_benchmark(self, commit: Commit) -> str:
+        # Benchmark output dir: self
+        # Return the result json file
+        output_dir = os.path.join(self.workdir, commit.sha)
+        # If the directory exists, delete its contents
+        if os.path.exists(output_dir) and not len(output_dir) == 0:
+            filelist = [ f for f in os.listdir(output_dir) ]
+            for f in filelist:
+                os.remove(os.path.join(output_dir, f))
+        command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> /dev/null"
+        subprocess.check_call(command, cwd=self.srcpath)
+        return output_dir
 
-    def compute_score(self, result_json: str): -> float:
-        pass
+    def compute_score(self, result_dir: str): -> float:
+        filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
+        assert len(filelist) > 0, f"Can't compute score in an empty directory {result_dir}."
+        # benchmark data file
+        data_file = os.path.join(result_dir, filelist[0])
+        # configuration
+        config = os.path.join(self.workdir, TORCHBENCH_SCORE_CONFIG)
+        data = json.load(data_file)
+        return compute_score(config, data)
     
     def get_score(self, commit: Commit) -> float:
-        # Score is cached before
+        # Score is cached
         if commit.score is not None:
             return commit.score
         # Build pytorch
         torch_src.build(commit)
         # Build benchmark and install deps
-        self.install_deps()
-        self.build()
+        self.install_deps(commit)
         # Run benchmark
-        commit.result = self.run_benchmark()
-        commit.score = self.compute_score(commit.result)
+        result_dir = self.run_benchmark()
+        commit.score = self.compute_score(result_dir)
+        return commit.score
         
 class TorchBenchBisection:
     start: str
@@ -235,11 +268,9 @@ class TorchBenchBisection:
                         commit_ranges.append(right, mid)
             
     def cleanup(self):
-        # # Deativate the conda environment
-        # if not subprocess.call(". deactivate " + conda_env) == 0:
-        #     return False
-        pass
- 
+        # Deativate the conda environment
+        subprocess.check_call(". deactivate " + conda_env)
+           
     def dump_result(self):
         json_obj = dict()
         json_obj["start"] = self.start
@@ -297,6 +328,6 @@ if __name__ == "__main__":
                                     conda_env=args.conda_env)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok.")
-    # bisection.run()
-    # bisection.dump_result()
+    bisection.run()
+    bisection.dump_result()
     bisection.cleanup()

@@ -21,6 +21,15 @@ def check_git_exist_local_branch(repo: str, branch: str) -> bool:
     retcode = subprocess.call(command, cwd=repo, shell=True)
     return (retcode == 0)
 
+def get_git_commit_date(repo: str, commit: str) -> str:
+    try:
+        command = f"git show -s --format=%ci {commit}"
+        out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
+        return out
+    except subprocess.CalledProcessError:
+        print(f"Failed to get date of commit {commit} in repo {repo}")
+        return None
+    
 def checkout_git_branch(repo: str, branch: str) -> bool:
     try:
         if check_git_exist_local_branch(repo, branch):
