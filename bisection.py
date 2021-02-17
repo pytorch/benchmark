@@ -129,7 +129,7 @@ class TorchBench:
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
                  workdir: str
-                 branch: str = "0.1"):
+                 branch="0.1"):
         self.srcpath = srcpath
         self.branch = branch
         self.torch_src = torch_src
