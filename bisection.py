@@ -119,17 +119,17 @@ class TorchSource:
         # Build the dependency packages
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
-        command = "python setup.py install 2>&1 /dev/null"
+        command = "python setup.py install &> /dev/null"
         subprocess.check_call(command, cwd=TORCHVISION_PATH, env=build_env, shell=True)
         print("done")
         # Build torchaudio
         print(f"Building torchaudio ...", end="", flush=True)
-        command = "BUILD_SOX=1 python setup.py install 2>&1 /dev/null"
+        command = "BUILD_SOX=1 python setup.py install &> /dev/null"
         subprocess.check_call(command, cwd=TORCHAUDIO_PATH, env=build_env, shell=True)
         print("done")
         # Build torchtext
         print(f"Building torchtext ...", end="", flush=True)
-        command = "python setup.py clean install 2>&1 /dev/null"
+        command = "python setup.py clean install &> /dev/null"
         subprocess.check_call(command, cwd=TORCHTEXT_PATH, env=build_env, shell=True)
         print("done")
  
