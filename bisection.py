@@ -144,17 +144,20 @@ class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
     branch: str
     timelimit: int # timeout limit in minutes
+    bmfilter: str
     workdir: str
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
                  timelimit: int,
+                 bmfilter: str,
                  workdir: str,
                  branch: str = "0.1"):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
+        self.bmfilter = bmfilter
         self.branch = branch
         self.workdir = workdir
 
@@ -188,7 +191,7 @@ class TorchBench:
                 os.remove(os.path.join(output_dir, f))
         else:
             os.mkdir(output_dir)
-        command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> {output_dir}/benchmark.log"
+        command = f"bash .github/scripts/run-nodocker.sh {output_dir} \"{self.bmfilter}\" &> {output_dir}/benchmark.log"
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
@@ -247,6 +250,7 @@ class TorchBenchBisection:
                  start: str,
                  end: str,
                  threshold: int,
+                 bmfilter: str,
                  timeout: int,
                  output_json: str):
         self.workdir = workdir
@@ -259,6 +263,7 @@ class TorchBenchBisection:
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
+                                bmfilter = bmfilter,
                                 workdir = self.workdir)
         self.output_json = output_json
 
@@ -331,6 +336,9 @@ if __name__ == "__main__":
                         help="the torchbench score threshold to report a regression",
                         type=float,
                         required=True)
+    parser.add_argument("--bmfilter",
+                        help="the benchmark filter to run",
+                        required=True)
     parser.add_argument("--timeout",
                         type=int,
                         help="the maximum time to run the benchmark in minutes",
@@ -345,6 +353,7 @@ if __name__ == "__main__":
                                     start=args.start,
                                     end=args.end,
                                     threshold=args.threshold,
+                                    bmfilter=args.bmfilter
                                     timeout=args.timeout,
                                     output_json=args.output)
     assert bisection.prep(), "The working condition of bisection is not satisfied."

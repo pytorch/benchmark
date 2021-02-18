@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -euo pipefail
+set -eo pipefail
 
 # Version of the config
 CONFIG_VER=v0
@@ -8,6 +8,10 @@ CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
 DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 DATA_DIR=$1
+
+if [ -n $2 ]; then
+    BENCHMARK_FILTER=$2
+fi
 
 # Load environment variables
 set -a;
