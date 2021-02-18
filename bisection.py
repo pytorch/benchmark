@@ -211,7 +211,7 @@ class TorchBench:
         result_dir = self.run_benchmark(commit)
         commit.score = self.compute(result_dir)
         print(f" score: {commit.score}")
-        self.torch_src.cleanup()
+        self.torch_src.cleanup(commit)
         return commit.score
         
 class TorchBenchBisection:
