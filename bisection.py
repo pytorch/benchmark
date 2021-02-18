@@ -182,7 +182,7 @@ class TorchBench:
             return output_dir
         return output_dir
 
-    def compute_score(self, result_dir: str) -> float:
+    def compute(self, result_dir: str) -> float:
         filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
         if len(filelist) == 0:
             print(f"Empty directory or json file in {result_dir}. Return zero score.")
@@ -193,9 +193,11 @@ class TorchBench:
             print(f"Empty json file {filelist[0]} in {result_dir}. Return zero score.")
             return 0.0
         # configuration
-        config_file = os.path.join(self.workdir, TORCHBENCH_SCORE_CONFIG)
-        config = yaml.full_load(config_file)
-        data = json.load(data_file)
+        config_file = os.path.join(self.srcpath, TORCHBENCH_SCORE_CONFIG)
+        with open(config_file) as cfg_file:
+            config = yaml.full_load(cfg_file)
+        with open(data_file) as dfile:
+            data = json.load(dfile)
         return compute_score(config, data)
     
     def get_score(self, commit: Commit) -> float:
@@ -207,7 +209,7 @@ class TorchBench:
         # Run benchmark
         print(f"Running TorchBench for commit: {commit.sha} ...", end="", flush=True)
         result_dir = self.run_benchmark(commit)
-        commit.score = self.compute_score(result_dir)
+        commit.score = self.compute(result_dir)
         print(f" score: {commit.score}")
         self.torch_src.cleanup()
         return commit.score
