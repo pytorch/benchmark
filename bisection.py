@@ -17,6 +17,7 @@ import argparse
 import typing
 import re
 import subprocess
+from datetime import datetime
 from typing import Optional, List, Dict, Tuple
 
 from torchbenchmark.score.compute_score import compute_score
@@ -81,7 +82,7 @@ class TorchSource:
             self.commit_dict[commit] = count
         # Setup commit date
         last_commit_date = self.commits[-1].ctime.split()[0]
-        self.commit_date = strptime("%Y-%m-%d", last_commit_date)
+        self.commit_date = datetime.strptime(last_commit_date, "%Y-%m-%d")
         return True
     
     def get_mid_commit(self, left: Commit, right: Commit) -> Optional[Commit]:
@@ -166,9 +167,12 @@ class TorchBench:
         if not gitutils.checkout_git_branch(self.srcpath, self.branch):
             return False
         # Checkout dependency commit
-        printf("Checking out dependency last commit date: {self.torch_src.commit_date}")
+        print(f"Checking out dependency last commit date: {self.torch_src.commit_date}")
         for pkg in TORCHBENCH_DEPS:
-            if not gitutils.checkout_git_branch(TORCHBENCH_DEPS[pkg], self.torch_src.commit_date):
+            last_commit = gitutils.get_git_commit_on_date(TORCHBENCH_DEPS[pkg], self.torch_src.commit_date)
+            if not last_commit:
+                return False
+            if not gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], last_commit):
                 return False
         return True
  
