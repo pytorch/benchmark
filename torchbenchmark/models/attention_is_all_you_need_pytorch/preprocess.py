@@ -12,10 +12,10 @@ import torch
 import tarfile
 import torchtext.data
 import torchtext.datasets
-if torchtext.__version__ >= "0.9":
+try:
     from torchtext.legacy.data import Field
     from torchtext.legacy.datasets.translation import TranslationDataset, Multi30k
-else:
+except ImportError:
     from torchtext.data import Field
     from torchtext.datasets import TranslationDataset, Multi30k
 

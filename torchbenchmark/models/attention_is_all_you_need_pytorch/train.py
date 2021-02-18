@@ -12,12 +12,11 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import torchtext.data
 from torchtext.data import Dataset, BucketIterator
-if torchtext.__version__ >= "0.9":
+try:
     from torchtext.legacy.data import Field
     from torchtext.legacy.datasets.translation import TranslationDataset
-else:
+except ImportError:
     from torchtext.data import Field
     from torchtext.datasets import TranslationDataset
 
