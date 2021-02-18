@@ -22,7 +22,7 @@ def get_git_commit_on_date(repo: str, date: datetime) -> Optional[str]:
         # Get the first commit since date
         formatted_date = date.strftime("%Y-%m-%d")
         command = f"git log --until={formatted_date} -1 --oneline | cut -d ' ' -f 1"
-        out = subprocess.check_output(command, cwd=repo, shell=True)
+        out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
         return out
     except subprocess.CalledProcessError:
         print(f"Failed to get the last commit on date {formatted_date} in repo {repo}")
