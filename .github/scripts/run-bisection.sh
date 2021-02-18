@@ -22,6 +22,5 @@ python bisection.py --work-dir ${BISECT_BASE} \
        --start ${BISECT_START} \
        --end ${BISECT_END} \
        --threshold ${BISECT_THRESHOLD} \
-       --bmfilter ${BISECT_BMFILTER} \
        --timeout 60 \
        --output ${BISECT_BASE}/output.json
