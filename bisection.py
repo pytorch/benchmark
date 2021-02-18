@@ -262,7 +262,7 @@ class TorchBenchBisection:
     def regression(self, left: Commit, right: Commit) -> bool:
         assert left.score is not None
         assert right.score is not None
-        return left.score - right.score >= threshold
+        return left.score - right.score >= self.threshold
 
     def prep(self) -> bool:
         if not self.torch_src.prep():
