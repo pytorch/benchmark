@@ -11,8 +11,6 @@ set -a
 source $BISECT_CONFIG
 set +a
 
-# TODO: update the code using `git pull`
-
 # get torch_nightly.html
 curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
 

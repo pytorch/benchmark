@@ -1,7 +1,7 @@
 """bisection.py
 Runs bisection to determine PRs that cause performance regression.
 Performance regression is defined by TorchBench score drop greater than the threshold.
-By default, the torchvision and torchtext package version will be fixed to the latest version in the conda defaults channel.
+By default, the torchvision, torchaudio, and torchtext package version will be fixed to the latest git version.
 
 Usage:
   python bisection.py --pytorch-src <PYTORCH_SRC_DIR> \
@@ -74,6 +74,10 @@ class TorchSource:
         if not repo_origin_url == TORCH_GITREPO:
             print(f"Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
             return False
+        pkgs = [self.srcpath, TORCHTEXT_PATH, TORCHVISION_PATH, TORCHAUDIO_PATH]
+        for pkg in pkgs:
+            if not gitutils.update_git_repo(pkg):
+                return False
         return True
     
     # Get all commits between start and end, save them in commits
