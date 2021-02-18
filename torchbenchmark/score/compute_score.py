@@ -26,11 +26,11 @@ def _get_model_task(model_name):
     Helper function which extracts the task the model belongs to
     by iterating over the Model attributes.
     """
-    MODEL_PATH="../models"
-    p = Path(__file__).parent.joinpath(MODEL_PATH + model_name)
-    if(p):
+    try:
         module = importlib.import_module(f'torchbenchmark.models.{model_name}', package=__name__)
-        Model = getattr(module, 'Model')
+    except:
+        raise ValueError(f"Unable to get task for model: {model_name}")
+    Model = getattr(module, 'Model')
     return Model.task.value
 
 class TorchBenchScore:
