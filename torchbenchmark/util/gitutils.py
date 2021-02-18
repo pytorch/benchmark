@@ -4,8 +4,9 @@ Utils for getting git-related information.
 """
 
 import os
-from typing import Optional, List
 import subprocess
+from datetime import datetime
+from typing import Optional, List
 
 def update_git_repo(repo: str, branch: str) -> bool:
     try:
@@ -16,6 +17,17 @@ def update_git_repo(repo: str, branch: str) -> bool:
         print(f"Failed to update git repo {repo}, branch {branch}")
         return None
 
+def get_git_commit_on_date(repo: str, date: datetime) -> Optional[str]:
+    try:
+        # Get the first commit since date
+        formatted_date = date.strftime("%Y-%m-%d")
+        command = f"git log --until={formatted_date} -1 --oneline | cut -d ' ' -f 1"
+        out = subprocess.check_output(command, cwd=repo, shell=True)
+        return out
+    except subprocess.CalledProcessError:
+        print(f"Failed to get the last commit on date {formatted_date} in repo {repo}")
+        return None
+ 
 def check_git_exist_local_branch(repo: str, branch: str) -> bool:
     command = f"git rev-parse --verify {branch} &> /dev/null "
     retcode = subprocess.call(command, cwd=repo, shell=True)

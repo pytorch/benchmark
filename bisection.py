@@ -33,9 +33,11 @@ def exist_dir_path(string):
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 TORCHBENCH_SCORE_CONFIG="torchbenchmark/score/configs/v0/config-v0.yaml"
-TORCHTEXT_PATH=os.path.expandvars("${HOME}/text")
-TORCHVISION_PATH=os.path.expandvars("${HOME}/vision")
-TORCHAUDIO_PATH=os.path.expandvars("${HOME}/audio")
+TORCHBENCH_DEPS = {
+    "torchtext": os.path.expandvars("${HOME}/text"),
+    "torchvision": os.path.expandvars("${HOME}/vision")
+    "torchaudio": os.path.expandvars("${HOME}/audio")
+}
 
 ## Class definitions
 class Commit:
@@ -51,6 +53,7 @@ class Commit:
 
 class TorchSource:
     srcpath: str
+    commit_date: datetime
     commits: List[Commit]
     # Map from commit SHA to index in commits
     commit_dict: Dict[str, int]
@@ -76,6 +79,9 @@ class TorchSource:
             ctime = gitutils.get_git_commit_date(self.srcpath, commit)
             self.commits.append(Commit(sha=commit, ctime=ctime, score=None))
             self.commit_dict[commit] = count
+        # Setup commit date
+        last_commit_date = self.commits[-1].ctime.split()[0]
+        self.commit_date = strptime("%Y-%m-%d", last_commit_date)
         return True
     
     def get_mid_commit(self, left: Commit, right: Commit) -> Optional[Commit]:
@@ -98,21 +104,20 @@ class TorchSource:
 
     # Install dependencies such as torchaudio, torchtext and torchvision
     def install_deps(self, build_env):
-        # Build the dependency packages
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
         command = "python setup.py install &> /dev/null"
-        subprocess.check_call(command, cwd=TORCHVISION_PATH, env=build_env, shell=True)
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"], env=build_env, shell=True)
         print("done")
         # Build torchaudio
         print(f"Building torchaudio ...", end="", flush=True)
         command = "BUILD_SOX=1 python setup.py install &> /dev/null"
-        subprocess.check_call(command, cwd=TORCHAUDIO_PATH, env=build_env, shell=True)
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchaudio"], env=build_env, shell=True)
         print("done")
         # Build torchtext
         print(f"Building torchtext ...", end="", flush=True)
         command = "python setup.py clean install &> /dev/null"
-        subprocess.check_call(command, cwd=TORCHTEXT_PATH, env=build_env, shell=True)
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"], env=build_env, shell=True)
         print("done")
  
     def build(self, commit: Commit):
@@ -160,6 +165,11 @@ class TorchBench:
         # Checkout branch
         if not gitutils.checkout_git_branch(self.srcpath, self.branch):
             return False
+        # Checkout dependency commit
+        printf("Checking out dependency last commit date: {self.torch_src.commit_date}")
+        for pkg in TORCHBENCH_DEPS:
+            if not gitutils.checkout_git_branch(TORCHBENCH_DEPS[pkg], self.torch_src.commit_date):
+                return False
         return True
  
     def run_benchmark(self, commit: Commit) -> str:
@@ -255,9 +265,11 @@ class TorchBenchBisection:
         return left.score - right.score >= threshold
 
     def prep(self) -> bool:
-        if not self.torch_src.prep() or not self.bench.prep():
+        if not self.torch_src.prep():
             return False
         if not self.torch_src.init_commits(self.start, self.end):
+            return False
+        if not self.bench.prep():
             return False
         left_commit = self.torch_src.commits[0]
         right_commit = self.torch_src.commits[-1]
