@@ -153,16 +153,18 @@ class TorchSource:
 class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
     branch: str
-    timeout_limit: int # timeout limit in minutes
+    timelimit: int # timeout limit in minutes
     workdir: str
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
+                 timelimit: int,
                  workdir: str,
                  branch: str = "0.1"):
         self.srcpath = srcpath
         self.torch_src = torch_src
+        self.timelimit = timelimit
         self.branch = branch
         self.workdir = workdir
 
@@ -190,7 +192,7 @@ class TorchBench:
             os.mkdir(output_dir)
         command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> {output_dir}/benchmark.log"
         try:
-            subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timeout_limit * 60)
+            subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
             print(f"Benchmark timeout for {commit.sha}. Returning zero value.")
             return output_dir
@@ -251,12 +253,12 @@ class TorchBenchBisection:
         self.start = start
         self.end = end
         self.threshold = threshold
-        self.timeout = timeout
         self.output = output_json
         self.bisectq = list()
         self.torch_src = TorchSource(srcpath = torch_src)
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
+                                timelimit = timeout,
                                 workdir = self.workdir)
         self.output_json = output_json
 
