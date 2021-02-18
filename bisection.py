@@ -33,14 +33,7 @@ from torchbenchmark.util import torch_nightly
 #         ... test benchmark on commit mid, and:
 #               if abs(end.score - mid.score) > threshold: insert (mid, end) into the bisectq
 #               if abs(start.score - mid.score) > threshold: insert (start, mid) into the bisectq
-# Step 5: goto step 2 until bisectq is empty
-
-# Workdir Organization:
-# WORKDIR/
-#    commit-shas.txt
-#    <COMMIT-SHA1>.json
-#    <COMMIT-SHA2>.json
-#    ...
+# Step 5: goto step 2 unless bisectq is empty
 
 ## Helper functions
 def exist_dir_path(string):
@@ -81,7 +74,6 @@ class TorchSource:
         if not repo_origin_url == TORCH_GITREPO:
             print(f"Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
             return False
-        # TODO: check conda packages dependencies are installed
         return True
     
     # Get all commits between start and end, save them in commits
@@ -145,10 +137,12 @@ class TorchSource:
         print("done")
         self.install_deps(build_env)
 
-    def cleanup(self):
+    def cleanup(self, commit: Commit):
+        print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
         packages = ["torch", "torchtext", "torchvision", "torchaudio"]
         command = "pip uninstall -y " + " ".join(packages)
         subprocess.check_call(command, shell=True)
+        print("done")
 
 class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
@@ -189,14 +183,23 @@ class TorchBench:
         else:
             os.mkdir(output_dir)
         command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> {output_dir}/benchmark.log"
-        subprocess.check_call(command, cwd=self.srcpath, shell=True)
+        try:
+            subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timeout_limit * 60)
+        except subprocess.TimeoutExpired:
+            print(f"Benchmark timeout for {commit.sha}. Returning zero value.")
+            return output_dir
         return output_dir
 
     def compute_score(self, result_dir: str) -> float:
         filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
-        assert len(filelist) > 0, f"Can't compute score in an empty directory {result_dir}."
+        if len(filelist) == 0 or os.stat(filelist[0]).st_size == 0:
+            print(f"Empty directory or json file in {result_dir}. Return zero score.")
+            return 0.0
         # benchmark data file
         data_file = os.path.join(result_dir, filelist[0])
+        if os.stat(data_file).st_size == 0:
+            print(f"Empty json file {filelist[0]} in {result_dir}. Return zero score.")
+            return 0.0
         # configuration
         config_file = os.path.join(self.workdir, TORCHBENCH_SCORE_CONFIG)
         config = yaml.full_load(config_file)
@@ -335,6 +338,6 @@ if __name__ == "__main__":
                                     timeout=args.timeout,
                                     output_json=args.output)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
-    print("Preparation steps ok.")
+    print("Preparation steps ok. Commit list: " + " ".join(bisection.torch_src.commits))
     bisection.run()
     bisection.output()
