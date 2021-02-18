@@ -102,24 +102,3 @@ def update_git_repo(repo: str) -> bool:
     except subprocess.CalledProcessError:
         print(f"Failed to update git repo {repo}")
         return False
-
-def test_get_git_commits():
-    repo = os.path.expandvars("${HOME}/pytorch")
-    start = "94e328c"
-    end = "65876d3"
-    result = get_git_commits(repo, start, end)
-    answer = ["94e328c038", "8954eb3f72", "a9137aeb06", "40d7c1091f"]
-    assert result, "Can't get git commit history!"
-    assert result[:4] == answer
-
-def test_checkout_commit():
-    repo = os.path.expandvars("${HOME}/pytorch")
-    commit1 = "65876d3" 
-    assert checkout_git_commit(repo, commit1)
-    assert (get_current_commit(repo) == "65876d3f51")
-    assert checkout_git_commit(repo, "master")
-
-if __name__ == "__main__":
-    # test_get_git_commits()
-    # test_checkout_commit()
-    pass
