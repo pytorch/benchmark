@@ -337,8 +337,7 @@ if __name__ == "__main__":
                         type=float,
                         required=True)
     parser.add_argument("--bmfilter",
-                        help="the benchmark filter to run",
-                        required=True)
+                        help="the benchmark filter to run")
     parser.add_argument("--timeout",
                         type=int,
                         help="the maximum time to run the benchmark in minutes",
@@ -353,7 +352,7 @@ if __name__ == "__main__":
                                     start=args.start,
                                     end=args.end,
                                     threshold=args.threshold,
-                                    bmfilter=args.bmfilter
+                                    bmfilter=args.bmfilter,
                                     timeout=args.timeout,
                                     output_json=args.output)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
