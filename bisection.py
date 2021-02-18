@@ -200,7 +200,7 @@ class TorchBench:
 
     def compute_score(self, result_dir: str) -> float:
         filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
-        if len(filelist) == 0 or os.stat(filelist[0]).st_size == 0:
+        if len(filelist) == 0:
             print(f"Empty directory or json file in {result_dir}. Return zero score.")
             return 0.0
         # benchmark data file
