@@ -23,18 +23,6 @@ from torchbenchmark.score.compute_score import compute_score
 from torchbenchmark.util import gitutils
 from torchbenchmark.util import torch_nightly
 
-# Bisection Algorithm: for the bisection range [start, end]
-# Step 1: Fetch commit list: [start, ..., mid, ..., end]
-# Step 2: Put pair (start, end) into queue bisectq
-# Step 3: Get the first pair (start, end) in bisectq.
-# Step 4: Run benchmark for start and end. If abs(start.score-end.score)>threshold ...
-#         ... and start/end are adjacent, add pair(start, end) to result
-# Step 4: If abs(start.score-end.score)>threshold, but start/end are not adjacent ...
-#         ... test benchmark on commit mid, and:
-#               if abs(end.score - mid.score) > threshold: insert (mid, end) into the bisectq
-#               if abs(start.score - mid.score) > threshold: insert (start, mid) into the bisectq
-# Step 5: goto step 2 unless bisectq is empty
-
 ## Helper functions
 def exist_dir_path(string):
     if os.path.isdir(string):
@@ -76,10 +64,6 @@ class TorchSource:
         if not repo_origin_url == TORCH_GITREPO:
             print(f"Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
             return False
-        pkgs = [self.srcpath, TORCHTEXT_PATH, TORCHVISION_PATH, TORCHAUDIO_PATH]
-        for pkg in pkgs:
-            if not gitutils.update_git_repo(pkg):
-                return False
         return True
     
     # Get all commits between start and end, save them in commits
