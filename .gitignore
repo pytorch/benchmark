@@ -4,5 +4,4 @@
 */**/*.pyc
 *.out*
 *.swp
-torch_nightly.html
 build/
