@@ -9,14 +9,14 @@ CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
 DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 DATA_DIR=$1
 
-if [ -n "$2" ]; then
-    BENCHMARK_FILTER="$2"
-fi
-
 # Load environment variables
 set -a;
 source ${CONFIG_ENV}
 set +a;
+if [ -n "$2" ]; then
+    BENCHMARK_FILTER="$2"
+fi
+
 sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
