@@ -191,7 +191,11 @@ class TorchBench:
                 os.remove(os.path.join(output_dir, f))
         else:
             os.mkdir(output_dir)
-        command = f"bash .github/scripts/run-nodocker.sh {output_dir} \"{self.bmfilter}\" &> {output_dir}/benchmark.log"
+        command = str()
+        if self.bmfilter:
+            command = f"bash .github/scripts/run-nodocker.sh {output_dir} \"{self.bmfilter}\" &> {output_dir}/benchmark.log"
+        else:
+            command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> {output_dir}/benchmark.log"
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
