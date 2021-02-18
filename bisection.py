@@ -35,8 +35,8 @@ TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 TORCHBENCH_SCORE_CONFIG="torchbenchmark/score/configs/v0/config-v0.yaml"
 TORCHBENCH_DEPS = {
     "torchtext": os.path.expandvars("${HOME}/text"),
-    "torchvision": os.path.expandvars("${HOME}/vision")
-    "torchaudio": os.path.expandvars("${HOME}/audio")
+    "torchvision": os.path.expandvars("${HOME}/vision"),
+    "torchaudio": os.path.expandvars("${HOME}/audio"),
 }
 
 ## Class definitions
