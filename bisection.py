@@ -58,6 +58,8 @@ class Commit:
         self.sha = sha
         self.ctime = ctime
         self.score = score
+    def __str__(self):
+        return self.sha
 
 class TorchSource:
     srcpath: str
@@ -342,6 +344,6 @@ if __name__ == "__main__":
                                     timeout=args.timeout,
                                     output_json=args.output)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
-    print("Preparation steps ok. Commit list: " + " ".join(bisection.torch_src.commits))
+    print("Preparation steps ok. Commit list: " + " ".join([str(x) for x in bisection.torch_src.commits]))
     bisection.run()
     bisection.output()
