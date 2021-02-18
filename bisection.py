@@ -17,7 +17,6 @@ import argparse
 import typing
 import re
 import subprocess
-from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Tuple
 
 from torchbenchmark.score.compute_score import compute_score
@@ -53,6 +52,9 @@ def exist_dir_path(string):
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 TORCHBENCH_SCORE_CONFIG="torchbenchmark/score/configs/v0/config-v0.yaml"
+TORCHTEXT_PATH=os.path.expandvars("${HOME}/text")
+TORCHVISION_PATH=os.path.expandvars("${HOME}/vision")
+TORCHAUDIO_PATH=os.path.expandvars("${HOME}/audio")
 
 ## Class definitions
 class Commit:
@@ -112,16 +114,41 @@ class TorchSource:
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
         return env
 
+    # Install dependencies such as torchaudio, torchtext and torchvision
+    def install_deps(self, build_env):
+        # Build the dependency packages
+        # Build torchvision
+        print(f"Building torchvision ...", end="", flush=True)
+        command = "python setup.py install 2>&1 /dev/null"
+        subprocess.check_call(command, cwd=TORCHVISION_PATH, env=build_env, shell=True)
+        print("done")
+        # Build torchaudio
+        print(f"Building torchaudio ...", end="", flush=True)
+        command = "BUILD_SOX=1 python setup.py install 2>&1 /dev/null"
+        subprocess.check_call(command, cwd=TORCHAUDIO_PATH, env=build_env, shell=True)
+        print("done")
+        # Build torchtext
+        print(f"Building torchtext ...", end="", flush=True)
+        command = "python setup.py clean install 2>&1 /dev/null"
+        subprocess.check_call(command, cwd=TORCHTEXT_PATH, env=build_env, shell=True)
+        print("done")
+ 
     def build(self, commit: Commit):
         # checkout pytorch commit
         gitutils.checkout_git_commit(self.srcpath, commit.sha)
         # setup environment variables
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
-        print(f"Building pytorch commit {commit.sha}...", end="", flush=True)
+        print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
         command = "python setup.py install &> /dev/null"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
+        self.install_deps(build_env)
+
+    def cleanup(self):
+        packages = ["torch", "torchtext", "torchvision", "torchaudio"]
+        command = "pip uninstall -y " + " ".join(packages)
+        subprocess.check_call(command, shell=True)
 
 class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
@@ -149,21 +176,6 @@ class TorchBench:
             return False
         return True
  
-    # Install dependencies such as torchtext and torchvision
-    def install_deps(self, commit: Commit):
-        # Find the matching torchtext/torchvision version
-        # Sometimes the nightly wheel is unavailable, increase version until the first available date
-        datetime_obj = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
-        present = datetime.now()
-        packages = ["torchtext", "torchvision", "torchaudio"]
-        nightly_wheel_urls = torch_nightly.get_nightly_wheel_urls(packages, datetime_obj)
-        assert nightly_wheel_urls, f"Failed to get dependency wheels version: {commit.ctime} from nightly html"
-        # Install the wheels
-        wheels = [nightly_wheel_urls[pkg]["wheel"] for pkg in packages]
-        command = "pip install --no-deps " + " ".join(wheels) + " &> /dev/null"
-        print("Installing deps: " + command)
-        subprocess.check_call(command, cwd=self.srcpath, shell=True)
-    
     def run_benchmark(self, commit: Commit) -> str:
         # Benchmark output dir: self
         # Return the result json file
@@ -195,15 +207,14 @@ class TorchBench:
         # Score is cached
         if commit.score is not None:
             return commit.score
-        # Build pytorch
-        # self.torch_src.build(commit)
-        # Build benchmark and install deps
-        self.install_deps(commit)
+        # Build pytorch and its dependencies
+        self.torch_src.build(commit)
         # Run benchmark
         print(f"Running TorchBench for commit: {commit.sha} ...", end="", flush=True)
         result_dir = self.run_benchmark(commit)
         commit.score = self.compute_score(result_dir)
         print(f" score: {commit.score}")
+        self.torch_src.cleanup()
         return commit.score
         
 class TorchBenchBisection:
