@@ -15,9 +15,10 @@ from tabulate import tabulate
 from pathlib import Path
 from collections import defaultdict
 
-SPEC_FILE_DEFAULT = "torchbenchmark/score/score.yml"
+
 TARGET_SCORE_DEFAULT = 1000
-TORCHBENCH_V0_REF_DATA = "torchbenchmark/score/torchbench_0.0.yaml"
+SPEC_FILE_DEFAULT = Path(__file__).parent.joinpath("score.yml")
+TORCHBENCH_V0_REF_DATA = Path(__file__).parent.joinpath("configs/v0/config-v0.yaml")
 TORCHBENCH_V1_REF_DATA = "" # Placeholder for v1 score
 
 def _get_model_task(model_name):
@@ -25,7 +26,7 @@ def _get_model_task(model_name):
     Helper function which extracts the task the model belongs to
     by iterating over the Model attributes.
     """
-    MODEL_PATH="../../models"
+    MODEL_PATH="../models"
     p = Path(__file__).parent.joinpath(MODEL_PATH + model_name)
     if(p):
         module = importlib.import_module(f'torchbenchmark.models.{model_name}', package=__name__)
@@ -33,7 +34,7 @@ def _get_model_task(model_name):
     return Model.task.value
 
 class TorchBenchScore:
-    def __init__(self, spec=SPEC_FILE_DEFAULT, target=TARGET_SCORE_DEFAULT, ref_data=None):
+    def __init__(self, ref_data, spec=SPEC_FILE_DEFAULT, target=TARGET_SCORE_DEFAULT):
         self.spec = spec
         self.target = target
         self.ref_data = ref_data
@@ -51,11 +52,8 @@ class TorchBenchScore:
         is (task, weight_for_benchmark_per_task)
         """
         # Load the spec file
-        if Path(self.spec).exists():
-            with open(self.spec) as spec_file:
-                spec = yaml.full_load(spec_file)
-        else:
-            raise ValueError("File {file} doesn't exist".format(file=self.spec))
+        with open(self.spec) as spec_file:
+            spec = yaml.full_load(spec_file)
 
         self.weights = defaultdict(float)
         category_spec = spec['hierarchy']['model']
@@ -73,14 +71,10 @@ class TorchBenchScore:
         Helper function which gets the normalization values per benchmark
         by going through the reference data file.
         """
-        if not self.ref_data: return
-        elif self.ref_data in [TORCHBENCH_V0_REF_DATA, TORCHBENCH_V1_REF_DATA]:
-            if Path(self.ref_data).exists():
-                with open(self.ref_data) as ref_file:
-                    ref = yaml.full_load(ref_file)
-                self.norm = {b: ref['benchmarks'][b]['norm'] for b in ref['benchmarks']}
-            else:
-                raise ValueError ("File {file} doesn't exist ".format(file=self.ref_data))
+        if self.ref_data in [TORCHBENCH_V0_REF_DATA, TORCHBENCH_V1_REF_DATA]:
+            with open(self.ref_data) as ref_file:
+                ref = yaml.full_load(ref_file)
+            self.norm = {b: ref['benchmarks'][b]['norm'] for b in ref['benchmarks']}
         else:
             self.norm = {b['name']: b['stats']['mean'] for b in self.ref_data['benchmarks']}
 
@@ -105,12 +99,9 @@ class TorchBenchScore:
         # for the run and update the dictionary by task and model_name
         for b in data['benchmarks']:
             name, mean = b['name'], b['stats']['mean']
-            # Extract model_name, test, device and mode from the benchmark name
             test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
             config = (test, device, mode)
             task = _get_model_task(model_name)
-            # Append the tuple(mean, config, model_name) for all the configs the
-            # benchmark was run with.
             found_benchmarks[task][model_name].append((mean, config, name))
 
         for task, models in found_benchmarks.items():
@@ -128,16 +119,12 @@ class TorchBenchScore:
         that was run  by reading the data (.json) file.
         The weights are then calibrated to the target score.
         """
-        if not self.ref_data:
-            self.ref_data = data
-            self._setup_benchmark_norms()
-
         score = 0.0
         score_db = self.get_score_per_config(data)
         score = sum(score_db.values())
         score = self.target * math.exp(score)
         return score
 
-TORCHBENCH_V0_SCORE = TorchBenchScore(ref_data=TORCHBENCH_V0_REF_DATA)
+TORCHBENCH_V0_SCORE = TorchBenchScore(TORCHBENCH_V0_REF_DATA)
 # TODO: Enable TORCHBENCH_V1_SCORE once TORCHBENCH_V1_REF_DATA is available
 # TORCHBENCH_V1_SCORE = TorchBenchScore(ref_data=TORCHBENCH_V1_REF_DATA)
