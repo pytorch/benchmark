@@ -86,12 +86,12 @@ class TorchSource:
         return True
     
     def get_mid_commit(self, left: Commit, right: Commit) -> Optional[Commit]:
-        left_index = commit_dict[left.sha]
-        right_index = commit_dict[right.sha]
+        left_index = self.commit_dict[left.sha]
+        right_index = self.commit_dict[right.sha]
         if right_index == left_index + 1:
             return None
         else:
-            return commits[(left_index + right_index) / 2]
+            return self.commits[(left_index + right_index) / 2]
 
     def setup_build_env(self, env):
         env["USE_CUDA"] = "1"
