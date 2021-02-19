@@ -263,6 +263,7 @@ class TorchBenchBisection:
         self.end = end
         self.threshold = threshold
         self.bisectq = list()
+        self.result = list()
         self.torch_src = TorchSource(srcpath = torch_src)
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
@@ -297,7 +298,7 @@ class TorchBenchBisection:
             if self.regression(left, right):
                 mid = self.torch_src.get_mid_commit(left, right)
                 if mid == None:
-                    result.append((left, right))
+                    self.result.append((left, right))
                 else:
                     mid.score = self.bench.get_score(mid_commit)
                     if self.regression(left, mid):
