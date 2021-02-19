@@ -24,13 +24,13 @@ jobs:
         id: get_pr_tip
       - name: Install PyTorch nightly
         run: |
-          . switch-cuda.sh 11.0; . activate pr-testing-py37; bash scripts/install_nightlies.sh cu110
+          . switch-cuda.sh 11.1; . activate pr-testing-py37; bash scripts/install_nightlies.sh cu111
       - name: Setup benchmark suite dependencies
         run: |
-          . switch-cuda.sh 11.0; . activate pr-testing-py37; python install.py
+          . switch-cuda.sh 11.1; . activate pr-testing-py37; python install.py
       - name: Validate training benchmark suite
         run: |
-          . switch-cuda.sh 11.0; . activate pr-testing-py37; python test.py
+          . switch-cuda.sh 11.1; . activate pr-testing-py37; python test.py
       - name: Validate pytest-benchmark invocation of training suite
         run: |
-          . switch-cuda.sh 11.0; . activate pr-testing-py37; bash ./scripts/run_bench_and_upload.sh
+          . switch-cuda.sh 11.1; . activate pr-testing-py37; bash ./scripts/run_bench_and_upload.sh
