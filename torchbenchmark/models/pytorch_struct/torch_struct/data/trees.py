@@ -1,4 +1,7 @@
-import torchtext.data as data
+try:
+    import torchtext.legacy.data as data
+except ImportError:
+    import torchtext.data as data
 import torch
 
 
