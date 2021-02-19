@@ -324,7 +324,7 @@ class TorchBenchBisection:
             r["commit2_score"] = res[1].score
             json_obj["result"].append(r)
         with open(self.output_json, 'w') as outfile:
-            json.dump(json_obj, outfile)
+            json.dump(json_obj, outfile, indent=2)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
