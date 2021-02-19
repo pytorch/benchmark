@@ -6,7 +6,7 @@ conda activate base
 
 CUDA_VERSION=cu110
 
-if [ -z "$1" ]; then
+if [[ ! -z "$1" ]]; then
     CUDA_VERSION="$1"
 fi
 
