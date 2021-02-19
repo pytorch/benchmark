@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-. ~/miniconda3/etc/profile.d/conda.sh
-conda activate base
-
 CUDA_VERSION=cu110
 
 if [[ ! -z "$1" ]]; then
