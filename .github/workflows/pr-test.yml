@@ -1,0 +1,39 @@
+name: PR correctness testing
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  test-correctness:
+    runs-on: [self-hosted, bm-metal]
+    steps:
+      - name: Checkout TorchBench
+        uses: actions/checkout@v1
+      - name: Checkout PR tip
+        run: |
+          set -eux
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # We are on a PR, so actions/checkout leaves us on a merge commit.
+            # Check out the actual tip of the branch.
+            git checkout ${{ github.event.pull_request.head.sha }}
+          fi
+          echo ::set-output name=commit_sha::$(git rev-parse HEAD)
+        id: get_pr_tip
+      - name: Switch to CUDA 11.0
+        run: |
+          source switch-cuda.sh 11.0
+      - name: Install PyTorch nightly
+        run: |
+          . activate pr-testing-py37; bash scripts/install_nightlies.sh cu110
+      - name: Setup benchmark suite dependencies
+        run: |
+          . activate pr-testing-py37; python install.py
+      - name: Validate training benchmark suite
+        run: |
+          . activate pr-testing-py37; python test.py
+      - name: Validate pytest-benchmark invocation of training suite
+        run: |
+         . activate pr-testing-py37; bash ./scripts/run_bench_and_upload.sh
