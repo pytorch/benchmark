@@ -12,7 +12,13 @@ import torch
 import tarfile
 import torchtext.data
 import torchtext.datasets
-from torchtext.datasets import TranslationDataset
+try:
+    from torchtext.legacy.data import Field
+    from torchtext.legacy.datasets.translation import TranslationDataset, Multi30k
+except ImportError:
+    from torchtext.data import Field
+    from torchtext.datasets import TranslationDataset, Multi30k
+
 import transformer.Constants as Constants
 from learn_bpe import learn_bpe
 from apply_bpe import BPE
@@ -138,7 +144,7 @@ def compile_files(raw_dir, raw_files, prefix):
 def encode_file(bpe, in_file, out_file):
     sys.stderr.write(f"Read raw content from {in_file} and \n"\
             f"Write encoded content to {out_file}\n")
-    
+
     with codecs.open(in_file, encoding='utf-8') as in_f:
         with codecs.open(out_file, 'w', encoding='utf-8') as out_f:
             for line in in_f:
@@ -199,7 +205,7 @@ def main():
     sys.stderr.write(f"BPE codes prepared.\n")
 
     sys.stderr.write(f"Build up the tokenizer.\n")
-    with codecs.open(opt.codes, encoding='utf-8') as codes: 
+    with codecs.open(opt.codes, encoding='utf-8') as codes:
         bpe = BPE(codes, separator=opt.separator)
 
     sys.stderr.write(f"Encoding ...\n")
@@ -209,7 +215,7 @@ def main():
     sys.stderr.write(f"Done.\n")
 
 
-    field = torchtext.data.Field(
+    field = Field(
         tokenize=str.split,
         lower=True,
         pad_token=Constants.PAD_WORD,
@@ -276,11 +282,11 @@ def main_wo_bpe():
     def tokenize_trg(text):
         return [tok.text for tok in trg_lang_model.tokenizer(text)]
 
-    SRC = torchtext.data.Field(
+    SRC = Field(
         tokenize=tokenize_src, lower=not opt.keep_case,
         pad_token=Constants.PAD_WORD, init_token=Constants.BOS_WORD, eos_token=Constants.EOS_WORD)
 
-    TRG = torchtext.data.Field(
+    TRG = Field(
         tokenize=tokenize_trg, lower=not opt.keep_case,
         pad_token=Constants.PAD_WORD, init_token=Constants.BOS_WORD, eos_token=Constants.EOS_WORD)
 
@@ -296,7 +302,7 @@ def main_wo_bpe():
     def filter_examples_with_length(x):
         return len(vars(x)['src']) <= MAX_LEN and len(vars(x)['trg']) <= MAX_LEN
 
-    train, val, test = torchtext.datasets.Multi30k.splits(
+    train, val, test = Multi30k.splits(
             exts = ('.' + opt.lang_src, '.' + opt.lang_trg),
             fields = (SRC, TRG),
             filter_pred=filter_examples_with_length)
