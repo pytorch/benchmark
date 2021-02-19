@@ -14,9 +14,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchtext.data
 from torchtext.data import Dataset, BucketIterator
-from torchtext.datasets import TranslationDataset
-import torchtext.data
-from torchtext.data import Dataset, BucketIterator
 try:
     from torchtext.legacy.data import Field
     from torchtext.legacy.datasets.translation import TranslationDataset
