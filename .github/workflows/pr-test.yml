@@ -24,9 +24,7 @@ jobs:
         id: get_pr_tip
       - name: Install PyTorch nightly
         run: |
-          . switch-cuda.sh 10.2
-          . activate pr-testing-py37
-          bash scripts/install_nightlies.sh cu102 pr-testing-py37
+          . switch-cuda.sh 10.2; . activate pr-testing-py37; bash scripts/install_nightlies.sh cu102 pr-testing-py37
       - name: Setup benchmark suite dependencies
         run: |
           . switch-cuda.sh 10.2; . activate pr-testing-py37; python install.py
