@@ -12,6 +12,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: 0.1
+      - name: Switch to CUDA 10.2
+        run: |
+          source switch-cuda.sh 10.2
       - name: Run benchmark
         run: |
           bash ./.github/scripts/run-sweep-nodocker.sh
