@@ -14,7 +14,7 @@ if [[ ! -z "$2" ]]; then
     CONDA_ENV="$2"
 fi
 
-conda activate ${CONDA_ENV}
+# conda activate ${CONDA_ENV}
 
 # conda install -y pytorch torchvision -c pytorch-nightly
 # Changing to pip to work around https://github.com/pytorch/pytorch/issues/49375
