@@ -24,7 +24,6 @@ from torchbenchmark.score.compute_score import compute_score
 from torchbenchmark.util import gitutils
 from torchbenchmark.util import torch_nightly
 
-## Helper functions
 def exist_dir_path(string):
     if os.path.isdir(string):
         return string
@@ -40,7 +39,6 @@ TORCHBENCH_DEPS = {
     "torchaudio": os.path.expandvars("${HOME}/audio"),
 }
 
-## Class definitions
 class Commit:
     sha: str
     ctime: str
@@ -128,6 +126,7 @@ class TorchSource:
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
         print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
+        # pytorch doesn't update version.py in incremental compile, so generate manually
         command = "python tools/generate_torch_version.py --is_debug on"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         command = "python setup.py install &> /dev/null"
@@ -182,7 +181,6 @@ class TorchBench:
         return True
  
     def run_benchmark(self, commit: Commit) -> str:
-        # Benchmark output dir: self
         # Return the result json file
         output_dir = os.path.join(self.workdir, commit.sha)
         # If the directory exists, delete its contents
@@ -370,6 +368,6 @@ if __name__ == "__main__":
                                     timeout=args.timeout,
                                     output_json=args.output)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
-    print("Preparation steps ok. Commit list: " + " ".join([str(x) for x in bisection.torch_src.commits]))
+    print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
     bisection.run()
     bisection.output()
