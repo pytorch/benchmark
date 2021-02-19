@@ -12,7 +12,6 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import torchtext.data
 from torchtext.data import Dataset, BucketIterator
 try:
     from torchtext.legacy.data import Field
