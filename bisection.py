@@ -128,6 +128,8 @@ class TorchSource:
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
         print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
+        command = "python tools/generate_torch_version.py --is_debug on"
+        subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         command = "python setup.py install &> /dev/null"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
