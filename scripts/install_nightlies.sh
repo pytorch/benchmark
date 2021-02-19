@@ -8,5 +8,5 @@ conda activate base
 
 # Changing to pip to work around https://github.com/pytorch/pytorch/issues/49375
 pip install -q numpy
-pip install -q --pre torch torchvision -f https://download.pytorch.org/whl/nightly/cu110/torch_nightly.html
-pip install -q --pre torchtext -f https://download.pytorch.org/whl/nightly/cu110/torch_nightly.html
+pip install -q --pre torch torchvision -f https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html
+pip install -q --pre torchtext -f https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html
