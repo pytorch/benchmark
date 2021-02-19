@@ -1,11 +1,20 @@
 #!/bin/bash
 set -e
 
+. ~/miniconda3/etc/profile.d/conda.sh
+
 CUDA_VERSION=cu110
+CONDA_ENV=base
 
 if [[ ! -z "$1" ]]; then
     CUDA_VERSION="$1"
 fi
+
+if [[ ! -z "$2" ]]; then
+    CONDA_ENV="$2"
+fi
+
+conda activate ${CONDA_ENV}
 
 # conda install -y pytorch torchvision -c pytorch-nightly
 # Changing to pip to work around https://github.com/pytorch/pytorch/issues/49375
