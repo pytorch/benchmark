@@ -1,14 +1,7 @@
 #!/bin/bash
 set -e
-. ~/miniconda3/etc/profile.d/conda.sh
-conda activate base
 
-if [ "$CIRCLE_BRANCH" = "master" ]
-then
-    PYTEST_FILTER=""
-else
-    PYTEST_FILTER="(not cyclegan) and (not (stargan and train and cpu))"
-fi
+PYTEST_FILTER="(not cyclegan) and (not (stargan and train and cpu))"
 
 BENCHMARK_DATA="`pwd`/.data"
 mkdir -p ${BENCHMARK_DATA}
