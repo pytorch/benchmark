@@ -310,9 +310,18 @@ class TorchBenchBisection:
         json_obj["start"] = self.start
         json_obj["end"] = self.end
         json_obj["threshold"] = self.threshold
-        json_obj["timeout"] = self.timeout
+        json_obj["timeout"] = self.bench.timelimit
         json_obj["torchbench_branch"] = self.bench.branch
-        json_obj["result"] = self.result
+        json_obj["result"] = []
+        for res in self.result:
+            r = dict()
+            r["commit1"] = res[0].sha
+            r["commit1_time"] = res[0].ctime
+            r["commit1_score"] = res[0].score
+            r["commit2"] = res[1].sha
+            r["commit2_time"] = res[1].ctime
+            r["commit2_score"] = res[1].score
+            json_obj["result"].append(r)
         with open(self.output_json, 'w') as outfile:
             json.dump(json_obj, outfile)
 
