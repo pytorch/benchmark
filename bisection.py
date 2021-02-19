@@ -242,7 +242,6 @@ class TorchBenchBisection:
     end: str
     workdir: str
     threshold: int
-    output: str
     bisectq: List[Tuple[Commit, Commit]]
     result: List[Tuple[Commit, Commit]]
     torch_src: TorchSource
@@ -263,7 +262,6 @@ class TorchBenchBisection:
         self.start = start
         self.end = end
         self.threshold = threshold
-        self.output = output_json
         self.bisectq = list()
         self.torch_src = TorchSource(srcpath = torch_src)
         self.bench = TorchBench(srcpath = bench_src,
@@ -293,7 +291,7 @@ class TorchBenchBisection:
         
     def run(self):
         while not len(self.bisectq) == 0:
-            (left, right) = self.bisectq[0]
+            (left, right) = self.bisectq.pop(0)
             left.score = self.bench.get_score(left)
             right.score = self.bench.get_score(right)
             if self.regression(left, right):
