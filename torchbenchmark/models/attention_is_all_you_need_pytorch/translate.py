@@ -9,7 +9,7 @@ import transformer.Constants as Constants
 try:
   from torchtext.legacy.data import Dataset
 except ImportError:
-from torchtext.data import Dataset
+  from torchtext.data import Dataset
 from transformer.Models import Transformer
 from transformer.Translator import Translator
 
