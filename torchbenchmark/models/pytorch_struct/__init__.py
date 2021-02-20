@@ -7,8 +7,10 @@ from torch_struct.networks import NeuralCFG
 import torch_struct.data
 try:
   from torchtext.legacy.data import Field
+  from torchtext.legacy.datasets import UDPOS
 except ImportError:
   from torchtext.data import Field
+  from torchtext.datasets import UDPOS
 
 
 torch.manual_seed(1337)
@@ -29,7 +31,7 @@ class Model:
     )
 
     # Download and the load default data.
-    train, val, test = torchtext.datasets.UDPOS.splits(
+    train, val, test = UDPOS.splits(
         fields=(("word", WORD), ("udtag", UD_TAG), (None, None)),
         filter_pred=lambda ex: 5 < len(ex.word) < 30,
     )
