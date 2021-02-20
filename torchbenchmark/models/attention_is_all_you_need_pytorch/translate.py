@@ -6,7 +6,10 @@ import dill as pickle
 from tqdm import tqdm
 
 import transformer.Constants as Constants
-from torchtext.data import Dataset
+try:
+  from torchtext.legacy.data import Dataset
+except ImportError:
+    from torchtext.data import Dataset
 from transformer.Models import Transformer
 from transformer.Translator import Translator
 
@@ -36,7 +39,7 @@ def load_model(opt, device):
 
     model.load_state_dict(checkpoint['model'])
     print('[Info] Trained model state loaded.')
-    return model 
+    return model
 
 
 def main():
@@ -55,7 +58,7 @@ def main():
     parser.add_argument('-max_seq_len', type=int, default=100)
     parser.add_argument('-no_cuda', action='store_true')
 
-    # TODO: Translate bpe encoded files 
+    # TODO: Translate bpe encoded files
     #parser.add_argument('-src', required=True,
     #                    help='Source sequence to decode (one line per sequence)')
     #parser.add_argument('-vocab', required=True,
@@ -78,7 +81,7 @@ def main():
     opt.trg_eos_idx = TRG.vocab.stoi[Constants.EOS_WORD]
 
     test_loader = Dataset(examples=data['test'], fields={'src': SRC, 'trg': TRG})
-    
+
     device = torch.device('cuda' if opt.cuda else 'cpu')
     translator = Translator(
         model=load_model(opt, device),

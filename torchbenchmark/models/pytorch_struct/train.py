@@ -1,4 +1,10 @@
 import torchtext
+try:
+  from torchtext.legacy.data import Field
+  from torchtext.legacy.datasets import UDPOS
+except ImportError:
+  from torchtext.data import Field
+  from torchtext.datasets import UDPOS
 import torch
 from torch_struct import SentCFG
 from torch_struct.networks import NeuralCFG
@@ -20,13 +26,13 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 # Download and the load default data.
-WORD = torchtext.data.Field(include_lengths=True)
-UD_TAG = torchtext.data.Field(
+WORD = Field(include_lengths=True)
+UD_TAG = Field(
     init_token="<bos>", eos_token="<eos>", include_lengths=True
 )
 
 # Download and the load default data.
-train, val, test = torchtext.datasets.UDPOS.splits(
+train, val, test = UDPOS.splits(
     fields=(("word", WORD), ("udtag", UD_TAG), (None, None)),
     filter_pred=lambda ex: 5 < len(ex.word) < 30,
 )
