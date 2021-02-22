@@ -9,7 +9,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 try:
     from torchtext.legacy.data import Field, Dataset, BucketIterator
+<<<<<<< HEAD
     from torchtext.legacy.datasets.translation import TranslationDataset
+=======
+    from torchtext.legacy.datasets.translation import TranslationDataset,
+>>>>>>> 31e7cb7a38f6ae1c74b3cd82edca169f002d6009
 except ImportError:
     from torchtext.data import Field, Dataset, BucketIterator
     from torchtext.datasets import TranslationDataset
