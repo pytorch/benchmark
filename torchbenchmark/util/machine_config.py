@@ -210,7 +210,7 @@ def get_omp_affinity():
 def get_pstate_frequency():
     CPU_FREQ_BASE_DIR = '/sys/devices/system/cpu'
     CPU_FREQ_FILES = ["scaling_min_freq", "scaling_max_freq", "scaling_cur_freq"]
-    cpu_dirs = [f for f in os.listdir(CPU_FREQ_BASE_DIR) if re.match(r'cpu[0-9]+', f)]
+    cpu_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2]]
     output = dict()
     for cpu_dir in cpu_dirs:
         full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
@@ -227,7 +227,7 @@ def get_pstate_frequency():
 def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
     CPU_FREQ_BASE_DIR = '/sys/devices/system/cpu'
     CPU_FREQ_FILES = ["scaling_min_freq", "scaling_max_freq", "scaling_cur_freq"]
-    cpu_dirs = [f for f in os.listdir(CPU_FREQ_BASE_DIR) if re.match(r'cpu[0-9]+', f)]
+    cpu_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2]]
     for cpu_dir in cpu_dirs:
         full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
         freq_paths = [os.path.join(full_path, x) for x in CPU_FREQ_FILES]
@@ -263,6 +263,7 @@ def get_machine_config():
         config['isolated_cpus'] = get_isolated_cpus()
         config['process_cpu_affinity'] = get_process_cpu_affinity()
         config['is_using_isolated_cpus'] = is_using_isolated_cpus()
+        config['cpu_pstate_frequency'] = get_pstate_frequency()
     return config
 
 def check_machine_configured(check_process_affinity=True):
@@ -309,6 +310,7 @@ if __name__ == "__main__":
         set_intel_no_turbo_state(1)
         set_hyper_threading(False)
         set_nvidia_graphics_clock()
+        set_pstate_frequency()
 
     if not args.no_verify:
         assert 1 == check_intel_no_turbo_state(), "Turbo Boost is not disabled"
@@ -316,6 +318,7 @@ if __name__ == "__main__":
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
         assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
         assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
+        assert check_pstate_frequency_pin(), "CPU frequency is not correctly pinned, which is required to minimize noise."
         # doesn't make too much sense to ask the user to run this configure script with the isolated cpu cores
         # that check is more important to be done at runtime of benchmark, and is checked by conftest.py
         #assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
