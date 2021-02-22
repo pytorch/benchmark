@@ -228,6 +228,11 @@ def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
     CPU_FREQ_BASE_DIR = '/sys/devices/system/cpu'
     CPU_FREQ_FILES = ["scaling_min_freq", "scaling_max_freq", "scaling_cur_freq"]
     cpu_dirs = ["cpu" + str(cpu[0]) for cpu in parse_lscpu_cpu_core_list() if cpu[2]]
+    ht_enable = True
+    # Adjust freq after enable HT
+    if not hyper_threading_enabled():
+        ht_enable = False
+        set_hyper_threading(True)
     for cpu_dir in cpu_dirs:
         full_path = os.path.join(CPU_FREQ_BASE_DIR, cpu_dir, "cpufreq")
         freq_paths = [os.path.join(full_path, x) for x in CPU_FREQ_FILES]
@@ -235,8 +240,10 @@ def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
         for path in freq_paths:
             all_exist = all_exist and os.path.exists(path)
         if all_exist:
-            write_sys_file(freq_paths[0], min_freq * 1000)
-            write_sys_file(freq_paths[1], max_freq * 1000)
+            write_sys_file(freq_paths[0], str(min_freq * 1000))
+            write_sys_file(freq_paths[1], str(max_freq * 1000))
+    if not ht_enable:
+        set_hyper_threading(False)
 
 def check_pstate_frequency_pin(pin_freq = 2500):
     FREQ_THRESHOLD = 10  # Allow 10 MHz difference maximum
