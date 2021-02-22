@@ -46,7 +46,7 @@ if __name__ == "__main__":
         ref_data = json.load(f)
     score_heirarchy = args.score_heirarchy
 
-    score_config = TorchBenchScore(score_heirarchy, 1000, ref_data)
+    score_config = TorchBenchScore(ref_data, score_heirarchy, 1000)
 
     p = figure(plot_width=plot_width, plot_height=plot_height,
                x_axis_type='datetime')

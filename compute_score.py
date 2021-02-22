@@ -33,7 +33,7 @@ if __name__ == "__main__":
             data = json.load(data_file)
             benchmark_data.append(data)
     elif args.benchmark_data_dir is not None:
-        for f in os.listdir(args.benchmark_data_dir):
+        for f in sorted(os.listdir(args.benchmark_data_dir)):
             path = os.path.join(args.benchmark_data_dir, f)
             if os.path.isfile(path) and os.path.splitext(path)[1] == '.json':
                 with open(path) as data_file:
