@@ -152,6 +152,7 @@ def profile(device, name, model, example_inputs, args):
         model(*example_inputs)
 
     for _ in range(args.repeat):
+        torch.cuda.synchronize()
         prof.run(*example_inputs)
 
     for aggregate, stats in zip(PROFILES, prof.profile_stats):
