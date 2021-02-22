@@ -17,7 +17,7 @@ hierarchy:
     natural language processing:
       translation:
         attention_is_all_you_need_pytorch:
-      language_modeling:
+      language modeling:
         BERT_pytorch:
       other nlp:
         fastNLP:
