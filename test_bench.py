@@ -77,8 +77,9 @@ class TestBenchNetwork:
         try:
             ng_flag = hub_model.eval_in_nograd() and not pytestconfig.getoption("disable_nograd")
             with no_grad(ng_flag):
-                hub_model.set_eval()
-                benchmark(hub_model.eval)
+                (model, inputs) = hub_model.get_module()
+                model.eval()
+                benchmark(hub_model.eval, model. inputs)
                 benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')
@@ -89,7 +90,7 @@ class TestBenchNetwork:
             with no_grad(ng_flag):
                 (model, inputs) = hub_model.get_module()
                 frozen = hub_model.freeze(model)
-                benchmark(hub_model.eval_freeze, frozen, inputs)
+                benchmark(hub_model.eval, frozen, inputs)
                 benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')

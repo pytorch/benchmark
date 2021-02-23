@@ -31,9 +31,6 @@ class BenchmarkModel():
     def train(self):
         raise NotImplementedError()
 
-    def eval(self):
-        raise NotImplementedError()
-
     def set_eval(self):
         self._set_mode(False)
 
@@ -49,6 +46,10 @@ class BenchmarkModel():
         return torch.jit.freeze(cp_model, True)
 
     def eval_freeze(self, model, inputs):
+        for i in range(niter):
+            model(inputs)
+
+    def eval(self, model, inputs):
         for i in range(niter):
             model(inputs)
 
