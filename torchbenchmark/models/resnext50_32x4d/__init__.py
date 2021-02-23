@@ -12,9 +12,9 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        self.model = models.resnext50_32x4d()
+        self.model = models.resnext50_32x4d().to(self.device)
         if self.jit:
-            self.model = torch.jit.script(self.model).to(self.device)
+            self.model = torch.jit.script(self.model)
         self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
     def get_module(self):
