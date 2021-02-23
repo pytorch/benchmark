@@ -27,7 +27,7 @@ def pytest_generate_tests(metafunc):
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         metafunc.parametrize('model_class', all_models,
                              ids=[m.name for m in all_models], scope="class")
-        metafunc.parametrize('device', ['cpu', 'cuda'], scope='class')
+        metafunc.parametrize('device', ['cuda'], scope='class')
         metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
 
 @pytest.fixture(scope='class')
@@ -79,6 +79,17 @@ class TestBenchNetwork:
             with no_grad(ng_flag):
                 hub_model.set_eval()
                 benchmark(hub_model.eval)
+                benchmark.extra_info['machine_state'] = get_machine_state()
+        except NotImplementedError:
+            print('Method eval is not implemented, skipping...')
+
+    def test_eval_freeze(self, hub_model, benchmark, pytestconfig):
+        try:
+            ng_flag = hub_model.eval_in_nograd() and not pytestconfig.getoption("disable_nograd")
+            with no_grad(ng_flag):
+                (model, inputs) = hub_model.get_module()
+                frozen = hub_model.freeze(model)
+                benchmark(hub_model.eval_freeze, frozen, inputs)
                 benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')

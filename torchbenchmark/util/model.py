@@ -5,6 +5,7 @@ import typing
 from  collections.abc import Iterable
 import torch
 from contextlib import contextmanager
+import deepcopy
 
 
 @contextmanager
@@ -41,6 +42,15 @@ class BenchmarkModel():
 
     def eval_in_nograd(self):
         return True
+
+    def freeze_model(self, model):
+        cp_model = deepcopy.copy(model)
+        cp_model.eval()
+        return torch.jit.freeze(cp_model, True)
+
+    def eval_freeze(self, model, inputs):
+        for i in range(niter):
+            model(inputs)
 
     def _set_mode(self, train):
         (model, _) = self.get_module()
