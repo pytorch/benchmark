@@ -124,8 +124,10 @@ class TorchSource:
     def checkout_deps(self, cdate: datetime):
         for pkg in TORCHBENCH_DEPS:
             dep_commit = gitutils.get_git_commit_on_date(TORCHBENCH_DEPS[pkg], cdate)
+            print(f"Checking out {pkg} commit {dep_commit} ...", end="", flush=True)
             assert dep_commit, "Failed to find the commit on {cdate} of {pkg}"
             assert gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], dep_commit), "Failed to checkout commit {commit} of {pkg}"
+            print("done.")
     
     # Install dependencies such as torchaudio, torchtext and torchvision
     def build_install_deps(self, build_env):
@@ -147,7 +149,9 @@ class TorchSource:
  
     def build(self, commit: Commit):
         # checkout pytorch commit
+        print(f"Checking out pytorch commit {commit.sha} ...", end="", flush=True)
         gitutils.checkout_git_commit(self.srcpath, commit.sha)
+        print("done.")
         # checkout pytorch deps commit
         ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
         self.checkout_deps(ctime)
@@ -210,12 +214,14 @@ class TorchBench:
         else:
             os.mkdir(output_dir)
         bmfilter = targets_to_bmfilter(targets)
+        print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         command = f"bash .github/scripts/run-nodocker.sh {output_dir} \"{bmfilter}\" &> {output_dir}/benchmark.log"
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
             print(f"Benchmark timeout for {commit.sha}. Result will be None.")
             return output_dir
+        print("done.")
         return output_dir
 
     def gen_digest(self, result_dir: str, targets: List[str]) -> Dict[str, float]:
@@ -246,7 +252,6 @@ class TorchBench:
         # Build pytorch and its dependencies
         self.torch_src.build(commit)
         # Run benchmark
-        print(f"Running TorchBench for commit: {commit.sha} ...", end="", flush=True)
         result_dir = self.run_benchmark(commit, targets)
         commit.digest = self.gen_digest(result_dir, targets)
         print("done")
@@ -304,7 +309,11 @@ class TorchBenchBisection:
             # digest could be empty if benchmark timeout
             left_mean = left.digest[target] if len(left.digest) else 0
             right_mean = right.digest[target] if len(right.digest) else 0
-            diff = abs(left_mean - right_mean) / max(left_mean, right_mean) * 100 if max(left_mean, right_mean) else 0
+            # If either left or right timeout, diff is 100. Otherwise use left_mean to calculate diff.
+            diff = abs(left_mean - right_mean) / left_mean * 100 if not min(left_mean, right_mean) else 100
+            # If both timeout, diff is zero percent
+            diff = 0 if not max(left_mean, right_mean)
+            print(f"Target {target}: left commit {commit.sha} mean {left_mean} vs. right commit {commit.sha} mean {right_mean}. Diff: {diff}.")
             if diff >= self.threshold:
                 if direction == "increase" and left_mean < right_mean:
                     # Time increase == performance regression
@@ -398,7 +407,7 @@ if __name__ == "__main__":
     assert("end" in bisect_config), "Illegal bisection config, must specify end commit SHA."
     assert("threshold" in bisect_config), "Illegal bisection config, must specify threshold."
     assert("direction" in bisect_config), "Illegal bisection config, must specify direction."
-    assert(bisect_config["direction"] in valid_directions), "We only support increment, decrement, or both directions"
+    assert(bisect_config["direction"] in valid_directions), "We only support increase, decrease, or both directions"
     assert("timeout" in bisect_config), "Illegal bisection config, must specify timeout."
     targets = None
     if "tests" in bisect_config:

@@ -93,12 +93,10 @@ def get_current_commit(repo: str) -> Optional[str]:
 def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
-        print(f"Checking out commit {commit}...", end="", flush=True)
         command = f"git checkout {commit} &> /dev/null"
         subprocess.run(command, cwd=repo, shell=True)
         command = f"git submodule sync &> /dev/null && git submodule update --init --recursive &> /dev/null"
         subprocess.run(command, cwd=repo, shell=True)
-        print("done")
         return True
     except subprocess.CalledProcessError:
         print(f"Failed to checkout commit f{commit} in repo {repo}")

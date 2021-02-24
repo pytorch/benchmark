@@ -1,4 +1,9 @@
 #!/bin/sh
+# This script runs TorchBench v0 without installing the package
+# It assumes pytorch and its dependencies have been installed correctly
+# Usage:
+# run-nodocker.sh RESULT_DIR [BENCHMARK_FILTER]
+# The RESULT_DIR is required, BENCHMARK_FILTER is optional
 
 set -eo pipefail
 
