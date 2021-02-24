@@ -172,7 +172,7 @@ class TorchSource:
     def cleanup(self, commit: Commit):
         print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
         packages = ["torch", "torchtext", "torchvision", "torchaudio"]
-        command = "pip uninstall -y " + " ".join(packages)
+        command = "pip uninstall -y " + " ".join(packages) + " &> /dev/null "
         subprocess.check_call(command, shell=True)
         print("done")
 
