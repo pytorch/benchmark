@@ -253,13 +253,14 @@ class TorchBench:
     def get_digest(self, commit: Commit, targets: List[str], debug: bool) -> Dict[str, float]:
         # if debug mode, skip the build and benchmark run
         if debug:
-            output_dir = os.path.join(self.workdir, commit.sha)
-            filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
-            if len(filelist):
-                data_file = os.path.join(result_dir, filelist[0])
-                if os.stat(data_file).st_size:
-                    commit.digest = self.gen_digest(result_dir, targets)
-                    return commit.digest
+            result_dir = os.path.join(self.workdir, commit.sha)
+            if os.path.isdir(result_dir):
+                filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
+                if len(filelist):
+                    data_file = os.path.join(result_dir, filelist[0])
+                    if os.stat(data_file).st_size:
+                        commit.digest = self.gen_digest(result_dir, targets)
+                        return commit.digest
         # digest is cached
         if commit.digest is not None:
             return commit.digest
@@ -327,10 +328,10 @@ class TorchBenchBisection:
             left_mean = left.digest[target] if len(left.digest) else 0
             right_mean = right.digest[target] if len(right.digest) else 0
             # If either left or right timeout, diff is 100. Otherwise use left_mean to calculate diff.
-            diff = abs(left_mean - right_mean) / left_mean * 100 if not min(left_mean, right_mean) else 100
+            diff = abs(left_mean - right_mean) / left_mean * 100 if min(left_mean, right_mean) else 100
             # If both timeout, diff is zero percent
-            diff = 0 if not max(left_mean, right_mean)
-            print(f"Target {target}: left commit {commit.sha} mean {left_mean} vs. right commit {commit.sha} mean {right_mean}. Diff: {diff}.")
+            diff = 0 if not max(left_mean, right_mean) else diff
+            print(f"Target {target}: left commit {left.sha} mean {left_mean} vs. right commit {right.sha} mean {right_mean}. Diff: {diff}.")
             if diff >= self.threshold:
                 if self.direction == "increase" and left_mean < right_mean:
                     # Time increase == performance regression
