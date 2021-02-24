@@ -1,13 +1,24 @@
 """bisection.py
-Runs bisection to determine PRs that cause performance regression.
-Performance regression is defined by TorchBench score drop greater than the threshold.
-By default, the torchvision, torchaudio, and torchtext package version will be fixed to the latest git version.
+Runs bisection to determine PRs that cause performance change.
+By default, the torchvision, torchaudio, and torchtext package version will be fixed to the lates version on the pytorch commit date.
 
 Usage:
   python bisection.py --pytorch-src <PYTORCH_SRC_DIR> \
     --torchbench-src <TORCHBENCH_SRC_DIR> \
-    --start <SHA> --end <SHA> --threshold <SCORE_THRESHOLD> \
-    --timeout <TIMEOUT_IN_MINS> --output <OUTPUT_FILE_PATH>
+    --config <BISECT_CONFIG> --output <OUTPUT_FILE_PATH>
+
+Here is an example of bisection configuration in yaml format:
+
+# Start and end commits
+start: a87a1c1
+end: 0ead9d5
+# we detect 10 percent regression or optimization
+threshold: 10
+# Support increase, decrease, or both
+direction: increase
+timeout: 60
+test:
+- test_eval[yolov3-cpu-eager]
 """
 
 import os
@@ -30,9 +41,23 @@ def exist_dir_path(string):
     else:
         raise NotADirectoryError(string)
 
+# Translates test name to filter
+# For example, ["test_eval[yolov3-cpu-eager]", "test_train[yolov3-gpu-eager]"]
+#     -> "((eval and yolov3 and cpu and eager) or (train and yolov3 and gpu and eager))"
+# If targets is None, run everything except slomo
+def targets_to_bmfilter(targets: List[str]) -> str:
+    bmfilter_names = []
+    if targets == None or len(targets) == 0:
+        return "(not slomo)"
+    for test in targets:
+        regex = re.compile("test_(train|eval)\[([a-zA-Z0-9_]+)-([a-z]+)-([a-z]+)\]")
+        m = regex.match(test).groups()
+        partial_name = " and ".join(m)
+        bmfilter_names.append(f"({partial_name})")
+    return " or ".join(bmfilter_names)
+
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
-TORCHBENCH_SCORE_CONFIG="torchbenchmark/score/configs/v0/config-v0.yaml"
 TORCHBENCH_DEPS = {
     "torchtext": os.path.expandvars("${HOME}/text"),
     "torchvision": os.path.expandvars("${HOME}/vision"),
@@ -42,17 +67,16 @@ TORCHBENCH_DEPS = {
 class Commit:
     sha: str
     ctime: str
-    score: Optional[float]
-    def __init__(self, sha, ctime, score):
+    score: Dict[str, float]
+    def __init__(self, sha, ctime):
         self.sha = sha
         self.ctime = ctime
-        self.score = score
+        self.score = dict()
     def __str__(self):
         return self.sha
 
 class TorchSource:
     srcpath: str
-    commit_date: datetime
     commits: List[Commit]
     # Map from commit SHA to index in commits
     commit_dict: Dict[str, int]
@@ -76,11 +100,8 @@ class TorchSource:
             return False
         for count, commit in enumerate(commits):
             ctime = gitutils.get_git_commit_date(self.srcpath, commit)
-            self.commits.append(Commit(sha=commit, ctime=ctime, score=None))
+            self.commits.append(Commit(sha=commit, ctime=ctime))
             self.commit_dict[commit] = count
-        # Setup commit date
-        last_commit_date = self.commits[-1].ctime.split()[0]
-        self.commit_date = datetime.strptime(last_commit_date, "%Y-%m-%d")
         return True
     
     def get_mid_commit(self, left: Commit, right: Commit) -> Optional[Commit]:
@@ -89,7 +110,7 @@ class TorchSource:
         if right_index == left_index + 1:
             return None
         else:
-            return self.commits[(left_index + right_index) / 2]
+            return self.commits[int((left_index + right_index) / 2)]
 
     def setup_build_env(self, env):
         env["USE_CUDA"] = "1"
@@ -101,6 +122,13 @@ class TorchSource:
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
         return env
 
+    # Checkout the last commit of dependencies on date
+    def checkout_deps(self, cdate: datetime):
+        for pkg in TORCHBENCH_DEPS:
+            dep_commit = gitutils.get_git_commit_on_date(TORCHBENCH_DEPS[pkg], cdate)
+            assert dep_commit, "Failed to get the commit on {cdate} of {pkg}"
+            assert gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], dep_commit), "Failed to checkout commit {commit} of {pkg}"
+    
     # Install dependencies such as torchaudio, torchtext and torchvision
     def install_deps(self, build_env):
         # Build torchvision
@@ -122,6 +150,9 @@ class TorchSource:
     def build(self, commit: Commit):
         # checkout pytorch commit
         gitutils.checkout_git_commit(self.srcpath, commit.sha)
+        # checkout pytorch deps commit
+        ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
+        self.checkout_deps(ctime)
         # setup environment variables
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
@@ -145,22 +176,22 @@ class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
     branch: str
     timelimit: int # timeout limit in minutes
-    bmfilter: str
     workdir: str
+    direction: str
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
                  timelimit: int,
-                 bmfilter: str,
                  workdir: str,
+                 direction: str,
                  branch: str = "0.1"):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
-        self.bmfilter = bmfilter
-        self.branch = branch
         self.workdir = workdir
+        self.direction = direction
+        self.branch = branch
 
     def prep(self) -> bool:
         # Verify the code in srcpath is pytorch/benchmark
@@ -180,7 +211,7 @@ class TorchBench:
                 return False
         return True
  
-    def run_benchmark(self, commit: Commit) -> str:
+    def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
         # Return the result json file
         output_dir = os.path.join(self.workdir, commit.sha)
         # If the directory exists, delete its contents
@@ -221,7 +252,7 @@ class TorchBench:
             data = json.load(dfile)
         return compute_score(config, data)
     
-    def get_score(self, commit: Commit) -> float:
+    def get_score(self, commit: Commit, targets: List[str]) -> Dict[str, float]:
         # Score is cached
         if commit.score is not None:
             return commit.score
@@ -239,8 +270,10 @@ class TorchBenchBisection:
     start: str
     end: str
     workdir: str
-    threshold: int
-    bisectq: List[Tuple[Commit, Commit]]
+    threshold: float
+    targets: List[str]
+    # left commit, right commit, targets to test
+    bisectq: List[Tuple[Commit, Commit, List[str]]]
     result: List[Tuple[Commit, Commit]]
     torch_src: TorchSource
     bench: TorchBench
@@ -252,21 +285,23 @@ class TorchBenchBisection:
                  bench_src: str,
                  start: str,
                  end: str,
-                 threshold: int,
-                 bmfilter: str,
+                 threshold: float,
+                 targets: List[str],
+                 direction: str,
                  timeout: int,
                  output_json: str):
         self.workdir = workdir
         self.start = start
         self.end = end
         self.threshold = threshold
+        self.targets = targets
         self.bisectq = list()
         self.result = list()
         self.torch_src = TorchSource(srcpath = torch_src)
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
-                                bmfilter = bmfilter,
+                                direction = direction,
                                 workdir = self.workdir)
         self.output_json = output_json
 
@@ -338,34 +373,35 @@ if __name__ == "__main__":
                         help="the directory of torchbench source code git repository",
                         type=exist_dir_path,
                         required=True)
-    parser.add_argument("--start",
-                        help="7-digit SHA hash of the start commit to bisect",
-                        required=True)
-    parser.add_argument("--end",
-                        help="7-digit SHA hash of the end commit to bisect",
-                        required=True)
-    parser.add_argument("--threshold",
-                        help="the torchbench score threshold to report a regression",
-                        type=float,
-                        required=True)
-    parser.add_argument("--bmfilter",
-                        help="the benchmark filter to run")
-    parser.add_argument("--timeout",
-                        type=int,
-                        help="the maximum time to run the benchmark in minutes",
+    parser.add_argument("--config",
+                        help="the bisection configuration in YAML format",
                         required=True)
     parser.add_argument("--output",
                         help="the output json file",
                         required=True)
     args = parser.parse_args()
+
+    with open(args.bisect_config, "r") as f:
+        bisect_config = yaml.full_load(f)
+    # sanity checks 
+    assert("start" in bisect_config), "Illegal bisection config, must specify start commit SHA."
+    assert("end" in bisect_config), "Illegal bisection config, must specify end commit SHA."
+    assert("threshold" in bisect_config), "Illegal bisection config, must specify threshold."
+    assert("direction" in bisect_config), "Illegal bisection config, must specify direction."
+    assert("timeout" in bisect_config), "Illegal bisection config, must specify timeout."
+    targets = None
+    if "tests" in bisect_config:
+        targets = bisect_config["tests"]
+    
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_src=args.pytorch_src,
                                     bench_src=args.torchbench_src,
-                                    start=args.start,
-                                    end=args.end,
-                                    threshold=args.threshold,
-                                    bmfilter=args.bmfilter,
-                                    timeout=args.timeout,
+                                    start=bisect_config["start"],
+                                    end=bisect_config["end"],
+                                    threshold=bisect_config["threshold"],
+                                    direction=bisect_config["direction"],
+                                    timeout=bisect_config["timeout"],
+                                    targets=targets,
                                     output_json=args.output)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))

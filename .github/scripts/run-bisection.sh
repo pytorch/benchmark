@@ -4,12 +4,10 @@ set -xeo pipefail
 
 SCRIPTPATH=$(realpath $0)
 BASEDIR=$(dirname $SCRIPTPATH)
-BISECT_BASE=${HOME}/bisection/gh${GITHUB_RUN_ID}
 
-BISECT_CONFIG=${BISECT_BASE}/config.env
-set -a
-source $BISECT_CONFIG
-set +a
+PYTORCH_SRC_DIR=${HOME}/pytorch
+TORCHBENCH_SRC_DIR=${HOME}/benchmark-main
+BISECT_BASE=${HOME}/bisection/gh${GITHUB_RUN_ID}
 
 # get torch_nightly.html
 curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
@@ -19,8 +17,5 @@ curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html
 python bisection.py --work-dir ${BISECT_BASE} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
-       --start ${BISECT_START} \
-       --end ${BISECT_END} \
-       --threshold ${BISECT_THRESHOLD} \
-       --timeout 60 \
+       --config ${BISECT_BASE}/config.yaml \
        --output ${BISECT_BASE}/output.json
