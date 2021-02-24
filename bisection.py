@@ -31,9 +31,7 @@ import subprocess
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple
 
-from torchbenchmark.score.compute_score import compute_score
 from torchbenchmark.util import gitutils
-from torchbenchmark.util import torch_nightly
 
 def exist_dir_path(string):
     if os.path.isdir(string):
@@ -67,11 +65,11 @@ TORCHBENCH_DEPS = {
 class Commit:
     sha: str
     ctime: str
-    score: Dict[str, float]
+    digest: Dict[str, float]
     def __init__(self, sha, ctime):
         self.sha = sha
         self.ctime = ctime
-        self.score = dict()
+        self.digest = dict()
     def __str__(self):
         return self.sha
 
@@ -130,7 +128,7 @@ class TorchSource:
             assert gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], dep_commit), "Failed to checkout commit {commit} of {pkg}"
     
     # Install dependencies such as torchaudio, torchtext and torchvision
-    def install_deps(self, build_env):
+    def build_install_deps(self, build_env):
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
         command = "python setup.py install &> /dev/null"
@@ -157,13 +155,13 @@ class TorchSource:
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
         print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
-        # pytorch doesn't update version.py in incremental compile, so generate manually
+        # pytorch doesn't update version.py in incremental compile, so generate it manually
         command = "python tools/generate_torch_version.py --is_debug on"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         command = "python setup.py install &> /dev/null"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
-        self.install_deps(build_env)
+        self.build_install_deps(build_env)
 
     def cleanup(self, commit: Commit):
         print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
@@ -201,20 +199,12 @@ class TorchBench:
         # Checkout branch
         if not gitutils.checkout_git_branch(self.srcpath, self.branch):
             return False
-        # Checkout dependency commit
-        print(f"Checking out dependency last commit date: {self.torch_src.commit_date}")
-        for pkg in TORCHBENCH_DEPS:
-            last_commit = gitutils.get_git_commit_on_date(TORCHBENCH_DEPS[pkg], self.torch_src.commit_date)
-            if not last_commit:
-                return False
-            if not gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], last_commit):
-                return False
         return True
  
     def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
-        # Return the result json file
+        # Return the result json file path
         output_dir = os.path.join(self.workdir, commit.sha)
-        # If the directory exists, delete its contents
+        # If the directory already exists, clear its contents
         if os.path.exists(output_dir):
             assert os.path.isdir(output_dir), "Must specify output directory: {output_dir}"
             filelist = [ f for f in os.listdir(output_dir) ]
@@ -222,37 +212,37 @@ class TorchBench:
                 os.remove(os.path.join(output_dir, f))
         else:
             os.mkdir(output_dir)
-        command = str()
-        if self.bmfilter:
-            command = f"bash .github/scripts/run-nodocker.sh {output_dir} \"{self.bmfilter}\" &> {output_dir}/benchmark.log"
-        else:
-            command = f"bash .github/scripts/run-nodocker.sh {output_dir} &> {output_dir}/benchmark.log"
+        bmfilter = targets_to_bmfilter(targets)
+        command = f"bash .github/scripts/run-nodocker.sh {output_dir} \"{bmfilter}\" &> {output_dir}/benchmark.log"
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
-            print(f"Benchmark timeout for {commit.sha}. Returning zero value.")
+            print(f"Benchmark timeout for {commit.sha}. Returning None for every test.")
             return output_dir
         return output_dir
 
-    def compute(self, result_dir: str) -> float:
+    def gen_digest(self, result_dir: str, targets: List[str]) -> Dict[str, float]:
         filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
         if len(filelist) == 0:
-            print(f"Empty directory or json file in {result_dir}. Return zero score.")
-            return 0.0
-        # benchmark data file
+            print(f"Empty directory or json file in {result_dir}. Return empty digest.")
+            return None
+        # Use the first json as the benchmark data file
         data_file = os.path.join(result_dir, filelist[0])
         if os.stat(data_file).st_size == 0:
-            print(f"Empty json file {filelist[0]} in {result_dir}. Return zero score.")
-            return 0.0
-        # configuration
-        config_file = os.path.join(self.srcpath, TORCHBENCH_SCORE_CONFIG)
-        with open(config_file) as cfg_file:
-            config = yaml.full_load(cfg_file)
-        with open(data_file) as dfile:
-            data = json.load(dfile)
-        return compute_score(config, data)
+            print(f"Empty json file {filelist[0]} in {result_dir}. Return empty digest.")
+            return None
+        with open(data_file, "r") as df:
+            data = json.load(df)
+        out = dict()
+        for each in data["benchmarks"]:
+            if each["name"] in targets:
+                out[each["name"]] = each["stats"]["mean"]
+        # Make sure all target tests are available
+        for target in targets:
+            assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
+        return out
     
-    def get_score(self, commit: Commit, targets: List[str]) -> Dict[str, float]:
+    def get_digest(self, commit: Commit, targets: List[str]) -> Dict[str, float]:
         # Score is cached
         if commit.score is not None:
             return commit.score
@@ -261,8 +251,8 @@ class TorchBench:
         # Run benchmark
         print(f"Running TorchBench for commit: {commit.sha} ...", end="", flush=True)
         result_dir = self.run_benchmark(commit)
-        commit.score = self.compute(result_dir)
-        print(f" score: {commit.score}")
+        commit.score = self.gen_digest(result_dir, targets)
+        print("done")
         self.torch_src.cleanup(commit)
         return commit.score
         
@@ -271,6 +261,7 @@ class TorchBenchBisection:
     end: str
     workdir: str
     threshold: float
+    direction: str
     targets: List[str]
     # left commit, right commit, targets to test
     bisectq: List[Tuple[Commit, Commit, List[str]]]
@@ -295,6 +286,7 @@ class TorchBenchBisection:
         self.end = end
         self.threshold = threshold
         self.targets = targets
+        self.direction = direction
         self.bisectq = list()
         self.result = list()
         self.torch_src = TorchSource(srcpath = torch_src)
@@ -306,10 +298,27 @@ class TorchBenchBisection:
         self.output_json = output_json
 
     # Left: older commit; right: newer commit
-    def regression(self, left: Commit, right: Commit) -> bool:
-        assert left.score is not None
-        assert right.score is not None
-        return left.score - right.score >= self.threshold
+    # Return: List of tests that satisfies the regression rule: <threshold, direction>
+    def regression(self, left: Commit, right: Commit, targest: List[str]) -> List[str]:
+        for target in targets:
+            assert target in left.digest, f"Don't find target {target} in commit: {left.sha}"
+            assert target in right.digest, f"Don't find target {target} in commit: {right.sha}"
+        out = []
+        for target in targets:
+            left_mean = left.digest[target]
+            right_mean = right.digest[target]
+            diff = abs(left_mean - right_mean) / max(left_mean - right_mean) * 100
+            if diff >= self.threshold:
+                if direction == "increment" and left_mean < right_mean:
+                    # Time increment == performance regression
+                    out.append(target)
+                elif direction == "decrement" and left_mean > right_mean:
+                    # Time decrement == performance optimization
+                    out.append(target)
+                else:
+                    assert direction == "both"
+                    out.append(target)
+        return out
 
     def prep(self) -> bool:
         if not self.torch_src.prep():
@@ -320,24 +329,27 @@ class TorchBenchBisection:
             return False
         left_commit = self.torch_src.commits[0]
         right_commit = self.torch_src.commits[-1]
-        self.bisectq.append((left_commit, right_commit))
+        self.bisectq.append((left_commit, right_commit, self.targets))
         return True
         
     def run(self):
-        while not len(self.bisectq) == 0:
-            (left, right) = self.bisectq.pop(0)
-            left.score = self.bench.get_score(left)
-            right.score = self.bench.get_score(right)
-            if self.regression(left, right):
+        while not len(self.bisectq):
+            (left, right, targets) = self.bisectq.pop(0)
+            left.digest = self.bench.get_digest(left, targets)
+            right.digest = self.bench.get_digest(right, targets)
+            updated_targets = self.regression(left, right, targets)
+            if not len(updated_targets):
                 mid = self.torch_src.get_mid_commit(left, right)
                 if mid == None:
                     self.result.append((left, right))
                 else:
-                    mid.score = self.bench.get_score(mid_commit)
-                    if self.regression(left, mid):
-                        self.bisectq.append(left, mid)
-                    if self.regression(mid, right):
-                        self.bisectq.append(right, mid)
+                    mid.digest = self.bench.get_digest(mid_commit, updated_targets)
+                    left_mid_targets = self.regression(left, mid, updated_targets)
+                    mid_right_targets = self.regression(mid, right, updated_targets)
+                    if len(left_mid_targets):
+                        self.bisectq.append(left, mid, left_mid_targets)
+                    if len(mid_right_targets):
+                        self.bisectq.append(mid, right, mid_right_targets)
  
     def output(self):
         json_obj = dict()
@@ -351,10 +363,10 @@ class TorchBenchBisection:
             r = dict()
             r["commit1"] = res[0].sha
             r["commit1_time"] = res[0].ctime
-            r["commit1_score"] = res[0].score
+            r["commit1_digest"] = res[0].digest
             r["commit2"] = res[1].sha
             r["commit2_time"] = res[1].ctime
-            r["commit2_score"] = res[1].score
+            r["commit2_digest"] = res[1].digest
             json_obj["result"].append(r)
         with open(self.output_json, 'w') as outfile:
             json.dump(json_obj, outfile, indent=2)
@@ -383,11 +395,13 @@ if __name__ == "__main__":
 
     with open(args.bisect_config, "r") as f:
         bisect_config = yaml.full_load(f)
-    # sanity checks 
+    # sanity checks
+    valid_directions = ["increment", "decrement", "both"]
     assert("start" in bisect_config), "Illegal bisection config, must specify start commit SHA."
     assert("end" in bisect_config), "Illegal bisection config, must specify end commit SHA."
     assert("threshold" in bisect_config), "Illegal bisection config, must specify threshold."
     assert("direction" in bisect_config), "Illegal bisection config, must specify direction."
+    assert(bisect_config["direction"] in valid_directions), "We only support increment, decrement, or both directions"
     assert("timeout" in bisect_config), "Illegal bisection config, must specify timeout."
     targets = None
     if "tests" in bisect_config:

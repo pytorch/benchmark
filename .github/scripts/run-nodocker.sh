@@ -21,7 +21,7 @@ sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
-echo "Benchmark filter: \"${BENCHMARK_FILTER}\""
+echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
 
 # Install benchmark dependencies
 python install.py
