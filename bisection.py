@@ -371,9 +371,9 @@ class TorchBenchBisection:
                     left_mid_targets = self.regression(left, mid, updated_targets)
                     mid_right_targets = self.regression(mid, right, updated_targets)
                     if len(left_mid_targets):
-                        self.bisectq.append(left, mid, left_mid_targets)
+                        self.bisectq.append((left, mid, left_mid_targets))
                     if len(mid_right_targets):
-                        self.bisectq.append(mid, right, mid_right_targets)
+                        self.bisectq.append((mid, right, mid_right_targets))
  
     def output(self):
         json_obj = dict()
