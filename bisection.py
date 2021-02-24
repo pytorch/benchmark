@@ -250,7 +250,16 @@ class TorchBench:
             assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
         return out
     
-    def get_digest(self, commit: Commit, targets: List[str]) -> Dict[str, float]:
+    def get_digest(self, commit: Commit, targets: List[str], debug: bool) -> Dict[str, float]:
+        # if debug mode, skip the build and benchmark run
+        if debug:
+            output_dir = os.path.join(self.workdir, commit.sha)
+            filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
+            if len(filelist):
+                data_file = os.path.join(result_dir, filelist[0])
+                if os.stat(data_file).st_size:
+                    commit.digest = self.gen_digest(result_dir, targets)
+                    return commit.digest
         # digest is cached
         if commit.digest is not None:
             return commit.digest
@@ -276,6 +285,7 @@ class TorchBenchBisection:
     torch_src: TorchSource
     bench: TorchBench
     output_json: str
+    debug: bool
 
     def __init__(self,
                  workdir: str,
@@ -287,7 +297,8 @@ class TorchBenchBisection:
                  direction: str,
                  timeout: int,
                  targets: List[str],
-                 output_json: str):
+                 output_json: str,
+                 debug: bool = False):
         self.workdir = workdir
         self.start = start
         self.end = end
@@ -302,6 +313,7 @@ class TorchBenchBisection:
                                 timelimit = timeout,
                                 workdir = self.workdir)
         self.output_json = output_json
+        self.debug = debug
 
     # Left: older commit; right: newer commit
     # Return: List of targets that satisfy the regression rule: <threshold, direction>
@@ -346,15 +358,15 @@ class TorchBenchBisection:
     def run(self):
         while len(self.bisectq):
             (left, right, targets) = self.bisectq.pop(0)
-            left.digest = self.bench.get_digest(left, targets)
-            right.digest = self.bench.get_digest(right, targets)
+            left.digest = self.bench.get_digest(left, targets, self.debug)
+            right.digest = self.bench.get_digest(right, targets, self.debug)
             updated_targets = self.regression(left, right, targets)
             if len(updated_targets):
                 mid = self.torch_src.get_mid_commit(left, right)
                 if mid == None:
                     self.result.append((left, right))
                 else:
-                    mid.digest = self.bench.get_digest(mid, updated_targets)
+                    mid.digest = self.bench.get_digest(mid, updated_targets, self.debug)
                     left_mid_targets = self.regression(left, mid, updated_targets)
                     mid_right_targets = self.regression(mid, right, updated_targets)
                     if len(left_mid_targets):
@@ -402,6 +414,10 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         help="the output json file",
                         required=True)
+    # by default, debug mode is disabled
+    parser.add_argument("--debug",
+                        help="run in debug mode, if the result json exists, use it directly",
+                        action='store_true')
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
@@ -427,7 +443,8 @@ if __name__ == "__main__":
                                     direction=bisect_config["direction"],
                                     timeout=bisect_config["timeout"],
                                     targets=targets,
-                                    output_json=args.output)
+                                    output_json=args.output,
+                                    debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
     bisection.run()
