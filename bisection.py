@@ -251,6 +251,9 @@ class TorchBench:
         return out
     
     def get_digest(self, commit: Commit, targets: List[str], debug: bool) -> Dict[str, float]:
+        # digest is cached
+        if commit.digest is not None:
+            return commit.digest
         # if debug mode, skip the build and benchmark run
         if debug:
             result_dir = os.path.join(self.workdir, commit.sha)
@@ -261,9 +264,6 @@ class TorchBench:
                     if os.stat(data_file).st_size:
                         commit.digest = self.gen_digest(result_dir, targets)
                         return commit.digest
-        # digest is cached
-        if commit.digest is not None:
-            return commit.digest
         # Build pytorch and its dependencies
         self.torch_src.build(commit)
         # Run benchmark
@@ -367,13 +367,8 @@ class TorchBenchBisection:
                 if mid == None:
                     self.result.append((left, right))
                 else:
-                    mid.digest = self.bench.get_digest(mid, updated_targets, self.debug)
-                    left_mid_targets = self.regression(left, mid, updated_targets)
-                    mid_right_targets = self.regression(mid, right, updated_targets)
-                    if len(left_mid_targets):
-                        self.bisectq.append((left, mid, left_mid_targets))
-                    if len(mid_right_targets):
-                        self.bisectq.append((mid, right, mid_right_targets))
+                    self.bisectq.append((left, mid, left_mid_targets))
+                    self.bisectq.append((mid, right, mid_right_targets))
  
     def output(self):
         json_obj = dict()
