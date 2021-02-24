@@ -7,7 +7,7 @@ Usage:
     --torchbench-src <TORCHBENCH_SRC_DIR> \
     --config <BISECT_CONFIG> --output <OUTPUT_FILE_PATH>
 
-Here is an example of bisection configuration in yaml format:
+Here is an example of bisection configuration (in yaml format):
 
 # Start and end commits
 start: a87a1c1
@@ -69,7 +69,7 @@ class Commit:
     def __init__(self, sha, ctime):
         self.sha = sha
         self.ctime = ctime
-        self.digest = dict()
+        self.digest = None
     def __str__(self):
         return self.sha
 
@@ -90,7 +90,7 @@ class TorchSource:
             return False
         return True
     
-    # Get all commits between start and end, save them in commits
+    # Get all commits between start and end, save them in self.commits
     def init_commits(self, start: str, end: str) -> bool:
         commits = gitutils.get_git_commits(self.srcpath, start, end)
         if not commits or len(commits) < 2:
@@ -124,7 +124,7 @@ class TorchSource:
     def checkout_deps(self, cdate: datetime):
         for pkg in TORCHBENCH_DEPS:
             dep_commit = gitutils.get_git_commit_on_date(TORCHBENCH_DEPS[pkg], cdate)
-            assert dep_commit, "Failed to get the commit on {cdate} of {pkg}"
+            assert dep_commit, "Failed to find the commit on {cdate} of {pkg}"
             assert gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], dep_commit), "Failed to checkout commit {commit} of {pkg}"
     
     # Install dependencies such as torchaudio, torchtext and torchvision
@@ -175,20 +175,17 @@ class TorchBench:
     branch: str
     timelimit: int # timeout limit in minutes
     workdir: str
-    direction: str
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
                  timelimit: int,
                  workdir: str,
-                 direction: str,
                  branch: str = "0.1"):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
         self.workdir = workdir
-        self.direction = direction
         self.branch = branch
 
     def prep(self) -> bool:
@@ -217,23 +214,23 @@ class TorchBench:
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
-            print(f"Benchmark timeout for {commit.sha}. Returning None for every test.")
+            print(f"Benchmark timeout for {commit.sha}. Result will be None.")
             return output_dir
         return output_dir
 
     def gen_digest(self, result_dir: str, targets: List[str]) -> Dict[str, float]:
         filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
-        if len(filelist) == 0:
+        out = dict()
+        if not len(filelist):
             print(f"Empty directory or json file in {result_dir}. Return empty digest.")
-            return None
+            return out
         # Use the first json as the benchmark data file
         data_file = os.path.join(result_dir, filelist[0])
-        if os.stat(data_file).st_size == 0:
+        if not os.stat(data_file).st_size:
             print(f"Empty json file {filelist[0]} in {result_dir}. Return empty digest.")
-            return None
+            return out
         with open(data_file, "r") as df:
             data = json.load(df)
-        out = dict()
         for each in data["benchmarks"]:
             if each["name"] in targets:
                 out[each["name"]] = each["stats"]["mean"]
@@ -243,23 +240,23 @@ class TorchBench:
         return out
     
     def get_digest(self, commit: Commit, targets: List[str]) -> Dict[str, float]:
-        # Score is cached
-        if commit.score is not None:
-            return commit.score
+        # digest is cached
+        if commit.digest is not None:
+            return commit.digest
         # Build pytorch and its dependencies
         self.torch_src.build(commit)
         # Run benchmark
         print(f"Running TorchBench for commit: {commit.sha} ...", end="", flush=True)
         result_dir = self.run_benchmark(commit)
-        commit.score = self.gen_digest(result_dir, targets)
+        commit.digest = self.gen_digest(result_dir, targets)
         print("done")
         self.torch_src.cleanup(commit)
-        return commit.score
+        return commit.digest
         
 class TorchBenchBisection:
+    workdir: str
     start: str
     end: str
-    workdir: str
     threshold: float
     direction: str
     targets: List[str]
@@ -277,37 +274,37 @@ class TorchBenchBisection:
                  start: str,
                  end: str,
                  threshold: float,
-                 targets: List[str],
                  direction: str,
                  timeout: int,
+                 targets: List[str],
                  output_json: str):
         self.workdir = workdir
         self.start = start
         self.end = end
         self.threshold = threshold
-        self.targets = targets
         self.direction = direction
+        self.targets = targets
         self.bisectq = list()
         self.result = list()
         self.torch_src = TorchSource(srcpath = torch_src)
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
-                                direction = direction,
                                 workdir = self.workdir)
         self.output_json = output_json
 
     # Left: older commit; right: newer commit
-    # Return: List of tests that satisfies the regression rule: <threshold, direction>
+    # Return: List of targets that satisfy the regression rule: <threshold, direction>
     def regression(self, left: Commit, right: Commit, targest: List[str]) -> List[str]:
-        for target in targets:
-            assert target in left.digest, f"Don't find target {target} in commit: {left.sha}"
-            assert target in right.digest, f"Don't find target {target} in commit: {right.sha}"
+        # If uncalculated, commit.digest will be None
+        assert left.digest, "Commit {left.sha} must have a digest"
+        assert right.digest, "Commit {right.sha} must have a digest"
         out = []
         for target in targets:
-            left_mean = left.digest[target]
-            right_mean = right.digest[target]
-            diff = abs(left_mean - right_mean) / max(left_mean - right_mean) * 100
+            # digest could be empty if benchmark timeout
+            left_mean = left.digest[target] if len(left.digest) else 0
+            right_mean = right.digest[target] if len(right.digest) else 0
+            diff = abs(left_mean - right_mean) / max(left_mean, right_mean) * 100 if max(left_mean, right_mean) else 0
             if diff >= self.threshold:
                 if direction == "increment" and left_mean < right_mean:
                     # Time increment == performance regression
@@ -333,12 +330,12 @@ class TorchBenchBisection:
         return True
         
     def run(self):
-        while not len(self.bisectq):
+        while len(self.bisectq):
             (left, right, targets) = self.bisectq.pop(0)
             left.digest = self.bench.get_digest(left, targets)
             right.digest = self.bench.get_digest(right, targets)
             updated_targets = self.regression(left, right, targets)
-            if not len(updated_targets):
+            if len(updated_targets):
                 mid = self.torch_src.get_mid_commit(left, right)
                 if mid == None:
                     self.result.append((left, right))
@@ -363,10 +360,10 @@ class TorchBenchBisection:
             r = dict()
             r["commit1"] = res[0].sha
             r["commit1_time"] = res[0].ctime
-            r["commit1_digest"] = res[0].digest
+            r["commit1_digest"] = res[0].digest if len(res[0].digest) else "timeout"
             r["commit2"] = res[1].sha
             r["commit2_time"] = res[1].ctime
-            r["commit2_digest"] = res[1].digest
+            r["commit2_digest"] = res[1].digest if len(res[1].digest) else "timeout"
             json_obj["result"].append(r)
         with open(self.output_json, 'w') as outfile:
             json.dump(json_obj, outfile, indent=2)
