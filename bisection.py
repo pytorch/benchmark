@@ -52,7 +52,7 @@ def targets_to_bmfilter(targets: List[str]) -> str:
         m = regex.match(test).groups()
         partial_name = " and ".join(m)
         bmfilter_names.append(f"({partial_name})")
-    return " or ".join(bmfilter_names)
+    return "(" + " or ".join(bmfilter_names) + ")"
 
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
@@ -247,7 +247,7 @@ class TorchBench:
         self.torch_src.build(commit)
         # Run benchmark
         print(f"Running TorchBench for commit: {commit.sha} ...", end="", flush=True)
-        result_dir = self.run_benchmark(commit)
+        result_dir = self.run_benchmark(commit, targets)
         commit.digest = self.gen_digest(result_dir, targets)
         print("done")
         self.torch_src.cleanup(commit)
