@@ -1,13 +1,15 @@
 """bisection.py
 Runs bisection to determine PRs that cause performance change.
+It assumes that the pytorch, torchbench, torchtext, torchvision, and torchaudio repositories provided are all clean with the latest code.
 By default, the torchvision, torchaudio, and torchtext package version will be fixed to the lates version on the pytorch commit date.
 
 Usage:
-  python bisection.py --pytorch-src <PYTORCH_SRC_DIR> \
+  python bisection.py --work-dir <WORK-DIR> \
+    --pytorch-src <PYTORCH_SRC_DIR> \
     --torchbench-src <TORCHBENCH_SRC_DIR> \
     --config <BISECT_CONFIG> --output <OUTPUT_FILE_PATH>
 
-Here is an example of bisection configuration (in yaml format):
+An example of bisection configuration in YAML looks like this:
 
 # Start and end commits
 start: a87a1c1
@@ -18,7 +20,7 @@ threshold: 10
 direction: increase
 timeout: 60
 test:
-- test_eval[yolov3-cpu-eager]
+  - test_eval[yolov3-cpu-eager]
 """
 
 import os
@@ -318,7 +320,7 @@ class TorchBenchBisection:
 
     # Left: older commit; right: newer commit
     # Return: List of targets that satisfy the regression rule: <threshold, direction>
-    def regression(self, left: Commit, right: Commit, targest: List[str]) -> List[str]:
+    def regression(self, left: Commit, right: Commit, targets: List[str]) -> List[str]:
         # If uncalculated, commit.digest will be None
         assert left.digest, "Commit {left.sha} must have a digest"
         assert right.digest, "Commit {right.sha} must have a digest"
@@ -359,8 +361,8 @@ class TorchBenchBisection:
     def run(self):
         while len(self.bisectq):
             (left, right, targets) = self.bisectq.pop(0)
-            left.digest = self.bench.get_digest(left, targets, self.debug)
-            right.digest = self.bench.get_digest(right, targets, self.debug)
+            self.bench.get_digest(left, targets, self.debug)
+            self.bench.get_digest(right, targets, self.debug)
             updated_targets = self.regression(left, right, targets)
             if len(updated_targets):
                 mid = self.torch_src.get_mid_commit(left, right)
