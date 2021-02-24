@@ -237,6 +237,11 @@ class TorchBench:
             return out
         with open(data_file, "r") as df:
             data = json.load(df)
+        # Fill in targets if it is None
+        if targets == None:
+            targes = list()
+            for each in data["benchmarks"]:
+                targets.append(each["name"])
         for each in data["benchmarks"]:
             if each["name"] in targets:
                 out[each["name"]] = each["stats"]["mean"]
@@ -349,7 +354,7 @@ class TorchBenchBisection:
                 if mid == None:
                     self.result.append((left, right))
                 else:
-                    mid.digest = self.bench.get_digest(mid_commit, updated_targets)
+                    mid.digest = self.bench.get_digest(mid, updated_targets)
                     left_mid_targets = self.regression(left, mid, updated_targets)
                     mid_right_targets = self.regression(mid, right, updated_targets)
                     if len(left_mid_targets):
