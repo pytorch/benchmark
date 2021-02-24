@@ -306,11 +306,11 @@ class TorchBenchBisection:
             right_mean = right.digest[target] if len(right.digest) else 0
             diff = abs(left_mean - right_mean) / max(left_mean, right_mean) * 100 if max(left_mean, right_mean) else 0
             if diff >= self.threshold:
-                if direction == "increment" and left_mean < right_mean:
-                    # Time increment == performance regression
+                if direction == "increase" and left_mean < right_mean:
+                    # Time increase == performance regression
                     out.append(target)
-                elif direction == "decrement" and left_mean > right_mean:
-                    # Time decrement == performance optimization
+                elif direction == "decrease" and left_mean > right_mean:
+                    # Time decrease == performance optimization
                     out.append(target)
                 else:
                     assert direction == "both"
@@ -390,10 +390,10 @@ if __name__ == "__main__":
                         required=True)
     args = parser.parse_args()
 
-    with open(args.bisect_config, "r") as f:
+    with open(args.config, "r") as f:
         bisect_config = yaml.full_load(f)
     # sanity checks
-    valid_directions = ["increment", "decrement", "both"]
+    valid_directions = ["increase", "decrease", "both"]
     assert("start" in bisect_config), "Illegal bisection config, must specify start commit SHA."
     assert("end" in bisect_config), "Illegal bisection config, must specify end commit SHA."
     assert("threshold" in bisect_config), "Illegal bisection config, must specify threshold."

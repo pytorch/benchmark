@@ -7,6 +7,7 @@ BASEDIR=$(dirname $SCRIPTPATH)
 
 PYTORCH_SRC_DIR=${HOME}/pytorch
 TORCHBENCH_SRC_DIR=${HOME}/benchmark-main
+BISECT_CONDA_ENV=bisection
 BISECT_BASE=${HOME}/bisection/gh${GITHUB_RUN_ID}
 
 # get torch_nightly.html
