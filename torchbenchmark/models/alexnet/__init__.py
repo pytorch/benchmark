@@ -12,10 +12,10 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        self.model = models.alexnet()
+        self.model = models.alexnet().to(self.device)
         if self.jit:
             self.model = torch.jit.script(self.model)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)),)
+        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
     def get_module(self):
         return self.model, self.example_inputs
@@ -26,7 +26,7 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             optimizer.zero_grad()
             pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long).random_(pred.shape[1])
+            y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
             loss(pred, y).backward()
             optimizer.step()
 
