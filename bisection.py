@@ -315,14 +315,14 @@ class TorchBenchBisection:
             diff = 0 if not max(left_mean, right_mean)
             print(f"Target {target}: left commit {commit.sha} mean {left_mean} vs. right commit {commit.sha} mean {right_mean}. Diff: {diff}.")
             if diff >= self.threshold:
-                if direction == "increase" and left_mean < right_mean:
+                if self.direction == "increase" and left_mean < right_mean:
                     # Time increase == performance regression
                     out.append(target)
-                elif direction == "decrease" and left_mean > right_mean:
+                elif self.direction == "decrease" and left_mean > right_mean:
                     # Time decrease == performance optimization
                     out.append(target)
                 else:
-                    assert direction == "both"
+                    assert self.direction == "both"
                     out.append(target)
         return out
 
