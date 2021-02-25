@@ -20,7 +20,7 @@ from bokeh.plotting import figure, output_file, show
 # from collections import defaultdict
 from datetime import datetime as dt
 from torchbenchmark.util.data import load_data_dir, load_data_files
-from torchbenchmark.score.compute_score import TorchBenchScore
+from torchbenchmark.score.compute_score import TorchBenchScore, SPEC_FILE_DEFAULT
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -31,7 +31,7 @@ if __name__ == "__main__":
                              " to generate a score configuration with a target of 1000,"
                              " and everything else will be relative to that.")
     parser.add_argument("--output_html", default='plot.html', help="html file to write")
-    parser.add_argument("--score_heirarchy", default='torchbenchmark/score/score.yml',
+    parser.add_argument("--score_heirarchy", default=SPEC_FILE_DEFAULT,
                         help="file defining score heirarchy")
     parser.add_argument("--reference_json", required=True,
                         help="file defining score norm values, usually first json in first data_dir")

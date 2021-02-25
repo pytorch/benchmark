@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     if args.benchmark_data_file is None and args.benchmark_data_dir is None:
         parser.print_help(sys.stderr)
-        raise ValueError("Invalid command-line arguments. You must specify a config, a data file, or a data dir.")
+        raise ValueError("Invalid command-line arguments. You must specify a data file or a data dir.")
 
     files = []
     benchmark_data = []
