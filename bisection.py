@@ -228,7 +228,7 @@ class TorchBench:
             data = json.load(df)
         # Fill in targets if it is None
         if targets == None:
-            targes = list()
+            targets = list()
             for each in data["benchmarks"]:
                 targets.append(each["name"])
         for each in data["benchmarks"]:
@@ -238,7 +238,7 @@ class TorchBench:
         for target in targets:
             assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
         return out
-    
+
     def get_digest(self, commit: Commit, targets: List[str], debug: bool) -> Dict[str, float]:
         # digest is cached
         if commit.digest is not None:
@@ -349,6 +349,10 @@ class TorchBenchBisection:
             (left, right, targets) = self.bisectq.pop(0)
             self.bench.get_digest(left, targets, self.debug)
             self.bench.get_digest(right, targets, self.debug)
+            if targets == None and len(left.digest):
+                targets = left.digest.keys()
+            if targets == None and len(right.digest):
+                targets = right.digest.keys()
             updated_targets = self.regression(left, right, targets)
             if len(updated_targets):
                 mid = self.torch_src.get_mid_commit(left, right)
