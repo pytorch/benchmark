@@ -204,7 +204,7 @@ class TorchBench:
             os.mkdir(output_dir)
         bmfilter = targets_to_bmfilter(targets)
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
-        command = f"bash .github/scripts/run-nodocker.sh {output_dir} \"{bmfilter}\" &> {output_dir}/benchmark.log"
+        command = f"bash .github/scripts/run-v0.sh \"{output_dir}\" \"{bmfilter}\" &> {output_dir}/benchmark.log"
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:

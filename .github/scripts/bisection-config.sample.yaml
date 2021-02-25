@@ -1,4 +1,5 @@
 # The sample bisection config that solves GH issue #51380
+
 # Start and end commits
 start: a87a1c1
 end: 0ead9d5

@@ -16,10 +16,18 @@ SCRIPTPATH=$(realpath $0)
 BASEDIR=$(dirname $SCRIPTPATH)
 
 PYTORCH_SRC_DIR=${HOME}/pytorch
-TORCHBENCH_SRC_DIR=${HOME}/benchmark-main
+TORCHBENCH_SRC_DIR=${HOME}/benchmark
 
-BISECT_CONDA_ENV=bisection
-BISECT_BASE=${HOME}/bisection
+if [ -z ${BISECT_CONDA_ENV} ]; then
+    BISECT_CONDA_ENV=bisection
+fi
+
+# Allows user to specify github issue name
+if [ -z ${BISECT_ISSUE} ]; then
+    BISECT_ISSUE=gh-test
+fi
+
+BISECT_BASE=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
 
 # get torch_nightly.html
 curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
@@ -27,6 +35,7 @@ curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html
 . ${CONDA_PREFIX}/etc/profile.d/conda.sh &> /dev/null
 conda activate ${BISECT_CONDA_ENV} &> /dev/null
 
+# specify --debug to allow restart from the last failed point
 python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \

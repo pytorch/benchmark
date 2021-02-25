@@ -18,6 +18,7 @@ DATA_DIR=$1
 set -a;
 source ${CONFIG_ENV}
 set +a;
+
 if [ -n "$2" ]; then
     BENCHMARK_FILTER="$2"
 fi
