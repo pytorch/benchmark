@@ -1,26 +1,13 @@
 """bisection.py
 Runs bisection to determine PRs that cause performance change.
 It assumes that the pytorch, torchbench, torchtext, torchvision, and torchaudio repositories provided are all clean with the latest code.
-By default, the torchvision, torchaudio, and torchtext package version will be fixed to the lates version on the pytorch commit date.
+By default, the torchvision, torchaudio, and torchtext package version will be fixed to the latest commit on the pytorch commit date.
 
 Usage:
   python bisection.py --work-dir <WORK-DIR> \
     --pytorch-src <PYTORCH_SRC_DIR> \
     --torchbench-src <TORCHBENCH_SRC_DIR> \
     --config <BISECT_CONFIG> --output <OUTPUT_FILE_PATH>
-
-An example of bisection configuration in YAML looks like this:
-
-# Start and end commits
-start: a87a1c1
-end: 0ead9d5
-# we detect 10 percent regression or optimization
-threshold: 10
-# Support increase, decrease, or both
-direction: increase
-timeout: 60
-test:
-  - test_eval[yolov3-cpu-eager]
 """
 
 import os
