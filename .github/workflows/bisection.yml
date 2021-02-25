@@ -1,0 +1,23 @@
+name: TorchBench bisection v0.1
+on:
+  workflow_dispatch:
+    inputs:
+      case_name:
+        description: "Bisection Case Name"
+        required: true
+        default: "example-case"
+
+jobs:
+  bisection:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-metal]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: 0.1
+      - name: Bisection
+        run: |
+          export BISECT_ISSUE=${{ github.event.inputs.case_name }}
+          mkdir -p ${HOME}/.torchbench/bisection/${BISECT_ISSUE}
+          bash ./.github/scripts/run-bisection.sh
