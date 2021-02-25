@@ -15,8 +15,13 @@ set -xeo pipefail
 SCRIPTPATH=$(realpath $0)
 BASEDIR=$(dirname $SCRIPTPATH)
 
-PYTORCH_SRC_DIR=${HOME}/pytorch
-TORCHBENCH_SRC_DIR=${HOME}/benchmark
+if [ -z ${PYTORCH_SRC_DIR} ]; then
+    PYTORCH_SRC_DIR=${HOME}/pytorch
+fi
+
+if [ -z ${TORCHBENCH_SRC_DIR} ]; then
+    TORCHBENCH_SRC_DIR=${HOME}/benchmark
+fi
 
 if [ -z ${BISECT_CONDA_ENV} ]; then
     BISECT_CONDA_ENV=bisection
