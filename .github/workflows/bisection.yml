@@ -19,5 +19,12 @@ jobs:
       - name: Bisection
         run: |
           export BISECT_ISSUE=${{ github.event.inputs.case_name }}
-          mkdir -p ${HOME}/.torchbench/bisection/${BISECT_ISSUE}/gh${GITHUB_RUN_ID}
+          export WORKDIR=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
+          mkdir -p ${WORKDIR}/gh${GITHUB_RUN_ID}
           bash ./.github/scripts/run-bisection.sh
+          # Update the result json symbolic link
+          if [ -f ${WORKDIR}/output.json ]; then
+             rm ${WORKDIR}/output.json
+          else
+             ln -s ${WORKDIR}/gh${GITHUB_RUN_ID}/output.json ${WORKDIR}/output.json
+          fi
