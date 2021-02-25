@@ -16,6 +16,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: 0.1
+      - name: Create conda environment
+        run: |
+          conda create -y -n bisection python=3.7
+          . ${CONDA_PREFIX}/etc/profile.d/conda.sh &> /dev/null
+          conda activate bisection &> /dev/null
+          conda install numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses
       - name: Bisection
         run: |
           export BISECT_ISSUE=${{ github.event.inputs.issue_name }}
@@ -28,3 +34,6 @@ jobs:
           else
              ln -s ${WORKDIR}/gh${GITHUB_RUN_ID}/output.json ${WORKDIR}/output.json
           fi
+      - name: Remove conda environment
+        run: |
+          conda env remove --name bisection
