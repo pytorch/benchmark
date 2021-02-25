@@ -2,10 +2,10 @@ name: TorchBench bisection v0.1
 on:
   workflow_dispatch:
     inputs:
-      case_name:
-        description: "Bisection Case Name"
+      issue_name:
+        description: "Bisection Issue Name"
         required: true
-        default: "example-case"
+        default: "example-issue"
 
 jobs:
   bisection:
@@ -18,7 +18,7 @@ jobs:
           ref: 0.1
       - name: Bisection
         run: |
-          export BISECT_ISSUE=${{ github.event.inputs.case_name }}
+          export BISECT_ISSUE=${{ github.event.inputs.issue_name }}
           export WORKDIR=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
           mkdir -p ${WORKDIR}/gh${GITHUB_RUN_ID}
           bash ./.github/scripts/run-bisection.sh
