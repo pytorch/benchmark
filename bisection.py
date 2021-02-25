@@ -258,7 +258,6 @@ class TorchBench:
         # Run benchmark
         result_dir = self.run_benchmark(commit, targets)
         commit.digest = self.gen_digest(result_dir, targets)
-        print("done")
         self.torch_src.cleanup(commit)
         return commit.digest
         
@@ -356,8 +355,8 @@ class TorchBenchBisection:
                 if mid == None:
                     self.result.append((left, right))
                 else:
-                    self.bisectq.append((left, mid, left_mid_targets))
-                    self.bisectq.append((mid, right, mid_right_targets))
+                    self.bisectq.append((left, mid, updated_targets))
+                    self.bisectq.append((mid, right, updated_targets))
  
     def output(self):
         json_obj = dict()
