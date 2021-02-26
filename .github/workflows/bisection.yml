@@ -1,0 +1,36 @@
+name: TorchBench bisection v0.1
+on:
+  workflow_dispatch:
+    inputs:
+      issue_name:
+        description: "Bisection Issue Name"
+        required: true
+        default: "example-issue"
+
+jobs:
+  bisection:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-metal]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: 0.1
+      - name: Create conda environment
+        run: |
+          conda create -y -n bisection-ci python=3.7
+          . ${CONDA_PREFIX}/etc/profile.d/conda.sh &> /dev/null
+          conda activate bisection-ci &> /dev/null
+          conda install numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses
+      - name: Bisection
+        run: |
+          export BISECT_CONDA_ENV=bisection-ci
+          export BISECT_ISSUE=${{ github.event.inputs.issue_name }}
+          export WORKDIR=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
+          mkdir -p ${WORKDIR}/gh${GITHUB_RUN_ID}
+          bash ./.github/scripts/run-bisection.sh
+          # Update the result json symbolic link
+          ln -sf ${WORKDIR}/gh${GITHUB_RUN_ID}/result.json ${WORKDIR}/result.json
+      - name: Remove conda environment
+        run: |
+          conda env remove --name bisection-ci
