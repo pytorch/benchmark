@@ -327,7 +327,7 @@ class TorchBenchBisection:
                 elif self.direction == "decrease" and left_mean > right_mean:
                     # Time decrease == performance optimization
                     out.append(target)
-                else if self.direction == "both":
+                elif self.direction == "both":
                     out.append(target)
         return out
 
