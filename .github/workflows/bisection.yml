@@ -27,7 +27,6 @@ jobs:
           export BISECT_CONDA_ENV=bisection-ci
           export BISECT_ISSUE=${{ github.event.inputs.issue_name }}
           export WORKDIR=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
-          mkdir -p ${WORKDIR}/gh${GITHUB_RUN_ID}
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf ${WORKDIR}/gh${GITHUB_RUN_ID}/result.json ${WORKDIR}/result.json
