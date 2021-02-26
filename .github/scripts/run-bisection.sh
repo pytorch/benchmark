@@ -29,13 +29,16 @@ fi
 
 # Allows user to specify github issue name
 if [ -z ${BISECT_ISSUE} ]; then
-    BISECT_ISSUE=gh-test
+    BISECT_ISSUE=example-issue
 fi
 
 BISECT_BASE=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
 
 # get torch_nightly.html
 curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
+
+# create the work directory
+mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 
 . ${CONDA_PREFIX}/etc/profile.d/conda.sh &> /dev/null
 conda activate ${BISECT_CONDA_ENV} &> /dev/null
@@ -45,5 +48,5 @@ python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
        --config ${BISECT_BASE}/config.yaml \
-       --output ${BISECT_BASE}/gh${GITHUB_RUN_ID}/output.json \
+       --output ${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json \
        --debug
