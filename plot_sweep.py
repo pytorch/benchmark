@@ -20,22 +20,20 @@ from bokeh.plotting import figure, output_file, show
 # from collections import defaultdict
 from datetime import datetime as dt
 from torchbenchmark.util.data import load_data_dir, load_data_files
-from torchbenchmark.score.compute_score import compute_score
-from torchbenchmark.score.generate_score_config import generate_bench_cfg
-
+from torchbenchmark.score.compute_score import TorchBenchScore, SPEC_FILE_DEFAULT
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("data_dir", nargs='+', 
-                        help="One or more directories containing benchmark json files. " 
+    parser.add_argument("data_dir", nargs='+',
+                        help="One or more directories containing benchmark json files. "
                              "Each directory will be plotted as a separate series. "
                              "By default, the first file in the first directory will be used"
                              " to generate a score configuration with a target of 1000,"
                              " and everything else will be relative to that.")
     parser.add_argument("--output_html", default='plot.html', help="html file to write")
-    parser.add_argument("--score_heirarchy", default='torchbenchmark/score/score.yml', 
+    parser.add_argument("--score_heirarchy", default=SPEC_FILE_DEFAULT,
                         help="file defining score heirarchy")
-    parser.add_argument("--reference_json", required=True, 
+    parser.add_argument("--reference_json", required=True,
                         help="file defining score norm values, usually first json in first data_dir")
     args = parser.parse_args()
     plot_height = 800
@@ -43,13 +41,12 @@ if __name__ == "__main__":
 
     assert len(args.data_dir) > 0, "Must provide at least one data directory"
     compare_datasets = [load_data_dir(d, most_recent_files=-1) for d in args.data_dir]
-    
+
     with open(args.reference_json) as f:
         ref_data = json.load(f)
-    with open(args.score_heirarchy) as f:
-        score_heirarchy = yaml.full_load(f)
-    
-    score_cfg = generate_bench_cfg(score_heirarchy, ref_data, target=1000)
+    score_heirarchy = args.score_heirarchy
+
+    score_config = TorchBenchScore(ref_data, score_heirarchy, 1000)
 
     p = figure(plot_width=plot_width, plot_height=plot_height,
                x_axis_type='datetime')
@@ -61,7 +58,7 @@ if __name__ == "__main__":
         dates = []
         for i in range(len(d._json_raw)):
             data = d._json_raw[i]
-            score = compute_score(score_cfg, data)
+            score = score_config.compute_score(data)
             scores.append(score)
             pytorch_ver = data['machine_info']['pytorch_version']
             date = dt.strptime(pytorch_ver[pytorch_ver.index("dev") + len("dev"):], "%Y%m%d")
