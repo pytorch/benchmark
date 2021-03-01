@@ -78,7 +78,7 @@ class TorchBenchScore:
         else:
             self.norm = {b['name']: b['stats']['mean'] for b in self.ref_data['benchmarks']}
 
-    def get_score_per_config(self, data):
+    def get_score_per_config(self, data, weighted_score=False):
         """
         This function iterates over found benchmark dictionary
         and calculates the weight_sum and benchmark_score.
@@ -110,6 +110,13 @@ class TorchBenchScore:
                 for mean, config, benchmark in all_configs:
                     benchmark_score = weight * math.log(self.norm[benchmark] / mean)
                     score_db[config] += benchmark_score
+
+        # Get the weights per config and calibrate it to the
+        # target score
+        if weighted_score:
+            for config, score in score_db.items():
+                score_db[config] = score * 0.125
+                score_db[config] = self.target * math.exp(score)
 
         return score_db
 
