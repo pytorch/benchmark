@@ -48,7 +48,7 @@ class BenchmarkModel():
         (model, _) = self.get_module()
         model.train(train)
 
-    def check_results(self):
+    def check_opt_vs_noopt_jit(self):
         if not self.jit:
             return
 

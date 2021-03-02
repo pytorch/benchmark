@@ -80,7 +80,7 @@ class TestBenchNetwork:
                 hub_model.set_eval()
                 benchmark(hub_model.eval)
                 benchmark.extra_info['machine_state'] = get_machine_state()
-                if pytestconfig.getoption("check_results"):
-                    hub_model.check_results()
+                if pytestconfig.getoption("check_opt_vs_noopt_jit"):
+                    hub_model.check_opt_vs_noopt_jit()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')
