@@ -16,6 +16,7 @@ import gc
 import pytest
 import time
 import torch
+import inspect
 from torchbenchmark import list_models
 from torchbenchmark.util.machine_config import get_machine_state
 from torchbenchmark.util.model import no_grad
@@ -27,8 +28,8 @@ def pytest_generate_tests(metafunc):
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         metafunc.parametrize('model_class', all_models,
                              ids=[m.name for m in all_models], scope="class")
-        metafunc.parametrize('device', ['cpu', 'cuda'], scope='class')
-        metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
+        metafunc.parametrize('device', ['cuda', 'cpu'], scope='class')
+        metafunc.parametrize('compiler', ['jit'], scope='class')
 
 @pytest.fixture(scope='class')
 def hub_model(request, model_class, device, compiler):
@@ -40,7 +41,9 @@ def hub_model(request, model_class, device, compiler):
     If reusing the module between tests isn't safe, change 'scope' parameter.
     """
     use_jit = compiler == 'jit'
-    return model_class(device=device, jit=use_jit)
+    model = model_class(device=device, jit=use_jit)
+    model.name = inspect.getfile(model_class).split(os.sep)[-2]
+    return model
 
     gc.collect()
     if device == 'cuda':
@@ -54,7 +57,7 @@ def cuda_timer():
 
 @pytest.mark.benchmark(
     warmup=True,
-    warmup_iterations=3,
+    warmup_iterations=0,
     disable_gc=True,
     timer=cuda_timer if (torch.has_cuda and
                          torch.cuda.is_available()) else time.perf_counter,
@@ -68,7 +71,13 @@ class TestBenchNetwork:
     def test_train(self, hub_model, benchmark):
         try:
             hub_model.set_train()
-            benchmark(hub_model.train)
+            if hub_model.jit:
+                for i in range(40):
+                    hub_model.train()
+            with torch.autograd.profiler.profile(use_cuda=True, record_shapes=True) as prof:
+                benchmark(hub_model.train)
+            jit_str = "jit" if hub_model.jit else "eager"
+            prof.export_chrome_trace(f"{hub_model.name}_{hub_model.device}_{jit_str}_train.trace")
             benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method train is not implemented, skipping...')
@@ -78,7 +87,13 @@ class TestBenchNetwork:
             ng_flag = hub_model.eval_in_nograd() and not pytestconfig.getoption("disable_nograd")
             with no_grad(ng_flag):
                 hub_model.set_eval()
-                benchmark(hub_model.eval)
+                if hub_model.jit:
+                    for i in range(40):
+                        hub_model.eval()
+                with torch.autograd.profiler.profile(use_cuda=True, record_shapes=True) as prof:
+                    benchmark(hub_model.eval)
+                jit_str = "jit" if hub_model.jit else "eager"
+                prof.export_chrome_trace(f"{hub_model.name}_{hub_model.device}_{jit_str}_eval.trace")
                 benchmark.extra_info['machine_state'] = get_machine_state()
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')
