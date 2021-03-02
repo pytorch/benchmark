@@ -11,6 +11,9 @@ def pytest_addoption(parser):
                      help="Disable checks/assertions for machine configuration for stable benchmarks")
     parser.addoption("--disable_nograd", action='store_true', 
                     help="Disable no_grad for eval() runs")
+    parser.addoption("--check_opt_vs_noopt_jit",
+                     action='store_true',
+                     help="The best attempt to check results for inference runs. Not all models support this!")
 
 def set_fuser(fuser):
     if fuser == "old":
