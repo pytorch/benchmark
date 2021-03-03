@@ -39,11 +39,14 @@ class TestBenchmark(TestCase):
             self.assertGreaterEqual(mock_save.call_count, 1)
 
 
-def _load_test(model_class, device):
+def _load_test(model_class, device, jit=False, dump_ir=False):
     def model_object(self):
         if device == 'cuda' and not torch.cuda.is_available():
             self.skipTest("torch.cuda not available")
-        return model_class(device=device)
+        # disable profiling mode to dump ir w/o profiling mode
+        if jit and dump_ir:
+            torch._C._jit_set_profiling_mode(False)
+        return model_class(device=device, jit=jit, dump_ir=dump_ir)
 
     def example(self):
         m = model_object(self)
@@ -72,12 +75,14 @@ def _load_test(model_class, device):
     setattr(TestBenchmark, f'test_{model_class.name}_eval_{device}', eval)
 
 
-def _load_tests():
+def _load_tests(dump_ir):
     for Model in list_models():
         for device in ('cpu', 'cuda'):
-            _load_test(Model, device)
+            _load_test(Model, device, True, dump_ir)
 
+dump_ir = True
 
-_load_tests()
+_load_tests(dump_ir)
+
 if __name__ == '__main__':
     unittest.main()

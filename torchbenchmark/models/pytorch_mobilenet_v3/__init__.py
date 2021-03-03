@@ -7,7 +7,7 @@ from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device=None, jit=False, dump_ir=False):
         super().__init__()
         """ Required """
         self.device = device
@@ -17,6 +17,9 @@ class Model(BenchmarkModel):
             self.model = torch.jit.script(self.model)
         input_size = (1, 3, 224, 224)
         self.example_inputs = (torch.randn(input_size).to(self.device),)
+        if self.jit and dump_ir:
+            print("Dump Graph IR for pytorch_mobilenetv3")
+            print(self.model.graph_for(*self.example_inputs))
 
     def get_module(self):
         return self.model, self.example_inputs
