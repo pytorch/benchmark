@@ -10,7 +10,7 @@ from torchbenchmark import list_models
 import torch
 
 NO_JIT = {"Background_Matting", "moco", "pytorch_CycleGAN_and_pix2pix", "Super_SloMo", "tacotron2"}
-MOD_INIT = {"BERT_pytorch", "pytorch_stargan"}
+# MOD_INIT = {"BERT_pytorch", "pytorch_stargan"}
 SKIP = {"attention_is_all_you_need", "demucs", "dlrm", "maml", "yolov3"}
 
 def get_dump_filename(name, device):
@@ -32,6 +32,10 @@ def iter_models(args):
 
             benchmark = benchmark_cls(device=device, jit=True)
             model, example_inputs = benchmark.get_module()
+
+            if benchmark_cls.name == "BERT_pytorch":
+                # extract ScriptedModule object for BERT model
+                model = model.bert
 
             fname = get_dump_filename(benchmark.name, device)
             print(f"Dump Graph IR for {benchmark.name} to {fname}")
