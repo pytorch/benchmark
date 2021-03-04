@@ -255,7 +255,7 @@ def get_machine_config():
     machine_type = get_machine_type()
     config['machine_type'] = machine_type
     config['cpu_brand'] = cpuinfo.get_cpu_info()['brand_raw']
-    if MACHINE.AMAZON_LINUX == machine_type():
+    if MACHINE.AMAZON_LINUX == machine_type:
         config['linux_distribution'] = distro.linux_distribution()
         config['intel_turbo_disabled'] = check_intel_no_turbo_state()
         config['intel_hyper_threading_enabled'] = hyper_threading_enabled()
