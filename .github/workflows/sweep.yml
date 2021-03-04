@@ -1,6 +1,11 @@
 name: TorchBench sweep v0.1
 on:
   workflow_dispatch:
+    inputs:
+      repeat:
+        description: "Repeat times for each sweep version"
+        required: true
+        default: 1
 
 jobs:
   run-benchmark:
@@ -14,4 +19,5 @@ jobs:
           ref: 0.1
       - name: Run benchmark
         run: |
+          export NUM_ITER=${{ github.event.inputs.repeat }}
           bash ./.github/scripts/run-sweep-nodocker.sh
