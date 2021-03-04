@@ -21,7 +21,7 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
-    def __init__(self, device=None, jit=False, dump_ir=False):
+    def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -34,7 +34,6 @@ class Model(BenchmarkModel):
         config.use_tensorboard = False
         config.device = device
         config.should_script = jit
-        config.dump_ir = dump_ir
 
         makedirs(config)
 
@@ -45,9 +44,6 @@ class Model(BenchmarkModel):
                              should_script=config.should_script)
         self.model = self.solver.G
         self.example_inputs = self.generate_example_inputs()
-        if jit and dump_ir:
-            print(f"Dump graph IR for pytorch_stargan using example inputs")
-            print(self.model.graph_for(*self.example_inputs))
 
     def get_data_loader(self, config):
         celeba_loader = get_loader(config.celeba_image_dir, config.attr_path, config.selected_attrs,

@@ -20,7 +20,7 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
-    def __init__(self, device=None, jit=False, dump_ir=False):
+    def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -58,19 +58,11 @@ class Model(BenchmarkModel):
         self.is_next = example_batch['is_next'].to(self.device)
         self.bert_label = example_batch['bert_label'].to(self.device)
 
-        # Dump graph_ir using example input
-        if args.script and dump_ir:
-            # print(f'Scripted graph model={self.name}, device={device}:\n', bert.graph)
-            # bert._c.dump(code=True, attrs=False, params=False)
-            print("Dump graph_For bert w/ example_inputs")
-            print(bert.graph_for(*self.example_inputs))
-
     def get_module(self):
         return self.trainer.model, self.example_inputs
 
     def eval(self, niter=1):
         trainer = self.trainer
-
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
             next_sent_output, mask_lm_output = trainer.model.forward(*self.example_inputs)
