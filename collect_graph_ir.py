@@ -17,10 +17,11 @@ def get_dump_filename(name, device):
     return f"{name}.{device}.last_executed_graph_dump.log"
 
 def iter_models(args):
+    device = "cpu"
     for benchmark_cls in list_models():
-        if (not re.search("|".join(args.filter), benchmark_cls.name, re.I) or
-                re.search("|".join(args.exclude), benchmark_cls.name, re.I) or
-                benchmark_cls.name in SKIP or
+        #if (not re.search("|".join(args.filter), benchmark_cls.name, re.I) or
+        #        re.search("|".join(args.exclude), benchmark_cls.name, re.I) or
+        if     (benchmark_cls.name in SKIP or
                 benchmark_cls.name in MOD_INIT or
                 benchmark_cls.name in NO_JIT):
             continue
@@ -29,11 +30,11 @@ def iter_models(args):
             # profiling node
             torch._C._jit_set_profiling_mode(False)
 
-            benchmark = benchmark_cls(device=args.device, jit=True)
+            benchmark = benchmark_cls(device=device, jit=True)
             model, example_inputs = benchmark.get_module()
 
             fname = get_dump_filename(benchmark.name, device)
-            print(f"Dump Graph IR for {benchmark.name} using example inputs to {fname}:")
+            print(f"Dump Graph IR for {benchmark.name} to {fname}")
             with open(fname, 'w') as dump_file:
                 print(model.graph_for(*example_inputs), file=dump_file)
         except NotImplementedError:
