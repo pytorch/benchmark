@@ -18,3 +18,11 @@ jobs:
       - name: Run benchmark
         run: |
           bash ./.github/scripts/run-nightly-nodocker.sh
+          JSON_OUTPUT=$(find ${HOME}/benchmark-results-v0.1/gh${GITHUB_RUN_ID} -name "*.json" -type f | head -n 1)
+          TODAY=$(date '+%Y-%m-%d')
+          ln -s $JSON_OUTPUT ./result-${TODAY}.json
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: nightly-result
+          path: result-*.json
