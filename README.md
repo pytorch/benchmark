@@ -48,6 +48,18 @@ for hints about how to replicate the CI environment if you have issues
   with pip torch, or mix built-from-source torch with pip torchtext.  It's important to match even the conda channel (nightly vs regular).
   This is due to differences in the compilation process used by different packaging systems producing incompatible python binary extensions.
 
+## Using a low-noise machine
+Various sources of noise, such as interrupts, context switches, clock frequency scaling, etc. can all conspire to make benchmark results variable.  It's important to understand the level of noise in your setup before drawing conclusions from benchmark data.  While any machine can in principle be tuned up, the steps and end-results vary with OS, kernel, drivers, and hardware.  To this end, torchbenchmark picks a favorite machine type it can support well, and provides utilities for automating tuning on that machine.  In the future, we may support more machine types and would be happy for contributions here.
+
+The currently supported machine type is an AWS g4dn.metal instance using Amazon Linux.  This is one of the subset of AWS instance types that supports [processor state control](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/processor_state_control.html), with documented tuning guides for Amazon Linux.  Most or all of these steps should be possible on Ubuntu but haven't been automated yet.
+
+To tune your g4dn.metal Amazon Linux machine, run
+```
+sudo `which python` torchbenchmark/util/machine_config.py --configure
+```
+
+When running pytest (see below), the machine_config script is invoked to assert a proper configuration and log config info into the output json.  It is possible to ```--ignore_machine_config``` if running pytest without tuning is desired.
+
 
 ## Running Model Benchmarks
 There are currently two top-level scripts for running the models.
