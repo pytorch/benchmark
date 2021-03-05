@@ -235,8 +235,8 @@ def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
         for path in freq_paths:
             all_exist = all_exist and os.path.exists(path)
         if all_exist:
-            write_sys_file(freq_paths[0], min_freq * 1000)
-            write_sys_file(freq_paths[1], max_freq * 1000)
+            write_sys_file(freq_paths[0], str(min_freq * 1000))
+            write_sys_file(freq_paths[1], str(max_freq * 1000))
 
 def check_pstate_frequency_pin(pin_freq = 2500):
     FREQ_THRESHOLD = 10  # Allow 10 MHz difference maximum
