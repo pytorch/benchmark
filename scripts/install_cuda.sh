@@ -22,7 +22,7 @@ rm -f /usr/local/cuda && ln -s /usr/local/cuda-11.1 /usr/local/cuda
 # cuDNN download archive: https://developer.nvidia.com/rdp/cudnn-archive
 # cuDNN license: https://developer.nvidia.com/cudnn/license_agreement
 mkdir tmp_cudnn && cd tmp_cudnn
-wget -q https://developer.nvidia.com/compute/machine-learning/cudnn/secure/8.0.5/11.1_20201106/cudnn-11.1-linux-x64-v8.0.5.39.tgz -O cudnn-8.0.tgz
+wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.0.5/cudnn-11.1-linux-x64-v8.0.5.39.tgz -O cudnn-8.0.tgz
 tar xf cudnn-8.0.tgz
 cp -a cuda/include/* /usr/local/cuda/include/
 cp -a cuda/lib64/* /usr/local/cuda/lib64/
