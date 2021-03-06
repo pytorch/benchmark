@@ -35,7 +35,7 @@ def pytest_sessionstart(session):
         check_machine_configured()
     except Exception as e:
         if not session.config.getoption('ignore_machine_config'):
-            pytest.exit(f"{e}\nUse --ignore_machine_config arg if not running with recommended tuning settings")
+            pytest.exit(f"{e}\nSee README.md for machine tuning script usage, or use --ignore_machine_config")
 
 def pytest_configure(config):
     set_fuser(config.getoption("fuser"))
