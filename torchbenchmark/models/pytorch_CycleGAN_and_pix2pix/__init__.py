@@ -25,12 +25,12 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
     def __init__(self, device=None, jit=False):
         super().__init__()
+        self.device = device
+        self.jit = jit
         if device != 'cuda': # NYI implemented for things that aren't on the GPU
             self.get_module = self.train = self.eval = nyi
             return
 
-        self.device = device
-        self.jit = jit
         train_args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 --n_epochs_decay 3"
         self.training_loop = prepare_training_loop(train_args.split(' '))
         self.model, self.input = get_model(jit)
