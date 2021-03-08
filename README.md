@@ -73,6 +73,17 @@ In each model repo, the assumption is that the user would already have all of th
 ### Using `test.py`
 `python test.py` will execute the APIs for each model, as a sanity check.  For benchmarking, use test_bench.py.  It is based on unittest, and supports filtering via CLI.
 
+For instance, to run the BERT model on CPU for the example execution mode:
+```
+python test.py -k "test_BERT_pytorch_example_cpu"
+```
+
+The test name follows the following pattern:
+
+```
+"test_" + <model_name> + "_" + {"example" | "train" | "eval" } + "_" + {"cpu" | "cuda"}
+```
+
 ### Using pytest-benchmark driver
 `pytest test_bench.py` invokes the benchmark driver.  See `--help` for a complete list of options.  
 
