@@ -108,7 +108,7 @@ a model object from __init__ but raise NotImplementedError() from all its method
             for i in range(niterations):
                 model(*example_inputs)
 
-        def set_eval(self):
+        def set_eval_and_freeze(self):
             """ Set the evaluation mode on a model for `eval()` calls. See the next section
             (optional api)
             """
@@ -121,7 +121,7 @@ a model object from __init__ but raise NotImplementedError() from all its method
             self._set_mode(True)
 
         def _set_mode(self, train):
-            """ A helper for implementing `set_train` and `set_eval`
+            """ A helper for implementing `set_train` and `set_eval_and_freeze`
             (optional api)
             """
             (model, _) = self.get_module()
@@ -129,9 +129,9 @@ a model object from __init__ but raise NotImplementedError() from all its method
 
 [example __init__.py](attention-is-all-you-need-pytorch/__init__.py)
 
-### `set_eval()` and `set_train()`
+### `set_eval_and_freeze()` and `set_train()`
 
-`set_eval()` and `set_train()` are used by `test_bench.py` to set `train` or `eval` mode on an underlying model. The default implementation uses `get_module()` to get the underlying model instance. You should override these methods if your `Model` uses more than one underlying model (for training and inference)
+`set_eval_and_freeze()` and `set_train()` are used by `test_bench.py` to set `train` or `eval` mode on an underlying model. The default implementation uses `get_module()` to get the underlying model instance. You should override these methods if your `Model` uses more than one underlying model (for training and inference)
 
 ### JIT
 As an optional step, make whatever modifications necessary to the model code to enable it to script or trace.  If doing this,

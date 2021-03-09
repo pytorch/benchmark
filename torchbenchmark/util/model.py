@@ -35,8 +35,10 @@ class BenchmarkModel():
     def eval(self):
         raise NotImplementedError()
 
-    def set_eval(self):
-        self._set_mode(False)
+    def set_eval_and_freeze(self):
+        (model, _) = self._set_mode(False)
+        if self.jit:
+            self.model = torch.jit.freeze(model, True)
 
     def set_train(self):
         self._set_mode(True)
@@ -47,6 +49,7 @@ class BenchmarkModel():
     def _set_mode(self, train):
         (model, _) = self.get_module()
         model.train(train)
+        return (model, _)
 
     def check_opt_vs_noopt_jit(self):
         if not self.jit:
