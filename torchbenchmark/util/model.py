@@ -27,7 +27,7 @@ class BenchmarkModel():
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
     def __init__(self, *args, **kwargs): 
-        pass
+        self.frozen = False
 
     def train(self):
         raise NotImplementedError()
@@ -37,8 +37,9 @@ class BenchmarkModel():
 
     def set_eval_and_freeze(self):
         (model, _) = self._set_mode(False)
-        if self.jit:
+        if self.jit and not self.frozen:
             self.model = torch.jit.freeze(model, True)
+            self.frozen = True
 
     def set_train(self):
         self._set_mode(True)
