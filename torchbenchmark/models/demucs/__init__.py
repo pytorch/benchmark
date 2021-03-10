@@ -68,7 +68,9 @@ class Model(BenchmarkModel):
         self.model = DemucsWrapper(self.model, self.augment)
 
     def _set_mode(self, train):
-        self.model.train(train)
+        (model, _) = self.get_module()
+        model.train(train)
+        return (model, _)
 
     def get_module(self):
         if self.jit:
