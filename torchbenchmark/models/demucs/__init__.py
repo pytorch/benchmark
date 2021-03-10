@@ -72,6 +72,7 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         if self.jit:
+            print("raising exception")
             raise NotImplementedError("Eager only")
         self.model.eval()
         return self.model, self.example_inputs

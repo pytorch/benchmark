@@ -50,6 +50,7 @@ class BenchmarkModel():
         return True
 
     def _set_mode(self, train):
+        print("calling _set_mode")
         (model, _) = self.get_module()
         model.train(train)
         return (model, _)
