@@ -10,6 +10,7 @@ The benchmark suite should be self contained in terms of dependencies,
 except for the torch products which are intended to be installed separately so
 different torch versions can be benchmarked.
 
+### Using Pre-built Packages
 Use python 3.7 as currently there are compatibility issues with 3.8+.  Conda is optional but suggested.  To switch to python 3.7 in conda:
 ```
 # using your current conda enviroment:
@@ -37,6 +38,20 @@ git clone <benchmark>
 cd <benchmark>
 python install.py
 ```
+
+### Building From Source
+Note that when building PyTorch from source, torchvision and torchtext must also be built from source to make sure the C APIs match.
+
+See detailed instructions to install torchvision [here](https://github.com/pytorch/vision), and torchtext [here](https://github.com/pytorch/vision).
+Take care to enable CUDA (FORCE_CUDA=1) if using CUDA.
+Then,
+```
+git clone <benchmark>
+cd <benchmark>
+python install.py
+```
+
+
 
 
 ### Notes
@@ -91,6 +106,10 @@ Some useful options include
 - `--benchmark-autosave` (or other save related flags) to get .json output
 - `-k <filter expression>` (standard pytest filtering)
 - `--collect-only` only show what tests would run, useful to see what models there are or debug your filter expression
+
+#### Examples of Benchmark Filters
+- `-k "test_train[NAME-cuda-jit]"` for a particular flavor of a particular model
+- `-k "(BERT and (not cuda) and (not jit))"` for a more flexible approach to filtering
 
 ## Nightly CI runs
 Currently, models run on nightly pytorch builds and push data to scuba.
