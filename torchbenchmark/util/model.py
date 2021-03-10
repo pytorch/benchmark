@@ -38,7 +38,10 @@ class BenchmarkModel():
     def set_eval_and_freeze(self):
         (model, _) = self._set_mode(False)
         if self.jit and not self.frozen:
-            self.model = torch.jit.freeze(model)
+            self.set_module(torch.jit.freeze(model))
+
+    def set_module(self, module):
+        self.model = module
     
     def set_train(self):
         self._set_mode(True)

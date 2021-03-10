@@ -177,12 +177,11 @@ class Model(BenchmarkModel):
                                             self.opt.lr_num_decay_steps)
 
     def get_module(self):
+        if self.jit:
+            raise NotImplementedError("JIT not supported")
         return self.module, self.example_inputs
 
     def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT not supported")
-
         for _ in range(niter):
             self.module(*self.example_inputs)
 

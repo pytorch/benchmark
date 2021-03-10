@@ -62,6 +62,9 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.module, self.example_inputs
 
+    def set_module(self, module):
+        self.module = module
+        
     def eval(self, niter=1):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
