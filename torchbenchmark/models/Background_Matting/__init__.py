@@ -116,11 +116,6 @@ class Model(BenchmarkModel):
     def get_module(self):
         raise NotImplementedError()
 
-    # eval() isn't implemented
-    # train() is on by default
-    def _set_mode(self, train):
-        pass
-
     def train(self, niterations=1):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")

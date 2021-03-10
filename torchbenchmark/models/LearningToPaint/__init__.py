@@ -22,6 +22,7 @@ torch.backends.cudnn.benchmark = False
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
     def __init__(self, device=None, jit=False):
+        super(Model, self).__init__()
         self.device = device
         self.jit = jit
         self.criterion = nn.MSELoss()
@@ -56,6 +57,10 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         return self.module,[self.example_inputs]
+
+    def set_module(self, module):
+        self.module = module
+
 
     def train(self, niter=1):
         for _ in range(niter):

@@ -77,7 +77,7 @@ class TestBenchNetwork:
         try:
             ng_flag = hub_model.eval_in_nograd() and not pytestconfig.getoption("disable_nograd")
             with no_grad(ng_flag):
-                hub_model.set_eval()
+                hub_model.set_eval_and_freeze()
                 benchmark(hub_model.eval)
                 benchmark.extra_info['machine_state'] = get_machine_state()
                 if pytestconfig.getoption("check_opt_vs_noopt_jit"):
