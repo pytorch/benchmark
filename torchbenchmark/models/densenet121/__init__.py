@@ -8,9 +8,8 @@ from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
-    def __init__(self, device=None, jit=False):
-        super().__init__()
     def __init__(self, device="cpu", jit=False):
+        super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.densenet121().to(self.device)
