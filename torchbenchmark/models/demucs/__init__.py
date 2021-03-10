@@ -71,7 +71,7 @@ class Model(BenchmarkModel):
         self.model.train(train)
 
     def get_module(self):
-        if self.jit
+        if self.jit:
             raise NotImplementedError("Eager only")
         self.model.eval()
         return self.model, self.example_inputs
