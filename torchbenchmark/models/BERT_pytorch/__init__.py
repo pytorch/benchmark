@@ -57,15 +57,20 @@ class Model(BenchmarkModel):
         self.example_inputs = example_batch['bert_input'].to(self.device), example_batch['segment_label'].to(self.device)
         self.is_next = example_batch['is_next'].to(self.device)
         self.bert_label = example_batch['bert_label'].to(self.device)
+        self.eval_model = self.trainer.model
 
     def get_module(self):
-        return self.trainer.model, self.example_inputs
+        return self.eval_model, self.example_inputs
+
+    def set_module(self, module):
+        self.eval_model = module
 
     def eval(self, niter=1):
         trainer = self.trainer
+        model, _ = self.get_module()
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
-            next_sent_output, mask_lm_output = trainer.model.forward(*self.example_inputs)
+            next_sent_output, mask_lm_output = model.forward(*self.example_inputs)
 
             # 2-1. NLL(negative log likelihood) loss of is_next classification result
             # 2-2. NLLLoss of predicting masked token word

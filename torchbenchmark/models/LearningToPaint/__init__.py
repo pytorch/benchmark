@@ -57,6 +57,10 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.module,[self.example_inputs]
 
+    def set_module(self, module):
+        self.module = module
+
+
     def train(self, niter=1):
         for _ in range(niter):
             gen = self.module(self.example_inputs)

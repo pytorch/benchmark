@@ -105,6 +105,10 @@ class Model(BenchmarkModel):
         if self.device != "cuda":
             raise NotImplementedError("GPU only")
 
+        # figure out why self.jit was commented out
+        if self.jit:
+            raise NotImplementedError("eager only")
+
         images = []
         for (i, _) in self.train_loader:
             images = (i[0], i[1])
