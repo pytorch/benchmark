@@ -42,6 +42,9 @@ def pytest_configure(config):
 
 def pytest_benchmark_update_machine_info(config, machine_info):
     machine_info['pytorch_version'] = torch.__version__
+    machine_info['pytorch_git_version'] = torch.version.git_version
+    machine_info['cuda_version'] = torch.version.cuda
+
     try:
         import torchtext
         machine_info['torchtext_version'] = torchtext.__version__
