@@ -7,13 +7,15 @@
 import math
 
 import torch as th
-from torch import nn
+from torch import Tensor, nn
 
 from .utils import capture_init, center_trim
+from torch.nn.modules.conv import Conv1d, ConvTranspose1d
+from typing import Union
 
 
 class BLSTM(nn.Module):
-    def __init__(self, dim, layers=1):
+    def __init__(self, dim: int, layers: int=1) -> None:
         super().__init__()
         self.lstm = nn.LSTM(bidirectional=True, num_layers=layers, hidden_size=dim, input_size=dim)
         self.lstm.flatten_parameters()
@@ -27,7 +29,7 @@ class BLSTM(nn.Module):
         return x
 
 
-def rescale_conv(conv, reference):
+def rescale_conv(conv: Union[Conv1d, ConvTranspose1d], reference: float) -> None:
     std = conv.weight.std().detach()
     scale = (std / reference)**0.5
     conv.weight.data /= scale
@@ -35,13 +37,13 @@ def rescale_conv(conv, reference):
         conv.bias.data /= scale
 
 
-def rescale_module(module, reference):
+def rescale_module(module: th.nn.Module, reference: float) -> None:
     for sub in module.modules():
         if isinstance(sub, (nn.Conv1d, nn.ConvTranspose1d)):
             rescale_conv(sub, reference)
 
 
-def upsample(x, stride):
+def upsample(x, stride: int):
     """
     Linear upsampling, the output will be `stride` times longer.
     """
@@ -52,7 +54,7 @@ def upsample(x, stride):
     return out.reshape(batch, channels, -1)
 
 
-def downsample(x, stride):
+def downsample(x, stride: int):
     """
     Downsample x by decimation.
     """
@@ -64,19 +66,19 @@ class Demucs(th.jit.ScriptModule):
 
     @capture_init
     def __init__(self,
-                 sources=4,
-                 audio_channels=2,
-                 channels=64,
-                 depth=6,
-                 rewrite=True,
-                 glu=True,
-                 upsample=False,
-                 rescale=0.1,
-                 kernel_size=8,
-                 stride=4,
-                 growth=2.,
-                 lstm_layers=2,
-                 context=3):
+                 sources: int=4,
+                 audio_channels: int=2,
+                 channels: int=64,
+                 depth: int=6,
+                 rewrite: bool=True,
+                 glu: bool=True,
+                 upsample: bool=False,
+                 rescale: float=0.1,
+                 kernel_size: int=8,
+                 stride: int=4,
+                 growth: float=2.,
+                 lstm_layers: int=2,
+                 context: int=3) -> None:
         """
         Args:
             sources (int): number of sources to separate
@@ -194,7 +196,7 @@ class Demucs(th.jit.ScriptModule):
 
         return int(length)
 
-    def forward(self, mix):
+    def forward(self, mix: Tensor) -> Tensor:
         x = mix
         saved = [x]
         for encode in self.encoder:
@@ -202,7 +204,7 @@ class Demucs(th.jit.ScriptModule):
             saved.append(x)
             if self.upsample:
                 x = downsample(x, self.stride)
-        if self.lstm:
+        if self.lstm is not None:
             x = self.lstm(x)
         for decode in self.decoder:
             if self.upsample:
@@ -210,7 +212,7 @@ class Demucs(th.jit.ScriptModule):
             skip = center_trim(saved.pop(-1), x)
             x = x + skip
             x = decode(x)
-        if self.final:
+        if self.final is not None:
             skip = center_trim(saved.pop(-1), x)
             x = th.cat([x, skip], dim=1)
             x = self.final(x)

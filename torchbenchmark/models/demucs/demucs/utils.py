@@ -16,19 +16,19 @@ from contextlib import contextmanager
 
 import torch as th
 import tqdm
-from torch import distributed
+from torch import Tensor, distributed
 from torch.nn import functional as F
+from typing import Callable, Any
 
 
-def center_trim(tensor, reference):
+def center_trim(tensor: Tensor, reference: Tensor) -> Tensor:
     """
     Center trim `tensor` with respect to `reference`, along the last dimension.
     `reference` can also be a number, representing the length to trim to.
     If the size difference != 0 mod 2, the extra sample is removed on the right side.
     """
-    if hasattr(reference, "size"):
-        reference = reference.size(-1)
-    delta = tensor.size(-1) - reference
+    reference_val: int = reference.size(-1)
+    delta = tensor.size(-1) - reference_val
     if delta < 0:
         raise ValueError("tensor must be larger than reference. " f"Delta is {delta}.")
     if delta:
@@ -177,7 +177,7 @@ def save_model(model, path):
     th.save((klass, args, kwargs, state), save_to)
 
 
-def capture_init(init):
+def capture_init(init: Callable) -> Callable:
     @functools.wraps(init)
     def __init__(self, *args, **kwargs):
         self._init_args_kwargs = (args, kwargs)
