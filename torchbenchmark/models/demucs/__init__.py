@@ -10,6 +10,10 @@ from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
 from .demucs.utils import capture_init, center_trim
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
+from torch import Tensor
+from torch.nn.modules.container import Sequential
+from torchbenchmark.models.demucs.demucs.model import Demucs
+from typing import Optional, Tuple
 
 
 torch.manual_seed(1337)
@@ -20,12 +24,12 @@ torch.backends.cudnn.benchmark = False
 
 
 class DemucsWrapper(torch.nn.Module):
-    def __init__(self, model, augment):
+    def __init__(self, model: Demucs, augment: Sequential) -> None:
         super(DemucsWrapper, self).__init__()
         self.model = model
         self.augment = augment
 
-    def forward(self, streams):
+    def forward(self, streams: Tensor) -> Tuple[Tensor, Tensor]:
         sources = streams[:, 1:]
         sources = self.augment(sources)
         mix = sources.sum(dim=1)
@@ -34,7 +38,7 @@ class DemucsWrapper(torch.nn.Module):
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device: Optional[str]=None, jit: bool=False) -> None:
         super().__init__()
         self.device = device
         self.jit = jit
@@ -67,10 +71,13 @@ class Model(BenchmarkModel):
 
         self.model = DemucsWrapper(self.model, self.augment)
 
+        if self.jit:
+            self.model = torch.jit.script(self.model)
+
     def _set_mode(self, train):
         self.model.train(train)
 
-    def get_module(self):
+    def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
         self.model.eval()
         return self.model, self.example_inputs
 
@@ -92,8 +99,9 @@ class Model(BenchmarkModel):
 
 
 if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)
+    for jit in [True, False]:
+        m = Model(device='cuda', jit=jit)
+        module, example_inputs = m.get_module()
+        module(*example_inputs)
+        m.train(niter=1)
+        m.eval(niter=1)
