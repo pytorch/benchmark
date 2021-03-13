@@ -27,7 +27,7 @@ from . import data_utils
 
 # numpy
 import numpy as np
-from numpy import random as ra
+from numpy import int64, ndarray, random as ra
 
 
 # pytorch
@@ -35,6 +35,10 @@ import torch
 from torch.utils.data import Dataset, RandomSampler
 
 from . import data_loader_terabyte
+from argparse import Namespace
+from torch import Tensor
+from torch.utils.data.dataloader import DataLoader
+from typing import List, Tuple
 
 
 # Kaggle Display Advertising Challenge Dataset
@@ -524,21 +528,21 @@ class RandomDataset(Dataset):
 
     def __init__(
             self,
-            m_den,
-            ln_emb,
-            data_size,
-            num_batches,
-            mini_batch_size,
-            num_indices_per_lookup,
-            num_indices_per_lookup_fixed,
-            num_targets=1,
-            round_targets=False,
-            data_generation="random",
-            trace_file="",
-            enable_padding=False,
-            reset_seed_on_access=False,
-            rand_seed=0
-    ):
+            m_den: int64,
+            ln_emb: ndarray,
+            data_size: int,
+            num_batches: int,
+            mini_batch_size: int,
+            num_indices_per_lookup: int,
+            num_indices_per_lookup_fixed: bool,
+            num_targets: int=1,
+            round_targets: bool=False,
+            data_generation: str="random",
+            trace_file: str="",
+            enable_padding: bool=False,
+            reset_seed_on_access: bool=False,
+            rand_seed: int=0
+    ) -> None:
         # compute batch size
         nbatches = int(np.ceil((data_size * 1.0) / mini_batch_size))
         if num_batches != 0:
@@ -562,11 +566,11 @@ class RandomDataset(Dataset):
         self.reset_seed_on_access = reset_seed_on_access
         self.rand_seed = rand_seed
 
-    def reset_numpy_seed(self, numpy_rand_seed):
+    def reset_numpy_seed(self, numpy_rand_seed: int) -> None:
         np.random.seed(numpy_rand_seed)
         # torch.manual_seed(numpy_rand_seed)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Tuple[Tensor, List[Tensor], List[Tensor], Tensor]:
 
         if isinstance(index, slice):
             return [
@@ -612,13 +616,13 @@ class RandomDataset(Dataset):
 
         return (X, lS_o, lS_i, T)
 
-    def __len__(self):
+    def __len__(self) -> int:
         # WARNING: note that we produce bacthes of outputs in __getitem__
         # therefore we should use num_batches rather than data_size below
         return self.num_batches
 
 
-def collate_wrapper_random(list_of_tuples):
+def collate_wrapper_random(list_of_tuples: List[Tuple[Tensor, List[Tensor], List[Tensor], Tensor]]) -> Tuple[Tensor, Tensor, List[Tensor], Tensor]:
     # where each tuple is (X, lS_o, lS_i, T)
     (X, lS_o, lS_i, T) = list_of_tuples[0]
     return (X,
@@ -627,7 +631,7 @@ def collate_wrapper_random(list_of_tuples):
             T)
 
 
-def make_random_data_and_loader(args, ln_emb, m_den):
+def make_random_data_and_loader(args: Namespace, ln_emb: ndarray, m_den: int64) -> Tuple[RandomDataset, DataLoader]:
 
     train_data = RandomDataset(
         m_den,
@@ -722,7 +726,7 @@ def generate_random_data(
     return (nbatches, lX, lS_offsets, lS_indices, lT)
 
 
-def generate_random_output_batch(n, num_targets, round_targets=False):
+def generate_random_output_batch(n: int, num_targets: int, round_targets: bool=False) -> Tensor:
     # target (probability of a click)
     if round_targets:
         P = np.round(ra.rand(n, num_targets).astype(np.float32)).astype(np.float32)
@@ -734,12 +738,12 @@ def generate_random_output_batch(n, num_targets, round_targets=False):
 
 # uniform ditribution (input data)
 def generate_uniform_input_batch(
-    m_den,
-    ln_emb,
-    n,
-    num_indices_per_lookup,
-    num_indices_per_lookup_fixed,
-):
+    m_den: int64,
+    ln_emb: ndarray,
+    n: int,
+    num_indices_per_lookup: int,
+    num_indices_per_lookup_fixed: bool,
+) -> Tuple[Tensor, List[Tensor], List[Tensor]]:
     # dense feature
     Xt = torch.tensor(ra.rand(n, m_den).astype(np.float32))
 

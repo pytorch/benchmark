@@ -61,7 +61,7 @@ def pow_2_round(dims):
 
 
 class PrEmbeddingBag(nn.Module):
-    def __init__(self, num_embeddings, embedding_dim, base_dim):
+    def __init__(self, num_embeddings: int, embedding_dim, base_dim):
         super(PrEmbeddingBag, self).__init__()
         self.embs = nn.EmbeddingBag(
             num_embeddings, embedding_dim, mode="sum", sparse=True)

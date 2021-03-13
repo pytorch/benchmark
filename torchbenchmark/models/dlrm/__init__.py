@@ -21,17 +21,15 @@ from torch.nn.parallel.parallel_apply import parallel_apply
 from torch.nn.parallel.replicate import replicate
 from torch.nn.parallel.scatter_gather import gather, scatter
 
-# quotient-remainder trick
-from .tricks.qr_embedding_bag import QREmbeddingBag
-# mixed-dimension trick
-from .tricks.md_embedding_bag import PrEmbeddingBag, md_solver
-
 from torch.optim.lr_scheduler import _LRScheduler
 
 from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
 from argparse import Namespace
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
+from torch import Tensor
+from torchbenchmark.models.dlrm.dlrm_s_pytorch import DLRM_Net
+from typing import List, Optional, Tuple
 
 ### some basic setup ###
 np.random.seed(123)
@@ -39,7 +37,7 @@ torch.manual_seed(123)
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device: Optional[str]=None, jit: bool=False) -> None:
         super().__init__()
         self.device = device
         self.jit = jit
@@ -170,26 +168,23 @@ class Model(BenchmarkModel):
             sys.exit("ERROR: --loss-function=" + self.opt.loss_function + " is not supported")
 
         self.module = dlrm.to(self.device)
+        if self.jit:
+            self.module = torch.jit.script(self.module)
+
         self.example_inputs = (X, lS_o, lS_i)
         self.loss_fn = torch.nn.MSELoss(reduction="mean")
         self.optimizer = torch.optim.SGD(dlrm.parameters(), lr=self.opt.learning_rate)
         self.lr_scheduler = LRPolicyScheduler(self.optimizer, self.opt.lr_num_warmup_steps, self.opt.lr_decay_start_step,
                                             self.opt.lr_num_decay_steps)
 
-    def get_module(self):
+    def get_module(self) -> Tuple[DLRM_Net, Tuple[Tensor, Tensor, List[Tensor]]]:
         return self.module, self.example_inputs
 
     def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT not supported")
-
         for _ in range(niter):
             self.module(*self.example_inputs)
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT not supported")
-
         gen = self.module(*self.example_inputs)
         for _ in range(niter):
             self.optimizer.zero_grad()
@@ -203,8 +198,9 @@ class Model(BenchmarkModel):
             self.lr_scheduler.step()
 
 if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train()
-    m.eval()
+    for jit in [True, False]:
+        m = Model(device='cuda', jit=jit)
+        module, example_inputs = m.get_module()
+        module(*example_inputs)
+        m.train()
+        m.eval()

@@ -92,11 +92,22 @@ import sklearn.metrics
 # from torch.nn.parameter import Parameter
 
 from torch.optim.lr_scheduler import _LRScheduler
+from torch.nn.modules.container import ModuleList, Sequential
+from numpy import ndarray
+from torch import Tensor
+from torch.nn.modules.container import ModuleList, Sequential
+from torch.optim.sgd import SGD
+from typing import List, Optional
 
 exc = getattr(builtins, "IOError", "FileNotFoundError")
 
+@torch.jit.interface
+class EmbeddingBagInterface(torch.nn.Module):
+    def forward(self, input: Tensor, offsets: Optional[Tensor] =None, per_sample_weights: Optional[Tensor]=None) -> Tensor:
+        pass
+
 class LRPolicyScheduler(_LRScheduler):
-    def __init__(self, optimizer, num_warmup_steps, decay_start_step, num_decay_steps):
+    def __init__(self, optimizer: SGD, num_warmup_steps: int, decay_start_step: int, num_decay_steps: int) -> None:
         self.num_warmup_steps = num_warmup_steps
         self.decay_start_step = decay_start_step
         self.decay_end_step = decay_start_step + num_decay_steps
@@ -107,7 +118,7 @@ class LRPolicyScheduler(_LRScheduler):
 
         super(LRPolicyScheduler, self).__init__(optimizer)
 
-    def get_lr(self):
+    def get_lr(self) -> List[float]:
         step_count = self._step_count
         if step_count < self.num_warmup_steps:
             # warmup
@@ -133,7 +144,7 @@ class LRPolicyScheduler(_LRScheduler):
 
 ### define dlrm in PyTorch ###
 class DLRM_Net(nn.Module):
-    def create_mlp(self, ln, sigmoid_layer):
+    def create_mlp(self, ln: ndarray, sigmoid_layer: int) -> Sequential:
         # build MLP layer by layer
         layers = nn.ModuleList()
         for i in range(0, ln.size - 1):
@@ -173,10 +184,10 @@ class DLRM_Net(nn.Module):
         # approach 2: use Sequential container to wrap all layers
         return torch.nn.Sequential(*layers)
 
-    def create_emb(self, m, ln):
+    def create_emb(self, m: int, ln: ndarray) -> ModuleList:
         emb_l = nn.ModuleList()
         for i in range(0, ln.size):
-            n = ln[i]
+            n = ln[i].item()
             # construct embedding operator
             if self.qr_flag and n > self.qr_threshold:
                 EE = QREmbeddingBag(n, m, self.qr_collisions,
@@ -212,24 +223,24 @@ class DLRM_Net(nn.Module):
 
     def __init__(
         self,
-        m_spa=None,
-        ln_emb=None,
-        ln_bot=None,
-        ln_top=None,
-        arch_interaction_op=None,
-        arch_interaction_itself=False,
-        sigmoid_bot=-1,
-        sigmoid_top=-1,
-        sync_dense_params=True,
-        loss_threshold=0.0,
-        ndevices=-1,
-        qr_flag=False,
-        qr_operation="mult",
-        qr_collisions=0,
-        qr_threshold=200,
-        md_flag=False,
-        md_threshold=200,
-    ):
+        m_spa: Optional[int]=None,
+        ln_emb: Optional[ndarray]=None,
+        ln_bot: Optional[ndarray]=None,
+        ln_top: Optional[ndarray]=None,
+        arch_interaction_op: Optional[str]=None,
+        arch_interaction_itself: bool=False,
+        sigmoid_bot: int=-1,
+        sigmoid_top: int=-1,
+        sync_dense_params: bool=True,
+        loss_threshold: float=0.0,
+        ndevices: int=-1,
+        qr_flag: bool=False,
+        qr_operation: str="mult",
+        qr_collisions: int=0,
+        qr_threshold: int=200,
+        md_flag: bool=False,
+        md_threshold: int=200,
+    ) -> None:
         super(DLRM_Net, self).__init__()
 
         if (
@@ -265,7 +276,13 @@ class DLRM_Net(nn.Module):
             self.bot_l = self.create_mlp(ln_bot, sigmoid_bot)
             self.top_l = self.create_mlp(ln_top, sigmoid_top)
 
-    def apply_mlp(self, x, layers):
+    def apply_mlp_bot_l(self, x: Tensor) -> Tensor:
+        return self.bot_l(x)
+
+    def apply_mlp_top_l(self, x: Tensor) -> Tensor:
+        return self.top_l(x)
+
+    def apply_mlp(self, x: Tensor, layers: Sequential) -> Tensor:
         # approach 1: use ModuleList
         # for layer in layers:
         #     x = layer(x)
@@ -273,7 +290,7 @@ class DLRM_Net(nn.Module):
         # approach 2: use Sequential container to wrap all layers
         return layers(x)
 
-    def apply_emb(self, lS_o, lS_i, emb_l):
+    def apply_emb(self, lS_o: Tensor, lS_i: List[Tensor], emb_l: ModuleList) -> List[Tensor]:
         # WARNING: notice that we are processing the batch at once. We implicitly
         # assume that the data is laid out such that:
         # 1. each embedding is indexed with a group of sparse indices,
@@ -291,15 +308,15 @@ class DLRM_Net(nn.Module):
             # We are using EmbeddingBag, which implicitly uses sum operator.
             # The embeddings are represented as tall matrices, with sum
             # happening vertically across 0 axis, resulting in a row vector
-            E = emb_l[k]
-            V = E(sparse_index_group_batch, sparse_offset_group_batch)
+            E: EmbeddingBagInterface = emb_l[k]
+            V = E.forward(sparse_index_group_batch, sparse_offset_group_batch, None)
 
             ly.append(V)
 
         # print(ly)
         return ly
 
-    def interact_features(self, x, ly):
+    def interact_features(self, x: Tensor, ly: List[Tensor]) -> Tensor:
         if self.arch_interaction_op == "dot":
             # concatenate dense and sparse features
             (batch_size, d) = x.shape
@@ -316,8 +333,19 @@ class DLRM_Net(nn.Module):
             # li, lj = torch.tril_indices(ni, nj, offset=offset)
             # approach 2: custom
             offset = 1 if self.arch_interaction_itself else 0
-            li = torch.tensor([i for i in range(ni) for j in range(i + offset)])
-            lj = torch.tensor([j for i in range(nj) for j in range(i + offset)])
+
+            li_data: List[int] = []
+            for i in range(ni):
+                for j in range(i + offset):
+                    li_data.append(i)
+            li = torch.tensor(li_data)
+
+            lj_data: List[int] = []
+            for i in range(nj):
+                for j in range(i + offset):
+                    lj_data.append(j)
+            lj = torch.tensor(lj_data)
+
             Zflat = Z[:, li, lj]
             # concatenate dense features and interactions
             R = torch.cat([x] + [Zflat], dim=1)
@@ -325,7 +353,7 @@ class DLRM_Net(nn.Module):
             # concatenation features (into a row vector)
             R = torch.cat([x] + ly, dim=1)
         else:
-            sys.exit(
+            raise ValueError(
                 "ERROR: --arch-interaction-op="
                 + self.arch_interaction_op
                 + " is not supported"
@@ -333,15 +361,15 @@ class DLRM_Net(nn.Module):
 
         return R
 
-    def forward(self, dense_x, lS_o, lS_i):
+    def forward(self, dense_x: Tensor, lS_o: Tensor, lS_i: List[Tensor]) -> Tensor:
         if self.ndevices <= 1:
             return self.sequential_forward(dense_x, lS_o, lS_i)
         else:
             return self.parallel_forward(dense_x, lS_o, lS_i)
 
-    def sequential_forward(self, dense_x, lS_o, lS_i):
+    def sequential_forward(self, dense_x: Tensor, lS_o: Tensor, lS_i: List[Tensor]) -> Tensor:
         # process dense features (using bottom mlp), resulting in a row vector
-        x = self.apply_mlp(dense_x, self.bot_l)
+        x = self.apply_mlp_bot_l(dense_x)
         # debug prints
         # print("intermediate")
         # print(x.detach().cpu().numpy())
@@ -356,7 +384,7 @@ class DLRM_Net(nn.Module):
         # print(z.detach().cpu().numpy())
 
         # obtain probability of a click (using top mlp)
-        p = self.apply_mlp(z, self.top_l)
+        p = self.apply_mlp_top_l(z)
 
         # clamp output if needed
         if 0.0 < self.loss_threshold and self.loss_threshold < 1.0:
@@ -366,7 +394,8 @@ class DLRM_Net(nn.Module):
 
         return z
 
-    def parallel_forward(self, dense_x, lS_o, lS_i):
+    @torch.jit.ignore
+    def parallel_forward(self, dense_x, lS_o, lS_i: List[Tensor]):
         ### prepare model (overwrite) ###
         # WARNING: # of devices must be >= batch size in parallel_forward call
         batch_size = dense_x.size()[0]
@@ -441,7 +470,9 @@ class DLRM_Net(nn.Module):
             y = scatter(ly[k], device_ids, dim=0)
             t_list.append(y)
         # adjust the list to be ordered per device
-        ly = list(map(lambda y: list(y), zip(*t_list)))
+        ly = []
+        for t in zip(*t_list):
+            ly.append(list(t))
         # debug prints
         # print(ly)
 
