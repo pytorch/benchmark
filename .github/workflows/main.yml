@@ -18,3 +18,12 @@ jobs:
       - name: Run benchmark
         run: |
           bash ./.github/scripts/run-nightly-nodocker.sh
+      - name: Compress artifact
+        run: |
+          export TODAY=$(date "+%Y%m%d")
+          tar czvf benchmark-result-v0.1-${TODAY}.tar.gz ${HOME}/benchmark-results-v0.1/gh${GITHUB_RUN_ID}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Benchmark result
+          path: benchmark-result-v0.1-*.tar.gz
