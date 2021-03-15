@@ -20,7 +20,7 @@ jobs:
           bash ./.github/scripts/run-nightly-nodocker.sh
       - name: Compress artifact
         run: |
-          export TODAY=$(date "+%Y%m%d")
+          export TODAY=$(date "+%Y%m%d%H%M%S")
           tar czvf benchmark-result-v0.1-${TODAY}.tar.gz ${HOME}/benchmark-results-v0.1/gh${GITHUB_RUN_ID}
       - name: Upload artifact
         uses: actions/upload-artifact@v2
