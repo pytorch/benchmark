@@ -22,7 +22,7 @@ jobs:
         run: |
           LATEST_RESULT=$(find ${HOME}/benchmark-results-v0.1/gh${GITHUB_RUN_ID}/ -name "*.json" | sort -r | head -1)
           TODAY=$(date "+%Y%m%d%H%M%S")
-          cp ${LATEST_RESULT} ./benchmark-result-${TODAY}.json
+          cp ${LATEST_RESULT} ./benchmark-result-v0.1-${TODAY}.json
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
