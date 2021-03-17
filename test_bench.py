@@ -23,11 +23,14 @@ from torchbenchmark.util.model import no_grad
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
     # e.g. by using info in metafunc.config
+    devices = ['cpu', 'cuda']
+    if metafunc.config.option.localrun:
+        devices = ['cpu']
     all_models = list_models()
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         metafunc.parametrize('model_class', all_models,
                              ids=[m.name for m in all_models], scope="class")
-        metafunc.parametrize('device', ['cpu', 'cuda'], scope='class')
+        metafunc.parametrize('device', devices, scope='class')
         metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
 
 @pytest.fixture(scope='class')
