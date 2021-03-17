@@ -91,7 +91,7 @@ Some useful options include
 - `--benchmark-autosave` (or other save related flags) to get .json output
 - `-k <filter expression>` (standard pytest filtering)
 - `--collect-only` only show what tests would run, useful to see what models there are or debug your filter expression
-- `--localrun` if running on a CPU machine
+- `--cpu_only` if running on a local CPU machine and ignoring machine configuration checks
 
 ## Nightly CI runs
 Currently, models run on nightly pytorch builds and push data to scuba.

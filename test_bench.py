@@ -24,7 +24,7 @@ def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
     # e.g. by using info in metafunc.config
     devices = ['cpu', 'cuda']
-    if metafunc.config.option.localrun:
+    if metafunc.config.option.cpu_only:
         devices = ['cpu']
     all_models = list_models()
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":

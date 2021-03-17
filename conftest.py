@@ -14,8 +14,8 @@ def pytest_addoption(parser):
     parser.addoption("--check_opt_vs_noopt_jit",
                      action='store_true',
                      help="The best attempt to check results for inference runs. Not all models support this!")
-    parser.addoption("--localrun", action='store_true',
-                    help="Run benchmarks locally on a macbook")
+    parser.addoption("--cpu_only", action='store_true',
+                    help="Run benchmarks on cpu only and ignore machine configuration checks")
 
 def set_fuser(fuser):
     if fuser == "old":
