@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 """
 The script to upload TorchBench nightly CI result to Amazon S3.
+It assumes the following hierarchy of the result directory:
+
+benchmark-results/
+ |-result-directory-1
+   |-result1.json
+ |-result-directory-2
+   |-result2.json
 
 The command
 `upload_s3.py --torchbench-result-dir benchmark-results/result-directory --gen-index --upload-s3`
 will index all directories under `benchmark-results` and generate the `index.json` file.
 Then it will upload the `result-directory` and `index.json` to Amazon S3 bucket.
-
 """
 
 import argparse
