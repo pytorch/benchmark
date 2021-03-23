@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+"""
+The script to upload TorchBench nightly CI result to Amazon S3.
+
+The command
+`upload_s3.py --torchbench-result-dir benchmark-results/result-directory --gen-index --upload-s3`
+will index all directories under `benchmark-results` and generate the `index.json` file.
+Then it will upload the `result-directory` and `index.json` to Amazon S3 bucket.
+
+"""
 
 import argparse
 import json
@@ -69,7 +78,7 @@ def upload_s3_file(key, body_file):
         obj = get_S3_object_from_bucket(S3_BUCKET, key)
         obj.put(Body=body.read())
 
-def should_upload(json_path):
+def is_nonempty_json(json_path):
     # Upload non-empty json files
     return (json_path.endswith(".json") and os.path.exists(json_path) and os.stat(json_path).st_size)
 
@@ -100,5 +109,5 @@ if __name__ == "__main__":
         for result_file in os.listdir(args.torchbench_result_dir):
             result_key = f"{result_dir}/{result_file}"
             result_path = os.path.join(args.torchbench_result_dir, result_file)
-            if should_upload(result_path):
+            if is_nonempty_json(result_path):
                 upload_s3_file(result_key, result_path)
