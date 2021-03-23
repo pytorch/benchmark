@@ -33,7 +33,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('device', devices, scope='class')
         metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='function')
 def hub_model(request, model_class, device, compiler):
     """Constructs a model object for pytests to use.
     Any pytest function that consumes a 'modeldef' arg will invoke this
