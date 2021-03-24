@@ -419,7 +419,7 @@ def build_targets(p, targets, model):
     off = torch.tensor([[1, 0], [0, 1], [-1, 0], [0, -1]], device=targets.device).float()  # overlap offsets
 
     style = None
-    multi_gpu = type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)
+    multi_gpu = isinstance(model, (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel))
     for i, j in enumerate(model.yolo_layers):
         anchors = model.module.module_list[j].anchor_vec if multi_gpu else model.module_list[j].anchor_vec
         gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
@@ -555,7 +555,7 @@ def print_model_biases(model):
     # prints the bias neurons preceding each yolo layer
     print('\nModel Bias Summary: %8s%18s%18s%18s' % ('layer', 'regression', 'objectness', 'classification'))
     try:
-        multi_gpu = type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)
+        multi_gpu = isinstance(model, (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel))
         for l in model.yolo_layers:  # print pretrained biases
             if multi_gpu:
                 na = model.module.module_list[l].na  # number of anchors

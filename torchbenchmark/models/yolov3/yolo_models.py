@@ -1,6 +1,7 @@
 from .yolo_utils.google_utils import *
 from .yolo_utils.layers import *
 from .yolo_utils.parse_config import *
+from typing import Tuple, Any
 
 ONNX_EXPORT = False
 
@@ -69,11 +70,11 @@ def create_modules(module_defs, img_size, cfg):
                 modules = maxpool
 
         elif mdef['type'] == 'upsample':
-            if ONNX_EXPORT:  # explicitly state size, avoid scale_factor
-                g = (yolo_index + 1) * 2 / 32  # gain
-                modules = nn.Upsample(size=tuple(int(x * g) for x in img_size))  # img_size = (320, 192)
-            else:
-                modules = nn.Upsample(scale_factor=mdef['stride'])
+            # if ONNX_EXPORT:  # explicitly state size, avoid scale_factor
+            #     g = (yolo_index + 1) * 2 / 32  # gain
+            #     modules = nn.Upsample(size=tuple(int(x * g) for x in img_size))  # img_size = (320, 192)
+            # else:
+            modules = nn.Upsample(scale_factor=mdef['stride'])
 
         elif mdef['type'] == 'route':  # nn.Sequential() placeholder for 'route' layer
             layers = mdef['layers']
@@ -133,22 +134,26 @@ class YOLOLayer(nn.Module):
         self.anchors = torch.Tensor(anchors)
         self.index = yolo_index  # index of this layer in layers
         self.layers = layers  # model output layer indices
+        print("LAYER", self.layers)
         self.stride = stride  # layer stride
         self.nl = len(layers)  # number of output layers (3)
         self.na = len(anchors)  # number of anchors (3)
         self.nc = nc  # number of classes (80)
         self.no = nc + 5  # number of outputs (85)
-        self.nx, self.ny, self.ng = 0, 0, 0  # initialize number of x, y gridpoints
+        self.nx, self.ny = 0, 0  # initialize number of x, y gridpoints
+        #self.ng = torch.tensor([0])
         self.anchor_vec = self.anchors / self.stride
         self.anchor_wh = self.anchor_vec.view(1, self.na, 1, 1, 2)
+        self.grid = torch.tensor([])
 
-        if ONNX_EXPORT:
-            self.training = False
-            self.create_grids((img_size[1] // stride, img_size[0] // stride))  # number x, y grid points
+        # if ONNX_EXPORT:
+        #     self.training = False
+        #     self.create_grids((img_size[1] // stride, img_size[0] // stride))  # number x, y grid points
 
-    def create_grids(self, ng=(13, 13), device='cpu'):
-        self.nx, self.ny = ng  # x and y grid size
-        self.ng = torch.tensor(ng, dtype=torch.float)
+    def create_grids(self, ng: Tuple[int, int]=(13, 13), device: torch.device='cpu'):
+        self.nx = ng[0]  # x and y grid size
+        self.ny = ng[1]
+        #self.ng = torch.tensor(ng, dtype=torch.float)
 
         # build xy offsets
         if not self.training:
@@ -161,51 +166,53 @@ class YOLOLayer(nn.Module):
 
     def forward(self, p, out):
         ASFF = False  # https://arxiv.org/abs/1911.09516
-        if ASFF:
-            i, n = self.index, self.nl  # index in layers, number of layers
-            p = out[self.layers[i]]
-            bs, _, ny, nx = p.shape  # bs, 255, 13, 13
-            if (self.nx, self.ny) != (nx, ny):
-                self.create_grids((nx, ny), p.device)
+        # TODO we need type inference because right now self.layers fails to torchscript because of
+        # 'list' List trace inputs must have elements
+        # if ASFF:
+        #     i, n = self.index, self.nl  # index in layers, number of layers
+        #     p = out[self.layers[i]]
+        #     bs, _, ny, nx = p.shape  # bs, 255, 13, 13
+        #     if (self.nx, self.ny) != (nx, ny):
+        #         self.create_grids((nx, ny), p.device)
 
-            # outputs and weights
-            # w = F.softmax(p[:, -n:], 1)  # normalized weights
-            w = torch.sigmoid(p[:, -n:]) * (2 / n)  # sigmoid weights (faster)
-            # w = w / w.sum(1).unsqueeze(1)  # normalize across layer dimension
+        #     # outputs and weights
+        #     # w = F.softmax(p[:, -n:], 1)  # normalized weights
+        #     w = torch.sigmoid(p[:, -n:]) * (2 / n)  # sigmoid weights (faster)
+        #     # w = w / w.sum(1).unsqueeze(1)  # normalize across layer dimension
 
-            # weighted ASFF sum
-            p = out[self.layers[i]][:, :-n] * w[:, i:i + 1]
-            for j in range(n):
-                if j != i:
-                    p += w[:, j:j + 1] * \
-                         F.interpolate(out[self.layers[j]][:, :-n], size=[ny, nx], mode='bilinear', align_corners=False)
+        #     # weighted ASFF sum
+        #     p = out[self.layers[i]][:, :-n] * w[:, i:i + 1]
+        #     for j in range(n):
+        #         if j != i:
+        #             p += w[:, j:j + 1] * \
+        #                  F.interpolate(out[self.layers[j]][:, :-n], size=[ny, nx], mode='bilinear', align_corners=False)
 
-        elif ONNX_EXPORT:
-            bs = 1  # batch size
-        else:
-            bs, _, ny, nx = p.shape  # bs, 255, 13, 13
-            if (self.nx, self.ny) != (nx, ny):
-                self.create_grids((nx, ny), p.device)
+        # if ONNX_EXPORT:
+        #     bs = 1  # batch size
+        #else:
+        bs, _, ny, nx = p.shape  # bs, 255, 13, 13
+        if (self.nx, self.ny) != (nx, ny):
+            self.create_grids((nx, ny), p.device)
 
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
         p = p.view(bs, self.na, self.no, self.ny, self.nx).permute(0, 1, 3, 4, 2).contiguous()  # prediction
 
         if self.training:
-            return p
+            return torch.tensor([]), p
 
-        elif ONNX_EXPORT:
-            # Avoid broadcasting for ANE operations
-            m = self.na * self.nx * self.ny
-            ng = 1. / self.ng.repeat(m, 1)
-            grid = self.grid.repeat(1, self.na, 1, 1, 1).view(m, 2)
-            anchor_wh = self.anchor_wh.repeat(1, 1, self.nx, self.ny, 1).view(m, 2) * ng
+        # elif ONNX_EXPORT:
+        #     # Avoid broadcasting for ANE operations
+        #     m = self.na * self.nx * self.ny
+        #     ng = 1. / self.ng.repeat(m, 1)
+        #     grid = self.grid.repeat(1, self.na, 1, 1, 1).view(m, 2)
+        #     anchor_wh = self.anchor_wh.repeat(1, 1, self.nx, self.ny, 1).view(m, 2) * ng
 
-            p = p.view(m, self.no)
-            xy = torch.sigmoid(p[:, 0:2]) + grid  # x, y
-            wh = torch.exp(p[:, 2:4]) * anchor_wh  # width, height
-            p_cls = torch.sigmoid(p[:, 4:5]) if self.nc == 1 else \
-                torch.sigmoid(p[:, 5:self.no]) * torch.sigmoid(p[:, 4:5])  # conf
-            return p_cls, xy * ng, wh
+        #     p = p.view(m, self.no)
+        #     xy = torch.sigmoid(p[:, 0:2]) + grid  # x, y
+        #     wh = torch.exp(p[:, 2:4]) * anchor_wh  # width, height
+        #     p_cls = torch.sigmoid(p[:, 4:5]) if self.nc == 1 else \
+        #         torch.sigmoid(p[:, 5:self.no]) * torch.sigmoid(p[:, 4:5])  # conf
+        #     return p_cls, xy * ng, wh
 
         else:  # inference
             io = p.clone()  # inference output
@@ -298,9 +305,9 @@ class Darknet(nn.Module):
 
         if self.training:  # train
             return yolo_out
-        elif ONNX_EXPORT:  # export
-            x = [torch.cat(x, 0) for x in zip(*yolo_out)]
-            return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
+        # elif ONNX_EXPORT:  # export
+        #     x = [torch.cat(x, 0) for x in zip(*yolo_out)]
+        #     return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
         else:  # inference or test
             x, p = zip(*yolo_out)  # inference output, training output
             x = torch.cat(x, 1)  # cat yolo outputs
@@ -327,7 +334,8 @@ class Darknet(nn.Module):
                         break
             fused_list.append(a)
         self.module_list = fused_list
-        self.info() if not ONNX_EXPORT else None  # yolov3-spp reduced from 225 to 152 layers
+        #self.info() if not ONNX_EXPORT else None  # yolov3-spp reduced from 225 to 152 layers
+        self.info()
 
     def info(self, verbose=False):
         torch_utils.model_info(self, verbose)

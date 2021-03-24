@@ -26,14 +26,12 @@ from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device=None, jit=True):
         super().__init__()
         self.device = device
         self.jit = jit
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         parser = argparse.ArgumentParser()
         root = str(Path(yolo_train.__file__).parent.absolute())
         parser.add_argument('--cfg', type=str, default=f'{root}/cfg/yolov3-spp.cfg', help='*.cfg path')
@@ -56,6 +54,9 @@ class Model(BenchmarkModel):
         opt.cfg = check_file(opt.cfg)  # check file
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)
+        if self.jit:
+            model = torch.jit.script(model)
+            print("GRAPH: ", model.graph)
         model.to(opt.device).eval()
         input = (torch.rand(1, 3, 384, 512).to(opt.device),)
         return model, input
@@ -67,9 +68,6 @@ class Model(BenchmarkModel):
 
     def train(self, niterations=1):
         # the training process is not patched to use scripted models
-        if self.jit:
-            raise NotImplementedError()
-
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
@@ -92,7 +90,7 @@ class Model(BenchmarkModel):
                                     multi_label=False, classes=None, agnostic=False)
 
 if __name__ == '__main__':
-    m = Model(device='cpu', jit=False)
+    m = Model(device='cpu', jit=True)
     model, example_inputs = m.get_module()
     model(*example_inputs)
     m.train()
