@@ -12,9 +12,9 @@ class TensorBoard(object):
         summary = Summary()
         bio = BytesIO()
 
-        if type(img) == str:
+        if isinstance(img, str):
             img = PIL.Image.open(img)
-        elif type(img) == PIL.Image.Image:
+        elif isinstance(img, PIL.Image.Image):
             pass
         else:
             img = scipy.misc.toimage(img)
