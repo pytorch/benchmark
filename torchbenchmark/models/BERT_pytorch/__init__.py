@@ -48,6 +48,8 @@ class Model(BenchmarkModel):
 
         if args.script:
             bert = torch.jit.script(bert)
+            #bert.eval()
+            #bert = torch.jit.freeze(bert)
 
         self.trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
@@ -60,10 +62,23 @@ class Model(BenchmarkModel):
         self.eval_model = self.trainer.model
 
     def get_module(self):
+        print("eval_model in BERT=", type(self.eval_model).__name__)
+        print(self.eval_model)
         return self.eval_model, self.example_inputs
 
     def set_module(self, module):
         self.eval_model = module
+
+    def set_eval_and_freeze(self):
+        (model, _) = self._set_mode(False)
+        if self.jit and not self.frozen:
+            bert = self.eval_model.bert
+            #bert.eval()
+            print("bert before")
+            print(bert)
+            self.eval_model.bert = torch.jit.freeze(bert)
+            print("bert after")
+            print(self.eval_model.bert)
 
     def eval(self, niter=1):
         trainer = self.trainer
@@ -103,7 +118,8 @@ if __name__ == '__main__':
         for jit in [True, False]:
             print("Testing device {}, JIT {}".format(device, jit))
             m = Model(device=device, jit=jit)
-            bert, example_inputs = m.get_module()
-            bert(*example_inputs)
-            m.train()
-            m.eval()
+            m.set_eval_and_freeze()
+            #bert, example_inputs = m.get_module()
+            #bert(*example_inputs)
+            #m.train()
+            #m.eval()

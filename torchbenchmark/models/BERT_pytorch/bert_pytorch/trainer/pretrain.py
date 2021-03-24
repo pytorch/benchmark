@@ -46,7 +46,7 @@ class BERTTrainer:
         self.model = BERTLM(bert, vocab_size).to(self.device)
 
         # Distributed GPU training if CUDA can detect more than 1 GPU
-        if with_cuda and torch.cuda.device_count() > 1:
+        if False and with_cuda and torch.cuda.device_count() > 1:
             self.model = nn.DataParallel(self.model, device_ids=cuda_devices)
 
         # Setting the train and test data loader
