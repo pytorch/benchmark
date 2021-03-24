@@ -40,7 +40,7 @@ class TrainCallback(Callback):
         self.prev_train_avg_loss = 1000.0
         self.train_dir = os.path.join(self._hps.save_root, "train")
 
-        if type(quit_all) != bool:
+        if isinstance(quit_all, bool):
             raise ValueError("In KeyBoardInterrupt, quit_all arguemnt must be a bool.")
         self.quit_all = quit_all
 
@@ -50,9 +50,9 @@ class TrainCallback(Callback):
 
     def on_backward_begin(self, loss):
         """
-        
+
         :param loss: []
-        :return: 
+        :return:
         """
         if not (np.isfinite(loss.data)).numpy():
             logger.error("train Loss is not finite. Stopping.")
@@ -132,10 +132,3 @@ class TrainCallback(Callback):
         saver = ModelSaver(save_file)
         saver.save_pytorch(self.model)
         logger.info('[INFO] Saving model to %s', save_file)
-
-
-
-
-
-
-

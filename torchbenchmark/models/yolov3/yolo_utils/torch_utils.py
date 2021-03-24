@@ -52,13 +52,15 @@ def time_synchronized():
 
 def initialize_weights(model):
     for m in model.modules():
-        t = type(m)
-        if t is nn.Conv2d:
+        # t = type(m)
+        # if t is nn.Conv2d:
+        if isinstance(m, nn.Conv2D):
             pass  # nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        elif t is nn.BatchNorm2d:
+        elif isinstance(m, nn.BatchNorm2d):
             m.eps = 1e-4
             m.momentum = 0.03
-        elif t in [nn.LeakyReLU, nn.ReLU, nn.ReLU6]:
+
+        elif isinstance(m, (nn.LeakyReLU, nn.ReLU, nn.ReLU6)):
             m.inplace = True
 
 
@@ -132,7 +134,7 @@ def load_classifier(name='resnet101', n=2):
     return model
 
 
-def scale_img(img, ratio=1.0, same_shape=True):  # img(16,3,256,416), r=ratio
+def scale_img(img, ratio: float=1.0, same_shape: bool=True):  # img(16,3,256,416), r=ratio
     # scales img(bs,3,y,x) by ratio
     h, w = img.shape[2:]
     s = (int(h * ratio), int(w * ratio))  # new size
@@ -177,7 +179,7 @@ class ModelEMA:
         self.updates += 1
         d = self.decay(self.updates)
         with torch.no_grad():
-            if type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel):
+            if isinstance(m, (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)):
                 msd, esd = model.module.state_dict(), self.ema.module.state_dict()
             else:
                 msd, esd = model.state_dict(), self.ema.state_dict()
