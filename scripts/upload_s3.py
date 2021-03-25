@@ -111,7 +111,7 @@ if __name__ == "__main__":
         upload_s3_file(index_key, index_path)
         # Upload the result directory
         basedir = os.path.basename(args.torchbench_result_dir)
-        result_dir = f"torchbench_v0_nightly/{basedir}/"
+        result_dir = f"torchbench_v0_nightly/{basedir}"
         for result_file in os.listdir(args.torchbench_result_dir):
             result_key = f"{result_dir}/{result_file}"
             result_path = os.path.join(args.torchbench_result_dir, result_file)
