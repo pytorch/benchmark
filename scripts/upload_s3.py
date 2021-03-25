@@ -34,7 +34,7 @@ class TBEncoder(JSONEncoder):
     def default(self, o):
         return o.__dict__
 
-S3_BUCKET = "oss-metrics"
+S3_BUCKET = "ossci-metrics"
 COMMIT_HISTORY: Dict[str, TorchBenchData] = dict()
 
 def get_S3_object_from_bucket(bucket_name: str, object: str) -> Any:
