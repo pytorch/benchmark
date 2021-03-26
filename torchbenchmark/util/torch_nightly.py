@@ -1,3 +1,9 @@
+"""
+Return a list of recent PyTorch wheels published on download.pytorch.org.
+Users can specify package name, python version, platform, and the number of days to return.
+If one of the packages specified is missing on one day, the script will skip outputing the results on that day.
+"""
+
 import os
 import re
 import requests
@@ -89,7 +95,7 @@ def get_n_prior_nightly_wheels(packages:list, n:int,
                                        py_version=py_version, platform_version=platform_version, reverse=reverse)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Find recent pytorch nightly builds")
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pyver", type=str, default="cp37", help="PyTorch Python version")
     parser.add_argument("--platform", type=str, default="linux_x86_64", help="PyTorch platform")
     parser.add_argument("--priordays", type=int, default=0, help="Number of days")
