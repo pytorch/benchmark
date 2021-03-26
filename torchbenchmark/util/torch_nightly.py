@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument("--reverse", action="store_true", help="Return reversed result")
     parser.add_argument("--packages", required=True, type=str, nargs="+", help="List of package names")
     args = parser.parse_args()
-    wheels = get_n_prior_nightly_wheels(packages=['torch', 'torchvision', 'torchtext'],
+    wheels = get_n_prior_nightly_wheels(packages=args.packages,
                                         n=args.priordays,
                                         py_version=args.pyver,
                                         platform_version=args.platform,
