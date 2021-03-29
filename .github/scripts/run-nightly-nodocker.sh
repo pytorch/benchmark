@@ -29,6 +29,14 @@ sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
+# Check if nightly builds are available
+NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch torchvision torchtext)
+# If failed, the script will generate empty result
+if [ -z $NIGHTLIES ]; then
+    echo "Torch, torchvision, or torchtext nightly build failed. Cancel the workflow."
+    exit 1
+fi
+
 mkdir -p ${DATA_DIR}
 conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 . activate ${CONDA_ENV_NAME}
