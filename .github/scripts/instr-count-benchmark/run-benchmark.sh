@@ -13,3 +13,6 @@ PYTORCH_GIT_VERSION=$(python -c "import torch; print(torch.version.git_version)"
 echo "Running instruction benchmark for pytorch-${PYTORCH_VERSION}, commit SHA: ${PYTORCH_GIT_VERSION}"
 
 # Run the instruction count benchmark
+pushd ${REPO_CHECKOUT}
+python main.py --mode ci --destination ${RESULT_JSON}
+popd
