@@ -38,20 +38,16 @@ class Model(BenchmarkModel):
     def _step_eval(self):
         output = self.model(self.cfg.example_inputs)
     
-    # TODO: currently, only handle cpu eager training
+    # TODO: currently, only handle eager training
     def train(self, niter=1):
-        if self.device == 'cuda':
-            raise NotImplementedError()
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
             self._step_train()
         
-    # TODO: currently, only handle cpu eager inference
+    # TODO: currently, only handle eager inference
     # TODO: use pretrained model, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1):
-        if self.device == 'cuda':
-            raise NotImplementedError()
         if self.jit:
             raise NotImplementedError()
         with torch.no_grad():
@@ -59,7 +55,7 @@ class Model(BenchmarkModel):
                 self._step_eval()
 
 if __name__ == "__main__":
-    for device in ['cpu']:
+    for device in ['cpu', 'cuda']:
         for jit in [False]:
             print("Test config: device {}, JIT {}".format(device, jit))
             m = Model(device=device, jit=jit)

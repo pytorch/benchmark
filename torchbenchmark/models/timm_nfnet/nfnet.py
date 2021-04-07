@@ -36,7 +36,7 @@ class NFNetConfig:
         self.use_amp, self.model_dtype, self.data_dtype = resolve_precision(precision)
         # Configurations
         self.batch_size = 2
-        self.num_classes = self.model.default_cfg["num_classes"]
+        self.num_classes = self.model.num_classes
         self.loss = nn.CrossEntropyLoss().to(self.device)
         self.target_shape = tuple()
         self.input_size = self.model.default_cfg["input_size"]
