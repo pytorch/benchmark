@@ -3,7 +3,7 @@ import timm.models.nfnet
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
-from .nfnet import NFNetConfig, resolve_precision
+from .nfnet import NFNetConfig
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
