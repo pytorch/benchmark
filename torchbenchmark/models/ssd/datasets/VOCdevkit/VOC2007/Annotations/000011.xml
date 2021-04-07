@@ -1,0 +1,32 @@
+<annotation>
+	<folder>VOC2007</folder>
+	<filename>000011.jpg</filename>
+	<source>
+		<database>The VOC2007 Database</database>
+		<annotation>PASCAL VOC2007</annotation>
+		<image>flickr</image>
+		<flickrid>329605697</flickrid>
+	</source>
+	<owner>
+		<flickrid>dale5446</flickrid>
+		<name>Dale Peeples</name>
+	</owner>
+	<size>
+		<width>500</width>
+		<height>324</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>cat</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>126</xmin>
+			<ymin>51</ymin>
+			<xmax>330</xmax>
+			<ymax>308</ymax>
+		</bndbox>
+	</object>
+</annotation>
