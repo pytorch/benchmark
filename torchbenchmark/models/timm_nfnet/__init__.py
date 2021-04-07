@@ -20,6 +20,8 @@ class Model(BenchmarkModel):
             device=self.device,
             dtype=self.cfg.model_dtype
         )
+        if jit:
+            self.model = torch.jit.script(self.model)
 
     def _gen_target(self, batch_size):
         return torch.empty(
@@ -38,14 +40,12 @@ class Model(BenchmarkModel):
     def _step_eval(self):
         output = self.model(self.cfg.example_inputs)
     
-    # TODO: currently, only handle eager training
     def train(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
             self._step_train()
         
-    # TODO: currently, only handle eager inference
     # TODO: use pretrained model, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1):
         if self.jit:
@@ -56,7 +56,7 @@ class Model(BenchmarkModel):
 
 if __name__ == "__main__":
     for device in ['cpu', 'cuda']:
-        for jit in [False]:
+        for jit in [False, True]:
             print("Test config: device {}, JIT {}".format(device, jit))
             m = Model(device=device, jit=jit)
             m.train()
