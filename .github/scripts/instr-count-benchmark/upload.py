@@ -2,6 +2,7 @@
 import argparse
 import json
 import hashlib
+import os
 import sys
 import time
 
@@ -11,6 +12,9 @@ import torch
 from scripts.upload_scribe import ScribeUploader
 
 
+# This hash is used to ensure the benchmarks (which live in pytorch/pytorch)
+# and the CI infrastructure (which lives in pytorch/benchmark) are in sync.
+# Otherwise we might contaminate the database with inconsistent data.
 VERSIONS = [
     'b984f1ebad546ed3ee612244b8c72e53',
 ]
@@ -24,8 +28,10 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
                 'time',
                 'start_time',
                 'end_time',
-                'benchmark_version',
                 'task_number',
+
+                # This is the version of the instruction count microbenchmark.
+                'benchmark_version',
 
                 # We don't need to record as many summary statistics for counts
                 # as we do for times, because we retain them all in
@@ -43,8 +49,9 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
                 # TODO: More environment info.
                 'pytorch_version',
                 'pytorch_git_version',
+                'cuda_version',
                 'python_version',
-
+                'benchmark_name',
             ],
             'float': [
                 't_min', 't_max', 't_mean',
@@ -68,12 +75,15 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
 
         base_msg = {
             'time': int(time.time()),
+            'run_id': os.getenv('GITHUB_RUN_ID'),
             'start_time': result_json['start_time'],
             'end_time': result_json['end_time'],
             'benchmark_version': result_json['version'],
             'pytorch_version': torch.__version__,
             'pytorch_git_version': torch.version.git_version,
-            'python_version': '.'.join([str(i) for i in sys.version_info[:3]])
+            'cuda_version': torch.version.cuda,
+            'python_version': '.'.join([str(i) for i in sys.version_info[:3]]),
+            'benchmark_name': 'instruction_count',
         }
 
         messages = []

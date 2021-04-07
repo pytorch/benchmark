@@ -7,6 +7,8 @@ set -a;
 source ${BASEDIR}/config.env
 set +a;
 
+mkdir -p ${INSTRUCTION_COUNT_ROOT}
+
 conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 . activate ${CONDA_ENV_NAME}
 
@@ -17,4 +19,4 @@ conda install -y valgrind -c conda-forge
 pip install --pre torch \
     -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
 
-git clone https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
+git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
