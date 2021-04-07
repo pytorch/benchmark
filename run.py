@@ -9,8 +9,25 @@ DANGER: make sure to `python install.py` first or otherwise make sure the benchm
 Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
-from torchbenchmark import list_models
 import time
+import torch.autograd.profiler as profiler
+
+from torchbenchmark import list_models
+
+def run_one_step(func):
+    t0 = time.time()
+    func()
+    t1 = time.time()
+    print(f"Ran in {t1 - t0} seconds.")
+
+def profile_one_step(func, nwarmup=3):
+    for i in range(nwarmup):
+        func()
+
+    with profiler.profile(record_shapes=True) as prof:
+        func()
+
+    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
@@ -18,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--device", choices=["cpu",  "cuda"], default="cpu", help="Which device to use.")
     parser.add_argument("-m", "--mode", choices=["eager",  "jit"], default="eager", help="Which mode to run.")
     parser.add_argument("-t", "--test", choices=["eval",  "train"], default="eval", help="Which test to run.")
+    parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
     args = parser.parse_args()
 
     found = False
@@ -31,15 +49,14 @@ if __name__ == "__main__":
         print(f"Unable to find model matching {args.model}")
         exit(-1)
 
-    # build the model and get the chosen test method 
+    # build the model and get the chosen test method
     m = Model(args.device, args.mode)
     test = getattr(m, args.test)
 
-    # run one step
-    t0 = time.time()
-    test()
-    t1 = time.time()
+    if args.profile:
+        profile_one_step(test)
+    else:
+        run_one_step(test)
 
-    print(f"Ran in {t1 - t0} seconds.")
 
 
