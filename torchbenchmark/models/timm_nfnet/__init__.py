@@ -41,15 +41,11 @@ class Model(BenchmarkModel):
         output = self.model(self.cfg.example_inputs)
     
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         for _ in range(niter):
             self._step_train()
         
     # TODO: use pretrained model, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
