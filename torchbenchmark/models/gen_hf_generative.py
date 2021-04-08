@@ -104,6 +104,6 @@ if __name__ == '__main__':
         f.write(pip_install_str)
 
     with open(folder / 'requirements.txt', 'w') as f:
-        f.write('transformers\n')
+        f.write('transformers==4.5.0\n')
         f.write('datasets\n')
         f.write('sentencepiece\n')
