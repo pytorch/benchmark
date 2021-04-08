@@ -41,5 +41,7 @@ class NFNetConfig:
         self.target_shape = tuple()
         self.input_size = self.model.default_cfg["input_size"]
         self._init_input()
+        # Default optimizer configurations borrowed from:
+        # https://github.com/rwightman/pytorch-image-models/blob/779107b693010934ac87c8cecbeb65796e218488/timm/optim/optim_factory.py#L78
         opt_args = OptimizerOption(lr=1e-4, opt="sgd", weight_decay = 0.0001, momentum = 0.9)
         self.optimizer = create_optimizer(opt_args, self.model)
