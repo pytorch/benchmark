@@ -14,8 +14,6 @@ class Model(BenchmarkModel):
         self.jit = jit
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = NFNetConfig(model = self.model, device = device, precision = precision)
-        self.model.train()
-        self.model.eval()       
         self.model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
@@ -39,12 +37,15 @@ class Model(BenchmarkModel):
 
     def _step_eval(self):
         output = self.model(self.cfg.example_inputs)
-    
+
+    def get_module(self):
+        return self.model, self.cfg.example_inputs
+
     def train(self, niter=1):
         for _ in range(niter):
             self._step_train()
         
-    # TODO: use pretrained model, assuming the pretrained model is in .data/ dir
+    # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1):
         with torch.no_grad():
             for _ in range(niter):
@@ -55,5 +56,7 @@ if __name__ == "__main__":
         for jit in [False, True]:
             print("Test config: device {}, JIT {}".format(device, jit))
             m = Model(device=device, jit=jit)
+            m, example_inputs = m.get_module()
+            m(example_inputs)
             m.train()
             m.eval()
