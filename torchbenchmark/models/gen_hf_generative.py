@@ -92,6 +92,16 @@ if __name__ == "__main__":
     with open(folder / '__init__.py', 'w') as f:
         f.write(init_program)
     with open(folder / 'install.py', 'w') as f:
-        pass
+        pip_install_str = """
+import subprocess
+import sys
+
+def pip_install_requirements():
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
+if __name__ == '__main__':
+    pip_install_requirements()
+"""
+        f.write(pip_install_str)
+
     with open(folder / 'requirements.txt', 'w') as f:
         f.write('transformers\n')
