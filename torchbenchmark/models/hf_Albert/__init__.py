@@ -17,8 +17,8 @@ class Model(BenchmarkModel):
         self.jit = jit
 
 
-        config = AutoConfig.from_pretrained("t5-small", bos_token_id=0)
-        self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
+        config = AutoConfig.from_pretrained("albert-base-v2")
+        self.model = AutoModelForMaskedLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
         num_tokens = 5

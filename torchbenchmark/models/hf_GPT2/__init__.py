@@ -17,19 +17,19 @@ class Model(BenchmarkModel):
         self.jit = jit
 
 
-        config = AutoConfig.from_pretrained("t5-small", bos_token_id=0)
-        self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
+        config = AutoConfig.from_pretrained("gpt2")
+        self.model = AutoModelForCausalLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
         num_tokens = 5
 
-        input_ids = torch.randint(0, config.vocab_size, (8, 512)).to(device)
-        decoder_ids = torch.randint(0, config.vocab_size, (8, 512)).to(device)
+        input_ids = torch.randint(0, config.vocab_size, (8, 256)).to(device)
+        decoder_ids = torch.randint(0, config.vocab_size, (8, 256)).to(device)
 
-        eval_context = torch.randint(0, config.vocab_size, (1, 256)).to(device)
+        eval_context = torch.randint(0, config.vocab_size, (1, 512)).to(device)
 
         self.train_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
-        self.eval_inputs = {'input_ids': eval_context, 'min_length': num_tokens + 256, 'max_length': num_tokens + 256}
+        self.eval_inputs = {'input_ids': eval_context, 'min_length': num_tokens + 512, 'max_length': num_tokens + 512}
 
     def get_module(self):
         if self.jit:
