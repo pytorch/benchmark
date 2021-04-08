@@ -1,14 +1,37 @@
 name: TorchBench PR test
 on:
+  push:
+    branches:
+      - master
   pull_request:
   workflow_dispatch:
 
 jobs:
-  test-pr:
-    name: "Test PR correctness"
+  correctness-test:
+    name: "Test correctness"
     runs-on: "linux.8xlarge.nvidia.gpu"
+    timeout-minutes: 60 # 1 hour
     steps:
       - name: Check out
         uses: actions/checkout@v2
-      - 
-  
+      - name: Setup CI environment
+        run: |
+          ./scripts/setup_ci.sh
+      - name: Install Conda
+        run: |
+          ./scripts/install_basics.sh
+      - name: Install CUDA 11.1
+        run: |
+          sudo ./.scripts/install_cuda.sh
+      - name: Install PyTorch nightly
+        run: |
+          ./scripts/install_nightlies.sh
+      - name: Setup benchmark suite dependencies
+        run: |
+          . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python install.py
+      - name: Validate training benchmark suite
+        run: |
+          . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py
+      - name: Validate pytest-benchmark invodation of training suite
+        run: |
+          ./scripts/run_bench_and_upload.sh
