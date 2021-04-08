@@ -1,4 +1,4 @@
-name: TorchBench PR test
+name: TorchBench Correctness Test
 on:
   push:
     branches:
