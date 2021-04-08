@@ -1,0 +1,14 @@
+name: TorchBench PR test
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-pr:
+    name: "Test PR correctness"
+    runs-on: "linux.8xlarge.nvidia.gpu"
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+      - 
+  
