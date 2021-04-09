@@ -37,7 +37,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
 
-
+        torch.manual_seed(42)
         config = {config}
         self.model = {model}.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
@@ -48,7 +48,7 @@ class Model(BenchmarkModel):
         eval_context = torch.randint(0, config.vocab_size, (1, {eval_length})).to(device)
 
         self.train_inputs = {{'input_ids': input_ids, 'labels': decoder_ids}}
-        self.eval_inputs = {{'input_ids': eval_context, 'labels': eval_context}}
+        self.eval_inputs = {{'input_ids': eval_context, {"'decoder_input_ids': eval_context" if model == 'AutoModelForSeq2SeqLM' else ''}}}
 
     def get_module(self):
         if self.jit:

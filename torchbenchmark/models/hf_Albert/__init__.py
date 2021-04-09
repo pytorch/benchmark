@@ -19,7 +19,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
 
-
+        torch.manual_seed(42)
         config = AutoConfig.from_pretrained("albert-base-v2")
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
         eval_context = torch.randint(0, config.vocab_size, (1, 512)).to(device)
 
         self.train_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
-        self.eval_inputs = {'input_ids': eval_context, 'labels': eval_context}
+        self.eval_inputs = {'input_ids': eval_context, }
 
     def get_module(self):
         if self.jit:
