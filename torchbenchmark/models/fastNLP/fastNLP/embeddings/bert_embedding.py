@@ -63,12 +63,12 @@ class BertEmbedding(ContextualEmbedding):
         >>> outputs.size()
         >>> # torch.Size([1, 5, 2304])
     """
-    
+
     def __init__(self, vocab: Vocabulary, model_dir_or_name: str = 'en-base-uncased', layers: str = '-1',
                  pool_method: str = 'first', word_dropout=0, dropout=0, include_cls_sep: bool = False,
                  pooled_cls=True, requires_grad: bool = True, auto_truncate: bool = False, **kwargs):
         r"""
-        
+
         :param ~fastNLP.Vocabulary vocab: 词表
         :param str model_dir_or_name: 模型所在目录或者模型的名称。当传入模型所在目录时，目录中应该包含一个词表文件(以.txt作为后缀名),
             权重文件(以.bin作为文件后缀名), 配置文件(以.json作为后缀名)。

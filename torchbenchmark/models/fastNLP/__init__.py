@@ -1,6 +1,8 @@
 import torch
 import torchtext
 from fastNLP.models import BertForSequenceClassification
+from fastNLP.embeddings.bert_embedding import BertEmbedding
+from fastNLP.core.vocabulary import Vocabulary
 from torch.utils.data import DataLoader
 import time
 from torch.utils.data.dataset import random_split
@@ -39,8 +41,12 @@ class Model(BenchmarkModel):
         with open(f"{root}/example_batch.pkl", "rb") as f:
             batch_size, vocab_size, text, offsets, cls = pickle.load(f)
         self.text, self.offsets, self.cls = [t.to(self.device) for t in (text, offsets, cls)]
-
-        bert_embed = torch.nn.EmbeddingBag(vocab_size, embed_dim)
+        vocab = Vocabulary().update("this is a test".split(), no_create_entry=False)
+        script_dir = os.path.dirname(__file__)
+        abs_path = script_dir + '/test/data_for_tests/embedding/small_bert'
+        bert_embed = BertEmbedding(vocab,
+                                   model_dir_or_name=abs_path,
+                                   include_cls_sep=True)
         self.model = BertForSequenceClassification(bert_embed, num_labels=num_labels).to(self.device)
 
         if self.jit:
