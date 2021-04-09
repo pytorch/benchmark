@@ -9,7 +9,7 @@ from .config import TimmConfig
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
-    def __init__(self, device=None, jit=False, variant='regnetx_002', precision='float32'):
+    def __init__(self, device=None, jit=False, variant='regnety_002', precision='float32'):
         super().__init__()
         self.device = device
         self.jit = jit
