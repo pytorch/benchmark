@@ -19,6 +19,8 @@ class Model(BenchmarkModel):
             device=self.device,
             dtype=self.cfg.model_dtype
         )
+        if device == 'cuda':
+            torch.cuda.empty_cache()
         if jit:
             self.model = torch.jit.script(self.model)
 
@@ -37,7 +39,7 @@ class Model(BenchmarkModel):
         self.cfg.optimizer.step()
 
     def _step_eval(self):
-        output = self.model(self.cfg.example_inputs)
+        output = self.model(self.cfg.infer_example_inputs)
 
     def get_module(self):
         return self.model, self.cfg.example_inputs
