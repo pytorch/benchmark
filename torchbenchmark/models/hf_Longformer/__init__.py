@@ -17,7 +17,7 @@ class Model(BenchmarkModel):
         self.jit = jit
 
 
-        config = BigBirdConfig(attention_type="block_sparse",)
+        config = AutoConfig.from_pretrained("allenai/longformer-base-4096")
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 

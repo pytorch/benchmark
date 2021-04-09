@@ -2,15 +2,17 @@ import os
 from pathlib import Path
 
 class_models = [
-    ('hf_GPT2', (8, 256), 512, 'AutoConfig.from_pretrained("gpt2")', 'AutoModelForCausalLM.from_config'),
-    ('hf_T5', (8, 512), 256, 'AutoConfig.from_pretrained("t5-small", bos_token_id=0)', 'AutoModelForSeq2SeqLM.from_config'),
-    ('hf_Bart', (8, 256), 256, 'AutoConfig.from_pretrained("facebook/bart-base")', 'AutoModelForMaskedLM.from_config'),
-    ('hf_Reformer', (8, 4096), 3072, 'ReformerConfig(is_decoder=True, bos_token_id=0)', 'AutoModelForCausalLM.from_config'),
-    ('hf_BigBird', (2, 1024), 2048, 'BigBirdConfig(attention_type="block_sparse",)', 'AutoModelForCausalLM.from_config'),
-    ('hf_Albert', (8, 512), 256, 'AutoConfig.from_pretrained("albert-base-v2")', 'AutoModelForMaskedLM.from_config'),
-    ('hf_DistilBert', (8, 512), 256, 'AutoConfig.from_pretrained("distilbert-base-uncased")', 'AutoModelForMaskedLM.from_config')
+    ('hf_GPT2', (4, 512), 1024, 'AutoConfig.from_pretrained("gpt2")', 'AutoModelForCausalLM'),
+    ('hf_T5', (2, 1024), 2048, 'AutoConfig.from_pretrained("t5-small")', 'AutoModelForSeq2SeqLM'),
+    ('hf_Bart', (4, 512), 512, 'AutoConfig.from_pretrained("facebook/bart-base")', 'AutoModelForSeq2SeqLM'),
+    ('hf_Reformer', (8, 4096), 4096, 'ReformerConfig()', 'AutoModelForMaskedLM'),
+    ('hf_BigBird', (2, 1024), 4096, 'BigBirdConfig(attention_type="block_sparse",)', 'AutoModelForMaskedLM'),
+    ('hf_Albert', (8, 512), 512, 'AutoConfig.from_pretrained("albert-base-v2")', 'AutoModelForMaskedLM'),
+    ('hf_DistilBert', (8, 512), 512, 'AutoConfig.from_pretrained("distilbert-base-uncased")', 'AutoModelForMaskedLM'),
+    ('hf_Longformer', (2, 1024), 4096, 'AutoConfig.from_pretrained("allenai/longformer-base-4096")', 'AutoModelForMaskedLM'),
+    ('hf_Bert', (4, 512), 512, 'BertConfig()', 'AutoModelForMaskedLM')
 ]
-for name, input_shape, eval_context, config, model in class_models:
+for name, input_shape, eval_length, config, model in class_models:
     folder = Path(name)
     if not os.path.isdir(folder):
         os.makedirs(folder)
@@ -34,18 +36,16 @@ class Model(BenchmarkModel):
 
 
         config = {config}
-        self.model = {model}(config).to(device)
+        self.model = {model}.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-
-        num_tokens = 5
 
         input_ids = torch.randint(0, config.vocab_size, {input_shape}).to(device)
         decoder_ids = torch.randint(0, config.vocab_size, {input_shape}).to(device)
 
-        eval_context = torch.randint(0, config.vocab_size, (1, {eval_context})).to(device)
+        eval_context = torch.randint(0, config.vocab_size, (1, {eval_length})).to(device)
 
         self.train_inputs = {{'input_ids': input_ids, 'labels': decoder_ids}}
-        self.eval_inputs = {{'input_ids': eval_context, 'min_length': num_tokens + {eval_context}, 'max_length': num_tokens + {eval_context}}}
+        self.eval_inputs = {{'input_ids': eval_context, 'labels': eval_context}}
 
     def get_module(self):
         if self.jit:
@@ -68,7 +68,7 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
-                out = self.model.generate(**self.eval_inputs)
+                out = self.model(**self.eval_inputs)
 
 
 if __name__ == "__main__":
@@ -105,5 +105,4 @@ if __name__ == '__main__':
 
     with open(folder / 'requirements.txt', 'w') as f:
         f.write('transformers==4.5.0\n')
-        f.write('datasets\n')
         f.write('sentencepiece\n')

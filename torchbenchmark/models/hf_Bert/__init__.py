@@ -17,14 +17,14 @@ class Model(BenchmarkModel):
         self.jit = jit
 
 
-        config = BigBirdConfig(attention_type="block_sparse",)
+        config = BertConfig()
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
-        input_ids = torch.randint(0, config.vocab_size, (2, 1024)).to(device)
-        decoder_ids = torch.randint(0, config.vocab_size, (2, 1024)).to(device)
+        input_ids = torch.randint(0, config.vocab_size, (4, 512)).to(device)
+        decoder_ids = torch.randint(0, config.vocab_size, (4, 512)).to(device)
 
-        eval_context = torch.randint(0, config.vocab_size, (1, 4096)).to(device)
+        eval_context = torch.randint(0, config.vocab_size, (1, 512)).to(device)
 
         self.train_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
         self.eval_inputs = {'input_ids': eval_context, 'labels': eval_context}
