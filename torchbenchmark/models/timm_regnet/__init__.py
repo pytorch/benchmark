@@ -23,6 +23,7 @@ class Model(BenchmarkModel):
             torch.cuda.empty_cache()
         if jit:
             self.model = torch.jit.script(self.model)
+            assert isinstance(self.model, torch.jit.ScriptModule)
 
     def _gen_target(self, batch_size):
         return torch.empty(
