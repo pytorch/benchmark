@@ -14,7 +14,7 @@ jobs:
           name: Install Conda
           command: ./scripts/install_basics.sh
       - run:
-          name: Install CUDA 11.1
+          name: Install CUDA 11.2
           command: sudo ./scripts/install_cuda.sh
       - run:
           name: Install PyTorch nightly
