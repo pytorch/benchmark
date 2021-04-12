@@ -16,6 +16,7 @@ class NLP(Enum):
 
 class SPEECH(Enum):
     SYNTHESIS = "synthesis"
+    RECOGNITION = "recognition"
 
 class RECOMMENDATION(Enum):
     RECOMMENDATION = "recommendation"
