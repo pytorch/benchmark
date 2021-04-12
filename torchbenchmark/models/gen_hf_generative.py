@@ -109,3 +109,4 @@ if __name__ == '__main__':
     with open(folder / 'requirements.txt', 'w') as f:
         f.write('transformers==4.5.0\n')
         f.write('sentencepiece\n')
+        f.write('datasets\n')
