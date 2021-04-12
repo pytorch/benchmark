@@ -12,7 +12,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.model = models.mobilenet_v2().to(self.device)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((96, 3, 224, 224)).to(self.device),)
         self.prep_qat_train()  # config+prepare steps are required for both train and eval
 
     def prep_qat_train(self):

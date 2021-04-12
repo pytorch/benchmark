@@ -13,7 +13,7 @@ class Model(BenchmarkModel):
         self.model = models.mobilenet_v2().to(self.device)
         if self.jit:
             self.model = torch.jit.script(self.model)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((96, 3, 224, 224)).to(self.device),)
 
     def get_module(self):
         return self.model, self.example_inputs
@@ -41,4 +41,4 @@ if __name__ == "__main__":
     module(*example_inputs)
     m.train(niter=1)
     m.eval(niter=1)
-    
+
