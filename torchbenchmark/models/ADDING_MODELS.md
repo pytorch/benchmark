@@ -1,9 +1,9 @@
 # How to add a new model
 
 ## Overview
-- copy the model code into a subdirectory of `torchbenchmark/models`
-- prepare a mini dataset for fast benchmark iterations
-- add scripts conform to our API that install the dependencies and run the model
+- Make a `torchbenchmark/models` subdir containing the glue code to hook your model into the suite
+- either copy the model srcs directly, or pip install a pinned version of a library via your model's requirements.txt
+- prepare a single train and eval datum for use with benchmarking 
 - (optional) modify the model to support JIT compilation
 
 ## Detailed steps
@@ -21,6 +21,15 @@ Python identifier because it will become a module in Python and needs to be impo
 Create a new file 'origin' that contains the url to the git repo you're copying, 
 so it's easy to trace the code back to where it came from.
 
+#### Wrapping your model in __init__.py
+This is how your model gets hooked up to the suite and discovered by the benchmark and unit test runners.
+
+This file should define a Model class that subclasses from `torchbenchmark.util.model.BenchmarkModel` and implements its APIs.
+
+Some of the APIs are optional, and you can raise NotImplemented if a particular mode (e.g. cuda or jit) is unsupported for your model.
+
+Take care to set the random seed like [https://github.com/pytorch/benchmark/blob/master/torchbenchmark/models/Background_Matting/__init__.py#L20](here), to ensure your model runs the same way each time for benchmarking sake.
+
 ### Preparing install.py and dependencies
 Simply put, install.py should be a one stop shop to install all the dependencies
 for your model, __except torch, torchvision, torchtext__ which should be assumed to 
@@ -28,6 +37,7 @@ have been installed by an outsider (the benchmark CI).
 
 - avoid pinning packages to specific versions with == without good reason, as the
 dependencies for all models get installed into the same environment currently
+- *except* for dependencies that define your model code, such as a library like huggingface, in cases where you did not copy the model source- then you do want to pin with ==, so your model does not silently change from run to run.
 - usually, leverage a requirements.txt and/or the existing setup.py
 
 If the model depends on a C or cuda extension, it may still be possible to invoke
@@ -47,9 +57,6 @@ artifacts and modifying the __init__.py script as needed to use them.
 that file in
 - it's also fine to manually modify the raw data files to include only a small fraction, but make sure not to run the dataloader during train/eval measurements
 
-TODO
-- list examples of different styles
-- provide table of existing datasets that can be reused 
 
 ### Making the benchmark code run robustly
 
@@ -74,60 +81,9 @@ Important: be deliberate about support for cpu/gpu and jit/no-jit.  In the case 
 your model is instantiated in an unsupported configuration, the convention is to return
 a model object from __init__ but raise NotImplementedError() from all its methods.
 
-    class Model:
-        def __init__(self, device='cpu', jit=False):
-            """ Do all setup here, including JIT compilation, dataloader invocation, to device
-            """
-            self.device = device
-            self.jit = jit
-            self.model = ...
-            self.example_inputs = ...
+See the [BenchmarkModel API](https://github.com/pytorch/benchmark/blob/master/torchbenchmark/util/model.py) to get started.
 
-        def get_module(self):
-            """ Returns model, example_inputs such that `model(*example_inputs)` works
-            (optional api)
-            """
-            raise NotImplementedError()
-
-        def train(self, niterations=1):
-            """ Run training on model for `niterations` times.
-            Leave warmup to the caller (e.g. don't do it inside)
-            (optional api)
-            """
-            if self.jit:
-                raise NotImplementedError()
-            else:
-                ...
-
-        def eval(self, niterations=1):
-            """ Run evaluation on model for `niterations` inputs. One iteration should be sufficient
-            Leave warmup to the caller (e.g. don't do it inside)
-            (optional api)
-            """
-            model, example_inputs = self.get_module()
-            for i in range(niterations):
-                model(*example_inputs)
-
-        def set_eval(self):
-            """ Set the evaluation mode on a model for `eval()` calls. See the next section
-            (optional api)
-            """
-            self._set_mode(False)
-
-        def set_train(self):
-            """ Set the training mode on a model for `train()` calls. See the next section
-            (optional api)
-            """
-            self._set_mode(True)
-
-        def _set_mode(self, train):
-            """ A helper for implementing `set_train` and `set_eval`
-            (optional api)
-            """
-            (model, _) = self.get_module()
-            model.train(train)
-
-[example __init__.py](attention-is-all-you-need-pytorch/__init__.py)
+Also, an [example __init__.py](attention-is-all-you-need-pytorch/__init__.py) from a real model.
 
 ### `set_eval()` and `set_train()`
 
