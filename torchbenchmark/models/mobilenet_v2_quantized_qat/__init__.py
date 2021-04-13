@@ -14,7 +14,6 @@ class Model(BenchmarkModel):
         self.model = models.mobilenet_v2().to(self.device)
         self.example_inputs = (torch.randn((96, 3, 224, 224)).to(self.device),)
         self.prep_qat_train()  # config+prepare steps are required for both train and eval
-        torch.cuda.empty_cache()
 
     def prep_qat_train(self):
         qconfig_dict = {"": torch.quantization.get_default_qat_qconfig('fbgemm')}
