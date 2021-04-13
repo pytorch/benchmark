@@ -139,12 +139,15 @@ def process_config(timm_model_cfgs):
         Path(model_path).mkdir(exist_ok=True)
         init_file = os.path.join(model_path, "__init__.py")
         config_file = os.path.join(model_path, "config.py")
+        install_file = os.path.join(model_path, "install.py")
         with open(config_file, "w") as cf:
             cf.write(init_config_template.format())
         with open(init_file, "w") as init_file:
             init_file.write(init_program_template.format(model_name = model_name,
                                                          model_category = model_category,
                                                          model_variant = model_variant))
+        with open(install_file, "w") as install_f:
+            install_f.write("")
 
 if __name__ == "__main__":
     process_config(timm_model_cfgs)
