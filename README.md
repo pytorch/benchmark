@@ -108,6 +108,12 @@ Some useful options include
 - `--collect-only` only show what tests would run, useful to see what models there are or debug your filter expression
 - `--cpu_only` if running on a local CPU machine and ignoring machine configuration checks
 
+### Using run.py for simple debugging or profiling
+Sometimes you may want to just run train or eval on a particular model, e.g. for debugging or profiling.  Rather than relying on __main__ implementations inside each model, `run.py` provides a lightweight CLI for this purpose, building on top of the standard BenchmarkModel API.
+
+`python run.py <model> [-d {cpu,cuda}] [-m {eager,jit}] [-t {eval,train}] [--profile]`
+note: <model> can be a full, exact name, or a partial string match.
+
 #### Examples of Benchmark Filters
 - `-k "test_train[NAME-cuda-jit]"` for a particular flavor of a particular model
 - `-k "(BERT and (not cuda) and (not jit))"` for a more flexible approach to filtering
