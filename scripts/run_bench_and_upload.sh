@@ -18,8 +18,5 @@ BENCHMARK_ABS_FILENAME=${BENCHMARK_DATA}/${BENCHMARK_FILENAME}
 # configure benchmark invocation to be as fast as possible since this run isn't used for actual timing results,
 # while still producing a json output to flush out bugs in compute_score.
 # this will disable warmup, and run each benchmark only once to verify correctness
+# this will NOT generate the result json file
 pytest test_bench.py --ignore_machine_config --setup-show --benchmark-disable --benchmark-sort=Name --benchmark-json=${BENCHMARK_ABS_FILENAME} -k "$PYTEST_FILTER"
-
-# Compute benchmark score, just to check that the script is not crashing
-# real score computation is handled by pytorch CI using a performance-tuned machine
-TORCHBENCH_SCORE=$(python compute_score.py --configuration v0 --benchmark_data_file ${BENCHMARK_ABS_FILENAME})
