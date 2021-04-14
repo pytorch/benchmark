@@ -43,7 +43,7 @@ class Model(BenchmarkModel):
         output = self.model(self.cfg.infer_example_inputs)
 
     def get_module(self):
-        return self.model, self.cfg.example_inputs
+        return self.model, (self.cfg.example_inputs,)
 
     def train(self, niter=1):
         for _ in range(niter):
