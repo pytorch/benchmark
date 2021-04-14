@@ -12,14 +12,6 @@ import torch
 from scripts.upload_scribe import ScribeUploader
 
 
-# This hash is used to ensure the benchmarks (which live in pytorch/pytorch)
-# and the CI infrastructure (which lives in pytorch/benchmark) are in sync.
-# Otherwise we might contaminate the database with inconsistent data.
-VERSIONS = [
-    'b984f1ebad546ed3ee612244b8c72e53',
-]
-
-
 class PytorchMicrobenchmarkUploader(ScribeUploader):
     def __init__(self):
         super().__init__('perfpipe_pytorch_microbenchmarks')
@@ -61,12 +53,6 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
         }
 
     def post_benchmarks(self, result_json):
-        assert result_json['version'] == len(VERSIONS) - 1, \
-            f"Expected version={len(VERSIONS) - 1}, got {result_json['version']}"
-
-        assert result_json['md5'] == VERSIONS[-1], \
-            f"Expected md5={VERSIONS[-1]}, got {result_json['md5']}"
-
         md5 = hashlib.md5()
         for key in result_json["values"].keys():
             md5.update(key.encode("utf-8"))
