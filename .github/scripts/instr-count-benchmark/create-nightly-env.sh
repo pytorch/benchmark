@@ -30,4 +30,6 @@ fi
 pip install --pre torch \
     -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
 
+pip install numpy
+
 git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
