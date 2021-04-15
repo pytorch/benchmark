@@ -11,7 +11,7 @@ jobs:
       - name: Check out
         uses: actions/checkout@v2
         with:
-          ref: master
+          ref: gh/taylorrobie/callgrind_scribe
       - name: Create Conda nightly env
         run: |
           bash .github/scripts/instr-count-benchmark/create-nightly-env.sh
