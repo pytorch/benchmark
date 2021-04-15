@@ -14,6 +14,8 @@ conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 
 pip install -r requirements.txt
 
+conda install -y numpy ninja cmake cffi typing_extensions dataclasses
+
 # We need Valgrind to collect instructions.
 conda install -y valgrind -c conda-forge
 
