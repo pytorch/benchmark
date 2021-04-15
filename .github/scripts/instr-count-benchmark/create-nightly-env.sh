@@ -12,6 +12,8 @@ mkdir -p ${INSTRUCTION_COUNT_ROOT}
 conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 . activate ${CONDA_ENV_NAME}
 
+pip install -r requirements.txt
+
 # We need Valgrind to collect instructions.
 conda install -y valgrind -c conda-forge
 
