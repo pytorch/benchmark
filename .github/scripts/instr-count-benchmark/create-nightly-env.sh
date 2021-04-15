@@ -7,9 +7,25 @@ set -a;
 source ${BASEDIR}/config.env
 set +a;
 
+mkdir -p ${INSTRUCTION_COUNT_ROOT}
+
 conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 . activate ${CONDA_ENV_NAME}
+
+# We need Valgrind to collect instructions.
+conda install -y valgrind -c conda-forge
+
+# Check if nightly builds are available
+NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+
+# If failed, the script will generate empty result
+if [ -z $NIGHTLIES ]; then
+    echo "Torch nightly build failed. Cancel the workflow."
+    exit 1
+fi
 
 # Install PyTorch nightly from pip
 pip install --pre torch \
     -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
+
+git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
