@@ -9,8 +9,6 @@ set +a;
 
 mkdir -p ${INSTRUCTION_COUNT_ROOT}
 
-git branch
-
 conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 . activate ${CONDA_ENV_NAME}
 
