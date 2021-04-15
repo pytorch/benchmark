@@ -32,7 +32,5 @@ pip install --pre torch \
 
 pip install numpy
 
-ls -alF ${INSTRUCTION_COUNT_ROOT}
-ls -alF ${REPO_CHECKOUT}
-
+rm -rf ${REPO_CHECKOUT}
 git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
