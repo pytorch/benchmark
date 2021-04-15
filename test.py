@@ -49,7 +49,11 @@ def _load_test(model_class, device):
         m = model_object(self)
         try:
             module, example_inputs = m.get_module()
-            module(*example_inputs)
+            if isinstance(example_inputs, dict):
+                # Huggingface models pass **kwargs as arguments, not *args
+                module(**example_inputs)
+            else:
+                module(*example_inputs)
         except NotImplementedError:
             self.skipTest('Method get_module is not implemented, skipping...')
 

@@ -4,7 +4,7 @@ jobs:
   run_benchmarks:
     machine:
       image: ubuntu-1604:201903-01
-    resource_class: gpu.small
+    resource_class: gpu.nvidia.medium
     steps:
       - checkout
       - run:
@@ -14,7 +14,7 @@ jobs:
           name: Install Conda
           command: ./scripts/install_basics.sh
       - run:
-          name: Install CUDA 11.1
+          name: Install CUDA 11.2
           command: sudo ./scripts/install_cuda.sh
       - run:
           name: Install PyTorch nightly
@@ -22,6 +22,11 @@ jobs:
       - run:
           name: Setup benchmark suite dependencies
           command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python install.py
+      - run:
+          name: Validate compute_score.py
+          command: |
+            wget -O example.json https://s3.amazonaws.com/ossci-metrics/torchbench_v0_nightly/gh741259573/20210412_131220_1.json
+            . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python compute_score.py --configuration v0 --benchmark_data_file example.json
       - run:
           name: Validate training benchmark suite
           command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py
