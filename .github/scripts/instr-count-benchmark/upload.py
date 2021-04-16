@@ -9,13 +9,7 @@ import time
 import numpy as np
 import torch
 
-print(os.getcwd())
-print(sys.path)
-
-
 from scripts.upload_scribe import ScribeUploader
-
-sys.exit(0)
 
 
 class PytorchMicrobenchmarkUploader(ScribeUploader):
