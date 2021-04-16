@@ -9,6 +9,10 @@ import time
 import numpy as np
 import torch
 
+print(os.getcwd())
+print(sys.path)
+os.exit(0)
+
 from scripts.upload_scribe import ScribeUploader
 
 

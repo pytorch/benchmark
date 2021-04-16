@@ -14,7 +14,7 @@ echo "Running instruction benchmark for pytorch-${PYTORCH_VERSION}, commit SHA: 
 
 # Run the instruction count benchmark
 pushd ${BENCHMARK_ROOT}
-python main.py --mode ci --destination ${RESULT_JSON}
+# python main.py --mode ci --destination ${RESULT_JSON}
 popd
 
 python ${BASEDIR}/upload.py --result_json ${RESULT_JSON}
