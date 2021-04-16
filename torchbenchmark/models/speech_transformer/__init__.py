@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import torch
 
 from .data import AudioDataLoader, AudioDataset
@@ -60,13 +59,24 @@ class Model(BenchmarkModel, device = "cuda", jit = False):
             self.js = json.load(self.recog_json)['utts']
 
     def get_module(self):
-        pass
+        if self.device == "cpu":
+            raise NotImplementedError()
+        if self.jit:
+            raise NotImplementedError()
 
     def train(self, niter=1):
+        if self.device == "cpu":
+            raise NotImplementedError()
+        if self.jit:
+            raise NotImplementedError()
         for _ in range(niter):
             self.solver.train()
 
     def eval(self, niter=1):
+        if self.device == "cpu":
+            raise NotImplementedError()
+        if self.jit:
+            raise NotImplementedError()
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
