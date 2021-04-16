@@ -17,4 +17,4 @@ pushd ${BENCHMARK_ROOT}
 # python main.py --mode ci --destination ${RESULT_JSON}
 popd
 
-python ${BASEDIR}/upload.py --result_json ${RESULT_JSON}
+PYTHONPATH="${GIT_ROOT}:${PYTHONPATH}" python ${BASEDIR}/upload.py --result_json ${RESULT_JSON}

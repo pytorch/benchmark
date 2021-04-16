@@ -11,9 +11,11 @@ import torch
 
 print(os.getcwd())
 print(sys.path)
-os.exit(0)
+
 
 from scripts.upload_scribe import ScribeUploader
+
+sys.exit(0)
 
 
 class PytorchMicrobenchmarkUploader(ScribeUploader):
