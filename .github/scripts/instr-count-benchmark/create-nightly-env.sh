@@ -25,10 +25,10 @@ conda install -y valgrind -c conda-forge
 NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
 
 # If failed, the script will generate empty result
-if [ -z $NIGHTLIES ]; then
-    echo "Torch nightly build failed. Cancel the workflow."
-    exit 1
-fi
+# if [ -z $NIGHTLIES ]; then
+#     echo "Torch nightly build failed. Cancel the workflow."
+#     exit 1
+# fi
 
 # Install PyTorch nightly from pip
 pip install --pre torch \
