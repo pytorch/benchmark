@@ -35,4 +35,7 @@ pip install --pre torch \
     -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
 
 rm -rf ${REPO_CHECKOUT}
-git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
+# git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
+git clone https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
+cd ${REPO_CHECKOUT}
+git checkout gh/taylorrobie/callgrind_scribe2
