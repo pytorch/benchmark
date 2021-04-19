@@ -18,9 +18,10 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
         self.schema = {
             'int': [
                 'time',
-                # 'start_time',
-                # 'end_time',
-                # 'task_number',
+                'is_debug_entry',
+                'start_time',
+                'end_time',
+                'task_number',
 
                 # # This is the version of the instruction count microbenchmark.
                 # 'benchmark_version',
@@ -63,9 +64,10 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
 
         base_msg = {
             'time': int(time.time()),
+            'is_debug_entry': 1,
             # 'run_id': os.getenv('GITHUB_RUN_ID'),
-            # 'start_time': result_json['start_time'],
-            # 'end_time': result_json['end_time'],
+            'start_time': result_json['start_time'],
+            'end_time': result_json['end_time'],
             # 'benchmark_version': result_json['version'],
             # 'pytorch_version': torch.__version__,
             # 'pytorch_git_version': torch.version.git_version,
@@ -79,7 +81,7 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
             times = measurements["times"]
             counts = measurements["counts"]
             stats_msg = {
-                # 'task_number': task_number,
+                'task_number': task_number,
                 # 'task_key': key,
 
                 'count_min': min(counts),
