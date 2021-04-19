@@ -36,7 +36,8 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
                 'run_id',
 
                 # Metadata for ad-hoc analysis.
-                'task_key', 'counts_json',
+                'task_key',
+                # 'counts_json',
 
                 # TODO: More environment info.
                 'pytorch_version',
@@ -85,7 +86,7 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
                 'count_p25': int(np.percentile(counts, 25)),
                 'count_median': int(np.median(counts)),
                 'count_p75': int(np.percentile(counts, 75)),
-                'counts_json': json.dumps(counts),
+                # 'counts_json': json.dumps(counts),
 
                 't_min': min(times),
                 't_max': max(times),
