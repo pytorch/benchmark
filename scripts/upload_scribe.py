@@ -48,6 +48,8 @@ class ScribeUploader:
         if not access_token:
             raise ValueError("Can't find access token from environment variable")
         url = "https://graph.facebook.com/scribe_logs"
+        for message in messages:
+            print(json.dumps(message))
         r = requests.post(
             url,
             data={
@@ -169,10 +171,10 @@ if __name__ == "__main__":
     parser.add_argument("--torchbench_score", type=float,
                         help="optional torchbench score to include")
     args = parser.parse_args()
-    
+
     benchmark_uploader = PytorchBenchmarkUploader()
     json_data = json.load(args.pytest_bench_json)
     benchmark_uploader.post_pytest_benchmarks(json_data)
-    
+
     if args.torchbench_score is not None:
         benchmark_uploader.post_torchbench_score(json_data, args.torchbench_score)
