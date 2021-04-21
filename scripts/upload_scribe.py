@@ -49,7 +49,7 @@ class ScribeUploader:
             raise ValueError("Can't find access token from environment variable")
         url = "https://graph.facebook.com/scribe_logs"
         for message in messages:
-            print(json.dumps(message))
+            print("__", json.dumps(message))
         r = requests.post(
             url,
             data={
