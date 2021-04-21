@@ -50,6 +50,7 @@ class ScribeUploader:
         url = "https://graph.facebook.com/scribe_logs"
         for message in messages:
             print("__", json.dumps(message))
+        print("category", self.category)
         r = requests.post(
             url,
             data={
