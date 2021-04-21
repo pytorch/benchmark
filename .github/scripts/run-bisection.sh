@@ -34,9 +34,6 @@ fi
 
 BISECT_BASE=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
 
-# get torch_nightly.html
-curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
-
 # create the work directory
 mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 
