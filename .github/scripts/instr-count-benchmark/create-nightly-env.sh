@@ -45,4 +45,4 @@ popd
 # Monkey patch Timer for BENCHMARK_USE_DEV_SHM
 TORCH_ROOT=$(python -c "import os;import torch;print(os.path.dirname(torch.__file__))")
 rm -rf "${TORCH_ROOT}/utils/benchmark"
-cp -r "${REPO_CHECKOUT}/utils/benchmark" "${TORCH_ROOT}/utils/"
+cp -r "${REPO_CHECKOUT}/torch/utils/benchmark" "${TORCH_ROOT}/utils/"
