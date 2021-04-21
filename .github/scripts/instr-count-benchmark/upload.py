@@ -101,7 +101,7 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
 
             stats_msg.update(base_msg)
             messages.append(self.format_message(stats_msg))
-        self.upload(messages[:2])
+        self.upload(messages)
 
 
 if __name__ == '__main__':

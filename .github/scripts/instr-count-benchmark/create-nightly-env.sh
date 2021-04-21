@@ -39,3 +39,8 @@ rm -rf ${REPO_CHECKOUT}
 git clone https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
 cd ${REPO_CHECKOUT}
 git checkout gh/taylorrobie/callgrind_scribe2
+
+# Monkey patch Timer for BENCHMARK_USE_DEV_SHM
+TORCH_ROOT=$(python -c "import os;import torch;print(os.path.dirname(torch.__file__))")
+rm -rf "${TORCH_ROOT}/utils/benchmark"
+cp -r "${REPO_CHECKOUT}/utils/benchmark" "${TORCH_ROOT}/utils/"
