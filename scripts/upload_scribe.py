@@ -51,7 +51,6 @@ class ScribeUploader:
         for message in messages:
             print("__", json.dumps(message))
         print("category", self.category)
-        print("access_token", access_token, type(access_token), len(access_token))
         r = requests.post(
             url,
             data={
