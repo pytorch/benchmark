@@ -37,8 +37,10 @@ pip install --pre torch \
 rm -rf ${REPO_CHECKOUT}
 # git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
 git clone https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
-cd ${REPO_CHECKOUT}
+
+pushd ${REPO_CHECKOUT}
 git checkout gh/taylorrobie/callgrind_scribe2
+popd
 
 # Monkey patch Timer for BENCHMARK_USE_DEV_SHM
 TORCH_ROOT=$(python -c "import os;import torch;print(os.path.dirname(torch.__file__))")
