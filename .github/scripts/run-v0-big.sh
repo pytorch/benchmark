@@ -29,8 +29,8 @@ python install.py
 
 # Run the benchmark
 for c in $(seq 1 $NUM_ITER); do
-    taskset -c "${CORE_LIST}" \
-         pytest test_bench.py -k "${BENCHMARK_FILTER}" \
+    systemd-run --user --slice=workload.slice --same-dir --wait --collect --service-type=exec --pty --uid=$USER \
+                pytest test_bench.py -k "${BENCHMARK_FILTER}" \
                 --benchmark-min-rounds "${NUM_ROUNDS}" \
                 --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
 done
