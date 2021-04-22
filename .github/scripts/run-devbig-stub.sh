@@ -1,7 +1,6 @@
 #!/bin/sh
-# This is the stub of run-v0-big.sh
-# Do not directly run it!
-
+# This is the stub of run-devbig.sh
+# DO NOT directly run it!
 set -eu
 
 DATA_DIR=$1

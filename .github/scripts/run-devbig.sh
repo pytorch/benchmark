@@ -1,8 +1,8 @@
 #!/bin/sh
-# This script runs TorchBench v0 without installing the package
+# This script runs TorchBench without installing the package
 # It assumes pytorch and its dependencies have been installed correctly
 # Usage:
-# run-v0-devbig.sh RESULT_DIR BENCHMARK_FILTER CONDA_ENV_NAME
+# run-devbig.sh RESULT_DIR BENCHMARK_FILTER CONDA_ENV_NAME
 # All three arguments are required
 
 set -eo pipefail
@@ -17,6 +17,6 @@ CURRENT_DIR=$(dirname "$(readlink -f "$0")")
 python install.py
 
 sudo -E systemd-run --slice=workload.slice --same-dir --wait --collect --service-type=exec --pty --uid=$USER \
-     bash $CURRENT_DIR/run-v0-devbig-stub.sh $DATA_DIR "${BENCHMARK_FILTER}" $CONDA_ENV_NAME
+     bash $CURRENT_DIR/run-devbig-stub.sh $DATA_DIR "${BENCHMARK_FILTER}" $CONDA_ENV_NAME
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
