@@ -23,6 +23,14 @@ from typing import Optional, List, Dict, Tuple
 
 from torchbenchmark.util import gitutils
 
+TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
+TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
+TORCHBENCH_DEPS = {
+    "torchtext": os.path.expandvars("${HOME}/text"),
+    "torchvision": os.path.expandvars("${HOME}/vision"),
+    "torchaudio": os.path.expandvars("${HOME}/audio"),
+}
+
 def exist_dir_path(string):
     if os.path.isdir(string):
         return string
@@ -44,13 +52,56 @@ def targets_to_bmfilter(targets: List[str]) -> str:
         bmfilter_names.append(f"({partial_name})")
     return "(" + " or ".join(bmfilter_names) + ")"
 
-TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
-TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
-TORCHBENCH_DEPS = {
-    "torchtext": os.path.expandvars("${HOME}/text"),
-    "torchvision": os.path.expandvars("${HOME}/vision"),
-    "torchaudio": os.path.expandvars("${HOME}/audio"),
-}
+def find_latest_json_file(result_dir: str):
+    json_files = list(filter(lambda x: x.endswith(".json"), os.listdir(result_dir)))
+    assert len(json_files), f"Can't find result json files in directory {result_dir}"
+    return os.path.join(result_dir, sorted(json_files)[-1])
+
+def get_delta_str(reference: float, current: float) -> str:
+    delta_num = ((current - reference) / current * 100)
+    delta_str = "{:+3f}".format(delta_num) + "%"
+    if (abs(delta_num) >= 5):
+        delta_str = delta_str + "*"
+    return delta_str
+
+def get_means(data):
+    rc = dict()
+    for param in data["benchmarks"]:
+        name = param["name"]
+        mean = param["stats"]["mean"]
+        rc[name] = mean
+    return rc
+
+def analyze_abtest_result_dir(result_dir: str):
+    dirs = [ os.path.join(result_dir, name) for name in os.listdir(result_dir) if os.path.isdir(os.path.join(result_dir, name)) ]
+    delta = False
+    # If there are only two directories, we believe it is abtest and print delta of the mean
+    if len(dirs) == 2:
+        delta = True
+    json_files = list(map(find_latest_json_file, dirs))
+    out = [['Benchmark']]
+    assert(len(json_files))
+    with open(json_files[0], "r") as fp:
+        cur_result = json.load(fp)
+        means = get_means(cur_result)
+    for key in means:
+        out.append([])
+        out[-1].append(key)
+    for index, json_file in enumerate(json_files):
+        with open(json_file, "r") as fp:
+            jsonobj = json.load(fp)
+        header = f"Run {os.path.basename(json_file)}"
+        out[0].append(header)
+        means = get_means(jsonobj)
+        if delta and index == 0:
+            reference = means
+        for key_index, key in enumerate(means):
+            out[key_index+1].append(means[key])
+            if delta and index == 1:
+                out[0].append("Delta")
+                out[key_index+1].append(get_delta_str(reference[key], means[key]))
+    out_str = tabulate(out, headers='firstrow')
+    return out_str
 
 class Commit:
     sha: str
@@ -169,17 +220,20 @@ class TorchBench:
     branch: str
     timelimit: int # timeout limit in minutes
     workdir: str
+    devbig: str
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
                  timelimit: int,
                  workdir: str,
+                 devbig: str,
                  branch: str = "0.1"):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
         self.workdir = workdir
+        self.devbig = devbig
         self.branch = branch
 
     def prep(self) -> bool:
@@ -205,7 +259,10 @@ class TorchBench:
             os.mkdir(output_dir)
         bmfilter = targets_to_bmfilter(targets)
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
-        command = f"bash .github/scripts/run-v0.sh \"{output_dir}\" \"{bmfilter}\" &> {output_dir}/benchmark.log"
+        if not devbig:
+            command = f"""bash .github/scripts/run-v0.sh "{output_dir}" "{bmfilter}" &> {output_dir}/benchmark.log"""
+        else:
+            command = f"""bash .github/scripts/run-v0-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" &> {output_dir}/benchmark.log"""
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
@@ -276,6 +333,7 @@ class TorchBenchBisection:
     bench: TorchBench
     output_json: str
     debug: bool
+    abtest: bool
 
     def __init__(self,
                  workdir: str,
@@ -288,6 +346,7 @@ class TorchBenchBisection:
                  timeout: int,
                  targets: List[str],
                  output_json: str,
+                 devbig: str,
                  debug: bool = False):
         self.workdir = workdir
         self.start = start
@@ -301,9 +360,14 @@ class TorchBenchBisection:
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
+                                devbig = devbig,
                                 workdir = self.workdir)
         self.output_json = output_json
         self.debug = debug
+        # Special treatment for abtest
+        self.abtest = False
+        if self.threshold == 100.0 and self.direction == "decrease":
+            self.abtest = True
 
     # Left: older commit; right: newer commit
     # Return: List of targets that satisfy the regression rule: <threshold, direction>
@@ -382,56 +446,8 @@ class TorchBenchBisection:
         with open(self.output_json, 'w') as outfile:
             json.dump(json_obj, outfile, indent=2)
 
-def get_means(data):
-    rc = dict()
-    for param in data["benchmarks"]:
-        name = param["name"]
-        mean = param["stats"]["mean"]
-        rc[name] = mean
-    return rc
-
-def find_latest_json_file(result_dir: str):
-    json_files = list(filter(lambda x: x.endswith(".json"), os.listdir(result_dir)))
-    assert len(json_files), f"Can't find result json files in directory {result_dir}"
-    return os.path.join(result_dir, sorted(json_files)[-1])
-
-def get_delta_str(reference: float, current: float) -> str:
-    delta_num = ((current - reference) / current * 100)
-    delta_str = "{:+3f}".format(delta_num) + "%"
-    if (abs(delta_num) >= 5):
-        delta_str = delta_str + "*"
-    return delta_str
-
-def analyze_abtest_result_dir(result_dir: str):
-    dirs = [ os.path.join(result_dir, name) for name in os.listdir(result_dir) if os.path.isdir(os.path.join(result_dir, name)) ]
-    delta = False
-    # If there are only two directories, we believe it is abtest and print delta of the mean
-    if len(dirs) == 2:
-        delta = True
-    json_files = list(map(find_latest_json_file, dirs))
-    out = [['Benchmark']]
-    assert(len(json_files))
-    with open(json_files[0], "r") as fp:
-        cur_result = json.load(fp)
-        means = get_means(cur_result)
-    for key in means:
-        out.append([])
-        out[-1].append(key)
-    for index, json_file in enumerate(json_files):
-        with open(json_file, "r") as fp:
-            jsonobj = json.load(fp)
-        header = f"Run {os.path.basename(json_file)}"
-        out[0].append(header)
-        means = get_means(jsonobj)
-        if delta and index == 0:
-            reference = means
-        for key_index, key in enumerate(means):
-            out[key_index+1].append(means[key])
-            if delta and index == 1:
-                out[0].append("Delta")
-                out[key_index+1].append(get_delta_str(reference[key], means[key]))
-    out_str = tabulate(out, headers='firstrow')
-    return out_str
+    def output_abtest_result(self):
+        print(analyze_abtest_result_dir(self.workdir))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -450,6 +466,10 @@ if __name__ == "__main__":
                         help="the output json file")
     parser.add_argument("--analyze-result",
                         help="specify the the output result directory to analyze")
+    # running on devbig
+    parser.add_argument("--devbig",
+                        type=str,
+                        help="if running on devbig, specify the devbig conda env")
     # by default, debug mode is disabled
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
@@ -485,8 +505,11 @@ if __name__ == "__main__":
                                     timeout=bisect_config["timeout"],
                                     targets=targets,
                                     output_json=args.output,
+                                    devbig=args.devbig,
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
     bisection.run()
     bisection.output()
+    if bisection.abtest:
+        bisection.output_abtest_result()
