@@ -34,13 +34,9 @@ fi
 
 BISECT_BASE=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
 
-# get torch_nightly.html
-curl -O https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html 
-
+. activate ${BISECT_CONDA_ENV}
 # create the work directory
 mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
-
-. activate ${BISECT_CONDA_ENV}
 
 # specify --debug to allow restart from the last failed point
 python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
