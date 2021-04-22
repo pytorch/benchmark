@@ -446,6 +446,7 @@ class TorchBenchBisection:
         abtest_result = analyze_abtest_result_dir(self.workdir)
         with open(self.output_json, 'w') as outfile:
             outfile.write(abtest_result)
+        print(abtest_result)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
