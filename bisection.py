@@ -90,7 +90,7 @@ def analyze_abtest_result_dir(result_dir: str):
     for index, json_file in enumerate(json_files):
         with open(json_file, "r") as fp:
             jsonobj = json.load(fp)
-        header = f"Run {os.path.basename(json_file)}"
+        header = f"Run {os.path.basename(os.path.dirname(json_file))}"
         out[0].append(header)
         means = get_means(jsonobj)
         if delta and index == 0:
