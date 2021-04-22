@@ -14,26 +14,26 @@ if [ -z ${TORCHBENCH_SRC_DIR} ]; then
     TORCHBENCH_SRC_DIR=${HOME}/benchmark
 fi
 
-if [ -z ${BISECT_CONDA_ENV} ]; then
-    BISECT_CONDA_ENV=bisection
+if [ -z ${CONDA_ENV_NAME} ]; then
+    CONDA_ENV_NAME=abtest
 fi
 
 # Allows user to specify github issue name
-if [ -z ${BISECT_ISSUE} ]; then
-    BISECT_ISSUE=example-issue
+if [ -z ${ABTEST_ISSUE} ]; then
+    ABTEST_ISSUE=example-issue
 fi
 
-BISECT_BASE=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
+ABTEST_BASE=${HOME}/.torchbench/abtest/${ABTEST_ISSUE}
 
-. activate ${BISECT_CONDA_ENV}
+. activate ${CONDA_ENV_NAME}
 # create the work directory
-mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
+mkdir -p ${ABTEST_BASE}
 
 # specify --debug to allow restart from the last failed point
-python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
+python bisection.py --work-dir ${ABTEST_BASE} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
-       --config ${BISECT_BASE}/config.yaml \
-       --output ${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json \
+       --config ${ABTEST_BASE}/config.yaml \
+       --output ${ABTEST_BASE}/result.json \
        --devbig ${CONDA_ENV_NAME} \
        --debug
