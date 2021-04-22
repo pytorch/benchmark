@@ -127,8 +127,7 @@ class TorchSource:
     def prep(self) -> bool:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCH_GITREPO:
-            print(f"Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
-            return False
+            print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
         return True
     
     # Get all commits between start and end, save them in self.commits
@@ -240,10 +239,7 @@ class TorchBench:
         # Verify the code in srcpath is pytorch/benchmark
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCHBENCH_GITREPO:
-            return False
-        # Checkout branch
-        if not gitutils.checkout_git_branch(self.srcpath, self.branch):
-            return False
+            print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCHBENCH_GITREPO}")
         return True
  
     def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
