@@ -43,5 +43,4 @@ python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
        --config ${BISECT_BASE}/config.yaml \
-       --output ${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json \
-       --debug
+       --output ${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json

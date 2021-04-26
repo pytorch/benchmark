@@ -8,7 +8,16 @@ import subprocess
 from datetime import datetime
 from typing import Optional, List
 
-def update_git_repo(repo: str, branch: str) -> bool:
+def clean_git_repo(repo: str) -> bool:
+    try:
+        command = f"git clean -xdf"
+        subprocess.check_call(command, cwd=repo, shell=True)
+        return True
+    except subprocess.CalledProcessError:
+        print(f"Failed to cleanup git repo {repo}")
+        return None
+
+def update_git_repo_branch(repo: str, branch: str) -> bool:
     try:
         command = f"git pull origin {branch}"
         out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()

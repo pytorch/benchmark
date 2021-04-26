@@ -41,14 +41,21 @@ def exist_dir_path(string):
 # For example, ["test_eval[yolov3-cpu-eager]", "test_train[yolov3-gpu-eager]"]
 #     -> "((eval and yolov3 and cpu and eager) or (train and yolov3 and gpu and eager))"
 # If targets is None, run everything except slomo
-def targets_to_bmfilter(targets: List[str]) -> str:
+def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
     bmfilter_names = []
     if targets == None or len(targets) == 0:
         return "(not slomo)"
     for test in targets:
         regex = re.compile("test_(train|eval)\[([a-zA-Z0-9_]+)-([a-z]+)-([a-z]+)\]")
         m = regex.match(test).groups()
-        partial_name = " and ".join(m)
+        if not m:
+            if m in models:
+                partial_name = m
+            else:
+                print(f"Cannot recognize the TorchBench filter: {test}. Exit.")
+                exit(1)
+        else:
+            partial_name = " and ".join(m)
         bmfilter_names.append(f"({partial_name})")
     return "(" + " or ".join(bmfilter_names) + ")"
 
@@ -128,8 +135,17 @@ class TorchSource:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
+        self.update_repos()
         return True
-    
+
+    # Update pytorch, torchtext, torchvision, and torchaudio repo
+    def update_repos(self):
+        repos = [self.srcpath]
+        repos.extend(TORCHBENCH_DEPS.values())
+        for repo in repos:
+            gitutils.clean_git_repo(repo)
+            assert gitutils.update_git_repo(repo, "master"), f"Failed to update master branch of {repo}."
+
     # Get all commits between start and end, save them in self.commits
     def init_commits(self, start: str, end: str) -> bool:
         commits = gitutils.get_git_commits(self.srcpath, start, end)
@@ -220,6 +236,7 @@ class TorchBench:
     timelimit: int # timeout limit in minutes
     workdir: str
     devbig: str
+    models: List[str]
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
@@ -227,19 +244,23 @@ class TorchBench:
                  timelimit: int,
                  workdir: str,
                  devbig: str,
-                 branch: str = "0.1"):
+                 branch: str = "master"):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
         self.workdir = workdir
         self.devbig = devbig
         self.branch = branch
+        self.models = list()
 
     def prep(self) -> bool:
         # Verify the code in srcpath is pytorch/benchmark
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCHBENCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCHBENCH_GITREPO}")
+        # get list of models
+        self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
+                        if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
         return True
  
     def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
@@ -253,7 +274,7 @@ class TorchBench:
                 os.remove(os.path.join(output_dir, f))
         else:
             os.mkdir(output_dir)
-        bmfilter = targets_to_bmfilter(targets)
+        bmfilter = targets_to_bmfilter(targets, self.models)
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         if not self.devbig:
             command = f"""bash .github/scripts/run-bench.sh "{output_dir}" "{bmfilter}" &> {output_dir}/benchmark.log"""
