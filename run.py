@@ -27,7 +27,7 @@ def profile_one_step(func, nwarmup=3):
     with profiler.profile(record_shapes=True) as prof:
         func()
 
-    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+    print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
