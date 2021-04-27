@@ -47,7 +47,7 @@ def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
         return "(not slomo)"
     for test in targets:
         regex = re.compile("test_(train|eval)\[([a-zA-Z0-9_]+)-([a-z]+)-([a-z]+)\]")
-        m = regex.match(test).groups()
+        m = regex.match(test)
         if not m:
             if m in models:
                 partial_name = m
@@ -55,7 +55,7 @@ def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
                 print(f"Cannot recognize the TorchBench filter: {test}. Exit.")
                 exit(1)
         else:
-            partial_name = " and ".join(m)
+            partial_name = " and ".join(m.groups())
         bmfilter_names.append(f"({partial_name})")
     return "(" + " or ".join(bmfilter_names) + ")"
 
