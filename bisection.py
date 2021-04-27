@@ -144,7 +144,7 @@ class TorchSource:
         repos.extend(TORCHBENCH_DEPS.values())
         for repo in repos:
             gitutils.clean_git_repo(repo)
-            assert gitutils.update_git_repo(repo, "master"), f"Failed to update master branch of {repo}."
+            assert gitutils.update_git_repo(repo), f"Failed to update master branch of {repo}."
 
     # Get all commits between start and end, save them in self.commits
     def init_commits(self, start: str, end: str) -> bool:
