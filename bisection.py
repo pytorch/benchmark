@@ -280,7 +280,7 @@ class TorchBench:
         bmfilter = targets_to_bmfilter(targets, self.models)
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         if not self.devbig:
-            command = f"""bash .github/scripts/run-bench.sh "{output_dir}" "{bmfilter}" &> {output_dir}/benchmark.log"""
+            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" &> {output_dir}/benchmark.log"""
         else:
             command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" &> {output_dir}/benchmark.log"""
         try:
