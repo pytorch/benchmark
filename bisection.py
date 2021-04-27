@@ -147,8 +147,11 @@ class TorchSource:
             assert gitutils.update_git_repo(repo), f"Failed to update master branch of {repo}."
 
     # Get all commits between start and end, save them in self.commits
-    def init_commits(self, start: str, end: str) -> bool:
-        commits = gitutils.get_git_commits(self.srcpath, start, end)
+    def init_commits(self, start: str, end: str, abtest: bool) -> bool:
+        if not abtest:
+            commits = gitutils.get_git_commits(self.srcpath, start, end)
+        else:
+            commits = [start, end]
         if not commits or len(commits) < 2:
             print(f"Failed to retrieve commits from {start} to {end} in {self.srcpath}.")
             return False
@@ -416,7 +419,7 @@ class TorchBenchBisection:
     def prep(self) -> bool:
         if not self.torch_src.prep():
             return False
-        if not self.torch_src.init_commits(self.start, self.end):
+        if not self.torch_src.init_commits(self.start, self.end, self.abtest):
             return False
         if not self.bench.prep():
             return False
