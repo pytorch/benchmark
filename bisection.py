@@ -49,8 +49,8 @@ def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
         regex = re.compile("test_(train|eval)\[([a-zA-Z0-9_]+)-([a-z]+)-([a-z]+)\]")
         m = regex.match(test)
         if not m:
-            if m in models:
-                partial_name = m
+            if test in models:
+                partial_name = test
             else:
                 print(f"Cannot recognize the TorchBench filter: {test}. Exit.")
                 exit(1)
