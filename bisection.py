@@ -310,12 +310,10 @@ class TorchBench:
             for each in data["benchmarks"]:
                 targets.append(each["name"])
         old_targets = targets.copy()
-        for t in old_targets:
-            if t in self.models:
-                targets.remove(t)
-                for each in data["benchmarks"]:
-                    if t in each["name"]:
-                        targets.append(each["name"])
+        for t in filter(lambda x: x in self.models, old_targets):
+            targets.remove(t)
+            names =  filter(lambda y: t in y, map(lambda x: x["name"], data["benchmarks"]))
+            targets.extend(list(names))
         for each in data["benchmarks"]:
             if each["name"] in targets:
                 out[each["name"]] = each["stats"]["mean"]
