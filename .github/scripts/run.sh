@@ -1,6 +1,6 @@
 #!/bin/sh
 # This script runs TorchBench without installing the pytorch and torch dep packages
-# It assumes pytorch, torchtext, and torchvision have been installed correctly
+# It assumes pytorch, torchtext, and torchvision have already been installed
 # Usage:
 # run.sh RESULT_DIR [BENCHMARK_FILTER]
 # The RESULT_DIR is required, BENCHMARK_FILTER is optional
@@ -17,14 +17,16 @@ if [ -n "$1" ]; then
     exit 1
 fi
 DATA_DIR=$1
-if [ -n "$2" ]; then
-    BENCHMARK_FILTER="$2"
-fi
 
 # Load environment variables
 set -a;
 source ${CONFIG_ENV}
 set +a;
+# Must read BENCHMARK_FILTER after loading the config
+# Because config has a preset BENCHMARK_FILTER
+if [ -n "$2" ]; then
+    BENCHMARK_FILTER="$2"
+fi
 
 sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
