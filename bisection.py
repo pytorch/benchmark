@@ -314,7 +314,8 @@ class TorchBench:
                 out[each["name"]] = each["stats"]["mean"]
         # Make sure all target tests are available
         for target in targets:
-            assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
+            if target not in self.models:
+                assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
         return out
 
     def get_digest(self, commit: Commit, targets: List[str], debug: bool) -> Dict[str, float]:
