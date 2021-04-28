@@ -1,7 +1,7 @@
 """bisection.py
 Runs bisection to determine PRs that cause performance change.
-It assumes that the pytorch, torchbench, torchtext, torchvision, and torchaudio repositories provided are all clean with the latest code.
-By default, the torchvision, torchaudio, and torchtext package version will be fixed to the latest commit on the pytorch commit date.
+It assumes that the pytorch, torchbench, torchtext and torchvision repositories provided are all clean with the latest code.
+By default, the torchvision and torchtext package version will be fixed to the latest commit on the pytorch commit date.
 
 Usage:
   python bisection.py --work-dir <WORK-DIR> \
@@ -28,7 +28,6 @@ TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 TORCHBENCH_DEPS = {
     "torchtext": os.path.expandvars("${HOME}/text"),
     "torchvision": os.path.expandvars("${HOME}/vision"),
-    "torchaudio": os.path.expandvars("${HOME}/audio"),
 }
 
 def exist_dir_path(string):
@@ -138,7 +137,7 @@ class TorchSource:
         self.update_repos()
         return True
 
-    # Update pytorch, torchtext, torchvision, and torchaudio repo
+    # Update pytorch, torchtext, and torchvision repo
     def update_repos(self):
         repos = [self.srcpath]
         repos.extend(TORCHBENCH_DEPS.values())
@@ -188,17 +187,12 @@ class TorchSource:
             assert gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], dep_commit), "Failed to checkout commit {commit} of {pkg}"
             print("done.")
     
-    # Install dependencies such as torchaudio, torchtext and torchvision
+    # Install dependencies such as torchtext and torchvision
     def build_install_deps(self, build_env):
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
         command = "python setup.py install &> /dev/null"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"], env=build_env, shell=True)
-        print("done")
-        # Build torchaudio
-        print(f"Building torchaudio ...", end="", flush=True)
-        command = "python setup.py install &> /dev/null"
-        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchaudio"], env=build_env, shell=True)
         print("done")
         # Build torchtext
         print(f"Building torchtext ...", end="", flush=True)
@@ -228,7 +222,7 @@ class TorchSource:
 
     def cleanup(self, commit: Commit):
         print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
-        packages = ["torch", "torchtext", "torchvision", "torchaudio"]
+        packages = ["torch", "torchtext", "torchvision"]
         command = "pip uninstall -y " + " ".join(packages) + " &> /dev/null "
         subprocess.check_call(command, shell=True)
         print("done")
