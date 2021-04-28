@@ -309,13 +309,19 @@ class TorchBench:
             targets = list()
             for each in data["benchmarks"]:
                 targets.append(each["name"])
+        old_targets = targets.copy()
+        for t in old_targets:
+            if t in self.models:
+                targets.remove(t)
+                for each in data["benchmarks"]:
+                    if t in each["name"]:
+                        targets.append(each["name"])
         for each in data["benchmarks"]:
             if each["name"] in targets:
                 out[each["name"]] = each["stats"]["mean"]
         # Make sure all target tests are available
         for target in targets:
-            if target not in self.models:
-                assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
+            assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
         return out
 
     def get_digest(self, commit: Commit, targets: List[str], debug: bool) -> Dict[str, float]:
