@@ -47,15 +47,15 @@ def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
         return "(not slomo)"
     for test in targets:
         regex = re.compile("test_(train|eval)\[([a-zA-Z0-9_]+)-([a-z]+)-([a-z]+)\]")
-        m = regex.match(test).groups()
+        m = regex.match(test)
         if not m:
-            if m in models:
-                partial_name = m
+            if test in models:
+                partial_name = test
             else:
                 print(f"Cannot recognize the TorchBench filter: {test}. Exit.")
                 exit(1)
         else:
-            partial_name = " and ".join(m)
+            partial_name = " and ".join(m.groups())
         bmfilter_names.append(f"({partial_name})")
     return "(" + " or ".join(bmfilter_names) + ")"
 
@@ -280,7 +280,7 @@ class TorchBench:
         bmfilter = targets_to_bmfilter(targets, self.models)
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         if not self.devbig:
-            command = f"""bash .github/scripts/run-bench.sh "{output_dir}" "{bmfilter}" &> {output_dir}/benchmark.log"""
+            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" &> {output_dir}/benchmark.log"""
         else:
             command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" &> {output_dir}/benchmark.log"""
         try:
@@ -309,6 +309,11 @@ class TorchBench:
             targets = list()
             for each in data["benchmarks"]:
                 targets.append(each["name"])
+        old_targets = targets.copy()
+        for t in filter(lambda x: x in self.models, old_targets):
+            targets.remove(t)
+            names =  filter(lambda y: t in y, map(lambda x: x["name"], data["benchmarks"]))
+            targets.extend(list(names))
         for each in data["benchmarks"]:
             if each["name"] in targets:
                 out[each["name"]] = each["stats"]["mean"]
