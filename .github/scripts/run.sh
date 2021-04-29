@@ -12,7 +12,7 @@ CONFIG_VER=v0
 CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
 DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
-if [ -n "$1" ]; then
+if [ -z "$1" ]; then
     echo "You must specify output data dir"
     exit 1
 fi
