@@ -239,7 +239,7 @@ def set_pstate_frequency(min_freq = 2500, max_freq = 2500):
             write_sys_file(freq_paths[1], str(max_freq * 1000))
 
 def check_pstate_frequency_pin(pin_freq = 2500):
-    FREQ_THRESHOLD = 10  # Allow 10 MHz difference maximum
+    FREQ_THRESHOLD = 15  # Allow 15 MHz difference maximum
     all_freq = get_pstate_frequency()
     for cpuid in all_freq:
         for attr in all_freq[cpuid]:
