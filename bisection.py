@@ -58,10 +58,17 @@ def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
         bmfilter_names.append(f"({partial_name})")
     return "(" + " or ".join(bmfilter_names) + ")"
 
+# Find the latest non-empty json file in the directory
 def find_latest_json_file(result_dir: str):
     json_files = list(filter(lambda x: x.endswith(".json"), os.listdir(result_dir)))
-    assert len(json_files), f"Can't find result json files in directory {result_dir}"
-    return os.path.join(result_dir, sorted(json_files)[-1])
+    json_files.sort(reverse=True)
+    for f in json_files:
+        # Return the first non-empty json file
+        json_path = os.path.join(result_dir, f)
+        if os.path.exists(json_path) and os.stat(json_path).st_size:
+            return json_path
+    print(f"Can't find non-empty json files in path: {result_dir}")
+    return str()
 
 def get_delta_str(reference: float, current: float) -> str:
     delta_num = ((current - reference) / current * 100)
@@ -81,12 +88,12 @@ def get_means(data):
 def analyze_abtest_result_dir(result_dir: str):
     dirs = [ os.path.join(result_dir, name) for name in os.listdir(result_dir) if os.path.isdir(os.path.join(result_dir, name)) ]
     delta = False
-    # If there are only two directories, we believe it is abtest and print delta of the mean
-    if len(dirs) == 2:
-        delta = True
-    json_files = list(map(find_latest_json_file, dirs))
+    json_files = list(filter(len, map(find_latest_json_file, dirs)))
     out = [['Benchmark']]
-    assert(len(json_files))
+    assert(len(json_files), f"Don't find benchmark result files in {result_dir}.")
+    # If there are only two json files, we believe it is an abtest, so print delta of the mean
+    if len(json_files) == 2:
+        delta = True
     with open(json_files[0], "r") as fp:
         cur_result = json.load(fp)
         means = get_means(cur_result)
