@@ -45,7 +45,7 @@ the build steps from install.py.  Avoid getting to fancy trying to be cross-plat
 compatible (e.g. windows/mac/etc., or using package managers like yum/dnf) - if it's
 not easy to build, there may be easier models to target.
 
-[Example install.py](attention-is-all-you-need-pytorch/install.py)
+[Example install.py](attention_is_all_you_need_pytorch/install.py)
 
 ### Mini-dataset
 By the time install.py script runs, a miniature version of the dataset is expected to be 
@@ -83,7 +83,7 @@ a model object from __init__ but raise NotImplementedError() from all its method
 
 See the [BenchmarkModel API](https://github.com/pytorch/benchmark/blob/master/torchbenchmark/util/model.py) to get started.
 
-Also, an [example __init__.py](attention-is-all-you-need-pytorch/__init__.py) from a real model.
+Also, an [example __init__.py](attention_is_all_you_need_pytorch/__init__.py) from a real model.
 
 ### `set_eval()` and `set_train()`
 
