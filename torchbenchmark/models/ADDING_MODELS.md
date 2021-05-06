@@ -21,7 +21,7 @@ Python identifier because it will become a module in Python and needs to be impo
 Create a new file 'origin' that contains the url to the git repo you're copying, 
 so it's easy to trace the code back to where it came from.
 
-#### Wrapping your model in __init__.py
+#### Wrapping your model in \_\_init\_\_.py
 This is how your model gets hooked up to the suite and discovered by the benchmark and unit test runners.
 
 This file should define a Model class that subclasses from `torchbenchmark.util.model.BenchmarkModel` and implements its APIs.
@@ -51,7 +51,7 @@ not easy to build, there may be easier models to target.
 By the time install.py script runs, a miniature version of the dataset is expected to be 
 staged and ready for use.  It's fine to use install.py to download and prepare the data
 if the download is quick.  Otherwise, prepare the dataset manually, checking in the required
-artifacts and modifying the __init__.py script as needed to use them.
+artifacts and modifying the \_\_init\_\_.py script as needed to use them.
 
 - the easiest approach may be to run the dataloader an iteration, pickle its output, and check
 that file in
@@ -72,18 +72,18 @@ Model code will require some small tweaks to make it work in these conditions:
   file lives in.
 - Look for errors in `test.py` tearDown. They might indicate that the model is not cleaning up GPU memory.
 
-### Creating yourbenchmark/__init__.py
+### Creating yourbenchmark/\_\_init\_\_.py
 This file should define two things:
 - `class Model`, extending `BenchmarkModel` with the API described below
 - `__main__` function, which exercises the model APIs for local testing
 
 Important: be deliberate about support for cpu/gpu and jit/no-jit.  In the case that
 your model is instantiated in an unsupported configuration, the convention is to return
-a model object from __init__ but raise NotImplementedError() from all its methods.
+a model object from \_\_init\_\_ but raise NotImplementedError() from all its methods.
 
 See the [BenchmarkModel API](https://github.com/pytorch/benchmark/blob/master/torchbenchmark/util/model.py) to get started.
 
-Also, an [example __init__.py](attention_is_all_you_need_pytorch/__init__.py) from a real model.
+Also, an [example \_\_init\_\_.py](attention_is_all_you_need_pytorch/__init__.py) from a real model.
 
 ### `set_eval()` and `set_train()`
 
