@@ -50,7 +50,7 @@ if __name__ == "__main__":
         exit(-1)
 
     # build the model and get the chosen test method
-    m = Model(args.device, args.mode)
+    m = Model(device = args.device, jit = (args.mode == "jit"))
     test = getattr(m, args.test)
 
     if args.profile:
