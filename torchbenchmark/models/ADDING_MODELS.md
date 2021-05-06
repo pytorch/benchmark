@@ -28,7 +28,7 @@ This file should define a Model class that subclasses from `torchbenchmark.util.
 
 Some of the APIs are optional, and you can raise NotImplemented if a particular mode (e.g. cuda or jit) is unsupported for your model.
 
-Take care to set the random seed like [https://github.com/pytorch/benchmark/blob/master/torchbenchmark/models/Background_Matting/__init__.py#L20](here), to ensure your model runs the same way each time for benchmarking sake.
+Take care to set the random seed like [here](https://github.com/pytorch/benchmark/blob/master/torchbenchmark/models/Background_Matting/__init__.py#L20), to ensure your model runs the same way each time for benchmarking sake.
 
 ### Preparing install.py and dependencies
 Simply put, install.py should be a one stop shop to install all the dependencies
