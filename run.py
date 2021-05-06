@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     found = False
     for Model in list_models():
-        if args.model in Model.name.lower():
+        if args.model.lower() in Model.name.lower():
             found = True
             break
     if found:
