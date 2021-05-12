@@ -48,8 +48,6 @@ class ScribeUploader:
         if not access_token:
             raise ValueError("Can't find access token from environment variable")
         url = "https://graph.facebook.com/scribe_logs"
-        for message in messages:
-            print("__", json.dumps(message))
         r = requests.post(
             url,
             data={
@@ -66,7 +64,6 @@ class ScribeUploader:
                 ),
             },
         )
-        print(r.text)
         r.raise_for_status()
 
 class PytorchBenchmarkUploader(ScribeUploader):

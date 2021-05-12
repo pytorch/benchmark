@@ -25,30 +25,17 @@ conda install -y valgrind -c conda-forge
 NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
 
 # If failed, the script will generate empty result
-# if [ -z $NIGHTLIES ]; then
-#     echo "Torch nightly build failed. Cancel the workflow."
-#     exit 1
-# fi
+if [ -z $NIGHTLIES ]; then
+    echo "Torch nightly build failed. Cancel the workflow."
+    exit 1
+fi
 
 # Install PyTorch nightly from pip
 pip install --pre torch \
     -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
 
 rm -rf ${REPO_CHECKOUT}
-<<<<<<< HEAD
-# git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
-git clone https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
-
-pushd ${REPO_CHECKOUT}
-git checkout gh/taylorrobie/callgrind_scribe2
-popd
-
-# Monkey patch Timer for BENCHMARK_USE_DEV_SHM
-TORCH_ROOT=$(python -c "import os;import torch;print(os.path.dirname(torch.__file__))")
-\cp -rf "${REPO_CHECKOUT}/torch/utils/benchmark" "${TORCH_ROOT}/utils/"
-
-# Cleanup
-rm -f /tmp/vgdb-pipe-*
-=======
 git clone --depth 1 https://github.com/pytorch/pytorch.git ${REPO_CHECKOUT}
->>>>>>> origin/master
+
+# Cleanup any vgdb pipes which may have been orphaned by prior runs.
+rm -f /tmp/vgdb-pipe-*
