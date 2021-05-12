@@ -27,16 +27,17 @@ class PytorchMicrobenchmarkUploader(ScribeUploader):
                 'benchmark_version',
 
                 # We don't need to record as many summary statistics for counts
-                # as we do for times, because we retain them all in `counts_json`.
-                'count_min', 'count_max', 'count_p25', 'count_median', 'count_p75',
+                # as we do for times, because we retain them all in
+                # `counts_json`.
+                'count_min', 'count_max',
+                'count_p25', 'count_median', 'count_p75',
             ],
             'normal': [
                 # Unique ID for the run.
                 'run_id',
 
                 # Metadata for ad-hoc analysis.
-                'task_key',
-                'counts_json',
+                'task_key', 'counts_json',
 
                 # TODO: More environment info.
                 'pytorch_version',

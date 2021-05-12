@@ -64,6 +64,7 @@ class ScribeUploader:
                 ),
             },
         )
+        print(r.text)
         r.raise_for_status()
 
 class PytorchBenchmarkUploader(ScribeUploader):
