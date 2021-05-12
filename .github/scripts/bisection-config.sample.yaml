@@ -1,0 +1,15 @@
+# The sample bisection config that solves GH issue #51380
+
+# Start and end commits
+start: a87a1c1
+end: 0ead9d5
+# 10 percent regression
+threshold: 10
+# Support increase, decrease, or both
+# increase means performance regression, decrease means performance optimization
+direction: increase
+# Test timeout in minutes
+timeout: 60
+# Only the tests specified are executed. If not specified, use the tests in the TorchBench v0 config
+tests:
+ - test_eval[yolov3-cpu-eager]
