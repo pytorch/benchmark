@@ -43,7 +43,9 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
         data = r.text
     soup = BeautifulSoup(data, 'html.parser')
     data = defaultdict(dict)
+    import sys
     for link in soup.find_all('a'):
+        print(link, file=sys.stderr)
         pkg, version, py, py_m, platform = re.search("([a-z]*)-(.*)-(.*)-(.*)-(.*)\.whl", link.text).groups()
         version = urllib.parse.unquote(version)
         if py == py_version and platform == platform_version:
