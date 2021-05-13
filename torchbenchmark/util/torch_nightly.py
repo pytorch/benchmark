@@ -39,8 +39,6 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
             data = f.read()
     else:
         r = requests.get(url)
-        import sys
-        print("__", r, file=sys.stderr)
         r.raise_for_status()
         data = r.text
     soup = BeautifulSoup(data, 'html.parser')
