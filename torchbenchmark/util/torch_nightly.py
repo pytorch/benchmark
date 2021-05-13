@@ -13,12 +13,12 @@ from datetime import date, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 
-torch_wheel_nightly_base ="https://download.pytorch.org/whl/nightly/cu102/" 
-torch_nightly_wheel_index = "https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html" 
-torch_nightly_wheel_index_override = "torch_nightly.html" 
+torch_wheel_nightly_base ="https://download.pytorch.org/whl/nightly/cu102/"
+torch_nightly_wheel_index = "https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html"
+torch_nightly_wheel_index_override = "torch_nightly.html"
 
 def memoize(function):
-    """ 
+    """
     """
     call_cache = {}
 
@@ -39,6 +39,8 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
             data = f.read()
     else:
         r = requests.get(url)
+        import sys
+        print("__", r, file=sys.stderr)
         r.raise_for_status()
         data = r.text
     soup = BeautifulSoup(data, 'html.parser')
