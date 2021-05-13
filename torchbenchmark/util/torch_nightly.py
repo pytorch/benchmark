@@ -8,6 +8,7 @@ import os
 import re
 import requests
 import argparse
+import sys
 import urllib.parse
 from datetime import date, timedelta
 from bs4 import BeautifulSoup
@@ -43,11 +44,11 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
         data = r.text
     soup = BeautifulSoup(data, 'html.parser')
     data = defaultdict(dict)
-    import sys
+
     for link in soup.find_all('a'):
-        print(link, file=sys.stderr)
         pkg, version, py, py_m, platform = re.search("([a-z]*)-(.*)-(.*)-(.*)-(.*)\.whl", link.text).groups()
         version = urllib.parse.unquote(version)
+        print(py == py_version and platform == platform_version, version, file=sys.stderr)
         if py == py_version and platform == platform_version:
             full_url = os.path.join(torch_wheel_nightly_base, link.text)
             data[pkg][version] = full_url
@@ -59,7 +60,6 @@ def get_nightly_wheel_urls(packages:list, date:date,
     """
     date_str = f"{date.year}{date.month:02}{date.day:02}"
     data = get_wheel_index_data(py_version, platform_version)
-
     rc = {}
     for pkg in packages:
         pkg_versions = data[pkg]
@@ -72,6 +72,7 @@ def get_nightly_wheel_urls(packages:list, date:date,
                         "version": keys[0],
                         "wheel": full_url,
         }
+    print("0:", rc, file=sys.stderr)
     return rc
 
 def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
@@ -87,6 +88,7 @@ def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
         curr_date += timedelta(days=1)
     if reverse:
         rc.reverse()
+    print("1:", rc, file=sys.stderr)
     return rc
 
 def get_n_prior_nightly_wheels(packages:list, n:int,
@@ -109,6 +111,7 @@ if __name__ == "__main__":
                                         py_version=args.pyver,
                                         platform_version=args.platform,
                                         reverse=args.reverse)
+    print("2:", wheels, file=sys.stderr)
     for wheelset in wheels:
         for pkg in wheelset:
             print(f"{pkg}-{wheelset[pkg]['version']}: {wheelset[pkg]['wheel']}")
