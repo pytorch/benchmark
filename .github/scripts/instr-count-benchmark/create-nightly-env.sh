@@ -9,7 +9,8 @@ set +a;
 
 mkdir -p ${INSTRUCTION_COUNT_ROOT}
 
-conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
+conda deactivate || true
+conda create -y -q --no-default-packages --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 . activate ${CONDA_ENV_NAME}
 
 # For torch_nightly.py
