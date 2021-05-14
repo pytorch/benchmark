@@ -32,8 +32,10 @@ if [ -z "${NIGHTLIES}" ]; then
     exit 1
 fi
 
+TORCH_VERSION_STR=$(python torchbenchmark/util/torch_nightly.py --packages torch --pip_str)
+
 # Install PyTorch nightly from pip
-pip install --pre torch \
+pip install --pre torch=="${TORCH_VERSION_STR}" \
     -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
 
 rm -rf ${REPO_CHECKOUT}

@@ -101,12 +101,21 @@ if __name__ == "__main__":
     parser.add_argument("--priordays", type=int, default=0, help="Number of days")
     parser.add_argument("--reverse", action="store_true", help="Return reversed result")
     parser.add_argument("--packages", required=True, type=str, nargs="+", help="List of package names")
+    parser.add_argument("--pip_str", action="store_true", help="generate a version string for `pip install`")
     args = parser.parse_args()
     wheels = get_n_prior_nightly_wheels(packages=args.packages,
                                         n=args.priordays,
                                         py_version=args.pyver,
                                         platform_version=args.platform,
                                         reverse=args.reverse)
-    for wheelset in wheels:
-        for pkg in wheelset:
-            print(f"{pkg}-{wheelset[pkg]['version']}: {wheelset[pkg]['wheel']}")
+
+    if args.pip_str:
+        assert wheels
+        assert len(args.packages) == 1, f"{args.packages} should be a single entry."
+
+        # Version strings are constructed such that lexigraphic sorting correctly sorts by date.
+        print(max(wheelset[args.packages[0]]['version'] for wheelset in wheels))
+    else:
+        for wheelset in wheels:
+            for pkg in wheelset:
+                print(f"{pkg}-{wheelset[pkg]['version']}: {wheelset[pkg]['wheel']}")
