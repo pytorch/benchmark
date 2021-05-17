@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     found = False
     for Model in list_models():
-        if args.model in Model.name.lower():
+        if args.model.lower() in Model.name.lower():
             found = True
             break
     if found:
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         exit(-1)
 
     # build the model and get the chosen test method
-    m = Model(args.device, args.mode)
+    m = Model(device = args.device, jit = (args.mode == "jit"))
     test = getattr(m, args.test)
 
     if args.profile:
