@@ -51,6 +51,7 @@ class SpeechTransformerTrainConfig:
         self.train_json = os.path.join(dir_path, self.train_json)
         self.valid_json = os.path.join(dir_path, self.valid_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
+        self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
         self.tr_dataset = AudioDataset(self.train_json, self.batch_size,
                                        self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
