@@ -42,6 +42,17 @@ class SpeechTransformerTrainConfig:
     # optimizer
     k = 0.2
     warmup_steps = 1
+    # solver configs
+    epochs = 1
+    save_folder = "output_data"
+    checkpoint = False
+    continue_from = False
+    model_path = 'final.pth.tar'
+    print_freq = 10
+    visdom = 0
+    visdom_lr = 0
+    visdom_epoch = 0
+    visdom_id = 0
     # input files
     train_json = "input_data/train/data.json"
     valid_json = "input_data/dev/data.json"
@@ -68,7 +79,7 @@ class SpeechTransformerTrainConfig:
                                          num_workers=self.num_workers,
                                          LFR_m=self.LFR_m,
                                          LFR_n=self.LFR_n)
-        self.data = {'tr_loader': tr_loader, 'cv_loader': cv_loader}
+        self.data = {'tr_loader': self.tr_loader, 'cv_loader': self.cv_loader}
         self.encoder = Encoder(self.d_input * self.LFR_m,
                                self.n_layers_enc,
                                self.n_head,
