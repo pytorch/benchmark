@@ -23,7 +23,7 @@ class Model(BenchmarkModel):
         self.jit = jit
         self.device = device
         self.traincfg = SpeechTransformerTrainConfig()
-        self.evalcfg = SpeechTransformerEvalConfig()
+        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg)
         self.traincfg.model.cuda()
         self.evalcfg.model.cuda()
 
