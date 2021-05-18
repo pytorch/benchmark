@@ -111,7 +111,7 @@ class SpeechTransformerEvalConfig:
         self.recog_json = os.path.join(dir_path, self.recog_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
         # Construct the model
-        self.model, self.LFR_m, self.LFR_n = Transformer(trancfg.encoder, trancfg.decoder), traincfg.LFR_m, traincfg.LFR_n
+        self.model, self.LFR_m, self.LFR_n = Transformer(traincfg.encoder, traincfg.decoder), traincfg.LFR_m, traincfg.LFR_n
         self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
         assert model.decoder.sos_id == sos_id and model.decoder.eos_id == eos_id
         # Read json data
