@@ -68,6 +68,7 @@ class SpeechTransformerTrainConfig:
                                          num_workers=self.num_workers,
                                          LFR_m=self.LFR_m,
                                          LFR_n=self.LFR_n)
+        self.data = {'tr_loader': tr_loader, 'cv_loader': cv_loader}
         self.encoder = Encoder(self.d_input * self.LFR_m,
                                self.n_layers_enc,
                                self.n_head,
@@ -81,7 +82,7 @@ class SpeechTransformerTrainConfig:
                                tgt_emb_prj_weight_sharing=self.tgt_emb_prj_weight_sharing,
                                pe_maxlen=self.pe_maxlen)
         self.model = Transformer(self.encoder, self.decoder)
-        self.optimizer = TransformerOptimizer(torch.optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-09),
+        self.optimizer = TransformerOptimizer(torch.optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-09),
                                               self.k, self.d_model, self.warmup_steps)
         self.solver = Solver(self.data, self.model, self.optimizer, self)
     def train(self):
