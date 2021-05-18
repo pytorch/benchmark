@@ -1,3 +1,4 @@
+import os
 import json
 import torch
 import kaldi_io
@@ -46,6 +47,10 @@ class SpeechTransformerTrainConfig:
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.train_json = os.path.join(dir_path, self.train_json)
+        self.valid_json = os.path.join(dir_path, self.valid_json)
+        self.dict_txt = os.path.join(dir_path, self.dict_txt)
         self.tr_dataset = AudioDataset(self.train_json, self.batch_size,
                                        self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
@@ -88,6 +93,9 @@ class SpeechTransformerEvalConfig:
     recog_json = "input_data/test/data.json"
     dict_txt = "input_data/data/lang_1char/train_chars.txt"
     def __init__(self, traincfg):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.recog_json = os.path.join(dir_path, self.recog_json)
+        self.dict_txt = os.path.join(dir_path, self.dict_txt)
         # Construct the model
         self.model, self.LFR_m, self.LFR_n = Transformer(trancfg.encoder, trancfg.decoder), traincfg.LFR_m, traincfg.LFR_n
         self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
