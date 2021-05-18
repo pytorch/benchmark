@@ -105,7 +105,7 @@ class SpeechTransformerEvalConfig:
     nbest = 1
     decode_max_len = 100
     recog_json = "input_data/test/data.json"
-    dict_txt = "input_data/data/lang_1char/train_chars.txt"
+    dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self, traincfg):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.recog_json = os.path.join(dir_path, self.recog_json)
