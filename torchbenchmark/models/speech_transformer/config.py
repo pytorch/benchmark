@@ -46,33 +46,33 @@ class SpeechTransformerTrainConfig:
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self):
-        self.tr_dataset = AudioDataset(self.train_json, self.cfg.batch_size,
-                                       self.cfg.maxlen_in, self.cfg.maxlen_out,
+        self.tr_dataset = AudioDataset(self.train_json, self.batch_size,
+                                       self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
-        self.cv_dataset = AudioDataset(self.valid_json, self.cfg.batch_size,
-                                       self.cfg.maxlen_in, self.cfg.maxlen_out,
-                                       batch_frames=self.cfg.batch_frames)
+        self.cv_dataset = AudioDataset(self.valid_json, self.batch_size,
+                                       self.maxlen_in, self.maxlen_out,
+                                       batch_frames=self.batch_frames)
         self.tr_loader = AudioDataLoader(self.tr_dataset, batch_size=1,
-                                         num_workers=self.cfg.num_workers,
-                                         shuffle=self.cfg.shuffle,
-                                         LFR_m=self.cfg.LFR_m,
-                                         LFR_n=self.cfg.LFR_n)
+                                         num_workers=self.num_workers,
+                                         shuffle=self.shuffle,
+                                         LFR_m=self.LFR_m,
+                                         LFR_n=self.LFR_n)
         self.cv_loader = AudioDataLoader(self.cv_dataset, batch_size=1,
-                                         num_workers=self.cfg.num_workers,
-                                         LFR_m=self.cfg.LFR_m,
-                                         LFR_n=self.cfg.LFR_n)
-        self.encoder = Encoder(self.cfg.d_input * self.cfg.LFR_m,
-                               self.cfg.n_layers_enc,
-                               self.cfg.n_head,
-                               self.cfg.d_k, self.cfg.d_v,
-                               self.cfg.d_model, self.cfg.d_inner,
-                               dropout=self.cfg.dropout, pe_maxlen=self.cfg.pe_maxlen)
+                                         num_workers=self.num_workers,
+                                         LFR_m=self.LFR_m,
+                                         LFR_n=self.LFR_n)
+        self.encoder = Encoder(self.d_input * self.LFR_m,
+                               self.n_layers_enc,
+                               self.n_head,
+                               self.d_k, self.d_v,
+                               self.d_model, self.d_inner,
+                               dropout=self.dropout, pe_maxlen=self.pe_maxlen)
         self.decoder = Decoder(self.sos_id, self.eos_id, self.vocab_size,
-                               self.cfg.d_word_vec, self.cfg.n_layers_dec, self.cfg.n_head,
-                               self.cfg.d_k, self.cfg.d_v, self.cfg.d_model, self.cfg.d_inner,
-                               dropout=self.cfg.dropout,
-                               tgt_emb_prj_weight_sharing=self.cfg.tgt_emb_prj_weight_sharing,
-                               pe_maxlen=self.cfg.pe_maxlen)
+                               self.d_word_vec, self.n_layers_dec, self.n_head,
+                               self.d_k, self.d_v, self.d_model, self.d_inner,
+                               dropout=self.dropout,
+                               tgt_emb_prj_weight_sharing=self.tgt_emb_prj_weight_sharing,
+                               pe_maxlen=self.pe_maxlen)
         self.model = Transformer(self.encoder, self.decoder)
         self.optimizer = TransformerOptimizer(torch.optim.Adam(model.parameters(), betas=(0.9, 0.98), eps=1e-09),
                                               self.k, self.d_model, self.warmup_steps)
