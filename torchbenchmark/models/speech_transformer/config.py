@@ -113,7 +113,7 @@ class SpeechTransformerEvalConfig:
         # Construct the model
         self.model, self.LFR_m, self.LFR_n = Transformer(traincfg.encoder, traincfg.decoder), traincfg.LFR_m, traincfg.LFR_n
         self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
-        assert model.decoder.sos_id == sos_id and model.decoder.eos_id == eos_id
+        assert self.model.decoder.sos_id == self.sos_id and self.model.decoder.eos_id == self.eos_id
         # Read json data
         with open(self.recog_json, "rb") as f:
             self.js = json.load(f)['utts']
