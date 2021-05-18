@@ -1,11 +1,20 @@
 #!/usr/bin/env python
+import os
+import sys
 import torch
 
-from .config import SpeechTransformerConfig, SpeechTransformerEvalConfig
-from torchbenchmark.tasks import SPEECH
+# Add current path to sys.path
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(dir_path)
+sys.path.append(os.path.join(dir_path, "transformer"))
+sys.path.append(os.path.join(dir_path, "utils"))
 
-class Model(BenchmarkModel, device = "cuda", jit = False):
-    task = SPEECH.RECOGNITION
+from ...util.model import BenchmarkModel
+from config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
+#from torchbenchmark.tasks import SPEECH
+
+class Model(BenchmarkModel):
+#    task = SPEECH.RECOGNITION
     def __init__(self, device=None, jit=False):
         if jit:
             raise NotImplementedError()
