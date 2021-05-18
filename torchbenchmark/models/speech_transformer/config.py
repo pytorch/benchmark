@@ -41,7 +41,7 @@ class SpeechTransformerTrainConfig:
     num_workers = 4
     # optimizer
     k = 0.2
-    warmup_steps = 4000
+    warmup_steps = 1
     # input files
     train_json = "input_data/train/data.json"
     valid_json = "input_data/dev/data.json"
@@ -52,6 +52,7 @@ class SpeechTransformerTrainConfig:
         self.valid_json = os.path.join(dir_path, self.valid_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
         self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
+        self.vocab_size = len(self.char_list)
         self.tr_dataset = AudioDataset(self.train_json, self.batch_size,
                                        self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
