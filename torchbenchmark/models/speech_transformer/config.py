@@ -82,12 +82,12 @@ class SpeechTransformerEvalConfig:
     nbest = 1
     decode_max_len = 100
     recog_json = "input_data/test/data.json"
-    result_label = "input_data/decode/data.json"
     dict_txt = "input_data/data/lang_1char/train_chars.txt"
-    model_path = "input_data/model/final.pth.tar"
-    def __init__(self):
-        # Load model
-        self.model, self.LFR_m, self.LFR_n = Transformer.load_model(self.model_path)
+    def __init__(self, traincfg):
+        # Construct the model
+        self.model, self.LFR_m, self.LFR_n = Transformer(trancfg.encoder, trancfg.decoder), traincfg.LFR_m, traincfg.LFR_n
+        self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
+        assert model.decoder.sos_id == sos_id and model.decoder.eos_id == eos_id
         # Read json data
         with open(self.recog_json, "rb") as f:
             self.js = json.load(f)['utts']
@@ -95,9 +95,9 @@ class SpeechTransformerEvalConfig:
         with torch.no_grad():
             for idx, name in enumerate(self.js.keys(), 1):
                 input = kaldi_io.read_mat(self.js[name]['input'][0]['feat'])
-                input = build_LFR_features(input, LFR_m, LFR_n)
+                input = build_LFR_features(input, self.LFR_m, self.LFR_n)
                 input = torch.from_numpy(input).float()
                 input_length = torch.tensor([input.size(0)], dtype=torch.int)
                 input = input.cuda()
                 input_length = input_length.cuda()
-                nbest_hyps = self.model.recognize(input, input_length, char_list, args)
+                nbest_hyps = self.model.recognize(input, input_length, self.char_list, self)
