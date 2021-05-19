@@ -72,15 +72,15 @@ class Solver(object):
         # Train model multi-epoches
         for epoch in range(self.start_epoch, self.epochs):
             # Train one epoch
-            print("Training...")
+            # print("Training...")
             self.model.train()  # Turn on BatchNorm & Dropout
             start = time.time()
             tr_avg_loss = self._run_one_epoch(epoch)
-            print('-' * 85)
-            print('Train Summary | End of Epoch {0} | Time {1:.2f}s | '
-                  'Train Loss {2:.3f}'.format(
-                      epoch + 1, time.time() - start, tr_avg_loss))
-            print('-' * 85)
+            # print('-' * 85)
+            # print('Train Summary | End of Epoch {0} | Time {1:.2f}s | '
+            #       'Train Loss {2:.3f}'.format(
+            #           epoch + 1, time.time() - start, tr_avg_loss))
+            # print('-' * 85)
 
             # Save model each epoch
             if self.checkpoint:
@@ -94,27 +94,27 @@ class Solver(object):
                 print('Saving checkpoint model to %s' % file_path)
 
             # Cross validation
-            print('Cross validation...')
+            # print('Cross validation...')
             self.model.eval()  # Turn off Batchnorm & Dropout
             val_loss = self._run_one_epoch(epoch, cross_valid=True)
-            print('-' * 85)
-            print('Valid Summary | End of Epoch {0} | Time {1:.2f}s | '
-                  'Valid Loss {2:.3f}'.format(
-                      epoch + 1, time.time() - start, val_loss))
-            print('-' * 85)
+            # print('-' * 85)
+            # print('Valid Summary | End of Epoch {0} | Time {1:.2f}s | '
+            #       'Valid Loss {2:.3f}'.format(
+            #           epoch + 1, time.time() - start, val_loss))
+            # print('-' * 85)
 
             # Save the best model
             self.tr_loss[epoch] = tr_avg_loss
             self.cv_loss[epoch] = val_loss
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
-                file_path = os.path.join(self.save_folder, self.model_path)
-                torch.save(self.model.serialize(self.model, self.optimizer, epoch + 1,
-                                                self.LFR_m, self.LFR_n,
-                                                tr_loss=self.tr_loss,
-                                                cv_loss=self.cv_loss),
-                           file_path)
-                print("Find better validated model, saving to %s" % file_path)
+                # file_path = os.path.join(self.save_folder, self.model_path)
+                # torch.save(self.model.serialize(self.model, self.optimizer, epoch + 1,
+                #                                 self.LFR_m, self.LFR_n,
+                #                                 tr_loss=self.tr_loss,
+                #                                 cv_loss=self.cv_loss),
+                #            file_path)
+                # print("Find better validated model, saving to %s" % file_path)
 
             # visualizing loss using visdom
             if self.visdom:
