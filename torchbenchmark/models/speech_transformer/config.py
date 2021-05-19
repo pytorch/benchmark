@@ -53,7 +53,7 @@ class SpeechTransformerTrainConfig:
     visdom_lr = 0
     visdom_epoch = 0
     visdom_id = 0
-    # input files
+    # The input files. Their paths are relative to the directory of __file__
     train_json = "input_data/train/data.json"
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
@@ -105,6 +105,7 @@ class SpeechTransformerEvalConfig:
     nbest = 1
     decode_max_len = 100
     recog_word = 1
+    # The input files. Their paths are relative to the directory of __file__
     recog_json = "input_data/test/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self, traincfg):

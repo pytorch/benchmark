@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+#
+# The SpeechTransformer model copied from https://github.com/kaituoxu/Speech-Transformer, commit e684777.
+# The input data files in the input_data/ directory are generated with a minimized aishell data
+# containing the following files in the original dataset:
+# S0002.tar.gz, S0757.tar.gz, S0915.tar.gz
+# 
 import os
 import sys
 import torch
