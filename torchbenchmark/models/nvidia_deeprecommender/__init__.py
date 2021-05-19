@@ -28,9 +28,9 @@ class Model(BenchmarkModel):
 
   def get_module(self):
     if self.evalMode:
-        return eval, self
+        return lambda x: self.eval(), [0]
 
-    return train, self
+    return lambda x: self.train(), [0]
 
   def set_eval(self):
     self.evalMode = True
