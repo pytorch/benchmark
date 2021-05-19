@@ -6,11 +6,10 @@ import dataclasses
 
 from decoder import Decoder
 from encoder import Encoder
-from solver import Solver
 from transformer import Transformer
 from transformer.optimizer import TransformerOptimizer
 from transformer.loss import cal_performance
-from utils import add_results_to_json, process_dict
+from utils import add_results_to_json, process_dict, IGNORE_ID
 from data import build_LFR_features
 from data import AudioDataLoader, AudioDataset
 
@@ -128,7 +127,7 @@ class SpeechTransformerTrainConfig:
 
     def train(self, epoch = 1):
         self.model.train()
-        val_loss = self._run_one_epoch()
+        tr_avg_loss = self._run_one_epoch()
         # Cross validation
         self.model.eval()
         val_loss = self._run_one_epoch(cross_valid=True)
