@@ -38,9 +38,9 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         if self.jit:
             raise NotImplementedError()
-        for data in self.traincfg.tr_loader:
-            padded_input, input_lengths, padded_target = data
-            return self.traincfg.model, (padded_input.cuda(), input_lengths.cuda(), padded_target.cuda())
+        data_keys = sorted(list(self.traincfg.tr_loader.keys()))
+        padded_input, input_lengths, padded_target = self.traincfg.tr_loader[data_keys[0]]
+        return self.traincfg.model, (padded_input.cuda(), input_lengths.cuda(), padded_target.cuda())
 
     def train(self, niter=1):
         if not self.device == "cuda":
