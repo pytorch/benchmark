@@ -10,7 +10,7 @@ on:
 jobs:
   bisection:
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, bm-metal]
+    runs-on: [self-hosted, bm-runner]
     steps:
       - name: Checkout
         uses: actions/checkout@v2

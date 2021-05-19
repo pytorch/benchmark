@@ -5,7 +5,7 @@ on:
 jobs:
   run-benchmark:
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, bm-metal]
+    runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout

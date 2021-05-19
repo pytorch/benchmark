@@ -6,7 +6,7 @@ on:
 jobs:
   run-benchmark:
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, bm-metal]
+    runs-on: [self-hosted, bm-runner]
     env:
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
     steps:
