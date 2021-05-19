@@ -104,10 +104,12 @@ class SpeechTransformerEvalConfig:
     beam_size = 5
     nbest = 1
     decode_max_len = 100
+    recog_word = 1
     recog_json = "input_data/test/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self, traincfg):
         dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.base_path = dir_path
         self.recog_json = os.path.join(dir_path, self.recog_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
         # Construct the model
@@ -119,8 +121,9 @@ class SpeechTransformerEvalConfig:
             self.js = json.load(f)['utts']
     def eval(self):
         with torch.no_grad():
-            for idx, name in enumerate(self.js.keys(), 1):
-                input = kaldi_io.read_mat(self.js[name]['input'][0]['feat'])
+            for idx, name in enumerate(list(self.js.keys())[:self.recog_word], 1):
+                feat_path = os.path.join(self.base_path, self.js[name]['input'][0]['feat'])
+                input = kaldi_io.read_mat(feat_path)
                 input = build_LFR_features(input, self.LFR_m, self.LFR_n)
                 input = torch.from_numpy(input).float()
                 input_length = torch.tensor([input.size(0)], dtype=torch.int)
