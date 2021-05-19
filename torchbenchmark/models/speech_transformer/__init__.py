@@ -38,7 +38,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         if self.jit:
             raise NotImplementedError()
-        for data in self.trancfg.tr_loader:
+        for data in self.traincfg.tr_loader:
             padded_input, input_lengths, padded_target = data
             return self.traincfg.model, (padded_input.cuda(), input_lengths.cuda(), padded_target.cuda())
 
