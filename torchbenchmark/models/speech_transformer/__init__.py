@@ -32,7 +32,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         if self.jit:
             raise NotImplementedError()
-        return self.traincfg.model, self.traincfg.tr_loader[0]
+        return self.traincfg.model, list(enumerate(self.traincfg.tr_loader))[0]
 
     def train(self, niter=1):
         if not self.device == "cuda":
