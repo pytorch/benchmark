@@ -47,8 +47,8 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         if self.jit:
             raise NotImplementedError()
-        for _ in range(niter):
-            self.traincfg.train()
+        for i in range(niter):
+            self.traincfg.train(epoch = i)
 
     def eval(self, niter=1):
         if not self.device == "cuda":

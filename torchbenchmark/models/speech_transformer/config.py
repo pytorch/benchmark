@@ -9,6 +9,7 @@ from encoder import Encoder
 from solver import Solver
 from transformer import Transformer
 from transformer.optimizer import TransformerOptimizer
+from transformer.loss import cal_performance
 from utils import add_results_to_json, process_dict
 from data import build_LFR_features
 from data import AudioDataLoader, AudioDataset
@@ -43,7 +44,7 @@ class SpeechTransformerTrainConfig:
     k = 0.2
     warmup_steps = 1
     # solver configs
-    epochs = 1
+    epochs = 5
     save_folder = "output_data"
     checkpoint = False
     continue_from = False
@@ -92,12 +93,49 @@ class SpeechTransformerTrainConfig:
                                dropout=self.dropout,
                                tgt_emb_prj_weight_sharing=self.tgt_emb_prj_weight_sharing,
                                pe_maxlen=self.pe_maxlen)
+        self.tr_loss = torch.Tensor(self.epochs)
+        self.cv_loss = torch.Tensor(self.epochs)
         self.model = Transformer(self.encoder, self.decoder)
         self.optimizer = TransformerOptimizer(torch.optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-09),
                                               self.k, self.d_model, self.warmup_steps)
-        self.solver = Solver(self.data, self.model, self.optimizer, self)
-    def train(self):
-        self.solver.train()
+        self._reset()
+
+    def _reset(self):
+        self.prev_val_loss = float("inf")
+        self.best_val_loss = float("inf")
+        self.halving = False
+
+    def _run_one_epoch(self, cross_valid=False):
+        total_loss = 0
+        data_loader = self.tr_loader if not cross_valid else self.cv_loader
+        for i, (data) in enumerate(data_loader):
+            padded_input, input_lengths, padded_target = data
+            padded_input = padded_input.cuda()
+            input_lengths = input_lengths.cuda()
+            padded_target = padded_target.cuda()
+            pred, gold = self.model(padded_input, input_lengths, padded_target)
+            loss, n_correct = cal_performance(pred, gold,
+                                              smoothing=self.label_smoothing)
+            if not cross_valid:
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+
+            total_loss += loss.item()
+            non_pad_mask = gold.ne(IGNORE_ID)
+            n_word = non_pad_mask.sum().item()
+            return total_loss / (i + 1)
+
+    def train(self, epoch = 1):
+        self.model.train()
+        val_loss = self._run_one_epoch()
+        # Cross validation
+        self.model.eval()
+        val_loss = self._run_one_epoch(cross_valid=True)
+        self.tr_loss[epoch] = tr_avg_loss
+        self.cv_loss[epoch] = val_loss
+        if val_loss < self.best_val_loss:
+            self.best_val_loss = val_loss
 
 @dataclasses.dataclass
 class SpeechTransformerEvalConfig:
