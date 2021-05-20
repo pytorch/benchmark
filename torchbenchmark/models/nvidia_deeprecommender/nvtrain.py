@@ -195,14 +195,15 @@ class DeepRecommenderTrainBenchmark:
       elif device == "cuda":
         forcecuda = True
       else:
-        raise Exception ("Error unsupported device type")
+        # unknown device string, quit init
+        return
+
+      # jit not supported, quit here if jit is requested
+      if jit == True:
+        return
 
       self.args.forcecuda = forcecuda
       self.args.forcecpu = not forcecuda
-
-      # jit not supported, error here if jit is requested
-      if jit == True:
-        raise Exception ("Jit Mode Not Supported")
 
     self.args = processTrainArgState(self.args)
 
