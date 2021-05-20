@@ -1,3 +1,12 @@
+# Benchmark created from NVidia DeepRecommender github project:
+#   https://github.com/NVIDIA/DeepRecommender
+#   a32a8a5c23092c551616acf6fac5b32e1155d18b
+# Test supports eval and train modes for cpu and cuda targets.
+#
+# Both nvtrain.py and nvinfer.py support all original command
+# line parameters but tensorflow dependency for logging has
+# been removed.
+
 import torch
 import torch.optim as optim
 import torchvision.models as models
@@ -14,39 +23,37 @@ class Model(BenchmarkModel):
   
   def __init__(self, device="cpu", jit=False):
     super().__init__()
-    self.devicename = device
-    self.notimplementedreason = "Implemented"
-    self.evalMode = True #default to inference
+    self.device_name = device
+    self.not_implemented_reason = "Implemented"
+    self.eval_mode = True #default to inference
 
     if jit:
-      self.notimplementedreason = "Jit Not Supported"
+      self.not_implemented_reason = "Jit Not Supported"
 
-    elif self.devicename != "cpu" and self.devicename != "cuda":
-      self.notimplementedreason = "device type not supported"
+    elif self.device_name != "cpu" and self.device_name != "cuda":
+      self.not_implemented_reason = "device type not supported"
 
-    elif self.devicename == "cuda" and torch.cuda.is_available() == False:
-      self.notimplementedreason = "cuda not available on this device"
+    elif self.device_name == "cuda" and torch.cuda.is_available() == False:
+      self.not_implemented_reason = "cuda not available on this device"
 
     else:
       self.train_obj = DeepRecommenderTrainBenchmark(device = device, jit = jit)
       self.infer_obj = DeepRecommenderInferenceBenchmark(device = device, jit = jit)
 
   def get_module(self):
-    if self.evalMode:
+    if self.eval_mode:
         return lambda x: self.eval(), [0]
 
     return lambda x: self.train(), [0]
 
   def set_eval(self):
-    self.evalMode = True
-    return
+    self.eval_mode = True
     
   def set_train(self):
-    self.evalMode = False
-    return
+    self.eval_mode = False
 
   def train(self, niter=1):
-    self.checkimplemented()
+    self.check_implemented()
 
     for i in range(niter):
       self.train_obj.train(self.train_obj.args.num_epochs)
@@ -54,40 +61,40 @@ class Model(BenchmarkModel):
     self.cleanup()
 
   def eval(self, niter=1):
-    self.checkimplemented()
+    self.check_implemented()
 
     for i in range(niter):
       self.infer_obj.eval(niter)
     
     self.cleanup()
 
-  def checkimplemented(self):
-    if self.notimplementedreason != "Implemented":
-      raise NotImplementedError(self.notimplementedreason)
+  def check_implemented(self):
+    if self.not_implemented_reason != "Implemented":
+      raise NotImplementedError(self.not_implemented_reason)
 
   def cleanup(self):
     self.train = 0
     self.infer = 0
     gc.collect()
-    if self.devicename == "cuda":
+    if self.device_name == "cuda":
       torch.cuda.empty_cache()
 
-  def timedInfer(self):
-    self.checkimplemented()
+  def timed_infer(self):
+    self.check_implemented()
     self.infer_obj.TimedInferenceRun()
 
-  def timedTrain(self):
-    self.checkimplemented()
+  def timed_train(self):
+    self.check_implemented()
     self.train_obj.TimedTrainingRun()
 
 def main():
   cudaBenchMark = DeepRecommenderBenchmark(device = 'cuda', jit = False)
-  cudaBenchMark.timedTrain()
-  cudaBenchMark.timedInfer()
+  cudaBenchMark.timed_train()
+  cudaBenchMark.timed_infer()
 
   cpuBenchMark = DeepRecommenderBenchmark(device = 'cpu', jit = False)
-  cpuBenchMark.timedTrain()
-  cpuBenchMark.timedInfer()
+  cpuBenchMark.timed_train()
+  cpuBenchMark.timed_infer()
 
 if __name__ == '__main__':
   main()
