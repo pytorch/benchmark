@@ -46,8 +46,8 @@ def _load_test(model_class, device):
         return model_class(device=device)
 
     def example(self):
+        m = model_object(self)
         try:
-            m = model_object(self)
             module, example_inputs = m.get_module()
             if isinstance(example_inputs, dict):
                 # Huggingface models pass **kwargs as arguments, not *args
@@ -58,15 +58,15 @@ def _load_test(model_class, device):
             self.skipTest('Method get_module is not implemented, skipping...')
 
     def train(self):
+        m = model_object(self)
         try:
-            m = model_object(self)
             m.train()
         except NotImplementedError:
             self.skipTest('Method train is not implemented, skipping...')
 
     def eval(self):
+        m = model_object(self)
         try:
-            m = model_object(self)
             m.eval()
         except NotImplementedError:
             self.skipTest('Method eval is not implemented, skipping...')
