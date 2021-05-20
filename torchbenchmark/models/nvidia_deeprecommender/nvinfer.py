@@ -114,21 +114,22 @@ class DeepRecommenderInferenceBenchmark:
 
   def __init__(self, device = 'cpu', jit=False, usecommandlineargs = False) :
 
-    if device == "cpu":
-      forcecuda = False
-    elif device == "cuda":
-      forcecuda = True
-    else:
-      raise Exception ("Error unsupported device type")
-    
-    # jit not supported, error here if jit is requested
-    if jit == True:
-      raise Exception ("Jit Mode Not Supported")
-
     if usecommandlineargs:
       self.args = getCommandLineArgs()
     else:
+      if device == "cpu":
+        forcecuda = False
+      elif device == "cuda":
+        forcecuda = True
+      else:
+        # unknown device string, quit init
+        return
+
       self.args = getBenchmarkArgs(forcecuda)
+
+      if jit == True:
+        # jit not supported, quit init
+        return
 
     args = processArgState(self.args)
 

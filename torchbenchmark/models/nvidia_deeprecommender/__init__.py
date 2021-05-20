@@ -16,15 +16,20 @@ class Model(BenchmarkModel):
     super().__init__()
     self.devicename = device
     self.notimplementedreason = "Implemented"
-    self.train_obj = DeepRecommenderTrainBenchmark(device = device, jit = jit)
-    self.infer_obj = DeepRecommenderInferenceBenchmark(device = device, jit = jit)
+    self.evalMode = True #default to inference
+
     if jit:
       self.notimplementedreason = "Jit Not Supported"
-    
+
     elif self.devicename != "cpu" and self.devicename != "cuda":
       self.notimplementedreason = "device type not supported"
 
-    self.evalMode = True
+    elif self.devicename == "cuda" and torch.cuda.is_available() == False:
+      self.notimplementedreason = "cuda not available on this device"
+
+    else:
+      self.train_obj = DeepRecommenderTrainBenchmark(device = device, jit = jit)
+      self.infer_obj = DeepRecommenderInferenceBenchmark(device = device, jit = jit)
 
   def get_module(self):
     if self.evalMode:
