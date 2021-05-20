@@ -53,9 +53,9 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         if not self.device == "cuda":
-            raise NotImplementedError()
+            raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
-            raise NotImplementedError()
+            raise NotImplementedError("JIT is not supported by this model")
         for _ in range(niter):
             self.evalcfg.eval()
 
