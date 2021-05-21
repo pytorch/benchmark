@@ -14,7 +14,7 @@ class Model(BenchmarkModel):
         self.jit = jit
         self.model = models.shufflenet_v2_x1_0().to(self.device)
         if self.jit:
-            self.model = torch.jit.script(self.model)
+            self.model = torch.jit.optimize_for_inference(torch.jit.script(self.model))
         self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
     def get_module(self):

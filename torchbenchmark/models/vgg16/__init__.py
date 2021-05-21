@@ -14,7 +14,7 @@ class Model(BenchmarkModel):
         self.jit = jit
         self.model = models.vgg16().to(self.device)
         if self.jit:
-            self.model = torch.jit.script(self.model)
+            self.model = torch.jit.optimize_for_inference(torch.jit.script(self.model))
         self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
     def get_module(self):
@@ -43,4 +43,3 @@ if __name__ == "__main__":
     module(*example_inputs)
     m.train(niter=1)
     m.eval(niter=1)
-
