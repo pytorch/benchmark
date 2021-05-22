@@ -21,7 +21,7 @@ class Model(BenchmarkModel):
             torch.cuda.manual_seed(np.random.randint(1, 10000))
         self.env = Env(self.args)
         self.env.train()
-        self.dqn = Agent(self.args, env)
+        self.dqn = Agent(self.args, self.env)
         self.mem = ReplayMemory(self.args, self.args.memory_capacity)
 
     def get_module(self):
@@ -37,21 +37,21 @@ class Model(BenchmarkModel):
         for T in range(1, niter + 1):
             if done:
                 state = self.env.reset()
-            if T % args.replay_frequency == 0:
+            if T % self.args.replay_frequency == 0:
                 self.dqn.reset_noise()  # Draw a new set of noisy weights
             action = self.dqn.act(state)  # Choose an action greedily (with noisy weights)
-            next_state, reward, done = env.step(action)  # Step
-            if args.reward_clip > 0:
-                reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
-            mem.append(state, action, reward, done)  # Append transition to memory
+            next_state, reward, done = self.env.step(action)  # Step
+            if self.args.reward_clip > 0:
+                reward = max(min(reward, self.args.reward_clip), -self.args.reward_clip)  # Clip rewards
+            self.mem.append(state, action, reward, done)  # Append transition to memory
             if T >= self.args.learn_start:
-                self.mem.priority_weight = min(mem.priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
-                if T % args.replay_frequency == 0:
-                    dqn.learn(mem)  # Train with n-step distributional double-Q learning
-            if T % args.target_update == 0:
+                self.mem.priority_weight = min(self.mem.priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
+                if T % self.args.replay_frequency == 0:
+                    dqn.learn(self.mem)  # Train with n-step distributional double-Q learning
+            if T % self.args.target_update == 0:
                 dqn.update_target_net()
             state = next_state
-        env.close()
+        self.env.close()
 
     def eval(self, niter = 1):
         if self.jit:
@@ -65,7 +65,7 @@ class Model(BenchmarkModel):
                 state, reward_sum, done = self.env.reset(), 0, False
             action = self.dqn.act_e_greedy(state)
             state, reward, done = self.env.step(action)
-        env.close()
+        self.env.close()
 
 if __name__ == "__main__":
     m = Model(device="cuda")

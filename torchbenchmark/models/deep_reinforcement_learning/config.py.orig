@@ -11,8 +11,6 @@ class DQNConfig():
     multi_step = 20
     seed = 123
     max_episode_length = int(108e3)
-    atoms = 51
-    norm_clip = 10
     history_length = 4
     atmos = 51
     architecture = "data-efficient"
@@ -28,10 +26,7 @@ class DQNConfig():
     discount = 0.99
     reward_clip = 1
     adam_eps = 1.5e-4
-    priority_exponent = 0.5
-    priority_weight = 0.4
     game = "tetris"
-    model = None
     def __init__(self, device=None):
         self.device = torch.device(device)
     
