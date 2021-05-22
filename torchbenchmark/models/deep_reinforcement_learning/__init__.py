@@ -26,7 +26,7 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         model = self.dqn.online_net
-        state = env.reset()
+        state = self.env.reset()
         return model, state
 
     def train(self, niter = 1):

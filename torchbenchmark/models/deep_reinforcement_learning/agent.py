@@ -6,7 +6,7 @@ import torch
 from torch import optim
 from torch.nn.utils import clip_grad_norm_
 
-from model import DQN
+from .model import DQN
 
 
 class Agent():
