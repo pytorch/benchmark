@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from .config import DQNConfig
@@ -10,6 +11,7 @@ from .memory import ReplayMemory
 
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
+
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
@@ -22,7 +24,7 @@ class Model(BenchmarkModel):
         self.dqn = Agent(self.args, env)
         self.mem = ReplayMemory(self.args, self.args.memory_capacity)
 
-    def get_modules():
+    def get_module(self):
         model = self.dqn.online_net
         state = env.reset()
         return model, state
@@ -64,3 +66,9 @@ class Model(BenchmarkModel):
             action = self.dqn.act_e_greedy(state)
             state, reward, done = self.env.step(action)
         env.close()
+
+if __name__ == "__main__":
+    m = Model(device="cuda")
+    module, example_inputs = m.get_module()
+    m.train(niter=1)
+    m.eval(niter=1)
