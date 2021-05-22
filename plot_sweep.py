@@ -1,4 +1,5 @@
 import argparse
+import re
 import json
 # import pandas as pd
 import os
@@ -64,7 +65,10 @@ if __name__ == "__main__":
             score = compute_score(score_cfg, data)
             scores.append(score)
             pytorch_ver = data['machine_info']['pytorch_version']
-            date = dt.strptime(pytorch_ver[pytorch_ver.index("dev") + len("dev"):], "%Y%m%d")
+            regex = re.compile("dev([0-9]+)")
+            print(pytorch_ver)
+            date_slice = regex.search(pytorch_ver).groups()[0]
+            date = dt.strptime(date_slice, "%Y%m%d")
             dates.append(date)
         xs.append(dates)
         ys.append(scores)
