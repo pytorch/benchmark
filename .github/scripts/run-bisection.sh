@@ -35,6 +35,8 @@ fi
 BISECT_BASE=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
 
 . activate ${BISECT_CONDA_ENV}
+conda install -y tabulate
+
 # create the work directory
 mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 
