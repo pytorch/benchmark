@@ -19,7 +19,7 @@ class Model(BenchmarkModel):
         self.args = DQNConfig(self.device)
         if device == "cuda":
             torch.cuda.manual_seed(np.random.randint(1, 10000))
-        self.env = Env(args)
+        self.env = Env(self.args)
         self.env.train()
         self.dqn = Agent(self.args, env)
         self.mem = ReplayMemory(self.args, self.args.memory_capacity)
