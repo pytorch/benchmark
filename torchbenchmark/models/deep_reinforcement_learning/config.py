@@ -9,7 +9,7 @@ class DQNConfig():
     memory_capacity = 100000
     replay_frequency = 1
     multi_step = 20
-    architecture = data_efficient
+    architecture = "data-efficient"
     hidden_size = 256
     learning_rate = 0.0001
     evaluation_interval = 10000
