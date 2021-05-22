@@ -10,6 +10,7 @@ class DQNConfig():
     replay_frequency = 1
     multi_step = 20
     seed = 123
+    max_episode_length = int(108e3)
     architecture = "data-efficient"
     hidden_size = 256
     learning_rate = 0.0001
