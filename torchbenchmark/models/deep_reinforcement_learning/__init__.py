@@ -26,8 +26,8 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         model = self.dqn.online_net
-        idxs, states, actions, returns, next_states, nonterminals, weights = self.mem.sample(self.args.batch_size)
-        return model, states
+        state = self.env.reset()
+        return model, states.unsqueeze(0)
 
     def train(self, niter = 1):
         if self.jit:
