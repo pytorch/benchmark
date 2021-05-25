@@ -7,6 +7,7 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from .config import SACConfig
+from .envs import load_gym
 from .sac import SACAgent
 from .replay import PrioritizedReplayBuffer, ReplayBuffer
 from .utils import hard_update, soft_update
@@ -116,8 +117,8 @@ class Model(BenchmarkModel):
         self.args = SACConfig()
         # Construct agent
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.train_env = pickle.load(open(os.path.join(current_dir, self.args.train_env_path), "rb"))
-        self.test_env = pickle.load(open(os.path.join(current_dir, self.args.test_env_path), "rb"))
+        self.train_env = load_gym(self.args.env_id, self.args.seed)
+        self.test_env = load_gym(self.args.env_id, self.args.seed)
         self.obs_shape = self.train_env.observation_space.shape
         self.actions = self.train_env.action_space.n
         self.agent = SACAgent(self.obs_shape, self.actions)
