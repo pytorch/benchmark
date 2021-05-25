@@ -139,8 +139,8 @@ class Model(BenchmarkModel):
             # initialize target networks
             self.target_agent = copy.deepcopy(self.agent)
             self.target_agent.to(device)
-            hard_update(target_agent.critic1, self.agent.critic1)
-            hard_update(target_agent.critic2, self.agent.critic2)
+            hard_update(self.target_agent.critic1, self.agent.critic1)
+            hard_update(self.target_agent.critic2, self.agent.critic2)
             self.target_agent.train()
         self.critic_optimizer = torch.optim.Adam(
             chain(self.agent.critic1.parameters(), self.agent.critic2.parameters(),),
@@ -151,12 +151,12 @@ class Model(BenchmarkModel):
         self.actor_optimizer = torch.optim.Adam(
             self.agent.actor.parameters(),
             lr=self.args.actor_lr,
-            weight_decay=actor_l2,
+            weight_decay=self.args.actor_l2,
             betas=(0.9, 0.999),
         )
         self.log_alpha = torch.Tensor([math.log(self.args.init_alpha)]).to(device)
         self.log_alpha.requires_grad = True
-        self.log_alpha_optimizer = torch.optim.Adam([log_alpha], lr=alpha_lr, betas=(0.5, 0.999))
+        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.args.alpha_lr, betas=(0.5, 0.999))
         if not self.discrete_actions:
             self.target_entropy = -self.train_env.action_space.shape[0]
         else:
@@ -165,7 +165,7 @@ class Model(BenchmarkModel):
             # the critic target improvement ratio is annealed during training
             self.critic_target_imp_slope = (
                 self.args.sr_critic_target_improvement_final - self.args.sr_critic_target_improvement_init
-            ) / num_steps
+            ) / self.args.num_steps
             self.current_target_imp = lambda step: min(
                 self.args.sr_critic_target_improvement_init + self.critic_target_imp_slope * step,
                 self.args.sr_critic_target_improvement_final,
