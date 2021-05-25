@@ -213,8 +213,8 @@ class Model(BenchmarkModel):
 
             # move target model towards training model
             if not self.args.self_regularized and (step % self.args.target_delay == 0):
-                soft_update(self.target_agent.critic1, self.agent.critic1, tau)
-                soft_update(self.target_agent.critic2, self.agent.critic2, tau)
+                soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
+                soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
     
     def eval(self, niter=1):
         with torch.no_grad():
