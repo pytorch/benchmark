@@ -120,8 +120,9 @@ class Model(BenchmarkModel):
         self.train_env = load_gym(self.args.env_id, self.args.seed)
         self.test_env = load_gym(self.args.env_id, self.args.seed)
         self.obs_shape = self.train_env.observation_space.shape
-        self.actions = self.train_env.action_space.n
-        self.agent = SACAgent(self.obs_shape, self.actions)
+        self.actions_shape = self.train_env.action_space.shape
+        self.agent = SACAgent(self.obs_shape[0], self.actions_shape[0],
+                              self.args.log_std_low, self.args.log_std_high)
         if self.args.prioritized_replay:
             buffer_t = PrioritizedReplayBuffer
         else:
