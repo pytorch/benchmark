@@ -2,6 +2,7 @@ import torch
 import os
 import copy
 import pickle
+from itertools import chain
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
