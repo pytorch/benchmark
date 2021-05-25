@@ -27,7 +27,6 @@ class Model(BenchmarkModel):
             # model needs to in `eval`
             # in order to be optimized for inference
             self.eval_model.eval()
-            print("@#$VERSION: ", torch.__version__)
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
         self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
