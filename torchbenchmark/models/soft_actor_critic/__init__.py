@@ -6,7 +6,8 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from .config import SACConfig
-from .deep_control import sac, replay
+from .sac import SACAgent
+from .replay import PrioritizedReplayBuffer, ReplayBuffer
 from .utils import hard_update, soft_update
 
 def learn_standard(
@@ -24,7 +25,7 @@ def learn_standard(
     actor_clip,
     update_policy=True,
 ):
-    per = isinstance(buffer, replay.PrioritizedReplayBuffer)
+    per = isinstance(buffer, PrioritizedReplayBuffer)
     if per:
         batch, imp_weights, priority_idxs = buffer.sample(batch_size)
         imp_weights = imp_weights.to(device)
@@ -117,11 +118,11 @@ class Model(BenchmarkModel):
         self.test_env = pickle.load(open(os.path.join(current_dir, self.args.test_env_path)))
         self.obs_shape = self.train_env.observation_space.shape
         self.actions = self.train_env.action_space.n
-        self.agent = sac.SACAgent(self.obs_shape, self.actions)
+        self.agent = SACAgent(self.obs_shape, self.actions)
         if self.args.prioritized_replay:
-            buffer_t = replay.PrioritizedReplayBuffer
+            buffer_t = PrioritizedReplayBuffer
         else:
-            buffer_t = replay.ReplayBuffer
+            buffer_t = ReplayBuffer
         self.buffer = buffer_t(
             self.args.buffer_size,
             state_shape=self.train_env.observation_space.shape,
