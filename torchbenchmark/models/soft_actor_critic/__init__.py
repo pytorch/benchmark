@@ -6,8 +6,8 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from .config import SACConfig
-import .deep_control.deep_control as dc
-import .deep_control.util as util
+from .deep_control import sac, replay
+from .utils import hard_update, soft_update
 
 def learn_standard(
     buffer,
@@ -117,11 +117,11 @@ class Model(BenchmarkModel):
         self.test_env = pickle.load(open(os.path.join(current_dir, self.args.test_env_path)))
         self.obs_shape = self.train_env.observation_space.shape
         self.actions = self.train_env.action_space.n
-        self.agent = dc.sac.SACAgent(self.obs_shape, self.actions)
+        self.agent = sac.SACAgent(self.obs_shape, self.actions)
         if self.args.prioritized_replay:
-            buffer_t = dc.replay.PrioritizedReplayBuffer
+            buffer_t = replay.PrioritizedReplayBuffer
         else:
-            buffer_t = dc.replay.ReplayBuffer
+            buffer_t = replay.ReplayBuffer
         self.buffer = buffer_t(
             self.args.buffer_size,
             state_shape=self.train_env.observation_space.shape,
@@ -134,8 +134,8 @@ class Model(BenchmarkModel):
             # initialize target networks
             self.target_agent = copy.deepcopy(self.agent)
             self.target_agent.to(device)
-            utils.hard_update(target_agent.critic1, self.agent.critic1)
-            utils.hard_update(target_agent.critic2, self.agent.critic2)
+            hard_update(target_agent.critic1, self.agent.critic1)
+            hard_update(target_agent.critic2, self.agent.critic2)
             self.target_agent.train()
         self.critic_optimizer = torch.optim.Adam(
             chain(self.agent.critic1.parameters(), self.agent.critic2.parameters(),),
@@ -204,8 +204,8 @@ class Model(BenchmarkModel):
 
             # move target model towards training model
             if not self.args.self_regularized and (step % self.args.target_delay == 0):
-                utils.soft_update(self.target_agent.critic1, self.agent.critic1, tau)
-                utils.soft_update(self.target_agent.critic2, self.agent.critic2, tau)
+                soft_update(self.target_agent.critic1, self.agent.critic1, tau)
+                soft_update(self.target_agent.critic2, self.agent.critic2, tau)
     
     def eval(self, niter=1):
         with torch.no_grad():
