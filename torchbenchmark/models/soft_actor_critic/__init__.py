@@ -159,7 +159,7 @@ class Model(BenchmarkModel):
         self.log_alpha = torch.Tensor([math.log(self.args.init_alpha)]).to(device)
         self.log_alpha.requires_grad = True
         self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.args.alpha_lr, betas=(0.5, 0.999))
-        if not self.discrete_actions:
+        if not self.args.discrete_actions:
             self.target_entropy = -self.train_env.action_space.shape[0]
         else:
             self.target_entropy = -math.log(1.0 / self.train_env.action_space.n) * 0.98
