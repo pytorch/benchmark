@@ -52,8 +52,6 @@ def _load_test(model_class, device):
             if isinstance(example_inputs, dict):
                 # Huggingface models pass **kwargs as arguments, not *args
                 module(**example_inputs)
-            elif isinstance(example_inputs, torch.Tensor):
-                module(example_inputs)
             else:
                 module(*example_inputs)
         except NotImplementedError:

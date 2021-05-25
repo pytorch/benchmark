@@ -27,7 +27,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         model = self.dqn.online_net
         state = self.env.reset()
-        return model, state.unsqueeze(0)
+        return model, (state.unsqueeze(0), )
 
     def train(self, niter = 1):
         if self.jit:
