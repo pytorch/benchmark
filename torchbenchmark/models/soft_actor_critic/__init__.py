@@ -108,7 +108,8 @@ def learn_standard(
 
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
-    def __init__(device="cuda", jit=False):
+    def __init__(self, device=None, jit=False):
+        super(Model, self).__init__()
         self.device = device
         self.jit = jit
         self.args = SACConfig()
