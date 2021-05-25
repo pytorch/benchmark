@@ -11,6 +11,7 @@ from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 from .config import SACConfig
 from .envs import load_gym
 from .sac import SACAgent
+from .run import evaluate_agent
 from .replay import PrioritizedReplayBuffer, ReplayBuffer
 from .utils import hard_update, soft_update
 
@@ -218,5 +219,17 @@ class Model(BenchmarkModel):
     
     def eval(self, niter=1):
         with torch.no_grad():
-            run.evaulate_agent(self.agent, self.env, self.args.eval_episodes, niter, render=False, verbosity=0)
+            discount= 1.0
+            for episode in range(self.args.eval_episodes):
+                episode_return = 0.0
+                state = self.env.reset()
+                done, info = False, {}
+                for step_num in range(niter):
+                    if done:
+                        break
+                    action = self.agent.forward(state)
+                    state, reward, done, info = env.step(action)
+                    episode_return += reward * (discount ** step_num)
+                episode_return_history.append(episode_return)
+            retval = torch.tensor(episode_return_history)
 
