@@ -39,4 +39,6 @@ class SACConfig:
     sr_max_critic_updates_per_step = 10
     sr_critic_target_improvement_init = 0.7
     sr_critic_target_improvement_final = 0.9
+    train_env_path = "input_data/train_env.pkl"
+    test_env_path = "input_data/test_env.pkl"
     

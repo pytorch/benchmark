@@ -1,5 +1,6 @@
 import torch
 import copy
+import pickle
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
@@ -111,8 +112,9 @@ class Model(BenchmarkModel):
         self.jit = jit
         self.args = SACConfig()
         # Construct agent
-        self.train_env = dc.envs.load_dms(**vars(self.args))
-        self.test_env = dc.envs.load_dms(**vars(self.args))
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.train_env = pickle.load(open(os.path.join(current_dir, self.args.train_env_path)))
+        self.test_env = pickle.load(open(os.path.join(current_dir, self.args.test_env_path)))
         self.obs_shape = self.train_env.observation_space.shape
         self.actions = self.train_env.action_space.n
         self.agent = dc.sac.SACAgent(self.obs_shape, self.actions)
