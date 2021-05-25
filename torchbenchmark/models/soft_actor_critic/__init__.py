@@ -28,6 +28,7 @@ def learn_standard(
     critic_clip,
     actor_clip,
     update_policy=True,
+    device=None,
 ):
     per = isinstance(buffer, PrioritizedReplayBuffer)
     if per:
@@ -124,7 +125,7 @@ class Model(BenchmarkModel):
         self.obs_shape = self.train_env.observation_space.shape
         self.actions_shape = self.train_env.action_space.shape
         self.agent = SACAgent(self.obs_shape[0], self.actions_shape[0],
-                              self.args.log_std_low, self.args.log_std_high)
+                              self.args.log_std_low, self.args.log_std_high, self.device)
         if self.args.prioritized_replay:
             buffer_t = PrioritizedReplayBuffer
         else:
@@ -207,6 +208,7 @@ class Model(BenchmarkModel):
                     critic_clip=self.args.critic_clip,
                     actor_clip=self.args.actor_clip,
                     update_policy=step % self.args.actor_delay == 0,
+                    device=self.device
                 )
 
             # move target model towards training model

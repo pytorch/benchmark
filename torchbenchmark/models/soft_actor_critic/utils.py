@@ -9,8 +9,6 @@ import torch
 
 from . import run
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def clean_hparams_dict(hparams_dict):
     return {key: val for key, val in hparams_dict.items() if val}

@@ -32,7 +32,7 @@ class SACConfig:
     prioritized_replay = False
     skip_save_to_disk = True
     skip_log_to_disk = True
-    discrete_actions = True
+    discrete_actions = False
     log_std_low = -10.0
     log_std_high = 2.0
     self_regularized = False
