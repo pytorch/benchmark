@@ -176,7 +176,11 @@ class Model(BenchmarkModel):
             )
 
     def get_module(self):
-        pass
+        model = self.agent.actor
+        batch = buffer.sample(self.args.batch_size)
+        state_batch, action_batch, reward_batch, next_state_batch, done_batch = batch
+        state_batch = state_batch.to(self.device)
+        return model, (state_batch, )
         
     def train(self, niter=1):
         # Setup

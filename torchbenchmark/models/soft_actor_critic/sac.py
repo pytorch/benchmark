@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 import tqdm
 
-from . import envs, nets, replay, run, utils
+from . import envs, nets, replay, utils
 
 class SACAgent:
     def __init__(

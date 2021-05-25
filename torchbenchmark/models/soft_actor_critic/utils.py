@@ -7,8 +7,6 @@ import gym
 import numpy as np
 import torch
 
-from . import run
-
 
 def clean_hparams_dict(hparams_dict):
     return {key: val for key, val in hparams_dict.items() if val}
