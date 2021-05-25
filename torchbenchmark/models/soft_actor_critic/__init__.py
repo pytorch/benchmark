@@ -216,19 +216,20 @@ class Model(BenchmarkModel):
             if not self.args.self_regularized and (step % self.args.target_delay == 0):
                 soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
-    
-    def eval(self, niter=1):
+    # Set default ninter to 5 because latency of one iteration is too small (~6ms)
+    def eval(self, niter=5):
         with torch.no_grad():
             discount= 1.0
+            episode_return_history = []
             for episode in range(self.args.eval_episodes):
                 episode_return = 0.0
-                state = self.env.reset()
+                state = self.test_env.reset()
                 done, info = False, {}
                 for step_num in range(niter):
                     if done:
                         break
                     action = self.agent.forward(state)
-                    state, reward, done, info = env.step(action)
+                    state, reward, done, info = self.test_env.step(action)
                     episode_return += reward * (discount ** step_num)
                 episode_return_history.append(episode_return)
             retval = torch.tensor(episode_return_history)
