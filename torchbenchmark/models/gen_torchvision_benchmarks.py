@@ -38,7 +38,7 @@ class Model(BenchmarkModel):
             # model needs to in `eval`
             # in order to be optimized for inference
             self.eval_model.eval()
-            self.eval_model = torch.jit.freeze(self.eval_model)
+            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
         self.example_inputs = {example_inputs}
 
     def get_module(self):

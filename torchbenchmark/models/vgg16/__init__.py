@@ -27,7 +27,7 @@ class Model(BenchmarkModel):
             # model needs to in `eval`
             # in order to be optimized for inference
             self.eval_model.eval()
-            self.eval_model = torch.jit.freeze(self.eval_model)
+            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
         self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
     def get_module(self):
