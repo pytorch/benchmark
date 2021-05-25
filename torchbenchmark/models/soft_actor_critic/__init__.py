@@ -116,8 +116,8 @@ class Model(BenchmarkModel):
         self.args = SACConfig()
         # Construct agent
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.train_env = pickle.load(open(os.path.join(current_dir, self.args.train_env_path)))
-        self.test_env = pickle.load(open(os.path.join(current_dir, self.args.test_env_path)))
+        self.train_env = pickle.load(open(os.path.join(current_dir, self.args.train_env_path), "rb"))
+        self.test_env = pickle.load(open(os.path.join(current_dir, self.args.test_env_path), "rb"))
         self.obs_shape = self.train_env.observation_space.shape
         self.actions = self.train_env.action_space.n
         self.agent = SACAgent(self.obs_shape, self.actions)
