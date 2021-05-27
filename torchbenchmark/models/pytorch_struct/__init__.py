@@ -62,7 +62,12 @@ class Model(BenchmarkModel):
     for ex in self.train_iter:
       words, _ = ex.word
       words = words.long()
-      return self.model, (words.to(device=self.device).transpose(0, 1),)
+    self.example_inputs = (words.to(device=self.device).transpose(0, 1),)
+    if jit:
+        self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
+
+  def get_module(self):
+      return self.model, self.example_inputs
 
   def train(self, niter=1):
     for _ in range(niter):
