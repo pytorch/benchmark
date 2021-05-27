@@ -49,25 +49,19 @@ class Model(BenchmarkModel):
     self.model = NeuralCFG(len(WORD.vocab), T, NT, H)
     self.model.to(device=device)
     self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=[0.75, 0.999])
+    if jit:
+        self.model = torch.jit.script(self.model)
     for i, ex in enumerate(self.train_iter):
       words, lengths = ex.word
       self.words = words.long().to(device).transpose(0, 1)
       self.lengths = lengths.to(device)
       break
 
-    if jit:
-      self.model = torch.jit.script(self.model)
-
   def get_module(self):
     for ex in self.train_iter:
       words, _ = ex.word
       words = words.long()
-    self.example_inputs = (words.to(device=self.device).transpose(0, 1),)
-    if jit:
-        self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-
-  def get_module(self):
-      return self.model, self.example_inputs
+      return self.model, (words.to(device=self.device).transpose(0, 1),)
 
   def train(self, niter=1):
     for _ in range(niter):
