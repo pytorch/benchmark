@@ -49,7 +49,7 @@ class BertForSequenceClassification(BaseModel):
     """
     def __init__(self, embed: BertEmbedding, num_labels: int=2, dropout=0.1):
         r"""
-        
+
         :param fastNLP.embeddings.BertEmbedding embed: 下游模型的编码器(encoder).
         :param int num_labels: 文本分类类别数目，默认值为2.
         :param float dropout: dropout的大小，默认值为0.1.
@@ -61,7 +61,7 @@ class BertForSequenceClassification(BaseModel):
         self.dropout = nn.Dropout(p=dropout)
         self.classifier = nn.Linear(self.bert.embedding_dim, num_labels)
 
-    def forward(self, words: Tensor, offsets: Tensor) -> Tensor:
+    def forward(self, words, offsets) -> Tensor:
         r"""
         输入为 [[w1, w2, w3, ...], [...]], BERTEmbedding会在开头和结尾额外加入[CLS]与[SEP]
         :param torch.LongTensor words: [batch_size, seq_len]
@@ -90,7 +90,7 @@ class BertForSentenceMatching(BaseModel):
     """
     def __init__(self, embed: BertEmbedding, num_labels: int=2, dropout=0.1):
         r"""
-        
+
         :param fastNLP.embeddings.BertEmbedding embed: 下游模型的编码器(encoder).
         :param int num_labels: Matching任务类别数目，默认值为2.
         :param float dropout: dropout的大小，默认值为0.1.
@@ -137,7 +137,7 @@ class BertForMultipleChoice(BaseModel):
     """
     def __init__(self, embed: BertEmbedding, num_choices=2, dropout=0.1):
         r"""
-        
+
         :param fastNLP.embeddings.BertEmbedding embed: 下游模型的编码器(encoder).
         :param int num_choices: 多选任务选项数目，默认值为2.
         :param float dropout: dropout的大小，默认值为0.1.
@@ -187,7 +187,7 @@ class BertForTokenClassification(BaseModel):
     """
     def __init__(self, embed: BertEmbedding, num_labels, dropout=0.1):
         r"""
-        
+
         :param fastNLP.embeddings.BertEmbedding embed: 下游模型的编码器(encoder).
         :param int num_labels: 序列标注标签数目，无默认值.
         :param float dropout: dropout的大小，默认值为0.1.
@@ -233,7 +233,7 @@ class BertForQuestionAnswering(BaseModel):
     """
     def __init__(self, embed: BertEmbedding):
         r"""
-        
+
         :param fastNLP.embeddings.BertEmbedding embed: 下游模型的编码器(encoder).
         :param int num_labels: 抽取式QA列数，默认值为2(即第一列为start_span, 第二列为end_span).
         """

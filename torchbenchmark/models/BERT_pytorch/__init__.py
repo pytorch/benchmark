@@ -46,9 +46,6 @@ class Model(BenchmarkModel):
 
         bert = BERT(len(vocab), hidden=args.hidden, n_layers=args.layers, attn_heads=args.attn_heads)
 
-        if args.script:
-            bert = torch.jit.script(bert)
-
         self.trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                                    with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
@@ -57,6 +54,8 @@ class Model(BenchmarkModel):
         self.example_inputs = example_batch['bert_input'].to(self.device), example_batch['segment_label'].to(self.device)
         self.is_next = example_batch['is_next'].to(self.device)
         self.bert_label = example_batch['bert_label'].to(self.device)
+        if args.script:
+            bert = torch.jit._script_pdt(bert, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.trainer.model, self.example_inputs

@@ -44,12 +44,12 @@ class Model(BenchmarkModel):
         train_batch = torch.tensor(train_batch).float()
         self.ground_truth = torch.tensor(self.ground_truth).float()
 
-        if self.jit:
-            net = torch.jit.script(net)
-
         net = net.to(self.device)
         train_batch = train_batch.to(self.device)
         self.ground_truth = self.ground_truth.to(self.device)
+
+        if self.jit:
+            net = torch.jit._script_pdt(net, example_inputs = [(train_batch, ), ])
 
         self.module = net
         self.example_inputs = train_batch
