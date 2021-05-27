@@ -5,9 +5,7 @@ import torch.nn.functional as F
 import copy
 import math
 
-import utils
-import hydra
-
+from . import utils
 
 class Encoder(nn.Module):
     """Convolutional encoder for image-based observations."""
@@ -83,7 +81,7 @@ class Actor(nn.Module):
                  log_std_bounds):
         super().__init__()
 
-        self.encoder = hydra.utils.instantiate(encoder_cfg)
+        self.encoder = Encoder(*encoder_cfg)
 
         self.log_std_bounds = log_std_bounds
         self.trunk = utils.mlp(self.encoder.feature_dim, hidden_dim,
@@ -124,7 +122,7 @@ class Critic(nn.Module):
     def __init__(self, encoder_cfg, action_shape, hidden_dim, hidden_depth):
         super().__init__()
 
-        self.encoder = hydra.utils.instantiate(encoder_cfg)
+        self.encoder = Encoder(*encoder_cfg)
 
         self.Q1 = utils.mlp(self.encoder.feature_dim + action_shape[0],
                             hidden_dim, 1, hidden_depth)
@@ -163,23 +161,28 @@ class Critic(nn.Module):
 
 class DRQAgent(object):
     """Data regularized Q: actor-critic method for learning from pixels."""
-    def __init__(self, obs_shape, action_shape, action_range, device,
-                 encoder_cfg, critic_cfg, actor_cfg, discount,
-                 init_temperature, lr, actor_update_frequency, critic_tau,
-                 critic_target_update_frequency, batch_size):
+    def __init__(self, cfg, device, obs_shape, action_shape, action_range):
         self.action_range = action_range
-        self.device = device
-        self.discount = discount
-        self.critic_tau = critic_tau
-        self.actor_update_frequency = actor_update_frequency
-        self.critic_target_update_frequency = critic_target_update_frequency
-        self.batch_size = batch_size
+        self.device = torch.device(cfg.device)
+        self.discount = cfg.discount
+        self.critic_tau = cfg.critic_tau
+        self.actor_update_frequency = cfg.actor_update_frequency
+        self.critic_target_update_frequency = cfg.critic_target_update_frequency
+        self.batch_size = cfg.batch_size
 
-        self.actor = hydra.utils.instantiate(actor_cfg).to(self.device)
-
-        self.critic = hydra.utils.instantiate(critic_cfg).to(self.device)
-        self.critic_target = hydra.utils.instantiate(critic_cfg).to(
-            self.device)
+        encoder_cfg = (obs_shape, cfg.feature_dim)
+        self.actor = Actor(encoder_cfg=encoder_cfg,
+                           action_shape=action_shape,
+                           hidden_dim=cfg.hidden_dim,
+                           hidden_depth=cfg.hidden_depth).to(self.device)
+        self.critic = Critic(encoder_cfg=encoder_cfg,
+                             action_shape=action_shape,
+                             hidden_dim=cfg.hidden_dim
+                             hidden_depth=cfg.hidden_depth).to(self.device)
+        self.critic_target = Critic(encoder_cfg=encoder_cfg,
+                                    action_shape=action_shape,
+                                    hidden_dim=cfg.hidden_dim
+                                    hidden_depth=cfg.hidden_depth).to(self.device)
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         # tie conv layers between actor and critic

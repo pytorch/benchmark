@@ -53,15 +53,16 @@ class Model(BenchmarkModel):
         super(Model, self).__init__()
         self.device = device
         self.jit = jit
-        self.cfg = DRQConfig()
+        self.cfg = DRQConfig(device)
         set_seed_everywhere(self.cfg.seed)
         self.env = make_env(self.cfg)
-        self.agent.params.obs_shape = self.env.observation_space.shape
-        self.agent.params.action_shape = self.env.action_space.shape
-        self.cfg.params.action_range = [
+        obs_shape = self.env.observation_space.shape
+        action_shape = self.env.action_space.shape
+        action_range = [
             float(self.env.action_space.low.min()),
             float(self.env.action_space.high.max())
         ]
+        self.agent = DRQAgent(self.cfg, self.device, obs_shape, action_shape, action_range)
         self.replay_buffer = ReplayBuffer(self.env.observation_space.shape,
                                           self.env.action_space.shape,
                                           self.cfg.replay_buffer_capacity,
