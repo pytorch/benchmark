@@ -34,5 +34,6 @@ class DRQConfig:
     # Actor configurations
     hidden_dim = 1024
     hidden_depth = 2
+    log_std_bounds: [-10, 2]
     # Encoder configurations
     feature_dim = 50
