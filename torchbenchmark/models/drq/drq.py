@@ -163,7 +163,7 @@ class DRQAgent(object):
     """Data regularized Q: actor-critic method for learning from pixels."""
     def __init__(self, cfg, device, obs_shape, action_shape, action_range):
         self.action_range = action_range
-        self.device = torch.device(cfg.device)
+        self.device = torch.device(device)
         self.discount = cfg.discount
         self.critic_tau = cfg.critic_tau
         self.actor_update_frequency = cfg.actor_update_frequency
