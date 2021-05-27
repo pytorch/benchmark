@@ -1,3 +1,2 @@
-hydra
-dmc2gym
+kornia
 scikit-image
