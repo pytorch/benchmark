@@ -195,10 +195,10 @@ class DRQAgent(object):
         self.target_entropy = -action_shape[0]
 
         # optimizers
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=lr)
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=cfg.lr)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
                                                  lr=lr)
-        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=lr)
+        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=cfg.lr)
 
         self.train()
         self.critic_target.train()
