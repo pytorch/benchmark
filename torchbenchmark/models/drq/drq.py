@@ -197,7 +197,7 @@ class DRQAgent(object):
         # optimizers
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=cfg.lr)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(),
-                                                 lr=lr)
+                                                 lr=cfg.lr)
         self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=cfg.lr)
 
         self.train()
