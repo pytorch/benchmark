@@ -39,7 +39,6 @@ def make_env(cfg):
                        width=cfg.image_size,
                        frame_skip=cfg.action_repeat,
                        camera_id=camera_id)
-
     env = FrameStack(env, k=cfg.frame_stack)
 
     env.seed(cfg.seed)
@@ -71,7 +70,10 @@ class Model(BenchmarkModel):
         self.step = 0
 
     def get_module(self):
-        pass
+        obs = self.env.reset()
+        obs = torch.FloatTensor(obs).to(self.device)
+        obs = obs.unsqueeze(0)
+        return self.actor, (obs, )
 
     def train(self, niter=1):
         episode, episode_reward, episode_step, done = 0, 0, 1, True
