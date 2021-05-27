@@ -1,5 +1,6 @@
 import torch
 from . import eos_pytorch
+from torchbenchmark.tasks import OTHER
 from ...util.model import BenchmarkModel
 
 def _generate_inputs(size):
@@ -26,6 +27,8 @@ class EquationOfState(torch.nn.Module):
         return eos_pytorch.gsw_dHdT(s, t, p)
 
 class Model(BenchmarkModel):
+    task = OTHER.OTHER_TASKS
+
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device

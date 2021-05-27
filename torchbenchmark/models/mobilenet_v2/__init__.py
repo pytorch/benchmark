@@ -3,6 +3,7 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
+from torchbenchmark.tasks import COMPUTER_VISION
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
@@ -14,6 +15,7 @@ from torchbenchmark.tasks import COMPUTER_VISION
 #######################################################
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
+
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device

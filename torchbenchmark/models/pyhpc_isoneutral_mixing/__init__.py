@@ -1,5 +1,6 @@
 import torch
 from . import isoneutral_pytorch
+from torchbenchmark.tasks import OTHER
 from ...util.model import BenchmarkModel
 
 
@@ -122,6 +123,8 @@ class IsoneutralMixing(torch.nn.Module):
 
 
 class Model(BenchmarkModel):
+    task = OTHER.OTHER_TASKS
+
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
