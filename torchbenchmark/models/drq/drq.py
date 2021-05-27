@@ -174,7 +174,8 @@ class DRQAgent(object):
         self.actor = Actor(encoder_cfg=encoder_cfg,
                            action_shape=action_shape,
                            hidden_dim=cfg.hidden_dim,
-                           hidden_depth=cfg.hidden_depth).to(self.device)
+                           hidden_depth=cfg.hidden_depth,
+                           log_std_bounds=cfg.log_std_bounds).to(self.device)
         self.critic = Critic(encoder_cfg=encoder_cfg,
                              action_shape=action_shape,
                              hidden_dim=cfg.hidden_dim,
