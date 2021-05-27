@@ -13,6 +13,7 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from .utils import FrameStack, set_seed_everywhere, eval_mode
+from .drq import DRQAgent
 from .config import DRQConfig
 from .replay_buffer import ReplayBuffer
 
@@ -53,7 +54,7 @@ class Model(BenchmarkModel):
         super(Model, self).__init__()
         self.device = device
         self.jit = jit
-        self.cfg = DRQConfig(device)
+        self.cfg = DRQConfig()
         set_seed_everywhere(self.cfg.seed)
         self.env = make_env(self.cfg)
         obs_shape = self.env.observation_space.shape
