@@ -25,5 +25,14 @@ class DRQConfig:
     lr = 1e-3
     # IMPORTANT: please use a batch size of 512 to reproduce the results in the paper. Hovewer, with a smaller batch size it still works well.
     batch_size = 128
+    # Agent configurations
+    discount = 0.99
+    init_temperature = 0.1
+    actor_update_frequency = 2
+    critic_tau = 0.01
+    critic_target_update_frequency = 2
+    # Actor configurations
     hidden_dim = 1024
     hidden_depth = 2
+    # Encoder configurations
+    encoder_feature_dim = 50
