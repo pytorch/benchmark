@@ -35,4 +35,4 @@ class DRQConfig:
     hidden_dim = 1024
     hidden_depth = 2
     # Encoder configurations
-    encoder_feature_dim = 50
+    feature_dim = 50
