@@ -9,10 +9,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import dmc2gym
 
-from ..util.model import BenchmarkModel
+from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
-from . import utils
+from .utils import FrameStack, set_seed_everywhere, eval_mode
 from .config import DRQConfig
 from .replay_buffer import ReplayBuffer
 
@@ -39,7 +39,7 @@ def make_env(cfg):
                        frame_skip=cfg.action_repeat,
                        camera_id=camera_id)
 
-    env = utils.FrameStack(env, k=cfg.frame_stack)
+    env = FrameStack(env, k=cfg.frame_stack)
 
     env.seed(cfg.seed)
     assert env.action_space.low.min() >= -1
@@ -54,7 +54,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.cfg = DRQConfig()
-        utils.set_seed_everywhere(cfg.seed)
+        set_seed_everywhere(self.cfg.seed)
         self.env = make_env(self.cfg)
         self.agent.params.obs_shape = self.env.observation_space.shape
         self.agent.params.action_shape = self.env.action_space.shape
@@ -82,7 +82,7 @@ class Model(BenchmarkModel):
             if step < self.cfg.num_seed_steps:
                 action = self.env.action_space.sample()
             else:
-                with utils.eval_mode(self.agent):
+                with eval_mode(self.agent):
                     action = self.agent.act(obs, sample=True)
             if step >= self.cfg.num_seed_steps:
                 for _ in range(self.cfg.num_train_iters):
@@ -106,7 +106,7 @@ class Model(BenchmarkModel):
             episode_reward = 0
             episode_step = 0
             while not done:
-                with utils.eval_mode(self.agent):
+                with eval_mode(self.agent):
                     action = self.agent.act(obs, sample=False)
                 obs, reward, done, info = self.env.step(action)
                 episode_reward += reward
