@@ -47,10 +47,10 @@ class Model(BenchmarkModel):
     T = 30
     NT = 30
     self.model = NeuralCFG(len(WORD.vocab), T, NT, H)
-    self.model.to(device=device)
-    self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=[0.75, 0.999])
     if jit:
         self.model = torch.jit.script(self.model)
+    self.model.to(device=device)
+    self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=[0.75, 0.999])
     for i, ex in enumerate(self.train_iter):
       words, lengths = ex.word
       self.words = words.long().to(device).transpose(0, 1)
