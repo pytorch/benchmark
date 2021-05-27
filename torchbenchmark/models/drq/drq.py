@@ -177,11 +177,11 @@ class DRQAgent(object):
                            hidden_depth=cfg.hidden_depth).to(self.device)
         self.critic = Critic(encoder_cfg=encoder_cfg,
                              action_shape=action_shape,
-                             hidden_dim=cfg.hidden_dim
+                             hidden_dim=cfg.hidden_dim,
                              hidden_depth=cfg.hidden_depth).to(self.device)
         self.critic_target = Critic(encoder_cfg=encoder_cfg,
                                     action_shape=action_shape,
-                                    hidden_dim=cfg.hidden_dim
+                                    hidden_dim=cfg.hidden_dim,
                                     hidden_depth=cfg.hidden_depth).to(self.device)
         self.critic_target.load_state_dict(self.critic.state_dict())
 
