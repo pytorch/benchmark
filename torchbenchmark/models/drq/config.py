@@ -12,7 +12,7 @@ class DRQConfig:
     # train
     num_train_steps = 1
     num_train_iters = 1
-    num_seed_steps = 1000
+    num_seed_steps = 0
     replay_buffer_capacity = 100000
     seed = 1
     # eval
@@ -37,3 +37,5 @@ class DRQConfig:
     log_std_bounds = [-10, 2]
     # Encoder configurations
     feature_dim = 50
+    # obs data, relative to __file__
+    obs_path = "obs.pkl"

@@ -8,6 +8,7 @@ import sys
 import torch.nn as nn
 import torch.nn.functional as F
 import dmc2gym
+from gym import spaces
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
@@ -16,6 +17,43 @@ from .utils import FrameStack, set_seed_everywhere, eval_mode
 from .drq import DRQAgent
 from .config import DRQConfig
 from .replay_buffer import ReplayBuffer
+
+class MockEnv:
+    def __init__(self, obs):
+        self._norm_action_space = spaces.Box(
+            low=-1.0,
+            high=1.0,
+            shape=[1],
+            dtype=np.float32)
+        self._observation_space = spaces.Box(
+            low=0,
+            high=255,
+            shape=[9, 84, 84],
+            dtype=np.uint8
+        )
+        self.obs = obs
+        self._max_episode_steps = 250
+        self.metadata = {'render.modes': []}
+        self.reward_range = (-float('inf'), float('inf'))
+    def step(self, action):
+        reward = 0.0
+        done = False
+        info_state = [0.016243, 3.1355, -0.0052817, -0.01073]
+        info = dict()
+        info["internal_state"] = info_state
+        info["discount"] = 1.0
+        return (self.obs, reward, done, info)
+    def seed(self, seed=None):
+        self._norm_action_space.seed(seed)
+        self._observation_space.seed(seed)
+    def reset(self):
+        return self.obs
+    @property
+    def observation_space(self):
+        return self._observation_space
+    @property
+    def action_space(self):
+        return self._norm_action_space
 
 def make_env(cfg):
     if cfg.env == 'ball_in_cup_catch':
@@ -30,15 +68,18 @@ def make_env(cfg):
      # per dreamer: https://github.com/danijar/dreamer/blob/02f0210f5991c7710826ca7881f19c64a012290c/wrappers.py#L26
     camera_id = 2 if domain_name == 'quadruped' else 0
 
-    env = dmc2gym.make(domain_name=domain_name,
-                       task_name=task_name,
-                       seed=cfg.seed,
-                       visualize_reward=False,
-                       from_pixels=True,
-                       height=cfg.image_size,
-                       width=cfg.image_size,
-                       frame_skip=cfg.action_repeat,
-                       camera_id=camera_id)
+    # env = dmc2gym.make(domain_name=domain_name,
+    #                    task_name=task_name,
+    #                    seed=cfg.seed,
+    #                    visualize_reward=False,
+    #                    from_pixels=True,
+    #                    height=cfg.image_size,
+    #                    width=cfg.image_size,
+    #                    frame_skip=cfg.action_repeat,
+    #                    camera_id=camera_id)
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    mockobs = pkl.load(open(os.path.join(current_dir, cfg.obs_path), "rb"))
+    env = MockEnv(mockobs)
     env = FrameStack(env, k=cfg.frame_stack)
 
     env.seed(cfg.seed)
@@ -75,7 +116,7 @@ class Model(BenchmarkModel):
         obs = obs.unsqueeze(0)
         return self.actor, (obs, )
 
-    def train(self, niter=1):
+    def train(self, niter=10):
         episode, episode_reward, episode_step, done = 0, 0, 1, True
         for step in range(niter):
             obs = self.env.reset()
@@ -90,7 +131,7 @@ class Model(BenchmarkModel):
                     action = self.agent.act(obs, sample=True)
             if step >= self.cfg.num_seed_steps:
                 for _ in range(self.cfg.num_train_iters):
-                    self.agent.update(self.replay_buffer, self.logger, self.step)
+                    self.agent.update(self.replay_buffer, None, self.step)
             next_obs, reward, done, info = self.env.step(action)
             # allow infinite bootstrap
             done = float(done)

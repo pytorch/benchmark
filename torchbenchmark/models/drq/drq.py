@@ -275,10 +275,6 @@ class DRQAgent(object):
 
         actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
 
-        logger.log('train_actor/loss', actor_loss, step)
-        logger.log('train_actor/target_entropy', self.target_entropy, step)
-        logger.log('train_actor/entropy', -log_prob.mean(), step)
-
         # optimize the actor
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
@@ -289,16 +285,12 @@ class DRQAgent(object):
         self.log_alpha_optimizer.zero_grad()
         alpha_loss = (self.alpha *
                       (-log_prob - self.target_entropy).detach()).mean()
-        logger.log('train_alpha/loss', alpha_loss, step)
-        logger.log('train_alpha/value', self.alpha, step)
         alpha_loss.backward()
         self.log_alpha_optimizer.step()
 
     def update(self, replay_buffer, logger, step):
         obs, action, reward, next_obs, not_done, obs_aug, next_obs_aug = replay_buffer.sample(
             self.batch_size)
-
-        logger.log('train/batch_reward', reward.mean(), step)
 
         self.update_critic(obs, obs_aug, action, reward, next_obs,
                            next_obs_aug, not_done, logger, step)
