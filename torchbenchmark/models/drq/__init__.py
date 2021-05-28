@@ -68,15 +68,6 @@ def make_env(cfg):
      # per dreamer: https://github.com/danijar/dreamer/blob/02f0210f5991c7710826ca7881f19c64a012290c/wrappers.py#L26
     camera_id = 2 if domain_name == 'quadruped' else 0
 
-    # env = dmc2gym.make(domain_name=domain_name,
-    #                    task_name=task_name,
-    #                    seed=cfg.seed,
-    #                    visualize_reward=False,
-    #                    from_pixels=True,
-    #                    height=cfg.image_size,
-    #                    width=cfg.image_size,
-    #                    frame_skip=cfg.action_repeat,
-    #                    camera_id=camera_id)
     current_dir = os.path.dirname(os.path.realpath(__file__))
     mockobs = pkl.load(open(os.path.join(current_dir, cfg.obs_path), "rb"))
     env = MockEnv(mockobs)
@@ -129,9 +120,6 @@ class Model(BenchmarkModel):
             else:
                 with eval_mode(self.agent):
                     action = self.agent.act(obs, sample=True)
-            if step >= self.cfg.num_seed_steps:
-                for _ in range(self.cfg.num_train_iters):
-                    self.agent.update(self.replay_buffer, None, self.step)
             next_obs, reward, done, info = self.env.step(action)
             # allow infinite bootstrap
             done = float(done)
@@ -147,14 +135,12 @@ class Model(BenchmarkModel):
         average_episode_reward = 0
         for episode in range(niter):
             obs = self.env.reset()
-            done = False
             episode_reward = 0
             episode_step = 0
-            while not done:
-                with eval_mode(self.agent):
-                    action = self.agent.act(obs, sample=False)
-                obs, reward, done, info = self.env.step(action)
-                episode_reward += reward
-                episode_step += 1
+            with eval_mode(self.agent):
+                action = self.agent.act(obs, sample=False)
+            obs, reward, done, info = self.env.step(action)
+            episode_reward += reward
+            episode_step += 1
             average_episode_reward += episode_reward
         average_episode_reward /= float(niter)
