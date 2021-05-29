@@ -66,14 +66,7 @@ class Encoder(nn.Module):
             utils.tie_weights(src=source.convs[i], trg=self.convs[i])
 
     def log(self, logger, step):
-        for k, v in self.outputs.items():
-            logger.log_histogram(f'train_encoder/{k}_hist', v, step)
-            if len(v.shape) > 2:
-                logger.log_image(f'train_encoder/{k}_img', v[0], step)
-
-        for i in range(self.num_layers):
-            logger.log_param(f'train_encoder/conv{i + 1}', self.convs[i], step)
-
+        pass
 
 class Actor(nn.Module):
     """torch.distributions implementation of an diagonal Gaussian policy."""
@@ -109,13 +102,7 @@ class Actor(nn.Module):
         return dist
 
     def log(self, logger, step):
-        for k, v in self.outputs.items():
-            logger.log_histogram(f'train_actor/{k}_hist', v, step)
-
-        for i, m in enumerate(self.trunk):
-            if type(m) == nn.Linear:
-                logger.log_param(f'train_actor/fc{i}', m, step)
-
+        pass
 
 class Critic(nn.Module):
     """Critic network, employes double Q-learning."""
@@ -146,18 +133,7 @@ class Critic(nn.Module):
         return q1, q2
 
     def log(self, logger, step):
-        self.encoder.log(logger, step)
-
-        for k, v in self.outputs.items():
-            logger.log_histogram(f'train_critic/{k}_hist', v, step)
-
-        assert len(self.Q1) == len(self.Q2)
-        for i, (m1, m2) in enumerate(zip(self.Q1, self.Q2)):
-            assert type(m1) == type(m2)
-            if type(m1) is nn.Linear:
-                logger.log_param(f'train_critic/q1_fc{i}', m1, step)
-                logger.log_param(f'train_critic/q2_fc{i}', m2, step)
-
+        pass
 
 class DRQAgent(object):
     """Data regularized Q: actor-critic method for learning from pixels."""
@@ -254,7 +230,7 @@ class DRQAgent(object):
         critic_loss += F.mse_loss(Q1_aug, target_Q) + F.mse_loss(
             Q2_aug, target_Q)
 
-        logger.log('train_critic/loss', critic_loss, step)
+        # logger.log('train_critic/loss', critic_loss, step)
 
         # Optimize the critic
         self.critic_optimizer.zero_grad()

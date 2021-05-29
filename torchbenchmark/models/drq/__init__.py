@@ -107,7 +107,7 @@ class Model(BenchmarkModel):
         obs = obs.unsqueeze(0)
         return self.actor, (obs, )
 
-    def train(self, niter=10):
+    def train(self, niter=2):
         episode, episode_reward, episode_step, done = 0, 0, 1, True
         for step in range(niter):
             obs = self.env.reset()
@@ -120,6 +120,11 @@ class Model(BenchmarkModel):
             else:
                 with eval_mode(self.agent):
                     action = self.agent.act(obs, sample=True)
+            # run training update
+            if self.step >= self.cfg.num_seed_steps:
+                for _ in range(self.cfg.num_train_iters):
+                    self.agent.update(self.replay_buffer, None,
+                                      self.step)
             next_obs, reward, done, info = self.env.step(action)
             # allow infinite bootstrap
             done = float(done)

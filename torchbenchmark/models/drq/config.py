@@ -12,7 +12,9 @@ class DRQConfig:
     # train
     num_train_steps = 1
     num_train_iters = 1
-    num_seed_steps = 0
+    # num_seed_steps can't be zero
+    # and niter in train must be bigger than num_seed_steps
+    num_seed_steps = 1
     replay_buffer_capacity = 100000
     seed = 1
     # eval
