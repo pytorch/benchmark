@@ -70,6 +70,9 @@ def make_env(cfg):
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     mockobs = pkl.load(open(os.path.join(current_dir, cfg.obs_path), "rb"))
+    low = np.amin(mockobs)
+    high = np.amax(mockobs)
+    mockobs = np.random.randint(low=11, high=228, size=mockobs.shape)
     env = MockEnv(mockobs)
     env = FrameStack(env, k=cfg.frame_stack)
 
