@@ -62,12 +62,12 @@ class Encoder(nn.Module):
             for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
-    def forward(self, src_seq, src_mask, return_attns:bool=False):
+    def forward(self, src_seq, src_mask, return_attns=False):
 
         enc_slf_attn_list = []
 
         # -- Forward
-        
+
         enc_output = self.dropout(self.position_enc(self.src_word_emb(src_seq)))
         enc_output = self.layer_norm(enc_output)
 
@@ -98,7 +98,7 @@ class Decoder(nn.Module):
             for _ in range(n_layers)])
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
-    def forward(self, trg_seq, trg_mask, enc_output, src_mask, return_attns:bool=False):
+    def forward(self, trg_seq, trg_mask, enc_output, src_mask, return_attns=False):
 
         dec_slf_attn_list, dec_enc_attn_list = [], []
 
@@ -147,7 +147,7 @@ class Transformer(nn.Module):
 
         for p in self.parameters():
             if p.dim() > 1:
-                nn.init.xavier_uniform_(p) 
+                nn.init.xavier_uniform_(p)
 
         assert d_model == d_word_vec, \
         'To facilitate the residual connections, \

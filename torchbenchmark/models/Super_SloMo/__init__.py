@@ -26,8 +26,6 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.module = ModelWrapper(device)
-        if jit:
-            self.module = torch.jit.script(self.module)
 
         root = str(Path(__file__).parent)
         self.args = args = Namespace(**{
@@ -58,6 +56,9 @@ class Model(BenchmarkModel):
                      frameT.to(device),
                      frame1.to(device))
         self.example_inputs = trainFrameIndex, *trainData
+
+        if jit:
+            self.module = torch.jit._script_pdt(self.module, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.module, self.example_inputs

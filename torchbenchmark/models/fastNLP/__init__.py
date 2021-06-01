@@ -43,12 +43,12 @@ class Model(BenchmarkModel):
         bert_embed = torch.nn.EmbeddingBag(vocab_size, embed_dim)
         self.model = BertForSequenceClassification(bert_embed, num_labels=num_labels).to(self.device)
 
-        if self.jit:
-            self.model = torch.jit.script(self.model)
-
         self.criterion = torch.nn.CrossEntropyLoss().to(device)
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=4.0)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 1, gamma=0.9)
+
+        if self.jit:
+            self.model = torch.jit._script_pdt(self.model, example_inputs = [(self.text, self.offsets), ])
 
     def get_module(self):
         return self.model, (self.text, self.offsets)

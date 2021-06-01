@@ -29,7 +29,7 @@ class DemucsWrapper(torch.nn.Module):
         self.model = model
         self.augment = augment
 
-    def forward(self, streams: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, streams) -> Tuple[Tensor, Tensor]:
         sources = streams[:, 1:]
         sources = self.augment(sources)
         mix = sources.sum(dim=1)
@@ -72,7 +72,7 @@ class Model(BenchmarkModel):
         self.model = DemucsWrapper(self.model, self.augment)
 
         if self.jit:
-            self.model = torch.jit.script(self.model)
+            self.model = torch.jit._script_pdt(self.model, example_inputs = [self.example_inputs, ])
 
     def _set_mode(self, train):
         self.model.train(train)

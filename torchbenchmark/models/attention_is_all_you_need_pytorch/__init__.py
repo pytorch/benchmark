@@ -80,15 +80,14 @@ class Model(BenchmarkModel):
             n_head=self.opt.n_head,
             dropout=self.opt.dropout).to(self.device)
 
-        if self.jit:
-            transformer = torch.jit.script(transformer)
-        self.module = transformer
-
         batch = list(validation_data)[0]
         src_seq = patch_src(batch.src, self.opt.src_pad_idx).to(self.device)
         trg_seq, self.gold = map(lambda x: x.to(self.device), patch_trg(batch.trg, self.opt.trg_pad_idx))
         # We use validation_data for training as well so that it can finish fast enough.
         self.example_inputs = (src_seq, trg_seq)
+        if self.jit:
+            transformer = torch.jit._script_pdt(transformer, example_inputs = [self.example_inputs, ])
+        self.module = transformer
 
     def get_module(self):
         return self.module, self.example_inputs
