@@ -3,7 +3,6 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
-from torchbenchmark.tasks import COMPUTER_VISION
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
