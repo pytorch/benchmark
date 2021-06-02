@@ -21,9 +21,20 @@ class Model(BenchmarkModel):
         )
         if device == 'cuda':
             torch.cuda.empty_cache()
+
+        # instantiate another model for inference
+        self.eval_model = timm.create_model(variant, pretrained=False, scriptable=True)
+        self.eval_model.eval()
+        self.eval_model.to(
+            device=self.device,
+            dtype=self.cfg.model_dtype
+        )
+
         if jit:
-            self.model = torch.jit.script(self.model)
-            assert isinstance(self.model, torch.jit.ScriptModule)
+            self.eval_model = torch.jit.script(self.eval_model)
+            assert isinstance(self.eval_model, torch.jit.ScriptModule)
+            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
+    
 
     def _gen_target(self, batch_size):
         return torch.empty(
@@ -39,8 +50,14 @@ class Model(BenchmarkModel):
         self.cfg.loss(output, target).backward()
         self.cfg.optimizer.step()
 
+    # vision models have another model
+    # instance for inference that has
+    # already been optimized for inference
+    def set_eval(self):
+        pass
+
     def _step_eval(self):
-        output = self.model(self.cfg.infer_example_inputs)
+        output = self.eval_model(self.cfg.infer_example_inputs)
 
     def get_module(self):
         return self.model, (self.cfg.example_inputs,)
