@@ -14,7 +14,7 @@ def parse_args(args=None):
     parser.add_argument("-hs", "--hidden", type=int, default=768, help="hidden size of transformer model")
     parser.add_argument("-l", "--layers", type=int, default=12, help="number of layers")
     parser.add_argument("-a", "--attn_heads", type=int, default=12, help="number of attention heads")
-    parser.add_argument("-s", "--seq_len", type=int, default=20, help="maximum sequence len")
+    parser.add_argument("-s", "--seq_len", type=int, default=128, help="maximum sequence len")
 
     parser.add_argument("-b", "--batch_size", type=int, default=64, help="number of batch_size")
     parser.add_argument("-e", "--epochs", type=int, default=10, help="number of epochs")
