@@ -21,6 +21,8 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
+    optimized_for_inference = True
+
     def __init__(self, device=None, jit=False):
         super(Model, self).__init__()
         self.device = device
