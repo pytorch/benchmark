@@ -5,7 +5,7 @@ from torchbenchmark.util.machine_config import get_machine_config, check_machine
 
 
 def pytest_addoption(parser):
-    parser.addoption("--fuser", help="fuser to use for benchmarks")
+    parser.addoption("--fuser", help="Use one of the available fusers: te, old, nvfuser", default="te", choices=["te", "old", "nvfuser"])
     parser.addoption("--ignore_machine_config",
                      action='store_true',
                      help="Disable checks/assertions for machine configuration for stable benchmarks")
@@ -18,19 +18,15 @@ def pytest_addoption(parser):
                     help="Run benchmarks on cpu only and ignore machine configuration checks")
 
 def set_fuser(fuser):
-    if fuser == "old":
+    if fuser == "te":
+        # use default fuser (TE) and
+        # profiling executor settings
+        pass
+    elif fuser == "old":
         torch._C._jit_set_profiling_executor(False)
         torch._C._jit_set_profiling_mode(False)
         torch._C._jit_override_can_fuse_on_gpu(True)
         torch._C._jit_set_texpr_fuser_enabled(False)
-    elif fuser == "te":
-        torch._C._jit_set_profiling_executor(True)
-        torch._C._jit_set_profiling_mode(True)
-        torch._C._jit_set_bailout_depth(20)
-        torch._C._jit_set_num_profiled_runs(2)
-        torch._C._jit_override_can_fuse_on_cpu(False)
-        torch._C._jit_override_can_fuse_on_gpu(True)
-        torch._C._jit_set_texpr_fuser_enabled(True)
     elif fuser == "nvfuser":
         os.environ['PYTORCH_CUDA_FUSER_DISABLE_FALLBACK'] = '1'
         os.environ['PYTORCH_CUDA_FUSER_DISABLE_FMA'] = '1'
@@ -44,6 +40,10 @@ def set_fuser(fuser):
         torch._C._jit_override_can_fuse_on_gpu(False)
         torch._C._jit_set_nvfuser_guard_mode(True)
         torch._C._jit_set_nvfuser_enabled(True)
+    else:
+        # pytest_addoption should always set the default fuser
+        assert(False)
+
 
 
 def pytest_sessionstart(session):
