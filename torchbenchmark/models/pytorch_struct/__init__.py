@@ -22,6 +22,7 @@ torch.backends.cudnn.benchmark = True
 
 class Model(BenchmarkModel):
   task = OTHER.OTHER_TASKS
+  optimized_for_inference = True
   def __init__(self, device=None, jit=False):
     super().__init__()
     self.device = device
@@ -47,9 +48,13 @@ class Model(BenchmarkModel):
     T = 30
     NT = 30
     self.model = NeuralCFG(len(WORD.vocab), T, NT, H)
+    self.eval_model = NeuralCFG(len(WORD.vocab), T, NT, H)
     if jit:
         self.model = torch.jit.script(self.model)
+        self.eval_model = torch.jit.script(self.eval_model)
+        self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
     self.model.to(device=device)
+    self.eval_model.to(device=device)
     self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=[0.75, 0.999])
     for i, ex in enumerate(self.train_iter):
       words, lengths = ex.word
@@ -77,7 +82,7 @@ class Model(BenchmarkModel):
 
   def eval(self, niter=1):
     for _ in range(niter):
-      params = self.model(self.words)
+      params = self.eval_model(self.words)
 
 def cuda_sync(func, sync=False):
     func()
