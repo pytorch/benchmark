@@ -14,13 +14,13 @@ from torchbenchmark.tasks import COMPUTER_VISION
 #######################################################
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
+    optimized_for_inference = True
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.densenet121().to(self.device)
         self.eval_model = models.densenet121().to(self.device)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
         if self.jit:
             self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
@@ -29,7 +29,7 @@ class Model(BenchmarkModel):
             # in order to be optimized for inference
             self.eval_model.eval()
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
-
+        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
     def get_module(self):
         return self.model, self.example_inputs

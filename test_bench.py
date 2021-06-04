@@ -28,8 +28,10 @@ def pytest_generate_tests(metafunc):
         devices = ['cpu']
     all_models = list_models()
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
+        is_eval = metafunc.function.__name__ == "test_eval"
+        test_name = lambda m : m.name + ("-freeze" if is_eval and hasattr(m, "optimized_for_inference") else "")
         metafunc.parametrize('model_class', all_models,
-                             ids=[m.name for m in all_models], scope="class")
+            ids=[test_name(m) for m in all_models], scope="class")
         metafunc.parametrize('device', devices, scope='class')
         metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
 

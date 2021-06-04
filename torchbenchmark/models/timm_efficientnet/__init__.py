@@ -8,6 +8,7 @@ from .config import TimmConfig
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
+    optimized_for_inference = True
 
     def __init__(self, device=None, jit=False, variant='mixnet_m', precision='float32'):
         super().__init__()
