@@ -66,6 +66,9 @@ def _load_test(model_class, device):
 
     def eval(self):
         m = model_object(self)
+        # if the model is marked as optimized for inference, it needs to have
+        # the attr set to True and "eval_model" attribute
+        assert(not hasattr(m, "optimized_for_inference") or (m.optimized_for_inference and hasattr(m, "eval_model")))
         try:
             m.eval()
         except NotImplementedError:
