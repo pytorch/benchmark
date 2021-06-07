@@ -5,10 +5,10 @@ import dataclasses
 class DQNConfig():
     target_update = 2000
     T_max = 100000
-    learn_start = 1600
+    learn_start = 2
     memory_capacity = 100000
-    replay_frequency = 1
-    multi_step = 20
+    replay_frequency = 4
+    multi_step = 3
     seed = 123
     max_episode_length = int(108e3)
     atoms = 51

@@ -1,14 +1,45 @@
 # -*- coding: utf-8 -*-
 from collections import deque
 import random
-import atari_py
 import cv2
+import atari_py
 import torch
+import numpy
 
+class AleEnv():
+  def __init__(self):
+    pass
+
+  def setSeed(self, seed):
+    numpy.random.seed(seed)
+    torch.manual_seed(seed)
+
+  def getScreenGrayscale(self):
+    shape = (84, 84)
+    return torch.randn(shape)
+  
+  def getMinimalActionSet(self):
+    actions = [0, 1, 3, 4, 5]
+    return numpy.array(actions)
+
+  def act(self, act_arg):
+    return 1
+
+  def game_over(self):
+    pass
+
+  def reset_game(self):
+    pass
+
+  def lives(self):
+    return 1
 
 class Env():
   def __init__(self, args):
     self.device = args.device
+    # self.ale = AleEnv()
+    # self.ale.setSeed(args.seed)
+    # actions = self.ale.getMinimalActionSet()
     self.ale = atari_py.ALEInterface()
     self.ale.setInt('random_seed', args.seed)
     self.ale.setInt('max_num_frames_per_episode', args.max_episode_length)
@@ -25,6 +56,7 @@ class Env():
     self.training = True  # Consistent with model training mode
 
   def _get_state(self):
+    # state = self.ale.getScreenGrayscale()
     state = cv2.resize(self.ale.getScreenGrayscale(), (84, 84), interpolation=cv2.INTER_LINEAR)
     return torch.tensor(state, dtype=torch.float32, device=self.device).div_(255)
 

@@ -29,11 +29,12 @@ class Model(BenchmarkModel):
         state = self.env.reset()
         return model, (state.unsqueeze(0), )
 
-    def train(self, niter = 1):
+    def train(self, niter = 5):
         if self.jit:
             return NotImplemented
         self.dqn.train()
         T, done = 0, True
+        priority_weight_increase = (1 - self.args.priority_weight) / (self.args.T_max - self.args.learn_start)
         for T in range(1, niter + 1):
             if done:
                 state = self.env.reset()
@@ -47,9 +48,9 @@ class Model(BenchmarkModel):
             if T >= self.args.learn_start:
                 self.mem.priority_weight = min(self.mem.priority_weight + priority_weight_increase, 1)  # Anneal importance sampling weight β to 1
                 if T % self.args.replay_frequency == 0:
-                    dqn.learn(self.mem)  # Train with n-step distributional double-Q learning
+                    self.dqn.learn(self.mem)  # Train with n-step distributional double-Q learning
             if T % self.args.target_update == 0:
-                dqn.update_target_net()
+                self.dqn.update_target_net()
             state = next_state
         self.env.close()
 
