@@ -37,16 +37,8 @@ class AleEnv():
 class Env():
   def __init__(self, args):
     self.device = args.device
-    # self.ale = AleEnv()
-    # self.ale.setSeed(args.seed)
-    # actions = self.ale.getMinimalActionSet()
-    self.ale = atari_py.ALEInterface()
-    self.ale.setInt('random_seed', args.seed)
-    self.ale.setInt('max_num_frames_per_episode', args.max_episode_length)
-    self.ale.setFloat('repeat_action_probability', 0)  # Disable sticky actions
-    self.ale.setInt('frame_skip', 0)
-    self.ale.setBool('color_averaging', False)
-    self.ale.loadROM(atari_py.get_game_path(args.game))  # ROM loading must be done after setting options
+    self.ale = AleEnv()
+    self.ale.setSeed(args.seed)
     actions = self.ale.getMinimalActionSet()
     self.actions = dict([i, e] for i, e in zip(range(len(actions)), actions))
     self.lives = 0  # Life counter (used in DeepMind training)
@@ -56,8 +48,7 @@ class Env():
     self.training = True  # Consistent with model training mode
 
   def _get_state(self):
-    # state = self.ale.getScreenGrayscale()
-    state = cv2.resize(self.ale.getScreenGrayscale(), (84, 84), interpolation=cv2.INTER_LINEAR)
+    state = self.ale.getScreenGrayscale()
     return torch.tensor(state, dtype=torch.float32, device=self.device).div_(255)
 
   def _reset_buffer(self):
