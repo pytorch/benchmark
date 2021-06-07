@@ -228,11 +228,11 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             discount= 1.0
             episode_return_history = []
-            for episode in range(self.args.eval_episodes):
+            for episode in range(niter):
                 episode_return = 0.0
                 state = self.test_env.reset()
                 done, info = False, {}
-                for step_num in range(niter):
+                for step_num in range(self.args.max_episode_steps):
                     if done:
                         break
                     action = self.agent.forward(state)
