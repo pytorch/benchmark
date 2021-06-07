@@ -21,6 +21,8 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
+    optimized_for_inference = True
+
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
@@ -43,6 +45,17 @@ class Model(BenchmarkModel):
                              config=config,
                              should_script=config.should_script)
         self.model = self.solver.G
+
+        eval_solver = Solver(celeba_loader=self.data_loader,
+                             rafd_loader=None,
+                             config=config,
+                             should_script=config.should_script)
+        self.eval_model = eval_solver.G
+        self.eval_model.eval()
+
+        if self.jit:
+            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
+
         self.example_inputs = self.generate_example_inputs()
 
     def get_data_loader(self, config):
@@ -63,12 +76,17 @@ class Model(BenchmarkModel):
         # and the train mode is on by default
         pass
 
+    def set_eval(self):
+        # eval_model is already set to `eval()`
+        pass
+
     def train(self, niterations=1):
         for _ in range(niterations):
             self.solver.train()
 
     def eval(self, niterations=1):
-        model, example_inputs = self.get_module()
+        model = self.eval_model
+        example_inputs = self.example_inputs
         for _ in range(niterations):
             model(*example_inputs)
 
