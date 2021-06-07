@@ -223,8 +223,8 @@ class Model(BenchmarkModel):
             if not self.args.self_regularized and (step % self.args.target_delay == 0):
                 soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
-    # Set default ninter to 5 because latency of one iteration is too small (~6ms)
-    def eval(self, niter=5):
+
+    def eval(self, niter=1):
         with torch.no_grad():
             discount= 1.0
             episode_return_history = []
