@@ -51,8 +51,11 @@ class Model(BenchmarkModel):
             'reso': (self.opt.resolution, self.opt.resolution)}
         traindata = VideoData(csv_file=csv_file,
                               data_config=data_config_train, transform=None)
-        self.train_loader = torch.utils.data.DataLoader(
+        train_loader = torch.utils.data.DataLoader(
             traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=self.opt.batch_size, collate_fn=_collate_filter_none)
+        self.train_data = []
+        for data in train_loader:
+            self.train_data.append(data)
 
         netB = ResnetConditionHR(input_nc=(
             3, 3, 1, 4), output_nc=4, n_blocks1=self.opt.n_blocks1, n_blocks2=self.opt.n_blocks2)
@@ -95,7 +98,7 @@ class Model(BenchmarkModel):
         self._maybe_trace()
 
     def _maybe_trace(self):
-        for data in self.train_loader:
+        for data in self.train_data:
             bg, image, seg, multi_fr = data['bg'], data['image'], data['seg'], data['multi_fr']
             if self.device == 'cuda':
                 bg, image, seg, multi_fr = Variable(bg.cuda()), Variable(
@@ -129,12 +132,12 @@ class Model(BenchmarkModel):
         self.netD.train()
         lG, lD, GenL, DisL_r, DisL_f, alL, fgL, compL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
         t0 = time.time()
-        KK = len(self.train_loader)
+        KK = len(self.train_data)
         wt = 1
         epoch = 0
         step = 50
 
-        for i, data in enumerate(self.train_loader):
+        for i, data in enumerate(self.train_data):
             if (i > niterations):
                 break
             # Initiating
