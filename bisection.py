@@ -45,6 +45,9 @@ def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
     if targets == None or len(targets) == 0:
         return "(not slomo)"
     for test in targets:
+        # The filter shouldn't have the "freeze" keyword
+        if "-freeze" in test:
+            test = test.replace("-freeze", "", 1)
         regex = re.compile("test_(train|eval)\[([a-zA-Z0-9_]+)-([a-z]+)-([a-z]+)\]")
         m = regex.match(test)
         if not m:
