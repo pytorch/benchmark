@@ -86,8 +86,8 @@ class Model(BenchmarkModel):
 
         _, validation_data = prepare_dataloaders(self.opt, self.device)
 
-        transformer = _create_transformer()
-        self.eval_model = _create_transformer()
+        transformer = self._create_transformer()
+        self.eval_model = self._create_transformer()
         self.eval_model.eval()
 
         batch = list(validation_data)[0]
