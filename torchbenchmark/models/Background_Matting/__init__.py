@@ -147,8 +147,7 @@ class Model(BenchmarkModel):
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
 
-            bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg), Variable(image), Variable(seg),
-            Variable(multi_fr), Variable(seg_gt), Variable(back_rnd)
+            bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg), Variable(image), Variable(seg), Variable(multi_fr), Variable(seg_gt), Variable(back_rnd)
 
             tr0 = time.time()
 
