@@ -32,6 +32,27 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = NLP.TRANSLATION
+    optimized_for_inference = True
+
+    def _create_transformer(self):
+        transformer = Transformer(
+            self.opt.src_vocab_size,
+            self.opt.trg_vocab_size,
+            src_pad_idx=self.opt.src_pad_idx,
+            trg_pad_idx=self.opt.trg_pad_idx,
+            trg_emb_prj_weight_sharing=self.opt.proj_share_weight,
+            emb_src_trg_weight_sharing=self.opt.embs_share_weight,
+            d_k=self.opt.d_k,
+            d_v=self.opt.d_v,
+            d_model=self.opt.d_model,
+            d_word_vec=self.opt.d_word_vec,
+            d_inner=self.opt.d_inner_hid,
+            n_layers=self.opt.n_layers,
+            n_head=self.opt.n_head,
+            dropout=self.opt.dropout).to(self.device)
+        
+        return transformer
+
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
@@ -64,21 +85,10 @@ class Model(BenchmarkModel):
         })
 
         _, validation_data = prepare_dataloaders(self.opt, self.device)
-        transformer = Transformer(
-            self.opt.src_vocab_size,
-            self.opt.trg_vocab_size,
-            src_pad_idx=self.opt.src_pad_idx,
-            trg_pad_idx=self.opt.trg_pad_idx,
-            trg_emb_prj_weight_sharing=self.opt.proj_share_weight,
-            emb_src_trg_weight_sharing=self.opt.embs_share_weight,
-            d_k=self.opt.d_k,
-            d_v=self.opt.d_v,
-            d_model=self.opt.d_model,
-            d_word_vec=self.opt.d_word_vec,
-            d_inner=self.opt.d_inner_hid,
-            n_layers=self.opt.n_layers,
-            n_head=self.opt.n_head,
-            dropout=self.opt.dropout).to(self.device)
+
+        transformer = _create_transformer()
+        self.eval_model = _create_transformer()
+        self.eval_model.eval()
 
         batch = list(validation_data)[0]
         src_seq = patch_src(batch.src, self.opt.src_pad_idx).to(self.device)
@@ -87,6 +97,8 @@ class Model(BenchmarkModel):
         self.example_inputs = (src_seq, trg_seq)
         if self.jit:
             transformer = torch.jit._script_pdt(transformer, example_inputs = [self.example_inputs, ])
+            self.eval_model = torch.jit._script_pdt(self.eval_model, example_inputs = [self.example_inputs, ])
+            self.eval_model = torch.jit.optimize_for_inference(self.eval)
         self.module = transformer
 
     def get_module(self):
@@ -95,7 +107,7 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         self.module.eval()
         for _ in range(niter):
-            self.module(*self.example_inputs)
+            self.eval_model(*self.example_inputs)
 
     def train(self, niter=1):
         optimizer = ScheduledOptim(
