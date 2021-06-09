@@ -1,4 +1,3 @@
-
 """
 Compute the benchmark score given a frozen score configuration and current benchmark data.
 """
@@ -31,6 +30,7 @@ def _get_model_task(model_name):
     return Model.task.value
 
 class TorchBenchScoreV1:
+    # ref_data: 
     def __init__(self, ref_data, target=TARGET_SCORE_DEFAULT):
         self.target = target
         self.ref_data = ref_data
