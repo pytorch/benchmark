@@ -55,7 +55,7 @@ class Model(BenchmarkModel):
             traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=self.opt.batch_size, collate_fn=_collate_filter_none)
         self.train_data = []
         for data in train_loader:
-            self.train_data.append(data)
+            self.train_data.append(data.to(device))
 
         netB = ResnetConditionHR(input_nc=(
             3, 3, 1, 4), output_nc=4, n_blocks1=self.opt.n_blocks1, n_blocks2=self.opt.n_blocks2)
