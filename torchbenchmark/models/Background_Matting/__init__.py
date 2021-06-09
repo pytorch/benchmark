@@ -145,23 +145,19 @@ class Model(BenchmarkModel):
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
 
-            if self.device == 'cuda':
-                bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg.cuda()), Variable(image.cuda()), Variable(
-                    seg.cuda()), Variable(multi_fr.cuda()), Variable(seg_gt.cuda()), Variable(back_rnd.cuda())
-                mask0 = Variable(torch.ones(seg.shape).cuda())
-            else:
-                bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg), Variable(
-                    image), Variable(seg), Variable(multi_fr), Variable(seg_gt), Variable(back_rnd)
-                mask0 = Variable(torch.ones(seg.shape))
+            bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg), Variable(image), Variable(seg),
+            Variable(multi_fr), Variable(seg_gt), Variable(back_rnd)
 
             tr0 = time.time()
 
             # pseudo-supervision
             alpha_pred_sup, fg_pred_sup = self.netB(image, bg, seg, multi_fr)
             if self.device == 'cuda':
+                mask0 = Variable(torch.ones(seg.shape).cuda())
                 mask = (alpha_pred_sup > -0.98).type(torch.cuda.FloatTensor)
                 mask1 = (seg_gt > 0.95).type(torch.cuda.FloatTensor)
             else:
+                mask0 = Variable(torch.ones(seg.shape))
                 mask = (alpha_pred_sup > -0.98).type(torch.FloatTensor)
                 mask1 = (seg_gt > 0.95).type(torch.FloatTensor)
 
