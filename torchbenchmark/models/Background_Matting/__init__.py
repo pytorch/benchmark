@@ -56,8 +56,9 @@ class Model(BenchmarkModel):
         self.train_data = []
         for data in train_loader:
             self.train_data.append(data)
-            for key in data:
-                data[key].to(device)
+            if device == 'cuda':
+                for key in data:
+                    data[key].cuda()
 
         netB = ResnetConditionHR(input_nc=(
             3, 3, 1, 4), output_nc=4, n_blocks1=self.opt.n_blocks1, n_blocks2=self.opt.n_blocks2)
