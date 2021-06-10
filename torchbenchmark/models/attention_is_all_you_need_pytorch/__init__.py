@@ -98,7 +98,7 @@ class Model(BenchmarkModel):
         if self.jit:
             transformer = torch.jit._script_pdt(transformer, example_inputs = [self.example_inputs, ])
             self.eval_model = torch.jit._script_pdt(self.eval_model, example_inputs = [self.example_inputs, ])
-            self.eval_model = torch.jit.optimize_for_inference(self.eval)
+            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
         self.module = transformer
 
     def get_module(self):
