@@ -57,6 +57,13 @@ class TorchBenchScoreV1:
             test.replace("-freeze", "", 1)
         test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
         return (test, model_name, device, mode)
+
+    def _config_to_weight(self, config):
+        test, model_name, device, mode = config
+        if test == "train" and device == "cpu":
+            return 1.0
+        else:
+            return 2.0
         
     # Generate the domain weights from the ref object
     def _setup_weights(self, ref):
@@ -69,9 +76,9 @@ class TorchBenchScoreV1:
         for b in ref_data['benchmarks']:
             name = b['name']
             task = _get_model_task(name)
-            config = _test_to_config(name)
+            config = self._test_to_config(name)
             task_dict[type(task)][task] += 1
-            config_dict[name][config] += 1
+            config_dict[config.2][name] = self._config_to_weight(config)
             name_dict[name] = task
         category_cnt = len(task_dict)
         for name in name_dict:
@@ -80,6 +87,9 @@ class TorchBenchScoreV1:
             task_cnt = domain_dict[type(task)][task]
             self.domain_weights[name] = (1.0 / category_cnt) * (1.0 / domain_cnt) * (1.0 / task_cnt)
         # Setup config_weights
+        for name in name_dict:
+            (test, model_name, device, mode) = self._test_to_config(name)
+            config_weights[name] = config_dict[model_name][name] / sum(config_dict[model_name])
         # config weight rule in V1: 1x CPU Training, 2x GPU Training, 2x CPU Inference, 2x GPU Inference
         return (domain_weights, config_weights)
  
