@@ -14,7 +14,6 @@ from tabulate import tabulate
 from pathlib import Path
 from collections import defaultdict
 
-TARGET_SCORE_DEFAULT = 1000
 TORCHBENCH_V1_REF_DATA = Path(__file__).parent.joinpath("configs/v1/config-v1.yaml")
 
 def _get_model_task(model_name):
@@ -30,91 +29,126 @@ def _get_model_task(model_name):
     return Model.task.value
 
 class TorchBenchScoreV1:
-    # ref_data: 
-    def __init__(self, ref_data, target=TARGET_SCORE_DEFAULT):
+    # ref_data: the YAML file or json file
+    def __init__(self, ref_data, spec_file, target):
+        self.norm = self._setup_benchmark_norms(ref_data)
+        self.norm_weights = self._setup_weights(self.norm)
+        self.norm_jit = _filter_jit_tests(self.norm)
+        self.norm_jit_weights = self._setup_weights(self.norm_jit)
+        # spec_file is not used in V1, this is just a placeholder
+        self.spec_file = spec_file
         self.target = target
-        self.ref_data = ref_data
-        self.norm = None
-
-        self._setup_benchmark_norms()
-
-    # Generate reference data from json object
-    def _generate_ref(self, ref_data):
-        pass
         
-    def _setup_benchmark_norms(self):
+    def _filter_jit_tests(self, ref):
+        result_ref = dict()
+        result_ref['benchmarks'] = dict()
+        for jit_name in ref['benchmarks'].keys().filter(lambda x: '-jit' in x):
+            left, sep, right = jit_name.rpartition('-jit')
+            eager_name = left + "-eager" + right
+            # We assume if a jit test exists, there must be an eager test
+            assert eager_name in ref['benchmarks'], f"Can't find eager test name {eager_test_name}"
+            result_ref['benchmarks'][jit_name]['jit_norm'] = ref['benchmarks'][jit_name].copy()
+            result_ref['benchmarks'][jit_name]['eager_norm'] = ref['benchmarks'][eager_name].copy()
+            result_ref['benchmarks'][jit_name]['norm'] = ref['benchmarks'][jit_name]['norm'] / ref['benchmarks'][eager_name]['norm'] 
+        return result_ref
+
+    def _test_to_config(self, test):
+        if "-freeze" in test:
+            test.replace("-freeze", "", 1)
+        test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
+        return (test, model_name, device, mode)
+        
+    # Generate the domain weights from the ref object
+    def _setup_weights(self, ref):
+        # Setup domain_weights
+        domain_weights = {}
+        config_weights = {}
+        config_dict = defaultdict()
+        task_dict = defaultdict()
+        name_dict = defaultdict()
+        for b in ref_data['benchmarks']:
+            name = b['name']
+            task = _get_model_task(name)
+            config = _test_to_config(name)
+            task_dict[type(task)][task] += 1
+            config_dict[name][config] += 1
+            name_dict[name] = task
+        category_cnt = len(task_dict)
+        for name in name_dict:
+            task = name_dict[name]
+            domain_cnt = len(task_dict[type(task)])
+            task_cnt = domain_dict[type(task)][task]
+            self.domain_weights[name] = (1.0 / category_cnt) * (1.0 / domain_cnt) * (1.0 / task_cnt)
+        # Setup config_weights
+        # config weight rule in V1: 1x CPU Training, 2x GPU Training, 2x CPU Inference, 2x GPU Inference
+        return (domain_weights, config_weights)
+ 
+    def _setup_benchmark_norms(self, ref_data):
         """
         Helper function which gets the normalization values per benchmark
         by going through the reference data file.
         """
-        if self.ref_data == TORCHBENCH_V1_REF_DATA:
-            with open(self.ref_data) as ref_file:
+        if ref_data == TORCHBENCH_V1_REF_DATA:
+            with open(ref_data) as ref_file:
                 ref = yaml.full_load(ref_file)
         else:
-            ref = self._generate_ref(self.ref_data)
-        self.norm = ref['benchmarks']
+            ref = self._get_ref_from_ref_data(self.ref_data)
+        return ref
 
-    def get_score_per_config(self, data, weighted_score=False):
+    def _get_ref_from_ref_data(self, ref_data):
         """
-        This function iterates over found benchmark dictionary
-        and calculates the weight_sum and benchmark_score.
-        A score_db is then constructed to calculate the cumulative
-        score per config. Here config refers to device, mode and test
-        configurations the benchmark was run on.
-
-        For eg., if the benchmark was run in eval mode on a GPU in Torchscript JIT,
-                    config = (train, cuda, jit)
-
-        This helper returns the score_db .
-
+        This function iterates over the reference data (json object)
+        and calculates the normalization values based on the reference data.
+        It also sets up the domain weights of the score.
         """
-        found_benchmarks = defaultdict(lambda: defaultdict(list))
-        score_db = defaultdict(float)
+        ref = {}
+        ref['benchmarks'] = {}
+        for b in ref_data['benchmarks']:
+            d = {}
+            d['norm'] = b['stats']['mean']
+            ref['benchmarks'][b['name']] = d
+        return ref
 
-        # Construct a benchmark database by going over through the data file
-        # for the run and update the dictionary by task and model_name
-        for b in data['benchmarks']:
-            name, mean = b['name'], b['stats']['mean']
-            test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
-            config = (test, device, mode)
-            task = _get_model_task(model_name)
-            found_benchmarks[task][model_name].append((mean, config, name))
-
-        for task, models in found_benchmarks.items():
-            for name, all_configs in models.items():
-                weight = self.weights[task] * (1.0/len(all_configs))
-                for mean, config, benchmark in all_configs:
-                    benchmark_score = weight * math.log(self.norm[benchmark] / mean)
-                    score_db[config] += benchmark_score
-
-        # Get the weights per config and calibrate it to the
-        # target score
-        if weighted_score:
-            for config, score in score_db.items():
-                score_db[config] = score * 0.125
-                score_db[config] = self.target * math.exp(score)
-
-        return score_db
-
-    def compute_score(self, data):
+    def _get_score(self, data, ref, ref_weights):
+        score = 0.0
+        (domain_weights, config_weights) = ref_weights
+        for name in data['benchmarks']:
+            norm = data['benchmarks'][name]['norm']
+            benchmark_score = domain_weights[name] * config_weights[name] * math.log(norm / ref['benchmarks'][name]['norm'])
+            score += benchmark_score
+        return math.exp(score)
+        
+    def _get_subscore(self, data, ref_data, ref_weights, filter_lambda):
+        score = 0.0
+        (domain_weights, _) = ref_weights
+        for name in data['benchmarks'].filter(filter_lambda):
+            norm = data['benchmarks']['norm']
+            benchmark_score = domain_weights[name] * math.log(norm / ref['benchmarks'][name]['norm'])
+            score += benchmark_score
+        return math.exp(score)
+    
+    def compute_jit_speedup_score(self, data):
+        # Assert the jitonly_data has the same set of tests as self.ref_jit_data
+        score = self._get_score(data, self.ref_jit_data, self.ref_jit_weights)
+        return score
+    
+    def compute_score(self, data, filter_str = ""):
         """
         This API calculates the total V0 score for all the
         benchmarks that was run by reading the data (.json) file.
         The weights are then calibrated to the target score.
         """
-        score = 0.0
-        score_db = self.get_score_per_config(data)
-        score = sum(score_db.values())
-        score = self.target * math.exp(score)
+        allowed_filter = ["", "cpu-eval", "cpu-train", "cuda-eval", "cuda-train"]
+        data_ref = self._get_ref_from_ref_data(data)
+        assert filter_str in allowed_filter, f"We don't allow subscore filter {filter_str}."
+        if filter_str:
+            filter_lambda = 
+            score = self._get_subscore(data, self.ref_data, self.ref_weights, filter_lambda)
+        else:
+            score = self._get_score(data_ref, self.ref_data, self.ref_weights)
         return score
 
-    def compute_score_v1(self, data):
-        """
-        This API calculates the total V1 score for all the 
-        benchmarks that was run by reading the data (.json) file.
-        The weights are then calibrated to the target score.
-        """
-        score = 0.0
-        pass
-
-TORCHBENCH_V1_SCORE = TorchBenchScore(ref_data=TORCHBENCH_V1_REF_DATA)
+    def get_norm(self, jit=False):
+        if jit:
+            return self.norm_jit_data
+        return self.norm

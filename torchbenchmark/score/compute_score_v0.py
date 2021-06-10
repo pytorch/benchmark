@@ -15,9 +15,8 @@ from tabulate import tabulate
 from pathlib import Path
 from collections import defaultdict
 
+from .compute_score import TARGET_SCORE_DEFAULT, SPEC_FILE_DEFAULT
 
-TARGET_SCORE_DEFAULT = 1000
-SPEC_FILE_DEFAULT = Path(__file__).parent.joinpath("score.yml")
 TORCHBENCH_V0_REF_DATA = Path(__file__).parent.joinpath("configs/v0/config-v0.yaml")
 
 def _get_model_task(model_name):
@@ -130,5 +129,3 @@ class TorchBenchScoreV0:
         score = sum(score_db.values())
         score = self.target * math.exp(score)
         return score
-
-TORCHBENCH_V0_SCORE = TorchBenchScoreV0(TORCHBENCH_V0_REF_DATA)
