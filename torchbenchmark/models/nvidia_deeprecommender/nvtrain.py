@@ -185,6 +185,9 @@ class DeepRecommenderTrainBenchmark:
 
   def TrainInit(self, device="cpu", jit=False, processCommandLine = False):
 
+    # Force test to run in toy mode. Single call of fake data to model.
+    self.toytest = True
+
     if (processCommandLine) :
       self.args = getTrainCommandLineArgs()
     else:
@@ -291,6 +294,9 @@ class DeepRecommenderTrainBenchmark:
     if self.args.noise_prob > 0.0:
       self.dp = nn.Dropout(p=self.args.noise_prob)
 
+    if self.toytest:
+      self.toyinputs = torch.randn(128,15178).to(device)
+
   def DoTrain(self):
   
     self.rencoder.train()
@@ -300,6 +306,7 @@ class DeepRecommenderTrainBenchmark:
     for i, mb in enumerate(self.data_layer.iterate_one_epoch()):
   
       inputs = Variable(mb.cuda().to_dense() if self.args.use_cuda else mb.to_dense())
+
       self.optimizer.zero_grad()
   
       outputs = self.rencoder(inputs)
@@ -343,6 +350,14 @@ class DeepRecommenderTrainBenchmark:
   
   def train(self, niter=1) :
     for self.epoch in range(niter):
+
+      if self.toytest:
+        self.rencoder.train()
+        self.optimizer.zero_grad()  
+        outputs = self.rencoder(self.toyinputs)
+        return
+
+
       if not self.args.silent:
         print('Doing epoch {} of {}'.format(self.epoch, niter))
         print('Timing Start')

@@ -38,6 +38,8 @@ def getCommandLineArgs() :
                       help='where to save model')
   parser.add_argument('--predictions_path', type=str, default="out.txt", metavar='N',
                       help='where to save predictions')
+  parser.add_argument('--batch_size', type=int, default=1, metavar='N',
+                      help='inference batch size')
   parser.add_argument('--jit', action='store_true',
                       help='jit-ify model before running')
   parser.add_argument('--forcecuda', action='store_true',
@@ -71,6 +73,7 @@ def getBenchmarkArgs(forceCuda):
   args.non_linearity_type = 'selu'
   args.save_path          = 'model_save/model.epoch_0'
   args.predictions_path   = 'preds.txt'
+  args.batch_size         = 1
   args.jit                = False
   args.forcecuda          = forceCuda
   args.forcecpu           = not forceCuda
@@ -114,6 +117,11 @@ class DeepRecommenderInferenceBenchmark:
 
   def __init__(self, device = 'cpu', jit=False, usecommandlineargs = False) :
 
+    self.toytest = True
+
+    if self.toytest:
+      self.toyinputs = torch.randn(1,15178).to(device)
+
     if usecommandlineargs:
       self.args = getCommandLineArgs()
     else:
@@ -134,7 +142,7 @@ class DeepRecommenderInferenceBenchmark:
     args = processArgState(self.args)
 
     self.params = dict()
-    self.params['batch_size'] = 1
+    self.params['batch_size'] = self.args.batch_size
     self.params['data_dir'] =  self.args.path_to_train_data
     self.params['major'] = 'users'
     self.params['itemIdInd'] = 1
@@ -191,15 +199,21 @@ class DeepRecommenderInferenceBenchmark:
     self.eval_data_layer.src_data = self.data_layer.data
 
   def eval(self, niter=1):
+
+      if self.toytest:
+        self.rencoder(self.toyinputs)
+        return
+
       for i, ((out, src), majorInd) in enumerate(self.eval_data_layer.iterate_one_epoch_eval(for_inf=True)):
         inputs = Variable(src.cuda().to_dense() if self.args.use_cuda else src.to_dense())
         targets_np = out.to_dense().numpy()[0, :]
   
-        outputs = self.rencoder(inputs).cpu().data.numpy()[0, :]
-        non_zeros = targets_np.nonzero()[0].tolist()
-        major_key = self.inv_userIdMap [majorInd]
+        out = self.rencoder(inputs)
   
         if not self.args.nooutput:
+            self.outputs = out.cpu().data.numpy()[0, :]
+            non_zeros = targets_np.nonzero()[0].tolist()
+            major_key = self.inv_userIdMap [majorInd]
             with open(self.args.predictions_path, 'w') as outf:
               for ind in non_zeros:
                 outf.write("{}\t{}\t{}\t{}\n".format(major_key, self.inv_itemIdMap[ind], self.outputs[ind], targets_np[ind]))
