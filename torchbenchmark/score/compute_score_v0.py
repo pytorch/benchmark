@@ -55,7 +55,7 @@ class TorchBenchScoreV0:
             self.spec = yaml.full_load(spec_file)
 
         self.weights = defaultdict(float)
-        category_spec = spec['hierarchy']['model']
+        category_spec = self.spec['hierarchy']['model']
         domain_weight = 1.0/ len(category_spec)
         for domain in category_spec:
             tasks = category_spec[domain]
@@ -70,7 +70,7 @@ class TorchBenchScoreV0:
         Helper function which gets the normalization values per benchmark
         by going through the reference data file.
         """
-        if self.ref_data in [TORCHBENCH_V0_REF_DATA, TORCHBENCH_V1_REF_DATA]:
+        if self.ref_data == TORCHBENCH_V0_REF_DATA:
             with open(self.ref_data) as ref_file:
                 ref = yaml.full_load(ref_file)
             self.norm = {b: ref['benchmarks'][b]['norm'] for b in ref['benchmarks']}
