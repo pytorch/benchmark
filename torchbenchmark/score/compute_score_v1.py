@@ -9,7 +9,9 @@ import os
 import re
 import yaml
 import importlib
+import itertools
 
+from enum import Enum
 from tabulate import tabulate
 from pathlib import Path
 from collections import defaultdict
@@ -26,39 +28,40 @@ def _get_model_task(model_name):
     except:
         raise ValueError(f"Unable to get task for model: {model_name}")
     Model = getattr(module, 'Model')
-    return Model.task.value
+    return Model.task
 
 class TorchBenchScoreV1:
     # ref_data: the YAML file or json file
     def __init__(self, ref_data, spec_file, target):
+        if not ref_data:
+            ref_data = TORCHBENCH_V1_REF_DATA
         self.norm = self._setup_benchmark_norms(ref_data)
         self.norm_weights = self._setup_weights(self.norm)
-        self.norm_jit = _filter_jit_tests(self.norm)
-        self.norm_jit_weights = self._setup_weights(self.norm_jit)
         # spec_file is not used in V1, this is just a placeholder
         self.spec_file = spec_file
         self.target = target
         
-    def _filter_jit_tests(self, ref):
+    def _filter_jit_tests(self, norm):
         result_ref = dict()
         result_ref['benchmarks'] = dict()
-        for jit_name in ref['benchmarks'].keys().filter(lambda x: '-jit' in x):
+        for jit_name in filter(lambda x: '-jit' in x, norm['benchmarks'].keys()):
             left, sep, right = jit_name.rpartition('-jit')
             eager_name = left + "-eager" + right
             # We assume if a jit test exists, there must be an eager test
-            assert eager_name in ref['benchmarks'], f"Can't find eager test name {eager_test_name}"
-            result_ref['benchmarks'][jit_name]['jit_norm'] = ref['benchmarks'][jit_name].copy()
-            result_ref['benchmarks'][jit_name]['eager_norm'] = ref['benchmarks'][eager_name].copy()
-            result_ref['benchmarks'][jit_name]['norm'] = ref['benchmarks'][jit_name]['norm'] / ref['benchmarks'][eager_name]['norm'] 
+            assert eager_name in norm['benchmarks'], f"Can't find eager test name {eager_test_name}"
+            result_ref['benchmarks'][jit_name] = dict()
+            result_ref['benchmarks'][jit_name]['jit_norm'] = norm['benchmarks'][jit_name]['norm']
+            result_ref['benchmarks'][jit_name]['eager_norm'] = norm['benchmarks'][eager_name]['norm']
         return result_ref
 
-    def _test_to_config(self, test):
-        if "-freeze" in test:
-            test.replace("-freeze", "", 1)
+    def _test_to_config(self, name):
+        if "-freeze" in name:
+            name.replace("-freeze", "", 1)
         test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
         return (test, model_name, device, mode)
 
     def _config_to_weight(self, config):
+        # config weight rule in V1: 1x CPU Training, 2x GPU Training, 2x CPU Inference, 2x GPU Inference
         test, model_name, device, mode = config
         if test == "train" and device == "cpu":
             return 1.0
@@ -68,29 +71,33 @@ class TorchBenchScoreV1:
     # Generate the domain weights from the ref object
     def _setup_weights(self, ref):
         # Setup domain_weights
-        domain_weights = {}
-        config_weights = {}
-        config_dict = defaultdict()
-        task_dict = defaultdict()
-        name_dict = defaultdict()
-        for b in ref_data['benchmarks']:
-            name = b['name']
-            task = _get_model_task(name)
+        domain_weights = defaultdict(float)
+        config_weights = defaultdict(float)
+        config_dict = defaultdict(lambda: defaultdict(int))
+        task_dict = defaultdict(lambda: defaultdict(set))
+        name_dict = defaultdict(lambda: defaultdict(Enum))
+        for name in ref['benchmarks']:
             config = self._test_to_config(name)
-            task_dict[type(task)][task] += 1
-            config_dict[config.2][name] = self._config_to_weight(config)
+            task = _get_model_task(config[1])
+            # print(f"Found domain {type(task).__name__}, task: {task.name} in model {name}")
+            task_dict[type(task).__name__][task.name].add(config[1])
+            config_dict[config[1]][name] = self._config_to_weight(config)
             name_dict[name] = task
         category_cnt = len(task_dict)
+        sum_domain = 0.0
         for name in name_dict:
             task = name_dict[name]
-            domain_cnt = len(task_dict[type(task)])
-            task_cnt = domain_dict[type(task)][task]
-            self.domain_weights[name] = (1.0 / category_cnt) * (1.0 / domain_cnt) * (1.0 / task_cnt)
+            domain_cnt = len(task_dict[type(task).__name__])
+            task_cnt = len(task_dict[type(task).__name__][task.name])
+            domain_weights[name] = (1.0 / category_cnt) * (1.0 / domain_cnt) * (1.0 / task_cnt)
         # Setup config_weights
         for name in name_dict:
             (test, model_name, device, mode) = self._test_to_config(name)
-            config_weights[name] = config_dict[model_name][name] / sum(config_dict[model_name])
-        # config weight rule in V1: 1x CPU Training, 2x GPU Training, 2x CPU Inference, 2x GPU Inference
+            config_weights[name] = config_dict[model_name][name] / sum(config_dict[model_name].values())
+        for name in name_dict:
+            total_weight = config_weights[name] * domain_weights[name]
+            sum_domain += total_weight
+        assert(abs(sum_domain - 1.0) < 1e-6), "The total task weights sum is not 1.0, please submit a bug report."
         return (domain_weights, config_weights)
  
     def _setup_benchmark_norms(self, ref_data):
@@ -102,22 +109,22 @@ class TorchBenchScoreV1:
             with open(ref_data) as ref_file:
                 ref = yaml.full_load(ref_file)
         else:
-            ref = self._get_ref_from_ref_data(self.ref_data)
+            ref = self._get_norm_from_ref_data(ref_data)
         return ref
 
-    def _get_ref_from_ref_data(self, ref_data):
+    def _get_norm_from_ref_data(self, ref_data):
         """
         This function iterates over the reference data (json object)
         and calculates the normalization values based on the reference data.
         It also sets up the domain weights of the score.
         """
-        ref = {}
-        ref['benchmarks'] = {}
+        norm = {}
+        norm['benchmarks'] = {}
         for b in ref_data['benchmarks']:
             d = {}
             d['norm'] = b['stats']['mean']
-            ref['benchmarks'][b['name']] = d
-        return ref
+            norm['benchmarks'][b['name']] = d
+        return norm
 
     def _get_score(self, data, ref, ref_weights):
         score = 0.0
@@ -127,38 +134,62 @@ class TorchBenchScoreV1:
             benchmark_score = domain_weights[name] * config_weights[name] * math.log(norm / ref['benchmarks'][name]['norm'])
             score += benchmark_score
         return math.exp(score)
-        
-    def _get_subscore(self, data, ref_data, ref_weights, filter_lambda):
+
+    def data_in_list(self, n, l):
+        for e in l:
+            if e not in n:
+                return False
+        return True
+
+    def _get_subscore(self, data, ref_norm, ref_weights, filters):
+        assert len(filters) == 2, error_msg
+        assert "cpu" in filters or "cuda" in filters, error_msg
+        assert "train" in filters or "eval" in filters, error_msg
         score = 0.0
         (domain_weights, _) = ref_weights
-        for name in data['benchmarks'].filter(filter_lambda):
-            norm = data['benchmarks']['norm']
-            benchmark_score = domain_weights[name] * math.log(norm / ref['benchmarks'][name]['norm'])
+        for name in filter(lambda x: self.data_in_list(x, filters), data['benchmarks']):
+            norm = data['benchmarks'][name]['norm']
+            benchmark_score = domain_weights[name] * math.log(norm / ref_norm['benchmarks'][name]['norm'])
             score += benchmark_score
         return math.exp(score)
     
     def compute_jit_speedup_score(self, data):
-        # Assert the jitonly_data has the same set of tests as self.ref_jit_data
-        score = self._get_score(data, self.ref_jit_data, self.ref_jit_weights)
-        return score
-    
-    def compute_score(self, data, filter_str = ""):
         """
-        This API calculates the total V0 score for all the
-        benchmarks that was run by reading the data (.json) file.
+        This API calculates the V1 JIT speedup score for all 
+        the benchmarks that enable JIT compilation.
+        The data argument is the json data object from the benchmark.
+        The JIT speedup score is the geometric mean of all JIT benchmarks speedup
+        comparing to corresponding non-JIT benchmarks.
         The weights are then calibrated to the target score.
         """
-        allowed_filter = ["", "cpu-eval", "cpu-train", "cuda-eval", "cuda-train"]
-        data_ref = self._get_ref_from_ref_data(data)
-        assert filter_str in allowed_filter, f"We don't allow subscore filter {filter_str}."
-        if filter_str:
-            filter_lambda = 
-            score = self._get_subscore(data, self.ref_data, self.ref_weights, filter_lambda)
-        else:
-            score = self._get_score(data_ref, self.ref_data, self.ref_weights)
-        return score
+        score = 0.0
+        norm = self._setup_benchmark_norms(data)
+        norm_jit = self._filter_jit_tests(norm)
+        (domain_weights, config_weights) = self._setup_weights(norm_jit)
+        for name in norm_jit['benchmarks']:
+            eager_norm = norm_jit['benchmarks'][name]['eager_norm']
+            jit_norm = norm_jit['benchmarks'][name]['jit_norm']
+            jit_speedup_score = domain_weights[name] * config_weights[name] * math.log(eager_norm / jit_norm)
+            score += jit_speedup_score
+        return math.exp(score) * self.target
 
-    def get_norm(self, jit=False):
-        if jit:
-            return self.norm_jit_data
-        return self.norm
+    def compute_score(self, data):
+        """
+        This API calculates the total V1 score for all the
+        benchmarks that was run by reading the data (.json) file.
+        """
+        summary = {}
+        summary["subscore[jit-speedup]"] = self.compute_jit_speedup_score(data)
+        devices = ["cpu", "cuda"]
+        tests = ["train", "eval"]
+        filters = itertools.product([devices, tests])
+        data_norm = self._get_norm_from_ref_data(data)
+        for f in filters:
+            key = f"subscore[{f[0]}-{f[1]}]"
+            score_summary[key] = self._get_subscore(data_norm, self.norm, self.norm_weights, f)
+        score = self._get_score(data_norm, self.norm, self.norm_weights)
+        summary["total"] = score * self.target
+        return summary
+
+    def get_norm(self, data):
+        return self._get_norm_from_ref_data(data)

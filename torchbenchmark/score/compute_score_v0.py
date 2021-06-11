@@ -1,4 +1,3 @@
-
 """
 Compute the benchmark score given a frozen score configuration and current benchmark data.
 """
@@ -15,7 +14,7 @@ from tabulate import tabulate
 from pathlib import Path
 from collections import defaultdict
 
-from .compute_score import TARGET_SCORE_DEFAULT, SPEC_FILE_DEFAULT
+from .generate_score_config import generate_bench_cfg
 
 TORCHBENCH_V0_REF_DATA = Path(__file__).parent.joinpath("configs/v0/config-v0.yaml")
 
@@ -32,9 +31,11 @@ def _get_model_task(model_name):
     return Model.task.value
 
 class TorchBenchScoreV0:
-    def __init__(self, ref_data, spec=SPEC_FILE_DEFAULT, target=TARGET_SCORE_DEFAULT):
+    def __init__(self, ref_data, spec, target):
         self.spec = spec
         self.target = target
+        if not ref_data:
+            ref_data = TORCHBENCH_V0_REF_DATA
         self.ref_data = ref_data
         self.weights = None
         self.norm = None
@@ -51,7 +52,7 @@ class TorchBenchScoreV0:
         """
         # Load the spec file
         with open(self.spec) as spec_file:
-            spec = yaml.full_load(spec_file)
+            self.spec = yaml.full_load(spec_file)
 
         self.weights = defaultdict(float)
         category_spec = spec['hierarchy']['model']
@@ -129,3 +130,6 @@ class TorchBenchScoreV0:
         score = sum(score_db.values())
         score = self.target * math.exp(score)
         return score
+
+    def get_norm(self, data):
+        return generate_bench_cfg(self.spec, data, self.target)
