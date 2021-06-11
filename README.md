@@ -1,5 +1,5 @@
-# Pytorch Benchmarks
-This is a collection of open source benchmarks used to evaluate pytorch performance.
+# PyTorch Benchmarks
+This is a collection of open source benchmarks used to evaluate PyTorch performance.
 
 `torchbenchmark/models` contains copies of popular or exemplary workloads which have been modified to
 (a) expose a standardized API for benchmark drivers, (b) optionally, be JITable,
