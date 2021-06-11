@@ -14,17 +14,43 @@ import torch.autograd.profiler as profiler
 
 from torchbenchmark import list_models
 
+import torch
+
 def run_one_step(func):
-    t0 = time.time()
+
     func()
-    t1 = time.time()
-    print(f"Ran in {t1 - t0} seconds.")
+
+    if args.device == "cuda":
+      torch.cuda.synchronize()
+      start_event = torch.cuda.Event(enable_timing=True)
+      end_event = torch.cuda.Event(enable_timing=True)
+
+      start_event.record()
+
+      t0 = time.time()
+      func()
+      t1 = time.time()
+
+      end_event.record()
+      torch.cuda.synchronize()
+      print(f"Ran in {t1 - t0} seconds, gpu time {start_event.elapsed_time(end_event)}.")
+
+    else:
+
+      t0 = time.time()
+      func()
+      t1 = time.time()
+
+      print(f"Ran in {t1 - t0} seconds.")
+
 
 def profile_one_step(func, nwarmup=3):
     for i in range(nwarmup):
         func()
 
-    with profiler.profile(record_shapes=True) as prof:
+    use_cuda = args.device == "cuda"
+
+    with profiler.profile(record_shapes=True, use_cuda = use_cuda) as prof:
         func()
 
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
@@ -57,6 +83,3 @@ if __name__ == "__main__":
         profile_one_step(test)
     else:
         run_one_step(test)
-
-
-
