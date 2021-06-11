@@ -28,7 +28,7 @@ class TorchBenchScore:
         self.score = active_versions[version](ref_data, spec, target)
     
     def get_norm(self, data):
-        return self.score.get_norm()
+        return self.score.get_norm(data)
 
     def compute_score(self, data):
         return self.score.compute_score(data)

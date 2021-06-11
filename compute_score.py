@@ -35,6 +35,7 @@ if __name__ == "__main__":
     if args.benchmark_data_file is not None:
         with open(args.benchmark_data_file) as data_file:
             data = json.load(data_file)
+            files.append(args.benchmark_data_file)
             benchmark_data.append(data)
     elif args.benchmark_data_dir is not None:
         for f in sorted(os.listdir(args.benchmark_data_dir)):
@@ -47,15 +48,15 @@ if __name__ == "__main__":
 
     if args.output_norm_only:
         score_config = TorchBenchScore(ref_data=benchmark_data[0], version=args.score_version)
-        print(yaml.dump(score_config.get_norm()))
-        return
+        print(yaml.dump(score_config.get_norm(benchmark_data[0])))
+        exit(0)
 
     if args.relative:
         score_config = TorchBenchScore(ref_data=benchmark_data[0], version=args.score_version)
     else:
         score_config = TorchBenchScore(version=args.score_version)
 
-    results = {}
+    results = []
     for fname, data in zip(files, benchmark_data):
         result = {}
         score = score_config.compute_score(data)

@@ -9,7 +9,6 @@ import os
 import re
 import yaml
 import importlib
-import itertools
 
 from enum import Enum
 from tabulate import tabulate
@@ -179,16 +178,15 @@ class TorchBenchScoreV1:
         benchmarks that was run by reading the data (.json) file.
         """
         summary = {}
-        summary["subscore[jit-speedup]"] = self.compute_jit_speedup_score(data)
+        summary["subscore[jit]"] = self.compute_jit_speedup_score(data)
         devices = ["cpu", "cuda"]
         tests = ["train", "eval"]
-        filters = itertools.product([devices, tests])
+        filters = [(a, b) for a in devices for b in tests]
         data_norm = self._get_norm_from_ref_data(data)
         for f in filters:
             key = f"subscore[{f[0]}-{f[1]}]"
-            score_summary[key] = self._get_subscore(data_norm, self.norm, self.norm_weights, f)
-        score = self._get_score(data_norm, self.norm, self.norm_weights)
-        summary["total"] = score * self.target
+            summary[key] = self._get_subscore(data_norm, self.norm, self.norm_weights, f) * self.target
+        summary["total"] = self._get_score(data_norm, self.norm, self.norm_weights) * self.target
         return summary
 
     def get_norm(self, data):
