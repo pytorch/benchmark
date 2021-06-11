@@ -1,0 +1,124 @@
+benchmarks:
+  test_eval[BERT_pytorch-cpu-eager]:
+    norm: 0.05529004814998188
+  test_eval[BERT_pytorch-cpu-jit]:
+    norm: 0.0466312448182345
+  test_eval[BERT_pytorch-cuda-eager]:
+    norm: 0.024793952780494625
+  test_eval[BERT_pytorch-cuda-jit]:
+    norm: 0.01855269011111381
+  test_eval[LearningToPaint-cpu-eager]:
+    norm: 0.007503698765138765
+  test_eval[LearningToPaint-cpu-jit]:
+    norm: 0.007240939780307131
+  test_eval[LearningToPaint-cuda-eager]:
+    norm: 0.0023830812464075714
+  test_eval[LearningToPaint-cuda-jit]:
+    norm: 0.0024050240096045172
+  test_eval[attention_is_all_you_need_pytorch-cpu-eager]:
+    norm: 0.25790401795004525
+  test_eval[attention_is_all_you_need_pytorch-cpu-jit]:
+    norm: 0.23751217155001997
+  test_eval[attention_is_all_you_need_pytorch-cuda-eager]:
+    norm: 0.14071995145000074
+  test_eval[attention_is_all_you_need_pytorch-cuda-jit]:
+    norm: 0.14165502375003597
+  test_eval[demucs-cpu-eager]:
+    norm: 0.10079772029996548
+  test_eval[demucs-cpu-jit]:
+    norm: 0.10051201925000441
+  test_eval[demucs-cuda-eager]:
+    norm: 0.08173438030007674
+  test_eval[demucs-cuda-jit]:
+    norm: 0.0816860895499758
+  test_eval[dlrm-cpu-eager]:
+    norm: 0.0006430424198613584
+  test_eval[dlrm-cuda-eager]:
+    norm: 0.0011408741039001197
+  test_eval[fastNLP-cpu-eager]:
+    norm: 0.0002648850921326895
+  test_eval[fastNLP-cpu-jit]:
+    norm: 0.0002336292374999638
+  test_eval[fastNLP-cuda-eager]:
+    norm: 0.0002151528956171319
+  test_eval[fastNLP-cuda-jit]:
+    norm: 0.00018464371546696165
+  test_eval[moco-cuda-eager]:
+    norm: 0.4254318736499954
+  test_eval[moco-cuda-jit]:
+    norm: 0.4255394108000473
+  test_eval[pytorch_struct-cpu-eager]:
+    norm: 0.002343961929295342
+  test_eval[pytorch_struct-cpu-jit]:
+    norm: 0.002004469002152627
+  test_eval[pytorch_struct-cuda-eager]:
+    norm: 0.0017700393840409786
+  test_eval[pytorch_struct-cuda-jit]:
+    norm: 0.0014411485431668227
+  test_eval[yolov3-cpu-eager]:
+    norm: 0.6083187598000223
+  test_eval[yolov3-cuda-eager]:
+    norm: 0.5732647127500513
+  test_train[BERT_pytorch-cpu-eager]:
+    norm: 0.24258933120004258
+  test_train[BERT_pytorch-cpu-jit]:
+    norm: 0.1830054144500764
+  test_train[BERT_pytorch-cuda-eager]:
+    norm: 0.09264914884993232
+  test_train[BERT_pytorch-cuda-jit]:
+    norm: 0.08626803904999178
+  test_train[Background_Matting-cuda-eager]:
+    norm: 3.8915885892000235
+  test_train[Background_Matting-cuda-jit]:
+    norm: 3.8194171504499765
+  test_train[LearningToPaint-cpu-eager]:
+    norm: 0.035551872620623
+  test_train[LearningToPaint-cpu-jit]:
+    norm: 0.0352222280000425
+  test_train[LearningToPaint-cuda-eager]:
+    norm: 0.01571707073846063
+  test_train[LearningToPaint-cuda-jit]:
+    norm: 0.015754736360674138
+  test_train[attention_is_all_you_need_pytorch-cpu-eager]:
+    norm: 1.1197607331500194
+  test_train[attention_is_all_you_need_pytorch-cpu-jit]:
+    norm: 1.1107250554500296
+  test_train[attention_is_all_you_need_pytorch-cuda-eager]:
+    norm: 0.43750642099992093
+  test_train[attention_is_all_you_need_pytorch-cuda-jit]:
+    norm: 0.43786742414999935
+  test_train[demucs-cpu-eager]:
+    norm: 0.3546666866000351
+  test_train[demucs-cpu-jit]:
+    norm: 0.35136531084995115
+  test_train[demucs-cuda-eager]:
+    norm: 0.16843785500002467
+  test_train[demucs-cuda-jit]:
+    norm: 0.16847499954997147
+  test_train[dlrm-cpu-eager]:
+    norm: 0.0018631149865043692
+  test_train[dlrm-cuda-eager]:
+    norm: 0.0034258266816329453
+  test_train[fastNLP-cpu-eager]:
+    norm: 0.0023043158927810673
+  test_train[fastNLP-cpu-jit]:
+    norm: 0.0022544148208549306
+  test_train[fastNLP-cuda-eager]:
+    norm: 0.0017024527120666193
+  test_train[fastNLP-cuda-jit]:
+    norm: 0.0016670523807199042
+  test_train[moco-cuda-eager]:
+    norm: 0.8925068612999667
+  test_train[moco-cuda-jit]:
+    norm: 0.8923939008500383
+  test_train[pytorch_struct-cpu-eager]:
+    norm: 6.161046483800055
+  test_train[pytorch_struct-cpu-jit]:
+    norm: 6.181118585249988
+  test_train[pytorch_struct-cuda-eager]:
+    norm: 0.24736640974992952
+  test_train[pytorch_struct-cuda-jit]:
+    norm: 0.24725276905005558
+  test_train[yolov3-cuda-eager]:
+    norm: 9.692653778850104
+
