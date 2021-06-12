@@ -58,16 +58,12 @@ class Model(BenchmarkModel):
     for i in range(niter):
       self.train_obj.train(self.train_obj.args.num_epochs)
   
-    self.cleanup()
-
   def eval(self, niter=1):
     self.check_implemented()
 
     for i in range(niter):
       self.infer_obj.eval(niter)
     
-    self.cleanup()
-
   def check_implemented(self):
     if self.not_implemented_reason != "Implemented":
       raise NotImplementedError(self.not_implemented_reason)
