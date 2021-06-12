@@ -18,7 +18,7 @@ from torch.autograd import Variable
 import copy
 import time
 from pathlib import Path
-from .logger import Logger
+#from .logger import Logger
 from math import sqrt
 import numpy as np
 import os
@@ -187,6 +187,7 @@ class DeepRecommenderTrainBenchmark:
 
     # Force test to run in toy mode. Single call of fake data to model.
     self.toytest = True
+    self.toybatch = 15178
 
     if (processCommandLine) :
       self.args = getTrainCommandLineArgs()
@@ -210,7 +211,8 @@ class DeepRecommenderTrainBenchmark:
 
     self.args = processTrainArgState(self.args)
 
-    self.logger = Logger(self.args.logdir)
+    if self.toytest == False:
+      self.logger = Logger(self.args.logdir)
     self.params = dict()
     self.params['batch_size'] = self.args.batch_size
     self.params['data_dir'] =  self.args.path_to_train_data
@@ -230,22 +232,30 @@ class DeepRecommenderTrainBenchmark:
     
     self.eval_params = copy.deepcopy(self.params)
     # must set eval batch size to 1 to make sure no examples are missed
-    self.eval_params['data_dir'] = self.args.path_to_eval_data
-    self.eval_data_layer = input_layer.UserItemRecDataProvider(params=self.eval_params,
-                                                               user_id_map=self.data_layer.userIdMap, # the mappings are provided
-                                                               item_id_map=self.data_layer.itemIdMap)
-    self.eval_data_layer.src_data = self.data_layer.data
-    self.rencoder = model.AutoEncoder(layer_sizes=[self.data_layer.vector_dim] + [int(l) for l in self.args.hidden_layers.split(',')],
-                                      nl_type=self.args.non_linearity_type,
-                                      is_constrained=self.args.constrained,
-                                      dp_drop_prob=self.args.drop_prob,
-                                      last_layer_activations=not self.args.skip_last_layer_nl)
-    os.makedirs(self.args.logdir, exist_ok=True)
-    self.model_checkpoint = self.args.logdir + "/model"
-    self.path_to_model = Path(self.model_checkpoint)
-    if self.path_to_model.is_file():
-      print("Loading model from: {}".format(self.model_checkpoint))
-      self.rencoder.load_state_dict(torch.load(self.model_checkpoint))
+    if self.toytest:
+      self.rencoder = model.AutoEncoder(layer_sizes=[15178] + [int(l) for l in self.args.hidden_layers.split(',')],
+                                        nl_type=self.args.non_linearity_type,
+                                        is_constrained=self.args.constrained,
+                                        dp_drop_prob=self.args.drop_prob,
+                                        last_layer_activations=not self.args.skip_last_layer_nl)
+    else:
+      self.eval_params['data_dir'] = self.args.path_to_eval_data
+      self.eval_data_layer = input_layer.UserItemRecDataProvider(params=self.eval_params,
+                                                                 user_id_map=self.data_layer.userIdMap, # the mappings are provided
+                                                                 item_id_map=self.data_layer.itemIdMap)
+      self.eval_data_layer.src_data = self.data_layer.data
+      self.rencoder = model.AutoEncoder(layer_sizes=[self.data_layer.vector_dim] + [int(l) for l in self.args.hidden_layers.split(',')],
+                                        nl_type=self.args.non_linearity_type,
+                                        is_constrained=self.args.constrained,
+                                        dp_drop_prob=self.args.drop_prob,
+                                        last_layer_activations=not self.args.skip_last_layer_nl)
+
+      os.makedirs(self.args.logdir, exist_ok=True)
+      self.model_checkpoint = self.args.logdir + "/model"
+      self.path_to_model = Path(self.model_checkpoint)
+      if self.path_to_model.is_file():
+        print("Loading model from: {}".format(self.model_checkpoint))
+        self.rencoder.load_state_dict(torch.load(self.model_checkpoint))
   
     if not self.args.silent:
       print('######################################################')
@@ -295,7 +305,7 @@ class DeepRecommenderTrainBenchmark:
       self.dp = nn.Dropout(p=self.args.noise_prob)
 
     if self.toytest:
-      self.toyinputs = torch.randn(128,15178).to(device)
+      self.toyinputs = torch.randn(128,self.toybatch).to(device)
 
   def DoTrain(self):
   
@@ -355,8 +365,11 @@ class DeepRecommenderTrainBenchmark:
         self.rencoder.train()
         self.optimizer.zero_grad()  
         outputs = self.rencoder(self.toyinputs)
-        return
-
+        loss, num_ratings = model.MSEloss(outputs, self.toyinputs)
+        loss = loss / num_ratings
+        loss.backward()
+        self.optimizer.step()
+        continue
 
       if not self.args.silent:
         print('Doing epoch {} of {}'.format(self.epoch, niter))

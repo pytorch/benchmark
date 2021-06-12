@@ -167,11 +167,18 @@ class DeepRecommenderInferenceBenchmark:
                                                                user_id_map=self.data_layer.userIdMap,
                                                                item_id_map=self.data_layer.itemIdMap)
   
-    self.rencoder = model.AutoEncoder(layer_sizes=[self.data_layer.vector_dim] + [int(l) for l in self.args.hidden_layers.split(',')],
-                                      nl_type=self.args.non_linearity_type,
-                                      is_constrained=self.args.constrained,
-                                      dp_drop_prob=self.args.drop_prob,
-                                      last_layer_activations=not self.args.skip_last_layer_nl)
+    if self.toytest:
+      self.rencoder = model.AutoEncoder(layer_sizes=[15178] + [int(l) for l in self.args.hidden_layers.split(',')],
+                                        nl_type=self.args.non_linearity_type,
+                                        is_constrained=self.args.constrained,
+                                        dp_drop_prob=self.args.drop_prob,
+                                        last_layer_activations=not self.args.skip_last_layer_nl)
+    else:
+      self.rencoder = model.AutoEncoder(layer_sizes=[self.data_layer.vector_dim] + [int(l) for l in self.args.hidden_layers.split(',')],
+                                        nl_type=self.args.non_linearity_type,
+                                        is_constrained=self.args.constrained,
+                                        dp_drop_prob=self.args.drop_prob,
+                                        last_layer_activations=not self.args.skip_last_layer_nl)
   
     self.path_to_model = Path(self.args.save_path)
     if self.path_to_model.is_file():
@@ -199,10 +206,11 @@ class DeepRecommenderInferenceBenchmark:
     self.eval_data_layer.src_data = self.data_layer.data
 
   def eval(self, niter=1):
+    for iteration in range(niter):
 
       if self.toytest:
         self.rencoder(self.toyinputs)
-        return
+        continue
 
       for i, ((out, src), majorInd) in enumerate(self.eval_data_layer.iterate_one_epoch_eval(for_inf=True)):
         inputs = Variable(src.cuda().to_dense() if self.args.use_cuda else src.to_dense())
