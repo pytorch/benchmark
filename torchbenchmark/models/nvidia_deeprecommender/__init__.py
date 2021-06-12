@@ -56,7 +56,7 @@ class Model(BenchmarkModel):
     self.check_implemented()
 
     for i in range(niter):
-      self.train_obj.train(self.train_obj.args.num_epochs)
+      self.train_obj.train(niter)
   
   def eval(self, niter=1):
     self.check_implemented()
