@@ -68,13 +68,6 @@ class Model(BenchmarkModel):
     if self.not_implemented_reason != "Implemented":
       raise NotImplementedError(self.not_implemented_reason)
 
-  def cleanup(self):
-    self.train = 0
-    self.infer = 0
-    gc.collect()
-    if self.device_name == "cuda":
-      torch.cuda.empty_cache()
-
   def timed_infer(self):
     self.check_implemented()
     self.infer_obj.TimedInferenceRun()
