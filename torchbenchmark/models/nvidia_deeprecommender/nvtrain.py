@@ -219,18 +219,21 @@ class DeepRecommenderTrainBenchmark:
     self.params['major'] = 'users'
     self.params['itemIdInd'] = 1
     self.params['userIdInd'] = 0
-    if not self.args.silent:
-      print("Loading training data")
+
+    if self.toytest == False:
+      if not self.args.silent:
+        print("Loading training data")
     
-    self.data_layer = input_layer.UserItemRecDataProvider(params=self.params)
-    if not self.args.silent:
-      print("Data loaded")
-      print("Total items found: {}".format(len(self.data_layer.data.keys())))
-      print("Vector dim: {}".format(self.data_layer.vector_dim))
+      self.data_layer = input_layer.UserItemRecDataProvider(params=self.params)
+      if not self.args.silent:
+        print("Data loaded")
+        print("Total items found: {}".format(len(self.data_layer.data.keys())))
+        print("Vector dim: {}".format(self.data_layer.vector_dim))
   
-      print("Loading eval data")
+        print("Loading eval data")
     
     self.eval_params = copy.deepcopy(self.params)
+
     # must set eval batch size to 1 to make sure no examples are missed
     if self.toytest:
       self.rencoder = model.AutoEncoder(layer_sizes=[15178] + [int(l) for l in self.args.hidden_layers.split(',')],

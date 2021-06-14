@@ -150,22 +150,20 @@ class DeepRecommenderInferenceBenchmark:
     if not self.args.silent:
       print("Loading training data")
     
-    self.data_layer = input_layer.UserItemRecDataProvider(params=self.params)
+    if self.toytest == False:
+      self.data_layer = input_layer.UserItemRecDataProvider(params=self.params)
     
-    if not self.args.silent:
-      print("Data loaded")
-      print("Total items found: {}".format(len(self.data_layer.data.keys())))
-      print("Vector dim: {}".format(self.data_layer.vector_dim))
+      if not self.args.silent:
+        print("Data loaded")
+        print("Total items found: {}".format(len(self.data_layer.data.keys())))
+        print("Vector dim: {}".format(self.data_layer.vector_dim))
   
-      print("Loading eval data")
+        print("Loading eval data")
 
     self.eval_params = copy.deepcopy(self.params)
     # must set eval batch size to 1 to make sure no examples are missed
     self.eval_params['batch_size'] = 1
     self.eval_params['data_dir'] = self.args.path_to_eval_data
-    self.eval_data_layer = input_layer.UserItemRecDataProvider(params=self.eval_params,
-                                                               user_id_map=self.data_layer.userIdMap,
-                                                               item_id_map=self.data_layer.itemIdMap)
   
     if self.toytest:
       self.rencoder = model.AutoEncoder(layer_sizes=[15178] + [int(l) for l in self.args.hidden_layers.split(',')],
@@ -174,6 +172,9 @@ class DeepRecommenderInferenceBenchmark:
                                         dp_drop_prob=self.args.drop_prob,
                                         last_layer_activations=not self.args.skip_last_layer_nl)
     else:
+      self.eval_data_layer = input_layer.UserItemRecDataProvider(params=self.eval_params,
+                                                                 user_id_map=self.data_layer.userIdMap,
+                                                                 item_id_map=self.data_layer.itemIdMap)
       self.rencoder = model.AutoEncoder(layer_sizes=[self.data_layer.vector_dim] + [int(l) for l in self.args.hidden_layers.split(',')],
                                         nl_type=self.args.non_linearity_type,
                                         is_constrained=self.args.constrained,
@@ -199,11 +200,12 @@ class DeepRecommenderInferenceBenchmark:
   
     if self.args.jit:
       self.rencoder = torch.jit.script(self.rencoder)
+
+    if self.toytest == False:
+      self.inv_userIdMap = {v: k for k, v in self.data_layer.userIdMap.items()}
+      self.inv_itemIdMap = {v: k for k, v in self.data_layer.itemIdMap.items()}
   
-    self.inv_userIdMap = {v: k for k, v in self.data_layer.userIdMap.items()}
-    self.inv_itemIdMap = {v: k for k, v in self.data_layer.itemIdMap.items()}
-  
-    self.eval_data_layer.src_data = self.data_layer.data
+      self.eval_data_layer.src_data = self.data_layer.data
 
   def eval(self, niter=1):
     for iteration in range(niter):
