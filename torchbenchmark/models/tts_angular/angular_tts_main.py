@@ -11,7 +11,6 @@ import math
 import torch
 import torch as T
 from .model import SpeakerEncoder, AngleProtoLoss
-from .audio import AudioProcessor
 from torch.optim.optimizer import Optimizer
 
 
@@ -236,7 +235,6 @@ class TTSModel:
         self.c = AttrDict()
         self.c.update(CONFIG)
         c = self.c
-        self.ap = AudioProcessor(**c.audio)
         self.model = SpeakerEncoder(input_dim=c.model['input_dim'],
                             proj_dim=c.model['proj_dim'],
                             lstm_dim=c.model['lstm_dim'],
@@ -254,7 +252,7 @@ class TTSModel:
 
     def train(self, niter):
         _, global_step = self._train(self.model, self.criterion,
-                                     self.optimizer, self.scheduler, self.ap, self.global_step, self.c, niter)
+                                     self.optimizer, self.scheduler, None, self.global_step, self.c, niter)
 
     def eval(self):
         start = time.time()
