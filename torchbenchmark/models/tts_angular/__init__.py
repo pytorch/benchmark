@@ -15,7 +15,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        return self.model.SpeakerEncoder, [SYNTHETIC_DATA[0], ]
+        return self.model.model, [SYNTHETIC_DATA[0], ]
 
     def set_train(self):
         # another model instance is used for training
