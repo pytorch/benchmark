@@ -252,9 +252,9 @@ class TTSModel:
         self.global_step = 0
 
 
-    def train(self):
+    def train(self, niter):
         _, global_step = self._train(self.model, self.criterion,
-        self.optimizer, self.scheduler, self.ap, self.global_step, self.c)
+                                     self.optimizer, self.scheduler, self.ap, self.global_step, self.c, niter)
 
     def eval(self):
         start = time.time()
@@ -266,7 +266,7 @@ class TTSModel:
     def __call__(self, *things):
         return self
 
-    def _train(self, model, criterion, optimizer, scheduler, ap, global_step, c):
+    def _train(self, model, criterion, optimizer, scheduler, ap, global_step, c, niter):
         # data_loader = setup_loader(ap, is_val=False, verbose=True)
         model.train()
         epoch_time = 0
@@ -276,7 +276,7 @@ class TTSModel:
         end_time = time.time()
         # for _, data in enumerate(data_loader):
         start_time = time.time()
-        for reps in range(1):
+        for reps in range(niter):
             for _, data in enumerate(SYNTHETIC_DATA):
                 # setup input data
                 # inputs = data[0]
