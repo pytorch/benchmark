@@ -14,6 +14,7 @@ from enum import Enum
 from tabulate import tabulate
 from pathlib import Path
 from collections import defaultdict
+from typing import List
 
 TORCHBENCH_V1_REF_DATA = Path(__file__).parent.joinpath("configs/v1/config-v1.yaml")
 
@@ -28,6 +29,68 @@ def _get_model_task(model_name):
         raise ValueError(f"Unable to get task for model: {model_name}")
     Model = getattr(module, 'Model')
     return Model.task
+
+def _parse_test_name(self, name):
+    """
+    Helper function which extracts test type (eval or train), model, 
+    device, and mode from the test full name.
+    """
+    if "-freeze" in name:
+        name.replace("-freeze", "", 1)
+    test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
+    return (test, model_name, device, mode)
+
+class TorchBenchV1Test:
+    def __init__(self, test_name):
+        self.name = test_name
+        self.test_type, self.model_name, self.device, self.mode = _parse_test_name(test_name)
+        self.task = _get_model_task(self.model_name)
+    @property
+    def name(self) -> str:
+        return self.name
+    @property
+    def test_type(self) -> str:
+        return self.test_type
+    @property
+    def model(self) -> str:
+        return self.model_name
+    @property
+    def device(self) -> str:
+        return self.device
+    @property
+    def mode(self) -> str:
+        return self.mode
+    @property
+    def category(self) -> str:
+        return self.type(task).__name__
+    @property
+    def domain(self) -> str:
+        return self.task.name
+    @property
+    def weight(self) -> float:
+        # config weight rule in V1: 1x CPU Training, 2x GPU Training, 2x CPU Inference, 2x GPU Inference
+        if self.test == "train" and self.device == "cpu":
+            return 1.0
+        return 2.0
+
+class TorchBenchV1Suite:
+    def __init__(self):
+        self.suite_spec = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+        self.tests = []
+    @property
+    def all_tests(self):
+        return self.tests
+    def add_test(self, test: TorchBenchV1Test):
+        self.suite_spec[test.category][test.domain][test.model].append(test)
+        self.tests.append(test)
+    def categories(self) -> List[str]:
+        return self.suite_spec.keys()
+    def domains(self, category: str) -> List[str]:
+        return self.suite_spec[category].keys()
+    def models(self, category: str, domain: str) -> List[str]:
+        return self.suite_spec[category][domain].keys()
+    def tests(self, category:str, domain: str, model: str) -> List[TorchBenchV1Test]:
+        return self.suite_spec[category][domain][model]
 
 class TorchBenchScoreV1:
     # ref_data: the YAML file or json file
@@ -53,52 +116,32 @@ class TorchBenchScoreV1:
             result_ref['benchmarks'][jit_name]['eager_norm'] = norm['benchmarks'][eager_name]['norm']
         return result_ref
 
-    def _test_to_config(self, name):
-        if "-freeze" in name:
-            name.replace("-freeze", "", 1)
-        test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
-        return (test, model_name, device, mode)
-
-    def _config_to_weight(self, config):
-        # config weight rule in V1: 1x CPU Training, 2x GPU Training, 2x CPU Inference, 2x GPU Inference
-        test, model_name, device, mode = config
-        if test == "train" and device == "cpu":
-            return 1.0
-        else:
-            return 2.0
-        
     # Generate the domain weights from the ref object
     def _setup_weights(self, ref):
-        # Setup domain_weights
         domain_weights = defaultdict(float)
         config_weights = defaultdict(float)
-        config_dict = defaultdict(lambda: defaultdict(int))
-        task_dict = defaultdict(lambda: defaultdict(set))
-        name_dict = defaultdict(lambda: defaultdict(Enum))
-        for name in ref['benchmarks']:
-            config = self._test_to_config(name)
-            task = _get_model_task(config[1])
-            # print(f"Found domain {type(task).__name__}, task: {task.name} in model {name}")
-            task_dict[type(task).__name__][task.name].add(config[1])
-            config_dict[config[1]][name] = self._config_to_weight(config)
-            name_dict[name] = task
-        category_cnt = len(task_dict)
-        sum_domain = 0.0
-        for name in name_dict:
-            task = name_dict[name]
-            domain_cnt = len(task_dict[type(task).__name__])
-            task_cnt = len(task_dict[type(task).__name__][task.name])
-            domain_weights[name] = (1.0 / category_cnt) * (1.0 / domain_cnt) * (1.0 / task_cnt)
-        # Setup config_weights
-        for name in name_dict:
-            (test, model_name, device, mode) = self._test_to_config(name)
-            config_weights[name] = config_dict[model_name][name] / sum(config_dict[model_name].values())
-        for name in name_dict:
-            total_weight = config_weights[name] * domain_weights[name]
-            sum_domain += total_weight
-        assert(abs(sum_domain - 1.0) < 1e-6), "The total task weights sum is not 1.0, please submit a bug report."
+        # Build the test suite
+        suite = TorchBenchV1Suite()
+        for name in ref:
+            test = TorchBenchV1Test(name)
+            suite.add_test(test)
+        # Setup domain weights
+        for test in self.suite.all_tests:
+            category_cnt = len(self.suite.categories)
+            domain_cnt = len(self.suite.domains(test.category))
+            model_cnt = len(self.suite.models(test.category, test.domain))
+            domain_weights[test.name] = (1.0 / category_cnt) * (1.0 / domain_cnt) * (1.0 / model_cnt)
+        # Setup config weights
+        for test in self.suite.all_tests:
+            model_tests = suite.tests(test.category, test.domain, test.model)
+            config_weights[test.name] = test.weight / sum(map(lambda x: x.weight, model_tests))
+        # Runtime check the weights constraint
+        sum_weight = 0.0
+        for test in self.suite.tests:
+            sum_weight += config_weights[test.name] * domain_weights[test.name]
+        assert(abs(sum_weight - 1.0) < 1e-6), f"The total weights sum ({sum_weight}) is not 1.0, please submit a bug report."
         return (domain_weights, config_weights)
- 
+
     def _setup_benchmark_norms(self, ref_data):
         """
         Helper function which gets the normalization values per benchmark
