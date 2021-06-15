@@ -42,55 +42,55 @@ def _parse_test_name(name):
 
 class TorchBenchV1Test:
     def __init__(self, test_name):
-        self.test_name = test_name
-        self.ttype, self.model_name, self.device_name, self.mode_name = _parse_test_name(test_name)
-        self.task = _get_model_task(self.model_name)
+        self._name = test_name
+        self._test_type, self._model, self._device, self._mode = _parse_test_name(test_name)
+        self._task = _get_model_task(self._model)
     @property
     def name(self) -> str:
-        return self.test_name
+        return self._name
     @property
     def test_type(self) -> str:
-        return self.ttype
+        return self._test_type
     @property
     def model(self) -> str:
-        return self.model_name
+        return self._model
     @property
     def device(self) -> str:
-        return self.device_name
+        return self._device
     @property
     def mode(self) -> str:
-        return self.mode_name
+        return self._mode
     @property
     def category(self) -> str:
-        return self.type(task).__name__
+        return type(self._task).__name__
     @property
     def domain(self) -> str:
-        return self.task.name
+        return self._task.name
     @property
     def weight(self) -> float:
         # config weight rule in V1: 1x CPU Training, 2x GPU Training, 2x CPU Inference, 2x GPU Inference
-        if self.test == "train" and self.device == "cpu":
+        if self.test_type == "train" and self.device == "cpu":
             return 1.0
         return 2.0
 
 class TorchBenchV1Suite:
     def __init__(self):
-        self.suite_spec = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-        self.tests = []
+        self._suite_spec = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+        self._tests = []
     @property
     def all_tests(self):
-        return self.tests
+        return self._tests
     def add_test(self, test: TorchBenchV1Test):
-        self.suite_spec[test.category][test.domain][test.model].append(test)
-        self.tests.append(test)
+        self._suite_spec[test.category][test.domain][test.model].append(test)
+        self._tests.append(test)
     def categories(self) -> List[str]:
-        return self.suite_spec.keys()
+        return self._suite_spec.keys()
     def domains(self, category: str) -> List[str]:
-        return self.suite_spec[category].keys()
+        return self._suite_spec[category].keys()
     def models(self, category: str, domain: str) -> List[str]:
-        return self.suite_spec[category][domain].keys()
+        return self._suite_spec[category][domain].keys()
     def tests(self, category:str, domain: str, model: str) -> List[TorchBenchV1Test]:
-        return self.suite_spec[category][domain][model]
+        return self._suite_spec[category][domain][model]
 
 class TorchBenchScoreV1:
     # ref_data: the YAML file or json file
@@ -125,18 +125,21 @@ class TorchBenchScoreV1:
             test = TorchBenchV1Test(name)
             suite.add_test(test)
         # Setup domain weights
-        for test in self.suite.all_tests:
-            category_cnt = len(self.suite.categories)
-            domain_cnt = len(self.suite.domains(test.category))
-            model_cnt = len(self.suite.models(test.category, test.domain))
+        for test in suite.all_tests:
+            category_cnt = len(suite.categories())
+            domain_cnt = len(suite.domains(test.category))
+            model_cnt = len(suite.models(test.category, test.domain))
             domain_weights[test.name] = (1.0 / category_cnt) * (1.0 / domain_cnt) * (1.0 / model_cnt)
         # Setup config weights
-        for test in self.suite.all_tests:
+        for test in suite.all_tests:
+            category = test.category
+            domain = test.domain
+            model = test.model
             model_tests = suite.tests(test.category, test.domain, test.model)
             config_weights[test.name] = test.weight / sum(map(lambda x: x.weight, model_tests))
         # Runtime check the weights constraint
         sum_weight = 0.0
-        for test in self.suite.tests:
+        for test in suite.all_tests:
             sum_weight += config_weights[test.name] * domain_weights[test.name]
         assert(abs(sum_weight - 1.0) < 1e-6), f"The total weights sum ({sum_weight}) is not 1.0, please submit a bug report."
         return (domain_weights, config_weights)
@@ -180,6 +183,7 @@ class TorchBenchScoreV1:
         return True
 
     def _get_subscore(self, data, ref_norm, ref_weights, filters):
+        error_msg = "We only accept one of the following four subscores: [cpu, train], [cpu, eval], [cuda, train], [cuda, infer]."
         assert len(filters) == 2, error_msg
         assert "cpu" in filters or "cuda" in filters, error_msg
         assert "train" in filters or "eval" in filters, error_msg
@@ -197,8 +201,7 @@ class TorchBenchScoreV1:
         the benchmarks that enable JIT compilation.
         The data argument is the json data object from the benchmark.
         The JIT speedup score is the geometric mean of all JIT benchmarks speedup
-        comparing to corresponding non-JIT benchmarks.
-        The weights are then calibrated to the target score.
+        comparing to corresponding non-JIT benchmarks. Its computation does not require reference data.
         """
         score = 0.0
         norm = self._setup_benchmark_norms(data)
@@ -209,7 +212,7 @@ class TorchBenchScoreV1:
             jit_norm = norm_jit[name]['jit_norm']
             jit_speedup_score = domain_weights[name] * config_weights[name] * math.log(eager_norm / jit_norm)
             score += jit_speedup_score
-        return math.exp(score) * self.target
+        return math.exp(score)
 
     def compute_score(self, data):
         """
