@@ -96,7 +96,8 @@ class TorchBenchScoreV1:
     # ref_data: the YAML file or json file
     def __init__(self, ref_data, spec_file, target):
         if not ref_data:
-            ref_data = TORCHBENCH_V1_REF_DATA
+            with open(TORCHBENCH_V1_REF_DATA) as ref_file:
+                ref_data = yaml.full_load(ref_file)
         self.norm = self._setup_benchmark_norms(ref_data)
         self.norm_weights = self._setup_weights(self.norm)
         # spec_file is not used in V1, this is just a placeholder
@@ -148,22 +149,25 @@ class TorchBenchScoreV1:
         """
         Helper function which gets the normalization values per benchmark
         by going through the reference data file.
+        If ref_data is a benchmark json object, construct the YAML norm file from it.
+        Otherwise, use it as-is.
         """
-        if ref_data == TORCHBENCH_V1_REF_DATA:
-            with open(ref_data) as ref_file:
-                ref = yaml.full_load(ref_file)
-        else:
-            ref = self._get_norm_from_ref_data(ref_data)
+        assert isinstance(ref_data, dict), "The type of ref_data must be a dict object."
+        # If the data contains machine_info key, it must be a benchmark json object
+        if "benchmarks" in ref_data and "machine_info" in ref_data:
+            ref = self._get_norm_from_ref_json_obj(ref_data)
         return ref
 
-    def _get_norm_from_ref_data(self, ref_data):
+    def _get_norm_from_ref_json_obj(self, ref_json_obj):
         """
-        This function iterates over the reference data (json object)
+        This function iterates over the reference benchmark json output
         and calculates the normalization values based on the reference data.
         It also sets up the domain weights of the score.
         """
-        norm = defaultdict(lambda: defaultdict(float))
-        for b in ref_data['benchmarks']:
+        norm = dict()
+        for b in ref_json_obj['benchmarks']:
+            norm.setdefault(b['name'], dict())
+            norm[b['name']].setdefault('norm', dict())
             norm[b['name']]['norm'] = b['stats']['mean']
         return norm
 
@@ -224,7 +228,7 @@ class TorchBenchScoreV1:
         devices = ["cpu", "cuda"]
         tests = ["train", "eval"]
         filters = [(a, b) for a in devices for b in tests]
-        data_norm = self._get_norm_from_ref_data(data)
+        data_norm = self._get_norm_from_ref_json_obj(data)
         for f in filters:
             key = f"subscore[{f[0]}-{f[1]}]"
             summary[key] = self._get_subscore(data_norm, self.norm, self.norm_weights, f) * self.target
@@ -232,4 +236,4 @@ class TorchBenchScoreV1:
         return summary
 
     def get_norm(self, data):
-        return self._get_norm_from_ref_data(data)
+        return self._get_norm_from_ref_json_obj(data)
