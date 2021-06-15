@@ -24,7 +24,7 @@ from pathlib import Path
 import higher
 
 from ...util.model import BenchmarkModel
-from torchbench.tasks import OTHER
+from torchbenchmark.tasks import OTHER
 
 
 class Model(BenchmarkModel):

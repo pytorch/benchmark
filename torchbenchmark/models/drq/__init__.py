@@ -7,7 +7,6 @@ import os
 import sys
 import torch.nn as nn
 import torch.nn.functional as F
-import dmc2gym
 from gym import spaces
 
 from ...util.model import BenchmarkModel
@@ -72,7 +71,7 @@ def make_env(cfg):
     mockobs = pkl.load(open(os.path.join(current_dir, cfg.obs_path), "rb"))
     low = np.amin(mockobs)
     high = np.amax(mockobs)
-    mockobs = np.random.randint(low=11, high=228, size=mockobs.shape)
+    mockobs = np.random.randint(low=11, high=228, size=mockobs.shape, dtype=np.uint8)
     env = MockEnv(mockobs)
     env = FrameStack(env, k=cfg.frame_stack)
 
