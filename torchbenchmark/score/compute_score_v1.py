@@ -156,6 +156,8 @@ class TorchBenchScoreV1:
         # If the data contains machine_info key, it must be a benchmark json object
         if "benchmarks" in ref_data and "machine_info" in ref_data:
             ref = self._get_norm_from_ref_json_obj(ref_data)
+        else:
+            ref = ref_data
         return ref
 
     def _get_norm_from_ref_json_obj(self, ref_json_obj):
