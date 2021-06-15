@@ -107,7 +107,7 @@ class Model(BenchmarkModel):
         obs = self.env.reset()
         obs = torch.FloatTensor(obs).to(self.device)
         obs = obs.unsqueeze(0)
-        return self.actor, (obs, )
+        return self.agent.actor, (obs, )
 
     def train(self, niter=2):
         episode, episode_reward, episode_step, done = 0, 0, 1, True
