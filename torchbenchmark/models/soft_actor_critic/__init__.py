@@ -187,7 +187,7 @@ class Model(BenchmarkModel):
         
     def train(self, niter=1):
         if self.jit:
-            return NotImplementedError()
+            raise NotImplementedError()
         # Setup
         self.target_agent.train()
         done = True
@@ -228,7 +228,7 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         if self.jit:
-            return NotImplementedError()
+            raise NotImplementedError()
         with torch.no_grad():
             discount= 1.0
             episode_return_history = []

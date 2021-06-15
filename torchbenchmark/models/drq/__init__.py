@@ -111,7 +111,7 @@ class Model(BenchmarkModel):
 
     def train(self, niter=2):
         if self.jit:
-            return NotImplementedError()
+            raise NotImplementedError()
         episode, episode_reward, episode_step, done = 0, 0, 1, True
         for step in range(niter):
             obs = self.env.reset()
@@ -142,7 +142,7 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         if self.jit:
-            return NotImplementedError()
+            raise NotImplementedError()
         average_episode_reward = 0
         for episode in range(niter):
             obs = self.env.reset()

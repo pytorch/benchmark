@@ -13,8 +13,6 @@ class Model(BenchmarkModel):
         self.model = TTSModel(device=self.device)
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         return self.model.model, [SYNTHETIC_DATA[0], ]
 
     def set_train(self):
@@ -23,10 +21,14 @@ class Model(BenchmarkModel):
         pass
 
     def train(self, niter=1):
+        if self.jit:
+            raise NotImplementedError()
         # the training process is not patched to use scripted models
         self.model.train(niter)
 
     def eval(self, niter=1):
+        if self.jit:
+            raise NotImplementedError()
         for _ in range(niter):
             self.model.eval()
 
