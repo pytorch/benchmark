@@ -30,7 +30,7 @@ def _get_model_task(model_name):
     Model = getattr(module, 'Model')
     return Model.task
 
-def _parse_test_name(self, name):
+def _parse_test_name(name):
     """
     Helper function which extracts test type (eval or train), model, 
     device, and mode from the test full name.
@@ -42,24 +42,24 @@ def _parse_test_name(self, name):
 
 class TorchBenchV1Test:
     def __init__(self, test_name):
-        self.name = test_name
-        self.test_type, self.model_name, self.device, self.mode = _parse_test_name(test_name)
+        self.test_name = test_name
+        self.ttype, self.model_name, self.device_name, self.mode_name = _parse_test_name(test_name)
         self.task = _get_model_task(self.model_name)
     @property
     def name(self) -> str:
-        return self.name
+        return self.test_name
     @property
     def test_type(self) -> str:
-        return self.test_type
+        return self.ttype
     @property
     def model(self) -> str:
         return self.model_name
     @property
     def device(self) -> str:
-        return self.device
+        return self.device_name
     @property
     def mode(self) -> str:
-        return self.mode
+        return self.mode_name
     @property
     def category(self) -> str:
         return self.type(task).__name__
@@ -105,15 +105,14 @@ class TorchBenchScoreV1:
         
     def _filter_jit_tests(self, norm):
         result_ref = dict()
-        result_ref['benchmarks'] = dict()
-        for jit_name in filter(lambda x: '-jit' in x, norm['benchmarks'].keys()):
+        for jit_name in filter(lambda x: '-jit' in x, norm.keys()):
             left, sep, right = jit_name.rpartition('-jit')
             eager_name = left + "-eager" + right
             # We assume if a jit test exists, there must be an eager test
-            assert eager_name in norm['benchmarks'], f"Can't find eager test name {eager_test_name}"
-            result_ref['benchmarks'][jit_name] = dict()
-            result_ref['benchmarks'][jit_name]['jit_norm'] = norm['benchmarks'][jit_name]['norm']
-            result_ref['benchmarks'][jit_name]['eager_norm'] = norm['benchmarks'][eager_name]['norm']
+            assert eager_name in norm, f"Can't find eager test name {eager_test_name}"
+            result_ref[jit_name] = dict()
+            result_ref[jit_name]['jit_norm'] = norm[jit_name]['norm']
+            result_ref[jit_name]['eager_norm'] = norm[eager_name]['norm']
         return result_ref
 
     # Generate the domain weights from the ref object
@@ -160,20 +159,17 @@ class TorchBenchScoreV1:
         and calculates the normalization values based on the reference data.
         It also sets up the domain weights of the score.
         """
-        norm = {}
-        norm['benchmarks'] = {}
+        norm = defaultdict(lambda: defaultdict(float))
         for b in ref_data['benchmarks']:
-            d = {}
-            d['norm'] = b['stats']['mean']
-            norm['benchmarks'][b['name']] = d
+            norm[b['name']]['norm'] = b['stats']['mean']
         return norm
 
     def _get_score(self, data, ref, ref_weights):
         score = 0.0
         (domain_weights, config_weights) = ref_weights
-        for name in data['benchmarks']:
-            norm = data['benchmarks'][name]['norm']
-            benchmark_score = domain_weights[name] * config_weights[name] * math.log(norm / ref['benchmarks'][name]['norm'])
+        for name in data:
+            norm = data[name]['norm']
+            benchmark_score = domain_weights[name] * config_weights[name] * math.log(norm / ref[name]['norm'])
             score += benchmark_score
         return math.exp(score)
 
@@ -189,9 +185,9 @@ class TorchBenchScoreV1:
         assert "train" in filters or "eval" in filters, error_msg
         score = 0.0
         (domain_weights, _) = ref_weights
-        for name in filter(lambda x: self.data_in_list(x, filters), data['benchmarks']):
-            norm = data['benchmarks'][name]['norm']
-            benchmark_score = domain_weights[name] * math.log(norm / ref_norm['benchmarks'][name]['norm'])
+        for name in filter(lambda x: self.data_in_list(x, filters), data):
+            norm = data[name]['norm']
+            benchmark_score = domain_weights[name] * math.log(norm / ref_norm[name]['norm'])
             score += benchmark_score
         return math.exp(score)
     
@@ -208,9 +204,9 @@ class TorchBenchScoreV1:
         norm = self._setup_benchmark_norms(data)
         norm_jit = self._filter_jit_tests(norm)
         (domain_weights, config_weights) = self._setup_weights(norm_jit)
-        for name in norm_jit['benchmarks']:
-            eager_norm = norm_jit['benchmarks'][name]['eager_norm']
-            jit_norm = norm_jit['benchmarks'][name]['jit_norm']
+        for name in norm_jit:
+            eager_norm = norm_jit[name]['eager_norm']
+            jit_norm = norm_jit[name]['jit_norm']
             jit_speedup_score = domain_weights[name] * config_weights[name] * math.log(eager_norm / jit_norm)
             score += jit_speedup_score
         return math.exp(score) * self.target
