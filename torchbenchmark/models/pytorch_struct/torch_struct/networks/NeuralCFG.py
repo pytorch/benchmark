@@ -53,7 +53,7 @@ class NeuralCFG(torch.nn.Module):
         term_prob = torch.gather(term_prob, 3, indices).squeeze(3)
         return term_prob
 
-    def rules(self, b : int):
+    def rules(self, b):
         return (
             torch.einsum("sh,tuh->stu", self.nonterm_emb, self.nonterm_emb_c)
             .view(self.NT, -1)
@@ -62,7 +62,7 @@ class NeuralCFG(torch.nn.Module):
             .expand(b, self.NT, self.NT + self.T, self.NT + self.T)
         )
 
-    def roots(self, b : int):
+    def roots(self, b):
         return (
             torch.einsum("ah,th->t", self.s_emb, self.mlp2(self.root_emb))
             .log_softmax(-1)
