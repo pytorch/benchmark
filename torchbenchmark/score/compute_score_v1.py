@@ -36,7 +36,7 @@ def _parse_test_name(name):
     device, and mode from the test full name.
     """
     if "-freeze" in name:
-        name.replace("-freeze", "", 1)
+        name = name.replace("-freeze", "", 1)
     test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
     return (test, model_name, device, mode)
 
@@ -225,12 +225,16 @@ class TorchBenchScoreV1:
         This API calculates the total V1 score for all the
         benchmarks that was run by reading the data (.json) file.
         """
+        # Check the input test set is the superset of the ref
+        data_norm = self._get_norm_from_ref_json_obj(data)
+        diff_set = set(self.norm.keys()) - set(data_norm.keys())
+        assert not diff_set, f"The request benchmark json doesn't have v1 test: {diff_set}"
+
         summary = {}
         summary["subscore[jit]"] = self.compute_jit_speedup_score(data)
         devices = ["cpu", "cuda"]
         tests = ["train", "eval"]
         filters = [(a, b) for a in devices for b in tests]
-        data_norm = self._get_norm_from_ref_json_obj(data)
         for f in filters:
             key = f"subscore[{f[0]}-{f[1]}]"
             summary[key] = self._get_subscore(data_norm, self.norm, self.norm_weights, f) * self.target
