@@ -7,7 +7,6 @@ import os
 import sys
 import torch.nn as nn
 import torch.nn.functional as F
-import dmc2gym
 from gym import spaces
 
 from ...util.model import BenchmarkModel
@@ -72,7 +71,7 @@ def make_env(cfg):
     mockobs = pkl.load(open(os.path.join(current_dir, cfg.obs_path), "rb"))
     low = np.amin(mockobs)
     high = np.amax(mockobs)
-    mockobs = np.random.randint(low=11, high=228, size=mockobs.shape)
+    mockobs = np.random.randint(low=11, high=228, size=mockobs.shape, dtype=np.uint8)
     env = MockEnv(mockobs)
     env = FrameStack(env, k=cfg.frame_stack)
 
@@ -108,9 +107,11 @@ class Model(BenchmarkModel):
         obs = self.env.reset()
         obs = torch.FloatTensor(obs).to(self.device)
         obs = obs.unsqueeze(0)
-        return self.actor, (obs, )
+        return self.agent.actor, (obs, )
 
     def train(self, niter=2):
+        if self.jit:
+            raise NotImplementedError()
         episode, episode_reward, episode_step, done = 0, 0, 1, True
         for step in range(niter):
             obs = self.env.reset()
@@ -140,6 +141,8 @@ class Model(BenchmarkModel):
             self.step += 1
 
     def eval(self, niter=1):
+        if self.jit:
+            raise NotImplementedError()
         average_episode_reward = 0
         for episode in range(niter):
             obs = self.env.reset()

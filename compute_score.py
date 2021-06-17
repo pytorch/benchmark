@@ -5,20 +5,24 @@ Compute the benchmark score given a frozen score configuration and current bench
 import argparse
 import json
 import math
+import yaml
 import sys
 import os
 
-from torchbenchmark.score.compute_score import TorchBenchScore, TORCHBENCH_V0_SCORE
-from tabulate import tabulate
+from torchbenchmark.score.compute_score import TorchBenchScore
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--configuration", choices=['relative', 'v0'], default="relative",
-        help="which score configuration to use- relative means use first data file as reference for others.")
+    parser.add_argument("--score_version", choices=['v0', 'v1'], default="v1",
+        help="which version of score to use - choose from v0 or v1")
     parser.add_argument("--benchmark_data_file",
         help="pytest-benchmark json file with current benchmark data")
     parser.add_argument("--benchmark_data_dir",
         help="directory containing multiple .json files for each of which to compute a score")
+    parser.add_argument("--relative", action='store_true',
+        help="use the first json file in benchmark data dir instead of the reference yaml")
+    parser.add_argument("--output-norm-only", action='store_true',
+        help="use the benchmark data file specified to output reference norm yaml")
     args = parser.parse_args()
 
     if args.benchmark_data_file is None and args.benchmark_data_dir is None:
@@ -31,6 +35,7 @@ if __name__ == "__main__":
     if args.benchmark_data_file is not None:
         with open(args.benchmark_data_file) as data_file:
             data = json.load(data_file)
+            files.append(args.benchmark_data_file)
             benchmark_data.append(data)
     elif args.benchmark_data_dir is not None:
         for f in sorted(os.listdir(args.benchmark_data_dir)):
@@ -41,17 +46,23 @@ if __name__ == "__main__":
                     files.append(f)
                     benchmark_data.append(data)
 
-    if args.configuration == "relative":
-        ref_data = benchmark_data[0]
-        score_config = TorchBenchScore(ref_data)
-    elif args.configuration == "v0":
-        score_config = TORCHBENCH_V0_SCORE
+    if args.output_norm_only:
+        score_config = TorchBenchScore(ref_data=benchmark_data[0], version=args.score_version)
+        print(yaml.dump(score_config.get_norm(benchmark_data[0])))
+        exit(0)
+
+    if args.relative:
+        score_config = TorchBenchScore(ref_data=benchmark_data[0], version=args.score_version)
     else:
-        raise ValueError("Invalid score configuration")
+        score_config = TorchBenchScore(version=args.score_version)
 
-    results = [('File', 'Score', 'PyTorch Version')]
+    results = []
     for fname, data in zip(files, benchmark_data):
+        result = {}
         score = score_config.compute_score(data)
-        results.append((fname, score, data['machine_info']['pytorch_version']))
+        result["file"] = fname
+        result["pytorch_version"] = data['machine_info']['pytorch_version']
+        result["score"] = score
+        results.append(result)
 
-    print(tabulate(results, headers='firstrow'))
+    print(json.dumps(results, indent=4))

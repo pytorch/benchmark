@@ -186,6 +186,8 @@ class Model(BenchmarkModel):
         return model, (state_batch, )
         
     def train(self, niter=1):
+        if self.jit:
+            raise NotImplementedError()
         # Setup
         self.target_agent.train()
         done = True
@@ -225,6 +227,8 @@ class Model(BenchmarkModel):
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
 
     def eval(self, niter=1):
+        if self.jit:
+            raise NotImplementedError()
         with torch.no_grad():
             discount= 1.0
             episode_return_history = []

@@ -49,6 +49,52 @@ import json
 import yaml
 from collections import defaultdict
 
+def generate_bench_cfg(spec, norm, target):
+    cfg = {
+        'target': target,
+        'benchmarks': {},
+    }
+    benchmark_names = [b['name'] for b in norm['benchmarks']]
+    benchmark_norms = {b['name']: b['stats']['mean'] for b in norm['benchmarks']}
+
+    assert len(spec['hierarchy']) > 0, "Must specify at least one category"
+    category_weight = 1.0 / len(spec['hierarchy'])
+    for category in spec['hierarchy']:
+
+        category_spec = spec['hierarchy'][category]
+        assert isinstance(category_spec, dict), f"Category {category} in spec must be non-empty"
+        assert 'weight' not in category_spec, "TODO implement manual category weights"
+        domain_weight = 1.0 / len(category_spec)
+
+        for domain in category_spec:
+
+            tasks = category_spec[domain]
+            assert isinstance(tasks, dict), f"Domain {category}:{domain} in spec must be non-empty"
+            assert 'weight' not in tasks, "TODO implement manual domain weights"
+            task_weight = 1.0 / len(tasks)
+
+            for task in tasks:
+
+                benchmarks = tasks[task]
+                assert isinstance(benchmarks, dict), f"Task {category}:{domain}:{task} in spec must be non-empty"
+                assert 'weight' not in benchmarks, "TODO implement manual task weights"
+                benchmark_weight = 1.0 / len(benchmarks)
+
+                for benchmark in benchmarks:
+
+                    assert benchmarks[benchmark] is None, "TODO handle benchmark as dict of config specs"
+                    # assert 'weight' not in benchmarks[benchmark], "TODO implement manual benchmark weights"
+                    found_benchmarks = [name for name in benchmark_names if benchmark in name]
+                    assert len(found_benchmarks) > 0, f"No normalization data found for {benchmark}"
+                    config_weight = 1.0 / len(found_benchmarks)
+                    for b in found_benchmarks:
+                        weight = domain_weight * task_weight * benchmark_weight * config_weight
+                        cfg['benchmarks'][b] = {
+                                'weight': weight,
+                                'norm': benchmark_norms[b],
+                        }
+    return cfg
+
 # Support generate a config from benchmark data that runs partial of the spec
 def generate_bench_cfg_partial(spec, norm, target):
     benchmark_names = [b['name'] for b in norm['benchmarks']]

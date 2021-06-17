@@ -1,11 +1,11 @@
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
+from torchbenchmark.tasks import SPEECH
 
 from .angular_tts_main import TTSModel, SYNTHETIC_DATA
 
 class Model(BenchmarkModel):
-    task = COMPUTER_VISION.SEGMENTATION
+    task = SPEECH.SYNTHESIS
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
@@ -13,8 +13,6 @@ class Model(BenchmarkModel):
         self.model = TTSModel(device=self.device)
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         return self.model.model, [SYNTHETIC_DATA[0], ]
 
     def set_train(self):
@@ -23,10 +21,14 @@ class Model(BenchmarkModel):
         pass
 
     def train(self, niter=1):
+        if self.jit:
+            raise NotImplementedError()
         # the training process is not patched to use scripted models
         self.model.train(niter)
 
     def eval(self, niter=1):
+        if self.jit:
+            raise NotImplementedError()
         for _ in range(niter):
             self.model.eval()
 

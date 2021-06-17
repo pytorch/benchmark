@@ -5,10 +5,18 @@
 # run.sh RESULT_DIR [BENCHMARK_FILTER]
 # The RESULT_DIR is required, BENCHMARK_FILTER is optional
 
-set -eo pipefail
+set -xeo pipefail
+
+# Check Github Run ID
+if [ -z "$GITHUB_RUN_ID" ]; then
+    echo "You must specify the GitHub Run ID"
+    exit 1
+fi
 
 # Version of the config
-CONFIG_VER=v0
+if [ -z "$CONFIG_VER" ]; then
+    CONFIG_VER=v1
+fi
 CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
 DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
