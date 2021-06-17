@@ -5,7 +5,7 @@ from torchbenchmark.tasks import COMPUTER_VISION
 from .angular_tts_main import TTSModel, SYNTHETIC_DATA
 
 class Model(BenchmarkModel):
-    task = COMPUTER_VISION.SEGMENTATION
+    task = SPEECH.SYNTHESIS
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
