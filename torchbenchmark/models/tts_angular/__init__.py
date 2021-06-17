@@ -1,6 +1,6 @@
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
+from torchbenchmark.tasks import SPEECH
 
 from .angular_tts_main import TTSModel, SYNTHETIC_DATA
 
