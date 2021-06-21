@@ -1,0 +1,58 @@
+name: TorchBench nightly ci v1.0
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 13 * * *' # run at 1 PM UTC
+
+jobs:
+  run-benchmark:
+    env:
+      CONFIG_VER: "v1"
+      CONDA_ENV_NAME:  "v1-nightly-ci"
+      OUTPUT_DIR: $(echo ${HOME})/.torchbench/v1-nighlty-ci
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    env:
+      SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: v1.0
+      - name: Create conda env
+        run: |
+          conda create -y -q --name "${CONDA_ENV_NAME}" python=3.7
+      - name: Install PyTorch nightly
+        run: |
+          # Check if nightly builds are available
+          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+          # If failed, the script will generate empty result
+          if [ -z $NIGHTLIES ]; then
+              echo "Torch nightly build failed. Cancel the workflow."
+              exit 1
+          fi
+          # Install PyTorch nightly from pip
+          pip install --pre torch \
+          -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
+      - name: Run benchmark
+        run: |
+          bash ./.github/scripts/run.sh "${OUTPUT_DIR}"
+      - name: Copy artifact
+        run: |
+          LATEST_RESULT=$(find ${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/ -name "*.json" | sort -r | head -1)
+          TODAY=$(date "+%Y%m%d%H%M%S")
+          cp ${LATEST_RESULT} ./benchmark-result-v1-${TODAY}.json
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Benchmark result
+          path: benchmark-result-v1-*.json
+      - name: Upload results to Amazon S3
+        run: |
+          LAST_MODIFIED_DIR=$(find ${OUTPUT_DIR} -mindepth 1 -maxdepth 1 -type d -exec stat -t {} \; | sort -r -n -k 13,13 | head -1 | cut -d " " -f 1)
+          python ./scripts/upload_s3.py --torchbench-result-dir ${LAST_MODIFIED_DIR} --gen-index --upload-s3
+      - name: Remove conda env
+        run: |
+          conda remove --name
