@@ -74,7 +74,7 @@ def pytest_benchmark_update_machine_info(config, machine_info):
         machine_info['torchvision_version'] = '*not-installed*'
 
     machine_info['github_run_id'] = os.environ.get("GITHUB_RUN_ID")
-    machine_info['torchbench_score_version'] = os.environ.get("TORCHBENCH_CONFIG_VER")
+    machine_info['torchbench_score_version'] = os.environ.get("TORCHBENCH_VER")
 
     try:
         # if running on unexpected machine/os, get_machine_config _may_ not work

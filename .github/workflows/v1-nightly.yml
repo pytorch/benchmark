@@ -7,7 +7,8 @@ on:
 jobs:
   run-benchmark:
     env:
-      TORCHBENCH_CONFIG_VER: "v1"
+      TORCHBENCH_VER: "v1-alpha"
+      CONFIG_VER: "v1"
       CONDA_ENV_NAME:  "v1-nightly-ci"
       OUTPUT_DIR: $(echo ${HOME})/.torchbench/v1-nighlty-ci
     if: ${{ github.repository_owner == 'pytorch' }}
@@ -41,22 +42,24 @@ jobs:
       - name: Run benchmark
         run: |
           . activate "$CONDA_ENV_NAME"
-          CONFIG_VER="$TORCHBENCH_CONFIG_VER" bash ./.github/scripts/run.sh "${OUTPUT_DIR}"
-      - name: Copy artifact
+          bash ./.github/scripts/run.sh "${OUTPUT_DIR}"
+      - name: Copy artifact and upload to scribe
         run: |
           LATEST_RESULT=$(find ${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/ -name "*.json" | sort -r | head -1)
+          echo "Benchmark result file: $LATEST_RESULT"
           TODAY=$(date "+%Y%m%d%H%M%S")
+          CONFIG_NORM_FILE=${CONFIG_DIR}/${CONFIG_FILE}
+          SCORE_FILE="./benchmark-result-v1-score-${TODAY}.json"
+          # Generate score
+          python compute_score.py --score_version v1 --benchmark_data_file $LATEST_RESULT > $SCORE_FILE
+          # Upload result to Scribe
+          python scripts/upload_scribe.py --pytest_bench_json $LATEST_RESULT --torchbench_score_file $SCORE_FILE 
           cp ${LATEST_RESULT} ./benchmark-result-v1-${TODAY}.json
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: Benchmark result
           path: benchmark-result-v1-*.json
-      - name: Upload results to Amazon S3
-        run: |
-          . activate "$CONDA_ENV_NAME"
-          LAST_MODIFIED_DIR=$(find ${OUTPUT_DIR} -mindepth 1 -maxdepth 1 -type d -exec stat -t {} \; | sort -r -n -k 13,13 | head -1 | cut -d " " -f 1)
-          python ./scripts/upload_s3.py --torchbench-result-dir ${LAST_MODIFIED_DIR} --s3-result-dir torchbench-v1-nightly --gen-index --upload-s3
       - name: Remove conda env
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"
