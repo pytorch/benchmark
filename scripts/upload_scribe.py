@@ -82,10 +82,16 @@ class PytorchBenchmarkUploader(ScribeUploader):
                 'pytorch_version', 'python_version',
                 'torchtext_version', 'torchvision_version',
                 'machine_kernel', 'machine_processor', 'machine_hostname',
-                'circle_build_num', 'circle_project_reponame',
+                'github_run_id', 'torchbench_score_version',
             ],
             'float': [
-                'stddev', 'min', 'median', 'max', 'mean', 'runtime', 'torchbench_score',
+                'stddev', 'min', 'median', 'max', 'mean', 'runtime',
+                'torchbench_score',
+                'torchbench_score_jit_speedup',
+                'torchbench_subscore_cpu_train', 
+                'torchbench_subscore_cpu_infer',
+                'torchbench_subscore_gpu_train',
+                'torchbench_subscore_gpu_infer',
             ]
         }
 
@@ -156,9 +162,13 @@ class PytorchBenchmarkUploader(ScribeUploader):
             "machine_hostname": machine_info['node'],
             "github_run_id": machine_info.get('github_run_id', None),
             "torchbench_score_version": machine_info.get('torchbench_score_version', None),
+            "torchbench_score": score["score"]["total"],
+            "torchbench_score_jit_speedup": score["score"]["jit-speedup"],
+            "torchbench_subscore_cpu_train": score["score"]["subscore-cpu-train"],
+            "torchbench_subscore_cpu_infer": score["score"]["subscore-cpu-eval"],
+            "torchbench_subscore_gpu_train": score["score"]["subscore-gpu-train"],
+            "torchbench_subscore_gpu_infer": score["score"]["subscore-gpu-train"],
         }
-        for key in score:
-            scribe_message[key] = score[key]
         m = self.format_message(scribe_message)
         self.upload([m])
 
