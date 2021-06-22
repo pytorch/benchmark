@@ -58,12 +58,16 @@ class Model(BenchmarkModel):
       break
 
   def get_module(self):
+    if self.jit:
+      raise NotImplementedError("JIT is not implemented")
     for ex in self.train_iter:
       words, _ = ex.word
       words = words.long()
       return self.model, (words.to(device=self.device).transpose(0, 1),)
 
   def train(self, niter=1):
+    if self.jit:
+      raise NotImplementedError("JIT is not implemented")
     for _ in range(niter):
       losses = []
       self.opt.zero_grad()
@@ -76,6 +80,8 @@ class Model(BenchmarkModel):
       self.opt.step()
 
   def eval(self, niter=1):
+    if self.jit:
+      raise NotImplementedError("JIT is not implemented")
     for _ in range(niter):
       params = self.model(self.words)
 
