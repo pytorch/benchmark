@@ -15,8 +15,9 @@ class Get(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         (grad_chart,) = ctx.saved_tensors
-        grad_chart[ctx.indices] += grad_output
-        return grad_chart, None, None
+        grad_chart_clone = grad_chart.clone()
+        grad_chart_clone[ctx.indices] += grad_output
+        return grad_chart_clone, None, None
 
 
 class Set(torch.autograd.Function):
