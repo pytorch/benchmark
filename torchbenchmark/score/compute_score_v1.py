@@ -231,12 +231,12 @@ class TorchBenchScoreV1:
         assert not diff_set, f"The request benchmark json doesn't have v1 test: {diff_set}"
 
         summary = {}
-        summary["subscore[jit]"] = self.compute_jit_speedup_score(data)
+        summary["jit-speedup"] = self.compute_jit_speedup_score(data)
         devices = ["cpu", "cuda"]
         tests = ["train", "eval"]
         filters = [(a, b) for a in devices for b in tests]
         for f in filters:
-            key = f"subscore[{f[0]}-{f[1]}]"
+            key = f"subscore-{f[0]}-{f[1]}"
             summary[key] = self._get_subscore(data_norm, self.norm, self.norm_weights, f) * self.target
         summary["total"] = self._get_score(data_norm, self.norm, self.norm_weights) * self.target
         return summary
