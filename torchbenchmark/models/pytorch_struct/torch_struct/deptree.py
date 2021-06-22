@@ -1,9 +1,8 @@
 import torch
-import itertools
 from .helpers import _Struct, Chart
 
 
-def _convert(logits):
+def convert(logits):
     "move root arcs from diagonal"
     new_shape = list(logits.shape)
     new_shape[1] += 1
@@ -18,7 +17,7 @@ def _convert(logits):
     return new_logits
 
 
-def _unconvert(logits):
+def unconvert(logits):
     "Move root arcs to diagonal"
     new_shape = list(logits.shape)
     new_shape[1] -= 1
@@ -43,15 +42,18 @@ class DepTree(_Struct):
     Parameters:
         arc_scores_in: Arc scores of shape (B, N, N) or (B, N, N, L) with root scores on
         diagonal.
+
+    Note: For single-root case, do not set cache=True for now.
     """
 
-    def _dp(self, arc_scores_in, lengths=None, force_grad=False, cache=True):
+    def logpartition(self, arc_scores_in, lengths=None, force_grad=False):
+        multiroot = getattr(self, "multiroot", True)
         if arc_scores_in.dim() not in (3, 4):
             raise ValueError("potentials must have dim of 3 (unlabeled) or 4 (labeled)")
 
         labeled = arc_scores_in.dim() == 4
         semiring = self.semiring
-        arc_scores_in = _convert(arc_scores_in)
+        arc_scores_in = convert(arc_scores_in)
         arc_scores_in, batch, N, lengths = self._check_potentials(
             arc_scores_in, lengths
         )
@@ -59,10 +61,7 @@ class DepTree(_Struct):
         arc_scores = semiring.sum(arc_scores_in) if labeled else arc_scores_in
         alpha = [
             [
-                [
-                    Chart((batch, N, N), arc_scores, semiring, cache=cache)
-                    for _ in range(2)
-                ]
+                [Chart((batch, N, N), arc_scores, semiring) for _ in range(2)]
                 for _ in range(2)
             ]
             for _ in range(2)
@@ -72,42 +71,49 @@ class DepTree(_Struct):
         semiring.one_(alpha[B][C][L].data[:, :, :, -1].data)
         semiring.one_(alpha[B][C][R].data[:, :, :, -1].data)
 
-        for k in range(1, N):
-            f = torch.arange(N - k), torch.arange(k, N)
-            ACL = alpha[A][C][L][: N - k, :k]
-            ACR = alpha[A][C][R][: N - k, :k]
+        if multiroot:
+            start_idx = 0
+        else:
+            start_idx = 1
 
-            BCL = alpha[B][C][L][k:, N - k :]
-            BCR = alpha[B][C][R][k:, N - k :]
+        for k in range(1, N - start_idx):
+            f = torch.arange(start_idx, N - k), torch.arange(k + start_idx, N)
+            ACL = alpha[A][C][L][start_idx : N - k, :k]
+            ACR = alpha[A][C][R][start_idx : N - k, :k]
+            BCL = alpha[B][C][L][k + start_idx :, N - k :]
+            BCR = alpha[B][C][R][k + start_idx :, N - k :]
             x = semiring.dot(ACR, BCL)
-
             arcs_l = semiring.times(x, arc_scores[:, :, f[1], f[0]])
-
-            alpha[A][I][L][: N - k, k] = arcs_l
-            alpha[B][I][L][k:N, N - k - 1] = arcs_l
-
+            alpha[A][I][L][start_idx : N - k, k] = arcs_l
+            alpha[B][I][L][k + start_idx : N, N - k - 1] = arcs_l
             arcs_r = semiring.times(x, arc_scores[:, :, f[0], f[1]])
-            alpha[A][I][R][: N - k, k] = arcs_r
-            alpha[B][I][R][k:N, N - k - 1] = arcs_r
-
-            AIR = alpha[A][I][R][: N - k, 1 : k + 1]
-            BIL = alpha[B][I][L][k:, N - k - 1 : N - 1]
-
+            alpha[A][I][R][start_idx : N - k, k] = arcs_r
+            alpha[B][I][R][k + start_idx : N, N - k - 1] = arcs_r
+            AIR = alpha[A][I][R][start_idx : N - k, 1 : k + 1]
+            BIL = alpha[B][I][L][k + start_idx :, N - k - 1 : N - 1]
             new = semiring.dot(ACL, BIL)
-            alpha[A][C][L][: N - k, k] = new
-            alpha[B][C][L][k:N, N - k - 1] = new
-
+            alpha[A][C][L][start_idx : N - k, k] = new
+            alpha[B][C][L][k + start_idx : N, N - k - 1] = new
             new = semiring.dot(AIR, BCR)
-            alpha[A][C][R][: N - k, k] = new
-            alpha[B][C][R][k:N, N - k - 1] = new
+            alpha[A][C][R][start_idx : N - k, k] = new
+            alpha[B][C][R][k + start_idx : N, N - k - 1] = new
+
+        if not multiroot:
+            root_incomplete_span = semiring.times(
+                alpha[A][C][L][1, : N - 1], arc_scores[:, :, 0, 1:]
+            )
+            for k in range(1, N):
+                AIR = root_incomplete_span[:, :, :k]
+                BCR = alpha[B][C][R][k, N - k :]
+                alpha[A][C][R][0, k] = semiring.dot(AIR, BCR)
 
         final = alpha[A][C][R][(0,)]
         v = torch.stack([final[:, i, l] for i, l in enumerate(lengths)], dim=1)
-        return v, [arc_scores_in], alpha
+        return v, [arc_scores_in]
 
     def _check_potentials(self, arc_scores, lengths=None):
         semiring = self.semiring
-        batch, N, N2 = arc_scores.shape[:3]
+        batch, N, N2, *_ = self._get_dimension(arc_scores)
         assert N == N2, "Non-square potentials"
         if lengths is None:
             lengths = torch.LongTensor([N - 1] * batch).to(arc_scores.device)
@@ -120,7 +126,7 @@ class DepTree(_Struct):
         return arc_scores, batch, N, lengths
 
     def _arrange_marginals(self, grads):
-        return self.semiring.convert(_unconvert(self.semiring.unconvert(grads[0])))
+        return self.semiring.convert(unconvert(self.semiring.unconvert(grads[0])))
 
     @staticmethod
     def to_parts(sequence, extra=None, lengths=None):
@@ -129,6 +135,9 @@ class DepTree(_Struct):
 
         Parameters:
             sequence : b x N long tensor in [0, N] (indexing is +1)
+            extra : None
+            lengths : lengths of sequences
+
         Returns:
             arcs : b x N x N arc indicators
         """
@@ -141,7 +150,7 @@ class DepTree(_Struct):
         for b in range(batch):
             labels[b, lengths[b] + 1 :, :] = 0
             labels[b, :, lengths[b] + 1 :] = 0
-        return _unconvert(labels)
+        return unconvert(labels)
 
     @staticmethod
     def from_parts(arcs):
@@ -150,6 +159,7 @@ class DepTree(_Struct):
 
         Parameters:
             arcs : b x N x N arc indicators
+
         Returns:
             sequence : b x N long tensor in [0, N] (indexing is +1)
         """
@@ -163,46 +173,39 @@ class DepTree(_Struct):
                 labels[on[i][0], on[i][2]] = on[i][1] + 1
         return labels, None
 
-    @staticmethod
-    def _rand():
-        b = torch.randint(2, 4, (1,))
-        N = torch.randint(2, 4, (1,))
-        return torch.rand(b, N, N), (b.item(), N.item())
 
-    def enumerate(self, arc_scores, non_proj=False, multi_root=True):
-        semiring = self.semiring
-        parses = []
-        q = []
-        arc_scores = _convert(arc_scores)
-        batch, N, _ = arc_scores.shape
-        for mid in itertools.product(range(N + 1), repeat=N - 1):
-            parse = [-1] + list(mid)
-            if not _is_spanning(parse):
-                continue
-            if not non_proj and not _is_projective(parse):
-                continue
-
-            if not multi_root and _is_multi_root(parse):
-                continue
-
-            q.append(parse)
-            parses.append(
-                semiring.times(*[arc_scores[:, parse[i], i] for i in range(1, N, 1)])
-            )
-        return semiring.sum(torch.stack(parses, dim=-1)), None
-
-
-def deptree_part(arc_scores, eps=1e-5):
+def deptree_part(arc_scores, multi_root, lengths=None, eps=1e-5):
+    if lengths is not None:
+        batch, N, N = arc_scores.shape
+        x = torch.arange(N, device=arc_scores.device).expand(batch, N)
+        if not torch.is_tensor(lengths):
+            lengths = torch.tensor(lengths, device=arc_scores.device)
+        lengths = lengths.unsqueeze(1)
+        x = x < lengths
+        det_offset = torch.diag_embed((~x).float())
+        x = x.unsqueeze(2).expand(-1, -1, N)
+        mask = torch.transpose(x, 1, 2) * x
+        mask = mask.float()
+        mask[mask == 0] = float("-inf")
+        mask[mask == 1] = 0
+        arc_scores = arc_scores + mask
     input = arc_scores
     eye = torch.eye(input.shape[1], device=input.device)
     laplacian = input.exp() + eps
     lap = laplacian.masked_fill(eye != 0, 0)
     lap = -lap + torch.diag_embed(lap.sum(1), offset=0, dim1=-2, dim2=-1)
-    lap[:, 0] = torch.diagonal(input, 0, -2, -1).exp()
+    if lengths is not None:
+        lap += det_offset
+
+    if multi_root:
+        rss = torch.diagonal(input, 0, -2, -1).exp()  # root selection scores
+        lap = lap + torch.diag_embed(rss, offset=0, dim1=-2, dim2=-1)
+    else:
+        lap[:, 0] = torch.diagonal(input, 0, -2, -1).exp()
     return lap.logdet()
 
 
-def deptree_nonproj(arc_scores, eps=1e-5):
+def deptree_nonproj(arc_scores, multi_root, lengths=None, eps=1e-5):
     """
     Compute the marginals of a non-projective dependency tree using the
     matrix-tree theorem.
@@ -213,101 +216,72 @@ def deptree_nonproj(arc_scores, eps=1e-5):
 
     Parameters:
          arc_scores : b x N x N arc scores with root scores on diagonal.
-         semiring
+         multi_root (bool) : multiple roots
+         lengths : length of examples
+         eps (float) : given
 
     Returns:
          arc_marginals : b x N x N.
     """
+    if lengths is not None:
+        batch, N, N = arc_scores.shape
+        x = torch.arange(N, device=arc_scores.device).expand(batch, N)
+        if not torch.is_tensor(lengths):
+            lengths = torch.tensor(lengths, device=arc_scores.device)
+        lengths = lengths.unsqueeze(1)
+        x = x < lengths
+        det_offset = torch.diag_embed((~x).float())
+        x = x.unsqueeze(2).expand(-1, -1, N)
+        mask = torch.transpose(x, 1, 2) * x
+        mask = mask.float()
+        mask[mask == 0] = float("-inf")
+        mask[mask == 1] = 0
+        arc_scores = arc_scores + mask
 
     input = arc_scores
     eye = torch.eye(input.shape[1], device=input.device)
     laplacian = input.exp() + eps
     lap = laplacian.masked_fill(eye != 0, 0)
     lap = -lap + torch.diag_embed(lap.sum(1), offset=0, dim1=-2, dim2=-1)
-    lap[:, 0] = torch.diagonal(input, 0, -2, -1).exp()
-    inv_laplacian = lap.inverse()
-    factor = (
-        torch.diagonal(inv_laplacian, 0, -2, -1)
-        .unsqueeze(2)
-        .expand_as(input)
-        .transpose(1, 2)
-    )
-    term1 = input.exp().mul(factor).clone()
-    term2 = input.exp().mul(inv_laplacian.transpose(1, 2)).clone()
-    term1[:, :, 0] = 0
-    term2[:, 0] = 0
-    output = term1 - term2
-    roots_output = (
-        torch.diagonal(input, 0, -2, -1).exp().mul(inv_laplacian.transpose(1, 2)[:, 0])
-    )
+    if lengths is not None:
+        lap += det_offset
+
+    if multi_root:
+        rss = torch.diagonal(input, 0, -2, -1).exp()  # root selection scores
+        lap = lap + torch.diag_embed(rss, offset=0, dim1=-2, dim2=-1)
+        inv_laplacian = lap.inverse()
+        factor = (
+            torch.diagonal(inv_laplacian, 0, -2, -1)
+            .unsqueeze(2)
+            .expand_as(input)
+            .transpose(1, 2)
+        )
+        term1 = input.exp().mul(factor).clone()
+        term2 = input.exp().mul(inv_laplacian.transpose(1, 2)).clone()
+        output = term1 - term2
+        roots_output = (
+            torch.diagonal(input, 0, -2, -1)
+            .exp()
+            .mul(torch.diagonal(inv_laplacian.transpose(1, 2), 0, -2, -1))
+        )
+    else:
+        lap[:, 0] = torch.diagonal(input, 0, -2, -1).exp()
+        inv_laplacian = lap.inverse()
+        factor = (
+            torch.diagonal(inv_laplacian, 0, -2, -1)
+            .unsqueeze(2)
+            .expand_as(input)
+            .transpose(1, 2)
+        )
+        term1 = input.exp().mul(factor).clone()
+        term2 = input.exp().mul(inv_laplacian.transpose(1, 2)).clone()
+        term1[:, :, 0] = 0
+        term2[:, 0] = 0
+        output = term1 - term2
+        roots_output = (
+            torch.diagonal(input, 0, -2, -1)
+            .exp()
+            .mul(inv_laplacian.transpose(1, 2)[:, 0])
+        )
     output = output + torch.diag_embed(roots_output, 0, -2, -1)
     return output
-
-
-### Tests
-
-
-def _is_spanning(parse):
-    """
-    Is the parse tree a valid spanning tree?
-    Returns
-    --------
-    spanning : bool
-    True if a valid spanning tree.
-    """
-    d = {}
-    for m, h in enumerate(parse):
-        if m == h:
-            return False
-        d.setdefault(h, [])
-        d[h].append(m)
-    stack = [0]
-    seen = set()
-    while stack:
-        cur = stack[0]
-        if cur in seen:
-            return False
-        seen.add(cur)
-        stack = d.get(cur, []) + stack[1:]
-    if len(seen) != len(parse) - len([1 for p in parse if p is None]):
-        return False
-    return True
-
-
-def _is_multi_root(parse):
-    root_count = 0
-    for m, h in enumerate(parse):
-        if h == 0:
-            root_count += 1
-    return root_count > 1
-
-
-def _is_projective(parse):
-    """
-    Is the parse tree projective?
-    Returns
-    --------
-    projective : bool
-       True if a projective tree.
-    """
-    for m, h in enumerate(parse):
-        for m2, h2 in enumerate(parse):
-            if m2 == m:
-                continue
-            if m < h:
-                if (
-                    m < m2 < h < h2
-                    or m < h2 < h < m2
-                    or m2 < m < h2 < h
-                    or h2 < m < m2 < h
-                ):
-                    return False
-            if h < m:
-                if (
-                    h < m2 < m < h2
-                    or h < h2 < m < m2
-                    or m2 < h < h2 < m
-                    or h2 < h < m2 < m
-                ):
-                    return False
-    return True

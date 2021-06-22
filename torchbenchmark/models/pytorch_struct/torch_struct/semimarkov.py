@@ -8,7 +8,7 @@ class SemiMarkov(_Struct):
     """
 
     def _check_potentials(self, edge, lengths=None):
-        batch, N_1, K, C, C2 = edge.shape
+        batch, N_1, K, C, C2 = self._get_dimension(edge)
         edge = self.semiring.convert(edge)
         N = N_1 + 1
         if lengths is None:
@@ -18,7 +18,7 @@ class SemiMarkov(_Struct):
         assert C == C2, "Transition shape doesn't match"
         return edge, batch, N, K, C, lengths
 
-    def _dp(self, log_potentials, lengths=None, force_grad=False, cache=True):
+    def logpartition(self, log_potentials, lengths=None, force_grad=False):
         "Compute forward pass by linear scan"
 
         # Setup
@@ -79,7 +79,7 @@ class SemiMarkov(_Struct):
 
         final = chart.view(-1, batch, K_1, C, K_1, C)
         v = semiring.sum(semiring.sum(final[:, :, 0, :, 0, :].contiguous()))
-        return v, [log_potentials], None
+        return v, [log_potentials]
 
     # def _dp_standard(self, edge, lengths=None, force_grad=False):
     #     semiring = self.semiring
@@ -114,22 +114,15 @@ class SemiMarkov(_Struct):
     #     return v, [edge], beta
 
     @staticmethod
-    def _rand():
-        b = torch.randint(2, 4, (1,))
-        N = torch.randint(2, 4, (1,))
-        K = torch.randint(2, 4, (1,))
-        C = torch.randint(2, 4, (1,))
-        return torch.rand(b, N, K, C, C), (b.item(), (N + 1).item())
-
-    @staticmethod
     def to_parts(sequence, extra, lengths=None):
         """
         Convert a sequence representation to edges
 
         Parameters:
             sequence : b x N  long tensors in [-1, 0, C-1]
-            C : number of states
+            extra : number of states
             lengths: b long tensor of N values
+
         Returns:
             edge : b x (N-1) x K x C x C semimarkov potentials
                         (t x z_t x z_{t-1})
@@ -163,6 +156,7 @@ class SemiMarkov(_Struct):
         Parameters:
             edge : b x (N-1) x K x C x C semimarkov potentials
                     (t x z_t x z_{t-1})
+
         Returns:
             sequence : b x N  long tensors in [-1, 0, C-1]
 
@@ -177,32 +171,3 @@ class SemiMarkov(_Struct):
             labels[on[i][0], on[i][1] + on[i][2]] = on[i][3]
         # print(edge.nonzero(), labels)
         return labels, (C, K)
-
-    # Tests
-    def enumerate(self, edge):
-        semiring = self.semiring
-        ssize = semiring.size()
-        batch, N, K, C, _ = edge.shape
-        edge = semiring.convert(edge)
-        chains = {}
-        chains[0] = [
-            ([(c, 0)], semiring.one_(torch.zeros(ssize, batch))) for c in range(C)
-        ]
-
-        for n in range(1, N + 1):
-            chains[n] = []
-            for k in range(1, K):
-                if n - k not in chains:
-                    continue
-                for chain, score in chains[n - k]:
-                    for c in range(C):
-                        chains[n].append(
-                            (
-                                chain + [(c, k)],
-                                semiring.mul(
-                                    score, edge[:, :, n - k, k, c, chain[-1][0]]
-                                ),
-                            )
-                        )
-        ls = [s for (_, s) in chains[N]]
-        return semiring.unconvert(semiring.sum(torch.stack(ls, dim=1), dim=1)), ls

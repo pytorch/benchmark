@@ -40,38 +40,38 @@ class NeuralCFG(torch.nn.Module):
             if p.dim() > 1:
                 torch.nn.init.xavier_uniform_(p)
 
-    def terms(self, words):
-        b, n = words.shape[:2]
-        term_prob = (
-            torch.einsum("vh,th->tv", self.word_emb, self.mlp1(self.term_emb))
-            .log_softmax(-1)
-            .unsqueeze(0)
-            .unsqueeze(0)
-            .expand(b, n, self.T, self.V)
-        )
-        indices = words.unsqueeze(2).expand(b, n, self.T).unsqueeze(3)
-        term_prob = torch.gather(term_prob, 3, indices).squeeze(3)
-        return term_prob
-
-    def rules(self, b : int):
-        return (
-            torch.einsum("sh,tuh->stu", self.nonterm_emb, self.nonterm_emb_c)
-            .view(self.NT, -1)
-            .log_softmax(-1)
-            .view(1, self.NT, self.NT + self.T, self.NT + self.T)
-            .expand(b, self.NT, self.NT + self.T, self.NT + self.T)
-        )
-
-    def roots(self, b : int):
-        return (
-            torch.einsum("ah,th->t", self.s_emb, self.mlp2(self.root_emb))
-            .log_softmax(-1)
-            .view(1, self.NT)
-            .expand(b, self.NT)
-        )
-
-    def forward(self, x):
+    def forward(self, input):
         T, NT = self.T, self.NT
 
-        batch = x.shape[0]
-        return self.terms(x), self.rules(batch), self.roots(batch)
+        def terms(words):
+            b, n = input.shape[:2]
+            term_prob = (
+                torch.einsum("vh,th->tv", self.word_emb, self.mlp1(self.term_emb))
+                .log_softmax(-1)
+                .unsqueeze(0)
+                .unsqueeze(0)
+                .expand(b, n, self.T, self.V)
+            )
+            indices = input.unsqueeze(2).expand(b, n, self.T).unsqueeze(3)
+            term_prob = torch.gather(term_prob, 3, indices).squeeze(3)
+            return term_prob
+
+        def rules(b):
+            return (
+                torch.einsum("sh,tuh->stu", self.nonterm_emb, self.nonterm_emb_c)
+                .view(NT, -1)
+                .log_softmax(-1)
+                .view(1, NT, NT + T, NT + T)
+                .expand(b, NT, NT + T, NT + T)
+            )
+
+        def roots(b):
+            return (
+                torch.einsum("ah,th->t", self.s_emb, self.mlp2(self.root_emb))
+                .log_softmax(-1)
+                .view(1, NT)
+                .expand(b, NT)
+            )
+
+        batch = input.shape[0]
+        return terms(input), rules(batch), roots(batch)
