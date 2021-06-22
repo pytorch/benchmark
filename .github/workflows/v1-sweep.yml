@@ -1,0 +1,42 @@
+name: TorchBench V1 sweep workflow
+on:
+  workflow_dispatch:
+    inputs:
+      sweep_name:
+        description: "Sweep job name"
+        required: true
+        default: "sweep-example"
+
+jobs:
+  run-benchmark:
+    env:
+      TORCHBENCH_VER: "v1-alpha"
+      CONFIG_VER: "v1"
+      SWEEP_DIR: ".torchbench/v1-sweep-ci"
+      PYTHON_VER: "3.7"
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 2880 # 48 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: v1.0
+      - name: Run sweep job
+        run: |
+          SWEEP_JOB=${{ github.event.inputs.sweep_name }}
+          SWEEP_JOB_ROOT="${HOME}/${SWEEP_DIR}/${SWEEP_JOB}"
+          SWEEP_JOB_OUTPUT="${SWEEP_JOB_ROOT}/results/gh${GITHUB_RUN_ID}"
+          for CONFIG in ${SWEEP_JOB_ROOT}/configs/*.txt; do
+            # Create a new conda env
+            CONFIG_BASE=$(basename ${CONFIG})
+            CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/.*-\(.*\)\.txt/\1/')
+            conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
+            . activate ${CONDA_ENV_NAME}
+            pip install -r "${CONFIG}"
+            python install.py
+            bash .github/scripts/run.sh "${SWEEP_JOB_OUTPUT}"
+            # Remove the conda env
+            conda deactivate
+            conda env remove --name ${CONDA_ENV_NAME}
+          done
