@@ -1,4 +1,4 @@
-name: TorchBench nightly ci v1.0
+name: TorchBench v1.0 nightly CI
 on:
   workflow_dispatch:
 
@@ -8,15 +8,13 @@ jobs:
       # Set to "v1-alpha" for testing. Will set it to "v1" in release.
       TORCHBENCH_VER: "v1-alpha"
       CONFIG_VER: "v1"
-      CONDA_ENV_NAME:  "v1-nightly-ci"
-      OUTPUT_DIR: $(echo ${HOME})/.torchbench/v1-nighlty-ci
-    if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, bm-runner]
-    env:
-      CONDA_ENV_NAME: torchbench-v1-nightly-ci
+      CONDA_ENV_NAME:  "torchbench-v1-nightly-ci"
+      OUTPUT_DIR: ".torchbench/v1-nighlty-ci"
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -27,7 +25,7 @@ jobs:
           conda create -y -q --name "${CONDA_ENV_NAME}" python=3.7
       - name: Install PyTorch nightly
         run: |
-          . activate "$CONDA_ENV_NAME"
+          . activate "${CONDA_ENV_NAME}"
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -38,27 +36,36 @@ jobs:
           # Install PyTorch nightly from pip
           pip install --pre torch \
           -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
-      - name: Run benchmark
+      - name: Install TorchBench dependencies
         run: |
-          . activate "$CONDA_ENV_NAME"
-          bash ./.github/scripts/run.sh "${OUTPUT_DIR}"
+          . activate "${CONDA_ENV_NAME}"
+          python install.py
+      - name: Run benchmrrk
+        run: |
+          . activate "${CONDA_ENV_NAME}"
+          bash ./.github/scripts/run.sh "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}"
       - name: Copy artifact and upload to scribe
         run: |
-          LATEST_RESULT=$(find ${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/ -name "*.json" | sort -r | head -1)
+          . activate "${CONDA_ENV_NAME}"
+          LATEST_RESULT=$(find ${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID} -name "*.json" | sort -r | head -1)
           echo "Benchmark result file: $LATEST_RESULT"
           TODAY=$(date "+%Y%m%d%H%M%S")
-          CONFIG_NORM_FILE=${CONFIG_DIR}/${CONFIG_FILE}
+          CONFIG_DIR=torchbenchmark/score/configs/${CONFIG_VER}
+          CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
+          # Load environment variables
+          set -a; source "${CONFIG_ENV}"; set +a
+          CONFIG_NORM_FILE="${CONFIG_DIR}/${CONFIG_FILE}"
           SCORE_FILE="./benchmark-result-v1-score-${TODAY}.json"
-          # Generate score
-          python compute_score.py --score_version v1 --benchmark_data_file $LATEST_RESULT > $SCORE_FILE
+          # Generate score file
+          python compute_score.py --score_version v1 --benchmark_data_file "${LATEST_RESULT}" > "${SCORE_FILE}"
           # Upload result to Scribe
-          python scripts/upload_scribe.py --pytest_bench_json $LATEST_RESULT --torchbench_score_file $SCORE_FILE 
-          cp ${LATEST_RESULT} ./benchmark-result-v1-${TODAY}.json
+          python scripts/upload_scribe.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
+          cp "${LATEST_RESULT}" ./benchmark-result-v1-${TODAY}.json
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: Benchmark result
           path: benchmark-result-v1-*.json
-      - name: Remove conda env
+      - name: Destroy conda env
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"
