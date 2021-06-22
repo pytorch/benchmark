@@ -166,8 +166,8 @@ class PytorchBenchmarkUploader(ScribeUploader):
             "torchbench_score_jit_speedup": score["score"]["jit-speedup"],
             "torchbench_subscore_cpu_train": score["score"]["subscore-cpu-train"],
             "torchbench_subscore_cpu_infer": score["score"]["subscore-cpu-eval"],
-            "torchbench_subscore_gpu_train": score["score"]["subscore-gpu-train"],
-            "torchbench_subscore_gpu_infer": score["score"]["subscore-gpu-train"],
+            "torchbench_subscore_gpu_train": score["score"]["subscore-cuda-train"],
+            "torchbench_subscore_gpu_infer": score["score"]["subscore-cuda-eval"],
         }
         m = self.format_message(scribe_message)
         self.upload([m])
