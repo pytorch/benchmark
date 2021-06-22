@@ -26,6 +26,8 @@ jobs:
       - name: Install PyTorch nightly
         run: |
           . activate "${CONDA_ENV_NAME}"
+          # Install dependencies
+          pip install requests bs4 argparse
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -34,13 +36,13 @@ jobs:
               exit 1
           fi
           # Install PyTorch nightly from pip
-          pip install --pre torch \
+          pip install --pre torch torchtext torchvision \
           -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
-      - name: Install TorchBench dependencies
+      - name: Install other TorchBench dependencies
         run: |
           . activate "${CONDA_ENV_NAME}"
           python install.py
-      - name: Run benchmrrk
+      - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
           bash ./.github/scripts/run.sh "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}"
