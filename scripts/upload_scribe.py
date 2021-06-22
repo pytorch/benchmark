@@ -182,10 +182,15 @@ if __name__ == "__main__":
                         help="torchbench score file to include")
     args = parser.parse_args()
     
+    # Result sanity check
+    json_name = os.path.basename(args.pytest_bench_json)
+    json_score = json.load(args.torchbench_score_file)
+    score_data = None
+    for data in json_score:
+        if data["file"] == json_name:
+            score_data = data
+    assert score_data, f"Can't find {json_name} score in {args.torchbench_score_file}. Stop."
     benchmark_uploader = PytorchBenchmarkUploader()
     json_data = json.load(args.pytest_bench_json)
-    json_score = json.load(args.torchbench_score_file)
     benchmark_uploader.post_pytest_benchmarks(json_data)
-    
-    if args.torchbench_score is not None:
-        benchmark_uploader.post_torchbench_score(json_data, json_score)
+    benchmark_uploader.post_torchbench_score(json_data, score_data)
