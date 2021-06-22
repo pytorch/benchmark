@@ -26,6 +26,8 @@ jobs:
       - name: Install PyTorch nightly
         run: |
           . activate "${CONDA_ENV_NAME}"
+          # Install dependencies
+          pip install requests bs4 argparse
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
