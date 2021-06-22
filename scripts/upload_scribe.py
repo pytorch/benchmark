@@ -179,11 +179,12 @@ if __name__ == "__main__":
                         type=argparse.FileType('r'),
                         help='Upload json data formatted by pytest-benchmark module')
     parser.add_argument("--torchbench_score_file", required=True,
+                        type=argparse.FileType('r'),
                         help="torchbench score file to include")
     args = parser.parse_args()
     
     # Result sanity check
-    json_name = os.path.basename(args.pytest_bench_json)
+    json_name = os.path.basename(args.pytest_bench_json.name)
     json_score = json.load(args.torchbench_score_file)
     score_data = None
     for data in json_score:
