@@ -50,18 +50,6 @@ for c in $(seq 1 $NUM_ITER); do
     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
             --benchmark-min-rounds "${NUM_ROUNDS}" \
             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
-    if [ "$CONFIG_VER" == "v0" ]; then
-        # Fill in circle_build_num and circle_project_reponame
-        jq --arg run_id "${GITHUB_RUN_ID}" --arg config_version "githubactions-benchmark-${CONFIG_VER}-metal-fullname" \
-           '.machine_info.circle_project_name=$config_version | .machine_info.circle_build_num=$run_id' \
-           ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json > ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json.tmp
-        mv ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json.tmp ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
-    elif [ "$CONFIG_VER" == "v1" ]; then
-        jq --arg run_id "${GITHUB_RUN_ID}" --arg config_version "${CONFIG_VER}" \
-           '.machine_info.torchbench_score_version=$config_version | .machine_info.circle_build_num=$run_id' \
-           ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json > ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json.tmp
-        mv ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json.tmp ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
-    fi
 done
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."

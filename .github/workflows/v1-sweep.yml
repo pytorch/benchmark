@@ -1,0 +1,17 @@
+name: TorchBench sweep v0.1
+on:
+  workflow_dispatch:
+
+jobs:
+  run-benchmark:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 2880 # 48 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: v1.0
+      - name: Run benchmark
+        run: |
+          SCORE_CONFIG=v1 bash ./.github/scripts/run-sweep.sh

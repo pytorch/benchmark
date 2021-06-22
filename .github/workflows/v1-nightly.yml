@@ -7,12 +7,13 @@ on:
 jobs:
   run-benchmark:
     env:
-      CONFIG_VER: "v1"
+      TORCHBENCH_CONFIG_VER: "v1"
       CONDA_ENV_NAME:  "v1-nightly-ci"
       OUTPUT_DIR: $(echo ${HOME})/.torchbench/v1-nighlty-ci
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     env:
+      CONDA_ENV_NAME: torchbench-v1-nightly-ci
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -26,6 +27,7 @@ jobs:
           conda create -y -q --name "${CONDA_ENV_NAME}" python=3.7
       - name: Install PyTorch nightly
         run: |
+          . activate "$CONDA_ENV_NAME"
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -38,7 +40,8 @@ jobs:
           -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
       - name: Run benchmark
         run: |
-          bash ./.github/scripts/run.sh "${OUTPUT_DIR}"
+          . activate "$CONDA_ENV_NAME"
+          CONFIG_VER="$TORCHBENCH_CONFIG_VER" bash ./.github/scripts/run.sh "${OUTPUT_DIR}"
       - name: Copy artifact
         run: |
           LATEST_RESULT=$(find ${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/ -name "*.json" | sort -r | head -1)
@@ -51,8 +54,9 @@ jobs:
           path: benchmark-result-v1-*.json
       - name: Upload results to Amazon S3
         run: |
+          . activate "$CONDA_ENV_NAME"
           LAST_MODIFIED_DIR=$(find ${OUTPUT_DIR} -mindepth 1 -maxdepth 1 -type d -exec stat -t {} \; | sort -r -n -k 13,13 | head -1 | cut -d " " -f 1)
-          python ./scripts/upload_s3.py --torchbench-result-dir ${LAST_MODIFIED_DIR} --gen-index --upload-s3
+          python ./scripts/upload_s3.py --torchbench-result-dir ${LAST_MODIFIED_DIR} --s3-result-dir torchbench-v1-nightly --gen-index --upload-s3
       - name: Remove conda env
         run: |
-          conda remove --name
+          conda env remove --name "${CONDA_ENV_NAME}"
