@@ -25,7 +25,7 @@ jobs:
           conda create -y -q --name "${CONDA_ENV_NAME}" python=3.7
       - name: Install PyTorch nightly
         run: |
-          . activate "$CONDA_ENV_NAME"
+          . activate "${CONDA_ENV_NAME}"
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -38,16 +38,21 @@ jobs:
           -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
       - name: Run benchmark
         run: |
-          . activate "$CONDA_ENV_NAME"
+          . activate "${CONDA_ENV_NAME}"
           bash ./.github/scripts/run.sh "${OUTPUT_DIR}"
       - name: Copy artifact and upload to scribe
         run: |
+          . activate "${CONDA_ENV_NAME}"
           LATEST_RESULT=$(find ${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/ -name "*.json" | sort -r | head -1)
           echo "Benchmark result file: $LATEST_RESULT"
           TODAY=$(date "+%Y%m%d%H%M%S")
+          CONFIG_DIR=torchbenchmark/score/configs/${CONFIG_VER}
+          CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
+          # Load environment variables
+          set -a; source ${CONFIG_ENV}; set +a
           CONFIG_NORM_FILE=${CONFIG_DIR}/${CONFIG_FILE}
           SCORE_FILE="./benchmark-result-v1-score-${TODAY}.json"
-          # Generate score
+          # Generate score file
           python compute_score.py --score_version v1 --benchmark_data_file $LATEST_RESULT > $SCORE_FILE
           # Upload result to Scribe
           python scripts/upload_scribe.py --pytest_bench_json $LATEST_RESULT --torchbench_score_file $SCORE_FILE 
@@ -57,6 +62,6 @@ jobs:
         with:
           name: Benchmark result
           path: benchmark-result-v1-*.json
-      - name: Remove conda env
+      - name: Destroy conda env
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"
