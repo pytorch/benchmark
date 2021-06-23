@@ -1,0 +1,36 @@
+name: TorchBench V0 bisection
+on:
+  workflow_dispatch:
+    inputs:
+      issue_name:
+        description: "Bisection Issue Name"
+        required: true
+        default: "example-issue"
+
+jobs:
+  bisection:
+    env:
+      BISECT_CONDA_ENV: "bisection-ci-v0"
+      BISECT_DIR: ".torchbench/bisection-v0"
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: 0.1
+      - name: Create conda environment
+        run: |
+          conda create -y -n "$BISECT_CONDA_ENV" python=3.7
+          . activate "$BISECT_CONDA_ENV"
+          conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses tabulate
+      - name: Bisection
+        run: |
+          export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
+          export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          bash ./.github/scripts/run-bisection.sh
+          # Update the result json symbolic link
+          ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"
+      - name: Remove conda environment
+        run: |
+          conda env remove --name "$BISECT_CONDA_ENV"
