@@ -32,18 +32,20 @@ jobs:
           SWEEP_JOB_ROOT="${HOME}/${SWEEP_DIR}/${SWEEP_JOB}"
           SWEEP_JOB_OUTPUT="${SWEEP_JOB_ROOT}/results/gh${GITHUB_RUN_ID}"
           for CONFIG in ${SWEEP_JOB_ROOT}/configs/*.txt; do
-              # Create a new conda env
-              CONFIG_BASE=$(basename ${CONFIG})
-              CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/.*-\(.*\)\.txt/\1/')
-              conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
-              . activate ${CONDA_ENV_NAME}
-              pip install -r "${CONFIG}"
-              python install.py
-              bash .github/scripts/run.sh "${SWEEP_JOB_OUTPUT}"
-              # Remove the conda env
-              conda deactivate
-              conda env remove --name ${CONDA_ENV_NAME}
+            echo "Running config $CONFIG ..."
+            # Create a new conda env
+            CONFIG_BASE=$(basename ${CONFIG})
+            CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/.*-\(.*\)\.txt/\1/')
+            conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
+            . activate ${CONDA_ENV_NAME}
+            pip install -r "${CONFIG}"
+            python install.py
+            bash .github/scripts/run.sh "${SWEEP_JOB_OUTPUT}"
+            # Remove the conda env
+            conda deactivate
+            conda env remove --name ${CONDA_ENV_NAME}
           done
+          echo "Finished running tasks"
         - name: Upload result
           run: |
             UPLOAD_COND=${{ github.event.inputs.upload_result }}
@@ -58,14 +60,14 @@ jobs:
             . activate ${CONDA_ENV_NAME}
             pip install -r requirements.txt
             for RESULT in ${SWEEP_JOB_OUTPUT}/results/*.json; do
-                # Upload when the file is non-empty
-                if [ ! -s $RESULT ]; then
-                  # Generate score file
-                  SCORE_FILE="${RESULT}.score.json"
-                  python compute_score.py --score_version v1 --benchmark_data_file "${RESULT}" > "${SCORE_FILE}"
-                  # Upload score
-                  python scripts/upload_scribe.py --pytest_bench_json "${RESULT}" --torchbench_score_file "${SCORE_FILE}"
-                fi
+              # Upload when the file is non-empty
+              if [ ! -s $RESULT ]; then
+                # Generate score file
+                SCORE_FILE="${RESULT}.score.json"
+                python compute_score.py --score_version v1 --benchmark_data_file "${RESULT}" > "${SCORE_FILE}"
+                # Upload score
+                python scripts/upload_scribe.py --pytest_bench_json "${RESULT}" --torchbench_score_file "${SCORE_FILE}"
+              fi
             done
             conda deactivate
             conda env remove --name ${CONDA_ENV_NAME}
