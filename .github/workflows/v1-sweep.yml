@@ -54,12 +54,14 @@ jobs:
             exit 0
           fi
           # Otherwise, continue upload
+          SWEEP_JOB=${{ github.event.inputs.sweep_name }}
+          SWEEP_JOB_ROOT="${HOME}/${SWEEP_DIR}/${SWEEP_JOB}"
           SWEEP_JOB_OUTPUT="${SWEEP_JOB_ROOT}/results/gh${GITHUB_RUN_ID}"
-          CONDA_ENV_NAME = sweep-ci
+          CONDA_ENV_NAME=sweep-ci
           conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
           . activate ${CONDA_ENV_NAME}
           pip install -r requirements.txt
-          for RESULT in ${SWEEP_JOB_OUTPUT}/results/*.json; do
+          for RESULT in ${SWEEP_JOB_OUTPUT}/*.json; do
             # Upload when the file is non-empty
             if [ ! -s $RESULT ]; then
               # Generate score file
