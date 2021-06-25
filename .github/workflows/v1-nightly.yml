@@ -1,6 +1,8 @@
 name: TorchBench v1.0 nightly CI
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *' # run at 2 PM UTC
 
 jobs:
   run-benchmark:
