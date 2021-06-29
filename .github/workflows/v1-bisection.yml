@@ -11,7 +11,7 @@ jobs:
   bisection:
     env:
       BISECT_CONDA_ENV: "bisection-ci-v1"
-      BISECT_DIR: ".torchbench/bisection-v1"
+      BISECT_DIR: ".torchbench/v1-bisection-ci"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     steps:
