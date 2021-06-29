@@ -71,7 +71,7 @@ jobs:
           python scripts/upload_scribe.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
           mkdir -p benchmark-output
           cp "${LATEST_RESULT}" ./benchmark-output/benchmark-result-v1-${TODAY}.json
-          cp "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/bisection.yaml" ./benchmark-output/bisection-v1-%{TODAY}.yaml
+          cp "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/bisection.yaml" ./benchmark-output/bisection-v1-${TODAY}.yaml
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
