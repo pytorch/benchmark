@@ -1,6 +1,7 @@
 bs4
 py-cpuinfo
 distro
+iopath
 pytest
 pytest-benchmark
 requests
