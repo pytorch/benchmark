@@ -196,8 +196,13 @@ class TorchSource:
         # pytorch doesn't update version.py in incremental compile, so generate it manually
         command = "python tools/generate_torch_version.py --is_debug on"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
-        command = "python setup.py install"
-        subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
+        try:
+            command = "python setup.py install"
+            subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
+        except subprocess.CalledProcessError:
+            # If the build fails, clean up all the build results, and try again
+            command = "make clean; python setup.py install"
+            subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
         self.build_install_deps(build_env)
 
