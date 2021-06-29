@@ -284,9 +284,9 @@ class TorchBench:
         bmfilter = targets_to_bmfilter(targets, self.models)
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         if not self.devbig:
-            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2&>1 | tee {output_dir}/benchmark.log"""
+            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
         else:
-            command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" 2&>1 | tee {output_dir}/benchmark.log"""
+            command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" 2>&1 | tee {output_dir}/benchmark.log"""
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
