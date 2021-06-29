@@ -47,6 +47,12 @@ jobs:
         run: |
           . activate "${CONDA_ENV_NAME}"
           bash ./.github/scripts/run.sh "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}"
+      - name: Generate the bisection config
+        run: |
+          . activate "${CONDA_ENV_NAME}"
+          python ./.github/scripts/generate-abtest-config.py \
+                 --benchmark-dir "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}" \
+                 --out "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/bisection.yaml"
       - name: Copy artifact and upload to scribe
         run: |
           . activate "${CONDA_ENV_NAME}"
@@ -63,12 +69,14 @@ jobs:
           python compute_score.py --score_version v1 --benchmark_data_file "${LATEST_RESULT}" > "${SCORE_FILE}"
           # Upload result to Scribe
           python scripts/upload_scribe.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
-          cp "${LATEST_RESULT}" ./benchmark-result-v1-${TODAY}.json
+          mkdir -p benchmark-output
+          cp "${LATEST_RESULT}" ./benchmark-output/benchmark-result-v1-${TODAY}.json
+          cp "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/bisection.yaml" ./benchmark-output/bisection-v1-%{TODAY}.yaml
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: Benchmark result
-          path: benchmark-result-v1-*.json
+          path: benchmark-output/
       - name: Destroy conda env
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"
