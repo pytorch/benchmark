@@ -27,22 +27,22 @@ def exist_dir_path(string):
         raise NotADirectoryError(string)
 
 def find_latest_nonempty_json(path):
-    json_files = list(filter(lambda x: x.endswith(".json"), os.listdir(result_dir)))
+    json_files = list(filter(lambda x: x.endswith(".json"), os.listdir(path)))
     json_files.sort(reverse=True)
     for f in json_files:
         # Return the first non-empty json file
-        json_path = os.path.join(result_dir, f)
+        json_path = os.path.join(path, f)
         if os.path.exists(json_path) and os.stat(json_path).st_size:
             return json_path
-    print(f"Can't find non-empty json files in path: {result_dir}")
+    print(f"Can't find non-empty json files in path: {path}")
     return None
 
 def get_pytorch_version(json_path):
     with open(json_path, "r") as json_obj:
         bm_result = json.load(json_obj)
-    pytorch_ver = PyTorchVer()
-    pytorch_ver.version = bm_result["machine_info"]["pytorch_version"]
-    pytorch_ver.commit = bm_result["machine_info"]["pytorch_git_version"]
+    pytorch_ver = PyTorchVer(version=bm_result["machine_info"]["pytorch_version"],
+                             commit=bm_result["machine_info"]["pytorch_git_version"])
+    return pytorch_ver
 
 # Compare the tests and generate a list of tests whose perf change larger than threshold
 def generate_bisection_tests(base, tip):
@@ -51,13 +51,14 @@ def generate_bisection_tests(base, tip):
         for benchmark in bm["benchmarks"]:
             name = benchmark["name"]
             ret[name] = benchmark["stats"]["mean"]
+        return ret
     base_tests = get_test_stats(base)
     tip_tests = get_test_stats(tip)
     result = []
     for benchmark in tip_tests:
         tip_latency = tip_tests[benchmark]
         base_latency = base_tests[benchmark]
-        if abs(tip_latency - base_latency) / base_latency >= PERF_CHANGE_THRESHOLD:
+        if abs(tip_latency - base_latency) / min(base_latency, tip_latency) >= PERF_CHANGE_THRESHOLD:
             result.append(benchmark)
     return result
 
@@ -91,9 +92,9 @@ if __name__ == "__main__":
     input_dir = Path(args.benchmark_dir)
     tip_json_file = find_latest_nonempty_json(input_dir)
     assert tip_json_file, "The input benchmark directory must contains non-empty json file"
-    tip_version = get_pytorch_version(input_json_file)
+    tip_version = get_pytorch_version(tip_json_file)
     parent_dir = input_dir.parent
-    all_benchmark_dirs = [ name for name in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, name)) ]
+    all_benchmark_dirs = [ os.path.join(parent_dir, name) for name in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, name)) ]
     all_benchmark_dirs.sort(reverse=True)
     result = {}
     # Search from the latest to the earliest

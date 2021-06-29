@@ -409,8 +409,8 @@ class TorchBenchBisection:
             # digest could be empty if benchmark timeout
             left_mean = left.digest[target] if len(left.digest) else 0
             right_mean = right.digest[target] if len(right.digest) else 0
-            # If either left or right timeout, diff is 100. Otherwise use left_mean to calculate diff.
-            diff = abs(left_mean - right_mean) / left_mean * 100 if min(left_mean, right_mean) else 100
+            # If either left or right timeout, diff is 100. Otherwise use the min mean value to calculate diff.
+            diff = abs(left_mean - right_mean) / min(left_mean, right_mean) * 100 if min(left_mean, right_mean) else 100
             # If both timeout, diff is zero percent
             diff = 0 if not max(left_mean, right_mean) else diff
             print(f"Target {target}: left commit {left.sha} mean {left_mean} vs. right commit {right.sha} mean {right_mean}. Diff: {diff}.")
