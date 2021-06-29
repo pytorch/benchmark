@@ -201,12 +201,12 @@ class TorchSource:
     def build_install_deps(self, build_env):
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
-        command = "python setup.py install &> /dev/null"
+        command = "python setup.py install"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"], env=build_env, shell=True)
         print("done")
         # Build torchtext
         print(f"Building torchtext ...", end="", flush=True)
-        command = "python setup.py clean install &> /dev/null"
+        command = "python setup.py clean install"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"], env=build_env, shell=True)
         print("done")
  
@@ -225,7 +225,7 @@ class TorchSource:
         # pytorch doesn't update version.py in incremental compile, so generate it manually
         command = "python tools/generate_torch_version.py --is_debug on"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
-        command = "python setup.py install &> /dev/null"
+        command = "python setup.py install"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
         self.build_install_deps(build_env)
@@ -284,9 +284,9 @@ class TorchBench:
         bmfilter = targets_to_bmfilter(targets, self.models)
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         if not self.devbig:
-            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" &> {output_dir}/benchmark.log"""
+            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2&>1 | tee {output_dir}/benchmark.log"""
         else:
-            command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" &> {output_dir}/benchmark.log"""
+            command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" 2&>1 | tee {output_dir}/benchmark.log"""
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
