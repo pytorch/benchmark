@@ -20,7 +20,8 @@ if [ -z ${PYTORCH_SRC_DIR} ]; then
 fi
 
 if [ -z ${TORCHBENCH_SRC_DIR} ]; then
-    TORCHBENCH_SRC_DIR=${HOME}/benchmark
+    CURRENT_SCRIPT_DIR=$(dirname $(readlink -f $0))
+    TORCHBENCH_SRC_DIR="${CURRENT_SCRIPT_DIR}/../../"
 fi
 
 if [ -z ${BISECT_CONDA_ENV} ]; then
