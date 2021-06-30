@@ -119,8 +119,8 @@ note: <model> can be a full, exact name, or a partial string match.
 Currently, models run on nightly pytorch builds and push data to Facebook
 internal database. The [nightly
 CI](https://github.com/pytorch/benchmark/actions) publishes both
-[V1](torchbenchmark/score/config/v1/config-v1.md) and
-[V0](torchbenchmark/score/config/v0/config-v0.md) performance scores.
+[V1](torchbenchmark/score/configs/v1/config-v1.md) and
+[V0](torchbenchmark/score/configs/v0/config-v0.md) performance scores.
 
 
 See [Unidash](https://www.internalfb.com/intern/unidash/dashboard/pytorch_benchmarks/torchbenchmark_v0/) (internal only)
