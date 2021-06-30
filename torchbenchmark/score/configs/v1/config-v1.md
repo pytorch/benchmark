@@ -72,9 +72,9 @@ The complete list of models is as follows:
 ## Reference Config YAML
 
 The reference config YAML file is stored [here](config-v1.yaml). It is generated
-by repeated runs of the same benchmark setting on pytorch v1.9.0.dev20210522,
-torchtext 0.10.0.dev20210522, and torchvision 0.10.0.dev20210522. The version we
-choose is based on the first stable nightly build that has the
+by repeated runs of the same benchmark setting on pytorch v1.10.0.dev20210612,
+torchtext 0.10.0.dev20210612, and torchvision 0.11.0.dev20210612. We choose the
+earliest PyTorch nightly version that has a stable implementation of the
 `optimize_for_inference` feature. We then picked a random execution of the
 repeated V1 benchmark runs as the reference execution, and summarize its
 performance metrics in the reference config YAML.
