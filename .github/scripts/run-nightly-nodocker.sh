@@ -32,6 +32,7 @@ export GOMP_CPU_AFFINITY="${CORE_LIST}"
 # Check if nightly builds are available
 NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch torchvision torchtext)
 # If failed, the script will generate empty result
+echo "$NIGHTLIES"
 if [ -z "$NIGHTLIES" ]; then
     echo "Torch, torchvision, or torchtext nightly build failed. Cancel the workflow."
     exit 1
