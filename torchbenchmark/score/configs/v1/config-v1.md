@@ -5,7 +5,7 @@ goal is to help users and developers understand the score and be able to
 reproduce it.
 
 V1 uses the same hardware environment as [V0](../v0/config-v0.md), but it covers
-far more models and tests
+far more models and test configurations.
 
 ## Requirements
 
