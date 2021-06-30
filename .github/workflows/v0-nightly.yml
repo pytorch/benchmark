@@ -1,4 +1,4 @@
-name: TorchBench nightly v0.1
+name: TorchBench V0 nightly
 on:
   workflow_dispatch:
   schedule:

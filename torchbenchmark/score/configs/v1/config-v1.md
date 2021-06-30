@@ -19,7 +19,7 @@ PyTorch.
 The V1 suite covers 50 models from popular machine learning domains.
 The complete list of models is as follows:
 
-| Model name                             | Domain                  |
+| Model name                             | Category                |
 |----------------------------------------|-------------------------|
 | BERT\_pytorch                          | NLP                     |
 | Background\_Matting                    | COMPUTER VISION         |
