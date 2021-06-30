@@ -28,7 +28,6 @@ conda install -y pytorch torchtext torchvision -c pytorch-nightly
 or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - see note below)
 ```
-pip install numpy
 pip install --pre torch torchvision torchtext -f https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html
 ```
 
@@ -50,9 +49,6 @@ git clone <benchmark>
 cd <benchmark>
 python install.py
 ```
-
-
-
 
 ### Notes
 - Setup steps require connectivity, make sure to enable a proxy if needed.
@@ -119,7 +115,13 @@ note: <model> can be a full, exact name, or a partial string match.
 - `-k "(BERT and (not cuda) and (not jit))"` for a more flexible approach to filtering
 
 ## Nightly CI runs
-Currently, models run on nightly pytorch builds and push data to scuba.
+
+Currently, models run on nightly pytorch builds and push data to Facebook
+internal database. The [nightly
+CI](https://github.com/pytorch/benchmark/actions) publishes both
+[V1](torchbenchmark/score/configs/v1/config-v1.md) and
+[V0](torchbenchmark/score/configs/v0/config-v0.md) performance scores.
+
 
 See [Unidash](https://www.internalfb.com/intern/unidash/dashboard/pytorch_benchmarks/torchbenchmark_v0/) (internal only)
 

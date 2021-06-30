@@ -1,4 +1,4 @@
-name: TorchBench v1.0 nightly CI
+name: TorchBench V1 nightly
 on:
   workflow_dispatch:
   schedule:

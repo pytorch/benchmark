@@ -1,4 +1,4 @@
-name: TorchBench sweep v0.1
+name: TorchBench V0 sweep
 on:
   workflow_dispatch:
 

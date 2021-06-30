@@ -1,4 +1,4 @@
-name: TorchBench V1 sweep workflow
+name: TorchBench V1 sweep
 on:
   workflow_dispatch:
     inputs:
