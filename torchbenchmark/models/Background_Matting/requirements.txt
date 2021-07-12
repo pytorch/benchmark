@@ -1,6 +1,6 @@
 numpy
 opencv-python
-pandas
+pandas==1.2.5
 Pillow
 scikit-image
 scipy
