@@ -40,7 +40,7 @@ fi
 
 mkdir -p ${DATA_DIR}
 # Remove old benchmark files
-rm ${DATA_DIR}/*.json
+rm ${DATA_DIR}/*.json || true
 
 conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 . activate ${CONDA_ENV_NAME}
