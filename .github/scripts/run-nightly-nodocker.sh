@@ -39,6 +39,9 @@ if [ -z "$NIGHTLIES" ]; then
 fi
 
 mkdir -p ${DATA_DIR}
+# Remove old benchmark files
+rm ${DATA_DIR}/*.json
+
 conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
 . activate ${CONDA_ENV_NAME}
 conda init bash; conda run /bin/bash
