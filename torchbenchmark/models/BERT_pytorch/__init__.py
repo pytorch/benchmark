@@ -10,18 +10,63 @@ from .bert_pytorch.dataset import BERTDataset, WordVocab
 from .bert_pytorch.model import BERT
 from torch.utils.data import DataLoader
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
+
+import io
+
+class CorpusGenerator(io.TextIOBase):
+
+    def __init__(self, words, lines):
+        self.lines_read = 0
+        self.lines = lines
+        self.words = words
+
+    def reset(self):
+        self.lines_read = 0
+
+    def readable(self):
+        if (self.lines_read > self.lines):
+            return False
+        return True
+
+    def readline(self):
+
+        self.lines_read = self.lines_read + 1
+        if (self.lines_read > self.lines):
+          return ""
+
+        newline = ""
+        for j in range(random.randrange(1,4)):
+            newline += str(random.randrange(self.words)) + " "
+
+        newline += "\\t "
+
+        for j in range(random.randrange(1,4)):
+            newline += str(random.randrange(self.words)) + " "
+
+        newline += "\n"
+
+        #print(newline)
+
+        return newline
+
+
+
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+
+    def reset_seeds(self, seed):
+        torch.manual_seed(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+
     def __init__(self, device=None, jit=False):
         super().__init__()
+
         self.device = device
         self.jit = jit
         root = str(Path(__file__).parent)
@@ -33,12 +78,54 @@ class Model(BenchmarkModel):
         ]) # Avoid reading sys.argv here
         args.with_cuda = self.device == 'cuda'
         args.script = self.jit
-        vocab = WordVocab.load_vocab(args.vocab_path)
 
+        # Example effect of batch size on eval time(ms)
+        # bs     cpu       cuda
+        # 1      330       15.5
+        # 2      660       15.5
+        # 4     1200       15.2
+        # 8     2200       20
+        # 16    4350       33
+        # 32    8000       58
+        #
+        # Issue is that with small batch sizes the gpu is starved for work.
+        # Ideally doubling work would double execution time.
+
+        # parameters for work size
+        args.batch_size = 16
+        vocab_size = 20000
+        args.corpus_lines = 50000
+
+        # generate random corpus from parameters
+        self.reset_seeds(1337)
+        vocab = WordVocab(CorpusGenerator(vocab_size, args.corpus_lines))
+
+        #with open(args.train_dataset, "r", encoding="utf-8") as f:
+        #  vocab = WordVocab(f)
+        #vocab = WordVocab.load_vocab(args.vocab_path)
+
+        if False:
+            print("seq_len:")
+            print(args.seq_len)
+            print("batch size:")
+            print(args.batch_size)
+            print("layers")
+            print(args.layers)
+            print("args hidden:")
+            print(args.hidden)
+            print("len vocab:")
+            print(len(vocab))
+            print(type(vocab))
+
+        self.reset_seeds(1337)
         train_dataset = BERTDataset(args.train_dataset, vocab, seq_len=args.seq_len,
-                                    corpus_lines=args.corpus_lines, on_memory=args.on_memory)
-        test_dataset = BERTDataset(args.test_dataset, vocab, seq_len=args.seq_len, on_memory=args.on_memory) \
+                                    corpus_lines=args.corpus_lines, on_memory=args.on_memory, generator = CorpusGenerator(vocab_size, args.corpus_lines))
+
+        self.reset_seeds(1337)
+        test_dataset = BERTDataset(args.test_dataset, vocab, seq_len=args.seq_len, on_memory=args.on_memory, generator = CorpusGenerator(vocab_size, args.corpus_lines)) \
             if args.test_dataset is not None else None
+
+        self.reset_seeds(1337)
 
         train_data_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         test_data_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers) \
@@ -50,11 +137,11 @@ class Model(BenchmarkModel):
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                                    with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
-        INFERENCE_BATCH_SIZE = 8
+        INFERENCE_BATCH_SIZE = args.batch_size
         example_batch = next(iter(train_data_loader))
-        self.example_inputs = example_batch['bert_input'].to(self.device), example_batch['segment_label'].to(self.device)[:INFERENCE_BATCH_SIZE]
-        self.is_next = example_batch['is_next'].to(self.device)
-        self.bert_label = example_batch['bert_label'].to(self.device)
+        self.example_inputs = example_batch['bert_input'].to(self.device)[:INFERENCE_BATCH_SIZE], example_batch['segment_label'].to(self.device)[:INFERENCE_BATCH_SIZE]
+        self.is_next = example_batch['is_next'].to(self.device)[:INFERENCE_BATCH_SIZE]
+        self.bert_label = example_batch['bert_label'].to(self.device)[:INFERENCE_BATCH_SIZE]
         if args.script:
             bert = torch.jit.script(bert, example_inputs=[self.example_inputs, ])
 
