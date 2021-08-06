@@ -1,9 +1,13 @@
+import contextlib
+import dataclasses
 import importlib
+import multiprocessing
+import multiprocessing.dummy
 import os
 import pathlib
 import subprocess
 import sys
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib import request
 
 from torch.utils.benchmark._impl.tasks import base as base_task
@@ -87,6 +91,14 @@ def setup(verbose: bool = True, continue_on_fail: bool = False) -> bool:
     return len(failures) == 0
 
 
+@dataclasses.dataclass(frozen=True)
+class ModelDetails:
+    path: str
+    exists: bool
+    optimized_for_inference: bool
+    _diagnostic_msg: str
+
+
 class ModelTask(base_task.TaskBase):
 
     def __init__(self, model_path: str) -> None:
@@ -94,51 +106,53 @@ class ModelTask(base_task.TaskBase):
         self._worker = subprocess_worker.SubprocessWorker()
         self.worker.run("import torch")
 
-        model_import_msg = self.maybe_import_model(
-            package=__name__, model_path=model_path)
+        self._details: ModelDetails = ModelDetails(
+            **self._maybe_import_model(
+                package=__name__,
+                model_path=model_path,
+            )
+        )
 
-        if model_import_msg is None:
-            self._model_present: bool = True
-        else:
-            assert isinstance(model_import_msg, str)
-            print(model_import_msg)
-            self._model_present = False
+        if self._details._diagnostic_msg:
+            print(self._details._diagnostic_msg)
 
     @property
     def worker(self) -> subprocess_worker.SubprocessWorker:
         return self._worker
 
     @property
-    def model_present(self) -> bool:
-        return self._model_present
-
-    def print_var(self, name: str) -> None:
-        # TODO: maybe upstream?
-        self.worker.run(f"__var_repr = repr({name})")
-        print(self.worker.load("__var_repr"))
-        self.worker.run("del __var_repr")
+    def model_details(self) -> bool:
+        return self._details
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def maybe_import_model(package: str, model_path: str) -> Optional[str]:
+    def _maybe_import_model(package: str, model_path: str) -> Dict[str, Any]:
         import importlib
         import os
 
         model_name = os.path.basename(model_path)
+        diagnostic_msg = ""
         try:
             module = importlib.import_module(f'.models.{model_name}', package=package)
+            Model = getattr(module, 'Model', None)
+            if Model is None:
+                diagnostic_msg = f"Warning: {module} does not define attribute Model, skip it"
+
+            elif not hasattr(Model, 'name'):
+                Model.name = model_name
 
         except ModuleNotFoundError as e:
-            return f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it"
-
-        Model = getattr(module, 'Model', None)
-        if Model is None:
-            return f"Warning: {module} does not define attribute Model, skip it"
-
-        if not hasattr(Model, 'name'):
-            Model.name = model_name
+            Model = None
+            diagnostic_msg = f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it"
 
         globals()["Model"] = Model
+
+        return {
+            "path": model_path,
+            "exists": Model is not None,
+            "optimized_for_inference": hasattr(Model, "optimized_for_inference"),
+            "_diagnostic_msg": diagnostic_msg,
+        }
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
@@ -151,14 +165,63 @@ class ModelTask(base_task.TaskBase):
 
         if device == 'cuda':
             torch.cuda.empty_cache()
+            maybe_sync = torch.cuda.synchronize
+        else:
+            maybe_sync = lambda: None
 
-        globals()["model"] = model
+        globals().update({
+            "model": model,
+            "maybe_sync": maybe_sync,
+        })
 
     def set_train(self) -> None:
         self.worker.run("model.set_train()")
 
     def train(self) -> None:
-        self.worker.run("model.train()")
+        self.worker.run("""
+            model.train()
+            maybe_sync()
+        """)
+
+    @contextlib.contextmanager
+    def no_grad(self, disable_nograd: bool):
+        # TODO: deduplicate with `torchbenchmark.util.model.no_grad`
+
+        initial_value = self.worker.load_stmt("torch.is_grad_enabled()")
+        eval_in_nograd = (
+            not disable_nograd and
+            self.worker.load_stmt("model.eval_in_nograd()")
+        )
+
+        try:
+            self.worker.run(f"torch.set_grad_enabled({not eval_in_nograd})")
+            yield
+        finally:
+            self.worker.run(f"torch.set_grad_enabled({initial_value})")
+
+    def set_eval(self) -> None:
+        self.worker.run("model.set_eval()")
+
+    def eval(self) -> None:
+        self.worker.run("""
+            model.eval()
+            maybe_sync()
+        """)
+
+    def check_opt_vs_noopt_jit(self) -> None:
+        self.worker.run("model.check_opt_vs_noopt_jit()")
+
+
+def list_models_details(workers: int=1) -> List[ModelDetails]:
+    # A lot of the work of importing the models to check is single threaded,
+    # so we can save a lot of headache by using multiple workers. However it's
+    # not linear, and past about cpu_count / 2 the returns are marginal.
+    num_workers = max(1, int(multiprocessing.cpu_count() // 2))
+    with multiprocessing.dummy.Pool(num_workers) as pool:
+        return pool.map(
+            lambda model_path: ModelTask(model_path).model_details,
+            _list_model_paths()
+        )
 
 
 def list_models():
