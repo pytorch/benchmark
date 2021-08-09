@@ -10,8 +10,8 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import request
 
-from torch.utils.benchmark._impl.tasks import base as base_task
-from torch.utils.benchmark._impl.workers import subprocess_worker
+from components._impl.tasks import base as base_task
+from components._impl.workers import subprocess_worker
 
 
 proxy_suggestion = "Unable to verify https connectivity, " \

@@ -16,9 +16,8 @@ import gc
 import pytest
 import time
 import torch
-from torchbenchmark import list_models, _list_model_paths, list_models_new, ModelTask
+from torchbenchmark import list_models_details, ModelTask
 from torchbenchmark.util.machine_config import get_machine_state
-from torchbenchmark.util.model import no_grad
 
 
 def pytest_generate_tests(metafunc):
@@ -29,7 +28,7 @@ def pytest_generate_tests(metafunc):
         devices = ['cpu']
 
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
-        models = [m for m in list_models_new() if m.exists]
+        models = [m for m in list_models_details() if m.exists]
         is_eval = metafunc.function.__name__ == "test_eval"
         test_name = lambda m : os.path.basename(m.path) + ("-freeze" if is_eval and m.optimized_for_inference else "")
         metafunc.parametrize(
