@@ -25,16 +25,102 @@ assert _ULL_SIZE == 8
 ENCODING = "utf-8"
 SUCCESS = "SUCCESS"
 
-IS_WINDOWS = sys.platform == "win32"
-if IS_WINDOWS:
-    import msvcrt
-
 # Precompute serialized normal return values
 EMPTY_RESULT = marshal.dumps({})
 SUCCESS_BYTES = marshal.dumps(SUCCESS)
 
 
+# =============================================================================
+# == Raw Communication ========================================================
+# =============================================================================
+
+# Windows does not allow subprocesses to inherit file descriptors, so instead
+# we have to go the the OS and get get the handle for the backing resource.
+IS_WINDOWS = sys.platform == "win32"
+if IS_WINDOWS:
+    import msvcrt
+    def to_handle(fd: typing.Optional[int]) -> typing.Optional[int]:
+        return None if fd is None else msvcrt.get_osfhandle(fd)
+
+    def from_handle(handle: typing.Optional[int], mode: int) -> typing.Optional[int]:
+        return None if handle is None else msvcrt.open_osfhandle(handle, mode)
+
+else:
+    to_handle = lambda fd: fd
+    from_handle = lambda fd, _: fd
+
+
+class Pipe:
+    """Helper class to handle PIPE lifetime and fd <-> handle conversion."""
+
+    def __init__(
+        self,
+        read_handle: typing.Optional[int] = None,
+        write_handle: typing.Optional[int] = None,
+    ) -> None:
+        self._owns_pipe = read_handle is None and write_handle is None
+        if self._owns_pipe:
+            self._r, self._w = os.pipe()
+        else:
+            self._r = from_handle(read_handle, os.O_RDONLY)
+            self._w = from_handle(write_handle, os.O_WRONLY)
+
+    @property
+    def read_handle(self) -> typing.Optional[int]:
+        return to_handle(self._r)
+
+    @property
+    def read_fd(self) -> typing.Optional[int]:
+        return self._r
+
+    @property
+    def write_handle(self) -> typing.Optional[int]:
+        return to_handle(self._w)
+
+    @property
+    def write_fd(self) -> typing.Optional[int]:
+        return self._w
+
+    def read(self) -> bytes:
+        assert self._r is not None, "Cannot read from PIPE, we do not have the read handle"
+
+        # Make sure we a starting from a reasonable place.
+        check = os.read(self._r, len(_CHECK))
+        if check != _CHECK:
+            raise IOError(f"{check} != {_CHECK}")
+
+        msg_size = struct.unpack(_ULL, os.read(self._r, _ULL_SIZE))[0]
+        return os.read(self._r, msg_size)
+
+    def write(self, msg: bytes) -> None:
+        assert self._w is not None, "Cannot write from PIPE, we do not have the write handle"
+        assert isinstance(msg, bytes), msg
+        os.write(self._w, _CHECK + struct.pack(_ULL, len(msg)) + msg)
+
+    def __del__(self) -> None:
+        if self._owns_pipe:
+            os.close(self._r)
+            os.close(self._w)
+
+
+# =============================================================================
+# == Exception Propagation  ===================================================
+# =============================================================================
+
 class ExceptionUnpickler(pickle.Unpickler):
+    """Unpickler which is specialized for Exception types.
+
+    When we catch an exception that we want to raise in another process, we
+    need to include the type of Exception. For custom exceptions this is a
+    problem, because pickle dynamically resolves imports which means we might
+    not be able to unpickle in the parent. (And reviving them by replaying
+    the constructor args might not work.) So in the interest of robustness, we
+    confine ourselves to builtin Exceptions. (With UnserializableException as
+    a fallback.)
+
+    However it is not possible to marshal even builtin Exception types, so
+    instead we use pickle and check that the type is builtin in `find_class`.
+    """
 
     @classmethod
     def load_bytes(cls, data: bytes) -> typing.Type[Exception]:
@@ -58,6 +144,7 @@ class ExceptionUnpickler(pickle.Unpickler):
 
 
 class UnserializableException(Exception):
+    """Fallback class for if a non-builtin Exception is raised."""
 
     def __init__(self, type_repr: str, args_repr: str) -> None:
         self.type_repr = type_repr
@@ -66,6 +153,8 @@ class UnserializableException(Exception):
 
 
 class ChildTraceException(Exception):
+    """Used to display a raising child's stack trace in the parent's stderr."""
+
     pass
 
 
@@ -189,53 +278,30 @@ class SerializedException:
         raise e from ChildTraceException(traceback_str)
 
 
-def _read_from_pipe(r_fd: int, convert_fd: bool = IS_WINDOWS) -> bytes:
-    if convert_fd:
-        assert IS_WINDOWS
-        r_fd = msvcrt.open_osfhandle(r_fd, os.O_RDONLY)
-
-    # Make sure we a starting from a reasonable place.
-    check = os.read(r_fd, len(_CHECK))
-    if check != _CHECK:
-        raise IOError(f"{check} != {_CHECK}")
-
-    msg_size = struct.unpack(_ULL, os.read(r_fd, _ULL_SIZE))[0]
-    return os.read(r_fd, msg_size)
-
-
-def _write_to_pipe(w_fd: int, msg: bytes, convert_fd: bool = IS_WINDOWS) -> None:
-    assert isinstance(msg, bytes), msg
-    if convert_fd:
-        assert IS_WINDOWS
-        w_fd = msvcrt.open_osfhandle(w_fd, os.O_WRONLY)
-    os.write(w_fd, _CHECK + struct.pack(_ULL, len(msg)) + msg)
-
+# =============================================================================
+# == Snippet Execution  =======================================================
+# =============================================================================
 
 def _log_progress(suffix: str) -> None:
     now = datetime.datetime.now().strftime("[%Y-%m-%d] %H:%M:%S.%f")
     print(f"\n{now}: TIMER_SUBPROCESS_{suffix}")
 
 
-def run_block(
+def _run_block(
     *,
-    input_fd: int,
-    output_fd: int,
+    input_pipe: Pipe,
+    output_pipe: Pipe,
+    globals_dict: typing.Dict[str, typing.Any],
 ):
     result = EMPTY_RESULT
     try:
-        _log_progress("BEGIN")
-        cmd = _read_from_pipe(input_fd).decode(ENCODING)
-
-        # In Python, `global` means global to a module, not global to the
-        # program. So if we simply call `globals()`, we will get the globals
-        # for this module (which contains lots of implementation details),
-        # not the globals from the from the calling context. So instead we grab
-        # the calling frame exec with those globals.
-        calling_frame = inspect.stack()[1].frame
+        _log_progress("BEGIN READ")
+        cmd = input_pipe.read().decode(ENCODING)
+        _log_progress("BEGIN EXEC")
 
         exec(  # noqa: P204
             compile(cmd, "<subprocess-worker>", "exec"),
-            calling_frame.f_globals,
+            globals_dict
         )
 
         _log_progress("SUCCESS")
@@ -249,7 +315,30 @@ def run_block(
         _log_progress("FAILED")
 
     finally:
-        _write_to_pipe(output_fd, result)
+        output_pipe.write(result)
         _log_progress("FINISHED")
         sys.stdout.flush()
         sys.stderr.flush()
+
+
+def run_loop(
+    *,
+    input_handle: int,
+    output_handle: int,
+) -> None:
+    #   In Python, `global` means global to a module, not global to the
+    #   program. So if we simply call `globals()`, we will get the globals for
+    #   this module (which contains lots of implementation details), not the
+    #   globals from the from the calling context (which has everything the
+    #   user expects).
+    caller_globals = inspect.currentframe().f_back.f_globals
+    input_pipe = Pipe(read_handle=input_handle)
+    output_pipe = Pipe(write_handle=output_handle)
+
+    output_pipe.write(b"RUN_LOOP_STARTED")
+    while True:
+        _run_block(
+            input_pipe=input_pipe,
+            output_pipe=output_pipe,
+            globals_dict=caller_globals,
+        )

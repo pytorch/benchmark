@@ -55,31 +55,28 @@ class SubprocessWorker(base.WorkerBase):
             os.path.join(self.working_dir, "stderr.txt"), mode="w",
         )
 
-        self.r_input, self.w_input = os.pipe()
-        self.r_output, self.w_output = os.pipe()
-        self.r_load, self.w_load = os.pipe()
+        self._input_pipe = subprocess_rpc.Pipe()
+        self._output_pipe = subprocess_rpc.Pipe()
+        self._load_pipe = subprocess_rpc.Pipe()
 
-        child_fds = [self.r_input, self.w_output, self.w_load]
+        child_fds = [
+            self._input_pipe.read_fd,
+            self._output_pipe.write_fd,
+            self._load_pipe.write_fd,
+        ]
         if subprocess_rpc.IS_WINDOWS:
-            import msvcrt
-            self._fd_to_handle = {
-                fd: msvcrt.get_osfhandle(fd)
-                for fd in child_fds
-            }
-
             for fd in child_fds:
                 os.set_inheritable(fd, True)
 
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.lpAttributeList["handle_list"].extend(
-                self._fd_to_handle.values())
+                [subprocess_rpc.to_handle(fd) for fd in child_fds])
 
             popen_kwargs = {
                 "startupinfo": startupinfo,
             }
 
         else:
-            self._fd_to_handle = {fd: fd for fd in child_fds}
             popen_kwargs = {
                 "close_fds": True,
                 "pass_fds": child_fds,
@@ -118,17 +115,27 @@ class SubprocessWorker(base.WorkerBase):
                 from components._impl.workers import subprocess_rpc
                 assert sys.path.pop() == cwd
                 globals()["subprocess_rpc"] = subprocess_rpc
-                subprocess_rpc._write_to_pipe(
-                    {self._fd_to_handle[self.w_output]}, b"IMPORT_SUCCESS")
+                pipe = subprocess_rpc.Pipe(write_handle={self._output_pipe.write_handle})
+                pipe.write(b"IMPORT_SUCCESS")
             except:
                 sys.exit(1)
         """))
 
+        self.write_stdin(textwrap.dedent(f"""
+            subprocess_rpc.run_loop(
+                input_handle={self._input_pipe.read_handle},
+                output_handle={self._output_pipe.write_handle},
+            )
+        """))
+
         with self.watch_stdout_stderr() as get_output:
             try:
-                result = subprocess_rpc._read_from_pipe(
-                    r_fd=self.r_output, convert_fd=False)
-                assert result == b"IMPORT_SUCCESS"
+                result = self._output_pipe.read()
+                assert result == b"IMPORT_SUCCESS", result
+
+                result = self._output_pipe.read()
+                assert result == b"RUN_LOOP_STARTED", result
+
                 self._worker_bootstrap_finished = True
             except:
                 stdout, stderr = get_output()
@@ -139,8 +146,10 @@ class SubprocessWorker(base.WorkerBase):
                     f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}"
                 )
 
-
     def write_stdin(self, msg: str) -> None:
+        if self._worker_bootstrap_finished:
+            raise ValueError("Cannot write to stdin after the run loop has started.")
+
         if self._proc.poll() is not None:
             raise ValueError("`self._proc` has exited. Cannot write to stdin.")
 
@@ -219,32 +228,20 @@ class SubprocessWorker(base.WorkerBase):
         # descriptor.
         self._run(anonymize_snippet(f"""
             import marshal
-            subprocess_rpc._write_to_pipe(
-                {self._fd_to_handle[self.w_load]},
-                marshal.dumps({name}),
-            )
+            subprocess_rpc.Pipe(write_handle={self._load_pipe.write_handle}).write(
+                marshal.dumps({name}))
         """))
 
-        return marshal.loads(subprocess_rpc._read_from_pipe(
-            r_fd=self.r_load, convert_fd=False))
+        return marshal.loads(self._load_pipe.read())
 
     def _run(self, snippet: str) -> None:
         """Helper method for running code in a subprocess."""
         assert self._worker_bootstrap_finished
 
         with self.watch_stdout_stderr() as get_output:
-            subprocess_rpc._write_to_pipe(
-                self.w_input, snippet.encode(subprocess_rpc.ENCODING), convert_fd=False)
+            self._input_pipe.write(snippet.encode(subprocess_rpc.ENCODING))
 
-            self.write_stdin(textwrap.dedent(f"""
-                subprocess_rpc.run_block(
-                    input_fd={self._fd_to_handle[self.r_input]},
-                    output_fd={self._fd_to_handle[self.w_output]},
-                )
-            """).strip())
-
-            result = marshal.loads(subprocess_rpc._read_from_pipe(
-                r_fd=self.r_output, convert_fd=False))
+            result = marshal.loads(self._output_pipe.read())
             if isinstance(result, str):
                 assert result == subprocess_rpc.SUCCESS
                 return
@@ -261,7 +258,11 @@ class SubprocessWorker(base.WorkerBase):
             )
 
     def __del__(self) -> None:
-        if self._proc.poll() is None:
+        self._input_pipe.write(b"exit(0)")
+        try:
+            self._proc.wait(timeout=0.01)
+
+        except subprocess.TimeoutExpired:
             if not subprocess_rpc.IS_WINDOWS:
                 self._proc.send_signal(signal.SIGINT)
 
@@ -270,20 +271,14 @@ class SubprocessWorker(base.WorkerBase):
 
             except PermissionError:
                 # NoisePoliceWorker runs under sudo, and thus will not allow
-                # SIGTERM to be sent. Note that because __del__ is sometimes
-                # called during program shutdown, we can't use
-                # `self.write_stdin`. (Because some of the modules will have
-                # already been unloaded.)
-                self._write_stdin_raw("exit()\n")
+                # SIGTERM to be sent.
+                print(f"Failed to clean up process {self._proc.pid}")
 
         # Unfortunately Popen does not clean up stdin when using PIPE. However
         # we also can't unconditionally close the fd as it could interfere with
         # the orderly teardown of the process. We try our best to kill
-        # `self._proc` in the previous block; here we wait for a reasonable
-        # timeout (1 second, which should be more than enough), and then if
-        # `self._proc` is terminated we make sure its stdin TextIOWrapper is
-        # closed as well.
-        self._proc.wait(timeout=1)
+        # `self._proc` in the previous block; if `self._proc` is terminated we
+        # make sure its stdin TextIOWrapper is closed as well.
         if self._proc.poll() is not None:
             proc_stdin = self._proc.stdin
             if proc_stdin is not None:
@@ -293,14 +288,6 @@ class SubprocessWorker(base.WorkerBase):
         # them without impacting the shutdown of `self._proc`.
         self._stdout_f.close()
         self._stderr_f.close()
-
-        # Close our communication fd's.
-        os.close(self.r_input)
-        os.close(self.w_input)
-        os.close(self.r_output)
-        os.close(self.w_output)
-        os.close(self.r_load)
-        os.close(self.w_load)
 
         # Finally, make sure we don't leak any files.
         shutil.rmtree(self._working_dir, ignore_errors=True)
