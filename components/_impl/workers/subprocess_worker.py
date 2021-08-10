@@ -126,7 +126,8 @@ class SubprocessWorker(base.WorkerBase):
 
         with self.watch_stdout_stderr() as get_output:
             try:
-                result = subprocess_rpc._read_from_pipe(r_fd=self.r_output)
+                result = subprocess_rpc._read_from_pipe(
+                    r_fd=self.r_output, convert_fd=False)
                 assert result == b"IMPORT_SUCCESS"
                 self._worker_bootstrap_finished = True
             except:
@@ -224,7 +225,8 @@ class SubprocessWorker(base.WorkerBase):
             )
         """))
 
-        return marshal.loads(subprocess_rpc._read_from_pipe(r_fd=self.r_load))
+        return marshal.loads(subprocess_rpc._read_from_pipe(
+            r_fd=self.r_load, convert_fd=False))
 
     def _run(self, snippet: str) -> None:
         """Helper method for running code in a subprocess."""
@@ -232,7 +234,7 @@ class SubprocessWorker(base.WorkerBase):
 
         with self.watch_stdout_stderr() as get_output:
             subprocess_rpc._write_to_pipe(
-                self.w_input, snippet.encode(subprocess_rpc.ENCODING))
+                self.w_input, snippet.encode(subprocess_rpc.ENCODING), convert_fd=False)
 
             self.write_stdin(textwrap.dedent(f"""
                 subprocess_rpc.run_block(
@@ -241,7 +243,8 @@ class SubprocessWorker(base.WorkerBase):
                 )
             """).strip())
 
-            result = marshal.loads(subprocess_rpc._read_from_pipe(r_fd=self.r_output))
+            result = marshal.loads(subprocess_rpc._read_from_pipe(
+                r_fd=self.r_output, convert_fd=False))
             if isinstance(result, str):
                 assert result == subprocess_rpc.SUCCESS
                 return

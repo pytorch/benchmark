@@ -189,8 +189,9 @@ class SerializedException:
         raise e from ChildTraceException(traceback_str)
 
 
-def _read_from_pipe(r_fd: int) -> bytes:
-    if IS_WINDOWS:
+def _read_from_pipe(r_fd: int, convert_fd: bool = IS_WINDOWS) -> bytes:
+    if convert_fd:
+        assert IS_WINDOWS
         r_fd = msvcrt.open_osfhandle(r_fd, os.O_RDONLY)
 
     # Make sure we a starting from a reasonable place.
@@ -202,9 +203,10 @@ def _read_from_pipe(r_fd: int) -> bytes:
     return os.read(r_fd, msg_size)
 
 
-def _write_to_pipe(w_fd: int, msg: bytes) -> None:
+def _write_to_pipe(w_fd: int, msg: bytes, convert_fd: bool = IS_WINDOWS) -> None:
     assert isinstance(msg, bytes), msg
-    if IS_WINDOWS:
+    if convert_fd:
+        assert IS_WINDOWS
         w_fd = msvcrt.open_osfhandle(w_fd, os.O_WRONLY)
     os.write(w_fd, _CHECK + struct.pack(_ULL, len(msg)) + msg)
 
