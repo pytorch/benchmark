@@ -25,6 +25,10 @@ assert _ULL_SIZE == 8
 ENCODING = "utf-8"
 SUCCESS = "SUCCESS"
 
+IS_WINDOWS = sys.platform == "win32"
+if IS_WINDOWS:
+    import msvcrt
+
 # Precompute serialized normal return values
 EMPTY_RESULT = marshal.dumps({})
 SUCCESS_BYTES = marshal.dumps(SUCCESS)
@@ -186,6 +190,9 @@ class SerializedException:
 
 
 def _read_from_pipe(r_fd: int) -> bytes:
+    if IS_WINDOWS:
+        r_fd = msvcrt.open_osfhandle(r_fd, os.O_RDONLY)
+
     # Make sure we a starting from a reasonable place.
     check = os.read(r_fd, len(_CHECK))
     if check != _CHECK:
@@ -197,6 +204,8 @@ def _read_from_pipe(r_fd: int) -> bytes:
 
 def _write_to_pipe(w_fd: int, msg: bytes) -> None:
     assert isinstance(msg, bytes), msg
+    if IS_WINDOWS:
+        w_fd = msvcrt.open_osfhandle(w_fd, os.O_WRONLY)
     os.write(w_fd, _CHECK + struct.pack(_ULL, len(msg)) + msg)
 
 

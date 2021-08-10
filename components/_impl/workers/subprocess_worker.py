@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import io
 import os
@@ -17,9 +18,6 @@ from components._impl.workers import base
 from components._impl.workers import subprocess_rpc
 
 
-_BOOTSTRAP_TIMEOUT = 10  # sec
-
-
 def anonymize_snippet(snippet: str) -> str:
     return f"""
 try:
@@ -32,7 +30,6 @@ finally:
     except NameError:
         pass  # function definition failed, nothing to cleanup
 """.strip()
-
 
 
 class SubprocessWorker(base.WorkerBase):
@@ -62,6 +59,26 @@ class SubprocessWorker(base.WorkerBase):
         self.r_output, self.w_output = os.pipe()
         self.r_load, self.w_load = os.pipe()
 
+        child_fds = [self.r_input, self.w_output, self.w_load]
+        if subprocess_rpc.IS_WINDOWS:
+            for fd in child_fds:
+                os.set_inheritable(fd, True)
+
+            import msvcrt
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.lpAttributeList["handle_list"].extend(
+                [msvcrt.get_osfhandle(fd) for fd in child_fds])
+
+            popen_kwargs = {
+                "startupinfo": startupinfo,
+            }
+
+        else:
+            popen_kwargs = {
+                "close_fds": True,
+                "pass_fds": child_fds,
+            }
+
         self._proc = subprocess.Popen(
             args=self.args,
             stdin=subprocess.PIPE,
@@ -69,9 +86,8 @@ class SubprocessWorker(base.WorkerBase):
             stderr=self._stderr_f,
             encoding=subprocess_rpc.ENCODING,
             bufsize=1,
-            close_fds=True,
             cwd=os.getcwd(),
-            pass_fds=[self.r_input, self.w_output, self.w_load],
+            **popen_kwargs,
         )
 
         self._worker_bootstrap_finished: bool = False
@@ -85,7 +101,6 @@ class SubprocessWorker(base.WorkerBase):
         need to do an initial import with a timeout so that we can surface
         failures to users.
         """
-        import_success = os.path.join(self.working_dir, "_import_success")
         self.write_stdin(anonymize_snippet(f"""
             try:
                 import os
@@ -97,25 +112,18 @@ class SubprocessWorker(base.WorkerBase):
                 from components._impl.workers import subprocess_rpc
                 assert sys.path.pop() == cwd
                 globals()["subprocess_rpc"] = subprocess_rpc
-                with open({repr(import_success)}, "wt") as f:
-                        pass
-            except ImportError:
+                subprocess_rpc._write_to_pipe({self.w_output}, b"IMPORT_SUCCESS")
+            except:
                 sys.exit(1)
         """))
 
-        start_time = time.time()
-        while True:
-            if os.path.exists(import_success):
+        with self.watch_stdout_stderr() as get_output:
+            try:
+                result = subprocess_rpc._read_from_pipe(r_fd=self.r_output)
+                assert result == b"IMPORT_SUCCESS"
                 self._worker_bootstrap_finished = True
-                break
-
-            elif self._proc.poll() or time.time() - start_time > _BOOTSTRAP_TIMEOUT:
-                with open(self._stdout_f.name, "rb") as f:
-                    stdout = f.read().decode("utf-8").strip()
-
-                with open(self._stderr_f.name, "rb") as f:
-                    stderr = f.read().decode("utf-8").strip()
-
+            except:
+                stdout, stderr = get_output()
                 cause = "import failed" if self._proc.poll() else "timeout"
                 raise RuntimeError(
                     f"Failed to bootstrap worker ({cause}):\n"
@@ -123,8 +131,6 @@ class SubprocessWorker(base.WorkerBase):
                     f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}"
                 )
 
-            else:
-                time.sleep(0.001)
 
     def write_stdin(self, msg: str) -> None:
         if self._proc.poll() is not None:
@@ -146,6 +152,26 @@ class SubprocessWorker(base.WorkerBase):
         assert proc_stdin is not None
         proc_stdin.write(msg)
         proc_stdin.flush()
+
+    @contextlib.contextmanager
+    def watch_stdout_stderr(self):
+        # Get initial state for stdout and stderr, since we only want to
+        # capture output since the contextmanager started.
+        stdout_stat = os.stat(self._stdout_f.name)
+        stderr_stat = os.stat(self._stderr_f.name)
+
+        def get() -> typing.Tuple[str, str]:
+            with open(self._stdout_f.name, "rb") as f:
+                _ = f.seek(stdout_stat.st_size)
+                stdout = f.read().decode("utf-8").strip()
+
+            with open(self._stderr_f.name, "rb") as f:
+                _ = f.seek(stderr_stat.st_size)
+                stderr = f.read().decode("utf-8").strip()
+
+            return stdout, stderr
+
+        yield get
 
     @property
     def working_dir(self) -> str:
@@ -191,54 +217,38 @@ class SubprocessWorker(base.WorkerBase):
             )
         """))
 
-        return marshal.loads(subprocess_rpc._read_from_pipe(self.r_load))
+        return marshal.loads(subprocess_rpc._read_from_pipe(r_fd=self.r_load))
 
     def _run(self, snippet: str) -> None:
         """Helper method for running code in a subprocess."""
-
         assert self._worker_bootstrap_finished
 
-        # Get initial state for stdout and stderr so we can print new lines
-        # if the command fails.
-        stdout_stat = os.stat(self._stdout_f.name)
-        stderr_stat = os.stat(self._stderr_f.name)
+        with self.watch_stdout_stderr() as get_output:
+            subprocess_rpc._write_to_pipe(
+                self.w_input, snippet.encode(subprocess_rpc.ENCODING))
 
-        subprocess_rpc._write_to_pipe(
-            self.w_input, snippet.encode(subprocess_rpc.ENCODING))
+            self.write_stdin(textwrap.dedent(f"""
+                subprocess_rpc.run_block(
+                    input_fd={self.r_input},
+                    output_fd={self.w_output},
+                )
+            """).strip())
 
-        self.write_stdin(textwrap.dedent(f"""
-            subprocess_rpc.run_block(
-                input_fd={self.r_input},
-                output_fd={self.w_output},
+            result = marshal.loads(subprocess_rpc._read_from_pipe(r_fd=self.r_output))
+            if isinstance(result, str):
+                assert result == subprocess_rpc.SUCCESS
+                return
+
+            assert isinstance(result, dict)
+            serialized_e = subprocess_rpc.SerializedException(**result)
+            stdout, stderr = get_output()
+            subprocess_rpc.SerializedException.raise_from(
+                serialized_e=serialized_e,
+                extra_context=(
+                    f"    stdout:\n{textwrap.indent(stdout, ' ' * 8)}\n\n"
+                    f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}"
+                )
             )
-        """).strip())
-
-        result = marshal.loads(subprocess_rpc._read_from_pipe(self.r_output))
-        if isinstance(result, str):
-            assert result == subprocess_rpc.SUCCESS
-            return
-
-        assert isinstance(result, dict)
-        serialized_e = subprocess_rpc.SerializedException(**result)
-
-        # SerializedException will plumb Exception info and stack trace
-        # into this process, but we also want to grab any printed info
-        # which could be diagnostically relevant.
-        with open(self._stdout_f.name, "rb") as f:
-            _ = f.seek(stdout_stat.st_size)
-            stdout = f.read().decode("utf-8").strip()
-
-        with open(self._stderr_f.name, "rb") as f:
-            _ = f.seek(stderr_stat.st_size)
-            stderr = f.read().decode("utf-8").strip()
-
-        subprocess_rpc.SerializedException.raise_from(
-            serialized_e=serialized_e,
-            extra_context=(
-                f"    stdout:\n{textwrap.indent(stdout, ' ' * 8)}\n\n"
-                f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}"
-            )
-        )
 
     def __del__(self) -> None:
         if self._proc.poll() is None:
