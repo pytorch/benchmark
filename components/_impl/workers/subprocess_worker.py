@@ -61,19 +61,25 @@ class SubprocessWorker(base.WorkerBase):
 
         child_fds = [self.r_input, self.w_output, self.w_load]
         if subprocess_rpc.IS_WINDOWS:
+            import msvcrt
+            self._fd_to_handle = {
+                fd: msvcrt.get_osfhandle(fd)
+                for fd in child_fds
+            }
+
             for fd in child_fds:
                 os.set_inheritable(fd, True)
 
-            import msvcrt
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.lpAttributeList["handle_list"].extend(
-                [msvcrt.get_osfhandle(fd) for fd in child_fds])
+                self._fd_to_handle.values())
 
             popen_kwargs = {
                 "startupinfo": startupinfo,
             }
 
         else:
+            self._fd_to_handle = {fd: fd for fd in child_fds}
             popen_kwargs = {
                 "close_fds": True,
                 "pass_fds": child_fds,
@@ -112,7 +118,8 @@ class SubprocessWorker(base.WorkerBase):
                 from components._impl.workers import subprocess_rpc
                 assert sys.path.pop() == cwd
                 globals()["subprocess_rpc"] = subprocess_rpc
-                subprocess_rpc._write_to_pipe({self.w_output}, b"IMPORT_SUCCESS")
+                subprocess_rpc._write_to_pipe(
+                    {self._fd_to_handle[self.w_output]}, b"IMPORT_SUCCESS")
             except:
                 sys.exit(1)
         """))
@@ -212,7 +219,7 @@ class SubprocessWorker(base.WorkerBase):
         self._run(anonymize_snippet(f"""
             import marshal
             subprocess_rpc._write_to_pipe(
-                {self.w_load},
+                {self._fd_to_handle[self.w_load]},
                 marshal.dumps({name}),
             )
         """))
@@ -229,8 +236,8 @@ class SubprocessWorker(base.WorkerBase):
 
             self.write_stdin(textwrap.dedent(f"""
                 subprocess_rpc.run_block(
-                    input_fd={self.r_input},
-                    output_fd={self.w_output},
+                    input_fd={self._fd_to_handle[self.r_input]},
+                    output_fd={self._fd_to_handle[self.w_output]},
                 )
             """).strip())
 
@@ -252,7 +259,9 @@ class SubprocessWorker(base.WorkerBase):
 
     def __del__(self) -> None:
         if self._proc.poll() is None:
-            self._proc.send_signal(signal.SIGINT)
+            if not subprocess_rpc.IS_WINDOWS:
+                self._proc.send_signal(signal.SIGINT)
+
             try:
                 self._proc.terminate()
 
