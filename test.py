@@ -20,7 +20,7 @@ class TestBenchmark(TestCase):
     def make_task(self, path, device):
         task = ModelTask(path)
         task.worker.run("import gc;gc.collect()")
-        if device == 'cude':
+        if device == 'cuda':
             self.memory = task.worker.load_stmt("torch.cuda.memory_allocated()")
         task.make_model_instance(device=device, jit=False)
         return task
