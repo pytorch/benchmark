@@ -16,6 +16,7 @@ import gc
 import pytest
 import time
 import torch
+from components._impl.workers import subprocess_worker
 from torchbenchmark import list_models_details, ModelTask
 from torchbenchmark.util.machine_config import get_machine_state
 
@@ -75,3 +76,27 @@ class TestBenchNetwork:
 
         except NotImplementedError:
             print('Method eval is not implemented, skipping...')
+
+
+@pytest.mark.benchmark(
+    warmup=True,
+    warmup_iterations=3,
+    disable_gc=False,
+    timer=time.perf_counter,
+    group='hub',
+)
+class TestWorker:
+    """Benchmark SubprocessWorker to make sure we aren't skewing results."""
+
+    def test_worker_noop(self, benchmark):
+        worker = subprocess_worker.SubprocessWorker()
+        benchmark(lambda: worker.run("pass"))
+
+    def test_worker_store(self, benchmark):
+        worker = subprocess_worker.SubprocessWorker()
+        benchmark(lambda: worker.store("x", 1))
+
+    def test_worker_load(self, benchmark):
+        worker = subprocess_worker.SubprocessWorker()
+        worker.store("x", 1)
+        benchmark(lambda: worker.load("x"))

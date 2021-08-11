@@ -1,11 +1,15 @@
-"""Utilities to handle communication between parent worker."""
+"""Utilities to handle communication between parent worker.
+
+This module implements three principle facilities:
+    1) Raw IPC (via the Pipe class)
+    2) Exception propagation (via the SerializedException class)
+    3) A run loop for the worker (via the run_loop function)
+"""
 import dataclasses
 import datetime
-import inspect
 import io
 import marshal
 import os
-import pathlib
 import pickle
 import struct
 import sys
@@ -13,6 +17,12 @@ import textwrap
 import traceback
 import types
 import typing
+
+
+# Shared static values / namespace between worker and parent
+BOOTSTRAP_IMPORT_SUCCESS = b"BOOTSTRAP_IMPORT_SUCCESS"
+BOOTSTRAP_INPUT_LOOP_SUCCESS = b"BOOTSTRAP_INPUT_LOOP_SUCCESS"
+WORKER_IMPL_NAMESPACE = "__worker_impl_namespace"
 
 
 # Constants for passing to and from pipes
@@ -51,7 +61,13 @@ else:
 
 
 class Pipe:
-    """Helper class to handle PIPE lifetime and fd <-> handle conversion."""
+    """Helper class to handle PIPE lifetime and fd <-> handle conversion.
+
+    The format for a message is two bytes of empty data to ensure that the pipe
+    is not corrupted (e.g. by an interrupted earlier read), followed by a uint64
+    size, followed by the variable length message. We do not expect to be read
+    or write bound, and safety is preferred to a maximally efficient format.
+    """
 
     def __init__(
         self,
@@ -178,7 +194,8 @@ class SerializedException:
         parent, we want to surface as much information as possible. It is
         not possible to serialize a traceback because it is too intertwined
         with the runtime; however what we really want is the traceback so we
-        can print it. We can grab that string and send it without issue.
+        can print it. We can grab that string and send it without issue. (And
+        providing a stack trace is very important for debuggability.)
 
         ExceptionUnpickler explicitly refuses to load any non-builtin exception
         (for the same reason we prefer `marshal` to `pickle`), so we won't be
@@ -284,7 +301,7 @@ class SerializedException:
 
 def _log_progress(suffix: str) -> None:
     now = datetime.datetime.now().strftime("[%Y-%m-%d] %H:%M:%S.%f")
-    print(f"\n{now}: TIMER_SUBPROCESS_{suffix}")
+    print(f"{now}: TIMER_SUBPROCESS_{suffix}")
 
 
 def _run_block(
@@ -324,21 +341,28 @@ def _run_block(
 def run_loop(
     *,
     input_handle: int,
-    output_handle: int,
+    output_pipe: Pipe,
+    load_handle: int,
 ) -> None:
-    #   In Python, `global` means global to a module, not global to the
-    #   program. So if we simply call `globals()`, we will get the globals for
-    #   this module (which contains lots of implementation details), not the
-    #   globals from the from the calling context (which has everything the
-    #   user expects).
-    caller_globals = inspect.currentframe().f_back.f_globals
     input_pipe = Pipe(read_handle=input_handle)
-    output_pipe = Pipe(write_handle=output_handle)
 
-    output_pipe.write(b"RUN_LOOP_STARTED")
+    # In general, we want a clean separation between user code and framework
+    # code. However, certain methods in SubprocessWorker (store and load)
+    # want to access implementation details in this module. As a result, we
+    # run tasks through a context where globals start out clean EXCEPT for
+    # a namespace where we can stash implementation details.
+    globals_dict = {
+        WORKER_IMPL_NAMESPACE: {
+            "subprocess_rpc": sys.modules[__name__],
+            "marshal": marshal,
+            "load_pipe": Pipe(write_handle=load_handle)
+        }
+    }
+
+    output_pipe.write(BOOTSTRAP_INPUT_LOOP_SUCCESS)
     while True:
         _run_block(
             input_pipe=input_pipe,
             output_pipe=output_pipe,
-            globals_dict=caller_globals,
+            globals_dict=globals_dict,
         )

@@ -18,20 +18,6 @@ from components._impl.workers import base
 from components._impl.workers import subprocess_rpc
 
 
-def anonymize_snippet(snippet: str) -> str:
-    return f"""
-try:
-    def _subprocess_anonymous_snippet_f():
-{textwrap.indent(textwrap.dedent(snippet).strip(), " " * 8)}
-    _subprocess_anonymous_snippet_f()
-finally:
-    try:
-        del _subprocess_anonymous_snippet_f
-    except NameError:
-        pass  # function definition failed, nothing to cleanup
-""".strip()
-
-
 class SubprocessWorker(base.WorkerBase):
     """Open a subprocess using `python -i`, and use it to execute code.
 
@@ -45,8 +31,9 @@ class SubprocessWorker(base.WorkerBase):
     def __init__(self) -> None:
         super().__init__()
 
-        self._stdin: str = os.path.join(self.working_dir, "stdin.log")
-        pathlib.Path(self._stdin).touch()
+        # Log inputs and outputs for debugging.
+        self._command_log = os.path.join(self.working_dir, "commands.log")
+        pathlib.Path(self._command_log).touch()
 
         self._stdout_f: io.FileIO = io.FileIO(
             os.path.join(self.working_dir, "stdout.txt"), mode="w",
@@ -55,10 +42,18 @@ class SubprocessWorker(base.WorkerBase):
             os.path.join(self.working_dir, "stderr.txt"), mode="w",
         )
 
+        # `self._run` has strong assumptions about how `_input_pipe` and
+        # `_output_pipe` are used. They should not be accessed in any other
+        # context. (The same is true for `self.load` and `_load_pipe`.)
         self._input_pipe = subprocess_rpc.Pipe()
         self._output_pipe = subprocess_rpc.Pipe()
         self._load_pipe = subprocess_rpc.Pipe()
 
+        # Windows and Unix differ in how pipes are shared with children.
+        # In Unix they are inherited, while in Windows the child consults the
+        # OS to get access. Most of this complexity is handled by
+        # `subprocess_rpc.Pipe`, however we also have to make sure Popen
+        # exposes the pipes in a platform appropriate way.
         child_fds = [
             self._input_pipe.read_fd,
             self._output_pipe.write_fd,
@@ -96,15 +91,61 @@ class SubprocessWorker(base.WorkerBase):
         self._worker_bootstrap_finished: bool = False
         self._bootstrap_worker()
 
-    def _bootstrap_worker(self) -> None:
-        """Import subprocess_rpc in `self._proc`.
+    @property
+    def working_dir(self) -> str:
+        # A subclass might need to access `self.working_dir` before calling
+        # `super().__init__` in order to properly construct `args`, so we need
+        # to lazily initialize it.
+        if getattr(self, "_working_dir", None) is None:
+            self._working_dir = tempfile.mkdtemp()
+        return self._working_dir
 
-        `_run` relies on `subprocess_rpc` for communication and
-        error handling, so if the import fails it will deadlock. Instead we
-        need to do an initial import with a timeout so that we can surface
-        failures to users.
+    @property
+    def args(self) -> typing.List[str]:
+        return [sys.executable, "-i", "-u"]
+
+    def run(self, snippet: str) -> None:
+        self._run(snippet)
+
+    def store(self, name: str, value: typing.Any, in_memory: bool = False) -> None:
+        if in_memory:
+            raise NotImplementedError("SubprocessWorker does not support `in_memory`")
+
+        # NB: we convert the bytes to a hex string to avoid encoding issues.
+        self._run(f"""
+            {name} = {subprocess_rpc.WORKER_IMPL_NAMESPACE}["marshal"].loads(
+                bytes.fromhex({repr(marshal.dumps(value).hex())})
+            )
+        """)
+
+    def load(self, name: str) -> typing.Any:
+        # It is important to scope the file write through
+        # `_subprocess_impl_load_fn`, because otherwise we leak the file
+        # descriptor.
+        self._run(f"""
+            {subprocess_rpc.WORKER_IMPL_NAMESPACE}["load_pipe"].write(
+                {subprocess_rpc.WORKER_IMPL_NAMESPACE}["marshal"].dumps({name})
+            )
+        """)
+
+        return marshal.loads(self._load_pipe.read())
+
+    @property
+    def in_process(self) -> bool:
+        return False
+
+    def _bootstrap_worker(self) -> None:
+        """Import subprocess_rpc in the worker, and start the work loop.
+
+        Commands are executed by writing to `self._input_pipe`, and waiting for
+        a response on `self._output_pipe`. This presumes, however, that there
+        is a worker doing the opposite: listening to the input pipe and writing
+        to the output pipe. At startup `self._proc` is a simple interactive
+        Python process, so we have to bootstrap it to start the work loop or
+        else `self._run` will hang waiting for jobs to be processed.
         """
-        self.write_stdin(anonymize_snippet(f"""
+
+        bootstrap_command = textwrap.dedent(f"""
             try:
                 import os
                 import sys
@@ -114,61 +155,53 @@ class SubprocessWorker(base.WorkerBase):
                 sys.path.append(cwd)
                 from components._impl.workers import subprocess_rpc
                 assert sys.path.pop() == cwd
-                globals()["subprocess_rpc"] = subprocess_rpc
-                pipe = subprocess_rpc.Pipe(write_handle={self._output_pipe.write_handle})
-                pipe.write(b"IMPORT_SUCCESS")
+                output_pipe = subprocess_rpc.Pipe(
+                    write_handle={self._output_pipe.write_handle})
+                output_pipe.write(subprocess_rpc.BOOTSTRAP_IMPORT_SUCCESS)
+                subprocess_rpc.run_loop(
+                    input_handle={self._input_pipe.read_handle},
+                    output_pipe=output_pipe,
+                    load_handle={self._load_pipe.write_handle},
+                )
             except:
                 sys.exit(1)
-        """))
+        """).strip()
 
-        self.write_stdin(textwrap.dedent(f"""
-            subprocess_rpc.run_loop(
-                input_handle={self._input_pipe.read_handle},
-                output_handle={self._output_pipe.write_handle},
-            )
-        """))
+        if self._proc.poll() is not None:
+            raise ValueError("Process has already exited.")
+
+        proc_stdin = self._proc.stdin
+        assert proc_stdin is not None
+
+        self._log_cmd(bootstrap_command)
+
+        # We need two newlines for Python to stop waiting for more input.
+        proc_stdin.write(f"{bootstrap_command}\n\n")
+        proc_stdin.flush()
 
         with self.watch_stdout_stderr() as get_output:
             try:
                 result = self._output_pipe.read()
-                assert result == b"IMPORT_SUCCESS", result
+                assert result == subprocess_rpc.BOOTSTRAP_IMPORT_SUCCESS, result
 
                 result = self._output_pipe.read()
-                assert result == b"RUN_LOOP_STARTED", result
+                assert result == subprocess_rpc.BOOTSTRAP_INPUT_LOOP_SUCCESS, result
 
                 self._worker_bootstrap_finished = True
-            except:
+            except (Exception, KeyboardInterrupt) as e:
                 stdout, stderr = get_output()
                 cause = "import failed" if self._proc.poll() else "timeout"
-                raise RuntimeError(
+                raise e from RuntimeError(
                     f"Failed to bootstrap worker ({cause}):\n"
+                    f"    working_dir: {self.working_dir}\n"
                     f"    stdout:\n{textwrap.indent(stdout, ' ' * 8)}\n\n"
                     f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}"
                 )
 
-    def write_stdin(self, msg: str) -> None:
-        if self._worker_bootstrap_finished:
-            raise ValueError("Cannot write to stdin after the run loop has started.")
-
-        if self._proc.poll() is not None:
-            raise ValueError("`self._proc` has exited. Cannot write to stdin.")
-
-        # Log stdin for debugging. (With time added for convenience.)
-        with open(self._stdin, "at", encoding="utf-8") as f:
+    def _log_cmd(self, snippet: str) -> None:
+        with open(self._command_log, "at", encoding="utf-8") as f:
             now = datetime.datetime.now().strftime("[%Y-%m-%d] %H:%M:%S.%f")
-            f.write(f"# {now}\n{msg}\n")
-
-        # Actually write to proc stdin. Python is funny about input; if there
-        # aren't enough newlines (contextual based on AST) it will wait rather
-        # than executing. To guard against this we liberally apply newlines to
-        # avoid ambiguity.
-        self._write_stdin_raw(f"\n\n{msg}\n\n")
-
-    def _write_stdin_raw(self, msg: str) -> None:
-        proc_stdin = self._proc.stdin
-        assert proc_stdin is not None
-        proc_stdin.write(msg)
-        proc_stdin.flush()
+            f.write(f"# {now}\n{snippet}\n")
 
     @contextlib.contextmanager
     def watch_stdout_stderr(self):
@@ -190,54 +223,11 @@ class SubprocessWorker(base.WorkerBase):
 
         yield get
 
-    @property
-    def working_dir(self) -> str:
-        # A subclass might need to access `self.working_dir` before calling
-        # `super().__init__` in order to properly construct `args`, so we need
-        # to lazily initialize it.
-        if getattr(self, "_working_dir", None) is None:
-            self._working_dir = tempfile.mkdtemp()
-        return self._working_dir
-
-    @property
-    def args(self) -> typing.List[str]:
-        return [sys.executable, "-i", "-u"]
-
-    @property
-    def in_process(self) -> bool:
-        return False
-
-    def run(self, snippet: str) -> None:
-        self._run(textwrap.dedent(snippet))
-
-    def store(self, name: str, value: typing.Any, in_memory: bool = False) -> None:
-        if in_memory:
-            raise NotImplementedError("SubprocessWorker does not support `in_memory`")
-
-        # NB: we convert the bytes to a hex string to avoid encoding issues.
-        self._run(anonymize_snippet(f"""
-            import marshal
-            globals()[{repr(name)}] = marshal.loads(bytes.fromhex(
-                {repr(marshal.dumps(value).hex())}
-            ))
-        """))
-
-    def load(self, name: str) -> typing.Any:
-        # It is important to scope the file write through
-        # `_subprocess_impl_load_fn`, because otherwise we leak the file
-        # descriptor.
-        self._run(anonymize_snippet(f"""
-            import marshal
-            subprocess_rpc.Pipe(write_handle={self._load_pipe.write_handle}).write(
-                marshal.dumps({name}))
-        """))
-
-        return marshal.loads(self._load_pipe.read())
-
     def _run(self, snippet: str) -> None:
         """Helper method for running code in a subprocess."""
         assert self._worker_bootstrap_finished
 
+        snippet = textwrap.dedent(snippet)
         with self.watch_stdout_stderr() as get_output:
             self._input_pipe.write(snippet.encode(subprocess_rpc.ENCODING))
 
@@ -252,12 +242,14 @@ class SubprocessWorker(base.WorkerBase):
             subprocess_rpc.SerializedException.raise_from(
                 serialized_e=serialized_e,
                 extra_context=(
+                    f"    working_dir: {self.working_dir}\n"
                     f"    stdout:\n{textwrap.indent(stdout, ' ' * 8)}\n\n"
                     f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}"
                 )
             )
 
     def __del__(self) -> None:
+        """Best effort to kill subprocess and cleanup files upon exit."""
         self._input_pipe.write(b"exit(0)")
         try:
             self._proc.wait(timeout=0.01)
