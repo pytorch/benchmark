@@ -15,26 +15,6 @@ from torchbenchmark import list_models_details, ModelTask
 
 class TestBenchmark(TestCase):
 
-    # We can't use setUp and tearDown, because the task (and by extension the
-    # worker) is created on a per-test basis.
-    def make_task(self, path, device):
-        task = ModelTask(path)
-        task.worker.run("import gc;gc.collect()")
-        if device == 'cuda':
-            self.memory = task.worker.load_stmt("torch.cuda.memory_allocated()")
-        task.make_model_instance(device=device, jit=False)
-        return task
-
-    def assert_cleanup(self, task, device):
-        if device == "cuda":
-            task.worker.run("""
-                del model
-                gc.collect()
-            """)
-            memory = task.worker.load_stmt("torch.cuda.memory_allocated()")
-            task.worker.run("torch.cuda.empty_cache()")
-            self.assertEqual(self.memory, memory)
-
     def test_fx_profile(self):
         try:
             from torch.fx.interpreter import Interpreter
@@ -50,44 +30,39 @@ class TestBenchmark(TestCase):
 def _load_test(details, device):
 
     def example(self):
-        task = self.make_task(details.path, device)
+        task = ModelTask(path)
+        with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
+            try:
+                task.make_model_instance(device=device, jit=False)
+                task.check_example()
 
-        try:
-            task.worker.run("""
-                module, example_inputs = model.get_module()
-                if isinstance(example_inputs, dict):
-                    # Huggingface models pass **kwargs as arguments, not *args
-                    module(**example_inputs)
-                else:
-                    module(*example_inputs)
-                del module
-                del example_inputs
-            """)
-            self.assert_cleanup(task, device)
-        except NotImplementedError:
-            self.skipTest('Method get_module is not implemented, skipping...')
+            except NotImplementedError:
+                self.skipTest('Method get_module is not implemented, skipping...')
 
     def train(self):
-        task = self.make_task(details.path, device)
-
-        try:
-            task.set_train()
-            task.train()
-            self.assert_cleanup(task, device)
-        except NotImplementedError:
-            self.skipTest('Method train is not implemented, skipping...')
+        task = ModelTask(path)
+        with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
+            try:
+                task.make_model_instance(device=device, jit=False)
+                task.set_train()
+                task.train()
+            except NotImplementedError:
+                self.skipTest('Method train is not implemented, skipping...')
 
     def eval_fn(self):
-        task = self.make_task(details.path, device)
-        if details.optimized_for_inference:
-            assert task.worker.load_stmt("hasattr(model, 'eval_model')")
+        task = ModelTask(path)
+        with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
+            try:
+                task.make_model_instance(device=device, jit=False)
+                assert (
+                    not details.optimized_for_inference or
+                    task.worker.load_stmt("hasattr(model, 'eval_model')"))
 
-        try:
-            task.set_eval()
-            task.eval()
-            self.assert_cleanup(task, device)
-        except NotImplementedError:
-            self.skipTest('Method eval is not implemented, skipping...')
+                task.set_eval()
+                task.eval()
+                self.assert_cleanup(task, device)
+            except NotImplementedError:
+                self.skipTest('Method eval is not implemented, skipping...')
 
     setattr(TestBenchmark, f'test_{details.name}_example_{device}', example)
     setattr(TestBenchmark, f'test_{details.name}_train_{device}', train)

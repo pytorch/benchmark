@@ -93,6 +93,19 @@ def setup(verbose: bool = True, continue_on_fail: bool = False) -> bool:
 
 @dataclasses.dataclass(frozen=True)
 class ModelDetails:
+    """Static description of what a particular TorchBench model supports.
+
+    When parameterizing tests, we only want to generate sensible ones.
+    (e.g. Those where a model can be imported and supports the feature to be
+    tested or benchmarked.) This requires us to import the model; however many
+    of the models are EXTREMELY stateful, and even importing them consumes
+    significant system resources. As a result, we only want one (or a few)
+    alive at any given time.
+
+    This class describes what a particular model does and does not support, so
+    that we can release the underlying subprocess but retain any pertinent
+    metadata.
+    """
     path: str
     exists: bool
     optimized_for_inference: bool
@@ -128,6 +141,10 @@ class ModelTask(base_task.TaskBase):
     def model_details(self) -> bool:
         return self._details
 
+    # =========================================================================
+    # == Import Model in the child process ====================================
+    # =========================================================================
+
     @base_task.run_in_worker(scoped=True)
     @staticmethod
     def _maybe_import_model(package: str, model_path: str) -> Dict[str, Any]:
@@ -149,14 +166,20 @@ class ModelTask(base_task.TaskBase):
             Model = None
             diagnostic_msg = f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it"
 
+        # Populate global namespace so subsequent calls to worker.run can access `Model`
         globals()["Model"] = Model
 
+        # This will be used to populate a `ModelDetails` instance in the parent.
         return {
             "path": model_path,
             "exists": Model is not None,
             "optimized_for_inference": hasattr(Model, "optimized_for_inference"),
             "_diagnostic_msg": diagnostic_msg,
         }
+
+    # =========================================================================
+    # == Instantiate a concrete `model` instance ==============================
+    # =========================================================================
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
@@ -178,6 +201,10 @@ class ModelTask(base_task.TaskBase):
             "maybe_sync": maybe_sync,
         })
 
+    # =========================================================================
+    # == Forward calls to `model` from parent to worker =======================
+    # =========================================================================
+
     def set_train(self) -> None:
         self.worker.run("model.set_train()")
 
@@ -186,22 +213,6 @@ class ModelTask(base_task.TaskBase):
             model.train()
             maybe_sync()
         """)
-
-    @contextlib.contextmanager
-    def no_grad(self, disable_nograd: bool):
-        # TODO: deduplicate with `torchbenchmark.util.model.no_grad`
-
-        initial_value = self.worker.load_stmt("torch.is_grad_enabled()")
-        eval_in_nograd = (
-            not disable_nograd and
-            self.worker.load_stmt("model.eval_in_nograd()")
-        )
-
-        try:
-            self.worker.run(f"torch.set_grad_enabled({not eval_in_nograd})")
-            yield
-        finally:
-            self.worker.run(f"torch.set_grad_enabled({initial_value})")
 
     def set_eval(self) -> None:
         self.worker.run("model.set_eval()")
@@ -214,6 +225,57 @@ class ModelTask(base_task.TaskBase):
 
     def check_opt_vs_noopt_jit(self) -> None:
         self.worker.run("model.check_opt_vs_noopt_jit()")
+
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def check_example(self) -> None:
+        model = globals()["model"]
+        module, example_inputs = model.get_module()
+        if isinstance(example_inputs, dict):
+            # Huggingface models pass **kwargs as arguments, not *args
+            module(**example_inputs)
+        else:
+            module(*example_inputs)
+
+    # =========================================================================
+    # == Control `torch` state (in the subprocess) ============================
+    # =========================================================================
+
+    @contextlib.contextmanager
+    def no_grad(self, disable_nograd: bool) -> None:
+        # TODO: deduplicate with `torchbenchmark.util.model.no_grad`
+
+        initial_value = self.worker.load_stmt("torch.is_grad_enabled()")
+        eval_in_nograd = (
+            not disable_nograd and
+            self.worker.load_stmt("model.eval_in_nograd()"))
+
+        try:
+            self.worker.run(f"torch.set_grad_enabled({not eval_in_nograd})")
+            yield
+        finally:
+            self.worker.run(f"torch.set_grad_enabled({initial_value})")
+
+    @contextlib.contextmanager
+    def watch_cuda_memory(
+        self,
+        skip: bool,
+        assert_equal: typing.Callable[[int, int], typing.NoReturn],
+    ):
+        # This context manager is used in testing to ensure we're not leaking
+        # memory; these tests are generally parameterized by device, so in some
+        # cases we want this (and the outer check) to simply be a no-op.
+        if skip:
+            yield
+            return
+
+        self.worker.run("import gc;gc.collect()")
+        memory_before = self.worker.load_stmt("torch.cuda.memory_allocated()")
+        yield
+        self.worker.run("gc.collect()")
+        memory_after = self.worker.load_stmt("torch.cuda.memory_allocated()")
+        assert_equal(memory_before, memory_after)
+        self.worker.run("torch.cuda.empty_cache()")
 
 
 def list_models_details(workers: int=1) -> List[ModelDetails]:
