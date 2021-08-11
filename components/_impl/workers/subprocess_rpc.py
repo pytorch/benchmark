@@ -5,6 +5,7 @@ This module implements three principle facilities:
     2) Exception propagation (via the SerializedException class)
     3) A run loop for the worker (via the run_loop function)
 """
+import contextlib
 import dataclasses
 import datetime
 import io
@@ -14,6 +15,8 @@ import pickle
 import struct
 import sys
 import textwrap
+import threading
+import time
 import traceback
 import types
 import typing
@@ -26,6 +29,9 @@ WORKER_IMPL_NAMESPACE = "__worker_impl_namespace"
 
 # Constants for passing to and from pipes
 _CHECK = b"\x00\x00"
+_TIMEOUT = b"\x01\x01"
+assert len(_CHECK) == len(_TIMEOUT)
+
 _ULL = "Q"  # Unsigned long long
 _ULL_SIZE = len(struct.pack(_ULL, 0))
 assert _ULL_SIZE == 8
@@ -66,63 +72,164 @@ else:
     from_handle = lambda fd, _: fd
 
 
-class Pipe:
-    """Helper class to handle PIPE lifetime and fd <-> handle conversion.
+class _TimeoutPIPE:
+    """Allow Pipe to interrupt its read.
 
-    The format for a message is two bytes of empty data to ensure that the pipe
-    is not corrupted (e.g. by an interrupted earlier read), followed by a uint64
-    size, followed by the variable length message. We do not expect to be read
-    or write bound, and safety is preferred to a maximally efficient format.
+    `os.read` is a syscall, which means it is not interruptable. This means
+    that normal timeout mechanisms such as `asyncio.wait_for(..., timeout=...)`
+    will not work because they rely on the awaited function returning control
+    to the event loop. An alternate formulation uses `run_in_executor` and
+    `asyncio.wait`, which places the read on a side thread under the hood.
+    However this is also not suitable, because:
+
+        1)  This additional machinery increases the cost when data is already
+            present in the Pipe (most common case) ~1000x, from O(us) to O(ms)
+        2)  We have to poll the future, which wastes the awaitable nature `read`
+
+    Instead of trying to interrupt the pipe read, we can cause it terminate by
+    writing to the pipe; because we control the read (via `Pipe.read`) we can
+    catch the sentinel timeout value and raise appropriately.
+
+    This class is designed to be extremely lightweight. Timeouts should be on
+    the order of seconds (or minutes), and are only to prevent deadlocks in the
+    case of catastrophic worker failure. As a result, we prioritize low
+    resource usage over the ability to support small timeouts.
+    """
+
+    _singleton_lock = threading.Lock()
+    _singleton: typing.Optional["_TimeoutPIPE"] = None
+
+    _loop_lock = threading.Lock()
+    _active_reads: typing.Dict[int, typing.Tuple[float, float]]
+    _loop_cadence = 1  # second
+
+    @classmethod
+    def singleton(cls) -> "_TimeoutPIPE":
+        # This class will spawn a thread, so we only want one active at a time.
+        with cls._singleton_lock:
+            if cls._singleton is None:
+                cls._singleton = cls()
+            return cls._singleton
+
+    def __init__(self) -> None:
+        self._active_reads = {}
+        self._thread = threading.Thread(target=self._loop)
+        self._thread.daemon = True
+        self._thread.start()
+
+    def _loop(self):
+        # This loop is scoped to the life of the process, so we rely on process
+        # teardown to pull the rug out from under the daemonic thread running
+        # this function.
+        while True:
+            time.sleep(self._loop_cadence)
+            now = time.time()
+            with self._loop_lock:
+                for w_fd, (timeout, start_time) in tuple(self._active_reads.items()):
+                    if now - start_time >= timeout and w_fd in self._active_reads:
+                        os.write(w_fd, _TIMEOUT)
+                        self.pop(w_fd)
+
+    def pop(self, w_fd: int) -> None:
+        self._active_reads.pop(w_fd, None)
+
+    @classmethod
+    @contextlib.contextmanager
+    def maybe_timeout_read(cls, pipe: "Pipe") -> None:
+        timeout = pipe.timeout
+
+        # Workers should never set a timeout, so in that case we want to exit
+        # without calling `cls.singleton()` so we don't spawn an unnecessary
+        # loop thread.
+        if timeout is None:
+            yield
+            return
+
+        w_fd = pipe.write_fd
+        assert w_fd is not None, "Cannot timeout without write file descriptor."
+        singleton = cls.singleton()
+        with singleton._loop_lock:
+            # This will only occur in the case of concurrent reads on different
+            # threads (not supported) or a leaked case.
+            assert w_fd not in singleton._active_reads, f"{w_fd} is already being watched."
+            singleton._active_reads[w_fd] = (timeout, time.time())
+
+        try:
+            yield
+
+        finally:
+            singleton.pop(w_fd)
+
+
+class Pipe:
+    """Helper class to move data in a robust fashon.
+
+    This class handles:
+        1) File descriptor lifetimes
+        2) File descriptor inheritance
+        3) Message packing and unpacking
+        4) (Optional) timeouts for reads
     """
 
     def __init__(
         self,
         read_handle: typing.Optional[int] = None,
         write_handle: typing.Optional[int] = None,
+        timeout: typing.Optional[float] = None
     ) -> None:
         self._owns_pipe = read_handle is None and write_handle is None
         if self._owns_pipe:
-            self._r, self._w = os.pipe()
+            self.read_fd, self.write_fd = os.pipe()
         else:
-            self._r = from_handle(read_handle, os.O_RDONLY)
-            self._w = from_handle(write_handle, os.O_WRONLY)
+            self.read_fd = from_handle(read_handle, os.O_RDONLY)
+            self.write_fd = from_handle(write_handle, os.O_WRONLY)
 
-    @property
-    def read_handle(self) -> typing.Optional[int]:
-        return to_handle(self._r)
+        self.read_handle = read_handle or to_handle(self.read_fd)
+        self.write_handle = write_handle or to_handle(self.write_fd)
+        self.timeout = timeout
 
-    @property
-    def read_fd(self) -> typing.Optional[int]:
-        return self._r
+    def _read(self, size: int) -> bytes:
+        """Handle the low level details of reading from the PIPE."""
+        if self.read_fd is None:
+            raise IOError("Cannot read from PIPE, we do not have the read handle")
 
-    @property
-    def write_handle(self) -> typing.Optional[int]:
-        return to_handle(self._w)
+        with _TimeoutPIPE.maybe_timeout_read(self):
+            raw_msg = os.read(self.read_fd, len(_CHECK) + size)
 
-    @property
-    def write_fd(self) -> typing.Optional[int]:
-        return self._w
+        check_bytes, msg = raw_msg[:len(_CHECK)], raw_msg[len(_CHECK):]
+        if check_bytes == _TIMEOUT:
+            raise IOError(f"Exceeded timeout: {self.timeout}")
+
+        if check_bytes != _CHECK:
+            raise IOError(f"{check} != {_CHECK}, {msg}")
+
+        if len(msg) != size:
+            raise IOError(f"len(msg) != size: {len(msg)} vs. {size}")
+
+        return msg
 
     def read(self) -> bytes:
-        assert self._r is not None, "Cannot read from PIPE, we do not have the read handle"
-
-        # Make sure we a starting from a reasonable place.
-        check = os.read(self._r, len(_CHECK))
-        if check != _CHECK:
-            raise IOError(f"{check} != {_CHECK}")
-
-        msg_size = struct.unpack(_ULL, os.read(self._r, _ULL_SIZE))[0]
-        return os.read(self._r, msg_size)
+        msg_size = struct.unpack(_ULL, self._read(_ULL_SIZE))[0]
+        return self._read(msg_size)
 
     def write(self, msg: bytes) -> None:
-        assert self._w is not None, "Cannot write from PIPE, we do not have the write handle"
+        if self.write_fd is None:
+            raise IOError("Cannot write from PIPE, we do not have the write handle")
         assert isinstance(msg, bytes), msg
-        os.write(self._w, _CHECK + struct.pack(_ULL, len(msg)) + msg)
+        packed_msg = (
+            # First read: message length
+            _CHECK + struct.pack(_ULL, len(msg)) +
+
+            # Second read: message contents
+            _CHECK + msg
+        )
+
+        os.write(self.write_fd, packed_msg)
 
     def __del__(self) -> None:
         if self._owns_pipe:
-            os.close(self._r)
-            os.close(self._w)
+            os.close(self.read_fd)
+            os.close(self.write_fd)
 
 
 # =============================================================================
@@ -318,9 +425,9 @@ def _run_block(
 ):
     result = EMPTY_RESULT
     try:
-        _log_progress("BEGIN READ")
+        _log_progress("BEGIN_READ")
         cmd = input_pipe.read().decode(ENCODING)
-        _log_progress("BEGIN EXEC")
+        _log_progress("BEGIN_EXEC")
 
         exec(  # noqa: P204
             compile(cmd, "<subprocess-worker>", "exec"),

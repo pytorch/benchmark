@@ -27,8 +27,9 @@ class SubprocessWorker(base.WorkerBase):
     """
 
     _working_dir: str
+    _bootstrap_timeout: int = 10  # seconds
 
-    def __init__(self) -> None:
+    def __init__(self, timeout: typing.Optional[float] = None) -> None:
         super().__init__()
 
         # Log inputs and outputs for debugging.
@@ -46,8 +47,8 @@ class SubprocessWorker(base.WorkerBase):
         # `_output_pipe` are used. They should not be accessed in any other
         # context. (The same is true for `self.load` and `_load_pipe`.)
         self._input_pipe = subprocess_rpc.Pipe()
-        self._output_pipe = subprocess_rpc.Pipe()
-        self._load_pipe = subprocess_rpc.Pipe()
+        self._output_pipe = subprocess_rpc.Pipe(timeout=timeout)
+        self._load_pipe = subprocess_rpc.Pipe(timeout=timeout)
 
         # Windows and Unix differ in how pipes are shared with children.
         # In Unix they are inherited, while in Windows the child consults the
@@ -119,9 +120,6 @@ class SubprocessWorker(base.WorkerBase):
         """)
 
     def load(self, name: str) -> typing.Any:
-        # It is important to scope the file write through
-        # `_subprocess_impl_load_fn`, because otherwise we leak the file
-        # descriptor.
         self._run(f"""
             {subprocess_rpc.WORKER_IMPL_NAMESPACE}["load_pipe"].write(
                 {subprocess_rpc.WORKER_IMPL_NAMESPACE}["marshal"].dumps({name})
@@ -145,6 +143,9 @@ class SubprocessWorker(base.WorkerBase):
         else `self._run` will hang waiting for jobs to be processed.
         """
 
+        # NB: This gets sent directly to `self._proc`'s stdin, so it MUST be
+        #     a single expression and may NOT contain any empty lines. (Due to
+        #     how Python processes commands.)
         bootstrap_command = textwrap.dedent(f"""
             try:
                 import os
@@ -181,13 +182,24 @@ class SubprocessWorker(base.WorkerBase):
 
         with self.watch_stdout_stderr() as get_output:
             try:
-                result = self._output_pipe.read()
+                # Bootstrapping is very fast. (Unlike user code where we have
+                # no a priori expected upper bound.) If we don't get a response
+                # prior to the timeout, it is overwhelmingly likely that the
+                # worker died or the bootstrap failed. (E.g. failed to resolve
+                # import path.) This simply allows us to raise a good error.
+                bootstrap_pipe = subprocess_rpc.Pipe(
+                    read_handle=self._output_pipe.read_handle,
+                    write_handle=self._output_pipe.write_handle,
+                    timeout=self._bootstrap_timeout,
+                )
+                result = bootstrap_pipe.read()
                 assert result == subprocess_rpc.BOOTSTRAP_IMPORT_SUCCESS, result
 
-                result = self._output_pipe.read()
+                result = bootstrap_pipe.read()
                 assert result == subprocess_rpc.BOOTSTRAP_INPUT_LOOP_SUCCESS, result
 
                 self._worker_bootstrap_finished = True
+                assert self._proc.poll() is None
             except (Exception, KeyboardInterrupt) as e:
                 stdout, stderr = get_output()
                 cause = "import failed" if self._proc.poll() else "timeout"
@@ -226,6 +238,7 @@ class SubprocessWorker(base.WorkerBase):
     def _run(self, snippet: str) -> None:
         """Helper method for running code in a subprocess."""
         assert self._worker_bootstrap_finished
+        assert self._proc.poll() is None, "Process has exited"
 
         snippet = textwrap.dedent(snippet)
         with self.watch_stdout_stderr() as get_output:
