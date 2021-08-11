@@ -24,7 +24,6 @@ BOOTSTRAP_IMPORT_SUCCESS = b"BOOTSTRAP_IMPORT_SUCCESS"
 BOOTSTRAP_INPUT_LOOP_SUCCESS = b"BOOTSTRAP_INPUT_LOOP_SUCCESS"
 WORKER_IMPL_NAMESPACE = "__worker_impl_namespace"
 
-
 # Constants for passing to and from pipes
 _CHECK = b"\x00\x00"
 _ULL = "Q"  # Unsigned long long
@@ -34,6 +33,13 @@ assert _ULL_SIZE == 8
 # Text encoding for input commands.
 ENCODING = "utf-8"
 SUCCESS = "SUCCESS"
+
+# In Python, `sys.exit()` is a soft exit. It throws a SystemExit, and only
+# exits if that is not caught. `os._exit()` is not catchable, and is suitable
+# for cases where we really, really need to exit. This is of particular
+# importance because the worker run loop does its very best to swallow
+# exceptions.
+HARD_EXIT = "import os\nos._exit(0)".encode(ENCODING)
 
 # Precompute serialized normal return values
 EMPTY_RESULT = marshal.dumps({})
@@ -324,7 +330,7 @@ def _run_block(
         _log_progress("SUCCESS")
         result = SUCCESS_BYTES
 
-    except Exception as e:
+    except (Exception, KeyboardInterrupt) as e:
         tb = sys.exc_info()[2]
         assert tb is not None
         serialized_e = SerializedException.from_exception(e, tb)

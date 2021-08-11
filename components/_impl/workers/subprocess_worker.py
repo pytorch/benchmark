@@ -250,9 +250,9 @@ class SubprocessWorker(base.WorkerBase):
 
     def __del__(self) -> None:
         """Best effort to kill subprocess and cleanup files upon exit."""
-        self._input_pipe.write(b"exit(0)")
+        self._input_pipe.write(subprocess_rpc.HARD_EXIT)
         try:
-            self._proc.wait(timeout=0.01)
+            self._proc.wait(timeout=1)
 
         except subprocess.TimeoutExpired:
             if not subprocess_rpc.IS_WINDOWS:
@@ -271,10 +271,13 @@ class SubprocessWorker(base.WorkerBase):
         # the orderly teardown of the process. We try our best to kill
         # `self._proc` in the previous block; if `self._proc` is terminated we
         # make sure its stdin TextIOWrapper is closed as well.
-        if self._proc.poll() is not None:
+        try:
+            self._proc.wait(timeout=1)
             proc_stdin = self._proc.stdin
             if proc_stdin is not None:
                 proc_stdin.close()
+        except subprocess.TimeoutExpired:
+            pass
 
         # We own these fd's, and it seems that we can unconditionally close
         # them without impacting the shutdown of `self._proc`.

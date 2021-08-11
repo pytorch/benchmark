@@ -98,6 +98,10 @@ class ModelDetails:
     optimized_for_inference: bool
     _diagnostic_msg: str
 
+    @property
+    def name(self) -> str:
+        return os.path.basename(self.path)
+
 
 class ModelTask(base_task.TaskBase):
 

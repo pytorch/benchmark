@@ -10,22 +10,30 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import torch
-from torchbenchmark import list_models
+from torchbenchmark import list_models_details, ModelTask
 
 
 class TestBenchmark(TestCase):
-    def setUp(self):
-        gc.collect()
-        if 'cuda' in str(self):
-            self.memory = torch.cuda.memory_allocated()
 
-    def tearDown(self):
-        gc.collect()
-        if 'cuda' in str(self):
-            gc.collect()
-            memory = torch.cuda.memory_allocated()
+    # We can't use setUp and tearDown, because the task (and by extension the
+    # worker) is created on a per-test basis.
+    def make_task(self, path, device):
+        task = ModelTask(path)
+        task.worker.run("import gc;gc.collect()")
+        if device == 'cude':
+            self.memory = task.worker.load_stmt("torch.cuda.memory_allocated()")
+        task.make_model_instance(device=device, jit=False)
+        return task
+
+    def assert_cleanup(self, task, device):
+        if device == "cuda":
+            task.worker.run("""
+                del model
+                gc.collect()
+            """)
+            memory = task.worker.load_stmt("torch.cuda.memory_allocated()")
+            task.worker.run("torch.cuda.empty_cache()")
             self.assertEqual(self.memory, memory)
-            torch.cuda.empty_cache()
 
     def test_fx_profile(self):
         try:
@@ -39,50 +47,61 @@ class TestBenchmark(TestCase):
             self.assertGreaterEqual(mock_save.call_count, 1)
 
 
-def _load_test(model_class, device):
-    def model_object(self):
-        if device == 'cuda' and not torch.cuda.is_available():
-            self.skipTest("torch.cuda not available")
-        return model_class(device=device)
+def _load_test(details, device):
 
     def example(self):
-        m = model_object(self)
+        task = self.make_task(details.path, device)
+
         try:
-            module, example_inputs = m.get_module()
-            if isinstance(example_inputs, dict):
-                # Huggingface models pass **kwargs as arguments, not *args
-                module(**example_inputs)
-            else:
-                module(*example_inputs)
+            task.worker.run("""
+                module, example_inputs = model.get_module()
+                if isinstance(example_inputs, dict):
+                    # Huggingface models pass **kwargs as arguments, not *args
+                    module(**example_inputs)
+                else:
+                    module(*example_inputs)
+                del module
+                del example_inputs
+            """)
+            self.assert_cleanup(task, device)
         except NotImplementedError:
             self.skipTest('Method get_module is not implemented, skipping...')
 
     def train(self):
-        m = model_object(self)
+        task = self.make_task(details.path, device)
+
         try:
-            m.train()
+            task.set_train()
+            task.train()
+            self.assert_cleanup(task, device)
         except NotImplementedError:
             self.skipTest('Method train is not implemented, skipping...')
 
-    def eval(self):
-        m = model_object(self)
-        # if the model is marked as optimized for inference, it needs to have
-        # the attr set to True and "eval_model" attribute
-        assert(not hasattr(m, "optimized_for_inference") or (m.optimized_for_inference and hasattr(m, "eval_model")))
+    def eval_fn(self):
+        task = self.make_task(details.path, device)
+        if details.optimized_for_inference:
+            assert task.worker.load_stmt("hasattr(model, 'eval_model')")
+
         try:
-            m.eval()
+            task.set_eval()
+            task.eval()
+            self.assert_cleanup(task, device)
         except NotImplementedError:
             self.skipTest('Method eval is not implemented, skipping...')
 
-    setattr(TestBenchmark, f'test_{model_class.name}_example_{device}', example)
-    setattr(TestBenchmark, f'test_{model_class.name}_train_{device}', train)
-    setattr(TestBenchmark, f'test_{model_class.name}_eval_{device}', eval)
+    setattr(TestBenchmark, f'test_{details.name}_example_{device}', example)
+    setattr(TestBenchmark, f'test_{details.name}_train_{device}', train)
+    setattr(TestBenchmark, f'test_{details.name}_eval_{device}', eval_fn)
 
 
 def _load_tests():
-    for Model in list_models():
-        for device in ('cpu', 'cuda'):
-            _load_test(Model, device)
+    devices = ['cpu']
+    if torch.cuda.is_available():
+        devices.append('cuda')
+
+    for details in list_models_details():
+        for device in devices:
+            _load_test(details, device)
 
 
 _load_tests()
