@@ -232,7 +232,7 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def check_example(self) -> None:
+    def check_example() -> None:
         model = globals()["model"]
         module, example_inputs = model.get_module()
         if isinstance(example_inputs, dict):
