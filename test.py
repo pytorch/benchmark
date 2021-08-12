@@ -13,6 +13,15 @@ import torch
 from torchbenchmark import list_models_details, ModelTask
 
 
+# Some of the models have very heavyweight setup, so we have to set a very
+# generous limit. That said, we don't want the entire test suite to hang if
+# a single test encounters an extreme failure, so we give up after 5 a test
+# is unresponsive to 5 minutes. (Note: this does not require that the entire
+# test case completes in 5 minutes. It requires that if the worker is
+# unresponsive for 5 minutes the parent will presume it dead / incapacitated.)
+TIMEOUT = 300  # Seconds
+
+
 class TestBenchmark(TestCase):
 
     def test_fx_profile(self):
@@ -30,7 +39,7 @@ class TestBenchmark(TestCase):
 def _load_test(details, device):
 
     def example(self):
-        task = ModelTask(path)
+        task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
@@ -40,7 +49,7 @@ def _load_test(details, device):
                 self.skipTest('Method get_module is not implemented, skipping...')
 
     def train(self):
-        task = ModelTask(path)
+        task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
@@ -50,7 +59,7 @@ def _load_test(details, device):
                 self.skipTest('Method train is not implemented, skipping...')
 
     def eval_fn(self):
-        task = ModelTask(path)
+        task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)

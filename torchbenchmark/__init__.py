@@ -118,9 +118,13 @@ class ModelDetails:
 
 class ModelTask(base_task.TaskBase):
 
-    def __init__(self, model_path: str) -> None:
+    def __init__(
+        self,
+        model_path: str,
+        timeout: typing.Optional[float] = None,
+    ) -> None:
         self._model_path = model_path
-        self._worker = subprocess_worker.SubprocessWorker()
+        self._worker = subprocess_worker.SubprocessWorker(timeout=timeout)
         self.worker.run("import torch")
 
         self._details: ModelDetails = ModelDetails(
