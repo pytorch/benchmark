@@ -7,7 +7,7 @@ import os
 import pathlib
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 from urllib import request
 
 from components._impl.tasks import base as base_task
@@ -121,7 +121,7 @@ class ModelTask(base_task.TaskBase):
     def __init__(
         self,
         model_path: str,
-        timeout: typing.Optional[float] = None,
+        timeout: Optional[float] = None,
     ) -> None:
         self._model_path = model_path
         self._worker = subprocess_worker.SubprocessWorker(timeout=timeout)
@@ -264,7 +264,7 @@ class ModelTask(base_task.TaskBase):
     def watch_cuda_memory(
         self,
         skip: bool,
-        assert_equal: typing.Callable[[int, int], typing.NoReturn],
+        assert_equal: Callable[[int, int], NoReturn],
     ):
         # This context manager is used in testing to ensure we're not leaking
         # memory; these tests are generally parameterized by device, so in some

@@ -39,8 +39,8 @@ class TestBenchmark(TestCase):
 def _load_test(details, device):
 
     def example(self):
-        task = ModelTask(path, timeout=TIMEOUT)
-        with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
+        task = ModelTask(details.path, timeout=TIMEOUT)
+        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
                 task.check_example()
@@ -49,8 +49,8 @@ def _load_test(details, device):
                 self.skipTest('Method get_module is not implemented, skipping...')
 
     def train(self):
-        task = ModelTask(path, timeout=TIMEOUT)
-        with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
+        task = ModelTask(details.path, timeout=TIMEOUT)
+        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
                 task.set_train()
@@ -59,8 +59,8 @@ def _load_test(details, device):
                 self.skipTest('Method train is not implemented, skipping...')
 
     def eval_fn(self):
-        task = ModelTask(path, timeout=TIMEOUT)
-        with task.watch_cuda_memory(skip=(device != "cuda"), self.assertEqual):
+        task = ModelTask(details.path, timeout=TIMEOUT)
+        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
                 assert (
@@ -69,7 +69,6 @@ def _load_test(details, device):
 
                 task.set_eval()
                 task.eval()
-                self.assert_cleanup(task, device)
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')
 
