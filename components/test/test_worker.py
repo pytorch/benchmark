@@ -12,9 +12,10 @@ try:
     from components._impl.workers import subprocess_worker
     from components._impl.workers import subprocess_rpc
 except (ImportError, ModuleNotFoundError):
-    print(
-        "\nThis test must be run from the repo root directory as "
-        "`python -m components.test.test_worker`\n")
+    print(f"""
+        This test must be run from the repo root directory as
+        `python -m components.test.{os.path.splitext(os.path.basename(__file__))[0]}`
+    """)
     raise
 
 
