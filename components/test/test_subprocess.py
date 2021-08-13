@@ -25,7 +25,7 @@ except (ImportError, ModuleNotFoundError):
 INDENT = " " * 12
 
 
-class TestParseFunction:  # (TestCase):
+class TestParseFunction(TestCase):
 
     def test_parse_trivial(self) -> None:
         def f(x: int) -> None:
