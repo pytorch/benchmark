@@ -1,7 +1,6 @@
 import contextlib
 import dataclasses
 import gc
-import importlib
 import io
 import os
 import pathlib
@@ -15,6 +14,9 @@ from urllib import request
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
+import importlib
+import tempfile
+from typing import Any, List, Tuple
 
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
@@ -41,20 +43,27 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
         'cwd': model_path,
         'check': True,
     }
+
+    output_buffer = None
+    _, stdout_fpath = tempfile.mkstemp()
     try:
+        output_buffer = io.FileIO(stdout_fpath, mode="w")
         if os.path.exists(os.path.join(model_path, install_file)):
             if not verbose:
                 run_kwargs['stderr'] = subprocess.STDOUT
-                run_kwargs['stdout'] = subprocess.PIPE
+                run_kwargs['stdout'] = output_buffer
             subprocess.run(*run_args, **run_kwargs)  # type: ignore
         else:
-            return (False, f"No install.py is found in {model_path}.")
+            return (False, f"No install.py is found in {model_path}.", None)
     except subprocess.CalledProcessError as e:
-        return (False, e.output)
+        return (False, e.output, io.FileIO(stdout_fpath, mode="r").read().decode())
     except Exception as e:
-        return (False, e)
+        return (False, e, io.FileIO(stdout_fpath, mode="r").read().decode())
+    finally:
+        del output_buffer
+        os.remove(stdout_fpath)
 
-    return (True, None)
+    return (True, None, None)
 
 
 def _list_model_paths() -> List[str]:
@@ -70,7 +79,7 @@ def setup(verbose: bool = True, continue_on_fail: bool = False) -> bool:
     failures = {}
     for model_path in _list_model_paths():
         print(f"running setup for {model_path}...", end="", flush=True)
-        success, errmsg = _install_deps(model_path, verbose=verbose)
+        success, errmsg, stdout_stderr = _install_deps(model_path, verbose=verbose)
         if success:
             print("OK")
         else:
@@ -79,16 +88,27 @@ def setup(verbose: bool = True, continue_on_fail: bool = False) -> bool:
                 errmsg = errmsg.decode()
             except Exception:
                 pass
+
+            # If the install was very chatty, we don't want to overwhelm.
+            # This will not affect verbose mode, which does not catch stdout
+            # and stderr.
+            log_lines = (stdout_stderr or "").splitlines(keepends=False)
+            if len(log_lines) > 40:
+                log_lines = log_lines[:20] + ["..."] + log_lines[-20:]
+                stdout_stderr = "\n".join(log_lines)
+
+            if stdout_stderr:
+                errmsg = f"{stdout_stderr}\n\n{errmsg or ''}"
+
             failures[model_path] = errmsg
             if not continue_on_fail:
                 break
-    if verbose and len(failures):
-        for model_path in failures:
-            print(f"Error for {model_path}:")
-            print("---------------------------------------------------------------------------")
-            print(failures[model_path])
-            print("---------------------------------------------------------------------------")
-            print()
+    for model_path in failures:
+        print(f"Error for {model_path}:")
+        print("---------------------------------------------------------------------------")
+        print(failures[model_path])
+        print("---------------------------------------------------------------------------")
+        print()
 
     return len(failures) == 0
 
