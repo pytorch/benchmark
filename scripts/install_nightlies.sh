@@ -6,7 +6,12 @@ conda activate base
 
 # conda install -y pytorch torchvision -c pytorch-nightly
 # Changing to pip to work around https://github.com/pytorch/pytorch/issues/49375
-pip install -q numpy
+
 pip install --pre torch torchvision torchtext \
     --progress-bar off \
     -f https://download.pytorch.org/whl/nightly/cu111/torch_nightly.html
+
+pip install -q numpy
+
+# Log final configuration
+pip freeze
