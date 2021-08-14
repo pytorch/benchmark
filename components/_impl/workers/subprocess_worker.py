@@ -45,7 +45,6 @@ class SubprocessWorker(base.WorkerBase):
             def args(self) -> typing.List[str]:
                 return ["taskset", "--cpu-list", "0"] + super().args
     ```
-
     """
 
     _working_dir: str
@@ -182,14 +181,16 @@ class SubprocessWorker(base.WorkerBase):
         #     how Python processes commands.)
         bootstrap_command = textwrap.dedent(f"""
             try:
-                import os
+                import marshal
                 import sys
-                if not sys.path[0]:
-                    sys.path[0] = {repr(sys.path[0])}
-                cwd = os.getcwd()
-                sys.path.append(cwd)
+                sys_path_old = list(sys.path)
+                sys.path = marshal.loads(
+                    bytes.fromhex({repr(marshal.dumps(sys.path).hex())})
+                )
+                # The parent gets priority, but a subclass could set PYTHONPATH
+                # so we have to respect extra paths.
+                sys.path.extend([i for i in sys_path_old if i and i not in sys.path])
                 from components._impl.workers import subprocess_rpc
-                assert sys.path.pop() == cwd
                 output_pipe = subprocess_rpc.Pipe(
                     write_handle={self._output_pipe.write_handle})
                 output_pipe.write(subprocess_rpc.BOOTSTRAP_IMPORT_SUCCESS)
