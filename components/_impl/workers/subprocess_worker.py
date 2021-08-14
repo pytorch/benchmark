@@ -299,6 +299,10 @@ class SubprocessWorker(base.WorkerBase):
 
     def _kill_proc(self) -> None:
         """Best effort to kill subprocess."""
+        if getattr(self, "_proc", None) is None:
+            # We failed in the constructor, so there's nothing to clean up.
+            return
+
         self._input_pipe.write(subprocess_rpc.HARD_EXIT)
         try:
             self._proc.wait(timeout=1)

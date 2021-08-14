@@ -44,7 +44,7 @@ def _load_test(details, device):
             try:
                 task.make_model_instance(device=device, jit=False)
                 task.check_example()
-                tasks.del_model_instance()
+                task.del_model_instance()
 
             except NotImplementedError:
                 self.skipTest('Method get_module is not implemented, skipping...')
@@ -56,7 +56,7 @@ def _load_test(details, device):
                 task.make_model_instance(device=device, jit=False)
                 task.set_train()
                 task.train()
-                tasks.del_model_instance()
+                task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method train is not implemented, skipping...')
 
@@ -71,7 +71,7 @@ def _load_test(details, device):
 
                 task.set_eval()
                 task.eval()
-                tasks.del_model_instance()
+                task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')
 
