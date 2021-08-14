@@ -225,6 +225,14 @@ class ModelTask(base_task.TaskBase):
             "maybe_sync": maybe_sync,
         })
 
+    def del_model_instance(self):
+        self.worker.run("""
+            del model
+            del maybe_sync
+            import gc
+            gc.collect()
+        """)
+
     # =========================================================================
     # == Forward calls to `model` from parent to worker =======================
     # =========================================================================
