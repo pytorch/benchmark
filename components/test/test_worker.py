@@ -27,18 +27,11 @@ class CustomClass:
 class TestBenchmarkWorker(TestCase):
 
     def _test_namespace_isolation(self, worker: base_worker.WorkerBase):
-        worker.run(r"_global_keys = {k: repr(type(v)) for k, v in globals().items()}")
-        worker_global_vars: typing.Dict[str, str] = worker.load("_global_keys")
+        worker_global_vars: typing.Dict[str, str] = worker.load_stmt(
+            r"{k: repr(type(v)) for k, v in globals().items()}")
         allowed_keys = {
-            "__name__",
-            "__doc__",
-            "__package__",
-            "__loader__",
-            "__spec__",
-            "__annotations__",
             "__builtins__",
-            "_global_keys",
-            "subprocess_rpc",
+            subprocess_rpc.WORKER_IMPL_NAMESPACE,
         }
         extra_vars = {
             k: v for k, v in worker_global_vars.items()
@@ -77,6 +70,13 @@ class TestBenchmarkWorker(TestCase):
             worker.load("my_class")
 
         self._subtest_cleanup(worker, ("my_class", "CustomClass"))
+
+    def _check_load_stmt(self, worker: base_worker.WorkerBase) -> None:
+        self.assertDictEqual(
+            {"a": 1 + 3, 2: "b"},
+            worker.load_stmt('{"a": 1 + 3, 2: "b"}'),
+        )
+        self._subtest_cleanup(worker, ())
 
     def _check_complex_stmts(self, worker: base_worker.WorkerBase) -> None:
         worker.run("""
@@ -173,9 +173,12 @@ class TestBenchmarkWorker(TestCase):
                 textwrap.dedent(r"""
                 Traceback \(most recent call last\):
                 \s+ File.*subprocess_rpc.*
-                \s+ calling_frame\.f_globals,
-                \s+ File .+ in <module>
                 """).strip()
+            )
+
+            self.assertRegex(
+                extra_debug_info,
+                r"No such file or directory: .this_file_does_not_exist."
             )
 
             # Make sure stdout / stderr were plumbed from the worker.
@@ -186,6 +189,7 @@ class TestBenchmarkWorker(TestCase):
         self._test_namespace_isolation(worker)
 
         self._check_basic_store_and_load(worker)
+        self._check_load_stmt(worker)
         self._check_custom_store_and_load(worker)
         self._check_complex_stmts(worker)
         self._check_environment_consistency(worker)
@@ -211,6 +215,37 @@ class TestBenchmarkWorker(TestCase):
         worker = subprocess_worker.SubprocessWorker()
         self._generic_worker_tests(worker)
         self._test_child_trace_exception(worker)
+
+    def test_subprocess_worker_fault_handling(self):
+        worker = subprocess_worker.SubprocessWorker(timeout=1)
+        with self.assertRaisesRegex(OSError, "Exceeded timeout"):
+            worker.run("""
+                import os
+                os._exit(0)
+            """)
+
+        self.assertFalse(worker.alive)
+        with self.assertRaisesRegex(AssertionError, "Process has exited"):
+            worker.run("pass")
+
+        worker = subprocess_worker.SubprocessWorker(timeout=1)
+        with self.assertRaisesRegex(OSError, "Exceeded timeout"):
+            worker.run("""
+                import time
+                time.sleep(2)
+            """)
+
+        # Once a command times out, the integrity of the underlying subprocess
+        # cannot be guaranteed and the worker neeeds to refuse future work.
+        # This is different from an Exception being thrown in the subprocess;
+        # in that case communication is still in an orderly state.
+        self.assertFalse(worker.alive)
+        with self.assertRaisesRegex(AssertionError, "Process has exited"):
+            worker.run("pass")
+
+        # Make sure `_kill_proc` is idempotent.
+        worker._kill_proc()
+        worker._kill_proc()
 
 
 if __name__ == '__main__':

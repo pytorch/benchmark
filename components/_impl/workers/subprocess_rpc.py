@@ -175,7 +175,8 @@ class Pipe:
         self,
         read_handle: typing.Optional[int] = None,
         write_handle: typing.Optional[int] = None,
-        timeout: typing.Optional[float] = None
+        timeout: typing.Optional[float] = None,
+        timeout_callback: typing.Callable[[], typing.NoReturn] = (lambda: None),
     ) -> None:
         self._owns_pipe = read_handle is None and write_handle is None
         if self._owns_pipe:
@@ -187,6 +188,7 @@ class Pipe:
         self.read_handle = read_handle or to_handle(self.read_fd)
         self.write_handle = write_handle or to_handle(self.write_fd)
         self.timeout = timeout
+        self.timeout_callback = timeout_callback
 
     def _read(self, size: int) -> bytes:
         """Handle the low level details of reading from the PIPE."""
@@ -198,6 +200,7 @@ class Pipe:
 
         check_bytes, msg = raw_msg[:len(_CHECK)], raw_msg[len(_CHECK):]
         if check_bytes == _TIMEOUT:
+            self.timeout_callback()  # Give caller the chance to cleanup.
             raise IOError(f"Exceeded timeout: {self.timeout}")
 
         if check_bytes != _CHECK:
@@ -226,10 +229,14 @@ class Pipe:
 
         os.write(self.write_fd, packed_msg)
 
+    def _close_fds(self):
+        """Factor cleanup to a helper so we can test when it runs."""
+        os.close(self.read_fd)
+        os.close(self.write_fd)
+
     def __del__(self) -> None:
         if self._owns_pipe:
-            os.close(self.read_fd)
-            os.close(self.write_fd)
+            self._close_fds()
 
 
 # =============================================================================

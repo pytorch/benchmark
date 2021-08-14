@@ -21,12 +21,35 @@ from components._impl.workers import subprocess_rpc
 class SubprocessWorker(base.WorkerBase):
     """Open a subprocess using `python -i`, and use it to execute code.
 
-    The launch command is determined by the `args` property so that subclasses
-    can override (generally suppliment) the process launch command. This class
-    handles the complexity of communication and fault handling.
+        This class wraps a subprocess which runs a clean instance of Python.
+    This enables hermetic execution of stateful code, GIL free concurrent
+    benchmarking, and easy use of command line tools from Python.
+
+        When using SubprocessWorker, it is important to remember that while the
+    environment is (or at least tries to be) identical to the parent, it does
+    not share state or initialization with the parent process. Imports must be
+    re-run in the worker, and shared resources (such as file descriptors) will
+    not be available. For most applications this mirrors the semantics of
+    `timeit.Timer`.
+
+        The principle extension point for SubprocessWorker is the `args`
+    property. By overriding it, subclasses can change the nature of the
+    underlying subprocess while reusing all of the generic communication and
+    fault handling facilities of the base class. For example, suppose we want
+    to use TaskSet to pin the worker to a single core. The code is simply:
+
+    ```
+        class TasksetZeroWorker(SubprocessWorker):
+
+            @property
+            def args(self) -> typing.List[str]:
+                return ["taskset", "--cpu-list", "0"] + super().args
+    ```
+
     """
 
     _working_dir: str
+    _alive: bool = False
     _bootstrap_timeout: int = 10  # seconds
 
     def __init__(self, timeout: typing.Optional[float] = None) -> None:
@@ -47,8 +70,14 @@ class SubprocessWorker(base.WorkerBase):
         # `_output_pipe` are used. They should not be accessed in any other
         # context. (The same is true for `self.load` and `_load_pipe`.)
         self._input_pipe = subprocess_rpc.Pipe()
-        self._output_pipe = subprocess_rpc.Pipe(timeout=timeout)
-        self._load_pipe = subprocess_rpc.Pipe(timeout=timeout)
+        self._output_pipe = subprocess_rpc.Pipe(
+            timeout=timeout,
+            timeout_callback=self._kill_proc,
+        )
+        self._load_pipe = subprocess_rpc.Pipe(
+            timeout=timeout,
+            timeout_callback=self._kill_proc,
+        )
 
         # Windows and Unix differ in how pipes are shared with children.
         # In Unix they are inherited, while in Windows the child consults the
@@ -91,6 +120,7 @@ class SubprocessWorker(base.WorkerBase):
 
         self._worker_bootstrap_finished: bool = False
         self._bootstrap_worker()
+        self._alive = True
 
     @property
     def working_dir(self) -> str:
@@ -131,6 +161,10 @@ class SubprocessWorker(base.WorkerBase):
     @property
     def in_process(self) -> bool:
         return False
+
+    @property
+    def alive(self) -> bool:
+        return self._alive and self._proc.poll() is None
 
     def _bootstrap_worker(self) -> None:
         """Import subprocess_rpc in the worker, and start the work loop.
@@ -213,7 +247,7 @@ class SubprocessWorker(base.WorkerBase):
     def _log_cmd(self, snippet: str) -> None:
         with open(self._command_log, "at", encoding="utf-8") as f:
             now = datetime.datetime.now().strftime("[%Y-%m-%d] %H:%M:%S.%f")
-            f.write(f"# {now}\n{snippet}\n")
+            f.write(f"# {now}\n{snippet}\n\n")
 
     @contextlib.contextmanager
     def watch_stdout_stderr(self):
@@ -238,11 +272,12 @@ class SubprocessWorker(base.WorkerBase):
     def _run(self, snippet: str) -> None:
         """Helper method for running code in a subprocess."""
         assert self._worker_bootstrap_finished
-        assert self._proc.poll() is None, "Process has exited"
+        assert self.alive, "Process has exited"
 
         snippet = textwrap.dedent(snippet)
         with self.watch_stdout_stderr() as get_output:
             self._input_pipe.write(snippet.encode(subprocess_rpc.ENCODING))
+            self._log_cmd(snippet)
 
             result = marshal.loads(self._output_pipe.read())
             if isinstance(result, str):
@@ -261,8 +296,8 @@ class SubprocessWorker(base.WorkerBase):
                 )
             )
 
-    def __del__(self) -> None:
-        """Best effort to kill subprocess and cleanup files upon exit."""
+    def _kill_proc(self) -> None:
+        """Best effort to kill subprocess."""
         self._input_pipe.write(subprocess_rpc.HARD_EXIT)
         try:
             self._proc.wait(timeout=1)
@@ -291,6 +326,11 @@ class SubprocessWorker(base.WorkerBase):
                 proc_stdin.close()
         except subprocess.TimeoutExpired:
             pass
+
+        self._alive = False
+
+    def __del__(self) -> None:
+        self._kill_proc()
 
         # We own these fd's, and it seems that we can unconditionally close
         # them without impacting the shutdown of `self._proc`.
