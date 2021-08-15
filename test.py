@@ -23,24 +23,6 @@ from torchbenchmark import list_models_details, ModelTask
 TIMEOUT = 300  # Seconds
 
 
-def verbose_failure(f):
-    """Hack to figure out what's going on in CI."""
-
-    @functools.wraps(f)
-    def inner(self, *args, **kwargs):
-        try:
-            f(self, *args, **kwargs)
-        except unittest.SkipTest:
-            raise
-        except:
-            print(f"FAIL: {f}")
-            traceback.print_exc()
-            print()
-            raise
-
-    return inner
-
-
 class TestBenchmark(unittest.TestCase):
 
     def setUp(self):
@@ -49,7 +31,6 @@ class TestBenchmark(unittest.TestCase):
     def tearDown(self):
         gc.collect()
 
-    @verbose_failure
     def test_fx_profile(self):
         try:
             from torch.fx.interpreter import Interpreter
@@ -64,7 +45,6 @@ class TestBenchmark(unittest.TestCase):
 
 def _load_test(details, device):
 
-    @verbose_failure
     def example(self):
         task = ModelTask(details.path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
@@ -76,7 +56,6 @@ def _load_test(details, device):
             except NotImplementedError:
                 self.skipTest('Method get_module is not implemented, skipping...')
 
-    @verbose_failure
     def train(self):
         task = ModelTask(details.path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
@@ -88,7 +67,6 @@ def _load_test(details, device):
             except NotImplementedError:
                 self.skipTest('Method train is not implemented, skipping...')
 
-    @verbose_failure
     def eval_fn(self):
         task = ModelTask(details.path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
