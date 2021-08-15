@@ -43,6 +43,12 @@ def verbose_failure(f):
 
 class TestBenchmark(unittest.TestCase):
 
+    def setUp(self):
+        gc.collect()
+
+    def tearDown(self):
+        gc.collect()
+
     @verbose_failure
     def test_fx_profile(self):
         try:
