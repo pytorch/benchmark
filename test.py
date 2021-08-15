@@ -5,8 +5,9 @@ Make sure to enable an https proxy if necessary, or the setup steps may hang.
 """
 # This file shows how to use the benchmark suite from user end.
 import gc
+import functools
+import traceback
 import unittest
-from unittest import TestCase
 from unittest.mock import patch
 
 import torch
@@ -22,8 +23,27 @@ from torchbenchmark import list_models_details, ModelTask
 TIMEOUT = 300  # Seconds
 
 
-class TestBenchmark(TestCase):
+def verbose_failure(f):
+    """Hack to figure out what's going on in CI."""
 
+    @functools.wraps(f)
+    def inner(self, *args, **kwargs):
+        try:
+            f(self, *args, **kwargs)
+        except unittest.SkipTest:
+            raise
+        except:
+            print(f"FAIL: {f}")
+            traceback.print_exc()
+            print()
+            raise
+
+    return inner
+
+
+class TestBenchmark(unittest.TestCase):
+
+    @verbose_failure
     def test_fx_profile(self):
         try:
             from torch.fx.interpreter import Interpreter
@@ -38,6 +58,7 @@ class TestBenchmark(TestCase):
 
 def _load_test(details, device):
 
+    @verbose_failure
     def example(self):
         task = ModelTask(details.path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
@@ -49,6 +70,7 @@ def _load_test(details, device):
             except NotImplementedError:
                 self.skipTest('Method get_module is not implemented, skipping...')
 
+    @verbose_failure
     def train(self):
         task = ModelTask(details.path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
@@ -60,6 +82,7 @@ def _load_test(details, device):
             except NotImplementedError:
                 self.skipTest('Method train is not implemented, skipping...')
 
+    @verbose_failure
     def eval_fn(self):
         task = ModelTask(details.path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):

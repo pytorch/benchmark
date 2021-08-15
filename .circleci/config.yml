@@ -37,7 +37,7 @@ jobs:
             . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; pytest --ignore_machine_config components/test/*.py
       - run:
           name: Validate training benchmark suite
-          command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py --verbose -k TestBenchmark.test_drq
+          command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py
           no_output_timeout: "30m"
       - run:
           name: Validate pytest-benchmark invocation of training suite
