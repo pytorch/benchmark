@@ -273,6 +273,19 @@ class ModelTask(base_task.TaskBase):
     # == Control `torch` state (in the subprocess) ============================
     # =========================================================================
 
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def strong_gc_collect(self) -> None:
+        import gc
+        from torch.quantization import observer
+
+        # Work around https://github.com/pytorch/pytorch/issues/63326
+        for obj in gc.get_objects():
+            if isinstance(obj, observer._PartialWrapper):
+                obj.callable_args.clear()
+
+        gc.collect()
+
     @contextlib.contextmanager
     def no_grad(self, disable_nograd: bool) -> None:
         # TODO: deduplicate with `torchbenchmark.util.model.no_grad`
@@ -301,12 +314,14 @@ class ModelTask(base_task.TaskBase):
             yield
             return
 
-        self.worker.run("import gc;gc.collect()")
+        self.strong_gc_collect()
         memory_before = self.worker.load_stmt("torch.cuda.memory_allocated()")
         yield
-        self.worker.run("gc.collect()")
-        memory_after = self.worker.load_stmt("torch.cuda.memory_allocated()")
-        assert_equal(memory_before, memory_after)
+        self.strong_gc_collect()
+        assert_equal(
+            memory_before,
+            self.worker.load_stmt("torch.cuda.memory_allocated()"),
+        )
         self.worker.run("torch.cuda.empty_cache()")
 
 
