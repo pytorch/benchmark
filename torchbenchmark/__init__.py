@@ -275,7 +275,7 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def strong_gc_collect(self) -> None:
+    def strong_gc_collect() -> None:
         import gc
         from torch.quantization import observer
 
