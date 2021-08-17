@@ -40,6 +40,7 @@ class Model(BenchmarkModel):
     def train(self, niter=3):
         if self.jit:
             raise NotImplementedError()
+
         self.model.train()
         for _ in range(niter):
             outputs = self.model(**self.train_inputs)
@@ -73,4 +74,3 @@ if __name__ == "__main__":
     m.eval(niter=1)
     torch.cuda.synchronize()
     print(time.time()-begin)
-    
