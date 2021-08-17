@@ -74,12 +74,11 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
         root = str(Path(yolo_train.__file__).parent.absolute())
-        train_args = split(f"--data {root}/data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {self.device} --weights ''")
+        train_args = split(f"--data {root}/data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {self.device_str} --weights ''")
         print(train_args)
         training_loop = prepare_training_loop(train_args)
 
         return training_loop(niterations)
-
 
     def eval(self, niterations=1):
         model, example_inputs = self.get_module()
@@ -90,6 +89,14 @@ class Model(BenchmarkModel):
             # Apply NMS
             pred = non_max_suppression(pred, 0.3, 0.6,
                                     multi_label=False, classes=None, agnostic=False)
+
+    @property
+    def device_str(self):
+        """YoloV3 uses individual GPU indices."""
+        return str(
+            torch.cuda.current_device() if self.device == "cuda"
+            else self.device
+        )
 
 if __name__ == '__main__':
     m = Model(device='cpu', jit=False)
