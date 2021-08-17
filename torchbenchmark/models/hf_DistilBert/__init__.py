@@ -40,6 +40,11 @@ class Model(BenchmarkModel):
     def train(self, niter=3):
         if self.jit:
             raise NotImplementedError()
+
+        if self.device == "cuda":
+            # TODO: diagnose and re-enable.
+            raise NotImplementedError("This leads to a cudaErrorIllegalAddress from unique_by_key.")
+
         self.model.train()
         for _ in range(niter):
             outputs = self.model(**self.train_inputs)
@@ -73,4 +78,3 @@ if __name__ == "__main__":
     m.eval(niter=1)
     torch.cuda.synchronize()
     print(time.time()-begin)
-    
