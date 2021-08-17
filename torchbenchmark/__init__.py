@@ -1,5 +1,6 @@
 import contextlib
 import dataclasses
+import gc
 import importlib
 import io
 import multiprocessing
@@ -144,6 +145,11 @@ class ModelTask(base_task.TaskBase):
         timeout: Optional[float] = None,
     ) -> None:
         self._model_path = model_path
+
+        # It's possible that an earlier ModelTask has gone out of scope, but
+        # has not been collected and is holding significant system resources.
+        gc.collect()
+
         self._worker = subprocess_worker.SubprocessWorker(timeout=timeout)
         self.worker.run("import torch")
 
@@ -225,13 +231,18 @@ class ModelTask(base_task.TaskBase):
             "maybe_sync": maybe_sync,
         })
 
+    def gc_collect() -> None:
+        worker.run("""
+            import gc
+            gc.collect()
+        """)
+
     def del_model_instance(self):
         self.worker.run("""
             del model
             del maybe_sync
-            import gc
-            gc.collect()
         """)
+        self.gc_collect()
 
     # =========================================================================
     # == Forward calls to `model` from parent to worker =======================
@@ -273,19 +284,6 @@ class ModelTask(base_task.TaskBase):
     # == Control `torch` state (in the subprocess) ============================
     # =========================================================================
 
-    @base_task.run_in_worker(scoped=True)
-    @staticmethod
-    def strong_gc_collect() -> None:
-        import gc
-        from torch.quantization import observer
-
-        # Work around https://github.com/pytorch/pytorch/issues/63326
-        for obj in gc.get_objects():
-            if isinstance(obj, observer._PartialWrapper):
-                obj.callable_args.clear()
-
-        gc.collect()
-
     @contextlib.contextmanager
     def no_grad(self, disable_nograd: bool) -> None:
         # TODO: deduplicate with `torchbenchmark.util.model.no_grad`
@@ -314,10 +312,10 @@ class ModelTask(base_task.TaskBase):
             yield
             return
 
-        self.strong_gc_collect()
+        self.gc_collect()
         memory_before = self.worker.load_stmt("torch.cuda.memory_allocated()")
         yield
-        self.strong_gc_collect()
+        self.gc_collect()
         assert_equal(
             memory_before,
             self.worker.load_stmt("torch.cuda.memory_allocated()"),
