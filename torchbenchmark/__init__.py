@@ -231,7 +231,7 @@ class ModelTask(base_task.TaskBase):
             "maybe_sync": maybe_sync,
         })
 
-    def gc_collect() -> None:
+    def gc_collect(self) -> None:
         worker.run("""
             import gc
             gc.collect()
