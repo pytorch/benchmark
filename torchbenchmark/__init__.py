@@ -232,7 +232,7 @@ class ModelTask(base_task.TaskBase):
         })
 
     def gc_collect(self) -> None:
-        worker.run("""
+        self.worker.run("""
             import gc
             gc.collect()
         """)
