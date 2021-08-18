@@ -1,3 +1,4 @@
+"""Add Task abstraction to reduce the friction of controlling a remote worker."""
 import abc
 import ast
 import functools
@@ -10,6 +11,12 @@ from components._impl.workers import base
 
 
 class TaskBase(abc.ABC):
+    """Convenience layer to allow methods to be called in a worker.
+
+    Because workers are stateful, this implicitly assumes that a Task wraps
+    a single worker. However `run_in_worker` is largely agnostic; it simply
+    calls `self.worker` and dispatches work to whatever Worker is returned.
+    """
 
     @abc.abstractproperty
     def worker(self) -> base.WorkerBase:
@@ -17,7 +24,7 @@ class TaskBase(abc.ABC):
 
 
 def parse_f(f: typing.Callable) -> typing.Tuple[inspect.Signature, str]:
-    """Handle source code extraction for `run_in_worker`."""
+    """Extract the source code from a callable."""
     if not inspect.isfunction(f):
         raise TypeError(f"Expected function, got {type(f)}. ({f})")
 

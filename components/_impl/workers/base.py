@@ -47,6 +47,9 @@ class WorkerBase(abc.ABC):
 
      4) One must take care when importing code in the worker, because changes
         to `sys.path` in the parent may not be reflected in the child.
+
+    See `in_process_worker.InProcessWorker` for a concise example of the
+    concrete semantics of a worker.
     """
 
     @abc.abstractmethod

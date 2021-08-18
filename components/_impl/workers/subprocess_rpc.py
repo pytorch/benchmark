@@ -86,7 +86,7 @@ class _TimeoutPIPE:
             present in the Pipe (most common case) ~1000x, from O(us) to O(ms)
         2)  We have to poll the future, which wastes the awaitable nature `read`
 
-    Instead of trying to interrupt the pipe read, we can cause it terminate by
+    Instead of trying to interrupt the pipe read, we cause it to terminate by
     writing to the pipe; because we control the read (via `Pipe.read`) we can
     catch the sentinel timeout value and raise appropriately.
 
