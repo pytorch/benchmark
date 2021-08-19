@@ -17,7 +17,7 @@ import pytest
 import time
 import torch
 from components._impl.workers import subprocess_worker
-from torchbenchmark import list_models_details, ModelTask
+from torchbenchmark import _list_model_paths, ModelTask
 from torchbenchmark.util.machine_config import get_machine_state
 
 
@@ -29,13 +29,10 @@ def pytest_generate_tests(metafunc):
         devices = ['cpu']
 
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
-        models = [m for m in list_models_details() if m.exists]
-        is_eval = metafunc.function.__name__ == "test_eval"
-        test_name = lambda m : os.path.basename(m.path) + ("-freeze" if is_eval and m.optimized_for_inference else "")
+        paths = _list_model_paths()
         metafunc.parametrize(
-            'model_path',
-            [m.path for m in models],
-            ids=[test_name(m) for m in models],
+            'model_path', paths,
+            ids=[os.path.basename(path) for path in paths],
             scope="class")
 
         metafunc.parametrize('device', devices, scope='class')
@@ -54,6 +51,9 @@ class TestBenchNetwork:
     def test_train(self, model_path, device, compiler, benchmark):
         try:
             task = ModelTask(model_path)
+            if not task.model_details.exists:
+                return  # Model is not supported.
+
             task.make_model_instance(device=device, jit=(compiler == 'jit'))
             task.set_train()
             benchmark(task.train)
@@ -65,6 +65,9 @@ class TestBenchNetwork:
     def test_eval(self, model_path, device, compiler, benchmark, pytestconfig):
         try:
             task = ModelTask(model_path)
+            if not task.model_details.exists:
+                return  # Model is not supported.
+
             task.make_model_instance(device=device, jit=(compiler == 'jit'))
 
             with task.no_grad(disable_nograd=pytestconfig.getoption("disable_nograd")):

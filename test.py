@@ -6,12 +6,13 @@ Make sure to enable an https proxy if necessary, or the setup steps may hang.
 # This file shows how to use the benchmark suite from user end.
 import gc
 import functools
+import os
 import traceback
 import unittest
 from unittest.mock import patch
 
 import torch
-from torchbenchmark import list_models_details, ModelTask
+from torchbenchmark import _list_model_paths, ModelTask
 
 
 # Some of the models have very heavyweight setup, so we have to set a very
@@ -43,10 +44,10 @@ class TestBenchmark(unittest.TestCase):
             self.assertGreaterEqual(mock_save.call_count, 1)
 
 
-def _load_test(details, device):
+def _load_test(path, device):
 
     def example(self):
-        task = ModelTask(details.path, timeout=TIMEOUT)
+        task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
@@ -57,7 +58,7 @@ def _load_test(details, device):
                 self.skipTest('Method get_module is not implemented, skipping...')
 
     def train(self):
-        task = ModelTask(details.path, timeout=TIMEOUT)
+        task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
@@ -68,12 +69,12 @@ def _load_test(details, device):
                 self.skipTest('Method train is not implemented, skipping...')
 
     def eval_fn(self):
-        task = ModelTask(details.path, timeout=TIMEOUT)
+        task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
                 assert (
-                    not details.optimized_for_inference or
+                    not task.model_details.optimized_for_inference or
                     task.worker.load_stmt("hasattr(model, 'eval_model')"))
 
                 task.set_eval()
@@ -82,9 +83,10 @@ def _load_test(details, device):
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')
 
-    setattr(TestBenchmark, f'test_{details.name}_example_{device}', example)
-    setattr(TestBenchmark, f'test_{details.name}_train_{device}', train)
-    setattr(TestBenchmark, f'test_{details.name}_eval_{device}', eval_fn)
+    name = os.path.basename(path)
+    setattr(TestBenchmark, f'test_{name}_example_{device}', example)
+    setattr(TestBenchmark, f'test_{name}_train_{device}', train)
+    setattr(TestBenchmark, f'test_{name}_eval_{device}', eval_fn)
 
 
 def _load_tests():
@@ -92,9 +94,9 @@ def _load_tests():
     if torch.cuda.is_available():
         devices.append('cuda')
 
-    for details in list_models_details():
+    for path in _list_model_paths():
         for device in devices:
-            _load_test(details, device)
+            _load_test(path, device)
 
 
 _load_tests()

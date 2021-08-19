@@ -3,13 +3,12 @@ import dataclasses
 import gc
 import importlib
 import io
-import multiprocessing
-import multiprocessing.dummy
 import os
 import pathlib
 import subprocess
 import sys
 import tempfile
+import threading
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 from urllib import request
 
@@ -139,17 +138,20 @@ class ModelDetails:
 
 class ModelTask(base_task.TaskBase):
 
+    # The worker may (and often does) consume significant system resources.
+    # In order to ensure that runs do not interfere with each other, we only
+    # allow a single ModelTask to exist at a time.
+    _lock = threading.Lock()
+
     def __init__(
         self,
         model_path: str,
         timeout: Optional[float] = None,
     ) -> None:
+        gc.collect()  # Make sure previous task has a chance to release the lock
+        assert self._lock.acquire(blocking=False), "Failed to acquire lock."
+
         self._model_path = model_path
-
-        # It's possible that an earlier ModelTask has gone out of scope, but
-        # has not been collected and is holding significant system resources.
-        gc.collect()
-
         self._worker = subprocess_worker.SubprocessWorker(timeout=timeout)
         self.worker.run("import torch")
 
@@ -162,6 +164,9 @@ class ModelTask(base_task.TaskBase):
 
         if self._details._diagnostic_msg:
             print(self._details._diagnostic_msg)
+
+    def __del__(self) -> None:
+        self._lock.release()
 
     @property
     def worker(self) -> subprocess_worker.SubprocessWorker:
@@ -324,15 +329,10 @@ class ModelTask(base_task.TaskBase):
 
 
 def list_models_details(workers: int=1) -> List[ModelDetails]:
-    # A lot of the work of importing the models to check is single threaded,
-    # so we can save a lot of headache by using multiple workers. However it's
-    # not linear, and past about cpu_count / 2 the returns are marginal.
-    num_workers = max(1, int(multiprocessing.cpu_count() // 2))
-    with multiprocessing.dummy.Pool(num_workers) as pool:
-        return pool.map(
-            lambda model_path: ModelTask(model_path).model_details,
-            _list_model_paths()
-        )
+    return [
+        ModelTask(model_path).model_details
+        for model_path in _list_model_paths()
+    ]
 
 
 def list_models():
