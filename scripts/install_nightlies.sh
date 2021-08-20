@@ -12,6 +12,7 @@ pip install --pre torch torchvision torchtext \
     -f https://download.pytorch.org/whl/nightly/cu111/torch_nightly.html
 
 pip install -q numpy
+conda install -y expecttest -c conda-forge
 
 # Log final configuration
 pip freeze

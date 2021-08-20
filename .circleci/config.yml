@@ -28,6 +28,14 @@ jobs:
             wget -O example.json https://s3.amazonaws.com/ossci-metrics/torchbench_v1_nightly/example.json
             . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python compute_score.py --score_version v1 --benchmark_data_file example.json
       - run:
+          name: Validate benchmark components
+          command: |
+            . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python -m components.test.test_subprocess; python -m components.test.test_worker
+      - run:
+          name: Validate benchmark components (PyTest)
+          command: |
+            . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; pytest --ignore_machine_config components/test/*.py
+      - run:
           name: Validate training benchmark suite
           command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py
           no_output_timeout: "30m"
