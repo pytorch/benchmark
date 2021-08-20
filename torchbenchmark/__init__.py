@@ -1,6 +1,7 @@
 import contextlib
 import dataclasses
 import gc
+import importlib
 import io
 import os
 import pathlib
@@ -13,10 +14,6 @@ from urllib import request
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
-
-import importlib
-import tempfile
-from typing import Any, List, Tuple
 
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
@@ -138,6 +135,7 @@ class ModelDetails:
         return os.path.basename(self.path)
 
 
+<<<<<<< HEAD
 class Worker(subprocess_worker.SubprocessWorker):
     """Run subprocess using taskset if CPU affinity is set.
 
@@ -160,6 +158,8 @@ class Worker(subprocess_worker.SubprocessWorker):
         ) + super().args
 
 
+=======
+>>>>>>> b9ff79c (Run tests and benchmarks in subprocesses for isolation (#423))
 class ModelTask(base_task.TaskBase):
 
     # The worker may (and often does) consume significant system resources.
@@ -176,7 +176,11 @@ class ModelTask(base_task.TaskBase):
         assert self._lock.acquire(blocking=False), "Failed to acquire lock."
 
         self._model_path = model_path
+<<<<<<< HEAD
         self._worker = Worker(timeout=timeout)
+=======
+        self._worker = subprocess_worker.SubprocessWorker(timeout=timeout)
+>>>>>>> b9ff79c (Run tests and benchmarks in subprocesses for isolation (#423))
         self.worker.run("import torch")
 
         self._details: ModelDetails = ModelDetails(
