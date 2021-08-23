@@ -42,7 +42,8 @@ echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
 for c in $(seq 1 $NUM_ITER); do
     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
             --benchmark-min-rounds "${NUM_ROUNDS}" \
-            --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
+            --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json \
+            --verbose
     # Fill in circle_build_num and circle_project_reponame
     jq --arg run_id "${GITHUB_RUN_ID}" --arg config_version "githubactions-benchmark-${CONFIG_VER}-metal-fullname" \
        '.machine_info.circle_project_name=$config_version | .machine_info.circle_build_num=$run_id' \
