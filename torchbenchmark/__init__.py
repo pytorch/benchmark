@@ -122,6 +122,10 @@ class ModelDetails:
     significant system resources. As a result, we only want one (or a few)
     alive at any given time.
 
+    Note that affinity cannot be solved by simply calling `torch.set_num_threads`
+    in the child process; this will cause PyTorch to use all of the cores but
+    at a much lower efficiency.
+
     This class describes what a particular model does and does not support, so
     that we can release the underlying subprocess but retain any pertinent
     metadata.
@@ -134,6 +138,28 @@ class ModelDetails:
     @property
     def name(self) -> str:
         return os.path.basename(self.path)
+
+
+class Worker(subprocess_worker.SubprocessWorker):
+    """Run subprocess using taskset if CPU affinity is set.
+
+    When GOMP_CPU_AFFINITY is set, importing `torch` in the main process has
+    the very surprising effect of changing the threading behavior in the
+    subprocess. (See https://github.com/pytorch/pytorch/issues/49971 for
+    details.) This is a problem, because it means that the worker is not
+    hermetic and also tends to force the subprocess torch to run in single
+    threaded mode which drastically skews results.
+
+    This can be ameliorated by calling the subprocess using `taskset`, which
+    allows the subprocess PyTorch to properly bind threads.
+    """
+
+    @property
+    def args(self) -> List[str]:
+        affinity = os.environ.get("GOMP_CPU_AFFINITY", "")
+        return (
+            ["taskset", "--cpu-list", affinity] if affinity else []
+        ) + super().args
 
 
 class ModelTask(base_task.TaskBase):
@@ -152,7 +178,7 @@ class ModelTask(base_task.TaskBase):
         assert self._lock.acquire(blocking=False), "Failed to acquire lock."
 
         self._model_path = model_path
-        self._worker = subprocess_worker.SubprocessWorker(timeout=timeout)
+        self._worker = Worker(timeout=timeout)
         self.worker.run("import torch")
 
         self._details: ModelDetails = ModelDetails(
