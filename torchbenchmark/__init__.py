@@ -122,6 +122,10 @@ class ModelDetails:
     significant system resources. As a result, we only want one (or a few)
     alive at any given time.
 
+    Note that affinity cannot be solved by simply calling `torch.set_num_threads`
+    in the child process; this will cause PyTorch to use all of the cores but
+    at a much lower efficiency.
+
     This class describes what a particular model does and does not support, so
     that we can release the underlying subprocess but retain any pertinent
     metadata.
