@@ -121,6 +121,10 @@ class ModelDetails:
     significant system resources. As a result, we only want one (or a few)
     alive at any given time.
 
+    Note that affinity cannot be solved by simply calling `torch.set_num_threads`
+    in the child process; this will cause PyTorch to use all of the cores but
+    at a much lower efficiency.
+
     This class describes what a particular model does and does not support, so
     that we can release the underlying subprocess but retain any pertinent
     metadata.
@@ -135,7 +139,6 @@ class ModelDetails:
         return os.path.basename(self.path)
 
 
-<<<<<<< HEAD
 class Worker(subprocess_worker.SubprocessWorker):
     """Run subprocess using taskset if CPU affinity is set.
 
@@ -158,8 +161,6 @@ class Worker(subprocess_worker.SubprocessWorker):
         ) + super().args
 
 
-=======
->>>>>>> b9ff79c (Run tests and benchmarks in subprocesses for isolation (#423))
 class ModelTask(base_task.TaskBase):
 
     # The worker may (and often does) consume significant system resources.
@@ -176,11 +177,7 @@ class ModelTask(base_task.TaskBase):
         assert self._lock.acquire(blocking=False), "Failed to acquire lock."
 
         self._model_path = model_path
-<<<<<<< HEAD
         self._worker = Worker(timeout=timeout)
-=======
-        self._worker = subprocess_worker.SubprocessWorker(timeout=timeout)
->>>>>>> b9ff79c (Run tests and benchmarks in subprocesses for isolation (#423))
         self.worker.run("import torch")
 
         self._details: ModelDetails = ModelDetails(
