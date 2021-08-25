@@ -6,33 +6,33 @@ test_eval[BERT_pytorch-cuda-eager]:
   norm: 0.021702383251048306
 test_eval[BERT_pytorch-cuda-jit]:
   norm: 0.021699694322144733
-test_eval[LearningToPaint-freeze-cpu-eager]:
+test_eval[LearningToPaint-cpu-eager]:
   norm: 0.006393402419053018
-test_eval[LearningToPaint-freeze-cpu-jit]:
+test_eval[LearningToPaint-cpu-jit]:
   norm: 0.004743104493420379
-test_eval[LearningToPaint-freeze-cuda-eager]:
+test_eval[LearningToPaint-cuda-eager]:
   norm: 0.002253103726838475
-test_eval[LearningToPaint-freeze-cuda-jit]:
+test_eval[LearningToPaint-cuda-jit]:
   norm: 0.0021701873734609623
 test_eval[Super_SloMo-cuda-eager]:
   norm: 0.43524276865064165
 test_eval[Super_SloMo-cuda-jit]:
   norm: 0.4341700792079791
-test_eval[alexnet-freeze-cpu-eager]:
+test_eval[alexnet-cpu-eager]:
   norm: 0.004451435620266021
-test_eval[alexnet-freeze-cpu-jit]:
+test_eval[alexnet-cpu-jit]:
   norm: 0.00367016027414709
-test_eval[alexnet-freeze-cuda-eager]:
+test_eval[alexnet-cuda-eager]:
   norm: 0.0019111540012111648
-test_eval[alexnet-freeze-cuda-jit]:
+test_eval[alexnet-cuda-jit]:
   norm: 0.0018330485481532156
-test_eval[attention_is_all_you_need_pytorch-freeze-cpu-eager]:
+test_eval[attention_is_all_you_need_pytorch-cpu-eager]:
   norm: 0.23213776446064002
-test_eval[attention_is_all_you_need_pytorch-freeze-cpu-jit]:
+test_eval[attention_is_all_you_need_pytorch-cpu-jit]:
   norm: 0.22535653825616464
-test_eval[attention_is_all_you_need_pytorch-freeze-cuda-eager]:
+test_eval[attention_is_all_you_need_pytorch-cuda-eager]:
   norm: 0.14684644074877723
-test_eval[attention_is_all_you_need_pytorch-freeze-cuda-jit]:
+test_eval[attention_is_all_you_need_pytorch-cuda-jit]:
   norm: 0.14759871870628558
 test_eval[demucs-cpu-eager]:
   norm: 0.08100289069698192
@@ -42,13 +42,13 @@ test_eval[demucs-cuda-eager]:
   norm: 0.07559058011393063
 test_eval[demucs-cuda-jit]:
   norm: 0.07558373794890941
-test_eval[densenet121-freeze-cpu-eager]:
+test_eval[densenet121-cpu-eager]:
   norm: 0.07553607149748132
-test_eval[densenet121-freeze-cpu-jit]:
+test_eval[densenet121-cpu-jit]:
   norm: 0.03715926188009756
-test_eval[densenet121-freeze-cuda-eager]:
+test_eval[densenet121-cuda-eager]:
   norm: 0.021485131590607318
-test_eval[densenet121-freeze-cuda-jit]:
+test_eval[densenet121-cuda-jit]:
   norm: 0.010167109980770596
 test_eval[dlrm-cpu-eager]:
   norm: 0.0004216417489431397
@@ -104,13 +104,13 @@ test_eval[maml_omniglot-cpu-eager]:
   norm: 0.0012007828018712726
 test_eval[maml_omniglot-cuda-eager]:
   norm: 0.0006772385599433358
-test_eval[mnasnet1_0-freeze-cpu-eager]:
+test_eval[mnasnet1_0-cpu-eager]:
   norm: 0.028053680166421045
-test_eval[mnasnet1_0-freeze-cpu-jit]:
+test_eval[mnasnet1_0-cpu-jit]:
   norm: 0.004560569047720896
-test_eval[mnasnet1_0-freeze-cuda-eager]:
+test_eval[mnasnet1_0-cuda-eager]:
   norm: 0.007641145853085618
-test_eval[mnasnet1_0-freeze-cuda-jit]:
+test_eval[mnasnet1_0-cuda-jit]:
   norm: 0.09329594241571612
 test_eval[mobilenet_v2-cpu-eager]:
   norm: 0.026743019241717104
@@ -156,13 +156,13 @@ test_eval[pytorch_CycleGAN_and_pix2pix-cuda-eager]:
   norm: 0.04049150848295539
 test_eval[pytorch_CycleGAN_and_pix2pix-cuda-jit]:
   norm: 0.040490941437892614
-test_eval[pytorch_stargan-freeze-cpu-eager]:
+test_eval[pytorch_stargan-cpu-eager]:
   norm: 0.4047150609374512
-test_eval[pytorch_stargan-freeze-cpu-jit]:
+test_eval[pytorch_stargan-cpu-jit]:
   norm: 0.41127580269239844
-test_eval[pytorch_stargan-freeze-cuda-eager]:
+test_eval[pytorch_stargan-cuda-eager]:
   norm: 0.08316384517820552
-test_eval[pytorch_stargan-freeze-cuda-jit]:
+test_eval[pytorch_stargan-cuda-jit]:
   norm: 0.08326903133420274
 test_eval[pytorch_struct-cpu-eager]:
   norm: 0.0018767721354542824
@@ -172,111 +172,111 @@ test_eval[pytorch_struct-cuda-eager]:
   norm: 0.001154675792583211
 test_eval[pytorch_struct-cuda-jit]:
   norm: 0.0009379383413847642
-test_eval[resnet18-freeze-cpu-eager]:
+test_eval[resnet18-cpu-eager]:
   norm: 0.013635019411496516
-test_eval[resnet18-freeze-cpu-jit]:
+test_eval[resnet18-cpu-jit]:
   norm: 0.004340000501205115
-test_eval[resnet18-freeze-cuda-eager]:
+test_eval[resnet18-cuda-eager]:
   norm: 0.004029384374463939
-test_eval[resnet18-freeze-cuda-jit]:
+test_eval[resnet18-cuda-jit]:
   norm: 0.002682424467818527
-test_eval[resnet50-freeze-cpu-eager]:
+test_eval[resnet50-cpu-eager]:
   norm: 0.04178844787646085
-test_eval[resnet50-freeze-cpu-jit]:
+test_eval[resnet50-cpu-jit]:
   norm: 0.010330284068351323
-test_eval[resnet50-freeze-cuda-eager]:
+test_eval[resnet50-cuda-eager]:
   norm: 0.009906168770054263
-test_eval[resnet50-freeze-cuda-jit]:
+test_eval[resnet50-cuda-jit]:
   norm: 0.006550707827699584
-test_eval[resnet50_quantized_qat-freeze-cpu-eager]:
+test_eval[resnet50_quantized_qat-cpu-eager]:
   norm: 0.010140954883712711
-test_eval[resnext50_32x4d-freeze-cpu-eager]:
+test_eval[resnext50_32x4d-cpu-eager]:
   norm: 0.04598601860925555
-test_eval[resnext50_32x4d-freeze-cpu-jit]:
+test_eval[resnext50_32x4d-cpu-jit]:
   norm: 0.010582654013935672
-test_eval[resnext50_32x4d-freeze-cuda-eager]:
+test_eval[resnext50_32x4d-cuda-eager]:
   norm: 0.01400644284456601
-test_eval[resnext50_32x4d-freeze-cuda-jit]:
+test_eval[resnext50_32x4d-cuda-jit]:
   norm: 0.01067127727315222
-test_eval[shufflenet_v2_x1_0-freeze-cpu-eager]:
+test_eval[shufflenet_v2_x1_0-cpu-eager]:
   norm: 0.02395763971366077
-test_eval[shufflenet_v2_x1_0-freeze-cpu-jit]:
+test_eval[shufflenet_v2_x1_0-cpu-jit]:
   norm: 0.006669298970761398
-test_eval[shufflenet_v2_x1_0-freeze-cuda-eager]:
+test_eval[shufflenet_v2_x1_0-cuda-eager]:
   norm: 0.009757025870403238
-test_eval[shufflenet_v2_x1_0-freeze-cuda-jit]:
+test_eval[shufflenet_v2_x1_0-cuda-jit]:
   norm: 0.002579170347267772
 test_eval[soft_actor_critic-cuda-eager]:
   norm: 0.009121270070318132
 test_eval[speech_transformer-cuda-eager]:
   norm: 5.5849457436881496
-test_eval[squeezenet1_1-freeze-cpu-eager]:
+test_eval[squeezenet1_1-cpu-eager]:
   norm: 0.006074640442091583
-test_eval[squeezenet1_1-freeze-cpu-jit]:
+test_eval[squeezenet1_1-cpu-jit]:
   norm: 0.0038062207445777444
-test_eval[squeezenet1_1-freeze-cuda-eager]:
+test_eval[squeezenet1_1-cuda-eager]:
   norm: 0.002710926708199882
-test_eval[squeezenet1_1-freeze-cuda-jit]:
+test_eval[squeezenet1_1-cuda-jit]:
   norm: 0.001186003432805511
-test_eval[timm_efficientnet-freeze-cpu-eager]:
+test_eval[timm_efficientnet-cpu-eager]:
   norm: 0.044931364559527974
-test_eval[timm_efficientnet-freeze-cpu-jit]:
+test_eval[timm_efficientnet-cpu-jit]:
   norm: 0.03572538075165759
-test_eval[timm_efficientnet-freeze-cuda-eager]:
+test_eval[timm_efficientnet-cuda-eager]:
   norm: 0.01540701630919312
-test_eval[timm_efficientnet-freeze-cuda-jit]:
+test_eval[timm_efficientnet-cuda-jit]:
   norm: 0.011456383694894611
-test_eval[timm_nfnet-freeze-cpu-eager]:
+test_eval[timm_nfnet-cpu-eager]:
   norm: 0.0975031184963882
-test_eval[timm_nfnet-freeze-cpu-jit]:
+test_eval[timm_nfnet-cpu-jit]:
   norm: 0.038357658824814414
-test_eval[timm_nfnet-freeze-cuda-eager]:
+test_eval[timm_nfnet-cuda-eager]:
   norm: 0.027364568989346357
-test_eval[timm_nfnet-freeze-cuda-jit]:
+test_eval[timm_nfnet-cuda-jit]:
   norm: 0.014976983203087001
-test_eval[timm_regnet-freeze-cpu-eager]:
+test_eval[timm_regnet-cpu-eager]:
   norm: 0.017570307016732137
-test_eval[timm_regnet-freeze-cpu-jit]:
+test_eval[timm_regnet-cpu-jit]:
   norm: 0.011412880346882915
-test_eval[timm_regnet-freeze-cuda-eager]:
+test_eval[timm_regnet-cuda-eager]:
   norm: 0.014374228069625263
-test_eval[timm_regnet-freeze-cuda-jit]:
+test_eval[timm_regnet-cuda-jit]:
   norm: 0.008740643330384046
-test_eval[timm_resnest-freeze-cpu-eager]:
+test_eval[timm_resnest-cpu-eager]:
   norm: 0.018055407446809113
-test_eval[timm_resnest-freeze-cpu-jit]:
+test_eval[timm_resnest-cpu-jit]:
   norm: 0.009004193994801788
-test_eval[timm_resnest-freeze-cuda-eager]:
+test_eval[timm_resnest-cuda-eager]:
   norm: 0.004720946368364114
-test_eval[timm_resnest-freeze-cuda-jit]:
+test_eval[timm_resnest-cuda-jit]:
   norm: 0.003411335503038223
-test_eval[timm_vision_transformer-freeze-cpu-eager]:
+test_eval[timm_vision_transformer-cpu-eager]:
   norm: 0.028372901728075436
-test_eval[timm_vision_transformer-freeze-cpu-jit]:
+test_eval[timm_vision_transformer-cpu-jit]:
   norm: 0.026077427709399647
-test_eval[timm_vision_transformer-freeze-cuda-eager]:
+test_eval[timm_vision_transformer-cuda-eager]:
   norm: 0.010017510026227684
-test_eval[timm_vision_transformer-freeze-cuda-jit]:
+test_eval[timm_vision_transformer-cuda-jit]:
   norm: 0.010030586841749027
-test_eval[timm_vovnet-freeze-cpu-eager]:
+test_eval[timm_vovnet-cpu-eager]:
   norm: 0.027096056266108882
-test_eval[timm_vovnet-freeze-cpu-jit]:
+test_eval[timm_vovnet-cpu-jit]:
   norm: 0.01888504956260253
-test_eval[timm_vovnet-freeze-cuda-eager]:
+test_eval[timm_vovnet-cuda-eager]:
   norm: 0.008244240238939313
-test_eval[timm_vovnet-freeze-cuda-jit]:
+test_eval[timm_vovnet-cuda-jit]:
   norm: 0.007820618220648612
 test_eval[tts_angular-cpu-eager]:
   norm: 0.21736741150380112
 test_eval[tts_angular-cuda-eager]:
   norm: 0.21865387795260177
-test_eval[vgg16-freeze-cpu-eager]:
+test_eval[vgg16-cpu-eager]:
   norm: 0.0235548484989247
-test_eval[vgg16-freeze-cpu-jit]:
+test_eval[vgg16-cpu-jit]:
   norm: 0.01803949294428873
-test_eval[vgg16-freeze-cuda-eager]:
+test_eval[vgg16-cuda-eager]:
   norm: 0.010237725238952482
-test_eval[vgg16-freeze-cuda-jit]:
+test_eval[vgg16-cuda-jit]:
   norm: 0.009331264427466388
 test_eval[yolov3-cpu-eager]:
   norm: 0.5728399513871409
