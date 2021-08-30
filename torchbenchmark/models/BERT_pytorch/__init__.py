@@ -56,7 +56,7 @@ class Model(BenchmarkModel):
         self.is_next = example_batch['is_next'].to(self.device)
         self.bert_label = example_batch['bert_label'].to(self.device)
         if args.script:
-            bert = torch.jit._script_pdt(bert, example_inputs=[self.example_inputs, ])
+            bert = torch.jit.script(bert, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.trainer.model, self.example_inputs
