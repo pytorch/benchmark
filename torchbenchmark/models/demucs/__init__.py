@@ -72,7 +72,7 @@ class Model(BenchmarkModel):
         self.model = DemucsWrapper(self.model, self.augment)
 
         if self.jit:
-            self.model = torch.jit._script_pdt(self.model, example_inputs = [self.example_inputs, ])
+            self.model = torch.jit.script(self.model, example_inputs = [self.example_inputs, ])
 
     def _set_mode(self, train):
         self.model.train(train)
