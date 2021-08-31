@@ -58,7 +58,7 @@ class Model(BenchmarkModel):
         self.example_inputs = trainFrameIndex, *trainData
 
         if jit:
-            self.module = torch.jit._script_pdt(self.module, example_inputs=[self.example_inputs, ])
+            self.module = torch.jit.script(self.module, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.module, self.example_inputs
