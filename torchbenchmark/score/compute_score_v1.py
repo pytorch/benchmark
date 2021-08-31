@@ -30,13 +30,18 @@ def _get_model_task(model_name):
     Model = getattr(module, 'Model')
     return Model.task
 
+
+def _sanitize_name(name):
+    """Test names no longer contain `-freeze`, but it still appears in some artifacts."""
+    return name.replace("-freeze", "", 1)
+
+
 def _parse_test_name(name):
     """
-    Helper function which extracts test type (eval or train), model, 
+    Helper function which extracts test type (eval or train), model,
     device, and mode from the test full name.
     """
-    if "-freeze" in name:
-        name = name.replace("-freeze", "", 1)
+    name = _sanitize_name(name)
     test, model_name, device, mode = re.match(r"test_(.*)\[(.*)\-(.*)\-(.*)\]", name).groups()
     return (test, model_name, device, mode)
 
@@ -103,7 +108,7 @@ class TorchBenchScoreV1:
         # spec_file is not used in V1, this is just a placeholder
         self.spec_file = spec_file
         self.target = target
-        
+
     def _filter_jit_tests(self, norm):
         result_ref = dict()
         for jit_name in filter(lambda x: '-jit' in x, norm.keys()):
@@ -157,7 +162,7 @@ class TorchBenchScoreV1:
         if "benchmarks" in ref_data and "machine_info" in ref_data:
             ref = self._get_norm_from_ref_json_obj(ref_data)
         else:
-            ref = ref_data
+            ref = {_sanitize_name(k): v for k, v in ref_data.items()}
         return ref
 
     def _get_norm_from_ref_json_obj(self, ref_json_obj):
@@ -168,9 +173,10 @@ class TorchBenchScoreV1:
         """
         norm = dict()
         for b in ref_json_obj['benchmarks']:
-            norm.setdefault(b['name'], dict())
-            norm[b['name']].setdefault('norm', dict())
-            norm[b['name']]['norm'] = b['stats']['mean']
+            name = _sanitize_name(b['name'])
+            norm.setdefault(name, dict())
+            norm[name].setdefault('norm', dict())
+            norm[name]['norm'] = b['stats']['mean']
         return norm
 
     def _get_score(self, data, ref, ref_weights):
@@ -200,10 +206,10 @@ class TorchBenchScoreV1:
             benchmark_score = domain_weights[name] * math.log(norm / ref_norm[name]['norm'])
             score += benchmark_score
         return math.exp(score)
-    
+
     def compute_jit_speedup_score(self, data):
         """
-        This API calculates the V1 JIT speedup score for all 
+        This API calculates the V1 JIT speedup score for all
         the benchmarks that enable JIT compilation.
         The data argument is the json data object from the benchmark.
         The JIT speedup score is the geometric mean of all JIT benchmarks speedup

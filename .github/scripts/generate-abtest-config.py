@@ -55,9 +55,13 @@ def generate_bisection_tests(base, tip):
     base_tests = get_test_stats(base)
     tip_tests = get_test_stats(tip)
     result = []
-    for benchmark in tip_tests:
-        tip_latency = tip_tests[benchmark]
-        base_latency = base_tests[benchmark]
+    for benchmark, tip_latency in tip_tests.items():
+        base_latency = base_tests.get(benchmark, None)
+        if base_latency is None:
+            # This benchmark is new or was failing, so there is no prior point
+            # of reference against which to compare.
+            continue
+
         if abs(tip_latency - base_latency) / min(base_latency, tip_latency) >= PERF_CHANGE_THRESHOLD:
             result.append(benchmark)
     return result
