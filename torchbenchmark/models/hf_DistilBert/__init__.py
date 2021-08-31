@@ -41,6 +41,10 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError()
 
+        if self.device == "cuda":
+            # TODO: diagnose and re-enable.
+            raise NotImplementedError("This leads to a cudaErrorIllegalAddress from unique_by_key.")
+
         self.model.train()
         for _ in range(niter):
             outputs = self.model(**self.train_inputs)

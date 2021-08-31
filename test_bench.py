@@ -20,7 +20,6 @@ from components._impl.workers import subprocess_worker
 from torchbenchmark import _list_model_paths, ModelTask
 from torchbenchmark.util.machine_config import get_machine_state
 
-
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
 # a single test encounters an extreme failure, so we give up after a test
@@ -28,7 +27,6 @@ from torchbenchmark.util.machine_config import get_machine_state
 # test case completes in 20 minutes. It requires that if the worker is
 # unresponsive for 20 minutes the parent will presume it dead / incapacitated.)
 TIMEOUT = 1200  # Seconds
-
 
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
