@@ -84,8 +84,11 @@ test_eval[hf_BigBird-cuda-eager]:
   norm: 0.499124124716036
 test_eval[hf_DistilBert-cpu-eager]:
   norm: 0.0541744910471607
-test_eval[hf_DistilBert-cuda-eager]:
-  norm: 0.024590896345993003
+# Disabled by PR#425
+# test_eval[hf_DistilBert-cuda-eager]:
+#   norm: 0.024590896345993003
+# test_train[hf_DistilBert-cuda-eager]:
+#   norm: 1.6961384260444903
 test_eval[hf_GPT2-cpu-eager]:
   norm: 0.2273902039974928
 test_eval[hf_GPT2-cuda-eager]:
@@ -362,8 +365,6 @@ test_train[hf_BigBird-cuda-eager]:
   norm: 2.9844093741616233
 test_train[hf_DistilBert-cpu-eager]:
   norm: 15.872414556553121
-test_train[hf_DistilBert-cuda-eager]:
-  norm: 1.6961384260444903
 test_train[hf_GPT2-cuda-eager]:
   norm: 1.8896846601506696
 test_train[hf_Longformer-cuda-eager]:
