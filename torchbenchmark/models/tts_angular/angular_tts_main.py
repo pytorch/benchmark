@@ -222,25 +222,24 @@ CONFIG = {
 }
 
 
-SYNTHETIC_DATA = [T.rand(64, 50, 40)]
+SYNTHETIC_DATA = []
 
 
 class TTSModel:
     def __init__(self, device):
-        if device == 'gpu':
-            self.use_cuda = True
-        else:
-            self.use_cuda = False
+        self.device = device
+        self.use_cuda = True if self.device == 'cuda' else False
 
         self.c = AttrDict()
         self.c.update(CONFIG)
         c = self.c
         self.model = SpeakerEncoder(input_dim=c.model['input_dim'],
-                            proj_dim=c.model['proj_dim'],
-                            lstm_dim=c.model['lstm_dim'],
-                            num_lstm_layers=c.model['num_lstm_layers'])
+                                    proj_dim=c.model['proj_dim'],
+                                    lstm_dim=c.model['lstm_dim'],
+                                    num_lstm_layers=c.model['num_lstm_layers'])
         self.optimizer = RAdam(self.model.parameters(), lr=c.lr)
         self.criterion = AngleProtoLoss()
+        SYNTHETIC_DATA.append(T.rand(64, 50, 40).to(device=self.device))
 
         if self.use_cuda:
             self.model = self.model.cuda()
@@ -249,10 +248,13 @@ class TTSModel:
         self.scheduler = None
         self.global_step = 0
 
+    def __del__(self):
+        del SYNTHETIC_DATA[0]
 
     def train(self, niter):
         _, global_step = self._train(self.model, self.criterion,
-                                     self.optimizer, self.scheduler, None, self.global_step, self.c, niter)
+                                     self.optimizer, self.scheduler, None,
+                                     self.global_step, self.c, niter)
 
     def eval(self):
         start = time.time()

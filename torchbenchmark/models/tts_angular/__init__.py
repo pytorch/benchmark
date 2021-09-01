@@ -14,7 +14,7 @@ class Model(BenchmarkModel):
         self.model.model.to(self.device)
 
     def get_module(self):
-        return self.model.model, [SYNTHETIC_DATA[0].to(self.device), ]
+        return self.model.model, [SYNTHETIC_DATA[0], ]
 
     def set_train(self):
         # another model instance is used for training
