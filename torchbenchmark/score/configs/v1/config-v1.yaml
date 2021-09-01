@@ -85,10 +85,10 @@ test_eval[hf_BigBird-cuda-eager]:
 test_eval[hf_DistilBert-cpu-eager]:
   norm: 0.0541744910471607
 # Disabled by PR#425
-# test_eval[hf_DistilBert-cuda-eager]:
-#   norm: 0.024590896345993003
 # test_train[hf_DistilBert-cuda-eager]:
 #   norm: 1.6961384260444903
+test_eval[hf_DistilBert-cuda-eager]:
+  norm: 0.024590896345993003
 test_eval[hf_GPT2-cpu-eager]:
   norm: 0.2273902039974928
 test_eval[hf_GPT2-cuda-eager]:
