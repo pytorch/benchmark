@@ -83,10 +83,21 @@ def _load_test(path, device):
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')
 
+    def check_device_fn(self):
+        task = ModelTask(path, timeout=TIMEOUT)
+        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+            try:
+                task.make_model_instance(device=device, jit=False)
+                task.check_device()
+                task.del_model_instance()
+            except NotImplementedError:
+                self.skipTest('Method check_device is not implemented, skipping...')
+
     name = os.path.basename(path)
     setattr(TestBenchmark, f'test_{name}_example_{device}', example)
     setattr(TestBenchmark, f'test_{name}_train_{device}', train)
     setattr(TestBenchmark, f'test_{name}_eval_{device}', eval_fn)
+    setattr(TestBenchmark, f'test_{name}_check_device_{device}', check_device_fn)
 
 
 def _load_tests():

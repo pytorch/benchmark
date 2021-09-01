@@ -11,9 +11,10 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.model = TTSModel(device=self.device)
+        self.model.model.to(self.device)
 
     def get_module(self):
-        return self.model.model, [SYNTHETIC_DATA[0], ]
+        return self.model.model, [SYNTHETIC_DATA[0].to(self.device), ]
 
     def set_train(self):
         # another model instance is used for training

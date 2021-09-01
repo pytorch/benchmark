@@ -311,6 +311,42 @@ class ModelTask(base_task.TaskBase):
         else:
             module(*example_inputs)
 
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def check_device() -> None:
+        instance = globals()["model"]
+
+         # Check this BenchmarkModel has a device attribute.
+        current_device = getattr(instance, 'device', None)
+        if current_device is None:
+            raise Exception('Missing device in BenchmarkModel.')
+
+        model, inputs = instance.get_module()
+        model_name = model.name if hasattr(model, 'name') else None
+
+        # Check the model tensors are assigned to the expected device.
+        for t in list(model.parameters()):
+            model_device = t.device.type
+            if model_device != current_device:
+                raise Exception(f'Model {model_name} was not set to the' \
+                                f' expected device {current_device},' \
+                                f' found device {model_device}.')
+
+        # Check the inputs are assigned to the expected device.
+        if isinstance(inputs, dict):
+            # Huggingface models do not have a Key 0
+            inputs_device = next(iter(inputs.values())).device.type
+        elif isinstance(inputs, tuple):
+            # Some inputs are nested inside tuples, such as tacotron2
+            inputs_device = inputs[0][0].device.type
+        else:
+            inputs_device = inputs[0].device.type
+
+        if inputs_device != current_device:
+            raise Exception(f'Model {model_name} inputs were not set to the' \
+                            f' expected device {current_device},' \
+                            f' found device {inputs_device}.')
+
     # =========================================================================
     # == Control `torch` state (in the subprocess) ============================
     # =========================================================================

@@ -82,7 +82,7 @@ class Model(BenchmarkModel):
         batches = []
 
         for i in range(4):
-          batches.append(torch.randn(self.opt.batch_size, 3, 224, 224))
+          batches.append(torch.randn(self.opt.batch_size, 3, 224, 224).to(self.device))
 
         def collate_fn(data):
             ind = data[0]

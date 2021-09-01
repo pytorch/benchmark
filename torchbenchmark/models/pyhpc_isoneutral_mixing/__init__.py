@@ -129,7 +129,7 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        self.model = IsoneutralMixing(self.device).to(self.device)
+        self.model = IsoneutralMixing(self.device).to(device=self.device)
         self.example_inputs = tuple(
             torch.from_numpy(x).to(self.device) for x in _generate_inputs(2 ** 22)
         )
@@ -146,7 +146,6 @@ class Model(BenchmarkModel):
         model, example_inputs = self.get_module()
         for i in range(niter):
             model(*example_inputs)
-
 
 if __name__ == "__main__":
     m = Model(device="cuda", jit=True)

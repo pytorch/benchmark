@@ -147,7 +147,6 @@ class Model(BenchmarkModel):
 
 if __name__ == '__main__':
     m = Model(device='cuda', jit=False)
-    model = m.get_module()
     model, example_inputs = m.get_module()
     model(*example_inputs)
     m.train()
