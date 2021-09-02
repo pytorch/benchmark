@@ -48,7 +48,10 @@ class Model(BenchmarkModel):
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, 1, gamma=0.9)
 
         if self.jit:
-            self.model = torch.jit.script(self.model, example_inputs = [(self.text, self.offsets), ])
+            if hasattr(torch.jit, '_script_pdt'):
+                self.model = torch.jit._script_pdt(self.model, example_inputs = [(self.text, self.offsets), ])
+            else:
+                self.model = torch.jit.script(self.model, example_inputs = [(self.text, self.offsets), ])
 
     def get_module(self):
         return self.model, (self.text, self.offsets)
