@@ -311,6 +311,52 @@ class ModelTask(base_task.TaskBase):
         else:
             module(*example_inputs)
 
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def check_device() -> None:
+        instance = globals()["model"]
+
+         # Check this BenchmarkModel has a device attribute.
+        current_device = getattr(instance, 'device', None)
+        if current_device is None:
+            raise RuntimeError('Missing device in BenchmarkModel.')
+
+        model, inputs = instance.get_module()
+        model_name = getattr(model, 'name', None)
+
+        # Check the model tensors are assigned to the expected device.
+        for t in model.parameters():
+            model_device = t.device.type
+            if model_device != current_device:
+                raise RuntimeError(f'Model {model_name} was not set to the' \
+                                   f' expected device {current_device},' \
+                                   f' found device {model_device}.')
+
+        # Check the inputs are assigned to the expected device.
+        def check_inputs(inputs):
+            if isinstance(inputs, torch.Tensor):
+                if inputs.dim() and current_device == "cuda":
+                    # Zero dim Tensors (Scalars) can be captured by CUDA
+                    # kernels and need not match device.
+                    return
+
+                inputs_device = inputs.device.type
+                if inputs_device != current_device:
+                    raise RuntimeError(f'Model {model_name} inputs were' \
+                                       f' not set to the expected device' \
+                                       f' {current_device}, found device' \
+                                       f' {inputs_device}.')
+            elif isinstance(inputs, tuple):
+                # Some inputs are nested inside tuples, such as tacotron2
+                for i in inputs:
+                    check_inputs(i)
+            elif isinstance(inputs, dict):
+                # Huggingface models take inputs as kwargs
+                for i in inputs.values():
+                    check_inputs(i)
+
+        check_inputs(inputs)
+
     # =========================================================================
     # == Control `torch` state (in the subprocess) ============================
     # =========================================================================

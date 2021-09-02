@@ -55,7 +55,7 @@ class Model(BenchmarkModel):
         trainData = (frame0.to(device),
                      frameT.to(device),
                      frame1.to(device))
-        self.example_inputs = trainFrameIndex, *trainData
+        self.example_inputs = trainFrameIndex.to(self.device), *trainData
 
         if jit:
             self.module = torch.jit.script(self.module, example_inputs=[self.example_inputs, ])

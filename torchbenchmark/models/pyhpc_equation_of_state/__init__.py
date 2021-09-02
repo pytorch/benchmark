@@ -33,7 +33,7 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        self.model = EquationOfState().to(self.device)
+        self.model = EquationOfState().to(device=self.device)
         self.example_inputs = tuple(
             torch.from_numpy(x).to(self.device)
             for x in _generate_inputs(2 ** 22)
