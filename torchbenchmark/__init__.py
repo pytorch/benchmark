@@ -340,7 +340,7 @@ class ModelTask(base_task.TaskBase):
                     # kernels and need not match device.
                     return
 
-                inputs_device = inputs[0].device.type
+                inputs_device = inputs.device.type
                 if inputs_device != current_device:
                     raise RuntimeError(f'Model {model_name} inputs were' \
                                        f' not set to the expected device' \
