@@ -55,8 +55,12 @@ class Model(BenchmarkModel):
         self.ground_truth = self.ground_truth.to(self.device)
 
         if self.jit:
-            net = torch.jit.script(net, example_inputs = [(train_batch, ), ])
-            self.eval_model = torch.jit.script(self.eval_model)
+            if hasattr(torch.jit, '_script_pdt'):
+                net = torch.jit._script_pdt(net, example_inputs = [(train_batch, ), ])
+                self.eval_model = torch.jit._script_pdt(self.eval_model)
+            else:
+                net = torch.jit.script(net, example_inputs = [(train_batch, ), ])
+                self.eval_model = torch.jit.script(self.eval_model)
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
 
