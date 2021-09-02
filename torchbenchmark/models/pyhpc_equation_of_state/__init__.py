@@ -39,7 +39,10 @@ class Model(BenchmarkModel):
             for x in _generate_inputs(2 ** 22)
         )
         if self.jit:
-            self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
+            if hasattr(torch.jit, '_script_pdt'):
+                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
+            else:
+                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.model, self.example_inputs
