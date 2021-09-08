@@ -7,6 +7,7 @@ QUIET = True
 
 
 class BERTDataset(Dataset):
+
     def __init__(self, corpus_path, vocab, seq_len, encoding="utf-8", corpus_lines=None, on_memory=True, generator = None):
         self.vocab = vocab
         self.seq_len = seq_len
@@ -16,8 +17,12 @@ class BERTDataset(Dataset):
         self.corpus_path = corpus_path
         self.encoding = encoding
 
-        with generator as f:
+        # For use as benchmark we only accept data from generator
         #with open(corpus_path, "r", encoding=encoding) as f:
+
+        assert generator != None
+        with generator as f:
+
             if self.corpus_lines is None and not on_memory:
                 for _ in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines, disable=QUIET):
                     self.corpus_lines += 1

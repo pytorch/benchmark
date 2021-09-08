@@ -19,6 +19,20 @@ from torchbenchmark.tasks import NLP
 import io
 
 class CorpusGenerator(io.TextIOBase):
+    """
+    Class to Generate Random Corpus in Lieu of Using Fixed File Data.
+
+    Model is written to consume large fixed corpus but for purposes
+    of benchmark its sufficient to generate nonsense corpus with
+    similar distribution.
+
+    Corpus is sentence pairs. Vocabulary words are simply numbers and
+    sentences are each 1-4 words.
+
+    Deriving from TextUIBase allows object to participate as a text
+    file.
+    """
+
 
     def __init__(self, words, lines):
         self.lines_read = 0
@@ -29,9 +43,7 @@ class CorpusGenerator(io.TextIOBase):
         self.lines_read = 0
 
     def readable(self):
-        if (self.lines_read > self.lines):
-            return False
-        return True
+        return self.lines <= self.lines_read
 
     def readline(self):
 
@@ -54,8 +66,6 @@ class CorpusGenerator(io.TextIOBase):
 
         return newline
 
-
-
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
@@ -66,6 +76,8 @@ class Model(BenchmarkModel):
 
     def __init__(self, device=None, jit=False):
         super().__init__()
+
+        debug_print = False
 
         self.device = device
         self.jit = jit
@@ -78,6 +90,7 @@ class Model(BenchmarkModel):
         ]) # Avoid reading sys.argv here
         args.with_cuda = self.device == 'cuda'
         args.script = self.jit
+        args.on_memory = True
 
         # Example effect of batch size on eval time(ms)
         # bs     cpu       cuda
@@ -91,7 +104,8 @@ class Model(BenchmarkModel):
         # Issue is that with small batch sizes the gpu is starved for work.
         # Ideally doubling work would double execution time.
 
-        # parameters for work size
+        # parameters for work size, these were chosen to provide a profile
+        # that matches processing of an original trained en-de corpus.
         args.batch_size = 16
         vocab_size = 20000
         args.corpus_lines = 50000
@@ -104,7 +118,7 @@ class Model(BenchmarkModel):
         #  vocab = WordVocab(f)
         #vocab = WordVocab.load_vocab(args.vocab_path)
 
-        if False:
+        if debug_print:
             print("seq_len:")
             print(args.seq_len)
             print("batch size:")
