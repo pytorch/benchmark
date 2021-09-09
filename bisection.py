@@ -223,7 +223,7 @@ class TorchSource:
         # build pytorch
         print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
         # pytorch doesn't update version.py in incremental compile, so generate it manually
-        command = "python tools/generate_torch_version.py --is_debug on"
+        command = "python tools/generate_torch_version.py --is_debug on --cuda_version '10.2'"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         command = "python setup.py install &> /dev/null"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
