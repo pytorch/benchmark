@@ -201,12 +201,12 @@ class TorchSource:
     def build_install_deps(self, build_env):
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
-        command = "python setup.py install &> /dev/null"
+        command = "python setup.py install"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"], env=build_env, shell=True)
         print("done")
         # Build torchtext
         print(f"Building torchtext ...", end="", flush=True)
-        command = "python setup.py clean install &> /dev/null"
+        command = "python setup.py clean install"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"], env=build_env, shell=True)
         print("done")
  
@@ -222,10 +222,13 @@ class TorchSource:
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
         print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
-        # pytorch doesn't update version.py in incremental compile, so generate it manually
-        command = "python tools/generate_torch_version.py --is_debug on --cuda_version '10.2'"
+        # Check if version.py exists, if it does, remove it.
+        # This is to force pytorch update the version.py file upon incremental compilation
+        version_py_path = os.path.join(self.srcpath, "torch/version.py")
+        if os.path.exists(version_py_path):
+            os.remove(version_py_path)
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
-        command = "python setup.py install &> /dev/null"
+        command = "python setup.py install"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
         self.build_install_deps(build_env)
