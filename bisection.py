@@ -227,7 +227,6 @@ class TorchSource:
         version_py_path = os.path.join(self.srcpath, "torch/version.py")
         if os.path.exists(version_py_path):
             os.remove(version_py_path)
-        subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         command = "python setup.py install"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
