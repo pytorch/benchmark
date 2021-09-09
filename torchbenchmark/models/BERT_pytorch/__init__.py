@@ -157,7 +157,7 @@ class Model(BenchmarkModel):
         self.is_next = example_batch['is_next'].to(self.device)[:INFERENCE_BATCH_SIZE]
         self.bert_label = example_batch['bert_label'].to(self.device)[:INFERENCE_BATCH_SIZE]
         if args.script:
-            bert = torch.jit.script(bert, example_inputs=[self.example_inputs, ])
+            bert = torch.jit.script(bert, [self.example_inputs, ])
 
     def get_module(self):
         return self.trainer.model, self.example_inputs
