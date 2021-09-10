@@ -14,8 +14,12 @@ from unittest.mock import patch
 import torch
 from torchbenchmark import _list_model_paths, ModelTask
 
+import lazy_tensor_core.core.lazy_model as ltm
 import lazy_tensor_core
 lazy_tensor_core._LAZYC._ltc_init_ts_backend()
+
+# from caffe2.python import workspace
+# workspace.GlobalInit(['caffe2', '--caffe2_log_level=-4'])
 
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
@@ -66,6 +70,8 @@ def _load_test(path, device):
                 task.make_model_instance(device=device, jit=False)
                 task.set_train()
                 task.train()
+                if self.device == 'lazy':
+                    ltm.mark_step()
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method train is not implemented, skipping...')
@@ -81,6 +87,8 @@ def _load_test(path, device):
 
                 task.set_eval()
                 task.eval()
+                if self.device == 'lazy':
+                    ltm.mark_step()
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')

@@ -11,8 +11,6 @@ from torchbenchmark.tasks import NLP
 from transformers import *
 from datasets import load_dataset
 
-import lazy_tensor_core.core.lazy_model as ltm
-
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
@@ -48,8 +46,6 @@ class Model(BenchmarkModel):
             loss = outputs.loss
             loss.backward()
             self.optimizer.step()
-            if (self.device == 'lazy'):
-                ltm.mark_step()
 
     def eval(self, niter=1):
         if self.jit:
@@ -58,8 +54,6 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.eval_inputs)
-                if (self.device == 'lazy'):
-                    ltm.mark_step()
 
 
 if __name__ == "__main__":
