@@ -16,6 +16,40 @@ from torchbenchmark import list_models
 
 import torch
 
+def run_one_step_with_cudastreams(func, streamcount):
+
+    print("Running Utilization Scaling Using Cuda Streams")
+
+    streamlist = []
+    for i in range(1,streamcount + 1,1):
+
+        # create additional streams and prime with load
+        while len(streamlist) < i :
+            s = torch.cuda.Stream()
+            streamlist.append(s)
+
+        for s in streamlist:
+            with torch.cuda.stream(s):
+                func()
+
+        torch.cuda.synchronize()  # Wait for the events to be recorded!
+
+        # now run benchmark using streams
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
+
+        t0 = time.time()
+        for s in streamlist:
+            with torch.cuda.stream(s):
+                func()
+        t1 = time.time()
+
+        end_event.record()
+        torch.cuda.synchronize()
+
+        print(f"Cuda StreamCount:{len(streamlist)}: gpu time {start_event.elapsed_time(end_event)}")
+
 def run_one_step(func):
 
     func()
@@ -62,7 +96,12 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--mode", choices=["eager",  "jit"], default="eager", help="Which mode to run.")
     parser.add_argument("-t", "--test", choices=["eval",  "train"], default="eval", help="Which test to run.")
     parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
+    parser.add_argument("--cudastreams", action="store_true", help="Utilization test using increasing number of cuda streams")
     args = parser.parse_args()
+
+    if args.cudastreams and not args.device=="cuda":
+        print("cuda device required to use --cudastreams option")
+        exit(-1)
 
     found = False
     for Model in list_models():
@@ -81,5 +120,7 @@ if __name__ == "__main__":
 
     if args.profile:
         profile_one_step(test)
+    elif args.cudastreams:
+        run_one_step_with_cudastreams(test, 10)
     else:
         run_one_step(test)
