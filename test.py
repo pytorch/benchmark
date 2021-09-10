@@ -106,7 +106,7 @@ def _load_test(path, device):
 
 
 def _load_tests():
-    devices = ['cpu']
+    devices = ['cpu', 'lazy']
     if torch.cuda.is_available():
         devices.append('cuda')
 

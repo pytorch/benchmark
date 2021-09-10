@@ -15,6 +15,11 @@ import torch.profiler as profiler
 from torchbenchmark import list_models
 import torch
 
+import lazy_tensor_core
+lazy_tensor_core._LAZYC._ltc_init_ts_backend()
+import lazy_tensor_core.debug.metrics as metrics
+from caffe2.python import workspace
+workspace.GlobalInit(['caffe2', '--caffe2_log_level=-4'])
 WARMUP_ROUNDS = 3
 
 def run_one_step_with_cudastreams(func, streamcount):
@@ -127,7 +132,7 @@ def _validate_devices(devices: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
-    parser.add_argument("-d", "--device", choices=["cpu", "cuda"], default="cpu", help="Which device to use.")
+    parser.add_argument("-d", "--device", choices=["cpu", "cuda", "lazy"], default="cpu", help="Which device to use.")
     parser.add_argument("-m", "--mode", choices=["eager", "jit"], default="eager", help="Which mode to run.")
     parser.add_argument("-t", "--test", choices=["eval", "train"], default="eval", help="Which test to run.")
     parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
@@ -177,3 +182,6 @@ if __name__ == "__main__":
         run_one_step_with_cudastreams(test, 10)
     else:
         run_one_step(test)
+
+    if args.device == 'lazy':
+        print(metrics.counter_names())
