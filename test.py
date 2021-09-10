@@ -14,6 +14,8 @@ from unittest.mock import patch
 import torch
 from torchbenchmark import _list_model_paths, ModelTask
 
+import lazy_tensor_core
+lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
@@ -101,7 +103,7 @@ def _load_test(path, device):
 
 
 def _load_tests():
-    devices = ['cpu']
+    devices = ['cpu', 'lazy']
     if torch.cuda.is_available():
         devices.append('cuda')
 

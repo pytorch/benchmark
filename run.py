@@ -16,6 +16,12 @@ from torchbenchmark import list_models
 
 import torch
 
+import lazy_tensor_core
+lazy_tensor_core._LAZYC._ltc_init_ts_backend()
+
+# from caffe2.python import workspace
+# workspace.GlobalInit(['caffe2', '--caffe2_log_level=-4'])
+
 def run_one_step(func):
 
     func()
@@ -58,7 +64,7 @@ def profile_one_step(func, nwarmup=3):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
-    parser.add_argument("-d", "--device", choices=["cpu",  "cuda"], default="cpu", help="Which device to use.")
+    parser.add_argument("-d", "--device", choices=["cpu",  "cuda", "lazy"], default="cpu", help="Which device to use.")
     parser.add_argument("-m", "--mode", choices=["eager",  "jit"], default="eager", help="Which mode to run.")
     parser.add_argument("-t", "--test", choices=["eval",  "train"], default="eval", help="Which test to run.")
     parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
