@@ -24,7 +24,7 @@ from torchbenchmark.util.machine_config import get_machine_state
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
     # e.g. by using info in metafunc.config
-    devices = ['cpu', 'cuda']
+    devices = ['cpu', 'cuda', 'lazy']
     if metafunc.config.option.cpu_only:
         devices = ['cpu']
 
