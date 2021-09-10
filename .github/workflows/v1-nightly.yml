@@ -81,3 +81,11 @@ jobs:
       - name: Destroy conda env
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"
+  post-benchmark:
+    steps:
+      - name: Run the bisector
+        run: |
+          echo "Running the bisector"
+      - name: Report the anomaly
+        run: |
+          echo "Reporting the anomaly to FB Internal"
