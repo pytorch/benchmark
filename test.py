@@ -70,7 +70,7 @@ def _load_test(path, device):
                 task.make_model_instance(device=device, jit=False)
                 task.set_train()
                 task.train()
-                if self.device == 'lazy':
+                if device == 'lazy':
                     ltm.mark_step()
                 task.del_model_instance()
             except NotImplementedError:
@@ -87,7 +87,7 @@ def _load_test(path, device):
 
                 task.set_eval()
                 task.eval()
-                if self.device == 'lazy':
+                if device == 'lazy':
                     ltm.mark_step()
                 task.del_model_instance()
             except NotImplementedError:
