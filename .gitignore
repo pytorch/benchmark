@@ -5,6 +5,8 @@
 *.out*
 *.swp
 *.swo
+*~HEAD
+.DS_Store
 build/
 .ipynb_checkpoints/
 .idea
