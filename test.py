@@ -15,8 +15,6 @@ import torch
 from torchbenchmark import _list_model_paths, ModelTask
 
 import lazy_tensor_core.core.lazy_model as ltm
-import lazy_tensor_core
-lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
 # from caffe2.python import workspace
 # workspace.GlobalInit(['caffe2', '--caffe2_log_level=-4'])
