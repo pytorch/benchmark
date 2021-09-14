@@ -14,6 +14,7 @@ from unittest.mock import patch
 import torch
 from torchbenchmark import _list_model_paths, ModelTask
 
+
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
 # a single test encounters an extreme failure, so we give up after 5 a test
