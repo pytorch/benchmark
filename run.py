@@ -16,13 +16,6 @@ from torchbenchmark import list_models
 
 import torch
 
-import lazy_tensor_core
-lazy_tensor_core._LAZYC._ltc_init_ts_backend()
-import lazy_tensor_core.core.lazy_model as ltm
-
-# from caffe2.python import workspace
-# workspace.GlobalInit(['caffe2', '--caffe2_log_level=-4'])
-
 def run_one_step(func):
 
     func()
@@ -46,8 +39,6 @@ def run_one_step(func):
 
       t0 = time.time()
       func()
-      if args.device == 'lazy':
-        ltm.mark_step()
       t1 = time.time()
 
       print(f"Ran in {t1 - t0} seconds.")
@@ -56,15 +47,11 @@ def run_one_step(func):
 def profile_one_step(func, nwarmup=3):
     for i in range(nwarmup):
         func()
-        if args.device == 'lazy':
-            ltm.mark_step()
 
     use_cuda = args.device == "cuda"
 
     with profiler.profile(record_shapes=True, use_cuda = use_cuda) as prof:
         func()
-        if args.device == 'lazy':
-            ltm.mark_step()
 
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
 

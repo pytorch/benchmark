@@ -14,11 +14,6 @@ from unittest.mock import patch
 import torch
 from torchbenchmark import _list_model_paths, ModelTask
 
-import lazy_tensor_core.core.lazy_model as ltm
-
-# from caffe2.python import workspace
-# workspace.GlobalInit(['caffe2', '--caffe2_log_level=-4'])
-
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
 # a single test encounters an extreme failure, so we give up after 5 a test
@@ -68,8 +63,6 @@ def _load_test(path, device):
                 task.make_model_instance(device=device, jit=False)
                 task.set_train()
                 task.train()
-                if device == 'lazy':
-                    ltm.mark_step()
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method train is not implemented, skipping...')
@@ -85,8 +78,6 @@ def _load_test(path, device):
 
                 task.set_eval()
                 task.eval()
-                if device == 'lazy':
-                    ltm.mark_step()
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')

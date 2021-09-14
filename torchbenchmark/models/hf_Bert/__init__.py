@@ -11,6 +11,13 @@ from torchbenchmark.tasks import NLP
 from transformers import *
 from datasets import load_dataset
 
+# TODO: Generalize the LTC enablement within run.py and torchbenmark/__init__.py for test.py and test_bench.py.
+import lazy_tensor_core
+lazy_tensor_core._LAZYC._ltc_init_ts_backend()
+import lazy_tensor_core.core.lazy_model as ltm
+from caffe2.python import workspace
+workspace.GlobalInit(['caffe2', '--caffe2_log_level=-4'])
+
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
@@ -46,6 +53,8 @@ class Model(BenchmarkModel):
             loss = outputs.loss
             loss.backward()
             self.optimizer.step()
+            if self.device == 'lazy':
+                ltm.mark_step()
 
     def eval(self, niter=1):
         if self.jit:
@@ -54,6 +63,8 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.eval_inputs)
+                if self.device == 'lazy':
+                    ltm.mark_step()
 
 
 if __name__ == "__main__":

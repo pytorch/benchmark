@@ -24,9 +24,6 @@ this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = 'models'
 install_file = 'install.py'
 
-import lazy_tensor_core
-lazy_tensor_core._LAZYC._ltc_init_ts_backend()
-
 def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> bool:
     try:
         request.urlopen(test_url, timeout=timeout)
@@ -262,6 +259,7 @@ class ModelTask(base_task.TaskBase):
         globals().update({
             "model": model,
             "maybe_sync": maybe_sync,
+            "device": device,
         })
 
     def gc_collect(self) -> None:
@@ -274,6 +272,7 @@ class ModelTask(base_task.TaskBase):
         self.worker.run("""
             del model
             del maybe_sync
+            del device
         """)
         self.gc_collect()
 
