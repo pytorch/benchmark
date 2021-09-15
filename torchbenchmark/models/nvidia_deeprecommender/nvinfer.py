@@ -119,8 +119,13 @@ class DeepRecommenderInferenceBenchmark:
 
     self.toytest = True
 
+    self.batch_size = 256
+
+    # number of movies in netflix training set.
+    self.node_count = 197951
+
     if self.toytest:
-      self.toyinputs = torch.randn(1,15178).to(device)
+      self.toyinputs = torch.randn(self.batch_size,self.node_count).to(device)
 
     if usecommandlineargs:
       self.args = getCommandLineArgs()
@@ -134,10 +139,6 @@ class DeepRecommenderInferenceBenchmark:
         return
 
       self.args = getBenchmarkArgs(forcecuda)
-
-      if jit == True:
-        # jit not supported, quit init
-        return
 
     args = processArgState(self.args)
 
@@ -166,7 +167,7 @@ class DeepRecommenderInferenceBenchmark:
     self.eval_params['data_dir'] = self.args.path_to_eval_data
   
     if self.toytest:
-      self.rencoder = model.AutoEncoder(layer_sizes=[15178] + [int(l) for l in self.args.hidden_layers.split(',')],
+      self.rencoder = model.AutoEncoder(layer_sizes=[self.node_count] + [int(l) for l in self.args.hidden_layers.split(',')],
                                         nl_type=self.args.non_linearity_type,
                                         is_constrained=self.args.constrained,
                                         dp_drop_prob=self.args.drop_prob,
@@ -195,11 +196,11 @@ class DeepRecommenderInferenceBenchmark:
       print('######################################################')
 
     self.rencoder.eval()
+
+    if self.args.jit:
+      self.rencoder = torch.jit.trace(self.rencoder, (self.toyinputs, ))
   
     if self.args.use_cuda: self.rencoder = self.rencoder.cuda()
-  
-    if self.args.jit:
-      self.rencoder = torch.jit.script(self.rencoder)
 
     if self.toytest == False:
       self.inv_userIdMap = {v: k for k, v in self.data_layer.userIdMap.items()}
