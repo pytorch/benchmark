@@ -230,9 +230,11 @@ class TorchSource:
         build_env = self.setup_build_env(os.environ.copy())
         # build pytorch
         print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
-        # pytorch doesn't update version.py in incremental compile, so generate it manually
-        command = "python tools/generate_torch_version.py --is_debug on"
-        subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
+        # Check if version.py exists, if it does, remove it.
+        # This is to force pytorch update the version.py file upon incremental compilation
+        version_py_path = os.path.join(self.srcpath, "torch/version.py")
+        if os.path.exists(version_py_path):
+            os.remove(version_py_path)
         command = "python setup.py install"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
