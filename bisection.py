@@ -169,7 +169,7 @@ class TorchSource:
             self.commits.append(Commit(sha=commit, ctime=ctime))
             self.commit_dict[commit] = count
         return True
-    
+
     def get_mid_commit(self, left: Commit, right: Commit) -> Optional[Commit]:
         left_index = self.commit_dict[left.sha]
         right_index = self.commit_dict[right.sha]
@@ -196,7 +196,7 @@ class TorchSource:
             assert dep_commit, "Failed to find the commit on {cdate} of {pkg}"
             assert gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], dep_commit), "Failed to checkout commit {commit} of {pkg}"
             print("done.")
-    
+
     # Install dependencies such as torchtext and torchvision
     def build_install_deps(self, build_env):
         # Build torchvision
@@ -209,7 +209,15 @@ class TorchSource:
         command = "python setup.py clean install"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"], env=build_env, shell=True)
         print("done")
- 
+        # Build LazyTensor
+        print(f"Building LazyTensor ...", end="", flush=True)
+        cwd = os.path.expandvars("${HOME}/pytorch/lazy_tensor_core")
+        command = "./scripts/apply_patches.sh"
+        subprocess.check_call(command, cwd=cwd, env=build_env, shell=True)
+        command = "python setup.py clean install"
+        subprocess.check_call(command, cwd=cwd, env=build_env, shell=True)
+        print("done")
+
     def build(self, commit: Commit):
         # checkout pytorch commit
         print(f"Checking out pytorch commit {commit.sha} ...", end="", flush=True)
@@ -269,7 +277,7 @@ class TorchBench:
         self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
                         if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
         return True
- 
+
     def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
         # Return the result json file path
         output_dir = os.path.join(self.workdir, commit.sha)
@@ -347,7 +355,7 @@ class TorchBench:
         commit.digest = self.gen_digest(result_dir, targets)
         self.torch_src.cleanup(commit)
         return commit.digest
-        
+
 class TorchBenchBisection:
     workdir: str
     start: str
@@ -436,7 +444,7 @@ class TorchBenchBisection:
         right_commit = self.torch_src.commits[-1]
         self.bisectq.append((left_commit, right_commit, self.targets))
         return True
-        
+
     def run(self):
         while len(self.bisectq):
             (left, right, targets) = self.bisectq.pop(0)
@@ -454,7 +462,7 @@ class TorchBenchBisection:
                 else:
                     self.bisectq.append((left, mid, updated_targets))
                     self.bisectq.append((mid, right, updated_targets))
- 
+
     def output(self):
         json_obj = dict()
         json_obj["start"] = self.start
@@ -526,7 +534,7 @@ if __name__ == "__main__":
     targets = None
     if "tests" in bisect_config:
         targets = bisect_config["tests"]
-    
+
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_src=args.pytorch_src,
                                     bench_src=args.torchbench_src,
