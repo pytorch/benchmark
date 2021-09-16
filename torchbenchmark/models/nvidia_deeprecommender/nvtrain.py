@@ -116,7 +116,7 @@ def processTrainArgState(args) :
     print(args)
   
   if args.forcecpu and args.forcecuda:
-    print("Error, force cpu and cuda cannot bother be set")
+    print("Error, force cpu and cuda cannot both be set")
     quit()
 
   args.use_cuda = torch.cuda.is_available() # global flag
@@ -187,7 +187,12 @@ class DeepRecommenderTrainBenchmark:
 
     # Force test to run in toy mode. Single call of fake data to model.
     self.toytest = True
-    self.toybatch = 15178
+    self.toybatch = 256
+
+    # number of movies in netflix training set.
+    self.toyvocab = 197951
+
+    self.toyinputs = torch.randn(self.toybatch, self.toyvocab)
 
     if (processCommandLine) :
       self.args = getTrainCommandLineArgs()
@@ -200,10 +205,6 @@ class DeepRecommenderTrainBenchmark:
         forcecuda = True
       else:
         # unknown device string, quit init
-        return
-
-      # jit not supported, quit here if jit is requested
-      if jit == True:
         return
 
       self.args.forcecuda = forcecuda
@@ -236,7 +237,7 @@ class DeepRecommenderTrainBenchmark:
 
     # must set eval batch size to 1 to make sure no examples are missed
     if self.toytest:
-      self.rencoder = model.AutoEncoder(layer_sizes=[15178] + [int(l) for l in self.args.hidden_layers.split(',')],
+      self.rencoder = model.AutoEncoder(layer_sizes=[self.toyvocab] + [int(l) for l in self.args.hidden_layers.split(',')],
                                         nl_type=self.args.non_linearity_type,
                                         is_constrained=self.args.constrained,
                                         dp_drop_prob=self.args.drop_prob,
@@ -267,6 +268,9 @@ class DeepRecommenderTrainBenchmark:
       print(self.rencoder)
       print('######################################################')
       print('######################################################')
+
+    if jit:
+      self.rencoder = torch.jit.trace(self.rencoder, (self.toyinputs,))
   
     if self.args.use_cuda:
       gpu_ids = [int(g) for g in self.args.gpu_ids.split(',')]
@@ -276,7 +280,10 @@ class DeepRecommenderTrainBenchmark:
       if len(gpu_ids)>1:
         self.rencoder = nn.DataParallel(self.rencoder,
                                    device_ids=gpu_ids)
+
       self.rencoder = self.rencoder.cuda()
+      self.toyinputs = self.toyinputs.to(device)
+
   
     if self.args.optimizer == "adam":
       self.optimizer = optim.Adam(self.rencoder.parameters(),
@@ -306,9 +313,6 @@ class DeepRecommenderTrainBenchmark:
   
     if self.args.noise_prob > 0.0:
       self.dp = nn.Dropout(p=self.args.noise_prob)
-
-    if self.toytest:
-      self.toyinputs = torch.randn(128,self.toybatch).to(device)
 
   def DoTrain(self):
   
