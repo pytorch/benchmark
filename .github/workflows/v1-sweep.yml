@@ -14,7 +14,7 @@ on:
 jobs:
   run-benchmark:
     env:
-      TORCHBENCH_VER: "v1-alpha"
+      TORCHBENCH_VER: "v1-beta"
       CONFIG_VER: "v1"
       SWEEP_DIR: ".torchbench/v1-sweep-ci"
       PYTHON_VER: "3.7"
