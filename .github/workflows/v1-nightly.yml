@@ -7,8 +7,8 @@ on:
 jobs:
   run-benchmark:
     env:
-      # Set to "v1-alpha" for testing. Will set it to "v1" in release.
-      TORCHBENCH_VER: "v1-alpha"
+      # Set to "v1-beta" for testing. Will set it to "v1" in release.
+      TORCHBENCH_VER: "v1-beta"
       CONFIG_VER: "v1"
       CONDA_ENV_NAME:  "torchbench-v1-nightly-ci"
       OUTPUT_DIR: ".torchbench/v1-nightly-ci"
