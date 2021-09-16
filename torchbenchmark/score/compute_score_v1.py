@@ -184,7 +184,7 @@ class TorchBenchScoreV1:
         (domain_weights, config_weights) = ref_weights
         for name in data:
             norm = data[name]['norm']
-            benchmark_score = domain_weights[name] * config_weights[name] * math.log(norm / ref[name]['norm'])
+            benchmark_score = domain_weights[name] * config_weights[name] * math.log(ref[name]['norm'] / norm)
             score += benchmark_score
         return math.exp(score)
 
@@ -203,7 +203,7 @@ class TorchBenchScoreV1:
         (domain_weights, _) = ref_weights
         for name in filter(lambda x: self.data_in_list(x, filters), data):
             norm = data[name]['norm']
-            benchmark_score = domain_weights[name] * math.log(norm / ref_norm[name]['norm'])
+            benchmark_score = domain_weights[name] * math.log(ref_norm[name]['norm'] / norm)
             score += benchmark_score
         return math.exp(score)
 
