@@ -8,6 +8,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Checkout LFS files
+          command: git lfs checkout
+      - run:
           name: Setup CI environment
           command: ./scripts/setup_ci.sh
       - run:
