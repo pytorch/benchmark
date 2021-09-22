@@ -517,3 +517,4 @@ torchbenchmark/models/pytorch_struct/docs/source/model.ipynb filter=lfs diff=lfs
 torchbenchmark/models/pytorch_struct/docs/source/semiring.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/yolov3/tutorial.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/tacotron2/waveglow/tacotron2/inference.ipynb filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/tacotron2/waveglow/tacotron2/filelists/ljs_audio_text_train_filelist.txt filter=lfs diff=lfs merge=lfs -text
