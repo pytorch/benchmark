@@ -93,6 +93,8 @@ if __name__ == "__main__":
             color = next(colors)
             configs = z[0].keys()
             for config in configs:
+                if not ("subscore" in config or "total" in config):
+                    continue
                 color = next(colors)
                 scores = []
                 for s in z:
