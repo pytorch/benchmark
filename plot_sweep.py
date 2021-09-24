@@ -12,7 +12,7 @@ import itertools
 # from bokeh.sampledata.autompg import autompg
 # from bokeh.transform import jitter
 from bokeh.palettes import Category10
-from bokeh.models import HoverTool, Div
+from bokeh.models import HoverTool, Div, Range1d, HoverTool
 from bokeh.plotting import figure, output_file, show
 # from bokeh.models import Legend
 # from bokeh.models import ColumnDataSource, CategoricalTicker, Div
@@ -57,6 +57,7 @@ if __name__ == "__main__":
     xs = []
     ys = []
     zs = []
+    max_score = 0
     for d in compare_datasets:
         scores = {}
         scores_db = defaultdict(list)
@@ -76,6 +77,7 @@ if __name__ == "__main__":
         for date in sorted(scores.keys()):
             dates.append(date)
             total_scores.append(scores[date]["total"])
+            max_score = max(max_score, max(total_scores))
             all_scores.append(scores[date])
         xs.append(dates)
         ys.append(total_scores)
@@ -106,5 +108,16 @@ if __name__ == "__main__":
             p.circle(x, y, color=color)
 
     p.legend.location = "bottom_right"
+    p.y_range = Range1d(0, max_score * 1.25)
+    p.add_tools(HoverTool(
+        tooltips=[
+            ('date',    '@x{%F}'),
+            ('score',   '@y{0.00 a}'),
+        ],
+        formatters={
+            '@x':      'datetime',
+            '@y':     'numeral',
+        },
+    ))
     output_file(args.output_html)
     show(p)
