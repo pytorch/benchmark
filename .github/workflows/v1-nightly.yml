@@ -47,13 +47,33 @@ jobs:
       - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
-          bash ./.github/scripts/run.sh "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}"
+          WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
+          bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
         run: |
           . activate "${CONDA_ENV_NAME}"
+          WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
+          mkdir -p benchmark-output/
+          # Compare the result from yesterday and report any perf signals
           python ./.github/scripts/generate-abtest-config.py \
-                 --benchmark-dir "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}" \
-                 --out "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/bisection.yaml"
+                 --github-issue "${WORKFLOW_HOME}/gh-issue.md" \
+                 --benchmark-dir "${WORKFLOW_HOME}" \
+                 --out "${WORKFLOW_HOME}/bisection.yaml"
+          # Include in the GitHub artifact
+          cp "${WORKFLOW_HOME}/bisection.yaml" ./benchmark-output/
+          # Setup the bisection environment
+          TODAY=$(date "+%Y%m%d%H%M%S")
+          BISECTION_HOME="${BISECTION_ROOT}/bisection-gh${{ env.GITHUB_RUN_ID }}"
+          mkdir -p "${BISECTION_HOME}/bisection-${TODAY}"
+      - name: Dispatch the bisection workflow
+        if: env.TORCHBENCH_PERF_SIGNAL
+        run: |
+          echo "Dispatching the bisection workflow..."
+          echo "TODO: get workflow link"
+      - name: Create the github issue
+        if: env.TORCHBENCH_PERF_SIGNAL
+        run: |
+          echo "Creating the github issue..." 
       - name: Copy artifact and upload to scribe
         run: |
           . activate "${CONDA_ENV_NAME}"
@@ -72,7 +92,6 @@ jobs:
           python scripts/upload_scribe.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
           mkdir -p benchmark-output
           cp "${LATEST_RESULT}" ./benchmark-output/benchmark-result-v1-${TODAY}.json
-          cp "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/bisection.yaml" ./benchmark-output/bisection-v1-${TODAY}.yaml
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
@@ -81,11 +100,3 @@ jobs:
       - name: Destroy conda env
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"
-  post-benchmark:
-    steps:
-      - name: Run the bisector
-        run: |
-          echo "Running the bisector"
-      - name: Report the anomaly
-        run: |
-          echo "Reporting the anomaly to FB Internal"
