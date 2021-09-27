@@ -14,6 +14,5 @@ old.json
 te.json
 Video_data_train_processed.csv
 labels.json
-results.png
 results.txt
 checkpoints
