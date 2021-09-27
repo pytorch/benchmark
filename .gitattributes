@@ -518,3 +518,13 @@ torchbenchmark/models/pytorch_struct/docs/source/semiring.ipynb filter=lfs diff=
 torchbenchmark/models/yolov3/tutorial.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/tacotron2/waveglow/tacotron2/inference.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/tacotron2/waveglow/tacotron2/filelists/ljs_audio_text_train_filelist.txt filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/BERT_pytorch/data/corpus.small filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/BERT_pytorch/data/vocab.small filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/Super_SloMo/.github/ISSUE_TEMPLATE/bug_report.md filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/Super_SloMo/.github/ISSUE_TEMPLATE/feature_request.md filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/dlrm/input/dist_emb_0.log filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/dlrm/input/dist_emb_1.log filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/dlrm/input/dist_emb_2.log filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/dlrm/input/trace.log filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/yolov3/results.png filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/yolov3/train_batch0.jpg filter=lfs diff=lfs merge=lfs -text
