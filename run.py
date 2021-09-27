@@ -82,7 +82,7 @@ def run_one_step(func):
 
 def profile_one_step(func, nwarmup=3):
     for i in range(nwarmup):
-            func()
+        func()
 
     activity_groups = []
     if args.device == "cuda":
@@ -93,7 +93,7 @@ def profile_one_step(func, nwarmup=3):
         schedule=profiler.schedule(wait=0, warmup=0, active=1),
         activities=activity_groups,
         record_shapes=True,
-        on_trace_ready=profiler.tensorboard_trace_handler('./logs')
+        on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
     ) as prof:
         func()
 
