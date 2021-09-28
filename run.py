@@ -81,21 +81,20 @@ def run_one_step(func):
 
 
 def profile_one_step(func, nwarmup=3):
-    for i in range(nwarmup):
-        func()
-
     activity_groups = []
     if args.device == "cuda":
         activity_groups.append(profiler.ProfilerActivity.CUDA)
     activity_groups.append(profiler.ProfilerActivity.CPU)
 
     with profiler.profile(
-        schedule=profiler.schedule(wait=0, warmup=0, active=1),
+        schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1),
         activities=activity_groups,
         record_shapes=True,
         on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
     ) as prof:
-        func()
+        for _i in range(nwarmup + 1):
+            func()
+            prof.step()
 
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}")
