@@ -32,11 +32,14 @@ if [ -z ${BISECT_ISSUE} ]; then
     BISECT_ISSUE=example-issue
 fi
 
-BISECT_BASE=${HOME}/.torchbench/bisection/${BISECT_ISSUE}
-
-. activate ${BISECT_CONDA_ENV}
+if [ -z ${BISECT_BASE} ]; then
+    echo "You must set the env BISECT_BASE to run the bisector script."
+    exit 1
+fi
 # create the work directory
 mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
+
+. activate ${BISECT_CONDA_ENV}
 
 # specify --debug to allow restart from the last failed point
 python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
