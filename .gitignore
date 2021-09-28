@@ -16,3 +16,4 @@ Video_data_train_processed.csv
 labels.json
 results.txt
 checkpoints
+logs/
