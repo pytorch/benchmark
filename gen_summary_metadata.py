@@ -7,6 +7,7 @@ import importlib
 import os
 import pathlib
 import yaml
+from typing import Any, Dict, List, Tuple
 
 from torchbenchmark import list_models, _list_model_paths, ModelTask, ModelDetails
 
@@ -31,16 +32,17 @@ def _parser_helper(input):
     return None if input is None else bool(strtobool(str(input)))
 
 
-def _process_model_details_to_metadata(model_detail: ModelDetails):
+def _process_model_details_to_metadata(model_detail: ModelDetails) -> Dict[str, Any]:
     metadata = {}
+    metadata['optimized_for_inference'] = model_detail.optimized_for_inference
     for k, _ in _DEFAULT_METADATA_.items():
-        v = getattr(model_detail, k, None)
+        v = model_detail.metadata[k] if k in model_detail.metadata else None
         if v is not None:
             metadata[k] = v
     return metadata
 
 
-def _extract_detail(path):
+def _extract_detail(path: str) -> Dict[str, Any]:
     name = os.path.basename(path)
     task = ModelTask(path, timeout=TIMEOUT)
     try:
@@ -59,18 +61,18 @@ def _extract_detail(path):
     return _process_model_details_to_metadata(task._details)
 
 
-def _extract_all_details(model_names):
+def _extract_all_details(model_names: List[str]) -> List[Tuple[str, Dict[str, Any]]]:
     details = []
     for model_path in _list_model_paths():
         model_name = os.path.basename(model_path)
         if model_name not in model_names:
             continue
-        details.append(_extract_detail(model_path))
+        ed = _extract_detail(model_path)
+        details.append((model_path, ed))
     return details
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument("--debug", default=False, action="store_true", help="Show debugging output.")
     parser.add_argument("--model", default=None,
                         help="Full or partial name of a model to update. If partial, picks the first match.  \
                               If absent, applies to all models.")
@@ -109,8 +111,7 @@ if __name__ == "__main__":
 
     # Extract all model details from models.
     extracted_details = _extract_all_details(model_names)
-    if args.debug:
-        print("Debug mode enabled - printing all extracted metadata.")
-        for ed in extracted_details:
-            attrs = vars(ed)
-            print(f'model: {ed.name} , details: {attrs}')
+    print("Printing all extracted metadata.")
+    for path, ed in extracted_details:
+        name = os.path.basename(path)
+        print(f'model: {name} , details: {ed}')
