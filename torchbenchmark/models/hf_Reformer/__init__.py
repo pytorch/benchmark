@@ -21,6 +21,9 @@ class Model(BenchmarkModel):
 
         torch.manual_seed(42)
         config = ReformerConfig()
+        if not config.num_buckets:
+            # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
+            config.num_buckets = 128
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
@@ -35,7 +38,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        return self.model, self.eval_inputs
+        return self.model, (self.eval_inputs["input_ids"], )
 
     def train(self, niter=3):
         if self.jit:

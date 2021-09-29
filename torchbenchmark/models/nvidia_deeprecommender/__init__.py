@@ -41,10 +41,7 @@ class Model(BenchmarkModel):
       self.infer_obj = DeepRecommenderInferenceBenchmark(device = device, jit = jit)
 
   def get_module(self):
-    if self.eval_mode:
-        return lambda x: self.eval(), [0]
-
-    return lambda x: self.train(), [0]
+    return self.infer_obj.rencoder, (self.infer_obj.toyinputs, )
 
   def set_eval(self):
     self.eval_mode = True
