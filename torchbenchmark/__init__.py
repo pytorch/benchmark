@@ -135,6 +135,12 @@ class ModelDetails:
     optimized_for_inference: bool
     _diagnostic_msg: str
 
+    train_benchmark: bool = None
+    train_deterministic: bool = None
+    eval_benchmark: bool = None
+    eval_deterministic: bool = None
+    eval_nograd: bool = None
+
     @property
     def name(self) -> str:
         return os.path.basename(self.path)
@@ -297,6 +303,15 @@ class ModelTask(base_task.TaskBase):
             maybe_sync()
         """)
 
+    def extract_details_train(self) -> None:
+        self._details["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
+        self._details["train_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
+
+    def extract_details_eval(self) -> None:
+        self._details["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
+        self._details["eval_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
+        self._details["eval_nograd"] = self.worker.load_stmt("torch.is_grad_enabled()")
+
     def check_opt_vs_noopt_jit(self) -> None:
         self.worker.run("model.check_opt_vs_noopt_jit()")
 
@@ -316,7 +331,7 @@ class ModelTask(base_task.TaskBase):
     def check_device() -> None:
         instance = globals()["model"]
 
-         # Check this BenchmarkModel has a device attribute.
+        # Check this BenchmarkModel has a device attribute.
         current_device = getattr(instance, 'device', None)
         if current_device is None:
             raise RuntimeError('Missing device in BenchmarkModel.')
@@ -328,8 +343,8 @@ class ModelTask(base_task.TaskBase):
         for t in model.parameters():
             model_device = t.device.type
             if model_device != current_device:
-                raise RuntimeError(f'Model {model_name} was not set to the' \
-                                   f' expected device {current_device},' \
+                raise RuntimeError(f'Model {model_name} was not set to the'
+                                   f' expected device {current_device},'
                                    f' found device {model_device}.')
 
         # Check the inputs are assigned to the expected device.
@@ -342,9 +357,9 @@ class ModelTask(base_task.TaskBase):
 
                 inputs_device = inputs.device.type
                 if inputs_device != current_device:
-                    raise RuntimeError(f'Model {model_name} inputs were' \
-                                       f' not set to the expected device' \
-                                       f' {current_device}, found device' \
+                    raise RuntimeError(f'Model {model_name} inputs were'
+                                       f' not set to the expected device'
+                                       f' {current_device}, found device'
                                        f' {inputs_device}.')
             elif isinstance(inputs, tuple):
                 # Some inputs are nested inside tuples, such as tacotron2
@@ -400,14 +415,14 @@ class ModelTask(base_task.TaskBase):
         self.worker.run("torch.cuda.empty_cache()")
 
 
-def list_models_details(workers: int=1) -> List[ModelDetails]:
+def list_models_details(workers: int = 1) -> List[ModelDetails]:
     return [
         ModelTask(model_path).model_details
         for model_path in _list_model_paths()
     ]
 
 
-def list_models():
+def list_models(model_match=None):
     models = []
     for model_path in _list_model_paths():
         model_name = os.path.basename(model_path)
@@ -422,5 +437,11 @@ def list_models():
             continue
         if not hasattr(Model, 'name'):
             Model.name = model_name
-        models.append(Model)
+
+        # If given model_match, only return full or partial name matches in models.
+        if model_match is None:
+            models.append(Model)
+        else:
+            if model_match.lower() in Model.name.lower():
+                models.append(Model)
     return models
