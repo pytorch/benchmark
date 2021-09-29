@@ -135,11 +135,7 @@ class ModelDetails:
     optimized_for_inference: bool
     _diagnostic_msg: str
 
-    train_benchmark: bool = None
-    train_deterministic: bool = None
-    eval_benchmark: bool = None
-    eval_deterministic: bool = None
-    eval_nograd: bool = None
+    metadata: Dict[str, Any]
 
     @property
     def name(self) -> str:
@@ -242,6 +238,7 @@ class ModelTask(base_task.TaskBase):
             "exists": Model is not None,
             "optimized_for_inference": hasattr(Model, "optimized_for_inference"),
             "_diagnostic_msg": diagnostic_msg,
+            "metadata": {}
         }
 
     # =========================================================================
@@ -304,13 +301,13 @@ class ModelTask(base_task.TaskBase):
         """)
 
     def extract_details_train(self) -> None:
-        self._details["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
-        self._details["train_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
+        self._details.metadata["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
+        self._details.metadata["train_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
 
     def extract_details_eval(self) -> None:
-        self._details["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
-        self._details["eval_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
-        self._details["eval_nograd"] = self.worker.load_stmt("torch.is_grad_enabled()")
+        self._details.metadata["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
+        self._details.metadata["eval_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
+        self._details.metadata["eval_nograd"] = not self.worker.load_stmt("torch.is_grad_enabled()")
 
     def check_opt_vs_noopt_jit(self) -> None:
         self.worker.run("model.check_opt_vs_noopt_jit()")
