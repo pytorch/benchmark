@@ -182,7 +182,7 @@ class TorchBenchScoreV1:
     def _get_score(self, data, ref, ref_weights):
         score = 0.0
         (domain_weights, config_weights) = ref_weights
-        for name in data:
+        for name in ref:
             norm = data[name]['norm']
             benchmark_score = domain_weights[name] * config_weights[name] * math.log(ref[name]['norm'] / norm)
             score += benchmark_score
@@ -201,7 +201,7 @@ class TorchBenchScoreV1:
         assert "train" in filters or "eval" in filters, error_msg
         score = 0.0
         (domain_weights, _) = ref_weights
-        for name in filter(lambda x: self.data_in_list(x, filters), data):
+        for name in filter(lambda x: self.data_in_list(x, filters), ref_norm):
             norm = data[name]['norm']
             benchmark_score = domain_weights[name] * math.log(ref_norm[name]['norm'] / norm)
             score += benchmark_score
