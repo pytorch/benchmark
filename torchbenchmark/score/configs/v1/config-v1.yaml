@@ -1,493 +1,493 @@
+# Score v1.1 norm file
+# Origin: .torchbench/v1-sweep-ci/20210917-sweep/results/gh1243725244/20210917_011650_1.json
+# PyTorch nightly: 1.9.0.dev20210522+cu102
 test_eval[BERT_pytorch-cpu-eager]:
-  norm: 0.05685180827858858
+  norm: 0.05448135370388627
 test_eval[BERT_pytorch-cpu-jit]:
-  norm: 0.055031803058227524
+  norm: 0.05430746907368302
 test_eval[BERT_pytorch-cuda-eager]:
-  norm: 0.021702383251048306
+  norm: 0.022030563903567585
 test_eval[BERT_pytorch-cuda-jit]:
-  norm: 0.021699694322144733
-test_eval[LearningToPaint-freeze-cpu-eager]:
-  norm: 0.006393402419053018
-test_eval[LearningToPaint-freeze-cpu-jit]:
-  norm: 0.004743104493420379
-test_eval[LearningToPaint-freeze-cuda-eager]:
-  norm: 0.002253103726838475
-test_eval[LearningToPaint-freeze-cuda-jit]:
-  norm: 0.0021701873734609623
+  norm: 0.022035959257703762
+test_eval[LearningToPaint-cpu-eager]:
+  norm: 0.007384063706838137
+test_eval[LearningToPaint-cpu-jit]:
+  norm: 0.008758924555125808
+test_eval[LearningToPaint-cuda-eager]:
+  norm: 0.002713963775554808
+test_eval[LearningToPaint-cuda-jit]:
+  norm: 0.00260368225426264
 test_eval[Super_SloMo-cuda-eager]:
-  norm: 0.43524276865064165
+  norm: 0.5769017597194761
 test_eval[Super_SloMo-cuda-jit]:
-  norm: 0.4341700792079791
-test_eval[alexnet-freeze-cpu-eager]:
-  norm: 0.004451435620266021
-test_eval[alexnet-freeze-cpu-jit]:
-  norm: 0.00367016027414709
-test_eval[alexnet-freeze-cuda-eager]:
-  norm: 0.0019111540012111648
-test_eval[alexnet-freeze-cuda-jit]:
-  norm: 0.0018330485481532156
-test_eval[attention_is_all_you_need_pytorch-freeze-cpu-eager]:
-  norm: 0.23213776446064002
-test_eval[attention_is_all_you_need_pytorch-freeze-cpu-jit]:
-  norm: 0.22535653825616464
-test_eval[attention_is_all_you_need_pytorch-freeze-cuda-eager]:
-  norm: 0.14684644074877723
-test_eval[attention_is_all_you_need_pytorch-freeze-cuda-jit]:
-  norm: 0.14759871870628558
+  norm: 0.5748882276006043
+test_eval[alexnet-cpu-eager]:
+  norm: 0.004760728689881278
+test_eval[alexnet-cpu-jit]:
+  norm: 0.004143678872365384
+test_eval[alexnet-cuda-eager]:
+  norm: 0.0022379198427578168
+test_eval[alexnet-cuda-jit]:
+  norm: 0.002153299666426223
+test_eval[attention_is_all_you_need_pytorch-cpu-eager]:
+  norm: 0.2703733417205513
+test_eval[attention_is_all_you_need_pytorch-cpu-jit]:
+  norm: 0.21505101090297102
+test_eval[attention_is_all_you_need_pytorch-cuda-eager]:
+  norm: 0.14158298997208477
+test_eval[attention_is_all_you_need_pytorch-cuda-jit]:
+  norm: 0.14216331844218075
 test_eval[demucs-cpu-eager]:
-  norm: 0.08100289069698192
+  norm: 0.07588431891053915
 test_eval[demucs-cpu-jit]:
-  norm: 0.07750276775914244
+  norm: 0.07431937735527754
 test_eval[demucs-cuda-eager]:
-  norm: 0.07559058011393063
+  norm: 0.07569192675873637
 test_eval[demucs-cuda-jit]:
-  norm: 0.07558373794890941
-test_eval[densenet121-freeze-cpu-eager]:
-  norm: 0.07553607149748132
-test_eval[densenet121-freeze-cpu-jit]:
-  norm: 0.03715926188009756
-test_eval[densenet121-freeze-cuda-eager]:
-  norm: 0.021485131590607318
-test_eval[densenet121-freeze-cuda-jit]:
-  norm: 0.010167109980770596
+  norm: 0.07572233639657497
+test_eval[densenet121-cpu-eager]:
+  norm: 0.070714260218665
+test_eval[densenet121-cpu-jit]:
+  norm: 0.03536439317696054
+test_eval[densenet121-cuda-eager]:
+  norm: 0.019848124069326064
+test_eval[densenet121-cuda-jit]:
+  norm: 0.010101066008210181
 test_eval[dlrm-cpu-eager]:
-  norm: 0.0004216417489431397
+  norm: 0.0007187652033963207
 test_eval[dlrm-cuda-eager]:
-  norm: 0.0007002152400178833
+  norm: 0.001037824945524335
 test_eval[drq-cpu-eager]:
-  norm: 0.0022005594025981704
+  norm: 0.0023600895633446237
 test_eval[drq-cuda-eager]:
-  norm: 0.002008023756106609
+  norm: 0.0021874415892454094
 test_eval[fastNLP-cpu-eager]:
-  norm: 0.00016323325880957638
+  norm: 0.00047252773926769907
 test_eval[fastNLP-cpu-jit]:
-  norm: 0.00016097523587756205
+  norm: 0.0004603393904636333
 test_eval[fastNLP-cuda-eager]:
-  norm: 0.0001589085665232847
+  norm: 0.0004932617637983543
 test_eval[fastNLP-cuda-jit]:
-  norm: 0.00015518543208148462
+  norm: 0.00047999973741459645
 test_eval[hf_Albert-cpu-eager]:
-  norm: 0.09772425884730182
+  norm: 0.12207126994617283
 test_eval[hf_Albert-cuda-eager]:
-  norm: 0.04419815310013845
+  norm: 0.04447540713717108
 test_eval[hf_Bart-cpu-eager]:
-  norm: 0.11742897275835276
+  norm: 0.1373912140261382
 test_eval[hf_Bart-cuda-eager]:
-  norm: 0.05496977909351699
+  norm: 0.05522659588605165
 test_eval[hf_Bert-cpu-eager]:
-  norm: 0.09751313934684731
+  norm: 0.1285737324040383
 test_eval[hf_Bert-cuda-eager]:
-  norm: 0.04375567055894467
+  norm: 0.04395848346631164
 test_eval[hf_BigBird-cpu-eager]:
-  norm: 1.2016807637002784
+  norm: 1.6125436675734819
 test_eval[hf_BigBird-cuda-eager]:
-  norm: 0.499124124716036
+  norm: 0.5031065672636033
 test_eval[hf_DistilBert-cpu-eager]:
-  norm: 0.0541744910471607
+  norm: 0.08206867123953998
 test_eval[hf_DistilBert-cuda-eager]:
-  norm: 0.024590896345993003
-# Disabled by PR#425
-# test_train[hf_DistilBert-cuda-eager]:
-#   norm: 1.6961384260444903
+  norm: 0.02489701883367649
 test_eval[hf_GPT2-cpu-eager]:
-  norm: 0.2273902039974928
+  norm: 0.4641890481580049
 test_eval[hf_GPT2-cuda-eager]:
-  norm: 0.10960107475984841
+  norm: 0.1100445521529764
 test_eval[hf_Longformer-cuda-eager]:
-  norm: 0.47225784349720923
+  norm: 0.4791844963561743
 test_eval[hf_Reformer-cuda-eager]:
-  norm: 0.043192895371854924
+  norm: 0.043377034404935934
 test_eval[hf_T5-cuda-eager]:
-  norm: 0.27970010006101803
+  norm: 0.3227588586509228
 test_eval[maml-cpu-eager]:
-  norm: 0.0731544112379197
+  norm: 0.06496610469184816
 test_eval[maml-cuda-eager]:
-  norm: 0.038652029572986066
+  norm: 0.03364541325718164
 test_eval[maml_omniglot-cpu-eager]:
-  norm: 0.0012007828018712726
+  norm: 0.0013637319726071187
 test_eval[maml_omniglot-cuda-eager]:
-  norm: 0.0006772385599433358
-test_eval[mnasnet1_0-freeze-cpu-eager]:
-  norm: 0.028053680166421045
-test_eval[mnasnet1_0-freeze-cpu-jit]:
-  norm: 0.004560569047720896
-test_eval[mnasnet1_0-freeze-cuda-eager]:
-  norm: 0.007641145853085618
-test_eval[mnasnet1_0-freeze-cuda-jit]:
-  norm: 0.09329594241571612
+  norm: 0.0009880898843086002
+test_eval[mnasnet1_0-cpu-eager]:
+  norm: 0.02838858589529991
+test_eval[mnasnet1_0-cpu-jit]:
+  norm: 0.004568438226888082
+test_eval[mnasnet1_0-cuda-eager]:
+  norm: 0.007401505272890276
+test_eval[mnasnet1_0-cuda-jit]:
+  norm: 0.09306998699903488
 test_eval[mobilenet_v2-cpu-eager]:
-  norm: 0.026743019241717104
+  norm: 0.024846777047325925
 test_eval[mobilenet_v2-cpu-jit]:
-  norm: 0.004727411468047648
+  norm: 0.0046355165454938455
 test_eval[mobilenet_v2-cuda-eager]:
-  norm: 0.007848149609922002
+  norm: 0.007504213337244383
 test_eval[mobilenet_v2-cuda-jit]:
-  norm: 0.0028030915268962937
+  norm: 0.002934537882913882
 test_eval[mobilenet_v3_large-cpu-eager]:
-  norm: 0.02481118353685682
+  norm: 0.025166672291006983
 test_eval[mobilenet_v3_large-cpu-jit]:
-  norm: 0.0072500658005462595
+  norm: 0.0069905062296634745
 test_eval[mobilenet_v3_large-cuda-eager]:
-  norm: 0.008977740710939873
+  norm: 0.00854224670264456
 test_eval[mobilenet_v3_large-cuda-jit]:
-  norm: 0.008835531262252314
+  norm: 0.008878303251029658
 test_eval[moco-cuda-eager]:
-  norm: 0.3917169963940978
+  norm: 0.4356140783522278
 test_eval[moco-cuda-jit]:
-  norm: 0.39178658014861867
+  norm: 0.43561924290843307
 test_eval[nvidia_deeprecommender-cpu-eager]:
-  norm: 0.0006867421893382585
+  norm: 0.001143530223832686
 test_eval[nvidia_deeprecommender-cuda-eager]:
-  norm: 0.00049664774822611
+  norm: 0.0008312470494793593
 test_eval[opacus_cifar10-cpu-eager]:
-  norm: 0.010108650675071974
+  norm: 0.009344037078941861
 test_eval[opacus_cifar10-cuda-eager]:
-  norm: 0.005105261504053114
+  norm: 0.0076901053508313805
 test_eval[pyhpc_equation_of_state-cuda-eager]:
-  norm: 0.17510420536855237
+  norm: 0.1757939773146063
 test_eval[pyhpc_equation_of_state-cuda-jit]:
-  norm: 0.026043059898074716
+  norm: 0.02634810875169933
 test_eval[pyhpc_isoneutral_mixing-cpu-eager]:
-  norm: 0.4638523310946766
+  norm: 0.45677303881384435
 test_eval[pyhpc_isoneutral_mixing-cpu-jit]:
-  norm: 0.43386944198282434
+  norm: 0.46744124284014105
 test_eval[pyhpc_isoneutral_mixing-cuda-eager]:
-  norm: 0.2388457236578688
+  norm: 0.23903898927383124
 test_eval[pyhpc_isoneutral_mixing-cuda-jit]:
-  norm: 0.23644776335568168
+  norm: 0.17679669368080794
 test_eval[pytorch_CycleGAN_and_pix2pix-cuda-eager]:
-  norm: 0.04049150848295539
+  norm: 0.04076835386455059
 test_eval[pytorch_CycleGAN_and_pix2pix-cuda-jit]:
-  norm: 0.040490941437892614
-test_eval[pytorch_stargan-freeze-cpu-eager]:
-  norm: 0.4047150609374512
-test_eval[pytorch_stargan-freeze-cpu-jit]:
-  norm: 0.41127580269239844
-test_eval[pytorch_stargan-freeze-cuda-eager]:
-  norm: 0.08316384517820552
-test_eval[pytorch_stargan-freeze-cuda-jit]:
-  norm: 0.08326903133420274
+  norm: 0.0408047815784812
+test_eval[pytorch_stargan-cpu-eager]:
+  norm: 0.602527674799785
+test_eval[pytorch_stargan-cpu-jit]:
+  norm: 0.6537721641361713
+test_eval[pytorch_stargan-cuda-eager]:
+  norm: 0.12516765911132097
+test_eval[pytorch_stargan-cuda-jit]:
+  norm: 0.12517901929095387
 test_eval[pytorch_struct-cpu-eager]:
-  norm: 0.0018767721354542824
+  norm: 0.0020749523195397928
 test_eval[pytorch_struct-cpu-jit]:
-  norm: 0.0016678375671697974
+  norm: 0.0018440498899625962
 test_eval[pytorch_struct-cuda-eager]:
-  norm: 0.001154675792583211
+  norm: 0.0013798516925214246
 test_eval[pytorch_struct-cuda-jit]:
-  norm: 0.0009379383413847642
-test_eval[resnet18-freeze-cpu-eager]:
-  norm: 0.013635019411496516
-test_eval[resnet18-freeze-cpu-jit]:
-  norm: 0.004340000501205115
-test_eval[resnet18-freeze-cuda-eager]:
-  norm: 0.004029384374463939
-test_eval[resnet18-freeze-cuda-jit]:
-  norm: 0.002682424467818527
-test_eval[resnet50-freeze-cpu-eager]:
-  norm: 0.04178844787646085
-test_eval[resnet50-freeze-cpu-jit]:
-  norm: 0.010330284068351323
-test_eval[resnet50-freeze-cuda-eager]:
-  norm: 0.009906168770054263
-test_eval[resnet50-freeze-cuda-jit]:
-  norm: 0.006550707827699584
-test_eval[resnet50_quantized_qat-freeze-cpu-eager]:
-  norm: 0.010140954883712711
-test_eval[resnext50_32x4d-freeze-cpu-eager]:
-  norm: 0.04598601860925555
-test_eval[resnext50_32x4d-freeze-cpu-jit]:
-  norm: 0.010582654013935672
-test_eval[resnext50_32x4d-freeze-cuda-eager]:
-  norm: 0.01400644284456601
-test_eval[resnext50_32x4d-freeze-cuda-jit]:
-  norm: 0.01067127727315222
-test_eval[shufflenet_v2_x1_0-freeze-cpu-eager]:
-  norm: 0.02395763971366077
-test_eval[shufflenet_v2_x1_0-freeze-cpu-jit]:
-  norm: 0.006669298970761398
-test_eval[shufflenet_v2_x1_0-freeze-cuda-eager]:
-  norm: 0.009757025870403238
-test_eval[shufflenet_v2_x1_0-freeze-cuda-jit]:
-  norm: 0.002579170347267772
+  norm: 0.0011356784039581159
+test_eval[resnet18-cpu-eager]:
+  norm: 0.012766998414468916
+test_eval[resnet18-cpu-jit]:
+  norm: 0.004602440514884114
+test_eval[resnet18-cuda-eager]:
+  norm: 0.004227875108372862
+test_eval[resnet18-cuda-jit]:
+  norm: 0.0030330460197840934
+test_eval[resnet50-cpu-eager]:
+  norm: 0.03888422974313681
+test_eval[resnet50-cpu-jit]:
+  norm: 0.010241208814385564
+test_eval[resnet50-cuda-eager]:
+  norm: 0.009937411211062185
+test_eval[resnet50-cuda-jit]:
+  norm: 0.006872965354625493
+test_eval[resnet50_quantized_qat-cpu-eager]:
+  norm: 0.009248993221532416
+test_eval[resnext50_32x4d-cpu-eager]:
+  norm: 0.044379446250589
+test_eval[resnext50_32x4d-cpu-jit]:
+  norm: 0.010620515264178577
+test_eval[resnext50_32x4d-cuda-eager]:
+  norm: 0.014338646044156382
+test_eval[resnext50_32x4d-cuda-jit]:
+  norm: 0.011048128135088417
+test_eval[shufflenet_v2_x1_0-cpu-eager]:
+  norm: 0.023214518029073424
+test_eval[shufflenet_v2_x1_0-cpu-jit]:
+  norm: 0.006747528648116444
+test_eval[shufflenet_v2_x1_0-cuda-eager]:
+  norm: 0.009070477591038824
+test_eval[shufflenet_v2_x1_0-cuda-jit]:
+  norm: 0.0026733622386690098
 test_eval[soft_actor_critic-cuda-eager]:
-  norm: 0.009121270070318132
+  norm: 0.00865943710608729
 test_eval[speech_transformer-cuda-eager]:
-  norm: 5.5849457436881496
-test_eval[squeezenet1_1-freeze-cpu-eager]:
-  norm: 0.006074640442091583
-test_eval[squeezenet1_1-freeze-cpu-jit]:
-  norm: 0.0038062207445777444
-test_eval[squeezenet1_1-freeze-cuda-eager]:
-  norm: 0.002710926708199882
-test_eval[squeezenet1_1-freeze-cuda-jit]:
-  norm: 0.001186003432805511
-test_eval[timm_efficientnet-freeze-cpu-eager]:
-  norm: 0.044931364559527974
-test_eval[timm_efficientnet-freeze-cpu-jit]:
-  norm: 0.03572538075165759
-test_eval[timm_efficientnet-freeze-cuda-eager]:
-  norm: 0.01540701630919312
-test_eval[timm_efficientnet-freeze-cuda-jit]:
-  norm: 0.011456383694894611
-test_eval[timm_nfnet-freeze-cpu-eager]:
-  norm: 0.0975031184963882
-test_eval[timm_nfnet-freeze-cpu-jit]:
-  norm: 0.038357658824814414
-test_eval[timm_nfnet-freeze-cuda-eager]:
-  norm: 0.027364568989346357
-test_eval[timm_nfnet-freeze-cuda-jit]:
-  norm: 0.014976983203087001
-test_eval[timm_regnet-freeze-cpu-eager]:
-  norm: 0.017570307016732137
-test_eval[timm_regnet-freeze-cpu-jit]:
-  norm: 0.011412880346882915
-test_eval[timm_regnet-freeze-cuda-eager]:
-  norm: 0.014374228069625263
-test_eval[timm_regnet-freeze-cuda-jit]:
-  norm: 0.008740643330384046
-test_eval[timm_resnest-freeze-cpu-eager]:
-  norm: 0.018055407446809113
-test_eval[timm_resnest-freeze-cpu-jit]:
-  norm: 0.009004193994801788
-test_eval[timm_resnest-freeze-cuda-eager]:
-  norm: 0.004720946368364114
-test_eval[timm_resnest-freeze-cuda-jit]:
-  norm: 0.003411335503038223
-test_eval[timm_vision_transformer-freeze-cpu-eager]:
-  norm: 0.028372901728075436
-test_eval[timm_vision_transformer-freeze-cpu-jit]:
-  norm: 0.026077427709399647
-test_eval[timm_vision_transformer-freeze-cuda-eager]:
-  norm: 0.010017510026227684
-test_eval[timm_vision_transformer-freeze-cuda-jit]:
-  norm: 0.010030586841749027
-test_eval[timm_vovnet-freeze-cpu-eager]:
-  norm: 0.027096056266108882
-test_eval[timm_vovnet-freeze-cpu-jit]:
-  norm: 0.01888504956260253
-test_eval[timm_vovnet-freeze-cuda-eager]:
-  norm: 0.008244240238939313
-test_eval[timm_vovnet-freeze-cuda-jit]:
-  norm: 0.007820618220648612
+  norm: 4.854983373405412
+test_eval[squeezenet1_1-cpu-eager]:
+  norm: 0.006884157528272933
+test_eval[squeezenet1_1-cpu-jit]:
+  norm: 0.003876442200719164
+test_eval[squeezenet1_1-cuda-eager]:
+  norm: 0.002836049621940678
+test_eval[squeezenet1_1-cuda-jit]:
+  norm: 0.0014648247479930234
+test_eval[timm_efficientnet-cpu-eager]:
+  norm: 0.04360007786232492
+test_eval[timm_efficientnet-cpu-jit]:
+  norm: 0.03828955531263581
+test_eval[timm_efficientnet-cuda-eager]:
+  norm: 0.014400970935821534
+test_eval[timm_efficientnet-cuda-jit]:
+  norm: 0.009768212586641312
+test_eval[timm_nfnet-cpu-eager]:
+  norm: 0.09804240702651441
+test_eval[timm_nfnet-cpu-jit]:
+  norm: 0.03628689666012568
+test_eval[timm_nfnet-cuda-eager]:
+  norm: 0.02743926938824557
+test_eval[timm_nfnet-cuda-jit]:
+  norm: 0.015874550305306913
+test_eval[timm_regnet-cpu-eager]:
+  norm: 0.01635050286228458
+test_eval[timm_regnet-cpu-jit]:
+  norm: 0.01106200913588206
+test_eval[timm_regnet-cuda-eager]:
+  norm: 0.013715620841575812
+test_eval[timm_regnet-cuda-jit]:
+  norm: 0.00873731803148985
+test_eval[timm_resnest-cpu-eager]:
+  norm: 0.016838066185177383
+test_eval[timm_resnest-cpu-jit]:
+  norm: 0.008652298337119257
+test_eval[timm_resnest-cuda-eager]:
+  norm: 0.0047472678698705275
+test_eval[timm_resnest-cuda-jit]:
+  norm: 0.0037282050114625423
+test_eval[timm_vision_transformer-cpu-eager]:
+  norm: 0.027951406094392662
+test_eval[timm_vision_transformer-cpu-jit]:
+  norm: 0.02104631640321138
+test_eval[timm_vision_transformer-cuda-eager]:
+  norm: 0.010363706243560486
+test_eval[timm_vision_transformer-cuda-jit]:
+  norm: 0.010363694626031462
+test_eval[timm_vovnet-cpu-eager]:
+  norm: 0.02708344360029227
+test_eval[timm_vovnet-cpu-jit]:
+  norm: 0.02014362352082924
+test_eval[timm_vovnet-cuda-eager]:
+  norm: 0.008690294323732023
+test_eval[timm_vovnet-cuda-jit]:
+  norm: 0.008079329685818764
 test_eval[tts_angular-cpu-eager]:
-  norm: 0.21736741150380112
+  norm: 0.22731238775886595
 test_eval[tts_angular-cuda-eager]:
-  norm: 0.21865387795260177
-test_eval[vgg16-freeze-cpu-eager]:
-  norm: 0.0235548484989247
-test_eval[vgg16-freeze-cpu-jit]:
-  norm: 0.01803949294428873
-test_eval[vgg16-freeze-cuda-eager]:
-  norm: 0.010237725238952482
-test_eval[vgg16-freeze-cuda-jit]:
-  norm: 0.009331264427466388
+  norm: 0.22537688817828894
+test_eval[vgg16-cpu-eager]:
+  norm: 0.028650576275374207
+test_eval[vgg16-cpu-jit]:
+  norm: 0.018187709069544717
+test_eval[vgg16-cuda-eager]:
+  norm: 0.010571362137010223
+test_eval[vgg16-cuda-jit]:
+  norm: 0.009667910993672334
 test_eval[yolov3-cpu-eager]:
-  norm: 0.5728399513871409
+  norm: 0.5556701573077589
 test_eval[yolov3-cuda-eager]:
-  norm: 0.5914560730627272
+  norm: 0.6469333255197853
 test_train[BERT_pytorch-cpu-eager]:
-  norm: 0.2708426495781168
+  norm: 0.27709711329080167
 test_train[BERT_pytorch-cuda-eager]:
-  norm: 0.09856361297424883
+  norm: 0.09886964713223279
 test_train[BERT_pytorch-cuda-jit]:
-  norm: 0.0985544886381831
+  norm: 0.09891430772840977
 test_train[Background_Matting-cuda-eager]:
-  norm: 3.0283131372358185
+  norm: 2.9885580126196145
 test_train[Background_Matting-cuda-jit]:
-  norm: 2.999387426796602
+  norm: 2.9597250279504808
 test_train[LearningToPaint-cuda-eager]:
-  norm: 0.015633818888678572
+  norm: 0.01762036387726926
 test_train[LearningToPaint-cuda-jit]:
-  norm: 0.015593177889968501
+  norm: 0.017572442347412568
 test_train[Super_SloMo-cuda-eager]:
-  norm: 1.294785407895688
+  norm: 1.76483063143678
 test_train[Super_SloMo-cuda-jit]:
-  norm: 1.2860810891608707
+  norm: 1.7579414015170187
 test_train[alexnet-cpu-eager]:
-  norm: 0.47772624749923126
+  norm: 0.6139298418071121
 test_train[alexnet-cpu-jit]:
-  norm: 0.44585217649582776
+  norm: 0.6093511304818093
 test_train[alexnet-cuda-eager]:
-  norm: 0.1466525606054347
+  norm: 0.14698543664999306
 test_train[alexnet-cuda-jit]:
-  norm: 0.1469080216542352
+  norm: 0.1471464685164392
 test_train[attention_is_all_you_need_pytorch-cpu-eager]:
-  norm: 0.9252178588940296
+  norm: 0.9416129975579679
 test_train[attention_is_all_you_need_pytorch-cuda-eager]:
-  norm: 0.4498943536076695
+  norm: 0.4313267101533711
 test_train[attention_is_all_you_need_pytorch-cuda-jit]:
-  norm: 0.4637195066025015
+  norm: 0.4450000309385359
 test_train[demucs-cpu-eager]:
-  norm: 0.35094974825624375
+  norm: 0.37812618860043584
 test_train[demucs-cpu-jit]:
-  norm: 0.3420691429171711
+  norm: 0.3685655517037958
 test_train[demucs-cuda-eager]:
-  norm: 0.16359462569234892
+  norm: 0.16374145550653338
 test_train[demucs-cuda-jit]:
-  norm: 0.1790315533406101
+  norm: 0.17879578885622321
 test_train[densenet121-cpu-eager]:
-  norm: 4.252127235056832
+  norm: 3.261130797257647
 test_train[densenet121-cpu-jit]:
-  norm: 4.030624402605463
+  norm: 3.864642635406926
 test_train[densenet121-cuda-eager]:
-  norm: 1.099380482948618
+  norm: 1.1317724808119238
 test_train[densenet121-cuda-jit]:
-  norm: 1.101066642801743
+  norm: 1.1334299712907523
 test_train[dlrm-cpu-eager]:
-  norm: 0.001675497455914636
+  norm: 0.001827536355125185
 test_train[dlrm-cuda-eager]:
-  norm: 0.0029999223756419897
+  norm: 0.003017064824587468
 test_train[drq-cuda-eager]:
-  norm: 0.37399630259606054
+  norm: 0.39798027710057793
 test_train[fastNLP-cpu-eager]:
-  norm: 0.002490660204647012
+  norm: 0.002869454357762689
 test_train[fastNLP-cpu-jit]:
-  norm: 0.0024541725559404245
+  norm: 0.00352991201815878
 test_train[fastNLP-cuda-eager]:
-  norm: 0.0016545301823255917
+  norm: 0.0019174051798276
 test_train[fastNLP-cuda-jit]:
-  norm: 0.0017692114719573188
+  norm: 0.0019434813834128103
 test_train[hf_Albert-cpu-eager]:
-  norm: 9.163557240861701
+  norm: 7.498807198135182
 test_train[hf_Albert-cuda-eager]:
-  norm: 2.6388653837144376
+  norm: 2.6385408334899694
 test_train[hf_Bart-cpu-eager]:
-  norm: 22.438752913649658
+  norm: 21.873779615201055
 test_train[hf_Bart-cuda-eager]:
-  norm: 2.0085758237924893
+  norm: 2.0116894191130994
 test_train[hf_Bert-cpu-eager]:
-  norm: 13.291868388210423
+  norm: 13.159212400764227
 test_train[hf_Bert-cuda-eager]:
-  norm: 1.5477299488033167
+  norm: 1.548747372534126
 test_train[hf_BigBird-cpu-eager]:
-  norm: 13.864226462866645
+  norm: 13.27541463249363
 test_train[hf_BigBird-cuda-eager]:
-  norm: 2.9844093741616233
+  norm: 2.98213151153177
 test_train[hf_DistilBert-cpu-eager]:
-  norm: 15.872414556553121
+  norm: 16.27085516769439
 test_train[hf_GPT2-cuda-eager]:
-  norm: 1.8896846601506696
+  norm: 1.890328386751935
 test_train[hf_Longformer-cuda-eager]:
-  norm: 2.9638905459840315
+  norm: 2.980029428517446
 test_train[hf_Reformer-cuda-eager]:
-  norm: 3.6887837688904255
+  norm: 3.6840238218195736
 test_train[hf_T5-cpu-eager]:
-  norm: 23.340448434354037
+  norm: 23.01795384567231
 test_train[hf_T5-cuda-eager]:
-  norm: 1.463875985494815
+  norm: 1.4767631783615798
 test_train[maml-cpu-eager]:
-  norm: 1.3019665106898173
+  norm: 1.1938879028894007
 test_train[maml-cuda-eager]:
-  norm: 0.6724238628405146
+  norm: 0.5901947016827762
 test_train[maml_omniglot-cpu-eager]:
-  norm: 8.851909254927886
+  norm: 8.420076083671301
 test_train[maml_omniglot-cuda-eager]:
-  norm: 5.604426171915838
+  norm: 4.9217695883009585
 test_train[mnasnet1_0-cpu-eager]:
-  norm: 1.3341582181106788
+  norm: 1.5404330605641008
 test_train[mnasnet1_0-cpu-jit]:
-  norm: 1.324990783096291
+  norm: 1.404024414299056
 test_train[mnasnet1_0-cuda-eager]:
-  norm: 0.4080575111496728
+  norm: 0.3775080044288188
 test_train[mnasnet1_0-cuda-jit]:
-  norm: 0.4086199810903054
+  norm: 0.3779858061112463
 test_train[mobilenet_v2-cuda-eager]:
-  norm: 0.4129796772554982
+  norm: 0.37759622898884115
 test_train[mobilenet_v2-cuda-jit]:
-  norm: 0.4134394217457157
+  norm: 0.3780029292218387
 test_train[mobilenet_v2_quantized_qat-cuda-eager]:
-  norm: 2.126267044339329
+  norm: 2.031384942866862
 test_train[mobilenet_v3_large-cuda-eager]:
-  norm: 0.3583611252019182
+  norm: 0.3265311408787966
 test_train[mobilenet_v3_large-cuda-jit]:
-  norm: 0.359058400336653
+  norm: 0.3271566070150584
 test_train[moco-cuda-eager]:
-  norm: 0.8935477602062747
+  norm: 0.9828505103010684
 test_train[moco-cuda-jit]:
-  norm: 0.893567960546352
+  norm: 0.9830060046166181
 test_train[nvidia_deeprecommender-cpu-eager]:
-  norm: 0.020129228197038173
+  norm: 0.020509419907980105
 test_train[nvidia_deeprecommender-cuda-eager]:
-  norm: 0.007889746911013905
+  norm: 0.008226471395827219
 test_train[opacus_cifar10-cuda-eager]:
-  norm: 0.09436536704888568
+  norm: 0.10032316031865776
 test_train[pytorch_CycleGAN_and_pix2pix-cuda-eager]:
-  norm: 79.31401049535489
+  norm: 67.02908649020829
 test_train[pytorch_stargan-cpu-eager]:
-  norm: 4.684396562050097
+  norm: 3.907890505436808
 test_train[pytorch_stargan-cpu-jit]:
-  norm: 4.6352093189430885
+  norm: 3.9226965829730034
 test_train[pytorch_struct-cuda-eager]:
-  norm: 0.21134436799911782
+  norm: 0.2409082209225744
 test_train[pytorch_struct-cuda-jit]:
-  norm: 0.21108390938607044
+  norm: 0.24060583068057895
 test_train[resnet18-cuda-eager]:
-  norm: 0.31470131579553706
+  norm: 0.311695904424414
 test_train[resnet18-cuda-jit]:
-  norm: 0.31473775453632696
+  norm: 0.3121039351448417
 test_train[resnet50-cuda-eager]:
-  norm: 1.009949930314906
+  norm: 0.9816294627729804
 test_train[resnet50-cuda-jit]:
-  norm: 1.0101281055482105
+  norm: 0.9827243832405657
 test_train[resnet50_quantized_qat-cuda-eager]:
-  norm: 1.790898621699307
+  norm: 1.7341073724906892
 test_train[resnext50_32x4d-cuda-eager]:
-  norm: 1.4122814904490952
+  norm: 1.3736419239081443
 test_train[resnext50_32x4d-cuda-jit]:
-  norm: 1.4122600037255324
+  norm: 1.3737314749974758
 test_train[shufflenet_v2_x1_0-cpu-eager]:
-  norm: 0.5974261967523489
+  norm: 0.5730430486612021
 test_train[shufflenet_v2_x1_0-cpu-jit]:
-  norm: 0.5763862078019883
+  norm: 0.5653322590049357
 test_train[shufflenet_v2_x1_0-cuda-eager]:
-  norm: 0.1883382234547753
+  norm: 0.16322082760743797
 test_train[shufflenet_v2_x1_0-cuda-jit]:
-  norm: 0.18924647256499155
+  norm: 0.16432108469307422
 test_train[soft_actor_critic-cpu-eager]:
-  norm: 0.02960307927980252
+  norm: 0.030191185747218484
 test_train[soft_actor_critic-cuda-eager]:
-  norm: 0.014834040953124414
+  norm: 0.013917862528210713
 test_train[speech_transformer-cuda-eager]:
-  norm: 11.121826122497442
+  norm: 7.28445365303196
 test_train[squeezenet1_1-cpu-eager]:
-  norm: 0.42564678501221354
+  norm: 0.607301712455228
 test_train[squeezenet1_1-cpu-jit]:
-  norm: 0.42193049514316955
+  norm: 0.5999469950795173
 test_train[squeezenet1_1-cuda-eager]:
-  norm: 0.18022485449328088
+  norm: 0.16813128120265902
 test_train[squeezenet1_1-cuda-jit]:
-  norm: 0.18207195854047314
+  norm: 0.1686194377951324
 test_train[timm_efficientnet-cuda-eager]:
-  norm: 0.5234629307407885
+  norm: 0.5046405214350671
 test_train[timm_efficientnet-cuda-jit]:
-  norm: 0.5235117086966057
+  norm: 0.5045104394666851
 test_train[timm_nfnet-cuda-eager]:
-  norm: 1.0027130784699694
+  norm: 1.0294961500447244
 test_train[timm_nfnet-cuda-jit]:
-  norm: 1.003045166103402
+  norm: 1.0288448481354862
 test_train[timm_regnet-cuda-eager]:
-  norm: 0.14915518699563107
+  norm: 0.1445487548597157
 test_train[timm_regnet-cuda-jit]:
-  norm: 0.14913190535153262
+  norm: 0.14426172953099012
 test_train[timm_resnest-cuda-eager]:
-  norm: 0.4128380549547728
+  norm: 0.4225140112452209
 test_train[timm_resnest-cuda-jit]:
-  norm: 0.41285178575781173
+  norm: 0.4226052497513592
 test_train[timm_vision_transformer-cuda-eager]:
-  norm: 1.1331409125763456
+  norm: 1.1499614491127432
 test_train[timm_vision_transformer-cuda-jit]:
-  norm: 1.1313964793051128
+  norm: 1.1499608925078064
 test_train[timm_vovnet-cuda-eager]:
-  norm: 0.6450615282461513
+  norm: 0.6503442066721619
 test_train[timm_vovnet-cuda-jit]:
-  norm: 0.6447867099021096
+  norm: 0.6504675862379372
 test_train[tts_angular-cpu-eager]:
-  norm: 0.45835460198577493
+  norm: 0.48536542849615216
 test_train[tts_angular-cuda-eager]:
-  norm: 0.4574360223952681
+  norm: 0.4613338014576584
 test_train[vgg16-cuda-eager]:
-  norm: 1.492201897542691
+  norm: 1.5041607302147895
 test_train[vgg16-cuda-jit]:
-  norm: 1.4922273806063457
+  norm: 1.504980060644448
 test_train[yolov3-cuda-eager]:
-  norm: 13.348495351942256
+  norm: 9.462361927190795
