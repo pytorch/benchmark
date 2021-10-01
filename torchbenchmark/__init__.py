@@ -307,6 +307,8 @@ class ModelTask(base_task.TaskBase):
     def extract_details_eval(self) -> None:
         self._details.metadata["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
         self._details.metadata["eval_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
+        # FIXME: Models will use "with torch.no_grad():", so the lifetime of no_grad will end after the eval().
+        # FIXME: Must incorporate this "torch.is_grad_enabled()" inside of actual eval() func.
         self._details.metadata["eval_nograd"] = not self.worker.load_stmt("torch.is_grad_enabled()")
 
     def check_opt_vs_noopt_jit(self) -> None:
