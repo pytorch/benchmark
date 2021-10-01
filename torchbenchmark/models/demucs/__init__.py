@@ -8,7 +8,7 @@ from .demucs.model import Demucs
 from .demucs.parser import get_name, get_parser
 from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
 from .demucs.utils import capture_init, center_trim
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import OTHER
 from torch import Tensor
 from torch.nn.modules.container import Sequential
@@ -81,21 +81,29 @@ class Model(BenchmarkModel):
         self.model.eval()
         return self.model, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         # TODO: implement the eval version
         for _ in range(niter):
             sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
+            step_fn()
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         for _ in range(niter):
-            sources, estimates = self.model(*self.example_inputs)
-            sources = center_trim(sources, estimates)
-            loss = self.criterion(estimates, sources)
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
+            with self.annotate_forward():
+                sources, estimates = self.model(*self.example_inputs)
+                sources = center_trim(sources, estimates)
+                loss = self.criterion(estimates, sources)
+
+            with self.annotate_backward():
+                self.optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                self.optimizer.step()
+
+            step_fn()
 
 
 if __name__ == '__main__':

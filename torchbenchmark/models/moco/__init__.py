@@ -15,7 +15,7 @@ import torchvision.models as models
 
 from .moco.builder import MoCo
 from .main_moco import adjust_learning_rate
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1058467)
@@ -110,7 +110,7 @@ class Model(BenchmarkModel):
             images = (i[0], i[1])
         return (self.model, images)
 
-    def train(self, niterations=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         """ Recommended
         Runs training on model for `niterations` times. When `niterations` is left
         to its default value, it should run for at most two minutes, and be representative
@@ -125,19 +125,25 @@ class Model(BenchmarkModel):
             raise NotImplementedError("GPU only")
 
         self.model.train()
-        for e in range(niterations):
+        for e in range(niter):
             adjust_learning_rate(self.optimizer, e, self.opt)
             for i, (images, _) in enumerate(self.train_loader):
-                # compute output
-                output, target = self.model(im_q=images[0], im_k=images[1])
-                loss = self.criterion(output, target)
+                with self.annotate_forward():
+                    # compute output
+                    output, target = self.model(im_q=images[0], im_k=images[1])
+                    loss = self.criterion(output, target)
 
-                # compute gradient and do SGD step
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
+                with self.annotate_backward():
+                    # compute gradient and do SGD step
+                    self.optimizer.zero_grad()
+                    loss.backward()
 
-    def eval(self, niterations=1):
+                with self.annotate_optimizer():
+                    self.optimizer.step()
+
+                step_fn()
+
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         """ Recommended
         Run evaluation on model for `niterations` inputs. One iteration should be sufficient
         to warm up the model for the purpose of profiling.
@@ -152,9 +158,10 @@ class Model(BenchmarkModel):
         if self.device != "cuda":
             raise NotImplementedError("GPU only")
 
-        for i in range(niterations):
-            for i, (images, _) in enumerate(self.train_loader):
+        for _ in range(niter):
+            for (images, _) in self.train_loader:
                 self.model(im_q=images[0], im_k=images[1])
+                step_fn()
 
 
 if __name__ == '__main__':

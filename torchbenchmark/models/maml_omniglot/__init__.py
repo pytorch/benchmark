@@ -23,7 +23,7 @@ import torch.nn.functional as F
 from pathlib import Path
 import higher
 
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import OTHER
 
 
@@ -64,7 +64,7 @@ class Model(BenchmarkModel):
 
         return self.model, self.example_inputs
 
-    def train(self, niter=3):
+    def train(self, niter=3, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
 
@@ -95,16 +95,18 @@ class Model(BenchmarkModel):
                     qry_loss.backward()
 
             meta_opt.step()
+            step_fn()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
 
         model, (example_input,) = self.get_module()
         model.eval()
         with torch.no_grad():
-            for i in range(niter):
+            for _ in range(niter):
                 model(example_input)
+                step_fn()
 
 
 if __name__ == "__main__":

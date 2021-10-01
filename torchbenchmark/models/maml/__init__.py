@@ -5,7 +5,7 @@ import torch
 from argparse import Namespace
 from .meta import Meta
 from pathlib import Path
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1337)
@@ -59,17 +59,20 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         return self.module, self.example_inputs
 
-    def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
-        for _ in range(niter):
-            self.module(*self.example_inputs)
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
+        # MAML is unusual in that it does not have a clean separation between
+        # training and inference, unlike most other models in the suite.
+        # Calling `self.module` can be interpreted as both a train step and an
+        # inference step. (And so we do not implement `eval` as it would
+        # duplicate `train`.)
+        raise NotImplementedError()
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
             self.module(*self.example_inputs)
+            step_fn()
 
     def eval_in_nograd(self):
         return False

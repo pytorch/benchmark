@@ -12,7 +12,7 @@ torch.manual_seed(1337)
 np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import COMPUTER_VISION
 
 from .train_cyclegan import prepare_training_loop
@@ -43,7 +43,7 @@ class Model(BenchmarkModel):
         # and the train mode is on by default
         pass
 
-    def train(self, niterations=None):
+    def train(self, niter=None):
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
@@ -51,13 +51,14 @@ class Model(BenchmarkModel):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
-        return self.training_loop(niterations)
+        return self.training_loop(niter)
 
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         model, example_inputs = self.get_module()
-        for i in range(niterations):
+        for i in range(niter):
             model(*example_inputs)
+            step_fn()
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ import pickle
 import math
 from itertools import chain
 
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from .config import SACConfig
@@ -185,7 +185,7 @@ class Model(BenchmarkModel):
         state_batch = state_batch.to(self.device)
         return model, (state_batch, )
         
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
         # Setup
@@ -226,7 +226,9 @@ class Model(BenchmarkModel):
                 soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
 
-    def eval(self, niter=1):
+            step_fn()
+
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
         with torch.no_grad():
@@ -243,5 +245,6 @@ class Model(BenchmarkModel):
                     state, reward, done, info = self.test_env.step(action)
                     episode_return += reward * (discount ** step_num)
                 episode_return_history.append(episode_return)
+                step_fn()
             retval = torch.tensor(episode_return_history)
 

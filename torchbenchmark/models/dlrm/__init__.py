@@ -30,7 +30,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
 from argparse import Namespace
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import RECOMMENDATION
 
 ### some basic setup ###
@@ -179,28 +179,36 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.module, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError("JIT not supported")
 
         for _ in range(niter):
             self.module(*self.example_inputs)
+            step_fn()
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError("JIT not supported")
 
-        gen = self.module(*self.example_inputs)
         for _ in range(niter):
-            self.optimizer.zero_grad()
-            loss = self.loss_fn(gen, self.targets)
-            if self.opt.loss_function == "wbce":
-                loss_ws_ = self.loss_ws[T.data.view(-1).long()].view_as(T)
-                loss = loss_ws_ * loss
-                loss = loss.mean()
-            loss.backward()
-            self.optimizer.step()
-            self.lr_scheduler.step()
+            with self.annotate_forward():
+                gen = self.module(*self.example_inputs)
+                loss = self.loss_fn(gen, self.targets)
+                if self.opt.loss_function == "wbce":
+                    loss_ws_ = self.loss_ws[T.data.view(-1).long()].view_as(T)
+                    loss = loss_ws_ * loss
+                    loss = loss.mean()
+
+            with self.annotate_backward():
+                self.optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                self.optimizer.step()
+                self.lr_scheduler.step()
+
+            step_fn()
 
 if __name__ == '__main__':
     m = Model(device='cuda', jit=False)

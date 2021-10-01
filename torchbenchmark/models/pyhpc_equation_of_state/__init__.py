@@ -1,7 +1,7 @@
 import torch
 from . import eos_pytorch
 from torchbenchmark.tasks import OTHER
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 
 def _generate_inputs(size):
     import math
@@ -44,13 +44,14 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         raise NotImplementedError("Training not supported")
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         model, example_inputs = self.get_module()
         for i in range(niter):
             model(*example_inputs)
+            step_fn()
 
 if __name__ == "__main__":
     m = Model(device="cuda", jit=True)

@@ -4,7 +4,7 @@ from .loss_function import Tacotron2Loss
 from argparse import Namespace
 from .text import symbols
 from pathlib import Path
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import SPEECH
 
 
@@ -120,29 +120,36 @@ class Model(BenchmarkModel):
             raise NotImplementedError('JIT not supported')
         return self.model, (self.example_input,)
 
-    def train(self, niterations=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
         if self.jit:
             raise NotImplementedError('JIT not supported')
         self.model.train()
-        for _ in range(niterations):
-            self.model.zero_grad()
-            y_pred = self.model(self.example_input)
+        for _ in range(niter):
+            with self.annotate_forward():
+                y_pred = self.model(self.example_input)
+                loss = self.criterion(y_pred, self.target)
 
-            loss = self.criterion(y_pred, self.target)
-            loss.backward()
-            self.optimizer.step()
+            with self.annotate_backward():
+                self.model.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                self.optimizer.step()
+
+            step_fn()
 
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.device == 'cpu':
             raise NotImplementedError('CPU not supported')
         if self.jit:
             raise NotImplementedError('JIT not supported')
         self.model.eval()
-        for _ in range(niterations):
+        for _ in range(niter):
             self.model(self.example_input)
+            step_fn()
 
 
 if __name__ == '__main__':

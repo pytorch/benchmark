@@ -4,7 +4,7 @@ import torch
 import torch.optim as optim
 import torchvision.models as models
 from torch.quantization import quantize_fx
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import COMPUTER_VISION
 
 
@@ -41,19 +41,27 @@ class Model(BenchmarkModel):
             self.eval_model = torch.jit.script(self.eval_model)
         self.eval_model.eval()
 
-    def train(self, niter=3):
+    def train(self, niter=3, step_fn: STEP_FN = lambda: None):
         if self.jit is True:  # torchscript operations should only be applied after quantization operations
             raise NotImplementedError()
         optimizer = optim.Adam(self.model.parameters())
-        loss = torch.nn.CrossEntropyLoss()
+        loss_function = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
-            loss(pred, y).backward()
-            optimizer.step()
+            with self.annotate_forward():
+                pred = self.model(*self.example_inputs)
+                y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
+                loss = loss_function(pred, y)
 
-    def eval(self, niter=1):
+            with self.annotate_backward():
+                optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                optimizer.step()
+
+            step_fn()
+
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.device != 'cpu':
             raise NotImplementedError()
         model = self.eval_model
@@ -61,6 +69,7 @@ class Model(BenchmarkModel):
         example_inputs = example_inputs[0][0].unsqueeze(0)
         for i in range(niter):
             model(example_inputs)
+            step_fn()
 
 
 if __name__ == "__main__":

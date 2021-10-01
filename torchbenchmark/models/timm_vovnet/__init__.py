@@ -2,7 +2,7 @@
 import torch
 import timm.models.vovnet
 
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import COMPUTER_VISION
 from .config import TimmConfig
 
@@ -43,13 +43,19 @@ class Model(BenchmarkModel):
             device=self.device, dtype=torch.long).random_(self.cfg.num_classes)
 
     def _step_train(self):
-        self.cfg.optimizer.zero_grad()
-        output = self.model(self.cfg.example_inputs)
-        if isinstance(output, tuple):
-            output = output[0]
-        target = self._gen_target(output.shape[0])
-        self.cfg.loss(output, target).backward()
-        self.cfg.optimizer.step()
+        with self.annotate_forward():
+            output = self.model(self.cfg.example_inputs)
+            if isinstance(output, tuple):
+                output = output[0]
+            target = self._gen_target(output.shape[0])
+            loss = self.cfg.loss(output, target)
+
+        with self.annotate_backward():
+            self.cfg.optimizer.zero_grad()
+            loss.backward()
+
+        with self.annotate_optimizer():
+            self.cfg.optimizer.step()
 
     # vision models have another model
     # instance for inference that has
@@ -63,17 +69,19 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.cfg.example_inputs,)
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         self.model.train()
         for _ in range(niter):
             self._step_train()
+            step_fn()
 
     # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
+                step_fn()
 
 if __name__ == "__main__":
     for device in ['cpu', 'cuda']:
