@@ -149,11 +149,12 @@ class TorchSource:
 
     # Update pytorch, torchtext, and torchvision repo
     def update_repos(self):
-        repos = [self.srcpath]
-        repos.extend(TORCHBENCH_DEPS.values())
-        for repo in repos:
+        repos = [(self.srcpath, "master")]
+        for value in TORCHBENCH_DEPS.values():
+            repos.append((value, "main"))
+        for (repo, branch) in repos:
             gitutils.clean_git_repo(repo)
-            assert gitutils.update_git_repo(repo), f"Failed to update master branch of {repo}."
+            assert gitutils.update_git_repo(repo, branch), f"Failed to update repository {repo}."
 
     # Get all commits between start and end, save them in self.commits
     def init_commits(self, start: str, end: str, abtest: bool) -> bool:
@@ -253,7 +254,7 @@ class TorchBench:
                  timelimit: int,
                  workdir: str,
                  devbig: str,
-                 branch: str = "master"):
+                 branch: str = "main"):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
