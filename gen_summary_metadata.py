@@ -1,11 +1,9 @@
 """
-A Benchmark Summary Metadata generator that can create or update model system-level configurations.
+A Benchmark Summary Metadata tool to extract and generate metadata from models at runtime.
 """
 import argparse
 from distutils.util import strtobool
-import importlib
 import os
-import pathlib
 import yaml
 from typing import Any, Dict, List, Tuple
 
@@ -71,36 +69,66 @@ def _extract_all_details(model_names: List[str]) -> List[Tuple[str, Dict[str, An
         details.append((model_path, ed))
     return details
 
+
+def _print_extracted_details(extracted_details: List[Tuple[str, Dict[str, Any]]]):
+    for path, ex_detail in extracted_details:
+        name = os.path.basename(path)
+        print(f'Model: {name} , Details: {ex_detail}')
+
+
+def _maybe_override_extracted_details(args, extracted_details: List[Tuple[str, Dict[str, Any]]]):
+    for _path, ex_detail in extracted_details:
+        if args.train_benchmark is not None:
+            ex_detail['train_benchmark'] = args.train_benchmark
+        elif args.train_deterministic is not None:
+            ex_detail['train_deterministic'] = args.train_deterministic
+        elif args.eval_benchmark is not None:
+            ex_detail['eval_benchmark'] = args.eval_benchmark
+        elif args.eval_deterministic is not None:
+            ex_detail['eval_deterministic'] = args.eval_deterministic
+        elif args.eval_nograd is not None:
+            ex_detail['eval_nograd'] = args.eval_nograd
+        elif args.optimized_for_inference is not None:
+            ex_detail['optimized_for_inference'] = args.optimized_for_inference
+
+
+def _write_metadata_yaml_files(extracted_details: List[Tuple[str, Dict[str, Any]]]):
+    for path, ex_detail in extracted_details:
+        metadata_path = path + "/metadata.yaml"
+        with open(metadata_path, 'w') as file:
+            yaml.dump(ex_detail, file)
+            print(f"Processed file: {metadata_path}")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("--model", default=None,
                         help="Full or partial name of a model to update. If partial, picks the first match.  \
                               If absent, applies to all models.")
-    parser.add_argument("--train-benchmark", default=_DEFAULT_METADATA_['train_benchmark'], type=_parser_helper,
+    parser.add_argument("--extract-only", default=False, type=_parser_helper,
+                        help="Only extract model details.")
+    parser.add_argument("--train-benchmark", default=None, type=_parser_helper,
                         help="Whether to enable PyTorch benchmark mode during train.")
-    parser.add_argument("--train-deterministic", default=_DEFAULT_METADATA_['train_deterministic'], type=_parser_helper,
+    parser.add_argument("--train-deterministic", default=None, type=_parser_helper,
                         help="Whether to enable deterministic during train.")
-    parser.add_argument("--eval-benchmark", default=_DEFAULT_METADATA_['eval_benchmark'], type=_parser_helper,
+    parser.add_argument("--eval-benchmark", default=None, type=_parser_helper,
                         help="Whether to enable PyTorch benchmark mode during eval.")
-    parser.add_argument("--eval-deterministic", default=_DEFAULT_METADATA_['eval_deterministic'], type=_parser_helper,
+    parser.add_argument("--eval-deterministic", default=None, type=_parser_helper,
                         help="Whether to enable deterministic during eval.")
-    parser.add_argument("--eval-nograd", default=_DEFAULT_METADATA_['eval_nograd'], type=_parser_helper,
+    parser.add_argument("--eval-nograd", default=None, type=_parser_helper,
                         help="Whether to enable no_grad during eval.")
-    parser.add_argument("--optimized-for-inference", default=_DEFAULT_METADATA_['optimized_for_inference'],
-                        type=_parser_helper,
+    parser.add_argument("--optimized-for-inference", default=None, type=_parser_helper,
                         help="Whether to enable optimized_for_inference.")
-    # parser.add_argument("--origin", default=_DEFAULT_METADATA_['origin'],
+    # parser.add_argument("--origin", default=None,
     #                     help="Location of benchmark's origin. Such as torchtext or torchvision.")
-    # parser.add_argument("--train-dtype", default=_DEFAULT_METADATA_['train_dtype'],
+    # parser.add_argument("--train-dtype", default=None,
     #                     choices=['float32', 'float16', 'bfloat16', 'amp'], help="Which fp type to perform training.")
-    # parser.add_argument("--eval-dtype", default=_DEFAULT_METADATA_['eval_dtype'],
+    # parser.add_argument("--eval-dtype", default=None,
     #                     choices=['float32', 'float16', 'bfloat16', 'amp'], help="Which fp type to perform eval.")
     args = parser.parse_args()
 
     # Find the list of matching models.
     models = list_models(model_match=args.model)
     model_names = [m.name for m in models]
-
     if args.model is not None:
         if not models:
             print(f"Unable to find model matching: {args.model}.")
@@ -111,7 +139,20 @@ if __name__ == "__main__":
 
     # Extract all model details from models.
     extracted_details = _extract_all_details(model_names)
-    print("Printing all extracted metadata.")
-    for path, ed in extracted_details:
-        name = os.path.basename(path)
-        print(f'model: {name} , details: {ed}')
+    print("Printing extracted metadata.")
+    _print_extracted_details(extracted_details)
+
+    # Stop here for extract-only.
+    if args.extract_only:
+        print("Extract-only is set. Stop here.")
+        exit(0)
+
+    # Apply details passed in by flags.
+    _maybe_override_extracted_details(args, extracted_details)
+    print("Printing metadata after applying any modifications.")
+    _print_extracted_details(extracted_details)
+
+    # TODO: Modify and update the model to apply metadata changes by the user.
+
+    # Generate a metadata files for each matching model.
+    _write_metadata_yaml_files(extracted_details)
