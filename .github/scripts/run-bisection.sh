@@ -41,6 +41,11 @@ mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 
 . activate ${BISECT_CONDA_ENV}
 
+# Install pytorch nightly
+conda install -y -c pytorch-nightly torchtext torchvision
+# Install torchbench deps
+python install.py
+
 # specify --debug to allow restart from the last failed point
 python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
