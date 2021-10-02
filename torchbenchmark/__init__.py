@@ -11,6 +11,7 @@ import tempfile
 import threading
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 from urllib import request
+import yaml
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
@@ -304,12 +305,23 @@ class ModelTask(base_task.TaskBase):
         self._details.metadata["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
         self._details.metadata["train_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
 
+    def check_details_train(self, md) -> None:
+        self.extract_details_train()
+        assert(md["train_benchmark"] == self._details.metadata["train_benchmark"])
+        assert(md["train_deterministic"] == self._details.metadata["train_deterministic"])
+
     def extract_details_eval(self) -> None:
         self._details.metadata["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
         self._details.metadata["eval_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
         # FIXME: Models will use "with torch.no_grad():", so the lifetime of no_grad will end after the eval().
         # FIXME: Must incorporate this "torch.is_grad_enabled()" inside of actual eval() func.
         self._details.metadata["eval_nograd"] = not self.worker.load_stmt("torch.is_grad_enabled()")
+
+    def check_details_eval(self, md) -> None:
+        self.extract_details_eval()
+        assert(md["eval_benchmark"] == self._details.metadata["eval_benchmark"])
+        assert(md["eval_deterministic"] == self._details.metadata["eval_deterministic"])
+        assert(md["eval_nograd"] == self._details.metadata["eval_nograd"])
 
     def check_opt_vs_noopt_jit(self) -> None:
         self.worker.run("model.check_opt_vs_noopt_jit()")
@@ -444,3 +456,12 @@ def list_models(model_match=None):
             if model_match.lower() in Model.name.lower():
                 models.append(Model)
     return models
+
+
+def get_metadata_from_yaml(path):
+    metadata_path = path + "/metadata.yaml"
+    md = None
+    if os.path.exists(metadata_path):
+        with open(metadata_path, 'r') as f:
+            md = yaml.load(f, Loader=yaml.FullLoader)
+    return md
