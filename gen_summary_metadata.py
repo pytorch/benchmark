@@ -33,10 +33,8 @@ def _parser_helper(input):
 def _process_model_details_to_metadata(model_detail: ModelDetails) -> Dict[str, Any]:
     metadata = {}
     metadata['optimized_for_inference'] = model_detail.optimized_for_inference
-    for k, _ in _DEFAULT_METADATA_.items():
-        v = model_detail.metadata[k] if k in model_detail.metadata else None
-        if v is not None:
-            metadata[k] = v
+    for k, v in _DEFAULT_METADATA_.items():
+        metadata[k] = model_detail.metadata[k] if k in model_detail.metadata else v
     return metadata
 
 
@@ -54,6 +52,7 @@ def _extract_detail(path: str) -> Dict[str, Any]:
         task.set_eval()
         task.eval()
         task.extract_details_eval()
+        task.del_model_instance()
     except NotImplementedError:
         print(f'Model {name} is not fully implemented. skipping...')
     return _process_model_details_to_metadata(task._details)
@@ -104,7 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", default=None,
                         help="Full or partial name of a model to update. If partial, picks the first match.  \
                               If absent, applies to all models.")
-    parser.add_argument("--extract-only", default=False, type=_parser_helper,
+    parser.add_argument("--extract-only", default=False, action="store_true",
                         help="Only extract model details.")
     parser.add_argument("--train-benchmark", default=None, type=_parser_helper,
                         help="Whether to enable PyTorch benchmark mode during train.")
