@@ -1,7 +1,7 @@
 """
 This script reads from a PyTorch benchmarking directory and generates a yaml file
 that drives the bisector to run tests on the specified PyTorch commits.
-This only works on V1 benchmark, V0 is not supported.
+This only works on V1 and later benchmark, V0 is not supported.
 """
 import os
 import json
@@ -82,6 +82,12 @@ def generate_bisection_config(base_file, tip_file):
     result["tests"] = generate_bisection_tests(base, tip)
     return result
 
+def generate_gh_issue(issue_fpath):
+    pass
+
+def setup_gh_env():
+    pass
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--benchmark-dir",
@@ -91,11 +97,13 @@ if __name__ == "__main__":
     parser.add_argument("--out",
                         required=True,
                         help="Result output file")
+    parser.add_argument("--github-issue",
+                        help="Setup environment variables and GitHub Issue file for GitHub Actions")
     args = parser.parse_args()
     # input directory
     input_dir = Path(args.benchmark_dir)
     tip_json_file = find_latest_nonempty_json(input_dir)
-    assert tip_json_file, "The input benchmark directory must contains non-empty json file"
+    assert tip_json_file, "The input benchmark directory must contain a non-empty json file"
     tip_version = get_pytorch_version(tip_json_file)
     parent_dir = input_dir.parent
     all_benchmark_dirs = [ os.path.join(parent_dir, name) for name in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, name)) ]
@@ -112,3 +120,6 @@ if __name__ == "__main__":
                 break
     with open(args.out, "w") as fo:
         yaml.dump(result, fo)
+    # If there is at least one regressing test, setup the Bisection GitHub Action workflow
+    if args.github_issue and result["tests"]:
+        setup_github_perf_signal()
