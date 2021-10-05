@@ -1,0 +1,7 @@
+@misc{OrionTorchbench2021,
+    title={Torchbench: A collection of open source benchmarks used to evaluate PyTorch performance},
+    author={Orion Reblitz-Richardson and Victor Bittorf and },
+    year={2021},
+    eprint={2009.07896},
+    archivePrefix={arXiv},
+    primaryClass={cs.PF}
