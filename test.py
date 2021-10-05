@@ -88,6 +88,27 @@ def _load_test(path, device):
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')
 
+    def check_metadata_fn(self):
+        metadata_file = path + "/metadata.yaml"
+        metadata = get_metadata_from_yaml(metadata_file)
+        task = ModelTask(path, timeout=TIMEOUT)
+        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+            try:
+                task.make_model_instance(device=device, jit=False)
+                task.set_train()
+                task.train()
+                task.check_details_train(metadata)
+                assert (
+                    not task.model_details.optimized_for_inference or
+                    task.worker.load_stmt("hasattr(model, 'eval_model')"))
+
+                task.set_eval()
+                task.eval()
+                task.check_details_eval(metadata)
+                task.del_model_instance()
+            except NotImplementedError:
+                self.skipTest('Method eval is not implemented, skipping...')
+
     def check_device_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
@@ -102,6 +123,7 @@ def _load_test(path, device):
     setattr(TestBenchmark, f'test_{name}_example_{device}', example)
     setattr(TestBenchmark, f'test_{name}_train_{device}', train)
     setattr(TestBenchmark, f'test_{name}_eval_{device}', eval_fn)
+    setattr(TestBenchmark, f'test_{name}_check_metadata_{device}', check_metadata_fn)
     setattr(TestBenchmark, f'test_{name}_check_device_{device}', check_device_fn)
 
 
