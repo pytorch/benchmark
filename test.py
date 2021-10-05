@@ -89,8 +89,7 @@ def _load_test(path, device):
                 self.skipTest('Method eval is not implemented, skipping...')
 
     def check_metadata_fn(self):
-        metadata_file = path + "/metadata.yaml"
-        metadata = get_metadata_from_yaml(metadata_file)
+        metadata = get_metadata_from_yaml(path)
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
