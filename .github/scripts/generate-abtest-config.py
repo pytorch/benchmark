@@ -14,6 +14,22 @@ from pathlib import Path
 PERF_CHANGE_THRESHOLD = 7
 # Timeout of the bisection job in hours
 PERF_TEST_TIMEOUT_THRESHOLD = 120
+GITHUB_ISSUE_TEMPLATE = """
+TorchBench CI has detected a performance signal.
+
+Base PyTorch version: {start_version}
+
+Base PyTorch commit: {start}
+
+Affected PyTorch version: {end_version}
+
+Affected PyTorch commit: {end}
+
+Affected Tests:
+{tests}
+
+cc @xzhao9
+"""
 
 @dataclasses.dataclass
 class PyTorchVer:
@@ -54,7 +70,8 @@ def generate_bisection_tests(base, tip):
         return ret
     base_tests = get_test_stats(base)
     tip_tests = get_test_stats(tip)
-    result = []
+    signals = []
+    signal_details = {}
     for benchmark, tip_latency in tip_tests.items():
         base_latency = base_tests.get(benchmark, None)
         if base_latency is None:
@@ -62,9 +79,11 @@ def generate_bisection_tests(base, tip):
             # of reference against which to compare.
             continue
 
-        if abs(tip_latency - base_latency) / min(base_latency, tip_latency) >= PERF_CHANGE_THRESHOLD:
-            result.append(benchmark)
-    return result
+        delta_percent = (tip_latency - base_latency) / base_latency
+        if abs(delta_percent) >= PERF_CHANGE_THRESHOLD:
+            signals.append(benchmark)
+            signal_details[benchmark] = delta_percent
+    return (signals, signal_details)
 
 def generate_bisection_config(base_file, tip_file):
     result = {}
@@ -79,14 +98,24 @@ def generate_bisection_config(base_file, tip_file):
     result["threshold"] = PERF_CHANGE_THRESHOLD
     result["direction"] = "both"
     result["timeout"] = PERF_TEST_TIMEOUT_THRESHOLD
-    result["tests"] = generate_bisection_tests(base, tip)
+    (result["tests"], result["details"]) = generate_bisection_tests(base, tip)
     return result
 
-def generate_gh_issue(issue_fpath):
-    pass
+def generate_gh_issue(ghi_fpath, result):
+    ghi_config = result
+    ghi_config["test_details"] = ""
+    for test, delta in result["details"]:
+        ghi_config["test_details"] += f"- {test}: {delta}\n"
+    ghi_body = ghi_config.format(GITHUB_ISSUE_TEMPLATE)
+    with open(ghi_fpath, "w") as f:
+        f.write(ghi_body)
 
-def setup_gh_env():
-    pass
+# Setup TORCHBENCH_PERF_SIGNAL to enable follow-up steps
+def setup_gh_env(affected_pytorch_version):
+    fname = os.environ["GITHUB_ENV"]
+    content = f"TORCHBENCH_PERF_SIGNAL='{affected_pytorch_version}'\n"
+    with open(fname, 'a') as fo:
+        fo.write(content)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -122,4 +151,5 @@ if __name__ == "__main__":
         yaml.dump(result, fo)
     # If there is at least one regressing test, setup the Bisection GitHub Action workflow
     if args.github_issue and result["tests"]:
-        setup_github_perf_signal()
+        setup_gh_env(result["end_version"])
+        generate_gh_issue(args.github_issue, result)
