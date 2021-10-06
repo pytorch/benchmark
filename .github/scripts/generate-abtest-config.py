@@ -28,7 +28,7 @@ Affected PyTorch commit: {end}
 Affected Tests:
 {test_details}
 
-cc @xzhao9
+cc @xuzhao9
 """
 
 @dataclasses.dataclass
@@ -59,6 +59,11 @@ def get_pytorch_version(json_path):
     pytorch_ver = PyTorchVer(version=bm_result["machine_info"]["pytorch_version"],
                              commit=bm_result["machine_info"]["pytorch_git_version"])
     return pytorch_ver
+
+def get_workflow_id(workflow_dir):
+    prefix = "gh"
+    prefix_loc = workflow_dir.find(prefix)
+    return int(workflow_dir[prefix_loc + len(prefix):])
 
 # Compare the tests and generate a list of tests whose perf change larger than threshold
 def generate_bisection_tests(base, tip):
@@ -93,7 +98,7 @@ def generate_bisection_config(base_file, tip_file):
         tip = json.load(tf)
     result["start_version"] = base["machine_info"]["pytorch_version"]
     result["start"] = base["machine_info"]["pytorch_git_version"]
-    result["end_version"] = base["machine_info"]["pytorch_version"]
+    result["end_version"] = tip["machine_info"]["pytorch_version"]
     result["end"] = tip["machine_info"]["pytorch_git_version"]
     result["threshold"] = PERF_CHANGE_THRESHOLD
     result["direction"] = "both"
@@ -132,15 +137,17 @@ if __name__ == "__main__":
     # input directory
     input_dir = Path(args.benchmark_dir)
     tip_json_file = find_latest_nonempty_json(input_dir)
-    assert tip_json_file, "The input benchmark directory must contain a non-empty json file"
+    assert tip_json_file, "The input benchmark directory must contain a non-empty json file!"
     tip_version = get_pytorch_version(tip_json_file)
     parent_dir = input_dir.parent
-    all_benchmark_dirs = [ os.path.join(parent_dir, name) for name in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, name)) ]
-    all_benchmark_dirs.sort(reverse=True)
-    result = {}
+    base_benchmark_dirs = list(filter(lambda x: get_workflow_id(x) < get_workflow_id(os.path.basename(input_dir)),
+                                         os.listdir(parent_dir)))
     # Search from the latest to the earliest
+    base_benchmark_dirs.sort(reverse=True)
+    base_benchmark_paths = [ os.path.join(parent_dir, name) for name in base_benchmark_dirs if os.path.isdir(os.path.join(parent_dir, name)) ]
+    result = {}
     # Use the latest benchmark result with a different version than tip
-    for bm in all_benchmark_dirs:
+    for bm in base_benchmark_paths:
         json_file = find_latest_nonempty_json(bm)
         if json_file:
             base_version = get_pytorch_version(json_file)
@@ -150,6 +157,6 @@ if __name__ == "__main__":
     with open(args.out, "w") as fo:
         yaml.dump(result, fo)
     # If there is at least one regressing test, setup the Bisection GitHub Action workflow
-    if args.github_issue and result["tests"]:
+    if args.github_issue and result and result["tests"]:
         setup_gh_env(result["end_version"])
         generate_gh_issue(args.github_issue, result)
