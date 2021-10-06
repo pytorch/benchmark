@@ -26,7 +26,7 @@ Affected PyTorch version: {end_version}
 Affected PyTorch commit: {end}
 
 Affected Tests:
-{tests}
+{test_details}
 
 cc @xzhao9
 """
@@ -104,9 +104,9 @@ def generate_bisection_config(base_file, tip_file):
 def generate_gh_issue(ghi_fpath, result):
     ghi_config = result
     ghi_config["test_details"] = ""
-    for test, delta in result["details"]:
+    for test, delta in result["details"].items():
         ghi_config["test_details"] += f"- {test}: {delta}\n"
-    ghi_body = ghi_config.format(GITHUB_ISSUE_TEMPLATE)
+    ghi_body = GITHUB_ISSUE_TEMPLATE.format(**ghi_config)
     with open(ghi_fpath, "w") as f:
         f.write(ghi_body)
 
