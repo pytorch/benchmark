@@ -2,7 +2,7 @@ import dataclasses
 
 @dataclasses.dataclass
 class SACConfig:
-    env_id = "Pendulum-v0"
+    env_id = "Pendulum-v1"
     seed = 123
     num_steps = 1
     transitions_per_step = 1
