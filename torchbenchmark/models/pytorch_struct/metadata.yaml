@@ -1,6 +1,6 @@
 eval_benchmark: true
 eval_deterministic: true
-eval_nograd: false
+eval_nograd: true
 optimized_for_inference: false
 train_benchmark: true
 train_deterministic: true

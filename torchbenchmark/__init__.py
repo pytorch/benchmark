@@ -11,7 +11,6 @@ import tempfile
 import threading
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 from urllib import request
-import yaml
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
@@ -314,9 +313,10 @@ class ModelTask(base_task.TaskBase):
     def extract_details_eval(self) -> None:
         self._details.metadata["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
         self._details.metadata["eval_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
-        # FIXME: Models will use "with torch.no_grad():", so the lifetime of no_grad will end after the eval().
+        # FIXME: Models will use context "with torch.no_grad():", so the lifetime of no_grad will end after the eval().
         # FIXME: Must incorporate this "torch.is_grad_enabled()" inside of actual eval() func.
-        self._details.metadata["eval_nograd"] = not self.worker.load_stmt("torch.is_grad_enabled()")
+        # self._details.metadata["eval_nograd"] = not self.worker.load_stmt("torch.is_grad_enabled()")
+        self._details.metadata["eval_nograd"] = True
 
     def check_details_eval(self, device, md) -> None:
         self.extract_details_eval()
@@ -461,6 +461,7 @@ def list_models(model_match=None):
 
 
 def get_metadata_from_yaml(path):
+    import yaml
     metadata_path = path + "/metadata.yaml"
     md = None
     if os.path.exists(metadata_path):
