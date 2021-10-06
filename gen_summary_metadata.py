@@ -2,6 +2,7 @@
 A Benchmark Summary Metadata tool to extract and generate metadata from models at runtime.
 """
 import argparse
+from copy import deepcopy
 from distutils.util import strtobool
 import os
 import yaml
@@ -31,11 +32,17 @@ def _parser_helper(input):
     return None if input is None else bool(strtobool(str(input)))
 
 
-def _process_model_details_to_metadata(model_detail: ModelDetails) -> Dict[str, Any]:
+def _process_model_details_to_metadata(train_detail: ModelDetails, eval_detail: ModelDetails) -> Dict[str, Any]:
     metadata = {}
-    metadata['optimized_for_inference'] = model_detail.optimized_for_inference
     for k, v in _DEFAULT_METADATA_.items():
-        metadata[k] = model_detail.metadata[k] if k in model_detail.metadata else v
+        if hasattr(train_detail, k):
+            metadata[k] = getattr(train_detail, k)
+        elif train_detail and k in train_detail.metadata:
+            metadata[k] = train_detail.metadata[k]
+        elif eval_detail and k in eval_detail.metadata:
+            metadata[k] = eval_detail.metadata[k]
+        else:
+            metadata[k] = v
     return metadata
 
 
@@ -43,22 +50,36 @@ def _extract_detail(path: str) -> Dict[str, Any]:
     name = os.path.basename(path)
     # TODO: currently this tool only supports machines with CUDA support
     device = "cuda"
-    task = ModelTask(path, timeout=TIMEOUT)
+    t_detail = None
+    e_detail = None
+    # Separate train and eval to isolated processes.
+    task_t = ModelTask(path, timeout=TIMEOUT)
     try:
-        task.make_model_instance(device=device, jit=False)
-        task.set_train()
-        task.train()
-        task.extract_details_train()
-        assert (
-            not task.model_details.optimized_for_inference or
-            task.worker.load_stmt("hasattr(model, 'eval_model')"))
-        task.set_eval()
-        task.eval()
-        task.extract_details_eval()
-        task.del_model_instance()
+        task_t.make_model_instance(device=device, jit=False)
+        task_t.set_train()
+        task_t.train()
+        task_t.extract_details_train()
+        task_t.del_model_instance()
+        t_detail = deepcopy(task_t._details)
     except NotImplementedError:
-        print(f'Model {name} is not fully implemented. skipping...')
-    return _process_model_details_to_metadata(task._details)
+        print(f'Model {name} train is not fully implemented. skipping...')
+    del task_t
+
+    task_e = ModelTask(path, timeout=TIMEOUT)
+    try:
+        task_e.make_model_instance(device=device, jit=False)
+        assert (
+            not task_e.model_details.optimized_for_inference or
+            task_e.worker.load_stmt("hasattr(model, 'eval_model')"))
+        task_e.set_eval()
+        task_e.eval()
+        task_e.extract_details_eval()
+        task_e.del_model_instance()
+        e_detail = deepcopy(task_e._details)
+    except NotImplementedError:
+        print(f'Model {name} eval is not fully implemented. skipping...')
+    del task_e
+    return _process_model_details_to_metadata(t_detail, e_detail)
 
 
 def _extract_all_details(model_names: List[str]) -> List[Tuple[str, Dict[str, Any]]]:
