@@ -83,8 +83,7 @@ def generate_bisection_tests(base, tip):
             # This benchmark is new or was failing, so there is no prior point
             # of reference against which to compare.
             continue
-
-        delta_percent = (tip_latency - base_latency) / base_latency
+        delta_percent = (tip_latency - base_latency) / base_latency * 100
         if abs(delta_percent) >= PERF_CHANGE_THRESHOLD:
             signals.append(benchmark)
             signal_details[benchmark] = delta_percent
@@ -110,7 +109,8 @@ def generate_gh_issue(ghi_fpath, result):
     ghi_config = result
     ghi_config["test_details"] = ""
     for test, delta in result["details"].items():
-        ghi_config["test_details"] += f"- {test}: {delta}\n"
+        sign = "+" if delta > 0 else ""
+        ghi_config["test_details"] += f"- {test}: {sign}{delta:.5f}%\n"
     ghi_body = GITHUB_ISSUE_TEMPLATE.format(**ghi_config)
     with open(ghi_fpath, "w") as f:
         f.write(ghi_body)
