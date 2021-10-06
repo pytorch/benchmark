@@ -60,7 +60,7 @@ jobs:
                  --benchmark-dir "${WORKFLOW_HOME}" \
                  --out "${WORKFLOW_HOME}/bisection.yaml"
           # Include in the GitHub artifact
-          if [ -n "$TORCHBENCH_PERF_SIGNAL" ]; then
+          if [ -f "${WORKFLOW_HOME}/gh-issue.md" ]; then
             cp "${WORKFLOW_HOME}/bisection.yaml" ./benchmark-output/
             cp "${WORKFLOW_HOME}/gh-issue.md ./benchmark-output/
             # Setup the bisection environment
