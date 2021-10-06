@@ -66,7 +66,7 @@ def _load_test(path, device):
                 task.make_model_instance(device=device, jit=False)
                 task.set_train()
                 task.train()
-                task.check_details_train(metadata)
+                task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method train is not implemented, skipping...')
@@ -83,7 +83,7 @@ def _load_test(path, device):
 
                 task.set_eval()
                 task.eval()
-                task.check_details_eval(metadata)
+                task.check_details_eval(device=device, md=metadata)
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')

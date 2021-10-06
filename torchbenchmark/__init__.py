@@ -305,10 +305,11 @@ class ModelTask(base_task.TaskBase):
         self._details.metadata["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
         self._details.metadata["train_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
 
-    def check_details_train(self, md) -> None:
+    def check_details_train(self, device, md) -> None:
         self.extract_details_train()
-        assert(md["train_benchmark"] == self._details.metadata["train_benchmark"])
-        assert(md["train_deterministic"] == self._details.metadata["train_deterministic"])
+        if device == 'cuda':
+            assert(md["train_benchmark"] == self._details.metadata["train_benchmark"])
+            assert(md["train_deterministic"] == self._details.metadata["train_deterministic"])
 
     def extract_details_eval(self) -> None:
         self._details.metadata["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
@@ -317,10 +318,11 @@ class ModelTask(base_task.TaskBase):
         # FIXME: Must incorporate this "torch.is_grad_enabled()" inside of actual eval() func.
         self._details.metadata["eval_nograd"] = not self.worker.load_stmt("torch.is_grad_enabled()")
 
-    def check_details_eval(self, md) -> None:
+    def check_details_eval(self, device, md) -> None:
         self.extract_details_eval()
-        assert(md["eval_benchmark"] == self._details.metadata["eval_benchmark"])
-        assert(md["eval_deterministic"] == self._details.metadata["eval_deterministic"])
+        if device == 'cuda':
+            assert(md["eval_benchmark"] == self._details.metadata["eval_benchmark"])
+            assert(md["eval_deterministic"] == self._details.metadata["eval_deterministic"])
         assert(md["eval_nograd"] == self._details.metadata["eval_nograd"])
 
     def check_opt_vs_noopt_jit(self) -> None:

@@ -7,6 +7,7 @@ import os
 import yaml
 from typing import Any, Dict, List, Tuple
 
+import torch
 from torchbenchmark import list_models, _list_model_paths, ModelTask, ModelDetails
 
 TIMEOUT = 300  # seconds
@@ -40,9 +41,11 @@ def _process_model_details_to_metadata(model_detail: ModelDetails) -> Dict[str, 
 
 def _extract_detail(path: str) -> Dict[str, Any]:
     name = os.path.basename(path)
+    # TODO: currently this tool only supports machines with CUDA support
+    device = "cuda"
     task = ModelTask(path, timeout=TIMEOUT)
     try:
-        task.make_model_instance(device="cuda", jit=False)
+        task.make_model_instance(device=device, jit=False)
         task.set_train()
         task.train()
         task.extract_details_train()
@@ -124,6 +127,11 @@ if __name__ == "__main__":
     # parser.add_argument("--eval-dtype", default=None,
     #                     choices=['float32', 'float16', 'bfloat16', 'amp'], help="Which fp type to perform eval.")
     args = parser.parse_args()
+
+    # Only allow this script for cuda for now.
+    if not torch.cuda.is_available():
+        print("This tool is currently only supported when the system has a cuda device.")
+        exit(1)
 
     # Find the list of matching models.
     models = list_models(model_match=args.model)
