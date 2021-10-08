@@ -29,7 +29,7 @@ jobs:
         run: |
           . activate "${CONDA_ENV_NAME}"
           # Install dependencies
-          pip install requests bs4 argparse
+          pip install requests bs4 argparse gitpython
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -54,8 +54,13 @@ jobs:
           . activate "${CONDA_ENV_NAME}"
           WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
           mkdir -p benchmark-output/
+          # Update the self-hosted pytorch version
+          pushd "${HOME}/pytorch"
+          git fetch origin
+          popd
           # Compare the result from yesterday and report any perf signals
           python ./.github/scripts/generate-abtest-config.py \
+                 --pytorch-dir "${HOME}/pytorch" \
                  --github-issue "${WORKFLOW_HOME}/gh-issue.md" \
                  --benchmark-dir "${WORKFLOW_HOME}" \
                  --out "${WORKFLOW_HOME}/bisection.yaml"

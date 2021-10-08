@@ -4,6 +4,7 @@ that drives the bisector to run tests on the specified PyTorch commits.
 This only works on V1 and later benchmark, V0 is not supported.
 """
 import os
+import re
 import git
 import json
 import yaml
@@ -13,6 +14,9 @@ from pathlib import Path
 
 # We will generate bisection config for tests with performance change > 7%
 PERF_CHANGE_THRESHOLD = 7
+# Assume the nightly branch commit message is in the following format
+# Hash in the parentheses links to the commit on the master branch
+NIGHTLY_COMMIT_MSG = "nightly release \((.*)\)"
 # Timeout of the bisection job in hours
 PERF_TEST_TIMEOUT_THRESHOLD = 120
 GITHUB_ISSUE_TEMPLATE = """
@@ -43,6 +47,12 @@ def exist_dir_path(string):
     else:
         raise NotADirectoryError(string)
 
+def get_pytorch_main_commit(pytorch_repo, nightly_commit):
+    repo = git.Repo(pytorch_repo)
+    msg = repo.commit(nightly_commit).message
+    nightly_commit_regex = re.compile(NIGHTLY_COMMIT_MSG)
+    return nightly_commit_regex.search(msg).group(1)
+
 def find_latest_nonempty_json(path):
     json_files = list(filter(lambda x: x.endswith(".json"), os.listdir(path)))
     json_files.sort(reverse=True)
@@ -57,11 +67,11 @@ def find_latest_nonempty_json(path):
 def get_pytorch_version(pytorch_src_path, json_path):
     with open(json_path, "r") as json_obj:
         bm_result = json.load(json_obj)
-    git_version = bm_result["machine_info"]["pytorch_git_version"]
+    nightly_git_version = bm_result["machine_info"]["pytorch_git_version"]
     # get main git commit by git version
-    pytorch_repo = git.Repo(pytorch_src_path)
+    main_commit = get_pytorch_main_commit(pytorch_src_path, nightly_git_version)
     pytorch_ver = PyTorchVer(version=bm_result["machine_info"]["pytorch_version"],
-                             commit=bm_result["machine_info"]["pytorch_git_version"])
+                             commit=main_commit)
     return pytorch_ver
 
 def get_workflow_id(workflow_dir):
@@ -146,7 +156,7 @@ if __name__ == "__main__":
     input_dir = Path(args.benchmark_dir)
     tip_json_file = find_latest_nonempty_json(input_dir)
     assert tip_json_file, "The input benchmark directory must contain a non-empty json file!"
-    tip_version = get_pytorch_version(tip_json_file)
+    tip_version = get_pytorch_version(args.pytorch_dir, tip_json_file)
     parent_dir = input_dir.parent
     base_benchmark_dirs = list(filter(lambda x: get_workflow_id(x) < get_workflow_id(os.path.basename(input_dir)),
                                          os.listdir(parent_dir)))
@@ -158,7 +168,7 @@ if __name__ == "__main__":
     for bm in base_benchmark_paths:
         json_file = find_latest_nonempty_json(bm)
         if json_file:
-            base_version = get_pytorch_version(json_file)
+            base_version = get_pytorch_version(args.pytorch_dir, json_file)
             if base_version.commit != tip_version.commit:
                 result = generate_bisection_config(json_file, tip_json_file)
                 break
