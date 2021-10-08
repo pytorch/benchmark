@@ -82,14 +82,23 @@ def run_one_step(func):
 
 def profile_one_step(func, nwarmup=3):
     activity_groups = []
-    if args.device == "cuda":
+    if ((not args.profile_devices and args.device == 'cuda') or
+            (args.profile_devices and 'cuda' in args.profile_devices)):
+        print("Collecting CUDA activity.")
         activity_groups.append(profiler.ProfilerActivity.CUDA)
-    activity_groups.append(profiler.ProfilerActivity.CPU)
+
+    if ((not args.profile_devices and args.device == 'cpu') or
+            (args.profile_devices and 'cpu' in args.profile_devices)):
+        print("Collecting CPU activity.")
+        activity_groups.append(profiler.ProfilerActivity.CPU)
 
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1),
         activities=activity_groups,
-        record_shapes=True,
+        record_shapes=args.profile_detailed,
+        profile_memory=args.profile_detailed,
+        with_stack=args.profile_detailed,
+        with_flops=args.profile_detailed,
         on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
     ) as prof:
         for _i in range(nwarmup + 1):
@@ -100,6 +109,15 @@ def profile_one_step(func, nwarmup=3):
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}")
 
 
+def _validate_devices(devices: str):
+    devices_list = devices.split(",")
+    valid_devices = ['cpu', 'cuda']
+    for d in devices_list:
+        if d not in valid_devices:
+            raise ValueError(f'Invalid device {d} passed into --profile-devices. Expected devices: {valid_devices}.')
+    return devices_list
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
@@ -108,7 +126,12 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--test", choices=["eval", "train"], default="eval", help="Which test to run.")
     parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
     parser.add_argument("--profile-folder", default="./logs", help="Save profiling model traces to this directory.")
-    parser.add_argument("--cudastreams", action="store_true", help="Utilization test using increasing number of cuda streams")
+    parser.add_argument("--profile-detailed", action="store_true",
+                        help="Profiling includes record_shapes, profile_memory, with_stack, and with_flops.")
+    parser.add_argument("--profile-devices", type=_validate_devices,
+                        help="Profiling comma separated list of activities such as cpu,cuda.")
+    parser.add_argument("--cudastreams", action="store_true",
+                        help="Utilization test using increasing number of cuda streams.")
     args = parser.parse_args()
 
     if args.cudastreams and not args.device == "cuda":
