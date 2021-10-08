@@ -1,6 +1,6 @@
 @misc{TorchBench2020,
-    title={TorchBench: A collection of open source benchmarks for PyTorch performance evaluation},
-    author={Will Constable, Xu Zhao, Victor Bittorf, Eric Christoffersen, Taylor Robie, Eric Han, Peng Wu, Nick Korovaiko, Soumith Chintala, Jason Ansel, and Orion Reblitz-Richardson},
+    title={TorchBench: A collection of open source benchmarks for PyTorch performance and usability evaluation},
+    author={Will Constable, Xu Zhao, Victor Bittorf, Eric Christoffersen, Taylor Robie, Eric Han, Peng Wu, Nick Korovaiko, Jason Ansel, Orion Reblitz-Richardson, and Soumith Chintala},
     year={2020},
     publisher={GitHub},
     journal={GitHub repository},
