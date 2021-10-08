@@ -1,7 +1,7 @@
 """
 A lightweight runner that just sets up a model and runs one of its functions in a particular configuration.
 
-Intented for debugging/exploration/profiling use cases, where the test/measurement harness is overhead.
+Intended for debugging/exploration/profiling use cases, where the test/measurement harness is overhead.
 
 DANGER: make sure to `python install.py` first or otherwise make sure the benchmark you are going to run
         has been installed.  This script intentionally does not automate or enforce setup steps.
@@ -13,7 +13,6 @@ import time
 import torch.profiler as profiler
 
 from torchbenchmark import list_models
-
 import torch
 
 
@@ -40,27 +39,25 @@ def run_one_step_with_cudastreams(func, streamcount):
         end_event = torch.cuda.Event(enable_timing=True)
         start_event.record()
 
-        t0 = time.time()
         for s in streamlist:
             with torch.cuda.stream(s):
                 func()
-        t1 = time.time()
 
         end_event.record()
         torch.cuda.synchronize()
 
-        print(f"Cuda StreamCount:{len(streamlist)}: gpu time {start_event.elapsed_time(end_event)}")
+        print(f"Cuda StreamCount:{len(streamlist)}")
+        print(f"GPU Time: {start_event.elapsed_time(end_event)} milliseconds")
 
 
 def run_one_step(func):
-
+    # Warm-up with one run.
     func()
 
     if args.device == "cuda":
         torch.cuda.synchronize()
         start_event = torch.cuda.Event(enable_timing=True)
         end_event = torch.cuda.Event(enable_timing=True)
-
         start_event.record()
 
         t0 = time.time()
@@ -69,15 +66,19 @@ def run_one_step(func):
 
         end_event.record()
         torch.cuda.synchronize()
-        print(f"Ran in {t1 - t0} seconds, gpu time {start_event.elapsed_time(end_event)}.")
+        t2 = time.time()
+
+        # CPU Dispatch time include only the time it took to dispatch all the work to the GPU.
+        # CPU Total Wall Time will include the CPU Dispatch, GPU time and device latencies.
+        print(f"GPU Time: {start_event.elapsed_time(end_event)} milliseconds")
+        print(f"CPU Dispatch Time: {t1 - t0} seconds")
+        print(f"CPU Total Wall Time: {t2 - t0} seconds")
 
     else:
-
         t0 = time.time()
         func()
         t1 = time.time()
-
-        print(f"Ran in {t1 - t0} seconds.")
+        print(f"CPU Total Wall Time: {t1 - t0} seconds")
 
 
 def profile_one_step(func, nwarmup=3):
@@ -103,10 +104,11 @@ def profile_one_step(func, nwarmup=3):
     ) as prof:
         for _i in range(nwarmup + 1):
             func()
+            torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
             prof.step()
 
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
-    print(f"Saved TensorBoard Profiler traces to {args.profile_folder}")
+    print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
 
 def _validate_devices(devices: str):
@@ -135,7 +137,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.cudastreams and not args.device == "cuda":
-        print("cuda device required to use --cudastreams option")
+        print("cuda device required to use --cudastreams option!")
         exit(-1)
 
     found = False
@@ -144,9 +146,9 @@ if __name__ == "__main__":
             found = True
             break
     if found:
-        print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode")
+        print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
     else:
-        print(f"Unable to find model matching {args.model}")
+        print(f"Unable to find model matching {args.model}.")
         exit(-1)
 
     # build the model and get the chosen test method
