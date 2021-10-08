@@ -4,6 +4,7 @@ that drives the bisector to run tests on the specified PyTorch commits.
 This only works on V1 and later benchmark, V0 is not supported.
 """
 import os
+import git
 import json
 import yaml
 import argparse
@@ -53,9 +54,12 @@ def find_latest_nonempty_json(path):
     print(f"Can't find non-empty json files in path: {path}")
     return None
 
-def get_pytorch_version(json_path):
+def get_pytorch_version(pytorch_src_path, json_path):
     with open(json_path, "r") as json_obj:
         bm_result = json.load(json_obj)
+    git_version = bm_result["machine_info"]["pytorch_git_version"]
+    # get main git commit by git version
+    pytorch_repo = git.Repo(pytorch_src_path)
     pytorch_ver = PyTorchVer(version=bm_result["machine_info"]["pytorch_version"],
                              commit=bm_result["machine_info"]["pytorch_git_version"])
     return pytorch_ver
@@ -124,6 +128,10 @@ def setup_gh_env(affected_pytorch_version):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--pytorch-dir",
+                        required=True,
+                        help="PyTorch source directory",
+                        type=exist_dir_path)
     parser.add_argument("--benchmark-dir",
                         required=True,
                         help="PyTorch benchmark result directory",
