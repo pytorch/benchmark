@@ -47,7 +47,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         torch.cuda.synchronize()
 
         print(f"Cuda StreamCount:{len(streamlist)}")
-        print(f"GPU Time: {start_event.elapsed_time(end_event)} milliseconds")
+        print(f"GPU Time: {start_event.elapsed_time(end_event):.3f} milliseconds")
 
 
 def run_one_step(func):
@@ -72,15 +72,15 @@ def run_one_step(func):
 
         # CPU Dispatch time include only the time it took to dispatch all the work to the GPU.
         # CPU Total Wall Time will include the CPU Dispatch, GPU time and device latencies.
-        print(f"GPU Time: {start_event.elapsed_time(end_event)} milliseconds")
-        print(f"CPU Dispatch Time: {(t1 - t0) / 1_000_000} milliseconds")
-        print(f"CPU Total Wall Time: {(t2 - t0) / 1_000_000} milliseconds")
+        print(f"GPU Time: {start_event.elapsed_time(end_event):.3f} milliseconds")
+        print(f"CPU Dispatch Time: {(t1 - t0) / 1_000_000:.3f} milliseconds")
+        print(f"CPU Total Wall Time: {(t2 - t0) / 1_000_000:.3f} milliseconds")
 
     else:
         t0 = time.time_ns()
         func()
         t1 = time.time_ns()
-        print(f"CPU Total Wall Time: {(t1 - t0) / 1_000_000} seconds")
+        print(f"CPU Total Wall Time: {(t1 - t0) / 1_000_000:.3f} seconds")
 
 
 def profile_one_step(func, nwarmup=3):
