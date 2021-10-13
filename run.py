@@ -60,25 +60,27 @@ def run_one_step(func):
         end_event = torch.cuda.Event(enable_timing=True)
         start_event.record()
 
-        t0 = time.time()
+        # Collect time_ns() instead of time() which does not provide better precision than 1
+        # second according to https://docs.python.org/3/library/time.html#time.time.
+        t0 = time.time_ns()
         func()
-        t1 = time.time()
+        t1 = time.time_ns()
 
         end_event.record()
         torch.cuda.synchronize()
-        t2 = time.time()
+        t2 = time.time_ns()
 
         # CPU Dispatch time include only the time it took to dispatch all the work to the GPU.
         # CPU Total Wall Time will include the CPU Dispatch, GPU time and device latencies.
         print(f"GPU Time: {start_event.elapsed_time(end_event)} milliseconds")
-        print(f"CPU Dispatch Time: {t1 - t0} seconds")
-        print(f"CPU Total Wall Time: {t2 - t0} seconds")
+        print(f"CPU Dispatch Time: {(t1 - t0) / 1_000_000} milliseconds")
+        print(f"CPU Total Wall Time: {(t2 - t0) / 1_000_000} milliseconds")
 
     else:
-        t0 = time.time()
+        t0 = time.time_ns()
         func()
-        t1 = time.time()
-        print(f"CPU Total Wall Time: {t1 - t0} seconds")
+        t1 = time.time_ns()
+        print(f"CPU Total Wall Time: {(t1 - t0) / 1_000_000} seconds")
 
 
 def profile_one_step(func, nwarmup=3):
