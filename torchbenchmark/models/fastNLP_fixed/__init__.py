@@ -74,11 +74,11 @@ class Model(BenchmarkModel):
         self.train_data = data_bundle.get_dataset('train')
         self.eval_data = data_bundle.get_dataset('dev')
         self.train_data_iterator = DataSetIter(dataset=self.train_data,
-                                               batch_size=6,
+                                               batch_size=self.batch_size,
                                                sampler=None,
                                                num_workers=self.num_workers, drop_last=False)
         self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
-                                              batch_size=6,
+                                              batch_size=self.batch_size,
                                               sampler=None,
                                               num_workers=self.num_workers, drop_last=False)
         for batch_x, batch_y in self.train_data_iterator:
