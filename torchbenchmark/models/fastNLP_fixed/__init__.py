@@ -21,7 +21,7 @@ from fastNLP.core.optimizer import AdamW
 from fastNLP import BucketSampler
 
 # Import CMRC2018 data generator
-from .cmrc2018_simulator import generate_dev, generate_train, CMRC2018_DIR
+from .cmrc2018_simulator import generate_inputs, CMRC2018_DIR
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -40,8 +40,8 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.input_dir = CMRC2018_DIR
-        generate_dev()
-        generate_train()
+        # Generate input data files
+        generate_inputs()
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
         self.embed = BertEmbedding(data_bundle.get_vocab('words'), model_dir_or_name='cn', requires_grad=True,
@@ -74,12 +74,11 @@ class Model(BenchmarkModel):
                                               batch_size=6,
                                               sampler=None,
                                               num_workers=self.num_workers, drop_last=False)
-        for batch_x, batch_y in self.eval_data_iterator:
-            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         for batch_x, batch_y in self.train_data_iterator:
             self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+        for batch_x, batch_y in self.eval_data_iterator:
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
 
-    # Run with example input
     def get_module(self):
         batch_x, batch_y = list(self.train_data_iterator)[0]
         return self.model, batch_x
@@ -202,5 +201,5 @@ if __name__ == "__main__":
     m = Model(device=device, jit=False)
     model, example_inputs = m.get_module()
     model(*example_inputs)
-
+    m.train()
     m.eval()

@@ -8,38 +8,44 @@ import numpy
 import json
 import random
 
-CMRC2018_DEV_SPEC = {
-    # Original
-    # "data_size": 848,
-    "data_size": 1,
-    "title_length": 4,
-    "paragraph_size": 1,
-    # Original
-    # "context_length": 455,
-    "context_length": 150,
-    "qas_size": 4,
-    "query_length": 15, 
-    "answers_size": 3,
-    "answers_length": 7
-}
 CMRC2018_TRAIN_SPEC = {
     # Original
     # "data_size": 2403,
+    # Benchmark
     "data_size": 1,
     "title_length": 5,
     "paragraph_size": 1,
     # Original
     # "context_length": 456,
+    # Benchmark
     "context_length": 150,
     "qas_size": 5,
     "query_length": 15,
     "answers_size": 1,
     "answers_length": 7
 }
+CMRC2018_DEV_SPEC = {
+    # Original
+    # "data_size": 848,
+    # Benchmark
+    "data_size": 1,
+    "title_length": 4,
+    "paragraph_size": 1,
+    # Original
+    # "context_length": 455,
+    # Benchmark
+    "context_length": 150,
+    "qas_size": 4,
+    "query_length": 15,
+    "answers_size": 3,
+    "answers_length": 7
+}
 
 CMRC2018_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data", "cmrc2018-sim")
-CMRC2018_DEV_SIM = os.path.join(CMRC2018_DIR, "dev.json")
 CMRC2018_TRAIN_SIM = os.path.join(CMRC2018_DIR, "train.json")
+CMRC2018_DEV_SIM = os.path.join(CMRC2018_DIR, "dev.json")
+CMRC2018_VOCAB_SIM = os.path.join(CMRC2018_DIR, "vocab.txt")
+VOCAB_SET = set()
 
 # Generate random Chinese string with length l
 def _GBK2312(l):
@@ -49,6 +55,7 @@ def _GBK2312(l):
     body = random.randint(0xa1, 0xfe)
     val = f'{head:x} {body:x}'
     s = bytes.fromhex(val).decode('gb2312')
+    VOCAB_SET.add(s)
     if l == 0:
         return s
     else:
@@ -89,12 +96,23 @@ def _dump_data(data, path):
     with open(path, "w") as dp:
         json.dump(data, dp, indent=4, ensure_ascii=False)
 
-def generate_dev():
-    _create_dir_if_nonexist(CMRC2018_DIR)
+def _generate_dev():
     dev_data = _generate_cmrc2018(CMRC2018_DEV_SPEC)
     _dump_data(dev_data, CMRC2018_DEV_SIM)
 
-def generate_train():
-    _create_dir_if_nonexist(CMRC2018_DIR)
+def _generate_train():
     dev_data = _generate_cmrc2018(CMRC2018_TRAIN_SPEC)
     _dump_data(dev_data, CMRC2018_TRAIN_SIM)
+
+# MUST be called after generate_dev() AND generate_train()!
+def _generate_vocab():
+    never_split = ["[UNK]", "[SEP]", "[PAD]", "[CLS]", "[MASK]"]
+    VOCAB_SET.update(never_split)
+    with open(CMRC2018_VOCAB_SIM, "w") as vf:
+        vf.write("\n".join(list(VOCAB_SET)))
+
+def generate_inputs():
+    _create_dir_if_nonexist(CMRC2018_DIR)
+    _generate_dev()
+    _generate_train()
+    _generate_vocab()
