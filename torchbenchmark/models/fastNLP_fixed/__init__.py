@@ -22,7 +22,9 @@ from fastNLP.core.optimizer import AdamW
 from fastNLP import BucketSampler
 
 # Import CMRC2018 data generator
-from .cmrc2018_simulator import generate_inputs, try_patch_fastnlp, CMRC2018_DIR, CMRC2018_CONFIG_DIR
+from .cmrc2018_simulator import generate_inputs, try_patch_fastnlp
+from .cmrc2018_simulator import CMRC2018_DIR, CMRC2018_CONFIG_DIR
+from .cmrc2018_simulator import CMRC2018_TRAIN_SPEC, CMRC2018_DEV_SPEC
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -61,8 +63,6 @@ class Model(BenchmarkModel):
             self._forward_func = self.model.forward
         self.losser = CMRC2018Loss()
         self.metrics = CMRC2018Metric()
-        # Batch size borrowed from https://fastnlp.readthedocs.io/zh/latest/tutorials/extend_1_bert_embedding.html
-        self.batch_size = 1
         self.update_every = 10
         self.n_epochs = 2
         self.num_workers = 2
@@ -74,11 +74,11 @@ class Model(BenchmarkModel):
         self.train_data = data_bundle.get_dataset('train')
         self.eval_data = data_bundle.get_dataset('dev')
         self.train_data_iterator = DataSetIter(dataset=self.train_data,
-                                               batch_size=self.batch_size,
+                                               batch_size=CMRC2018_TRAIN_SPEC["data_size"],
                                                sampler=None,
                                                num_workers=self.num_workers, drop_last=False)
         self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
-                                              batch_size=self.batch_size,
+                                              batch_size=CMRC2018_DEV_SPEC["data_size"],
                                               sampler=None,
                                               num_workers=self.num_workers, drop_last=False)
 
