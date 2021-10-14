@@ -7,6 +7,7 @@ The program runs only for benchmark purposes and doesn't provide correctness res
 """
 import torch
 import random
+import inspect
 import numpy as np
 from fastNLP.embeddings import BertEmbedding
 from fastNLP.models import BertForQuestionAnswering
@@ -55,35 +56,91 @@ class Model(BenchmarkModel):
         self.metrics = CMRC2018Metric()
         # Batch size borrowed from https://fastnlp.readthedocs.io/zh/latest/tutorials/extend_1_bert_embedding.html
         self.batch_size = 6
+        self.update_every = 10
+        self.n_epochs = 2
         self.num_workers = 2
         wm_callback = WarmupCallback(schedule='linear')
         gc_callback = GradientClipCallback(clip_value=1, clip_type='norm')
         callbacks = [wm_callback, gc_callback]
         self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
         self.callback_manager = CallbackManager(env={"trainer":self}, callbacks=callbacks)
-        self.train_data_iterator = DataSetIter(dataset=data_bundle.get_dataset('train'),
+        self.train_data = data_bundle.get_dataset('train')
+        self.eval_data = data_bundle.get_dataset('dev')
+        self.train_data_iterator = DataSetIter(dataset=self.train_data,
                                                batch_size=6,
                                                sampler=None,
                                                num_workers=self.num_workers, drop_last=False)
+        self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
+                                              batch_size=6,
+                                              sampler=None,
+                                              num_workers=self.num_workers, drop_last=False)
+        for batch_x, batch_y in self.eval_data_iterator:
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+        for batch_x, batch_y in self.train_data_iterator:
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
 
     # Run with example input
     def get_module(self):
         batch_x, batch_y = list(self.train_data_iterator)[0]
         return self.model, batch_x
 
-    # Sliced version of fastNLP.Predictor._predict()
+    # Sliced version of fastNLP.Tester._test()
     def eval(self, niter=1):
-        pass
+        self._mode(self.model, is_test=True)
+        self._predict_func = self.model.forward
+        with torch.no_grad():
+            for epoch in range(niter):
+                for batch_x, batch_y in self.eval_data_iterator:
+                    pred_dict = self._data_forward(self._predict_func, batch_x)
 
     # Sliced version of fastNLP.Trainer._train()
     def train(self, niter=1):
-        pass
-        # Loss begin
-        # Loss end
-        # Callback_manager
-        # callback_manager.on_epoch_end()
+        self.step = 0
+        self._mode(self.model, is_test=False)
+        self.callback_manager.on_train_begin()
+        for epoch in range(niter):
+            self.callback_manager.on_epoch_begin()
+            for batch_x, batch_y in self.train_data_iterator:
+                self.step += 1
+                indices = self.train_data_iterator.get_batch_indices()
+                self.callback_manager.on_batch_begin(batch_x, batch_y, indices)
+                prediction = self._data_forward(self.model, batch_x)
+                self.callback_manager.on_loss_begin(batch_y, prediction)
+                loss = self._compute_loss(prediction, batch_y).mean()
+                self.callback_manager.on_backward_begin(loss)
+                self._grad_backward(loss)
+                self.callback_manager.on_backward_end()
+                self._update()
+                self.callback_manager.on_step_end()
+                self.callback_manager.on_batch_end()
+            self.callback_manager.on_epoch_end()
+        self.callback_manager.on_train_end()
 
     # Helper functions
+    def _build_args(self, func, **kwargs):
+        spect = inspect.getfullargspec(func)
+        if spect.varkw is not None:
+            return kwargs
+        needed_args = set(spect.args)
+        defaults = []
+        if spect.defaults is not None:
+            defaults = [arg for arg in spect.defaults]
+        start_idx = len(spect.args) - len(defaults)
+        output = {name: default for name, default in zip(spect.args[start_idx:], defaults)}
+        output.update({name: val for name, val in kwargs.items() if name in needed_args})
+        return output
+
+    def _move_dict_value_to_device(*args, device, non_blocking=False):
+        if not torch.cuda.is_available() or device is None:
+            return
+        for arg in args:
+            if isinstance(arg, dict):
+                for key, value in arg.items():
+                    if isinstance(value, torch.Tensor):
+                        arg[key] = value.to(device, non_blocking=non_blocking)
+            else:
+                raise TypeError("Only support `dict` type right now.")
+
     def _model_contains_inner_module(self, model):
         if isinstance(model, torch.nn.Module):
             if isinstance(model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)):
@@ -113,7 +170,7 @@ class Model(BenchmarkModel):
             self.optimizer.step()
 
     def _data_forward(self, network, x):
-        x = _build_args(self._forward_func, **x)
+        x = self._build_args(self._forward_func, **x)
         y = network(**x)
         if not isinstance(y, dict):
             raise TypeError(
