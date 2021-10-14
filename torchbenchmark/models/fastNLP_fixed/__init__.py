@@ -81,10 +81,14 @@ class Model(BenchmarkModel):
                                               batch_size=self.batch_size,
                                               sampler=None,
                                               num_workers=self.num_workers, drop_last=False)
+        self.train_data_iterator_device = []
+        self.eval_data_iterator_device = []
         for batch_x, batch_y in self.train_data_iterator:
             self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+            self.train_data_iterator_device.append((batch_x, batch_y))
         for batch_x, batch_y in self.eval_data_iterator:
             self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+            self.eval_data_iterator_device.append((batch_x, batch_y))
 
     def get_module(self):
         batch_x, batch_y = list(self.train_data_iterator)[0]
@@ -96,7 +100,7 @@ class Model(BenchmarkModel):
         self._predict_func = self.model.forward
         with torch.no_grad():
             for epoch in range(niter):
-                for batch_x, batch_y in self.eval_data_iterator:
+                for batch_x, batch_y in self.eval_data_iterator_device:
                     pred_dict = self._data_forward(self._predict_func, batch_x)
 
     # Sliced version of fastNLP.Trainer._train()
@@ -106,7 +110,7 @@ class Model(BenchmarkModel):
         self.callback_manager.on_train_begin()
         for epoch in range(niter):
             self.callback_manager.on_epoch_begin()
-            for batch_x, batch_y in self.train_data_iterator:
+            for batch_x, batch_y in self.train_data_iterator_device:
                 self.step += 1
                 indices = self.train_data_iterator.get_batch_indices()
                 self.callback_manager.on_batch_begin(batch_x, batch_y, indices)
@@ -136,7 +140,7 @@ class Model(BenchmarkModel):
         output.update({name: val for name, val in kwargs.items() if name in needed_args})
         return output
 
-    def _move_dict_value_to_device(*args, device, non_blocking=False):
+    def _move_dict_value_to_device(self, *args, device, non_blocking=False):
         if not torch.cuda.is_available() or device is None:
             return
         for arg in args:
