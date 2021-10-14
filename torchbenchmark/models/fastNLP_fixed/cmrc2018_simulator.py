@@ -14,7 +14,9 @@ CMRC2018_DEV_SPEC = {
     "data_size": 1,
     "title_length": 4,
     "paragraph_size": 1,
-    "context_length": 455,
+    # Original
+    # "context_length": 455,
+    "context_length": 150,
     "qas_size": 4,
     "query_length": 15, 
     "answers_size": 3,
@@ -26,7 +28,9 @@ CMRC2018_TRAIN_SPEC = {
     "data_size": 1,
     "title_length": 5,
     "paragraph_size": 1,
-    "context_length": 456,
+    # Original
+    # "context_length": 456,
+    "context_length": 150,
     "qas_size": 5,
     "query_length": 15,
     "answers_size": 1,
