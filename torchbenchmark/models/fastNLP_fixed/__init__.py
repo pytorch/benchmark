@@ -63,6 +63,7 @@ class Model(BenchmarkModel):
             self._forward_func = self.model.forward
         self.losser = CMRC2018Loss()
         self.metrics = CMRC2018Metric()
+        self.batch_size = CMRC2018_TRAIN_SPEC["data_size"]
         self.update_every = 10
         self.n_epochs = 2
         self.num_workers = 2

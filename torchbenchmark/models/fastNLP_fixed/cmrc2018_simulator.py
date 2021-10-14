@@ -10,11 +10,14 @@ import random
 import patch
 import fastNLP
 
+TRAIN_BATCH_SIZE = 16
+EVAL_BATCH_SIZE = 128
+
 CMRC2018_TRAIN_SPEC = {
     # Original
     # "data_size": 2403,
     # Benchmark
-    "data_size": 1,
+    "data_size": TRAIN_BATCH_SIZE,
     "title_length": 5,
     "paragraph_size": 1,
     # Original
@@ -30,7 +33,7 @@ CMRC2018_DEV_SPEC = {
     # Original
     # "data_size": 848,
     # Benchmark
-    "data_size": 1,
+    "data_size": EVAL_BATCH_SIZE,
     "title_length": 4,
     "paragraph_size": 1,
     # Original
