@@ -42,9 +42,12 @@ CMRC2018_DEV_SPEC = {
 }
 
 CMRC2018_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data", "cmrc2018-sim")
+CMRC2018_CONFIG_DIR = os.path.join(CMRC2018_DIR, "config")
 CMRC2018_TRAIN_SIM = os.path.join(CMRC2018_DIR, "train.json")
 CMRC2018_DEV_SIM = os.path.join(CMRC2018_DIR, "dev.json")
-CMRC2018_VOCAB_SIM = os.path.join(CMRC2018_DIR, "vocab.txt")
+CMRC2018_PRETRAINED_BIN = os.path.join(CMRC2018_CONFIG_DIR, "vocab.txt")
+CMRC2018_VOCAB_SIM = os.path.join(CMRC2018_CONFIG_DIR, "chinese_wwm_pytorch.bin")
+CMRC2018_BERT_CONFIG = os.path.join(CMRC2018_CONFIG_DIR, "bert_config.json")
 VOCAB_SET = set()
 
 # Generate random Chinese string with length l
@@ -111,8 +114,22 @@ def _generate_vocab():
     with open(CMRC2018_VOCAB_SIM, "w") as vf:
         vf.write("\n".join(list(VOCAB_SET)))
 
+def _copy_bert_config():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(current_dir, "bert_config.json"), "r") as configf:
+        config = configf.read()
+    with open(CMRC2018_BERT_CONFIG, "w") as configf:
+        configf.write(config)
+
+def _setup_empty_bin():
+    with open(CMRC2018_PRETRAINED_BIN, "w") as binf:
+        binf.write("")
+
 def generate_inputs():
     _create_dir_if_nonexist(CMRC2018_DIR)
+    _create_dir_if_nonexist(os.path.join(CMRC2018_DIR, "config"))
     _generate_dev()
     _generate_train()
     _generate_vocab()
+    _copy_bert_config()
+    _setup_empty_bin()

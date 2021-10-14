@@ -5,6 +5,7 @@ This model resembles the "BertEmedding Q&A" task in [fastNLP Tutorial](https://f
 Input data simulates [CMRC2018 dataset](https://ymcui.com/cmrc2018/).
 The program runs only for benchmark purposes and doesn't provide correctness results.
 """
+import os
 import torch
 import random
 import inspect
@@ -21,7 +22,7 @@ from fastNLP.core.optimizer import AdamW
 from fastNLP import BucketSampler
 
 # Import CMRC2018 data generator
-from .cmrc2018_simulator import generate_inputs, CMRC2018_DIR
+from .cmrc2018_simulator import generate_inputs, CMRC2018_DIR, CMRC2018_CONFIG_DIR
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -44,7 +45,9 @@ class Model(BenchmarkModel):
         generate_inputs()
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
-        self.embed = BertEmbedding(data_bundle.get_vocab('words'), model_dir_or_name='cn', requires_grad=True,
+        self.embed = BertEmbedding(data_bundle.get_vocab('words'),
+                                   model_dir_or_name=CMRC2018_CONFIG_DIR,
+                                   requires_grad=True,
                                    include_cls_sep=False, auto_truncate=True,
                                    dropout=0.5, word_dropout=0.01)
         self.model = self._move_model_to_device(BertForQuestionAnswering(self.embed), device=device)
