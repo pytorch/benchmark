@@ -11,7 +11,7 @@ import random
 CMRC2018_DEV_SPEC = {
     # Original
     # "data_size": 848,
-    "data_size": 1,
+    "data_size": 2,
     "title_length": 4,
     "paragraph_size": 1,
     "context_length": 455,
@@ -23,7 +23,7 @@ CMRC2018_DEV_SPEC = {
 CMRC2018_TRAIN_SPEC = {
     # Original
     # "data_size": 2403,
-    "data_size": 1,
+    "data_size": 2,
     "title_length": 5,
     "paragraph_size": 1,
     "context_length": 456,
