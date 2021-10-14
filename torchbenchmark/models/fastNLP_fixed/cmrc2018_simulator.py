@@ -7,6 +7,8 @@ import pathlib
 import numpy
 import json
 import random
+import patch
+import fastNLP
 
 CMRC2018_TRAIN_SPEC = {
     # Original
@@ -45,8 +47,7 @@ CMRC2018_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data",
 CMRC2018_CONFIG_DIR = os.path.join(CMRC2018_DIR, "config")
 CMRC2018_TRAIN_SIM = os.path.join(CMRC2018_DIR, "train.json")
 CMRC2018_DEV_SIM = os.path.join(CMRC2018_DIR, "dev.json")
-CMRC2018_PRETRAINED_BIN = os.path.join(CMRC2018_CONFIG_DIR, "vocab.txt")
-CMRC2018_VOCAB_SIM = os.path.join(CMRC2018_CONFIG_DIR, "chinese_wwm_pytorch.bin")
+CMRC2018_VOCAB_SIM = os.path.join(CMRC2018_CONFIG_DIR, "vocab.txt")
 CMRC2018_BERT_CONFIG = os.path.join(CMRC2018_CONFIG_DIR, "bert_config.json")
 VOCAB_SET = set()
 
@@ -121,9 +122,16 @@ def _copy_bert_config():
     with open(CMRC2018_BERT_CONFIG, "w") as configf:
         configf.write(config)
 
-def _setup_empty_bin():
-    with open(CMRC2018_PRETRAINED_BIN, "w") as binf:
-        binf.write("")
+def _setup_os_env():
+    os.environ["TORCHBENCH_FASTNLP_CONFIG_PATH"] = CMRC2018_BERT_CONFIG
+
+def try_patch_fastnlp():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    patch_file = os.path.join(current_dir, "fastnlp.patch")
+    fastNLP_dir = os.path.dirname(fastNLP.__file__)
+    fastNLP_target_file = os.path.join(fastNLP_dir, "embeddings", "bert_embedding.py")
+    p = patch.fromfile(patch_file)
+    return p.apply(strip=1, root=fastNLP_dir)
 
 def generate_inputs():
     _create_dir_if_nonexist(CMRC2018_DIR)
@@ -132,4 +140,4 @@ def generate_inputs():
     _generate_train()
     _generate_vocab()
     _copy_bert_config()
-    _setup_empty_bin()
+    _setup_os_env()

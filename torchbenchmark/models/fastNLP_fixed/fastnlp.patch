@@ -1,7 +1,7 @@
-diff --git a/fastNLP/embeddings/bert_embedding.py b/fastNLP/embeddings/bert_bmbedding_patched.py
+diff --git a/fastNLP/embeddings/bert_embedding.py b/fastNLP/embeddings/bert_bmbedding.py
 index c57d2be..caeb3ed 100644
 --- a/fastNLP/embeddings/bert_embedding.py
-+++ b/fastNLP/embeddings/bert_bmbedding_patched.py
++++ b/fastNLP/embeddings/bert_bmbedding.py
 @@ -21,7 +21,7 @@ from .contextual_embedding import ContextualEmbedding
  from ..core import logger
  from ..core.vocabulary import Vocabulary

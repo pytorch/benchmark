@@ -22,7 +22,7 @@ from fastNLP.core.optimizer import AdamW
 from fastNLP import BucketSampler
 
 # Import CMRC2018 data generator
-from .cmrc2018_simulator import generate_inputs, CMRC2018_DIR, CMRC2018_CONFIG_DIR
+from .cmrc2018_simulator import generate_inputs, try_patch_fastnlp, CMRC2018_DIR, CMRC2018_CONFIG_DIR
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -41,6 +41,10 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.input_dir = CMRC2018_DIR
+        # Patch fastNLP
+        if not try_patch_fastnlp():
+            print("Failed to patch the fastNLP source code file. Please check the source. Exit.")
+            exit(1)
         # Generate input data files
         generate_inputs()
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
