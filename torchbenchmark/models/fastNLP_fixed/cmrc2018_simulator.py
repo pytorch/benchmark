@@ -125,6 +125,12 @@ def _copy_bert_config():
 def _setup_os_env():
     os.environ["TORCHBENCH_FASTNLP_CONFIG_PATH"] = CMRC2018_BERT_CONFIG
 
+def _create_empty_bin():
+    CMRC2018_CONFIG_DIR = os.path.join(CMRC2018_DIR, "config")
+    bin_file = os.path.join(CMRC2018_CONFIG_DIR, "chinese_wwm_pytorch.bin")
+    with open(bin_file, "w") as bf:
+        bf.write("")
+
 def try_patch_fastnlp():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     patch_file = os.path.join(current_dir, "fastnlp.patch")
@@ -139,5 +145,6 @@ def generate_inputs():
     _generate_dev()
     _generate_train()
     _generate_vocab()
+    _create_empty_bin()
     _copy_bert_config()
     _setup_os_env()
