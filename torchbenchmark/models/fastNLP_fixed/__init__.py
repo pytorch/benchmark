@@ -76,22 +76,15 @@ class Model(BenchmarkModel):
         self.train_data = data_bundle.get_dataset('train')
         self.eval_data = data_bundle.get_dataset('dev')
         train_data_iterator = DataSetIter(dataset=self.train_data,
-                                               batch_size=CMRC2018_TRAIN_SPEC["data_size"],
-                                               sampler=None,
-                                               num_workers=self.num_workers, drop_last=False)
+                                          batch_size=CMRC2018_TRAIN_SPEC["data_size"],
+                                          sampler=None,
+                                          num_workers=self.num_workers, drop_last=False,
+                                          collate_fn=lambda x: default_collate(x).to(self.device))
         eval_data_iterator = DataSetIter(dataset=self.eval_data,
-                                              batch_size=CMRC2018_DEV_SPEC["data_size"],
-                                              sampler=None,
-                                              num_workers=self.num_workers, drop_last=False)
-        # Preload the data to device
-        self.train_data_device = []
-        for batch_x, batch_y in train_data_iterator:
-            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
-            self.train_data_device.append((batch_x, batch_y))
-        self.eval_data_device = []
-        for batch_x, batch_y in eval_data_iterator:
-            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
-            self.eval_data_device.append((batch_x, batch_y))
+                                         batch_size=CMRC2018_DEV_SPEC["data_size"],
+                                         sampler=None,
+                                         num_workers=self.num_workers, drop_last=False,
+                                         collate_fn=lambda x: default_collate(x).to(self.device))
 
     def get_module(self):
         batch_x, batch_y = self.train_data_device[0]
@@ -108,7 +101,7 @@ class Model(BenchmarkModel):
         self._predict_func = self.model.forward
         with torch.no_grad():
             for epoch in range(niter):
-                for batch_x, batch_y in self.eval_data_device:
+                for batch_x, batch_y in self.eval_data_iterator:
                     pred_dict = self._data_forward(self._predict_func, batch_x)
 
     # Sliced version of fastNLP.Trainer._train()
@@ -122,8 +115,10 @@ class Model(BenchmarkModel):
         self.callback_manager.on_train_begin()
         for epoch in range(niter):
             self.callback_manager.on_epoch_begin()
-            for batch_x, batch_y in self.train_data_device:
+            for batch_x, batch_y in self.train_data_iterator:
                 self.step += 1
+                indices = self.data_iterator.get_batch_indices()
+                self.callback_manager.on_batch_begin(batch_x, batch_y, indices)
                 prediction = self._data_forward(self.model, batch_x)
                 self.callback_manager.on_loss_begin(batch_y, prediction)
                 loss = self._compute_loss(prediction, batch_y).mean()
