@@ -10,8 +10,8 @@ import random
 import patch
 import fastNLP
 
-TRAIN_BATCH_SIZE = 16
-EVAL_BATCH_SIZE = 64
+TRAIN_BATCH_SIZE = 1
+EVAL_BATCH_SIZE = 1
 
 CMRC2018_TRAIN_SPEC = {
     # Original
@@ -21,9 +21,9 @@ CMRC2018_TRAIN_SPEC = {
     "title_length": 5,
     "paragraph_size": 1,
     # Original
-    # "context_length": 456,
+    "context_length": 456,
     # Benchmark
-    "context_length": 150,
+    # "context_length": 150,
     "qas_size": 5,
     "query_length": 15,
     "answers_size": 1,
@@ -37,9 +37,9 @@ CMRC2018_DEV_SPEC = {
     "title_length": 4,
     "paragraph_size": 1,
     # Original
-    # "context_length": 455,
+    "context_length": 455,
     # Benchmark
-    "context_length": 150,
+    # "context_length": 150,
     "qas_size": 4,
     "query_length": 15,
     "answers_size": 3,
