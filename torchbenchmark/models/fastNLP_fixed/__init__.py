@@ -53,7 +53,7 @@ class Model(BenchmarkModel):
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
         # Move data to device
-        data_bundle.add_colate_fn(collate_fn=lambda x: default_collate(x).to(self.device))
+        data_bundle.add_collate_fn(collate_fn=lambda x: default_collate(x).to(self.device))
         self.embed = BertEmbedding(data_bundle.get_vocab('words'),
                                    model_dir_or_name=CMRC2018_CONFIG_DIR,
                                    requires_grad=True,
