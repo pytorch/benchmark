@@ -10,7 +10,6 @@ import torch
 import random
 import inspect
 import numpy as np
-from torch.utils.data.dataloader import default_collate
 from fastNLP.embeddings import BertEmbedding
 from fastNLP.models import BertForQuestionAnswering
 from fastNLP.core.callback import CallbackManager
@@ -52,9 +51,6 @@ class Model(BenchmarkModel):
         generate_inputs()
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
-        # Move data to device
-        data_bundle.add_collate_fn(fn=lambda x: _move_dict_value_to_device(x, collate_fn=lambda y:
-                                                                           default_collate(y).to(self.device)))
         self.embed = BertEmbedding(data_bundle.get_vocab('words'),
                                    model_dir_or_name=CMRC2018_CONFIG_DIR,
                                    requires_grad=True,
@@ -80,35 +76,40 @@ class Model(BenchmarkModel):
         self.train_data = data_bundle.get_dataset('train')
         self.eval_data = data_bundle.get_dataset('dev')
         self.train_data_iterator = DataSetIter(dataset=self.train_data,
-                                          batch_size=CMRC2018_TRAIN_SPEC["data_size"],
-                                          sampler=None,
-                                          num_workers=self.num_workers, drop_last=False)
+                                               batch_size=CMRC2018_TRAIN_SPEC["data_size"],
+                                               sampler=None,
+                                               num_workers=self.num_workers, drop_last=False)
         self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
-                                         batch_size=CMRC2018_DEV_SPEC["data_size"],
-                                         sampler=None,
-                                         num_workers=self.num_workers, drop_last=False)
+                                              batch_size=CMRC2018_DEV_SPEC["data_size"],
+                                              sampler=None,
+                                              num_workers=self.num_workers, drop_last=False)
+        # Preload the data to device
+        self.train_data_device = []
+        for batch_x, batch_y in self.train_data_iterator:
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+            self.train_data_device.append((batch_x, batch_y))
+        self.eval_data_device = []
+        for batch_x, batch_y in self.eval_data_iterator:
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+            self.eval_data_device.append((batch_x, batch_y))
 
     def get_module(self):
-        batch_x, batch_y = list(self.train_data_iterator)[0]
+        batch_x, batch_y = list(self.train_data_device)[0]
         return self.model, batch_x
 
     # Sliced version of fastNLP.Tester._test()
     def eval(self, niter=1):
-        if not self.device or self.device == "cpu":
-            raise NotImplementedError("Disabled CPU eval due to excessively slow runtime.")
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self._mode(self.model, is_test=True)
         self._predict_func = self.model.forward
         with torch.no_grad():
             for epoch in range(niter):
-                for batch_x, batch_y in self.eval_data_iterator:
+                for batch_x, batch_y in self.eval_data_device:
                     pred_dict = self._data_forward(self._predict_func, batch_x)
 
     # Sliced version of fastNLP.Trainer._train()
     def train(self, niter=1):
-        if not self.device or self.device == "cpu":
-            raise NotImplementedError("Disabled CPU train due to excessively slow runtime.")
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self.step = 0
@@ -116,10 +117,9 @@ class Model(BenchmarkModel):
         self.callback_manager.on_train_begin()
         for epoch in range(niter):
             self.callback_manager.on_epoch_begin()
-            for batch_x, batch_y in self.train_data_iterator:
+            for batch_x, batch_y in self.train_data_device:
                 self.step += 1
-                indices = self.data_iterator.get_batch_indices()
-                self.callback_manager.on_batch_begin(batch_x, batch_y, indices)
+                self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                 prediction = self._data_forward(self.model, batch_x)
                 self.callback_manager.on_loss_begin(batch_y, prediction)
                 loss = self._compute_loss(prediction, batch_y).mean()
@@ -146,14 +146,14 @@ class Model(BenchmarkModel):
         output.update({name: val for name, val in kwargs.items() if name in needed_args})
         return output
 
-    def _move_dict_value_to_device(self, *args, collate_fn):
-        # if not torch.cuda.is_available() or device is None:
-        #    return
+    def _move_dict_value_to_device(self, *args, device, non_blocking=False):
+        if not torch.cuda.is_available() or device is None:
+            return
         for arg in args:
             if isinstance(arg, dict):
                 for key, value in arg.items():
                     if isinstance(value, torch.Tensor):
-                        arg[key] = collate_fn(value)
+                        arg[key] = value.to(device, non_blocking=non_blocking)
             else:
                 raise TypeError("Only support `dict` type right now.")
 
