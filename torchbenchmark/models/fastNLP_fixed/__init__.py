@@ -10,6 +10,7 @@ import torch
 import random
 import inspect
 import numpy as np
+from torch.utils.data.dataloader import default_collate
 from fastNLP.embeddings import BertEmbedding
 from fastNLP.models import BertForQuestionAnswering
 from fastNLP.core.callback import CallbackManager
@@ -51,6 +52,8 @@ class Model(BenchmarkModel):
         generate_inputs()
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
+        # Move data to device
+        data_bundle.add_colate_fn(collate_fn=lambda x: default_collate(x).to(self.device))
         self.embed = BertEmbedding(data_bundle.get_vocab('words'),
                                    model_dir_or_name=CMRC2018_CONFIG_DIR,
                                    requires_grad=True,
@@ -78,17 +81,14 @@ class Model(BenchmarkModel):
         train_data_iterator = DataSetIter(dataset=self.train_data,
                                           batch_size=CMRC2018_TRAIN_SPEC["data_size"],
                                           sampler=None,
-                                          num_workers=self.num_workers, drop_last=False,
-                                          collate_fn=lambda x: default_collate(x).to(self.device))
+                                          num_workers=self.num_workers, drop_last=False)
         eval_data_iterator = DataSetIter(dataset=self.eval_data,
                                          batch_size=CMRC2018_DEV_SPEC["data_size"],
                                          sampler=None,
-                                         num_workers=self.num_workers, drop_last=False,
-                                         collate_fn=lambda x: default_collate(x).to(self.device))
+                                         num_workers=self.num_workers, drop_last=False)
 
     def get_module(self):
-        batch_x, batch_y = self.train_data_device[0]
-        self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+        batch_x, batch_y = list(self.train_data_iterator)[0]
         return self.model, batch_x
 
     # Sliced version of fastNLP.Tester._test()
