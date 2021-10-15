@@ -86,12 +86,15 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         batch_x, batch_y = list(self.train_data_iterator)[0]
+        self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         return self.model, batch_x
 
     # Sliced version of fastNLP.Tester._test()
     def eval(self, niter=1):
         if not self.device or self.device == "cpu":
             raise NotImplementedError("Disabled CPU eval due to excessively slow runtime.")
+        if self.jit:
+            raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self._mode(self.model, is_test=True)
         self._predict_func = self.model.forward
         with torch.no_grad():
@@ -104,6 +107,8 @@ class Model(BenchmarkModel):
     def train(self, niter=1):
         if not self.device or self.device == "cpu":
             raise NotImplementedError("Disabled CPU train due to excessively slow runtime.")
+        if self.jit:
+            raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self.step = 0
         self._mode(self.model, is_test=False)
         self.callback_manager.on_train_begin()
