@@ -53,7 +53,8 @@ class Model(BenchmarkModel):
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
         # Move data to device
-        data_bundle.add_collate_fn(collate_fn=lambda x: default_collate(x).to(self.device))
+        data_bundle.add_collate_fn(fn=lambda x: _move_dict_value_to_device(x, collate_fn=lambda y:
+                                                                           default_collate(y).to(self.device)))
         self.embed = BertEmbedding(data_bundle.get_vocab('words'),
                                    model_dir_or_name=CMRC2018_CONFIG_DIR,
                                    requires_grad=True,
@@ -78,11 +79,11 @@ class Model(BenchmarkModel):
         self.callback_manager = CallbackManager(env={"trainer":self}, callbacks=callbacks)
         self.train_data = data_bundle.get_dataset('train')
         self.eval_data = data_bundle.get_dataset('dev')
-        train_data_iterator = DataSetIter(dataset=self.train_data,
+        self.train_data_iterator = DataSetIter(dataset=self.train_data,
                                           batch_size=CMRC2018_TRAIN_SPEC["data_size"],
                                           sampler=None,
                                           num_workers=self.num_workers, drop_last=False)
-        eval_data_iterator = DataSetIter(dataset=self.eval_data,
+        self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
                                          batch_size=CMRC2018_DEV_SPEC["data_size"],
                                          sampler=None,
                                          num_workers=self.num_workers, drop_last=False)
@@ -145,14 +146,14 @@ class Model(BenchmarkModel):
         output.update({name: val for name, val in kwargs.items() if name in needed_args})
         return output
 
-    def _move_dict_value_to_device(self, *args, device, non_blocking=False):
-        if not torch.cuda.is_available() or device is None:
-            return
+    def _move_dict_value_to_device(self, *args, collate_fn):
+        # if not torch.cuda.is_available() or device is None:
+        #    return
         for arg in args:
             if isinstance(arg, dict):
                 for key, value in arg.items():
                     if isinstance(value, torch.Tensor):
-                        arg[key] = value.to(device, non_blocking=non_blocking)
+                        arg[key] = collate_fn(value)
             else:
                 raise TypeError("Only support `dict` type right now.")
 
