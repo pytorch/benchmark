@@ -10,8 +10,8 @@ import random
 import patch
 import fastNLP
 
-TRAIN_BATCH_SIZE = 1
-EVAL_BATCH_SIZE = 1
+TRAIN_BATCH_SIZE = 4
+EVAL_BATCH_SIZE = 16
 
 CMRC2018_TRAIN_SPEC = {
     # Original
