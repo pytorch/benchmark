@@ -63,6 +63,7 @@ class Model(BenchmarkModel):
             self._forward_func = self.model.forward
         self.losser = CMRC2018Loss()
         self.metrics = CMRC2018Metric()
+        # Use Train batch for batch size
         self.batch_size = CMRC2018_TRAIN_SPEC["data_size"]
         self.update_every = 10
         self.n_epochs = 2
@@ -89,6 +90,8 @@ class Model(BenchmarkModel):
 
     # Sliced version of fastNLP.Tester._test()
     def eval(self, niter=1):
+        if not self.device or self.device == "cpu":
+            raise NotImplementedError("Disabled CPU eval due to excessively slow runtime.")
         self._mode(self.model, is_test=True)
         self._predict_func = self.model.forward
         with torch.no_grad():
@@ -99,6 +102,8 @@ class Model(BenchmarkModel):
 
     # Sliced version of fastNLP.Trainer._train()
     def train(self, niter=1):
+        if not self.device or self.device == "cpu":
+            raise NotImplementedError("Disabled CPU train due to excessively slow runtime.")
         self.step = 0
         self._mode(self.model, is_test=False)
         self.callback_manager.on_train_begin()
