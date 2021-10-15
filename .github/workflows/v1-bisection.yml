@@ -14,6 +14,7 @@ jobs:
       BISECT_DIR: ".torchbench/v1-bisection-ci"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
         uses: actions/checkout@v2
