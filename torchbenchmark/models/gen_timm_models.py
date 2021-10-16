@@ -3,8 +3,6 @@ import inspect
 from pathlib import Path
 
 timm_model_cfgs = [
-    ('nfnet', 'CLASSIFICATION', 'dm_nfnet_f0'),
-    ('efficientnet', 'CLASSIFICATION', 'mixnet_m'),
     ('regnet', 'CLASSIFICATION', 'regnety_002'),
     ('resnest', 'CLASSIFICATION', 'resnest14d'),
     ('vision_transformer', 'GENERATION', 'vit_small_patch16_224'),
