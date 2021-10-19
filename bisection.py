@@ -182,6 +182,8 @@ class TorchSource:
     def setup_build_env(self, env):
         env["USE_CUDA"] = "1"
         env["BUILD_CAFFE2_OPS"] = "0"
+        # Do not build the test
+        env["BUILD_TEST"] = "0"
         env["USE_XNNPACK"] = "0"
         env["USE_MKLDNN"] = "1"
         env["USE_MKL"] = "1"
@@ -228,8 +230,14 @@ class TorchSource:
         version_py_path = os.path.join(self.srcpath, "torch/version.py")
         if os.path.exists(version_py_path):
             os.remove(version_py_path)
-        command = "python setup.py install"
-        subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
+        try:
+            command = "python setup.py install"
+            subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
+        except subprocess.CalledProcessError:
+            # Remove the build directory, then try build it again
+            build_path = os.path.join(self.srcpath, "build")
+            os.remove(build_path)
+            subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
         self.build_install_deps(build_env)
 
