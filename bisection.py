@@ -45,9 +45,6 @@ def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
     if targets == None or len(targets) == 0:
         return "(not slomo)"
     for test in targets:
-        # The filter shouldn't have the "freeze" keyword
-        if "-freeze" in test:
-            test = test.replace("-freeze", "", 1)
         regex = re.compile("test_(train|eval)\[([a-zA-Z0-9_]+)-([a-z]+)-([a-z]+)\]")
         m = regex.match(test)
         if not m:
@@ -149,11 +146,12 @@ class TorchSource:
 
     # Update pytorch, torchtext, and torchvision repo
     def update_repos(self):
-        repos = [self.srcpath]
-        repos.extend(TORCHBENCH_DEPS.values())
-        for repo in repos:
+        repos = [(self.srcpath, "master")]
+        for value in TORCHBENCH_DEPS.values():
+            repos.append((value, "main"))
+        for (repo, branch) in repos:
             gitutils.clean_git_repo(repo)
-            assert gitutils.update_git_repo(repo), f"Failed to update master branch of {repo}."
+            assert gitutils.update_git_repo(repo, branch), f"Failed to update {branch} branch of {repo}."
 
     # Get all commits between start and end, save them in self.commits
     def init_commits(self, start: str, end: str, abtest: bool) -> bool:
@@ -241,7 +239,6 @@ class TorchSource:
 
 class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
-    branch: str
     timelimit: int # timeout limit in minutes
     workdir: str
     devbig: str
@@ -252,14 +249,12 @@ class TorchBench:
                  torch_src: TorchSource,
                  timelimit: int,
                  workdir: str,
-                 devbig: str,
-                 branch: str = "master"):
+                 devbig: str):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
         self.workdir = workdir
         self.devbig = devbig
-        self.branch = branch
         self.models = list()
 
     def prep(self) -> bool:
@@ -463,7 +458,6 @@ class TorchBenchBisection:
         json_obj["end"] = self.end
         json_obj["threshold"] = self.threshold
         json_obj["timeout"] = self.bench.timelimit
-        json_obj["torchbench_branch"] = self.bench.branch
         json_obj["result"] = []
         for res in self.result:
             r = dict()

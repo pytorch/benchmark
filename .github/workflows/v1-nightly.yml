@@ -29,7 +29,7 @@ jobs:
         run: |
           . activate "${CONDA_ENV_NAME}"
           # Install dependencies
-          pip install requests bs4 argparse
+          pip install requests bs4 argparse gitpython
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -47,13 +47,50 @@ jobs:
       - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
-          bash ./.github/scripts/run.sh "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}"
+          WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
+          bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
         run: |
           . activate "${CONDA_ENV_NAME}"
+          WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
+          mkdir -p benchmark-output/
+          # Update the self-hosted pytorch version
+          pushd "${HOME}/pytorch"
+          git fetch origin
+          popd
+          # Compare the result from yesterday and report any perf signals
           python ./.github/scripts/generate-abtest-config.py \
-                 --benchmark-dir "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}" \
-                 --out "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/bisection.yaml"
+                 --pytorch-dir "${HOME}/pytorch" \
+                 --github-issue "${WORKFLOW_HOME}/gh-issue.md" \
+                 --benchmark-dir "${WORKFLOW_HOME}" \
+                 --out "${WORKFLOW_HOME}/bisection.yaml"
+          # Include in the GitHub artifact
+          if [ -f "${WORKFLOW_HOME}/gh-issue.md" ]; then
+            cp "${WORKFLOW_HOME}/bisection.yaml" ./benchmark-output/
+            cp "${WORKFLOW_HOME}/gh-issue.md ./benchmark-output/
+            # Setup the bisection environment
+            BISECTION_HOME="${BISECTION_ROOT}/bisection-gh${{ env.GITHUB_RUN_ID }}"
+            mkdir -p "${BISECTION_HOME}"
+            cp ./benchmark-output/bisection.yaml $"${BISECTION_HOME}/config.yaml"
+          fi
+      - name: Dispatch the v1-bisection workflow
+        if: env.TORCHBENCH_PERF_SIGNAL
+        run: |
+          # Get the workflow ID from
+          # https://api.github.com/repos/pytorch/benchmark/actions/workflows
+          curl -u xuzhao9:${{ secrets.TORCHBENCH_ACCESS_TOKEN }} \
+            -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+             https://api.github.com/repos/pytorch/benchmark/actions/workflows/10693192 \
+            -d '{"ref": "v1.0", "inputs": {"issue_name": "bisection-gh${{ env.GITHUB_RUN_ID }}" } }'
+      - name: Create the github issue
+        if: env.TORCHBENCH_PERF_SIGNAL
+        uses: peter-evans/create-issue-from-file@v3
+        with:
+          title: Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_SIGNAL }}
+          content-filepath: ./benchmark-output/gh-issue.md
+          labels: |
+            torchbench-perf-report
       - name: Copy artifact and upload to scribe
         run: |
           . activate "${CONDA_ENV_NAME}"
@@ -72,7 +109,6 @@ jobs:
           python scripts/upload_scribe.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
           mkdir -p benchmark-output
           cp "${LATEST_RESULT}" ./benchmark-output/benchmark-result-v1-${TODAY}.json
-          cp "${HOME}/${OUTPUT_DIR}/gh${GITHUB_RUN_ID}/bisection.yaml" ./benchmark-output/bisection-v1-${TODAY}.yaml
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
