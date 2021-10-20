@@ -11,6 +11,7 @@ jobs:
       CONFIG_VER: "v1"
       CONDA_ENV_NAME:  "torchbench-v1-nightly-ci"
       OUTPUT_DIR: ".torchbench/v1-nightly-ci"
+      BISECTION_ROOT: ".torchbench/v1-bisection-ci"
       CUDA_VERSION: "cu102"
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -50,12 +51,12 @@ jobs:
       - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
-          WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
+          WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
         run: |
           . activate "${CONDA_ENV_NAME}"
-          WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
+          WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           mkdir -p benchmark-output/
           # Update the self-hosted pytorch version
           pushd "${HOME}/pytorch"
@@ -72,7 +73,7 @@ jobs:
             cp "${WORKFLOW_HOME}/bisection.yaml" ./benchmark-output/
             cp "${WORKFLOW_HOME}/gh-issue.md ./benchmark-output/
             # Setup the bisection environment
-            BISECTION_HOME="${BISECTION_ROOT}/bisection-gh${{ env.GITHUB_RUN_ID }}"
+            BISECTION_HOME="${HOME}/${{ env.BISECTION_ROOT }}/bisection-gh${GITHUB_RUN_ID}"
             mkdir -p "${BISECTION_HOME}"
             cp ./benchmark-output/bisection.yaml $"${BISECTION_HOME}/config.yaml"
           fi
@@ -85,7 +86,7 @@ jobs:
             -X POST \
             -H "Accept: application/vnd.github.v3+json" \
              https://api.github.com/repos/pytorch/benchmark/actions/workflows/10693192 \
-            -d '{"ref": "v1.0", "inputs": {"issue_name": "bisection-gh${{ env.GITHUB_RUN_ID }}" } }'
+            -d '{"ref": "v1.0", "inputs": {"issue_name": "bisection-gh'"${GITHUB_RUN_ID}"'" } }'
       - name: Create the github issue
         if: env.TORCHBENCH_PERF_SIGNAL
         uses: peter-evans/create-issue-from-file@v3
