@@ -83,14 +83,12 @@ class Model(BenchmarkModel):
                                               batch_size=CMRC2018_DEV_SPEC["data_size"],
                                               sampler=None,
                                               num_workers=self.num_workers, drop_last=False)
-        # Preload the data to device
+        # Preload data from DataLoader
         self.train_data_device = []
         for batch_x, batch_y in self.train_data_iterator:
-            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
             self.train_data_device.append((batch_x, batch_y))
         self.eval_data_device = []
         for batch_x, batch_y in self.eval_data_iterator:
-            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
             self.eval_data_device.append((batch_x, batch_y))
 
     def get_module(self):
@@ -101,6 +99,9 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
+        # Move the data to GPU before the eval loop
+        for batch_x, batch_y in self.eval_data_device:
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         self._mode(self.model, is_test=True)
         self._predict_func = self.model.forward
         with torch.no_grad():
@@ -115,6 +116,9 @@ class Model(BenchmarkModel):
         self.step = 0
         self._mode(self.model, is_test=False)
         self.callback_manager.on_train_begin()
+        # Move the data to GPU before the train loop
+        for batch_x, batch_y in self.train_data_device:
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         for epoch in range(niter):
             self.callback_manager.on_epoch_begin()
             for batch_x, batch_y in self.train_data_device:
