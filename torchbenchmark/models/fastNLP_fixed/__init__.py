@@ -119,7 +119,6 @@ class Model(BenchmarkModel):
             self.callback_manager.on_epoch_begin()
             for batch_x, batch_y in self.train_data_device:
                 self.step += 1
-                self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                 prediction = self._data_forward(self.model, batch_x)
                 self.callback_manager.on_loss_begin(batch_y, prediction)
                 loss = self._compute_loss(prediction, batch_y).mean()
