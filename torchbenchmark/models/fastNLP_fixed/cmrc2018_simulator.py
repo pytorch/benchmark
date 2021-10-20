@@ -24,7 +24,7 @@ CMRC2018_TRAIN_SPEC = {
     "context_length": 456,
     # Benchmark
     # "context_length": 150,
-    "qas_size": 5,
+    "qas_size":1,
     "query_length": 15,
     "answers_size": 1,
     "answers_length": 7
@@ -40,7 +40,7 @@ CMRC2018_DEV_SPEC = {
     "context_length": 455,
     # Benchmark
     # "context_length": 150,
-    "qas_size": 4,
+    "qas_size": 1,
     "query_length": 15,
     "answers_size": 3,
     "answers_length": 7
