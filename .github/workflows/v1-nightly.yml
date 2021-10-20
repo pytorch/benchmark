@@ -15,6 +15,7 @@ jobs:
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      IS_GHA: 1
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     steps:
@@ -105,6 +106,8 @@ jobs:
           SCORE_FILE="./benchmark-result-v1-score-${TODAY}.json"
           # Generate score file
           python compute_score.py --score_version v1 --benchmark_data_file "${LATEST_RESULT}" > "${SCORE_FILE}"
+          # Enable OSS stat uploads
+          wget -O scripts/scribe.py https://github.com/pytorch/pytorch/raw/master/tools/stats/scribe.py || echo "failed to copy oss stat utils"
           # Upload result to Scribe
           python scripts/upload_scribe.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
           mkdir -p benchmark-output
