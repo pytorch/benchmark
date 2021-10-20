@@ -23,11 +23,6 @@ jobs:
           name: Setup benchmark suite dependencies
           command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python install.py
       - run:
-          name: Validate compute_score.py
-          command: |
-            wget -O example.json https://s3.amazonaws.com/ossci-metrics/torchbench_v1_nightly/example.json
-            . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python compute_score.py --score_version v1 --benchmark_data_file example.json
-      - run:
           name: Validate benchmark components
           command: |
             . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python -m components.test.test_subprocess; python -m components.test.test_worker
