@@ -1,13 +1,14 @@
-import json
-import os
-import pandas as pd
-import typing
-from  collections.abc import Iterable
-import torch
 from contextlib import contextmanager
-import warnings
-import inspect
 import os
+import inspect
+import typing
+import warnings
+
+import torch
+
+
+STEP_FN = typing.Callable[[], None]
+
 
 @contextmanager
 def no_grad(val):
@@ -21,6 +22,7 @@ def no_grad(val):
     finally:
         torch.set_grad_enabled(old_state)
 
+
 class BenchmarkModel():
     """
     A base class for adding models to torch benchmark.
@@ -29,10 +31,10 @@ class BenchmarkModel():
     def __init__(self, *args, **kwargs): 
         pass
 
-    def train(self):
+    def train(self, *, niter: bool = 1, step_fn: STEP_FN = lambda: None):
         raise NotImplementedError()
 
-    def eval(self):
+    def eval(self, *, niter: bool = 1, step_fn: STEP_FN = lambda: None):
         raise NotImplementedError()
 
     def set_eval(self):
@@ -47,6 +49,18 @@ class BenchmarkModel():
     def _set_mode(self, train):
         (model, _) = self.get_module()
         model.train(train)
+
+    @staticmethod
+    def annotate_forward():
+        return torch.autograd.profiler.record_function("Forward")
+
+    @staticmethod
+    def annotate_backward():
+        return torch.autograd.profiler.record_function("Backward")
+
+    @staticmethod
+    def annotate_optimizer():
+        return torch.autograd.profiler.record_function("Optimizer")
 
     def check_opt_vs_noopt_jit(self):
         if not self.jit:

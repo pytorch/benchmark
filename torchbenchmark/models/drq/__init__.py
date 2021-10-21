@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from gym import spaces
 
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from .utils import FrameStack, set_seed_everywhere, eval_mode
@@ -109,7 +109,7 @@ class Model(BenchmarkModel):
         obs = obs.unsqueeze(0)
         return self.agent.actor, (obs, )
 
-    def train(self, niter=2):
+    def train(self, niter=2, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
         episode, episode_reward, episode_step, done = 0, 0, 1, True
@@ -139,8 +139,9 @@ class Model(BenchmarkModel):
             obs = next_obs
             episode_step += 1
             self.step += 1
+            step_fn()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
         average_episode_reward = 0
@@ -154,4 +155,5 @@ class Model(BenchmarkModel):
             episode_reward += reward
             episode_step += 1
             average_episode_reward += episode_reward
+            step_fn()
         average_episode_reward /= float(niter)

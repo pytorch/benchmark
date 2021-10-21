@@ -21,7 +21,7 @@ from .train import prepare_dataloaders, cal_performance, patch_src, patch_trg
 import random
 import numpy as np
 from pathlib import Path
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import NLP
 
 torch.manual_seed(1337)
@@ -104,23 +104,29 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.module, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         self.module.eval()
         for _ in range(niter):
             self.eval_model(*self.example_inputs)
+            step_fn()
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         optimizer = ScheduledOptim(
             optim.Adam(self.module.parameters(), betas=(0.9, 0.98), eps=1e-09),
             2.0, self.opt.d_model, self.opt.n_warmup_steps)
         for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.module(*self.example_inputs)
+            with self.annotate_forward():
+                pred = self.module(*self.example_inputs)
+                loss, n_correct, n_word = cal_performance(
+                    pred, self.gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
 
-            loss, n_correct, n_word = cal_performance(
-                pred, self.gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
-            loss.backward()
-            optimizer.step_and_update_lr()
+            with self.annotate_backward():
+                optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                optimizer.step_and_update_lr()
+            step_fn()
 
 
 if __name__ == '__main__':

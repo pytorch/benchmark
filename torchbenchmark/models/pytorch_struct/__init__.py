@@ -11,7 +11,7 @@ try:
 except ImportError:
   from torchtext.data import Field
   from torchtext.datasets import UDPOS
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1337)
@@ -63,21 +63,29 @@ class Model(BenchmarkModel):
       words = words.long()
       return self.model, (words.to(device=self.device).transpose(0, 1),)
 
-  def train(self, niter=1):
+  def train(self, niter=1, step_fn: STEP_FN = lambda: None):
     for _ in range(niter):
       losses = []
-      self.opt.zero_grad()
-      params = self.model(self.words)
-      dist = SentCFG(params, lengths=self.lengths)
-      loss = dist.partition.mean()
-      (-loss).backward()
-      losses.append(loss.detach())
-      torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3.0)
-      self.opt.step()
+      with self.annotate_forward():
+        params = self.model(self.words)
+        dist = SentCFG(params, lengths=self.lengths)
+        loss = dist.partition.mean()
 
-  def eval(self, niter=1):
+      with self.annotate_backward():
+        self.opt.zero_grad()
+        (-loss).backward()
+        losses.append(loss.detach())
+
+      with self.annotate_optimizer():
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3.0)
+        self.opt.step()
+
+      step_fn()
+
+  def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
     for _ in range(niter):
-      params = self.model(self.words)
+      self.model(self.words)
+      step_fn()
 
 def cuda_sync(func, sync=False):
     func()

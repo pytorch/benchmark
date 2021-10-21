@@ -1,5 +1,5 @@
 
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import SPEECH
 
 from .angular_tts_main import TTSModel, SYNTHETIC_DATA
@@ -27,11 +27,12 @@ class Model(BenchmarkModel):
         # the training process is not patched to use scripted models
         self.model.train(niter)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
             self.model.eval()
+            step_fn()
 
 
 if __name__ == '__main__':

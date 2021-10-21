@@ -3,7 +3,7 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import COMPUTER_VISION
 
 #######################################################
@@ -41,22 +41,31 @@ class Model(BenchmarkModel):
     def set_eval(self):
         pass
 
-    def train(self, niter=3):
+    def train(self, niter=3, step_fn: STEP_FN = lambda: None):
         optimizer = optim.Adam(self.model.parameters())
-        loss = torch.nn.CrossEntropyLoss()
+        loss_function = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
-            loss(pred, y).backward()
-            optimizer.step()
+            with self.annotate_forward():
+                pred = self.model(*self.example_inputs)
+                y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
+                loss = loss_function(pred, y)
 
-    def eval(self, niter=1):
+            with self.annotate_backward():
+                optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                optimizer.step()
+
+            step_fn()
+
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         model = self.eval_model
         example_inputs = self.example_inputs
         example_inputs = example_inputs[0]
         for i in range(niter):
             model(example_inputs)
+            step_fn()
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import torchvision.models as models
 from opacus.utils.module_modification import convert_batchnorm_modules
 from opacus import PrivacyEngine
 
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import OTHER
 
 
@@ -50,7 +50,7 @@ class Model(BenchmarkModel):
 
         return self.model, self.example_inputs
 
-    def train(self):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
 
@@ -58,21 +58,30 @@ class Model(BenchmarkModel):
         model.train()
         targets = self.example_target
 
-        output = model(images)
-        loss = self.criterion(output, targets)
-        loss.backward()
-        self.optimizer.step()
-        self.optimizer.zero_grad()
+        for _ in range(niter):
+            with self.annotate_forward():
+                output = model(images)
+                loss = self.criterion(output, targets)
 
-    def eval(self):
+            with self.annotate_backward():
+                self.optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                self.optimizer.step()
+
+            step_fn()
+
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
 
         model, (images,) = self.get_module()
         model.eval()
-        targets = self.example_target
         with torch.no_grad():
-            model(images)
+            for _ in range(niter):
+                model(images)
+                step_fn()
 
 
 if __name__ == "__main__":

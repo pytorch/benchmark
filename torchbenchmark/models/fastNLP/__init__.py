@@ -23,7 +23,7 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 from pathlib import Path
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 
 class Model(BenchmarkModel):
     task = NLP.OTHER_NLP
@@ -53,19 +53,27 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.text, self.offsets)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         with torch.no_grad():
             for _ in range(niter):
                 output = self.model(self.text, self.offsets)
                 loss = self.criterion(output, self.cls)
+                step_fn()
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         for _ in range(niter):
-            self.optimizer.zero_grad()
-            output = self.model(self.text, self.offsets)
-            loss = self.criterion(output, self.cls)
-            loss.backward()
-            self.optimizer.step()
+            with self.annotate_forward():
+                output = self.model(self.text, self.offsets)
+                loss = self.criterion(output, self.cls)
+
+            with self.annotate_backward():
+                self.optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                self.optimizer.step()
+
+            step_fn()
 
         # Adjust the learning rate
         # Should we benchmark this?  It's run once per epoch

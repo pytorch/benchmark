@@ -21,7 +21,7 @@ from .yolo_models import *  # set ONNX_EXPORT in models.py
 from .yolo_utils.datasets import *
 from .yolo_utils.utils import *
 from pathlib import Path
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model(BenchmarkModel):
@@ -80,15 +80,16 @@ class Model(BenchmarkModel):
 
         return training_loop(niterations)
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         model, example_inputs = self.get_module()
         img = example_inputs[0]
         im0s_shape = (480, 640, 3)
-        for i in range(niterations):
+        for i in range(niter):
             pred = model(img, augment=False)[0]
             # Apply NMS
-            pred = non_max_suppression(pred, 0.3, 0.6,
-                                    multi_label=False, classes=None, agnostic=False)
+            pred = non_max_suppression(
+                pred, 0.3, 0.6, multi_label=False, classes=None, agnostic=False)
+            step_fn()
 
     @property
     def device_str(self):

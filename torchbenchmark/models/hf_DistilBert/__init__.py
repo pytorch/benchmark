@@ -6,7 +6,7 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import NLP
 from transformers import *
 from datasets import load_dataset
@@ -37,28 +37,31 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         return self.model, self.eval_inputs
 
-    def train(self, niter=3):
+    def train(self, niter=3, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
-
-        if self.device == "cuda":
-            # TODO: diagnose and re-enable.
-            raise NotImplementedError("This leads to a cudaErrorIllegalAddress from unique_by_key.")
-
         self.model.train()
         for _ in range(niter):
-            outputs = self.model(**self.train_inputs)
-            loss = outputs.loss
-            loss.backward()
-            self.optimizer.step()
+            with self.annotate_forward():
+                outputs = self.model(**self.train_inputs)
+                loss = outputs.loss
 
-    def eval(self, niter=1):
+            with self.annotate_backward():
+                self.optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                self.optimizer.step()
+            step_fn()
+
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.jit:
             raise NotImplementedError()
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.eval_inputs)
+                step_fn()
 
 
 if __name__ == "__main__":
@@ -78,3 +81,4 @@ if __name__ == "__main__":
     m.eval(niter=1)
     torch.cuda.synchronize()
     print(time.time()-begin)
+    

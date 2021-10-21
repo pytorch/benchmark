@@ -7,7 +7,7 @@ import numpy as np
 from .solver import Solver
 from .data_loader import get_loader
 from .main import parse_config, makedirs
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import COMPUTER_VISION
 
 
@@ -80,15 +80,17 @@ class Model(BenchmarkModel):
         # eval_model is already set to `eval()`
         pass
 
-    def train(self, niterations=1):
-        for _ in range(niterations):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
+        for _ in range(niter):
             self.solver.train()
+            step_fn()
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         model = self.eval_model
         example_inputs = self.example_inputs
-        for _ in range(niterations):
+        for _ in range(niter):
             model(*example_inputs)
+            step_fn()
 
 
 if __name__ == '__main__':

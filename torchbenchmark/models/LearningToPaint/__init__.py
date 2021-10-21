@@ -9,7 +9,7 @@ import torch.optim as optim
 from .baseline.utils.tensorboard import TensorBoard
 from .baseline.Renderer.model import FCN
 from .baseline.Renderer.stroke_gen import *
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from argparse import Namespace
@@ -73,17 +73,24 @@ class Model(BenchmarkModel):
     def set_eval(self):
         pass
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         for _ in range(niter):
-            gen = self.module(self.example_inputs)
-            self.optimizer.zero_grad()
-            loss = self.criterion(gen, self.ground_truth)
-            loss.backward()
-            self.optimizer.step()
+            with self.annotate_forward():
+                gen = self.module(self.example_inputs)
+                loss = self.criterion(gen, self.ground_truth)
 
-    def eval(self, niter=1):
+            with self.annotate_backward():
+                self.optimizer.zero_grad()
+                loss.backward()
+
+            with self.annotate_optimizer():
+                self.optimizer.step()
+            step_fn()
+
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         for _ in range(niter):
             self.eval_model(self.example_inputs)
+            step_fn()
 
 if __name__ == '__main__':
     m = Model(device='cpu', jit=False)

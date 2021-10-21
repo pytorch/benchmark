@@ -9,7 +9,7 @@ import numpy as np
 
 from argparse import Namespace
 from pathlib import Path
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import COMPUTER_VISION
 
 torch.manual_seed(1337)
@@ -63,24 +63,30 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.module, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
         for _ in range(niter):
             self.module(*self.example_inputs)
+            step_fn()
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
         for _ in range(niter):
-            self.optimizer.zero_grad()
+            with self.annotate_forward():
+                Ft_p, loss = self.module(*self.example_inputs)
 
-            Ft_p, loss = self.module(*self.example_inputs)
+            with self.annotate_backward():
+                self.optimizer.zero_grad()
+                loss.backward()
 
-            loss.backward()
-            self.optimizer.step()
+            with self.annotate_optimizer():
+                self.optimizer.step()
+
+            step_fn()
 
 
 if __name__ == '__main__':

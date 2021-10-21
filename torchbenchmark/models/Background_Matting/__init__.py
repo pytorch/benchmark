@@ -14,7 +14,7 @@ from .loss_functions import alpha_loss, compose_loss, alpha_gradient_loss, GANlo
 import random
 import numpy as np
 from pathlib import Path
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from torchbenchmark.tasks import COMPUTER_VISION
 
 torch.manual_seed(1337)
@@ -127,7 +127,7 @@ class Model(BenchmarkModel):
     def _set_mode(self, train):
         pass
 
-    def train(self, niterations=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
@@ -141,7 +141,7 @@ class Model(BenchmarkModel):
         step = 50
 
         for i, data in enumerate(self.train_data):
-            if (i > niterations):
+            if (i > niter):
                 break
             # Initiating
 
@@ -281,6 +281,7 @@ class Model(BenchmarkModel):
                 del comp
 
             del mask, back_rnd, mask0, seg_gt, mask1, bg, alpha_pred, alpha_pred_sup, image, fg_pred_sup, fg_pred, seg, multi_fr, image_sh, bg_sh, fake_response, real_response, al_loss, fg_loss, comp_loss, lossG, lossD, loss_ganD_real, loss_ganD_fake, loss_ganG
+            step_fn()
 
         if (epoch % 2 == 0):
             torch.save(self.netG.state_dict(),
@@ -295,5 +296,5 @@ class Model(BenchmarkModel):
             # Change weight every 2 epoch to put more stress on discriminator weight and less on pseudo-supervision
             wt = wt/2
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         raise NotImplementedError()

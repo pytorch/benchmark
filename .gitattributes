@@ -502,3 +502,4 @@ torchbenchmark/models/dlrm/input/dist_emb_1.log filter=lfs diff=lfs merge=lfs -t
 torchbenchmark/models/dlrm/input/dist_emb_2.log filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/dlrm/input/trace.log filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_stargan/jpg/*.jpg filter=lfs diff=lfs merge=lfs -text
+traces/** filter=lfs diff=lfs merge=lfs -text

@@ -14,6 +14,7 @@ from urllib import request
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
+from torchbenchmark.util.model import BenchmarkModel
 
 
 proxy_suggestion = "Unable to verify https connectivity, " \
@@ -66,7 +67,10 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
 
 def _list_model_paths() -> List[str]:
     p = pathlib.Path(__file__).parent.joinpath(model_dir)
-    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
+    return sorted(
+        [str(child.absolute()) for child in p.iterdir() if child.is_dir()],
+        key=lambda s: s.lower()
+    )
 
 
 def setup(verbose: bool = True, continue_on_fail: bool = False) -> bool:
@@ -287,6 +291,80 @@ class ModelTask(base_task.TaskBase):
             model.train()
             maybe_sync()
         """)
+
+    def collect_diagnostics(self, trace_prefix: str, device: str, train: bool) -> Any:
+        self.make_model_instance(device=device, jit=False)
+        return self._collect_diagnostics(
+            train=train,
+            cuda=(device == "cuda"),
+            trace_prefix=trace_prefix,
+        )
+
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def _collect_diagnostics(train: bool, cuda: bool, trace_prefix: str) -> Any:
+        import time
+        import typing
+
+        import torch
+
+        from torchbenchmark.util.model import BenchmarkModel
+        model: BenchmarkModel = globals()["model"]
+        assert isinstance(model, BenchmarkModel)
+
+        maybe_sync: typing.Callable[[], None] = globals()["maybe_sync"]
+
+        model.set_train() if train else model.set_eval()
+        model_fn = (model.train if train else model.eval)
+
+        baseline_times = []
+        for _ in range(6):
+            t = [time.time()]
+            model_fn(step_fn=lambda: t.append(time.time()))
+            maybe_sync()
+            baseline_times.append(t + [time.time()])
+        count = len(baseline_times[0]) - 2
+        assert count > 0 and all(len(t) - 2 == count for t in baseline_times)
+
+        schedule = (max(count, 10), 5, 5)
+
+        def collect_profiled(detailed: bool) -> typing.List[float]:
+            prefix = f"{trace_prefix}{'-detailed' if detailed else ''}"
+            def on_trace_ready(p: torch.profiler.profile) -> None:
+                p.export_chrome_trace(f"{prefix}.pt.trace.json.gz")
+
+            activities = [torch.profiler.ProfilerActivity.CPU]
+            if cuda:
+                activities.append(torch.profiler.ProfilerActivity.CUDA)
+
+            with torch.profiler.profile(
+                activities=activities,
+                schedule=torch.profiler.schedule(
+                    wait=schedule[0],
+                    warmup=schedule[1],
+                    active=schedule[2],
+                ),
+                on_trace_ready=on_trace_ready,
+                record_shapes=detailed,
+                profile_memory=detailed,
+                with_stack=detailed,
+                with_flops=detailed,
+            ) as prof:
+                times = []
+                def step_fn() -> None:
+                    maybe_sync()
+                    times.append(time.time())
+                    prof.step()
+
+                model_fn(niter=sum(schedule), step_fn=step_fn)
+            times = [j - i for i, j in zip(times, times[1:])]
+            return times[:schedule[0] - 1], times[-schedule[2]:]
+
+        steps_0, profiled_steps = collect_profiled(False)
+        steps_1, profiled_steps_detailed = collect_profiled(True)
+
+        # The first baseline often contains lazy initialization and so we discard it.
+        return baseline_times[1:], steps_0 + steps_1, profiled_steps, profiled_steps_detailed
 
     def set_eval(self) -> None:
         self.worker.run("model.set_eval()")

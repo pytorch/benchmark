@@ -16,7 +16,7 @@ sys.path.append(dir_path)
 sys.path.append(os.path.join(dir_path, "transformer"))
 sys.path.append(os.path.join(dir_path, "utils"))
 
-from ...util.model import BenchmarkModel
+from ...util.model import BenchmarkModel, STEP_FN
 from config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from torchbenchmark.tasks import SPEECH
 
@@ -43,21 +43,23 @@ class Model(BenchmarkModel):
             padded_input, input_lengths, padded_target = data
             return self.traincfg.model, (padded_input.cuda(), input_lengths.cuda(), padded_target.cuda())
 
-    def train(self, niter=1):
+    def train(self, niter=1, step_fn: STEP_FN = lambda: None):
         if not self.device == "cuda":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         for i in range(niter):
             self.traincfg.train(epoch = i)
+            step_fn()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1, step_fn: STEP_FN = lambda: None):
         if not self.device == "cuda":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         for _ in range(niter):
             self.evalcfg.eval()
+            step_fn()
 
 if __name__ == '__main__':
     for device in ['cuda']:
