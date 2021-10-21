@@ -484,10 +484,6 @@ torchbenchmark/models/pytorch_CycleGAN_and_pix2pix/imgs/edges2cats.jpg filter=lf
 torchbenchmark/models/pytorch_CycleGAN_and_pix2pix/imgs/horse2zebra.gif filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Super_SloMo/misc/original.gif filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Super_SloMo/misc/slomo.gif filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/fastNLP/reproduction/Summarization/Baseline/test/testdata/test.jsonl filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/fastNLP/reproduction/Summarization/Baseline/test/testdata/train.jsonl filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/fastNLP/reproduction/Summarization/Baseline/test/testdata/val.jsonl filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/fastNLP/reproduction/Summarization/Baseline/test/testdata/vocab filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_struct/docs/source/model.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_struct/docs/source/semiring.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/yolov3/tutorial.ipynb filter=lfs diff=lfs merge=lfs -text
