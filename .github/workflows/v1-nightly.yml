@@ -15,6 +15,8 @@ jobs:
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      BUILD_ENVIRONMENT: benchmark-nightly
       IS_GHA: 1
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
@@ -30,7 +32,7 @@ jobs:
         run: |
           . activate "${CONDA_ENV_NAME}"
           # Install dependencies
-          pip install requests bs4 argparse gitpython
+          pip install requests bs4 argparse gitpython boto3
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result

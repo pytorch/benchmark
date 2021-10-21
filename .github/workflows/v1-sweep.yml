@@ -20,6 +20,8 @@ jobs:
       PYTHON_VER: "3.7"
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      BUILD_ENVIRONMENT: benchmark-sweep
       IS_GHA: 1
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
@@ -64,6 +66,7 @@ jobs:
           conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
           . activate ${CONDA_ENV_NAME}
           pip install -r requirements.txt
+          pip install boto3
           for RESULT in ${SWEEP_JOB_OUTPUT}/*.json; do
             # Upload when the file is non-empty
             if [ ! -s $RESULT ]; then
