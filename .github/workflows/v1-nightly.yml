@@ -16,6 +16,7 @@ jobs:
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      IS_GHA: 1
       AWS_DEFAULT_REGION: us-east-1
       BUILD_ENVIRONMENT: benchmark-nightly
     if: ${{ github.repository_owner == 'pytorch' }}
