@@ -67,6 +67,7 @@ jobs:
           pushd "${HOME}/pytorch"
           git fetch origin
           popd
+          pip install git
           # Compare the result from yesterday and report any perf signals
           python ./.github/scripts/generate-abtest-config.py \
                  --pytorch-dir "${HOME}/pytorch" \
