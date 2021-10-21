@@ -106,6 +106,7 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self.step = 0
+        self.n_epochs = niter
         self._mode(self.model, is_test=False)
         self.callback_manager.on_train_begin()
         # Move the data to GPU before the train loop
