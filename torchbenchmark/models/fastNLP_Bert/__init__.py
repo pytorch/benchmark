@@ -66,8 +66,8 @@ class Model(BenchmarkModel):
         # Use Train batch for batch size
         self.batch_size = CMRC2018_TRAIN_SPEC["data_size"]
         self.update_every = 10
-        self.n_epochs = 2
-        self.num_workers = 2
+        # Do not spawn new processes on small scale of data
+        self.num_workers = 0
         wm_callback = WarmupCallback(schedule='linear')
         gc_callback = GradientClipCallback(clip_value=1, clip_type='norm')
         callbacks = [wm_callback, gc_callback]
@@ -83,16 +83,9 @@ class Model(BenchmarkModel):
                                               batch_size=CMRC2018_DEV_SPEC["data_size"],
                                               sampler=None,
                                               num_workers=self.num_workers, drop_last=False)
-        # Preload data from DataLoader
-        self.train_data_device = []
-        for batch_x, batch_y in self.train_data_iterator:
-            self.train_data_device.append((batch_x, batch_y))
-        self.eval_data_device = []
-        for batch_x, batch_y in self.eval_data_iterator:
-            self.eval_data_device.append((batch_x, batch_y))
 
     def get_module(self):
-        batch_x, batch_y = list(self.train_data_device)[0]
+        batch_x, batch_y = list(self.train_data_iterator)[0]
         self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         return self.model, batch_x
 
@@ -100,14 +93,12 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
-        # Move the data to GPU before the eval loop
-        for batch_x, batch_y in self.eval_data_device:
-            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         self._mode(self.model, is_test=True)
         self._predict_func = self.model.forward
         with torch.no_grad():
             for epoch in range(niter):
-                for batch_x, batch_y in self.eval_data_device:
+                for batch_x, batch_y in self.eval_data_iterator:
+                    self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                     pred_dict = self._data_forward(self._predict_func, batch_x)
 
     # Sliced version of fastNLP.Trainer._train()
@@ -118,11 +109,12 @@ class Model(BenchmarkModel):
         self._mode(self.model, is_test=False)
         self.callback_manager.on_train_begin()
         # Move the data to GPU before the train loop
-        for batch_x, batch_y in self.train_data_device:
+        for batch_x, batch_y in self.train_data_iterator:
             self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         for epoch in range(niter):
             self.callback_manager.on_epoch_begin()
-            for batch_x, batch_y in self.train_data_device:
+            for batch_x, batch_y in self.train_data_iterator:
+                self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                 self.step += 1
                 prediction = self._data_forward(self.model, batch_x)
                 self.callback_manager.on_loss_begin(batch_y, prediction)
