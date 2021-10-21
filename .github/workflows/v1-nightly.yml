@@ -59,6 +59,7 @@ jobs:
           # bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
         run: |
+          set -x
           . activate "${CONDA_ENV_NAME}"
           WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           mkdir -p benchmark-output/
