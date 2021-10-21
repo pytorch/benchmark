@@ -18,8 +18,6 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: us-east-1
       BUILD_ENVIRONMENT: benchmark-nightly
-      IS_GHA: 1
-      BUILD_ENVIRONMENT: benchmark-nightly
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     steps:
