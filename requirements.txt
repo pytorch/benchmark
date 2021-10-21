@@ -1,4 +1,5 @@
 bs4
+patch
 py-cpuinfo
 distro
 iopath

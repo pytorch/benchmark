@@ -7,7 +7,6 @@ import pathlib
 import numpy
 import json
 import random
-import patch
 import fastNLP
 
 TRAIN_BATCH_SIZE = 1
@@ -127,14 +126,6 @@ def _create_empty_bin():
     bin_file = os.path.join(CMRC2018_CONFIG_DIR, "chinese_wwm_pytorch.bin")
     with open(bin_file, "w") as bf:
         bf.write("")
-
-def try_patch_fastnlp():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    patch_file = os.path.join(current_dir, "fastnlp.patch")
-    fastNLP_dir = os.path.dirname(fastNLP.__file__)
-    fastNLP_target_file = os.path.join(fastNLP_dir, "embeddings", "bert_embedding.py")
-    p = patch.fromfile(patch_file)
-    return p.apply(strip=1, root=fastNLP_dir)
 
 def generate_inputs():
     _create_dir_if_nonexist(CMRC2018_DIR)
