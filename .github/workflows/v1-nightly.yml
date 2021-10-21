@@ -75,14 +75,14 @@ jobs:
                  --benchmark-dir "${WORKFLOW_HOME}" \
                  --out "${WORKFLOW_HOME}/bisection.yaml"
           # Include in the GitHub artifact
-          # if [ -f "${WORKFLOW_HOME}/gh-issue.md" ]; then
-          #   cp "${WORKFLOW_HOME}/bisection.yaml" ./benchmark-output/
-          #   cp "${WORKFLOW_HOME}/gh-issue.md ./benchmark-output/
-          #   # Setup the bisection environment
-          #   BISECTION_HOME="${HOME}/${{ env.BISECTION_ROOT }}/bisection-gh${GITHUB_RUN_ID}"
-          #   mkdir -p "${BISECTION_HOME}"
-          #   cp ./benchmark-output/bisection.yaml "${BISECTION_HOME}/config.yaml"
-          # fi
+          if [ -f "${WORKFLOW_HOME}/gh-issue.md" ]; then
+            cp "${WORKFLOW_HOME}/bisection.yaml" ./benchmark-output/
+            cp "${WORKFLOW_HOME}/gh-issue.md" ./benchmark-output/
+            # Setup the bisection environment
+            BISECTION_HOME="${HOME}/${{ env.BISECTION_ROOT }}/bisection-gh${GITHUB_RUN_ID}"
+            mkdir -p "${BISECTION_HOME}"
+            cp ./benchmark-output/bisection.yaml "${BISECTION_HOME}/config.yaml"
+          fi
       - name: Dispatch the v1-bisection workflow
         if: env.TORCHBENCH_PERF_SIGNAL
         run: |
@@ -92,15 +92,15 @@ jobs:
             -X POST \
             -H "Accept: application/vnd.github.v3+json" \
              https://api.github.com/repos/pytorch/benchmark/actions/workflows/10693192 \
-            -d '{"ref": "v1.0", "inputs": {"issue_name": "bisection-gh'"${GITHUB_RUN_ID}"'" } }'
-      - name: Create the github issue
-        if: env.TORCHBENCH_PERF_SIGNAL
-        uses: peter-evans/create-issue-from-file@v3
-        with:
-          title: Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_SIGNAL }}
-          content-filepath: ./benchmark-output/gh-issue.md
-          labels: |
-            torchbench-perf-report
+            -d '{"ref": "main", "inputs": {"issue_name": "bisection-gh'"${GITHUB_RUN_ID}"'" } }'
+      # - name: Create the github issue
+      #   if: env.TORCHBENCH_PERF_SIGNAL
+      #   uses: peter-evans/create-issue-from-file@v3
+      #   with:
+      #     title: Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_SIGNAL }}
+      #     content-filepath: ./benchmark-output/gh-issue.md
+      #     labels: |
+      #       torchbench-perf-report
       - name: Copy artifact and upload to scribe
         run: |
           . activate "${CONDA_ENV_NAME}"
