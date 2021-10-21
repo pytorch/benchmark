@@ -53,11 +53,7 @@ jobs:
         run: |
           . activate "${CONDA_ENV_NAME}"
           WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
-          # TODO: REMOVE TWO LINES BELOW BEFORE MERGING!!!
-          mkdir -p ${WORKFLOW_HOME}
-          cp ${HOME}/${{ env.OUTPUT_DIR }}/gh1365512438/20211021_070023_1.json ${WORKFLOW_HOME}/
-          # TODO: UNCOMMENT THIS LINE BEFORE MERGING!!!
-          # bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
+          bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
         run: |
           set -x
