@@ -1,0 +1,10 @@
+name: TorchBench Model Profiling CI
+on:
+  pull_request:
+
+
+jobs:
+  profile-model:
+    if: ${{ github.repository_owner == 'pytorch' }} && 
+    runs-on: linux-
+  
