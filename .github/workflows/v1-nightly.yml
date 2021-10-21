@@ -91,16 +91,16 @@ jobs:
           curl -u xuzhao9:${{ secrets.TORCHBENCH_ACCESS_TOKEN }} \
             -X POST \
             -H "Accept: application/vnd.github.v3+json" \
-             https://api.github.com/repos/pytorch/benchmark/actions/workflows/10693192 \
+             https://api.github.com/repos/pytorch/benchmark/actions/workflows/10693192/dispatches \
             -d '{"ref": "main", "inputs": {"issue_name": "bisection-gh'"${GITHUB_RUN_ID}"'" } }'
-      # - name: Create the github issue
-      #   if: env.TORCHBENCH_PERF_SIGNAL
-      #   uses: peter-evans/create-issue-from-file@v3
-      #   with:
-      #     title: Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_SIGNAL }}
-      #     content-filepath: ./benchmark-output/gh-issue.md
-      #     labels: |
-      #       torchbench-perf-report
+      - name: Create the github issue
+        if: env.TORCHBENCH_PERF_SIGNAL
+        uses: peter-evans/create-issue-from-file@v3
+        with:
+          title: Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_SIGNAL }}
+          content-filepath: ./benchmark-output/gh-issue.md
+          labels: |
+            torchbench-perf-report
       - name: Copy artifact and upload to scribe
         run: |
           . activate "${CONDA_ENV_NAME}"
