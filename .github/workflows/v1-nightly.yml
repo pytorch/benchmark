@@ -11,13 +11,14 @@ jobs:
       CONFIG_VER: "v1"
       CONDA_ENV_NAME:  "torchbench-v1-nightly-ci"
       OUTPUT_DIR: ".torchbench/v1-nightly-ci"
+      BISECTION_ROOT: ".torchbench/v1-bisection-ci"
       CUDA_VERSION: "cu102"
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      IS_GHA: 1
       AWS_DEFAULT_REGION: us-east-1
       BUILD_ENVIRONMENT: benchmark-nightly
-      IS_GHA: 1
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     steps:
@@ -50,17 +51,19 @@ jobs:
       - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
-          WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
+          WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
         run: |
+          set -x
           . activate "${CONDA_ENV_NAME}"
-          WORKFLOW_HOME="${{ env.HOME }}/${{ env.OUTPUT_DIR }}/gh${{ env.GITHUB_RUN_ID }}"
+          WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           mkdir -p benchmark-output/
           # Update the self-hosted pytorch version
           pushd "${HOME}/pytorch"
           git fetch origin
           popd
+          pip install gitpython pyyaml dataclasses argparse pathlib
           # Compare the result from yesterday and report any perf signals
           python ./.github/scripts/generate-abtest-config.py \
                  --pytorch-dir "${HOME}/pytorch" \
@@ -70,11 +73,11 @@ jobs:
           # Include in the GitHub artifact
           if [ -f "${WORKFLOW_HOME}/gh-issue.md" ]; then
             cp "${WORKFLOW_HOME}/bisection.yaml" ./benchmark-output/
-            cp "${WORKFLOW_HOME}/gh-issue.md ./benchmark-output/
+            cp "${WORKFLOW_HOME}/gh-issue.md" ./benchmark-output/
             # Setup the bisection environment
-            BISECTION_HOME="${BISECTION_ROOT}/bisection-gh${{ env.GITHUB_RUN_ID }}"
+            BISECTION_HOME="${HOME}/${{ env.BISECTION_ROOT }}/bisection-gh${GITHUB_RUN_ID}"
             mkdir -p "${BISECTION_HOME}"
-            cp ./benchmark-output/bisection.yaml $"${BISECTION_HOME}/config.yaml"
+            cp ./benchmark-output/bisection.yaml "${BISECTION_HOME}/config.yaml"
           fi
       - name: Dispatch the v1-bisection workflow
         if: env.TORCHBENCH_PERF_SIGNAL
@@ -84,8 +87,8 @@ jobs:
           curl -u xuzhao9:${{ secrets.TORCHBENCH_ACCESS_TOKEN }} \
             -X POST \
             -H "Accept: application/vnd.github.v3+json" \
-             https://api.github.com/repos/pytorch/benchmark/actions/workflows/10693192 \
-            -d '{"ref": "v1.0", "inputs": {"issue_name": "bisection-gh${{ env.GITHUB_RUN_ID }}" } }'
+             https://api.github.com/repos/pytorch/benchmark/actions/workflows/10693192/dispatches \
+            -d '{"ref": "main", "inputs": {"issue_name": "bisection-gh'"${GITHUB_RUN_ID}"'" } }'
       - name: Create the github issue
         if: env.TORCHBENCH_PERF_SIGNAL
         uses: peter-evans/create-issue-from-file@v3
