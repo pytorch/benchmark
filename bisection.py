@@ -45,9 +45,6 @@ def targets_to_bmfilter(targets: List[str], models: List[str]) -> str:
     if targets == None or len(targets) == 0:
         return "(not slomo)"
     for test in targets:
-        # The filter shouldn't have the "freeze" keyword
-        if "-freeze" in test:
-            test = test.replace("-freeze", "", 1)
         regex = re.compile("test_(train|eval)\[([a-zA-Z0-9_]+)-([a-z]+)-([a-z]+)\]")
         m = regex.match(test)
         if not m:
@@ -238,7 +235,8 @@ class TorchSource:
         except subprocess.CalledProcessError:
             # Remove the build directory, then try build it again
             build_path = os.path.join(self.srcpath, "build")
-            os.remove(build_path)
+            if os.path.exists(build_path):
+                os.remove(build_path)
             subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
         self.build_install_deps(build_env)
