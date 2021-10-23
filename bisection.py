@@ -12,6 +12,7 @@ Usage:
 
 import os
 import json
+import shutil
 import yaml
 import argparse
 import typing
@@ -236,7 +237,7 @@ class TorchSource:
             # Remove the build directory, then try build it again
             build_path = os.path.join(self.srcpath, "build")
             if os.path.exists(build_path):
-                os.remove(build_path)
+                shutil.rmtree(build_path)
             subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
         self.build_install_deps(build_env)
