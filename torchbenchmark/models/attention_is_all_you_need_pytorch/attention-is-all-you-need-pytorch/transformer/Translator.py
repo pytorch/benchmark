@@ -3,7 +3,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .Models import Transformer, get_pad_mask, get_subsequent_mask
+from transformer.Models import Transformer, get_pad_mask, get_subsequent_mask
 
 
 class Translator(nn.Module):

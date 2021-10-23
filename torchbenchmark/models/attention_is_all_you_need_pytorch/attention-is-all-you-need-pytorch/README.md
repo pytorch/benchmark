@@ -24,16 +24,6 @@ Note that this project is still a work in progress.
 If there is any suggestion or error, feel free to fire an issue to let me know. :)
 
 
-# Requirement
-- python 3.4+
-- pytorch 1.3.1
-- torchtext 0.4.0
-- spacy 2.2.2+
-- tqdm
-- dill
-- numpy
-
-
 # Usage
 
 ## WMT'16 Multimodal Translation: de-en
@@ -54,7 +44,7 @@ python preprocess.py -lang_src de -lang_trg en -share_vocab -save_data m30k_deen
 
 ### 2) Train the model
 ```bash
-python train.py -data_pkl m30k_deen_shr.pkl -log m30k_deen_shr -embs_share_weight -proj_share_weight -label_smoothing -save_model trained -b 256 -warmup 128000 -epoch 400
+python train.py -data_pkl m30k_deen_shr.pkl -log m30k_deen_shr -embs_share_weight -proj_share_weight -label_smoothing -output_dir output -b 256 -warmup 128000 -epoch 400
 ```
 
 ### 3) Test the model
@@ -73,7 +63,7 @@ python preprocess.py -raw_dir /tmp/raw_deen -data_dir ./bpe_deen -save_data bpe_
 
 ### 2) Train the model
 ```bash
-python train.py -data_pkl ./bpe_deen/bpe_vocab.pkl -train_path ./bpe_deen/deen-train -val_path ./bpe_deen/deen-val -log deen_bpe -embs_share_weight -proj_share_weight -label_smoothing -save_model trained -b 256 -warmup 128000 -epoch 400
+python train.py -data_pkl ./bpe_deen/bpe_vocab.pkl -train_path ./bpe_deen/deen-train -val_path ./bpe_deen/deen-val -log deen_bpe -embs_share_weight -proj_share_weight -label_smoothing -output_dir output -b 256 -warmup 128000 -epoch 400
 ```
 
 ### 3) Test the model (not ready)
@@ -85,18 +75,19 @@ python train.py -data_pkl ./bpe_deen/bpe_vocab.pkl -train_path ./bpe_deen/deen-t
 ## Training
 
 <p align="center">
-<img src="https://imgur.com/rKeP1bb.png" width="400">
-<img src="https://imgur.com/9je3X6U.png" width="400">
+<img src="https://i.imgur.com/S2EVtJx.png" width="400">
+<img src="https://i.imgur.com/IZQmUKO.png" width="400">
 </p>
 
 - Parameter settings:
-  - default parameter and optimizer settings
+  - batch size 256 
+  - warmup step 4000 
+  - epoch 200 
+  - lr_mul 0.5
   - label smoothing 
+  - do not apply BPE and shared vocabulary
   - target embedding / pre-softmax linear layer weight sharing. 
-
-- Elapse per epoch (on NVIDIA Titan X):
-  - Training set: 0.888 minutes
-  - Validation set: 0.011 minutes
+ 
   
 ## Testing 
 - coming soon.
@@ -108,4 +99,4 @@ python train.py -data_pkl ./bpe_deen/bpe_vocab.pkl -train_path ./bpe_deen/deen-t
 # Acknowledgement
 - The byte pair encoding parts are borrowed from [subword-nmt](https://github.com/rsennrich/subword-nmt/).
 - The project structure, some scripts and the dataset preprocessing steps are heavily borrowed from [OpenNMT/OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py).
-- Thanks for the suggestions from @srush, @iamalbert, @Zessay, @JulesGM and @ZiJianZhao.
+- Thanks for the suggestions from @srush, @iamalbert, @Zessay, @JulesGM, @ZiJianZhao, and @huanghoujing.

@@ -12,13 +12,7 @@ import torch
 import tarfile
 import torchtext.data
 import torchtext.datasets
-try:
-    from torchtext.legacy.data import Field
-    from torchtext.legacy.datasets.translation import TranslationDataset, Multi30k
-except ImportError:
-    from torchtext.data import Field
-    from torchtext.datasets import TranslationDataset, Multi30k
-
+from torchtext.datasets import TranslationDataset
 import transformer.Constants as Constants
 from learn_bpe import learn_bpe
 from apply_bpe import BPE
@@ -215,7 +209,7 @@ def main():
     sys.stderr.write(f"Done.\n")
 
 
-    field = Field(
+    field = torchtext.data.Field(
         tokenize=str.split,
         lower=True,
         pad_token=Constants.PAD_WORD,
@@ -282,11 +276,11 @@ def main_wo_bpe():
     def tokenize_trg(text):
         return [tok.text for tok in trg_lang_model.tokenizer(text)]
 
-    SRC = Field(
+    SRC = torchtext.data.Field(
         tokenize=tokenize_src, lower=not opt.keep_case,
         pad_token=Constants.PAD_WORD, init_token=Constants.BOS_WORD, eos_token=Constants.EOS_WORD)
 
-    TRG = Field(
+    TRG = torchtext.data.Field(
         tokenize=tokenize_trg, lower=not opt.keep_case,
         pad_token=Constants.PAD_WORD, init_token=Constants.BOS_WORD, eos_token=Constants.EOS_WORD)
 
@@ -302,7 +296,7 @@ def main_wo_bpe():
     def filter_examples_with_length(x):
         return len(vars(x)['src']) <= MAX_LEN and len(vars(x)['trg']) <= MAX_LEN
 
-    train, val, test = Multi30k.splits(
+    train, val, test = torchtext.datasets.Multi30k.splits(
             exts = ('.' + opt.lang_src, '.' + opt.lang_trg),
             fields = (SRC, TRG),
             filter_pred=filter_examples_with_length)

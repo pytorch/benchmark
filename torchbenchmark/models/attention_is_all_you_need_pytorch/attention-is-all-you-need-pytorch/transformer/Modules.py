@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional
 
 __author__ = "Yu-Hsiang Huang"
 
@@ -13,7 +12,7 @@ class ScaledDotProductAttention(nn.Module):
         self.temperature = temperature
         self.dropout = nn.Dropout(attn_dropout)
 
-    def forward(self, q, k, v, mask : Optional[torch.Tensor] = None):
+    def forward(self, q, k, v, mask=None):
 
         attn = torch.matmul(q / self.temperature, k.transpose(2, 3))
 
