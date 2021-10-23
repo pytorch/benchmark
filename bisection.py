@@ -231,7 +231,7 @@ class TorchSource:
             command = "python setup.py install"
             subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
             command_testbuild = "python -c 'import torch'"
-            subprocess.check_call(command, cwd=os.environ["HOME"], env=build_env, shell=True)
+            subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env, shell=True)
         except subprocess.CalledProcessError:
             # Remove the build directory, then try build it again
             build_path = os.path.join(self.srcpath, "build")
