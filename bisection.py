@@ -143,6 +143,8 @@ class TorchSource:
         if not repo_origin_url == TORCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
         self.update_repos()
+        # Clean up the existing packages
+        self.cleanup()
         return True
 
     # Update pytorch, torchtext, and torchvision repo
@@ -242,11 +244,13 @@ class TorchSource:
         print("done")
         self.build_install_deps(build_env)
 
-    def cleanup(self, commit: Commit):
-        print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
+    def cleanup(self):
         packages = ["torch", "torchtext", "torchvision"]
-        command = "pip uninstall -y " + " ".join(packages) + " &> /dev/null "
-        subprocess.check_call(command, shell=True)
+        CLEANUP_ROUND = 5
+        # Clean up multiple times to make sure the packages are all uninstalled
+        for _ in range(CLEANUP_ROUND):
+            command = "pip uninstall -y " + " ".join(packages) + " || true"
+            subprocess.check_call(command, shell=True)
         print("done")
 
 class TorchBench:
@@ -357,7 +361,8 @@ class TorchBench:
         # Run benchmark
         result_dir = self.run_benchmark(commit, targets)
         commit.digest = self.gen_digest(result_dir, targets)
-        self.torch_src.cleanup(commit)
+        print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
+        self.torch_src.cleanup()
         return commit.digest
         
 class TorchBenchBisection:
