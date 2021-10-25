@@ -80,7 +80,7 @@ def get_workflow_id(workflow_dir):
     return int(workflow_dir[prefix_loc + len(prefix):])
 
 # Compare the tests and generate a list of tests whose perf change larger than threshold
-def generate_bisection_tests(base, tip):
+def generate_bisection_tests(base, tip, flaky_tests):
     def get_test_stats(bm):
         ret = {}
         for benchmark in bm["benchmarks"]:
@@ -93,6 +93,9 @@ def generate_bisection_tests(base, tip):
     signal_details = {}
     for benchmark, tip_latency in tip_tests.items():
         base_latency = base_tests.get(benchmark, None)
+        # Skip the flaky tests
+        if benchmark in flaky_tests:
+            continue
         if base_latency is None:
             # This benchmark is new or was failing, so there is no prior point
             # of reference against which to compare.
@@ -103,7 +106,7 @@ def generate_bisection_tests(base, tip):
             signal_details[benchmark] = delta_percent
     return (signals, signal_details)
 
-def generate_bisection_config(base_file, tip_file):
+def generate_bisection_config(base_file, tip_file, flaky_tests):
     result = {}
     with open(base_file, "r") as bf:
         base = json.load(bf)
@@ -116,7 +119,7 @@ def generate_bisection_config(base_file, tip_file):
     result["threshold"] = PERF_CHANGE_THRESHOLD
     result["direction"] = "both"
     result["timeout"] = PERF_TEST_TIMEOUT_THRESHOLD
-    (result["tests"], result["details"]) = generate_bisection_tests(base, tip)
+    (result["tests"], result["details"]) = generate_bisection_tests(base, tip, flaky_tests)
     return result
 
 def generate_gh_issue(ghi_fpath, result):
@@ -151,6 +154,10 @@ if __name__ == "__main__":
                         help="Result output file")
     parser.add_argument("--github-issue",
                         help="Setup environment variables and GitHub Issue file for GitHub Actions")
+    parser.add_argument("--flaky-test-list",
+                        default="v1-flaky-tests.txt",
+                        help="Setup environment variables and GitHub Issue file for GitHub Actions")
+
     args = parser.parse_args()
     # input directory
     input_dir = Path(args.benchmark_dir)
@@ -160,17 +167,26 @@ if __name__ == "__main__":
     parent_dir = input_dir.parent
     base_benchmark_dirs = list(filter(lambda x: get_workflow_id(x) < get_workflow_id(os.path.basename(input_dir)),
                                          os.listdir(parent_dir)))
+
     # Search from the latest to the earliest
     base_benchmark_dirs.sort(reverse=True)
     base_benchmark_paths = [ os.path.join(parent_dir, name) for name in base_benchmark_dirs if os.path.isdir(os.path.join(parent_dir, name)) ]
     result = {}
+
+    # Read the flaky test list
+    flaky_tests = []
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    flaky_test_file_path = os.path.join(current_dir, args.flaky_test_list)
+    with open(flaky_test_file_path, "r") as flaky_test_fp:
+        flaky_tests = flaky_test_fp.read().splitlines()
+
     # Use the latest benchmark result with a different version than tip
     for bm in base_benchmark_paths:
         json_file = find_latest_nonempty_json(bm)
         if json_file:
             base_version = get_pytorch_version(args.pytorch_dir, json_file)
             if base_version.commit != tip_version.commit:
-                result = generate_bisection_config(json_file, tip_json_file)
+                result = generate_bisection_config(json_file, tip_json_file, flaky_tests)
                 break
     with open(args.out, "w") as fo:
         yaml.dump(result, fo)
