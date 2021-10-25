@@ -177,7 +177,7 @@ if __name__ == "__main__":
     flaky_tests = []
     current_dir = os.path.dirname(os.path.realpath(__file__))
     flaky_test_file_path = os.path.join(current_dir, args.flaky_test_list)
-    with open(args.flaky_test_file_path, "r") as flaky_test_fp:
+    with open(flaky_test_file_path, "r") as flaky_test_fp:
         flaky_tests = flaky_test_fp.read().splitlines()
 
     # Use the latest benchmark result with a different version than tip
