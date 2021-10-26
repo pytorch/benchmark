@@ -4,6 +4,8 @@ on:
 
 env:
   CONDA_ENV: pr-profile
+  PR_BODY: ${{ github.event.pull_request.body }}
+  PR_BODY_FILE: /tmp/pr-body.txt
 
 jobs:
   profile-model:
@@ -25,15 +27,16 @@ jobs:
           # Install Torchbench dependencies
           python install.py
           mkdir -p logs/
+          echo "${PR_BODY}" > ${{ env.PR_BODY_FILE }}
       - name: Run eval batch test
         run: |
-          # Try block size 0 - 256
+          # Try batch size 0 - 256
           conda activate ${{ env.CONDA_ENV }}
           echo "" > logs/eval-batch-test.log
           for bs in `seq 0 8`; do
             BATCH_SIZE=$((2 ** $bs))
-            echo "Running eval batch test, bs=${BLOCK_SIZE}" >> logs/eval-batch-test.log
-            MODEL_NAME=$(python .github/scripts/process-profile-pr.py --body pr-body)
+            echo "Running eval batch test, bs=${BATCH_SIZE}" >> logs/eval-batch-test.log
+            MODEL_NAME=$(python .github/scripts/process-profile-pr.py --pr-body ${{ env.PR_BODY_FILE }})
             # run.py may fail because of CUDA OOM, but it shouldn't matter to our test
             python run.py "${MODEL_NAME}" -t eval -d cuda --bs "${BATCH_SIZE}" >> logs/eval-batch-test.log || true
           done
@@ -45,13 +48,13 @@ jobs:
           python run.py "${MODEL_NAME}" -t eval -d cuda --profile --profile-devices=cpu,cuda
       - name: Run train batch test
         run: |
-          # Try block size 0 - 256
+          # Try batch size 0 - 256
           conda activate ${{ env.CONDA_ENV }}
           echo "" > logs/train-batch-test.log
           for bs in `seq 0 8`; do
             BATCH_SIZE=$((2 ** $bs))
-            echo "Running train batch test, bs=${BLOCK_SIZE}" >> logs/train-batch-test.log
-            MODEL_NAME=$(python .github/scripts/process-profile-pr.py --body pr-body)
+            echo "Running train batch test, bs=${BATCH_SIZE}" >> logs/train-batch-test.log
+            MODEL_NAME=$(python .github/scripts/process-profile-pr.py --pr-body ${{ env.PR_BODY_FILE }})
             # run.py may fail because of CUDA OOM, but it shouldn't matter to our test
             python run.py "${MODEL_NAME}" -t train -d cuda --bs "${BATCH_SIZE}" >> logs/train-batch-test.log || true
           done
