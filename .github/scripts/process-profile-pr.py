@@ -10,7 +10,7 @@ def _parse_pr_body(body):
     if len(magic_lines):
         print(magic_lines[0][len(MAGIC_PREFIX):].strip())
 
-def _parse_batch_test_log(log):
+def _parse_batch_test_log(log, csv):
     batch_test_result = []
     regex_keys = ["bs", "gpu", "cpu_dispatch", "cpu_total"]
     regex_dict = {
@@ -26,27 +26,31 @@ def _parse_batch_test_log(log):
                if x == 0:
                    batch_test_result.append({})
                batch_test_result[-1][regex_keys[x]] = float(matches[x][0])
-    print(_visualize_batch_test_result(regex_keys, batch_test_result))
+    print(_visualize_batch_test_result(regex_keys, batch_test_result, csv))
 
-def _visualize_batch_test_result(keys, result):
+def _visualize_batch_test_result(keys, result, csv):
     output = [["Batch Size", "GPU Time", "CPU Dispatch Time", "Walltime", "GPU Delta"]]
     for index, res in enumerate(result):
         r = []
         for k in keys:
-            r.append(res[k])
+            r.append(str(res[k]))
         delta = '-' if index == 0 else str((res["gpu"] - result[index-1]["gpu"]) / result[index-1]["gpu"])
         r.append(delta)
         output.append(r)
-    return tabulate.tabulate(output, headers='firstrow')
+    if not csv:
+        return tabulate.tabulate(output, headers='firstrow')
+    else:
+        return "\n".join(map(lambda x: ",".join(x), output))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--pr-body", type=argparse.FileType("r"))
     parser.add_argument("--log", type=argparse.FileType("r"))
+    parser.add_argument("--csv", action='store_true')
     args = parser.parse_args()
     if args.pr_body:
         body = args.pr_body.read()
         _parse_pr_body(body)
     if args.log:
         log = args.log.read()
-        _parse_batch_test_log(log)
+        _parse_batch_test_log(log, args.csv)
