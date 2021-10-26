@@ -35,8 +35,12 @@ class Model(BenchmarkModel):
         self.example_inputs = {example_inputs}
 
         if self.jit:
-            self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
-            self.eval_model = torch.jit.script(self.eval_model)
+            if hasattr(torch.jit, '_script_pdt'):
+                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
+                self.eval_model = torch.jit._script_pdt(self.eval_model)
+            else:
+                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
+                self.eval_model = torch.jit.script(self.eval_model)
             # model needs to in `eval`
             # in order to be optimized for inference
             self.eval_model.eval()
