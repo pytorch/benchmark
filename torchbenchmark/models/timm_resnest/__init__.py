@@ -10,12 +10,16 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False, variant='resnest14d', precision='float32'):
+    def __init__(self, device=None, jit=False,
+                 variant='resnest14d', precision='float32',
+                 eval_bs=1, train_bs=64):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
+        self.example_inputs = self._gen_input(train_bs)
+        self.infer_example_inputs = self._gen_input(eval_bs)
         self.model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
@@ -35,7 +39,9 @@ class Model(BenchmarkModel):
             self.eval_model = torch.jit.script(self.eval_model)
             assert isinstance(self.eval_model, torch.jit.ScriptModule)
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
-    
+
+    def _gen_input(self, batch_size):
+        return torch.randn((batch_size,) + self.cfg.input_size, device=self.device, dtype=self.cfg.data_dtype)
 
     def _gen_target(self, batch_size):
         return torch.empty(
@@ -44,7 +50,7 @@ class Model(BenchmarkModel):
 
     def _step_train(self):
         self.cfg.optimizer.zero_grad()
-        output = self.model(self.cfg.example_inputs)
+        output = self.model(self.example_inputs)
         if isinstance(output, tuple):
             output = output[0]
         target = self._gen_target(output.shape[0])
@@ -58,10 +64,10 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.cfg.infer_example_inputs)
+        output = self.eval_model(self.infer_example_inputs)
 
     def get_module(self):
-        return self.model, (self.cfg.example_inputs,)
+        return self.model, (self.example_inputs,)
 
     def train(self, niter=1):
         self.model.train()
