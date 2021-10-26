@@ -307,8 +307,10 @@ class ModelTask(base_task.TaskBase):
     def check_details_train(self, device, md) -> None:
         self.extract_details_train()
         if device == 'cuda':
-            assert(md["train_benchmark"] == self._details.metadata["train_benchmark"])
-            assert(md["train_deterministic"] == self._details.metadata["train_deterministic"])
+            assert md["train_benchmark"] == self._details.metadata["train_benchmark"], \
+                "torch.backends.cudnn.benchmark does not match expect metadata during training."
+            assert md["train_deterministic"] == self._details.metadata["train_deterministic"], \
+                "torch.backends.cudnn.deterministic does not match expect metadata during training."
 
     def extract_details_eval(self) -> None:
         self._details.metadata["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
@@ -321,9 +323,12 @@ class ModelTask(base_task.TaskBase):
     def check_details_eval(self, device, md) -> None:
         self.extract_details_eval()
         if device == 'cuda':
-            assert(md["eval_benchmark"] == self._details.metadata["eval_benchmark"])
-            assert(md["eval_deterministic"] == self._details.metadata["eval_deterministic"])
-        assert(md["eval_nograd"] == self._details.metadata["eval_nograd"])
+            assert md["eval_benchmark"] == self._details.metadata["eval_benchmark"], \
+                "torch.backends.cudnn.benchmark does not match expect metadata during eval."
+            assert md["eval_deterministic"] == self._details.metadata["eval_deterministic"], \
+                "torch.backends.cudnn.deterministic does not match expect metadata during eval."
+        assert md["eval_nograd"] == self._details.metadata["eval_nograd"], \
+            "torch.is_grad_enabled does not match expect metadata during eval."
 
     def check_opt_vs_noopt_jit(self) -> None:
         self.worker.run("model.check_opt_vs_noopt_jit()")
