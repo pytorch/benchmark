@@ -21,5 +21,51 @@ jobs:
           conda activate ${{ env.CONDA_ENV }}
           conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses tabulate gitpython
           # Install pytorch nightly
-          conda install -y -c pytorch-nightly torchtext torchvision cudatoolkit=10.2
+          conda install -y -c pytorch-nightly pytorch torchtext torchvision cudatoolkit=10.2
+          # Install Torchbench dependencies
           python install.py
+          mkdir -p logs/
+      - name: Run eval batch test
+        run: |
+          # Try block size 0 - 256
+          conda activate ${{ env.CONDA_ENV }}
+          echo "" > logs/eval-batch-test.log
+          for bs in `seq 0 8`; do
+            BATCH_SIZE=$((2 ** $bs))
+            echo "Running eval batch test, bs=${BLOCK_SIZE}" >> logs/eval-batch-test.log
+            MODEL_NAME=$(python .github/scripts/process-profile-pr.py --body pr-body)
+            # run.py may fail because of CUDA OOM, but it shouldn't matter to our test
+            python run.py "${MODEL_NAME}" -t eval -d cuda --bs "${BATCH_SIZE}" >> logs/eval-batch-test.log || true
+          done
+          python .github/scripts/process-profile-pr.py --log logs/eval-batch-test.log | tee logs/eval-batch-result.log
+      - name: Profile eval test
+        run: |
+          conda activate ${{ env.CONDA_ENV }}
+          python run.py "${MODEL_NAME}" -t eval -d cuda --profile
+          python run.py "${MODEL_NAME}" -t eval -d cuda --profile --profile-devices=cpu,cuda
+      - name: Run train batch test
+        run: |
+          # Try block size 0 - 256
+          conda activate ${{ env.CONDA_ENV }}
+          echo "" > logs/train-batch-test.log
+          for bs in `seq 0 8`; do
+            BATCH_SIZE=$((2 ** $bs))
+            echo "Running train batch test, bs=${BLOCK_SIZE}" >> logs/train-batch-test.log
+            MODEL_NAME=$(python .github/scripts/process-profile-pr.py --body pr-body)
+            # run.py may fail because of CUDA OOM, but it shouldn't matter to our test
+            python run.py "${MODEL_NAME}" -t train -d cuda --bs "${BATCH_SIZE}" >> logs/train-batch-test.log || true
+          done
+          python .github/scripts/process-profile-pr.py --log logs/eval-batch-test.log | tee logs/train-batch-result.log
+      - name: Profile train test
+        run: |
+          conda activate ${{ env.CONDA_ENV }}
+          python run.py "${MODEL_NAME}" -t train -d cuda --profile
+          python run.py "${MODEL_NAME}" -t train -d cuda --profile --profile-devices=cpu,cuda
+      - name: Upload result to artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Profile result
+          path: logs/
+      - name: Destroy conda env
+        run: |
+          conda env remove --name ${{ env.CONDA_ENV }}
