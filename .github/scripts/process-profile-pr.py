@@ -11,41 +11,39 @@ def _parse_pr_body(body):
         print(magic_lines[0][len(MAGIC_PREFIX):].strip())
 
 def _parse_batch_test_log(log):
-    batches = []
-    batch_test_result = {}
+    batch_test_result = []
     regex_keys = ["bs", "gpu", "cpu_dispatch", "cpu_total"]
     regex_dict = {
         "bs": re.compile('batch test, bs=([0-9]+)'),
-        "gpu": re.compile('GPU Time: ([0-9.]+) milliseconds'),
-        "cpu_dispatch": re.compile('CPU Dispatch Time: ([0-9.]+) milliseconds'),
-        "cpu_total": re.compile('CPU Total Wall Time: ([0-9.]+) milliseconds')
+        "gpu": re.compile('GPU Time:\s*([0-9.]+) milliseconds'),
+        "cpu_dispatch": re.compile('CPU Dispatch Time:\s*([0-9.]+) milliseconds'),
+        "cpu_total": re.compile('CPU Total Wall Time:\s*([0-9.]+) milliseconds')
     }
     for line in log.splitlines():
-       groups = list(map(lambda x: regex_dict[x].search(line), regex_keys))
-       if len(groups[0]):
-           batches.append(int(groups[0][1]))
-           batch_test_result[batches[-1]] = {}
-       for x in range(1, len(groups)):
-           batch_test_result[batches[-1]][regex_keys[x]] = float(groups[x][1])
-    print(_visualize_batch_test_result(batches, regex_keys, batch_test_result))
+       matches = list(map(lambda x: None if not regex_dict[x].search(line) else regex_dict[x].search(line).groups(), regex_keys))
+       for x in range(len(matches)):
+           if matches[x]:
+               if x == 0:
+                   batch_test_result.append({})
+               batch_test_result[-1][regex_keys[x]] = float(matches[x][0])
+    print(_visualize_batch_test_result(regex_keys, batch_test_result))
 
-def _visualize_batch_test_result(batches, keys, result):
+def _visualize_batch_test_result(keys, result):
     output = [["Batch Size", "GPU Time", "CPU Dispatch Time", "Walltime", "GPU Delta"]]
-    for index, batch in enumerate(batches):
+    for index, res in enumerate(result):
         r = []
-        r.append(batch)
         for k in keys:
-            r.append(result[batch][k])
-        delta = '-' if index == 0 else str((result[batch]["gpu"] - result[batches[index-1]]["gpu"]) / result[batches[index-1]]["gpu"])
+            r.append(res[k])
+        delta = '-' if index == 0 else str((res["gpu"] - result[index-1]["gpu"]) / result[index-1]["gpu"])
         r.append(delta)
         output.append(r)
-    return tabulate(output, headers='firstrow')
+    return tabulate.tabulate(output, headers='firstrow')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--pr-body", type=argparse.FileType("r"))
     parser.add_argument("--log", type=argparse.FileType("r"))
-    args = parser.parse_arguments()
+    args = parser.parse_args()
     if args.pr_body:
         body = args.pr_body.read()
         _parse_pr_body(body)
