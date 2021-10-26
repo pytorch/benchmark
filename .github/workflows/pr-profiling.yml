@@ -7,7 +7,7 @@ env:
 
 jobs:
   profile-model:
-    if: ${{ github.repository_owner == 'pytorch' && contains(github.event.pull_request.body, 'PROFILE_MODEL:') }}
+    if: ${{ github.repository_owner == 'pytorch' }}
     # List of available instances available in pytorch/.github/scale-config.yml
     runs-on: linux.8xlarge.nvidia.gpu
     # 2 hours
