@@ -138,6 +138,7 @@ if __name__ == "__main__":
                         help="Profiling comma separated list of activities such as cpu,cuda.")
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
+    parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
     args = parser.parse_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -156,7 +157,18 @@ if __name__ == "__main__":
         exit(-1)
 
     # build the model and get the chosen test method
-    m = Model(device=args.device, jit=(args.mode == "jit"))
+    if args.bs:
+        try:
+            if args.test == "eval":
+                m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
+            elif args.test == "train":
+                m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs)
+        except:
+            print(f"The model {args.model} doesn't support specifying batch size, please remove --bs argument in the commandline.")
+            exit(1)
+    else:
+        m = Model(device=args.device, jit=(args.mode == "jit"))
+
     test = getattr(m, args.test)
 
     if args.profile:
