@@ -48,7 +48,6 @@ def _process_model_details_to_metadata(train_detail: ModelDetails, eval_detail: 
 
 def _extract_detail(path: str) -> Dict[str, Any]:
     name = os.path.basename(path)
-    # TODO: currently this tool only supports machines with CUDA support
     device = "cuda"
     t_detail = None
     e_detail = None
@@ -161,9 +160,9 @@ if __name__ == "__main__":
         if not models:
             print(f"Unable to find model matching: {args.model}.")
             exit(-1)
-        print(f"Applying config to select models: {model_names}.")
+        print(f"Generating metadata to select models: {model_names}.")
     else:
-        print("Applying config to all models.")
+        print("Generating metadata to all models.")
 
     # Extract all model details from models.
     extracted_details = _extract_all_details(model_names)
