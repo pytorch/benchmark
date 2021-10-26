@@ -1,5 +1,6 @@
 import os
 import re
+import tabulate
 import argparse
 
 MAGIC_PREFIX = "PROFILE_MODEL: "
@@ -26,10 +27,19 @@ def _parse_batch_test_log(log):
            batch_test_result[batches[-1]] = {}
        for x in range(1, len(groups)):
            batch_test_result[batches[-1]][regex_keys[x]] = float(groups[x][1])
-    print(_visualize_batch_test_result(batch_test_result))
+    print(_visualize_batch_test_result(batches, regex_keys, batch_test_result))
 
-def _visualize_batch_test_result():
-    pass
+def _visualize_batch_test_result(batches, keys, result):
+    output = [["Batch Size", "GPU Time", "CPU Dispatch Time", "Walltime", "GPU Delta"]]
+    for index, batch in enumerate(batches):
+        r = []
+        r.append(batch)
+        for k in keys:
+            r.append(result[batch][k])
+        delta = '-' if index == 0 else str((result[batch]["gpu"] - result[batches[index-1]]["gpu"]) / result[batches[index-1]]["gpu"])
+        r.append(delta)
+        output.append(r)
+    return tabulate(output, headers='firstrow')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
