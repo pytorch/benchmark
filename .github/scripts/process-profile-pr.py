@@ -43,14 +43,12 @@ def _visualize_batch_test_result(batches, keys, result):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pr-body", type=exist_file)
-    parser.add_argument("--log", type=exist_file)
+    parser.add_argument("--pr-body", type=argparse.FileType("r"))
+    parser.add_argument("--log", type=argparse.FileType("r"))
     args = parser.parse_arguments()
     if args.pr_body:
-        with open(args.pr_body, "r") as body_file:
-            body = body_file.read()
+        body = args.pr_body.read()
         _parse_pr_body(body)
     if args.log:
-        with open(args.log, "r") as log_file:
-            log = log_file.read()
+        log = args.log.read()
         _parse_batch_test_log(log)
