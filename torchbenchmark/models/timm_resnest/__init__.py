@@ -12,7 +12,7 @@ class Model(BenchmarkModel):
 
     def __init__(self, device=None, jit=False,
                  variant='resnest14d', precision='float32',
-                 eval_bs=1, train_bs=64):
+                 eval_bs=4, train_bs=4):
         super().__init__()
         self.device = device
         self.jit = jit
