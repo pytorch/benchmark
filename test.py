@@ -10,9 +10,10 @@ import os
 import traceback
 import unittest
 from unittest.mock import patch
+import yaml
 
 import torch
-from torchbenchmark import _list_model_paths, ModelTask
+from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
 
 
 # Some of the models have very heavyweight setup, so we have to set a very
@@ -58,17 +59,20 @@ def _load_test(path, device):
                 self.skipTest('Method get_module is not implemented, skipping...')
 
     def train(self):
+        metadata = get_metadata_from_yaml(path)
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(device=device, jit=False)
                 task.set_train()
                 task.train()
+                task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method train is not implemented, skipping...')
 
     def eval_fn(self):
+        metadata = get_metadata_from_yaml(path)
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
@@ -79,6 +83,7 @@ def _load_test(path, device):
 
                 task.set_eval()
                 task.eval()
+                task.check_details_eval(device=device, md=metadata)
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest('Method eval is not implemented, skipping...')

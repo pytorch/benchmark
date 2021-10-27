@@ -17,6 +17,7 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
+
     def __init__(self, device=None, jit=False):
         super().__init__()
 
