@@ -11,7 +11,7 @@ class Model(BenchmarkModel):
     optimized_for_inference = True
 
     def __init__(self, device=None, jit=False,
-                 variant='regnety_002', precision='float32',
+                 variant='regnety_016', precision='float32',
                  eval_bs=64, train_bs=32):
         super().__init__()
         self.device = device
