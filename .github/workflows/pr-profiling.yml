@@ -11,7 +11,7 @@ jobs:
   profile-model:
     if: ${{ github.repository_owner == 'pytorch' }}
     # List of available instances available in pytorch/.github/scale-config.yml
-    runs-on: linux.8xlarge.nvidia.gpu
+    runs-on: linux.4xlarge.nvidia.gpu
     # 2 hours
     timeout-minutes: 120
     steps:
@@ -40,7 +40,7 @@ jobs:
             # run.py may fail because of CUDA OOM, but it shouldn't matter to our test
             python run.py "${MODEL_NAME}" -t eval -d cuda --bs "${BATCH_SIZE}" >> logs/eval-batch-test.log || true
           done
-          python .github/scripts/process-profile-pr.py --log logs/eval-batch-test.log | tee logs/eval-batch-result.log
+          python .github/scripts/process-profile-pr.py --log logs/eval-batch-test.log --csv | tee logs/eval-batch-result.log
       - name: Profile eval test
         run: |
           conda activate ${{ env.CONDA_ENV }}
@@ -58,7 +58,7 @@ jobs:
             # run.py may fail because of CUDA OOM, but it shouldn't matter to our test
             python run.py "${MODEL_NAME}" -t train -d cuda --bs "${BATCH_SIZE}" >> logs/train-batch-test.log || true
           done
-          python .github/scripts/process-profile-pr.py --log logs/eval-batch-test.log | tee logs/train-batch-result.log
+          python .github/scripts/process-profile-pr.py --log logs/eval-batch-test.log --csv | tee logs/train-batch-result.log
       - name: Profile train test
         run: |
           conda activate ${{ env.CONDA_ENV }}
@@ -67,7 +67,7 @@ jobs:
       - name: Upload result to artifact
         uses: actions/upload-artifact@v2
         with:
-          name: Profile result
+          name: Profiling result
           path: logs/
       - name: Destroy conda env
         run: |
