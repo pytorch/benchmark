@@ -191,6 +191,6 @@ if __name__ == "__main__":
     with open(args.out, "w") as fo:
         yaml.dump(result, fo)
     # If there is at least one regressing test, setup the Bisection GitHub Action workflow
-    if args.github_issue and "tests" in result:
+    if args.github_issue and "tests" in result and len(result["tests"]):
         setup_gh_env(result["end_version"])
         generate_gh_issue(args.github_issue, result)
