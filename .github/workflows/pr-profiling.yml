@@ -11,7 +11,7 @@ jobs:
   profile-model:
     if: ${{ github.repository_owner == 'pytorch' }}
     # List of available instances available in pytorch/.github/scale-config.yml
-    runs-on: linux.4xlarge.nvidia.gpu
+    runs-on: g3.4xlarge
     # 2 hours
     timeout-minutes: 120
     steps:
