@@ -67,18 +67,18 @@ class Model(BenchmarkModel):
         output = self.eval_model(self.infer_example_inputs)
 
     def get_module(self):
-        self.example_inputs.to(self.device)
+        self.example_inputs = self.example_inputs.to(device=self.device)
         return self.model, (self.example_inputs,)
 
     def train(self, niter=1):
         self.model.train()
-        self.example_inputs.to(self.device)
+        self.example_inputs = self.example_inputs.to(device=self.device)
         for _ in range(niter):
             self._step_train()
 
     def eval(self, niter=1):
         self.model.eval()
-        self.infer_example_inputs.to(self.device)
+        self.infer_example_inputs = self.infer_example_inputs.to(device=self.device)
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
