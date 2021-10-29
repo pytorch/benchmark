@@ -35,6 +35,12 @@ jobs:
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"
+          cp -r "${BISECT_BASE}" ./bisection-result
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Bisection result
+          path: bisection-result/
       - name: Remove conda environment
         run: |
           conda env remove --name "$BISECT_CONDA_ENV"
