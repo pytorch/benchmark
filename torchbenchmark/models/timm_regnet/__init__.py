@@ -76,7 +76,6 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             self._step_train()
 
-    # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1):
         self.model.eval()
         self.infer_example_inputs.to(self.device)

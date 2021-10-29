@@ -12,7 +12,7 @@ class Model(BenchmarkModel):
 
     def __init__(self, device=None, jit=False,
                  variant='resnest14d', precision='float32',
-                 eval_bs=4, train_bs=4):
+                 eval_bs=32, train_bs=32):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -76,7 +76,6 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             self._step_train()
 
-    # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1):
         self.model.eval()
         self.infer_example_inputs.to(self.device)
