@@ -1,0 +1,36 @@
+name: TorchBench GPU model stability test
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Model Name"
+        required: true
+        default: "fastNLP_Bert"
+  pull_request:
+
+jobs:
+  stability_test:
+    env:
+      CONDA_ENV: "stability-test-ci"
+    if: ${{ github.repository_owner == 'pytorch' && (not pull_request || pull_request has )}}
+    runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 120 # 2 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Create conda environment with pytorch nightly
+        run: |
+          conda create -y -n "$BISECT_CONDA_ENV" python=3.7
+          . activate "$BISECT_CONDA_ENV"
+          conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses tabulate gitpython
+          # Install pytorch nightly
+          conda install -y -c pytorch-nightly torchtext torchvision
+          # Install torchbench dependencies
+          python install.py
+      - name: Stability test
+        run: |
+          echo ""
+      - name: Remove conda environment
+        run: |
+          conda env remove --name "$BISECT_CONDA_ENV"
+
