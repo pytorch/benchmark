@@ -52,13 +52,13 @@ jobs:
           # Run the tests
           EVAL_LOG="${TEST_HOME}/eval-${MODEL}.log"
           echo -n > "${EVAL_LOG}"
-          for $i in `seq 1 ${REPEAT}`; do
-            python run.py "${MODEL}" -t eval -d cuda >> "${EVAL_LOG}"
+          for i in `seq 1 ${REPEAT}`; do
+            python run.py "${MODEL}" -t eval -d cuda | tee "${EVAL_LOG}"
           done
           TRAIN_LOG="${TEST_HOME}/train-${MODEL}.log"
           echo -n > "${TRAIN_LOG}"
-          for $i in `seq 1 ${REPEAT}`; do
-            python run.py "${MODEL}" -t train -d cuda >> "${TRAIN_LOG}"
+          for i in `seq 1 ${REPEAT}`; do
+            python run.py "${MODEL}" -t train -d cuda | tee "${TRAIN_LOG}"
           done
           # Check the stability of GPU tests
           python ./.github/scripts/test-repeated-runs.py "${EVAL_LOG}"
