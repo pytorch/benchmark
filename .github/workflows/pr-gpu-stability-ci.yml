@@ -19,7 +19,7 @@ jobs:
       GPU_ID: "1"
       GPU_FREQ: "5001,900"
       REPEAT: "10"
-    if: ${{ github.repository_owner == 'pytorch' && (not pull_request || pull_request has )}}
+    if: ${{ (github.event.inputs.model || contains(github.event.pull_request.body, 'STABLE_TEST_MODEL:')) }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 120 # 2 hours
     steps:

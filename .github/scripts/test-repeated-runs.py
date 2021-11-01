@@ -55,7 +55,6 @@ if __name__ == "__main__":
         body = args.pr_body.read()
         model = _parse_pr_body(body)
         print(model)
-        return
     if args.log:
         log = args.log.read()
         cpu_total_times = _parse_repeated_test_log(log, args.csv)
