@@ -61,4 +61,3 @@ if __name__ == "__main__":
         if not _is_stable(cpu_total_times):
             print("GPU stability test failed. Please fix the model code and re-run the test.")
             exit(1)
-        print("GPU stability test pass!")

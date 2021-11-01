@@ -62,9 +62,11 @@ jobs:
             python run.py "${MODEL}" -t train -d cuda | tee -a "${TRAIN_LOG}"
           done
           # Check the stability of GPU tests
-          python ./.github/scripts/test-repeated-runs.py --log "${EVAL_LOG}"
-          python ./.github/scripts/test-repeated-runs.py --log "${TRAIN_LOG}"
+          python ./.github/scripts/test-repeated-runs.py --log "${EVAL_LOG}" && \
+                 echo "GPU stability test pass for inference!"
+          python ./.github/scripts/test-repeated-runs.py --log "${TRAIN_LOG}" && \
+                 echo "GPU stability test pass for train!"
       - name: Remove conda environment
         run: |
-          conda env remove --name "$BISECT_CONDA_ENV"
+          conda env remove --name "${CONDA_ENV}"
 
