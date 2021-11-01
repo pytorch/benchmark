@@ -47,7 +47,7 @@ jobs:
              MODEL=`python ./.github/scripts/test-repeated-runs.py --pr-body "${PR_BODY_FILE}"`
           fi
           # Setup nvidia gpu frequency
-          sudo nvidia-persistenced --user "${USER}"
+          sudo nvidia-persistenced --user "${USER}" || true
           sudo nvidia-smi -pm  "${GPU_ID}"
           sudo nvidia-smi -ac "${GPU_FREQ}"
           # Run the tests
