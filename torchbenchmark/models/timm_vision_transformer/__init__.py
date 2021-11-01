@@ -42,7 +42,7 @@ class Model(BenchmarkModel):
             # self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
     def _gen_input(self, batch_size):
-        return torch.randn((batch_size,) + self.cfg.input_size, device=self.device, dtype=self.data_dtype)
+        return torch.randn((batch_size,) + self.cfg.input_size, device=self.device, dtype=self.cfg.data_dtype)
 
     def _gen_target(self, batch_size):
         return torch.empty(
