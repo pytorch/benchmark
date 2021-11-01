@@ -38,6 +38,7 @@ jobs:
           python install.py
       - name: Stability test
         run: |
+          . activate "${CONDA_ENV}"
           mkdir -p "${TEST_HOME}"
           if [ -z "${MODEL}" ] ; then
              # Load PR to file
