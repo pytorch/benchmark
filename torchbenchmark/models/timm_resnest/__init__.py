@@ -41,7 +41,7 @@ class Model(BenchmarkModel):
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
     def _gen_input(self, batch_size):
-        return torch.randn((batch_size,) + self.cfg.input_size, dtype=self.cfg.data_dtype)
+        return torch.randn((batch_size,) + self.cfg.input_size, device=self.device, dtype=self.cfg.data_dtype)
 
     def _gen_target(self, batch_size):
         return torch.empty(
@@ -67,18 +67,18 @@ class Model(BenchmarkModel):
         output = self.eval_model(self.infer_example_inputs)
 
     def get_module(self):
-        self.example_inputs = self.example_inputs.to(device=self.device)
+        self.example_inputs = self.example_inputs
         return self.model, (self.example_inputs,)
 
     def train(self, niter=1):
         self.model.train()
-        self.example_inputs = self.example_inputs.to(device=self.device)
+        self.example_inputs = self.example_inputs
         for _ in range(niter):
             self._step_train()
 
     def eval(self, niter=1):
         self.model.eval()
-        self.infer_example_inputs = self.infer_example_inputs.to(device=self.device)
+        self.infer_example_inputs = self.infer_example_inputs
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
