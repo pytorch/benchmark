@@ -12,6 +12,13 @@ jobs:
   stability_test:
     env:
       CONDA_ENV: "stability-test-ci"
+      TEST_HOME: "/tmp/tb-stability-ci"
+      CUDA_VERSION: "cu102"
+      PR_BODY: ${{ github.event.pull_request.body }}
+      MODEL: ${{ github.event.inputs.model }}
+      GPU_ID: "1"
+      GPU_FREQ: "5001,900"
+      REPEAT: "10"
     if: ${{ github.repository_owner == 'pytorch' && (not pull_request || pull_request has )}}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 120 # 2 hours
@@ -20,16 +27,42 @@ jobs:
         uses: actions/checkout@v2
       - name: Create conda environment with pytorch nightly
         run: |
-          conda create -y -n "$BISECT_CONDA_ENV" python=3.7
-          . activate "$BISECT_CONDA_ENV"
-          conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses tabulate gitpython
+          conda create -y -n "${CONDA_ENV}" python=3.7
+          . activate "${CONDA_ENV}"
+          conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools \
+                           cmake cffi typing_extensions future six dataclasses tabulate gitpython
           # Install pytorch nightly
-          conda install -y -c pytorch-nightly torchtext torchvision
+          pip install --pre torch torchtext torchvision \
+          -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
           # Install torchbench dependencies
           python install.py
       - name: Stability test
         run: |
-          echo ""
+          mkdir -p "${TEST_HOME}"
+          if [ -z "${MODEL}" ] ; then
+             # Load PR to file
+             PR_BODY_FILE="${TEST_HOME}"/pr-body.txt
+             echo "${PR_BODY}" > "${PR_BODY_FILE}"
+             MODEL=`python ./.github/scripts/test-repeated-runs.py --pr-body "${PR_BODY_FILE}"`
+          fi
+          # Setup nvidia gpu frequency
+          sudo nvidia-persistenced --user "${USER}"
+          sudo nvidia-smi -pm  "${GPU_ID}"
+          sudo nvidia-smi -ac "${GPU_FREQ}"
+          # Run the tests
+          EVAL_LOG="${TEST_HOME}/eval-${MODEL}.log"
+          echo -n > "${EVAL_LOG}"
+          for $i in `seq 1 ${REPEAT}`; do
+            python run.py "${MODEL}" -t eval -d cuda >> "${EVAL_LOG}"
+          done
+          TRAIN_LOG="${TEST_HOME}/train-${MODEL}.log"
+          echo -n > "${TRAIN_LOG}"
+          for $i in `seq 1 ${REPEAT}`; do
+            python run.py "${MODEL}" -t train -d cuda >> "${TRAIN_LOG}"
+          done
+          # Check the stability of GPU tests
+          python ./.github/scripts/test-repeated-runs.py "${EVAL_LOG}"
+          python ./.github/scripts/test-repeated-runs.py "${TRAIN_LOG}"
       - name: Remove conda environment
         run: |
           conda env remove --name "$BISECT_CONDA_ENV"
