@@ -14,10 +14,17 @@ except ImportError:
     from torchtext.data import Field, Dataset, BucketIterator
     from torchtext.datasets import TranslationDataset
 
-from .transformer import Constants
-from .transformer.Models import Transformer
-from .transformer.Optim import ScheduledOptim
-from .train import prepare_dataloaders, cal_performance, patch_src, patch_trg
+import sys
+import os
+current_dir = os.path.dirname(__file__)
+attention_path = os.path.join(current_dir, "attention")
+sys.path.insert(0, attention_path)
+from .attention.transformer import Constants
+from .attention.transformer.Models import Transformer
+from .attention.transformer.Optim import ScheduledOptim
+from .attention.train import prepare_dataloaders, cal_performance, patch_src, patch_trg
+sys.path.remove(attention_path)
+
 import random
 import numpy as np
 from pathlib import Path
