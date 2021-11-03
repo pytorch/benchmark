@@ -14,13 +14,15 @@ from torchbenchmark.tasks import COMPUTER_VISION
 #######################################################
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=32):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.mobilenet_v3_large().to(self.device)
         self.eval_model = models.mobilenet_v3_large().to(self.device)
 
+        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
+        self.infer_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
         if self.jit:
             self.model = torch.jit.script(self.model)
             self.eval_model = torch.jit.script(self.eval_model)
@@ -28,7 +30,6 @@ class Model(BenchmarkModel):
             # in order to be optimized for inference
             self.eval_model.eval()
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
 
     def get_module(self):
         return self.model, self.example_inputs
@@ -51,8 +52,7 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         model = self.eval_model
-        example_inputs = self.example_inputs
-        example_inputs = example_inputs[0]
+        example_inputs = self.infer_example_inputs
         for i in range(niter):
             model(example_inputs)
 
