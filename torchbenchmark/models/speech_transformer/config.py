@@ -4,14 +4,14 @@ import torch
 import kaldi_io
 import dataclasses
 
-from decoder import Decoder
-from encoder import Encoder
-from transformer import Transformer
-from transformer.optimizer import TransformerOptimizer
-from transformer.loss import cal_performance
-from utils import add_results_to_json, process_dict, IGNORE_ID
-from data import build_LFR_features
-from data import AudioDataLoader, AudioDataset
+from .speech_transformer.transformer.decoder import Decoder
+from .speech_transformer.transformer.encoder import Encoder
+from .speech_transformer.transformer import Transformer
+from .speech_transformer.transformer.optimizer import TransformerOptimizer
+from .speech_transformer.transformer.loss import cal_performance
+from .speech_transformer.utils import add_results_to_json, process_dict, IGNORE_ID
+from .speech_transformer.data import build_LFR_features
+from .speech_transformer.data import AudioDataLoader, AudioDataset
 
 @dataclasses.dataclass
 class SpeechTransformerTrainConfig:
