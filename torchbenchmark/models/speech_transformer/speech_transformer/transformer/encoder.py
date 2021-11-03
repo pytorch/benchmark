@@ -1,8 +1,8 @@
 import torch.nn as nn
 
-from attention import MultiHeadAttention
-from module import PositionalEncoding, PositionwiseFeedForward
-from utils import get_non_pad_mask, get_attn_pad_mask
+from .attention import MultiHeadAttention
+from .module import PositionalEncoding, PositionwiseFeedForward
+from ..utils import get_non_pad_mask, get_attn_pad_mask
 
 
 class Encoder(nn.Module):
