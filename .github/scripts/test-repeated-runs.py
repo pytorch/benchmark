@@ -31,7 +31,7 @@ def _parse_repeated_test_log(log, csv):
     return cpu_total_times
 
 def _visualize_repeated_test_result(keys, result, csv):
-    output = [["Run Number", "GPU Time", "CPU Dispatch Time", "Walltime"]]
+    output = [["Run Number", "GPU Time", "CPU Dispatch Time", "Wall Time"]]
     for index, res in enumerate(result):
         r = [index]
         for k in keys:
