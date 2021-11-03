@@ -7,9 +7,9 @@ MAGIC_PREFIX = "STABLE_TEST_MODEL: "
 THRESHOLD = 7
 
 def _parse_pr_body(body):
-    magic_lines = list(filter(lambda x: MAGIC_PREFIX in x, body.splitlines()))
+    magic_lines = list(filter(lambda x: MAGIC_PREFIX == x[:len(MAGIC_PREFIX)], body.splitlines()))
     if len(magic_lines):
-        return magic_lines[0][len(MAGIC_PREFIX):].strip()
+        return magic_lines[-1][len(MAGIC_PREFIX):].strip()
 
 def _parse_repeated_test_log(log, csv):
     repeated_test_result = []
