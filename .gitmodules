@@ -16,3 +16,6 @@
 [submodule "third_party/tbb"]
 	path = legacy/third_party/tbb
 	url = https://github.com/01org/tbb
+[submodule "torchbenchmark/models/maskrcnn/maskrcnn-benchmark"]
+	path = torchbenchmark/models/maskrcnn/maskrcnn-benchmark
+	url = https://github.com/facebookresearch/maskrcnn-benchmark.git
