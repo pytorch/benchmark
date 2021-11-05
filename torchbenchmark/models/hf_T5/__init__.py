@@ -29,7 +29,7 @@ class Model(BenchmarkModel):
         self.jit = jit
 
         torch.manual_seed(42)
-        config = AutoConfig.from_pretrained("t5-small")
+        config = AutoConfig.from_pretrained("t5-base")
         self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
@@ -83,4 +83,3 @@ if __name__ == "__main__":
     m.eval(niter=1)
     torch.cuda.synchronize()
     print(time.time()-begin)
-    
