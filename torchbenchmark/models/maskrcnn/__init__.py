@@ -10,7 +10,7 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
 from .prefetcher import Prefetcher
-from .maskrcnn_benchmark.config import cfg
+from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.solver import make_lr_scheduler
 from maskrcnn_benchmark.solver import make_optimizer
