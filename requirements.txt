@@ -1,4 +1,5 @@
 bs4
+patch
 py-cpuinfo
 distro
 iopath
@@ -9,3 +10,4 @@ tabulate
 timm == 0.4.5
 MonkeyType
 psutil
+pyyaml

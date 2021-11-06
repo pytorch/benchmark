@@ -1,4 +1,3 @@
-classes=80
-train=../coco/trainvalno5k.txt
-valid=../coco/5k.txt
-names=data/coco.names
+version https://git-lfs.github.com/spec/v1
+oid sha256:9ad2b2f7521d449cfee0320f983111d79a52944c47b13832fb4452d119fc8bf4
+size 85

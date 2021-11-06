@@ -215,7 +215,7 @@ def add_gym_args(parser):
     """
     Add a --env_id cl flag to an argparser
     """
-    parser.add_argument("--env_id", type=str, default="Pendulum-v0")
+    parser.add_argument("--env_id", type=str, default="Pendulum-v1")
     parser.add_argument("--seed", type=int, default=123)
 
 

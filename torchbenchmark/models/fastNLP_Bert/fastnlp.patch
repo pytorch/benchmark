@@ -1,0 +1,24 @@
+diff --git a/fastNLP/embeddings/bert_embedding.py b/fastNLP/embeddings/bert_bmbedding.py
+index c57d2be..caeb3ed 100644
+--- a/fastNLP/embeddings/bert_embedding.py
++++ b/fastNLP/embeddings/bert_bmbedding.py
+@@ -21,7 +21,7 @@ from .contextual_embedding import ContextualEmbedding
+ from ..core import logger
+ from ..core.vocabulary import Vocabulary
+ from ..io.file_utils import PRETRAINED_BERT_MODEL_DIR
+-from ..modules.encoder.bert import BertModel
++from ..modules.encoder.bert import BertModel, BertConfig
+ from ..modules.tokenizer import BertTokenizer
+ 
+ # TODO 需要重新修改，使得encoder可以直接读取embedding的权重
+@@ -387,9 +387,7 @@ class _BertWordModel(nn.Module):
+                 pos_num_output_layer = max(layer, pos_num_output_layer)
+ 
+         self.tokenzier = BertTokenizer.from_pretrained(model_dir_or_name)
+-        self.encoder = BertModel.from_pretrained(model_dir_or_name,
+-                                                 neg_num_output_layer=neg_num_output_layer,
+-                                                 pos_num_output_layer=pos_num_output_layer)
++        self.encoder = BertModel(config=BertConfig.from_json_file(os.environ["TORCHBENCH_FASTNLP_CONFIG_PATH"]))
+         self._max_position_embeddings = self.encoder.config.max_position_embeddings
+         #  检查encoder_layer_number是否合理
+         encoder_layer_number = len(self.encoder.encoder.layer)

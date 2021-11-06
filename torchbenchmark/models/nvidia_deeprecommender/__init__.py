@@ -18,34 +18,37 @@ from .nvtrain import DeepRecommenderTrainBenchmark
 from .nvinfer import DeepRecommenderInferenceBenchmark
 
 class Model(BenchmarkModel):
-  
+
   task = RECOMMENDATION.RECOMMENDATION
-  
+
   def __init__(self, device="cpu", jit=False):
     super().__init__()
-    self.device_name = device
+    self.device = device
     self.not_implemented_reason = "Implemented"
     self.eval_mode = True #default to inference
 
     if jit:
       self.not_implemented_reason = "Jit Not Supported"
 
-    elif self.device_name != "cpu" and self.device_name != "cuda":
+    elif self.device != "cpu" and self.device != "cuda":
       self.not_implemented_reason = "device type not supported"
 
-    elif self.device_name == "cuda" and torch.cuda.is_available() == False:
+    elif self.device == "cuda" and torch.cuda.is_available() == False:
       self.not_implemented_reason = "cuda not available on this device"
 
     else:
-      self.train_obj = DeepRecommenderTrainBenchmark(device = device, jit = jit)
-      self.infer_obj = DeepRecommenderInferenceBenchmark(device = device, jit = jit)
+      self.train_obj = DeepRecommenderTrainBenchmark(device = self.device, jit = jit)
+      self.infer_obj = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit)
 
   def get_module(self):
-    return self.infer_obj.rencoder, (self.infer_obj.toyinputs, )
+    if self.eval_mode:
+       return self.infer_obj.rencoder, (self.infer_obj.toyinputs,)
+
+    return self.train_obj.rencoder, (self.train_obj.toyinputs,)
 
   def set_eval(self):
     self.eval_mode = True
-    
+
   def set_train(self):
     self.eval_mode = False
 
@@ -54,13 +57,13 @@ class Model(BenchmarkModel):
 
     for i in range(niter):
       self.train_obj.train(niter)
-  
+
   def eval(self, niter=1):
     self.check_implemented()
 
     for i in range(niter):
       self.infer_obj.eval(niter)
-    
+
   def check_implemented(self):
     if self.not_implemented_reason != "Implemented":
       raise NotImplementedError(self.not_implemented_reason)

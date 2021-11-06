@@ -15,17 +15,22 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=16):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.mobilenet_v2().to(self.device)
         self.eval_model = models.mobilenet_v2().to(self.device)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
+        self.infer_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
 
         if self.jit:
-            self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-            self.eval_model = torch.jit.script(self.eval_model)
+            if hasattr(torch.jit, '_script_pdt'):
+                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
+                self.eval_model = torch.jit._script_pdt(self.eval_model)
+            else:
+                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
+                self.eval_model = torch.jit.script(self.eval_model)
             # model needs to in `eval`
             # in order to be optimized for inference
             self.eval_model.eval()
@@ -53,10 +58,9 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         model = self.eval_model
-        example_inputs = self.example_inputs
-        example_inputs = example_inputs[0][0].unsqueeze(0)
+        example_inputs = self.infer_example_inputs
         for i in range(niter):
-            model(example_inputs)
+            model(*example_inputs)
 
 
 if __name__ == "__main__":

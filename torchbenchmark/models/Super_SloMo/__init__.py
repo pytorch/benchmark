@@ -55,10 +55,13 @@ class Model(BenchmarkModel):
         trainData = (frame0.to(device),
                      frameT.to(device),
                      frame1.to(device))
-        self.example_inputs = trainFrameIndex, *trainData
+        self.example_inputs = trainFrameIndex.to(self.device), *trainData
 
         if jit:
-            self.module = torch.jit._script_pdt(self.module, example_inputs=[self.example_inputs, ])
+            if hasattr(torch.jit, '_script_pdt'):
+                self.module = torch.jit._script_pdt(self.module, example_inputs=[self.example_inputs, ])
+            else:
+                self.module = torch.jit.script(self.module, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.module, self.example_inputs

@@ -135,6 +135,8 @@ class ModelDetails:
     optimized_for_inference: bool
     _diagnostic_msg: str
 
+    metadata: Dict[str, Any]
+
     @property
     def name(self) -> str:
         return os.path.basename(self.path)
@@ -236,6 +238,7 @@ class ModelTask(base_task.TaskBase):
             "exists": Model is not None,
             "optimized_for_inference": hasattr(Model, "optimized_for_inference"),
             "_diagnostic_msg": diagnostic_msg,
+            "metadata": {}
         }
 
     # =========================================================================
@@ -297,6 +300,36 @@ class ModelTask(base_task.TaskBase):
             maybe_sync()
         """)
 
+    def extract_details_train(self) -> None:
+        self._details.metadata["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
+        self._details.metadata["train_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
+
+    def check_details_train(self, device, md) -> None:
+        self.extract_details_train()
+        if device == 'cuda':
+            assert md["train_benchmark"] == self._details.metadata["train_benchmark"], \
+                "torch.backends.cudnn.benchmark does not match expect metadata during training."
+            assert md["train_deterministic"] == self._details.metadata["train_deterministic"], \
+                "torch.backends.cudnn.deterministic does not match expect metadata during training."
+
+    def extract_details_eval(self) -> None:
+        self._details.metadata["eval_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
+        self._details.metadata["eval_deterministic"] = self.worker.load_stmt("torch.backends.cudnn.deterministic")
+        # FIXME: Models will use context "with torch.no_grad():", so the lifetime of no_grad will end after the eval().
+        # FIXME: Must incorporate this "torch.is_grad_enabled()" inside of actual eval() func.
+        # self._details.metadata["eval_nograd"] = not self.worker.load_stmt("torch.is_grad_enabled()")
+        self._details.metadata["eval_nograd"] = True
+
+    def check_details_eval(self, device, md) -> None:
+        self.extract_details_eval()
+        if device == 'cuda':
+            assert md["eval_benchmark"] == self._details.metadata["eval_benchmark"], \
+                "torch.backends.cudnn.benchmark does not match expect metadata during eval."
+            assert md["eval_deterministic"] == self._details.metadata["eval_deterministic"], \
+                "torch.backends.cudnn.deterministic does not match expect metadata during eval."
+        assert md["eval_nograd"] == self._details.metadata["eval_nograd"], \
+            "torch.is_grad_enabled does not match expect metadata during eval."
+
     def check_opt_vs_noopt_jit(self) -> None:
         self.worker.run("model.check_opt_vs_noopt_jit()")
 
@@ -310,6 +343,52 @@ class ModelTask(base_task.TaskBase):
             module(**example_inputs)
         else:
             module(*example_inputs)
+
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def check_device() -> None:
+        instance = globals()["model"]
+
+        # Check this BenchmarkModel has a device attribute.
+        current_device = getattr(instance, 'device', None)
+        if current_device is None:
+            raise RuntimeError('Missing device in BenchmarkModel.')
+
+        model, inputs = instance.get_module()
+        model_name = getattr(model, 'name', None)
+
+        # Check the model tensors are assigned to the expected device.
+        for t in model.parameters():
+            model_device = t.device.type
+            if model_device != current_device:
+                raise RuntimeError(f'Model {model_name} was not set to the'
+                                   f' expected device {current_device},'
+                                   f' found device {model_device}.')
+
+        # Check the inputs are assigned to the expected device.
+        def check_inputs(inputs):
+            if isinstance(inputs, torch.Tensor):
+                if inputs.dim() and current_device == "cuda":
+                    # Zero dim Tensors (Scalars) can be captured by CUDA
+                    # kernels and need not match device.
+                    return
+
+                inputs_device = inputs.device.type
+                if inputs_device != current_device:
+                    raise RuntimeError(f'Model {model_name} inputs were'
+                                       f' not set to the expected device'
+                                       f' {current_device}, found device'
+                                       f' {inputs_device}.')
+            elif isinstance(inputs, tuple):
+                # Some inputs are nested inside tuples, such as tacotron2
+                for i in inputs:
+                    check_inputs(i)
+            elif isinstance(inputs, dict):
+                # Huggingface models take inputs as kwargs
+                for i in inputs.values():
+                    check_inputs(i)
+
+        check_inputs(inputs)
 
     # =========================================================================
     # == Control `torch` state (in the subprocess) ============================
@@ -354,14 +433,14 @@ class ModelTask(base_task.TaskBase):
         self.worker.run("torch.cuda.empty_cache()")
 
 
-def list_models_details(workers: int=1) -> List[ModelDetails]:
+def list_models_details(workers: int = 1) -> List[ModelDetails]:
     return [
         ModelTask(model_path).model_details
         for model_path in _list_model_paths()
     ]
 
 
-def list_models():
+def list_models(model_match=None):
     models = []
     for model_path in _list_model_paths():
         model_name = os.path.basename(model_path)
@@ -376,5 +455,21 @@ def list_models():
             continue
         if not hasattr(Model, 'name'):
             Model.name = model_name
-        models.append(Model)
+
+        # If given model_match, only return full or partial name matches in models.
+        if model_match is None:
+            models.append(Model)
+        else:
+            if model_match.lower() in Model.name.lower():
+                models.append(Model)
     return models
+
+
+def get_metadata_from_yaml(path):
+    import yaml
+    metadata_path = path + "/metadata.yaml"
+    md = None
+    if os.path.exists(metadata_path):
+        with open(metadata_path, 'r') as f:
+            md = yaml.load(f, Loader=yaml.FullLoader)
+    return md

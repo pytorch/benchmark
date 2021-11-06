@@ -1,10 +1,13 @@
 .benchmarks
+.vscode/
 .data
 */**/__pycache__
 */**/*.pyc
 *.out*
 *.swp
 *.swo
+*~HEAD
+.DS_Store
 build/
 .ipynb_checkpoints/
 .idea
@@ -12,7 +15,7 @@ old.json
 te.json
 Video_data_train_processed.csv
 labels.json
-results.png
 results.txt
-train_batch0.jpg
 checkpoints
+logs/
+scripts/scribe.py

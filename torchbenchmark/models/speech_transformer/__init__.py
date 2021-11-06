@@ -7,17 +7,10 @@
 # S0002.tar.gz, S0757.tar.gz, S0915.tar.gz
 # 
 import os
-import sys
 import torch
 
-# Add the current path to sys.path
-dir_path = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(dir_path)
-sys.path.append(os.path.join(dir_path, "transformer"))
-sys.path.append(os.path.join(dir_path, "utils"))
-
+from .config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from ...util.model import BenchmarkModel
-from config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from torchbenchmark.tasks import SPEECH
 
 class Model(BenchmarkModel):

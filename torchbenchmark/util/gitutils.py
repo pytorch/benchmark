@@ -111,9 +111,9 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
         print(f"Failed to checkout commit f{commit} in repo {repo}")
         return False
 
-def update_git_repo(repo: str) -> bool:
+def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
-        command = "git checkout master && git pull origin master"
+        command = f"git checkout {branch} && git pull origin {branch}"
         subprocess.run(command, cwd=repo, shell=True)
         command = f"git submodule sync &> /dev/null && git submodule update --init --recursive &> /dev/null"
         subprocess.run(command, cwd=repo, shell=True)

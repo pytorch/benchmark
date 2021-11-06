@@ -96,8 +96,12 @@ class Model(BenchmarkModel):
         # We use validation_data for training as well so that it can finish fast enough.
         self.example_inputs = (src_seq, trg_seq)
         if self.jit:
-            transformer = torch.jit._script_pdt(transformer, example_inputs = [self.example_inputs, ])
-            self.eval_model = torch.jit._script_pdt(self.eval_model, example_inputs = [self.example_inputs, ])
+            if hasattr(torch.jit, '_script_pdt'):
+                transformer = torch.jit._script_pdt(transformer, example_inputs = [self.example_inputs, ])
+                self.eval_model = torch.jit._script_pdt(self.eval_model, example_inputs = [self.example_inputs, ])
+            else:
+                transformer = torch.jit.script(transformer, example_inputs = [self.example_inputs, ])
+                self.eval_model = torch.jit.script(self.eval_model, example_inputs = [self.example_inputs, ])
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
         self.module = transformer
 

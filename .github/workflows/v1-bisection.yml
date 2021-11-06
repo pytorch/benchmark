@@ -14,6 +14,7 @@ jobs:
       BISECT_DIR: ".torchbench/v1-bisection-ci"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -23,7 +24,10 @@ jobs:
         run: |
           conda create -y -n "$BISECT_CONDA_ENV" python=3.7
           . activate "$BISECT_CONDA_ENV"
-          conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses tabulate
+          conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses tabulate gitpython
+          # Install pytorch nightly
+          conda install -y -c pytorch-nightly torchtext torchvision
+          python install.py
       - name: Bisection
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
@@ -31,6 +35,12 @@ jobs:
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"
+          cp -r "${BISECT_BASE}" ./bisection-result
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Bisection result
+          path: bisection-result/
       - name: Remove conda environment
         run: |
           conda env remove --name "$BISECT_CONDA_ENV"

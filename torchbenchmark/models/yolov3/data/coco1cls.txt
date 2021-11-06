@@ -1,16 +1,3 @@
-../coco/images/train2017/000000000901.jpg
-../coco/images/train2017/000000001464.jpg
-../coco/images/train2017/000000003220.jpg
-../coco/images/train2017/000000003365.jpg
-../coco/images/train2017/000000004772.jpg
-../coco/images/train2017/000000009987.jpg
-../coco/images/train2017/000000010498.jpg
-../coco/images/train2017/000000012455.jpg
-../coco/images/train2017/000000013992.jpg
-../coco/images/train2017/000000014125.jpg
-../coco/images/train2017/000000016314.jpg
-../coco/images/train2017/000000016670.jpg
-../coco/images/train2017/000000018412.jpg
-../coco/images/train2017/000000021212.jpg
-../coco/images/train2017/000000021826.jpg
-../coco/images/train2017/000000030566.jpg
+version https://git-lfs.github.com/spec/v1
+oid sha256:98f87ec96a5b28c16b4e10f1cd3b149b83f9d0525ce8835a4eb097810c14d112
+size 672
