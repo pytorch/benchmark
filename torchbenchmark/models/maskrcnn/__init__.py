@@ -6,6 +6,7 @@ import torch
 import os
 import yaml
 import random
+import numpy as np
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
@@ -35,11 +36,11 @@ torch.backends.cudnn.benchmark = False
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
-    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=1):
+    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=1, config="coco2017_config.yaml"):
         self.device = device
         self.jit = jit
-        self.backbone = torchvision.models.mobilenet_v2(pretrained=True).features
-        self.backbone.out_channels = 1280
+        backbone = torchvision.models.mobilenet_v2(pretrained=True).features
+        backbone.out_channels = 1280
         anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
                                                 aspect_ratios=((0.5, 1.0, 2.0),))
         roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
@@ -51,23 +52,25 @@ class Model(BenchmarkModel):
         self.model = MaskRCNN(backbone, num_classes=2,
                               rpn_anchor_generator=anchor_generator,
                               box_roi_pool=roi_pooler,
-                              mask_roi_poll=mask_roi_pooler).to(self.device)
+                              mask_roi_pool=mask_roi_pooler).to(self.device)
         # Generate inputs
-        with open(coco2017_config, "r") as cc2017:
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, config), "r") as cc2017:
             self.cfg = yaml.safe_load(cc2017)
         self.example_inputs = self._gen_inputs(train_bs)
         self.example_targets = self._gen_targets(train_bs)
-        self.infer_example_inputs = self._gen_input(eval_bs)
+        self.infer_example_inputs = self._gen_inputs(eval_bs)
+        print(self.infer_example_inputs[0].size())
 
     def _gen_inputs(self, batch_size):
-        return torch.rand(batch_size, self.cfg.C, self.cfg.W, self.cfg.H)
+        return torch.rand(size=(batch_size, self.cfg['C'], self.cfg['H'], self.cfg['W']), device=self.device)
 
     def _gen_targets(self, batch_size):
         targets = {}
-        targets["boxes"] = torch.rand(batch_size, 4)
-        targets["labels"] = torch.randint(batch_size)
-        targets["scores"] = torch.rand(batch_size)
-        targets["masks"] = torch.randint(batch_size, 1, self.cfg.H, self.cfg.W)
+        # targets["boxes"] = torch.rand(batch_size, 4).to(self.device)
+        # targets["labels"] = torch.randint(batch_size).to(self.device)
+        # targets["scores"] = torch.rand(batch_size).to(self.device)
+        # targets["masks"] = torch.randint(batch_size, 1, self.cfg['H'], self.cfg['W']).to(self.device)
         return targets
         
     def train(self, niter=1):
@@ -90,9 +93,10 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.jit:
             return NotImplementedError("JIT is not supported by this model")
+        self.model.eval()
         for iter in range(niter):
             for image in self.infer_example_inputs:
-                model(image)
+                self.model(image)
 
 if __name__ == "__main__":
     pass
