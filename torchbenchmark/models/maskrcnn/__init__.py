@@ -71,6 +71,8 @@ class Model(BenchmarkModel):
         return targets
         
     def train(self, niter=1):
+        if self.jit:
+            return NotImplementedError("JIT is not supported by this model")
         self.model.train()
         self.optimizer.zero_grad()
         for iter in range(niter):
@@ -86,6 +88,8 @@ class Model(BenchmarkModel):
                 self.scheduler.step()
 
     def eval(self, niter=1):
+        if self.jit:
+            return NotImplementedError("JIT is not supported by this model")
         for iter in range(niter):
             for image in self.infer_example_inputs:
                 model(image)
