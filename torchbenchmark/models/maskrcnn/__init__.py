@@ -60,10 +60,12 @@ class Model(BenchmarkModel):
         self.example_inputs = self._gen_inputs(train_bs)
         self.example_targets = self._gen_targets(train_bs)
         self.infer_example_inputs = self._gen_inputs(eval_bs)
-        print(self.infer_example_inputs[0].size())
 
     def _gen_inputs(self, batch_size):
-        return torch.rand(size=(batch_size, self.cfg['C'], self.cfg['H'], self.cfg['W']), device=self.device)
+        inputs = []
+        for _ in range(batch_size):
+            inputs.append(torch.rand(size=(self.cfg['C'], self.cfg['H'], self.cfg['W']), device=self.device))
+        return inputs
 
     def _gen_targets(self, batch_size):
         targets = {}
