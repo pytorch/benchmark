@@ -94,6 +94,9 @@ class Model(BenchmarkModel):
             target["masks"] = self._gen_masks(box_cnt)
             targets.append(target)
         return targets
+
+    def get_module(self):
+        return self.model, (self.example_inputs, self.example_targets, )
         
     def train(self, niter=1):
         if self.jit:
