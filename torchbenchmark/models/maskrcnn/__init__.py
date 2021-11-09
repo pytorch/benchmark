@@ -109,7 +109,6 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for iter in range(niter):
                 out = self.model(self.infer_example_inputs)
-                print(out)
 
 if __name__ == "__main__":
     pass
