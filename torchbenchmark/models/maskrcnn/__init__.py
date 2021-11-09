@@ -62,43 +62,54 @@ class Model(BenchmarkModel):
         self.infer_example_inputs = self._gen_inputs(eval_bs)
 
     def _gen_inputs(self, batch_size):
-        inputs = []
-        for _ in range(batch_size):
-            inputs.append(torch.rand(size=(self.cfg['C'], self.cfg['H'], self.cfg['W']), device=self.device))
+        inputs = torch.rand(batch_size, self.cfg['C'], self.cfg['H'], self.cfg['W'], device=self.device)
         return inputs
 
-    def _gen_targets(self, batch_size):
-        targets = {}
-        # targets["boxes"] = torch.rand(batch_size, 4).to(self.device)
-        # targets["labels"] = torch.randint(batch_size).to(self.device)
-        # targets["scores"] = torch.rand(batch_size).to(self.device)
-        # targets["masks"] = torch.randint(batch_size, 1, self.cfg['H'], self.cfg['W']).to(self.device)
+    # Generate three target boxes
+    def _gen_boxes(self):
+        return torch.tensor([
+            # Big box: 200x100
+            [0, 0, 200, 100],
+            # Medium box: 100x50
+            [230, 50, 330, 100],
+            # Small box: 50x25
+            [220, 120, 270, 145] ], dtype=torch.float64, device=self.device)
+
+    def _gen_labels(self, box_cnt):
+        return torch.tensor([1]*box_cnt, dtype=torch.int64, device=self.device)
+
+    def _gen_scores(self, box_cnt):
+        return torch.rand(box_cnt, dtype=torch.float64, device=self.device)
+
+    def _gen_masks(self, box_cnt):
+        return torch.rand(box_cnt, 1, self.cfg['H'], self.cfg['W'], dtype=torch.float64, device=self.device)
+
+    def _gen_targets(self, batch_size, box_cnt=3):
+        targets = []
+        for _ in range(batch_size):
+            target = {}
+            target["boxes"] = self._gen_boxes()
+            target["labels"] = self._gen_labels(box_cnt)
+            target["scores"] = self._gen_scores(box_cnt)
+            target["masks"] = self._gen_masks(box_cnt)
+            targets.append(target)
         return targets
         
     def train(self, niter=1):
         if self.jit:
             return NotImplementedError("JIT is not supported by this model")
         self.model.train()
-        self.optimizer.zero_grad()
         for iter in range(niter):
-            for images, targets in zip(self.example_inputs, self.example_targets):
-                # Images: input images represented as tensors
-                # Targets: the ground truth of boxes
-                loss_dict = self.model(images, targets)
-                losses = sum(loss for loss in loss_dict.values())
-                self.optimizer.backward(losses)
-                self.optimizer.step()  # This will sync
-                # post-processing
-                self.optimizer.zero_grad()
-                self.scheduler.step()
+            self.model(self.example_inputs, self.example_targets)
 
     def eval(self, niter=1):
         if self.jit:
             return NotImplementedError("JIT is not supported by this model")
         self.model.eval()
-        for iter in range(niter):
-            for image in self.infer_example_inputs:
-                self.model(image)
+        with torch.no_grad():
+            for iter in range(niter):
+                out = self.model(self.infer_example_inputs)
+                print(out)
 
 if __name__ == "__main__":
     pass
