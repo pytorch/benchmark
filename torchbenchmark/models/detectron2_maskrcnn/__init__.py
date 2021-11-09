@@ -19,7 +19,7 @@ class Model(BenchmarkModel):
        model = instantiate(model_cfg).to(self.device)
 
        # setup environment variable
-       current_dir = os.
+       current_dir = os.path.dirname(os.path.realpath(__file__))
        data_dir = os.path.join(current_dir, ".data", "detectron2_maskrcnn_benchmark_data")
        os.environ['DETECTRON2_DATASETS'] = data_dir
        data_cfg = model_zoo.get_config("commons/data/coco.py").dataloader
@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
        data_cfg.test.dataset.names = "coco_2017_val_100"
 
        train_loader = instantiate(data_cfg.train)
-       self.train_loader 
+       self.train_iterator = itertools.cycle(itertools.islice(train_loader, 100))
        test_loader = instantiate(data_cfg.test)
        self.test_iterator = itertools.cycle(itertools.islice(test_loader, 100))
 
