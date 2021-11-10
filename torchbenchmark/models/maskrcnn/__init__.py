@@ -39,20 +39,7 @@ class Model(BenchmarkModel):
     def __init__(self, device=None, jit=False, train_bs=1, eval_bs=1, config="coco2017_config.yaml"):
         self.device = device
         self.jit = jit
-        backbone = torchvision.models.mobilenet_v2(pretrained=True).features
-        backbone.out_channels = 1280
-        anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-                                                aspect_ratios=((0.5, 1.0, 2.0),))
-        roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
-                                                         output_size=7,
-                                                         sampling_ratio=2)
-        mask_roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
-                                                             output_size=14,
-                                                             sampling_ratio=2)
-        self.model = MaskRCNN(backbone, num_classes=2,
-                              rpn_anchor_generator=anchor_generator,
-                              box_roi_pool=roi_pooler,
-                              mask_roi_pool=mask_roi_pooler).to(self.device)
+        self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
         # Generate inputs
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, config), "r") as cc2017:
