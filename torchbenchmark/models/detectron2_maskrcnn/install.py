@@ -11,14 +11,9 @@ def setup_data_dir():
     os.makedirs(data_dir, exist_ok=True)
     subprocess.check_call(['ln', '-sf', coco2017_data_dir, data_dir])
 
-def build_detectron2():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install',
-                           'git+https://github.com/facebookresearch/detectron2.git'])
-
 def pip_install_requirements():
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
 if __name__ == '__main__':
     setup_data_dir()
     pip_install_requirements()
-    build_detectron2()
