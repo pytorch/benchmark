@@ -10,7 +10,7 @@ from torchbenchmark.tasks import COMPUTER_VISION
 
 # setup environment variable
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR = os.path.join(CURRENT_DIR, ".data", "detectron2_maskrcnn_benchmark_data")
+DATA_DIR = os.path.join(CURRENT_DIR, ".data", "coco2017-minimal")
 if not 'DETECTRON2_DATASETS' in os.environ:
     os.environ['DETECTRON2_DATASETS'] = DATA_DIR
 
