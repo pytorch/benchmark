@@ -29,7 +29,7 @@ torch.backends.cudnn.benchmark = False
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
-    def __init__(self, device=None, jit=False, train_bs=1):
+    def __init__(self, device=None, jit=False, train_bs=4):
        super().__init__()
        self.device = device
        self.jit = jit
