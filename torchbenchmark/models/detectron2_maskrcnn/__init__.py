@@ -1,12 +1,24 @@
 import torch
 import os
 import itertools
+import random
+import numpy as np
+
+# TorchBench imports
+from torchbenchmark.util.model import BenchmarkModel
+from torchbenchmark.tasks import COMPUTER_VISION
 
 from detectron2.config import instantiate
 from detectron2 import model_zoo
 from detectron2.utils.collect_env import collect_env_info
 from detectron2.utils.logger import setup_logger
 from detectron2.utils.events import EventStorage
+
+torch.manual_seed(1337)
+random.seed(1337)
+np.random.seed(1337)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
@@ -15,14 +27,14 @@ class Model(BenchmarkModel):
        super().__init__()
        self.device = device
        self.jit = jit
-       model_cfg = model_zoo.get_config("commons/models/mask_rcnn_fpn.py").model
-       model = instantiate(model_cfg).to(self.device)
+       model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
+       self.model = instantiate(model_cfg).to(self.device)
 
        # setup environment variable
        current_dir = os.path.dirname(os.path.realpath(__file__))
        data_dir = os.path.join(current_dir, ".data", "detectron2_maskrcnn_benchmark_data")
        os.environ['DETECTRON2_DATASETS'] = data_dir
-       data_cfg = model_zoo.get_config("commons/data/coco.py").dataloader
+       data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
 
        # use a mini dataset
        data_cfg.train.dataset.names = "coco_2017_val_100"
@@ -34,22 +46,23 @@ class Model(BenchmarkModel):
        test_loader = instantiate(data_cfg.test)
        self.test_iterator = itertools.cycle(itertools.islice(test_loader, 100))
 
-       self.optimizer = torch.optim.SGD(model.parameters(), 0.)
+       self.optimizer = torch.optim.SGD(self.model.parameters(), 0.)
 
     def get_module(self):
         return self.module, (self.example_inputs, )
 
     def train(self, niter=1):
         self.model.train()
-        for _ in range(niter):
-            for idx, data in enumerate(self.train_iterator):
-                if idx >= 100:
-                    break
-                losses = model(data)
-                loss = sum(losses.values())
-                loss.backward()
-                self.optimizer.step()
-                self.optimizer.zero_grad()
+        with EventStorage():
+            for _ in range(niter):
+                for idx, data in enumerate(self.train_iterator):
+                    if idx >= 100:
+                        break
+                    losses = self.model(data)
+                    loss = sum(losses.values())
+                    loss.backward()
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
 
     def eval(self, niter=1):
         self.model.eval()
@@ -58,5 +71,5 @@ class Model(BenchmarkModel):
                 for idx, data in enumerate(self.test_iterator):
                     if idx >= 100:
                         break
-                    model(data)
+                    self.model(data)
         
