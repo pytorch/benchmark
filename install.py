@@ -29,8 +29,8 @@ def decompress_input():
     # Decompress every tar.gz file
     for tarball in filter(lambda x: x.endswith(".tar.gz"), os.listdir(data_dir)):
         tarball_path = os.path.join(data_dir, tarball)
-        tar = tarfile.open(tarball_path)
         print(f"decompressing input tarball: {tarball}...", end="", flush=True)
+        tar = tarfile.open(tarball_path)
         tar.extractall(path=decompress_dir)
         tar.close()
         print("OK")
@@ -54,7 +54,6 @@ if __name__ == '__main__':
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
-    decompress_input()
     print("checking out Git LFS files...", end="", flush=True)
     success, errmsg = git_lfs_checkout()
     if success:
@@ -64,6 +63,7 @@ if __name__ == '__main__':
         print("Failed to checkout git lfs files. Please make sure you have installed git lfs.")
         print(errmsg)
         exit(-1)
+    decompress_input()
 
     success, errmsg = pip_install_requirements()
     if not success:
