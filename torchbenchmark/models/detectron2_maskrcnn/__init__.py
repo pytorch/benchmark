@@ -23,13 +23,13 @@ from detectron2.utils.events import EventStorage
 torch.manual_seed(1337)
 random.seed(1337)
 np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
-    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=2):
+    def __init__(self, device=None, jit=False, train_bs=1):
        super().__init__()
        self.device = device
        self.jit = jit
@@ -43,7 +43,7 @@ class Model(BenchmarkModel):
 
        # use a mini dataset
        data_cfg.train.dataset.names = "coco_2017_val_100"
-       data_cfg.train.total_batch_size = 4
+       data_cfg.train.total_batch_size = train_bs
        data_cfg.test.dataset.names = "coco_2017_val_100"
 
        train_loader = instantiate(data_cfg.train)
@@ -63,22 +63,20 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         self.model.train()
         with EventStorage():
-            for _ in range(niter):
-                for idx, data in zip(range(self.train_bs), self.train_iterator):
-                    losses = self.model(data)
-                    loss = sum(losses.values())
-                    loss.backward()
-                    self.optimizer.step()
-                    self.optimizer.zero_grad()
+            for idx, data in zip(range(niter), self.train_iterator):
+                losses = self.model(data)
+                loss = sum(losses.values())
+                loss.backward()
+                self.optimizer.step()
+                self.optimizer.zero_grad()
 
-    def eval(self, niter=1):
+    def eval(self, niter=2):
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         self.model.eval()
         with torch.no_grad():
-            for _ in range(niter):
-                for idx, data in zip(range(self.eval_bs), self.test_iterator):
-                    self.model(data)
+            for idx, data in zip(range(niter), self.test_iterator):
+                self.model(data)
 
