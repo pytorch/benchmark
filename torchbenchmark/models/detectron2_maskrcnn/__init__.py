@@ -11,7 +11,8 @@ from torchbenchmark.tasks import COMPUTER_VISION
 # setup environment variable
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(current_dir, ".data", "detectron2_maskrcnn_benchmark_data")
-os.environ['DETECTRON2_DATASETS'] = DATA_DIR
+if not 'DETECTRON2_DATASETS' in os.environ:
+    os.environ['DETECTRON2_DATASETS'] = DATA_DIR
 
 from detectron2.config import instantiate
 from detectron2 import model_zoo
