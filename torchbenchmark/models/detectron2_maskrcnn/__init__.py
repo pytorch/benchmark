@@ -27,6 +27,7 @@ class Model(BenchmarkModel):
        super().__init__()
        self.device = device
        self.jit = jit
+       os.environ['DETECTRON2_DATASETS'] = data_dir
        model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
        self.model = instantiate(model_cfg).to(self.device)
        self.train_bs = train_bs
@@ -35,7 +36,6 @@ class Model(BenchmarkModel):
        # setup environment variable
        current_dir = os.path.dirname(os.path.realpath(__file__))
        data_dir = os.path.join(current_dir, ".data", "detectron2_maskrcnn_benchmark_data")
-       os.environ['DETECTRON2_DATASETS'] = data_dir
        data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
 
        # use a mini dataset
@@ -78,4 +78,4 @@ class Model(BenchmarkModel):
             for _ in range(niter):
                 for idx, data in zip(range(self.eval_bs), self.test_iterator):
                     self.model(data)
-        
+
