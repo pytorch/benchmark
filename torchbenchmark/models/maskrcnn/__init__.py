@@ -49,9 +49,6 @@ class Model(BenchmarkModel):
         weight_decay = 1e-4
         params = [p for p in self.model.parameters() if p.requires_grad]
         self.optimizer = torch.optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
-        # lr_steps = 16
-        # lr_gamma = 0.1
-        # self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=lr_steps, gamma=lr_gamma)
 
         self.train_bs = train_bs
         self.eval_bs = eval_bs
