@@ -8,6 +8,11 @@ import numpy as np
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
+# setup environment variable
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+DATA_DIR = os.path.join(current_dir, ".data", "detectron2_maskrcnn_benchmark_data")
+os.environ['DETECTRON2_DATASETS'] = DATA_DIR
+
 from detectron2.config import instantiate
 from detectron2 import model_zoo
 from detectron2.utils.collect_env import collect_env_info
@@ -28,11 +33,6 @@ class Model(BenchmarkModel):
        self.device = device
        self.jit = jit
 
-       # setup environment variable
-       current_dir = os.path.dirname(os.path.realpath(__file__))
-       data_dir = os.path.join(current_dir, ".data", "detectron2_maskrcnn_benchmark_data")
-       os.environ['DETECTRON2_DATASETS'] = data_dir
-       
        model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
        self.model = instantiate(model_cfg).to(self.device)
        self.train_bs = train_bs
