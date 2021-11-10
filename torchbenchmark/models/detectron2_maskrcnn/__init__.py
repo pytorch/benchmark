@@ -2,7 +2,6 @@ import torch
 import os
 import itertools
 import random
-import numpy as np
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -22,7 +21,6 @@ from detectron2.utils.events import EventStorage
 
 torch.manual_seed(1337)
 random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
