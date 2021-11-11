@@ -74,6 +74,8 @@ class Model(BenchmarkModel):
     def train(self, niter=1):
         if self.jit:
             return NotImplementedError("JIT is not supported by this model")
+        if not self.device == "cuda":
+            return NotImplementedError("CPU is not supported by this model")
         self.model.train()
         for _, (images, targets) in zip(range(niter), self.train_data_loader):
             images = list(image.to(device) for image in images)
@@ -87,6 +89,8 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.jit:
             return NotImplementedError("JIT is not supported by this model")
+        if not self.device == "cuda":
+            return NotImplementedError("CPU is not supported by this model")
         self.model.eval()
         with torch.no_grad():
             for _, (images, targets) in zip(range(niter), self.eval_data_loader):
