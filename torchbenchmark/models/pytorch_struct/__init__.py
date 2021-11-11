@@ -69,16 +69,16 @@ class Model(BenchmarkModel):
 
   def get_module(self):
     for ex in self.train_loader:
-      words, _ = ex.word
-      words = words.long()
-      return self.model, (words.to(device=self.device).transpose(0, 1),)
+      words = ex.to(self.device)
+      return self.model, (words.transpose(0, 1),)
 
   def train(self, niter=1):
     for _, words in zip(range(niter), self.train_loader):
       losses = []
       self.opt.zero_grad()
+      words = words.to(self.device).transpose(0, 1)
       params = self.model(words)
-      dist = SentCFG(params, lengths=self.lengths)
+      dist = SentCFG(params)
       loss = dist.partition.mean()
       (-loss).backward()
       losses.append(loss.detach())
