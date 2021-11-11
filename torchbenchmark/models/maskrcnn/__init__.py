@@ -76,6 +76,8 @@ class Model(BenchmarkModel):
             return NotImplementedError("JIT is not supported by this model")
         self.model.train()
         for _, (images, targets) in zip(range(niter), self.train_data_loader):
+            images = list(image.to(device) for image in images)
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
             loss_dict = self.model(images, targets)
             losses = sum(loss for loss in loss_dict.values())
             self.optimizer.zero_grad()
@@ -88,6 +90,7 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for _, (images, targets) in zip(range(niter), self.eval_data_loader):
+                images = list(image.to(device) for image in images)
                 self.model(images)
 
 if __name__ == "__main__":
