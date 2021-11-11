@@ -33,7 +33,7 @@ class Model(BenchmarkModel):
   task = OTHER.OTHER_TASKS
 
   def _collate_batch(batch):
-    label_list, text_list = [], []
+    text_list = []
     for line in batch:
       for sentence in line:
         processed_text = torch.tensor(_text_transform(self.train_vocab, sentence))
@@ -48,12 +48,11 @@ class Model(BenchmarkModel):
     # Download and the load default data.
     train = torchtext.datasets.UDPOS(root=DATA_DIR, split=('train'))
     # Build vocab 
-    tokenizer = get_tokenizer('basic_english')
     counter = Counter()
     for line in train:
       for sentence in line:
         for word in sentence:
-          counter.update(tokenizer(word))
+          counter.update(word)
     self.train_vocab = vocab_factory.vocab(counter, min_freq=3, specials=('<bos>', '<eos>'))
 
     # Build model
