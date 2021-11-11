@@ -16,6 +16,6 @@ RUN pip install typer
     
 COPY . .
 
-RUN chmod +x ./run_specific_benchmark.sh ./run_test_bench.sh
+RUN chmod +x ./run_test.sh ./run_test_bench.sh
 
 ENTRYPOINT ["python", "mlcube.py"]
