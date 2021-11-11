@@ -53,7 +53,9 @@ class Model(BenchmarkModel):
        self.optimizer = torch.optim.SGD(self.model.parameters(), 0.)
 
     def get_module(self):
-        return self.module, (self.example_inputs, )
+        self.model.train()
+        for data in self.train_iterator:
+            return self.model, (self.data, )
 
     def train(self, niter=1):
         if not self.device == "cuda":
