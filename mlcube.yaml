@@ -1,0 +1,44 @@
+name: PyTorch Benchmarks
+description: PyTorch Benchmarks with MLCube
+authors: 
+ - {name: "MLCommons Best Practices Working Group"}
+
+platform:
+  accelerator_count: 1
+
+docker:
+  # Image name.
+  image: mlcommons/pytorch_benchmark:0.0.1
+  # Docker build context relative to $MLCUBE_ROOT. Default is `build`.
+  build_context: "."
+  # Docker file name within docker build context, default is `Dockerfile`.
+  build_file: "Dockerfile"
+
+tasks:
+  # list all tests linked to test.py script.
+  list_test:
+    parameters:
+      outputs : {output_dir: output/}
+  # Run test.py script with -k argument specifying what benchmark, mode and platform to use (check workspace paramters.yaml).
+  run_test:
+    parameters:
+      inputs: {parameters_file: {type: file, default: parameters.yaml}}
+      outputs: {output_dir: output/}
+  # Run test.py script without arguments.
+  run_test_all:
+    parameters:
+      outputs: {output_dir: output/}
+  # list all tests linked to test_bench.py script.
+  list_test_bench:
+    parameters:
+      outputs : {output_dir: output/}
+  # Run test_bench.py script with -k argument specifying what test to execute, check the names of the tests with the previous task list_test_bench.
+  run_test_bench:
+    parameters:
+      inputs: {parameters_file: {type: file, default: parameters.yaml}}
+      outputs: {output_dir: output/}
+  # Run test_bench.py script without arguments.
+  run_test_bench_all:
+    parameters:
+      inputs: {parameters_file: {type: file, default: parameters.yaml}}
+      outputs: {output_dir: output/}

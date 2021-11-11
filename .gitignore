@@ -19,3 +19,4 @@ results.txt
 checkpoints
 logs/
 scripts/scribe.py
+workspace/output/
