@@ -35,11 +35,11 @@ COCO_DATA = {
 def _collate_fn(batch):
     return tuple(zip(*batch))
 
-def _prefetch(loader):
+def _prefetch(loader, device):
     items = []
     for images, targets in loader:
-        images = list(image.to(self.device) for image in images)
-        targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
+        images = list(image.to(device) for image in images)
+        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         items.append((images, targets))
     return items
 
@@ -69,10 +69,10 @@ class Model(BenchmarkModel):
 
         self.eval_data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=eval_bs,
                                                                       sampler=sampler,
-                                                                      collate_fn=_collate_fn))
+                                                                      collate_fn=_collate_fn), self.device)
         self.train_data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=train_bs,
                                                                        sampler=sampler,
-                                                                       collate_fn=_collate_fn))
+                                                                       collate_fn=_collate_fn), self.device)
 
 
     def get_module(self):
