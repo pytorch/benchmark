@@ -35,6 +35,14 @@ COCO_DATA = {
 def _collate_fn(batch):
     return tuple(zip(*batch))
 
+def _prefetch(loader):
+    items = []
+    for images, targets in loader:
+        images = list(image.to(self.device) for image in images)
+        targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
+        items.append((images, targets))
+    return items
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
@@ -59,12 +67,12 @@ class Model(BenchmarkModel):
                                 transforms=transforms)
         sampler = torch.utils.data.SequentialSampler(dataset)
 
-        self.eval_data_loader = torch.utils.data.DataLoader(dataset, batch_size=eval_bs,
-                                                            sampler=sampler,
-                                                            collate_fn=_collate_fn)
-        self.train_data_loader = torch.utils.data.DataLoader(dataset, batch_size=train_bs,
-                                                            sampler=sampler,
-                                                            collate_fn=_collate_fn)
+        self.eval_data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=eval_bs,
+                                                                      sampler=sampler,
+                                                                      collate_fn=_collate_fn))
+        self.train_data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=train_bs,
+                                                                       sampler=sampler,
+                                                                       collate_fn=_collate_fn))
 
 
     def get_module(self):
@@ -78,8 +86,8 @@ class Model(BenchmarkModel):
             return NotImplementedError("CPU is not supported by this model")
         self.model.train()
         for _, (images, targets) in zip(range(niter), self.train_data_loader):
-            images = list(image.to(self.device) for image in images)
-            targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
+            # images = list(image.to(self.device) for image in images)
+            # targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
             loss_dict = self.model(images, targets)
             losses = sum(loss for loss in loss_dict.values())
             self.optimizer.zero_grad()
@@ -94,7 +102,7 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for _, (images, targets) in zip(range(niter), self.eval_data_loader):
-                images = list(image.to(self.device) for image in images)
+                # images = list(image.to(self.device) for image in images)
                 self.model(images)
 
 if __name__ == "__main__":
