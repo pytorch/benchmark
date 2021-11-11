@@ -22,7 +22,7 @@ class ConvertCocoPolysToMask:
     def __call__(self, image, target):
         w, h = image.size
 
-        image_id = target[0]["image_id"]
+        image_id = target[0]["image_id"] if target else []
         image_id = torch.tensor([image_id])
 
         anno = target

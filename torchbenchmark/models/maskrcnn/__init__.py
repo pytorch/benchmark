@@ -46,7 +46,7 @@ def _prefetch(loader, device):
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
-    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=1):
+    def __init__(self, device=None, jit=False, train_bs=4, eval_bs=4):
         self.device = device
         self.jit = jit
         self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True).to(self.device)
