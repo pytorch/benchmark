@@ -2,3 +2,4 @@ dill
 tqdm
 numpy
 spacy==2.3.5
+torchtext==0.9

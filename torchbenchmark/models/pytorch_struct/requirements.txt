@@ -1,4 +1,4 @@
 torch
-torchtext
+torchtext==0.9
 dgl
 wandb
