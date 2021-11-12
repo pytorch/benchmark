@@ -2,14 +2,16 @@ import torch
 import os
 import itertools
 import random
+from pathlib import Path
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
 # setup environment variable
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR = os.path.join(CURRENT_DIR, ".data", "coco2017-minimal")
+CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
+DATA_DIR = os.path.join(current_dir.parent.parent, "data", ".data", "coco2017-minimal")
+assert os.path.exists(DATA_DIR), "Couldn't find coco2017 minimal data dir, please run install.py again."
 if not 'DETECTRON2_DATASETS' in os.environ:
     os.environ['DETECTRON2_DATASETS'] = DATA_DIR
 
