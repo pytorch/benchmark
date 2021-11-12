@@ -25,7 +25,7 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 def TokenBucket(
-    train, batch_size, device="cuda:0", key=lambda x: max(len(x.word[0]), 5)
+    train, batch_size, device, key=lambda x: max(len(x.word[0]), 5)
 ):
     def batch_size_fn(x, _, size):
         return size + key(x)
