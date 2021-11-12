@@ -24,10 +24,9 @@ class RunTestTask(object):
             with open(parameters_file, "r") as stream:
                 parameters = yaml.safe_load(stream)
             platform = parameters["platform"]
+            command_args = "--verbose"
             if mode == "run":
-                command_args = f"-k test_{parameters['model_name']}_{parameters['mode']}_{parameters['platform']}"
-            elif mode == "run_all":
-                command_args = ""
+                command_args = f" -k test_{parameters['model_name']}_{parameters['mode']}_{parameters['platform']}"
 
         env = os.environ.copy()
         env.update(
@@ -98,10 +97,11 @@ def run_test(
 
 @app.command("run_test_all")
 def run_test_all(
+    parameters_file: str = typer.Option(..., "--parameters_file"),
     output_dir: str = typer.Option(..., "--output_dir"),
 ):
     """Run all tests under test.py script"""
-    RunTestTask.run("", output_dir, mode="run_all")
+    RunTestTask.run(parameters_file, output_dir, mode="run_all")
 
 
 @app.command("list_test_bench")

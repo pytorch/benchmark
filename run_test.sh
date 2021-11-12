@@ -12,5 +12,4 @@ else
     file_name=test_"$MODE"_"$(date +%Y%m%d_%H%M%S)".txt
     echo "* Running: python test.py" $COMMAND_ARGS 2>&1 |& tee -a $OUTPUT_DIR/$PLATFORM/$file_name
     python test.py $COMMAND_ARGS 2>&1 |& tee -a $OUTPUT_DIR/$PLATFORM/$file_name
-    echo DONE
 fi

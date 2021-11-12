@@ -1,0 +1,15 @@
+FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
+
+RUN apt-get update -y && apt-get install -y git build-essential
+
+RUN git clone https://github.com/pytorch/benchmark.git && \
+    cd benchmark && \
+    python install.py
+
+RUN pip install typer
+    
+COPY . .
+
+RUN chmod +x ./run_test.sh ./run_test_bench.sh
+
+ENTRYPOINT ["python", "mlcube.py"]
