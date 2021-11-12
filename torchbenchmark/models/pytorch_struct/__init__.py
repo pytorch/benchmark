@@ -24,13 +24,13 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
-def _prefetch(loader, device):
+def _prefetch(loader, device, limit=10):
     data = []
-    for ex in loader:
+    for _, ex in zip(range(limit), loader):
         words, lengths = ex.word
         words = words.long()
         words = words.to(device).transpose(0, 1)
-        data.append((word, lengths))
+        data.append((words, lengths))
     return data
 
 def TokenBucket(
