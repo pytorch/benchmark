@@ -28,7 +28,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
     # This model doesn't support setting batch size for inference
-    def __init__(self, device=None, jit=False, train_bs=4, eval_bs=1):
+    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=2):
        super().__init__()
        self.device = device
        self.jit = jit
@@ -44,6 +44,7 @@ class Model(BenchmarkModel):
        data_cfg.train.dataset.names = "coco_2017_val_100"
        data_cfg.train.total_batch_size = train_bs
        data_cfg.test.dataset.names = "coco_2017_val_100"
+       data_cfg.test.total_batch_size = eval_bs
 
        train_loader = instantiate(data_cfg.train)
        self.train_iterator = itertools.cycle(itertools.islice(train_loader, 100))
@@ -55,7 +56,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         self.model.train()
         for data in self.train_iterator:
-            return self.model, (self.data, )
+            return self.model, (data, )
 
     def train(self, niter=1):
         if not self.device == "cuda":
