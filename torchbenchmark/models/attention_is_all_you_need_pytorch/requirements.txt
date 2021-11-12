@@ -1,4 +1,0 @@
-dill
-tqdm
-numpy
-spacy==2.3.5
