@@ -45,9 +45,7 @@ class BenchmarkModel():
         return True
 
     def _set_mode(self, train):
-        r = self.get_module()
-        print(r)
-        (model, _) = r
+        (model, _) = self.get_module()
         model.train(train)
 
     def check_opt_vs_noopt_jit(self):
