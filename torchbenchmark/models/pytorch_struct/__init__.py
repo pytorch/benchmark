@@ -46,7 +46,7 @@ def TokenBucket(
 class Model(BenchmarkModel):
   task = OTHER.OTHER_TASKS
 
-  def __init__(self, device=None, jit=False, train_bs=128):
+  def __init__(self, device=None, jit=False, train_bs=32):
     super().__init__()
     self.device = device
     self.jit = jit
