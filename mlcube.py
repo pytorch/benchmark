@@ -19,19 +19,20 @@ class RunTestTask(object):
 
         if mode == "list":
             command_args = "--ignore_machine_config --collect-only"
-
-        elif mode == "run":
+            platform = ""
+        else:
             with open(parameters_file, "r") as stream:
                 parameters = yaml.safe_load(stream)
-
-            command_args = f"-k test_{parameters['model_name']}_{parameters['mode']}_{parameters['platform']}"
-
-        else:
-            command_args = ""
+            platform = parameters["platform"]
+            if mode == "run":
+                command_args = f"-k test_{parameters['model_name']}_{parameters['mode']}_{parameters['platform']}"
+            elif mode == "run_all":
+                command_args = ""
 
         env = os.environ.copy()
         env.update(
             {
+                "PLATFORM": platform,
                 "MODE": mode,
                 "COMMAND_ARGS": command_args,
                 "OUTPUT_DIR": output_dir,
@@ -51,24 +52,23 @@ class RunTestBenchTask(object):
 
         if mode == "list":
             command_args = "--ignore_machine_config --collect-only"
-
+            platform = ""
         else:
             with open(parameters_file, "r") as stream:
                 parameters = yaml.safe_load(stream)
-
+            platform = parameters["platform"]
             command_args = "--ignore_machine_config --benchmark-autosave"
-            if parameters["platform"] == "cpu":
+            if platform == "cpu":
                 command_args += " --cpu_only"
-
             if mode == "run":
                 command_args += f" -k {parameters['test_bench_name']}"
-
             elif mode == "run_all":
                 command_args += ""
 
         env = os.environ.copy()
         env.update(
             {
+                "PLATFORM": platform,
                 "MODE": mode,
                 "COMMAND_ARGS": command_args,
                 "OUTPUT_DIR": output_dir,

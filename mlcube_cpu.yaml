@@ -4,18 +4,18 @@ authors:
  - {name: "MLCommons Best Practices Working Group"}
 
 platform:
-  accelerator_count: 1
+  accelerator_count: 0
 
 docker:
   # Image name.
-  image: mlcommons/pytorch_benchmark:0.0.1
+  image: mlcommons/pytorch_benchmark_cpu:0.0.1
   # Docker build context relative to $MLCUBE_ROOT. Default is `build`.
   build_context: "."
   # Docker file name within docker build context, default is `Dockerfile`.
-  build_file: "Dockerfile"
+  build_file: "Dockerfile_cpu"
 
 tasks:
-  # list all tests linked to test.py script.
+  # List all tests linked to test.py script.
   list_test:
     parameters:
       outputs : {output_dir: output/}
@@ -28,7 +28,7 @@ tasks:
   run_test_all:
     parameters:
       outputs: {output_dir: output/}
-  # list all tests linked to test_bench.py script.
+  # List all tests linked to test_bench.py script.
   list_test_bench:
     parameters:
       outputs : {output_dir: output/}

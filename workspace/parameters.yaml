@@ -1,4 +1,4 @@
-model_name: "vgg16"    # Model name
-mode: "eval"           # "train" | "eval"
-platform: "cpu"        # "cpu" | "cuda"
-test_bench_name: "test_train[dlrm-cpu-eager]"    # Test name, use the list_test_bench to check them
+model_name: "vgg16" # Model name
+mode: "eval"  # "train" | "eval"
+platform: "cpu" # "cpu" | "cuda"
+test_bench_name: "test_train[dlrm-cpu-eager]" # Test name, use the list_test_bench to check them
