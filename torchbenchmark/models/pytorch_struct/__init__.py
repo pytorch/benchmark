@@ -46,7 +46,7 @@ def TokenBucket(
 class Model(BenchmarkModel):
   task = OTHER.OTHER_TASKS
 
-  def __init__(self, device=None, jit=False, train_bs=8):
+  def __init__(self, device=None, jit=False, train_bs=128):
     super().__init__()
     self.device = device
     self.jit = jit
@@ -62,7 +62,7 @@ class Model(BenchmarkModel):
     WORD.build_vocab(train.word, min_freq=3)
     UD_TAG.build_vocab(train.udtag)
     self.train_iter = TokenBucket(train, 
-                                  batch_size=200,
+                                  batch_size=train_bs,
                                   device=self.device)
 
     # Build model
