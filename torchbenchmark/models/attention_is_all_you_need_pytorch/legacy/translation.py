@@ -9,7 +9,7 @@ import codecs
 
 from .data import Dataset
 from .example import Example
-from torchtext.utils import interleave_keys
+from torchtext.data.utils import interleave_keys
 
 class TranslationDataset(Dataset):
     """Defines a dataset for machine translation."""

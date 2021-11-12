@@ -13,8 +13,8 @@ import tarfile
 import torchtext.data
 import torchtext.datasets
 
-from .legacy.field import Field
-from .legacy.translation import TranslationDataset, Multi30k
+from legacy.field import Field
+from legacy.translation import TranslationDataset, Multi30k
 
 import transformer.Constants as Constants
 from learn_bpe import learn_bpe

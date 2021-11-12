@@ -7,7 +7,7 @@ pytest
 pytest-benchmark
 requests
 tabulate
-timm == 0.4.5
+# timm
 MonkeyType
 psutil
 pyyaml
