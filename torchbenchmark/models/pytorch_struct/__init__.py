@@ -79,8 +79,6 @@ class Model(BenchmarkModel):
     T = 30
     NT = 30
     self.model = NeuralCFG(len(WORD.vocab), T, NT, H)
-    if jit:
-        self.model = torch.jit.script(self.model)
     self.model.to(device=device)
     self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=[0.75, 0.999])
     self.train_data = _prefetch(self.train_iter, self.device)
@@ -90,6 +88,8 @@ class Model(BenchmarkModel):
       return self.model, (words, )
 
   def train(self, niter=1):
+    if self.jit:
+        raise NotImplementedError("JIT is not supported by this model")
     for _, (words, lengths) in zip(range(niter), self.train_data):
       losses = []
       self.opt.zero_grad()
