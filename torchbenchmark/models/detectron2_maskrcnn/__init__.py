@@ -44,7 +44,7 @@ class Model(BenchmarkModel):
        data_cfg.train.dataset.names = "coco_2017_val_100"
        data_cfg.train.total_batch_size = train_bs
        data_cfg.test.dataset.names = "coco_2017_val_100"
-       data_cfg.test.total_batch_size = eval_bs
+       data_cfg.test.batch_size = eval_bs
 
        train_loader = instantiate(data_cfg.train)
        self.train_iterator = itertools.cycle(itertools.islice(train_loader, 100))
