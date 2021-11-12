@@ -38,7 +38,7 @@ class RunTestTask(object):
             }
         )
 
-        process = subprocess.Popen("./run_test.sh", cwd=".", env=env)
+        process = subprocess.Popen("./mlcube/run_test.sh", cwd=".", env=env)
         process.wait()
 
 
@@ -74,7 +74,7 @@ class RunTestBenchTask(object):
             }
         )
 
-        process = subprocess.Popen("./run_test_bench.sh", cwd=".", env=env)
+        process = subprocess.Popen("./mlcube/run_test_bench.sh", cwd=".", env=env)
         process.wait()
 
 
