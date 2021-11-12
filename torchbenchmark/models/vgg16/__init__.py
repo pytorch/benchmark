@@ -15,13 +15,14 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device=None, jit=False, train_bs=8, eval_bs=4):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.vgg16().to(self.device)
         self.eval_model = models.vgg16().to(self.device)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
+        self.infer_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
@@ -57,10 +58,9 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         model = self.eval_model
-        example_inputs = self.example_inputs
-        example_inputs = example_inputs[0]
+        example_inputs = self.infer_example_inputs
         for i in range(niter):
-            model(example_inputs)
+            model(*example_inputs)
 
 
 if __name__ == "__main__":

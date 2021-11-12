@@ -27,12 +27,6 @@ class OptimizerOption:
     momentum: float
 
 class TimmConfig:
-    def _init_input(self):
-        self.example_inputs = torch.randn(
-            (self.batch_size,) + self.input_size, device=self.device, dtype=self.data_dtype)
-        self.infer_example_inputs = torch.randn(
-            (1,) + self.input_size, device=self.device, dtype=self.data_dtype)
-
     def __init__(self, model, device, precision):
         self.model = model
         self.device = device
@@ -43,7 +37,6 @@ class TimmConfig:
         self.loss = nn.CrossEntropyLoss().to(self.device)
         self.target_shape = tuple()
         self.input_size = self.model.default_cfg["input_size"]
-        self._init_input()
         # Default optimizer configurations borrowed from:
         # https://github.com/rwightman/pytorch-image-models/blob/779107b693010934ac87c8cecbeb65796e218488/timm/optim/optim_factory.py#L78
         opt_args = OptimizerOption(lr=1e-4, opt="sgd", weight_decay = 0.0001, momentum = 0.9)

@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from utils import IGNORE_ID
+from ..utils import IGNORE_ID
 
 
 def cal_performance(pred, gold, smoothing=0.0):
