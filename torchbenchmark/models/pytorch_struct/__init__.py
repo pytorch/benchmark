@@ -18,14 +18,11 @@ from .legacy.iterator import BucketIterator
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-# setup environment variable
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR = os.path.join(CURRENT_DIR, ".data", "udpos")
 torch.manual_seed(1337)
 random.seed(1337)
 np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = True
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = False
 
 def TokenBucket(
     train, batch_size, device="cuda:0", key=lambda x: max(len(x.word[0]), 5)
@@ -80,9 +77,9 @@ class Model(BenchmarkModel):
 
   def get_module(self):
     for ex in self.train_iter:
-      words, lengths = ex.word
-      words = words.to(self.device).transpose(0, 1)
-      return self.model, (words, )
+      words, _ = ex.word
+      words = words.long()
+      return self.model, (words.to(device=self.device).transpose(0, 1),)
 
   def train(self, niter=1):
     for _, ex in zip(range(niter), self.train_iter):
