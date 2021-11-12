@@ -24,6 +24,15 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
+def _prefetch(loader, device):
+    data = []
+    for ex in loader:
+        words, lengths = ex.word
+        words = words.long()
+        words = words.to(device).transpose(0, 1)
+        data.append((word, lengths))
+    return data
+
 def TokenBucket(
     train, batch_size, device, key=lambda x: max(len(x.word[0]), 5)
 ):
@@ -74,21 +83,17 @@ class Model(BenchmarkModel):
         self.model = torch.jit.script(self.model)
     self.model.to(device=device)
     self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=[0.75, 0.999])
+    self.train_data = _prefetch(self.train_iter, self.device)
 
   def get_module(self):
-    for ex in self.train_iter:
-      words, _ = ex.word
-      words = words.long()
-      return self.model, (words.to(device=self.device).transpose(0, 1),)
+    for words, _ in self.train_data:
+      return self.model, (words, )
 
   def train(self, niter=1):
-    for _, ex in zip(range(niter), self.train_iter):
+    for _, (words, lengths) in zip(range(niter), self.train_data):
       losses = []
       self.opt.zero_grad()
-      words, lengths = ex.word
-      N, batch = words.shape
-      words = words.long()
-      params = self.model(words.to(self.device).transpose(0, 1))
+      params = self.model(words)
       dist = SentCFG(params, lengths=lengths)
       loss = dist.partition.mean()
       (-loss).backward()
