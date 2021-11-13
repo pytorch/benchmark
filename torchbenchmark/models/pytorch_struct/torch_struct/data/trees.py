@@ -1,11 +1,9 @@
-try:
-    import torchtext.legacy.data as data
-except ImportError:
-    import torchtext.data as data
+from torchbenchmark.util.torchtext_legacy.data import Dataset
+from torchbenchmark.util.torchtext_legacy.example import Example
 import torch
 
 
-class ConllXDataset(data.Dataset):
+class ConllXDataset(Dataset):
     def __init__(self, path, fields, encoding="utf-8", separator="\t", **kwargs):
         examples = []
         columns = [[], []]
@@ -15,7 +13,7 @@ class ConllXDataset(data.Dataset):
                 line = line.strip()
                 if line == "":
                     if columns:
-                        examples.append(data.Example.fromlist(columns, fields))
+                        examples.append(Example.fromlist(columns, fields))
                     columns = [[], []]
                 else:
                     for i, column in enumerate(line.split(separator)):
@@ -23,11 +21,11 @@ class ConllXDataset(data.Dataset):
                             columns[column_map[i]].append(column)
 
             if columns:
-                examples.append(data.Example.fromlist(columns, fields))
+                examples.append(Example.fromlist(columns, fields))
         super(ConllXDataset, self).__init__(examples, fields, **kwargs)
 
 
-class ListOpsDataset(data.Dataset):
+class ListOpsDataset(Dataset):
     @staticmethod
     def tree_field(v):
         def post(ls):
@@ -65,5 +63,5 @@ class ListOpsDataset(data.Dataset):
                     else:
                         spans.append((cur, cur, w))
                         cur += 1
-                examples.append(data.Example.fromlist((words, label, spans), fields))
+                examples.append(Example.fromlist((words, label, spans), fields))
         super(ListOpsDataset, self).__init__(examples, fields, **kwargs)
