@@ -56,8 +56,8 @@ class Model(BenchmarkModel):
        self.optimizer = torch.optim.SGD(self.model.parameters(), 0.)
 
     def get_module(self):
-        self.model.train()
-        for data in self.train_iterator:
+        self.model.eval()
+        for data in self.test_iterator:
             return self.model, (data, )
 
     def train(self, niter=1):
