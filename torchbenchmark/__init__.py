@@ -32,6 +32,7 @@ def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> b
         return False
     return True
 
+
 def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
     run_args = [
         [sys.executable, install_file],
