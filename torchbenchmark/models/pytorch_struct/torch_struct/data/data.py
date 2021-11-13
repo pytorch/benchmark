@@ -1,8 +1,7 @@
 import torchtext
-try:
-    from torchtext.legacy.data import RawField, BucketIterator
-except ImportError:
-    from torchtext.data import RawField, BucketIterator
+
+from torchbenchmark.util.torchtext_legacy.field import RawField
+from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
 import torch
 
 

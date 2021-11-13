@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 # wandb login 7cd7ade39e2d850ec1cf4e914d9a148586a20900
 from torch_struct import TreeCRF, SelfCritical
-try:
-    import torchtext.legacy.data as data
-except ImportError:
-    import torchtext.data as data
+from torchbenchmark.util.torchtext_legacy.field import Field, RawField
+from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
 from torch_struct.data import ListOpsDataset, TokenBucket
 from torch_struct.networks import TreeLSTM, SpanLSTM
 import torch
@@ -220,11 +218,11 @@ WORD = None
 
 def main():
     global WORD
-    WORD = data.Field(
+    WORD = Field(
         include_lengths=True, batch_first=True, eos_token=None, init_token=None
     )
-    LABEL = data.Field(sequential=False, batch_first=True)
-    TREE = data.RawField(postprocessing=ListOpsDataset.tree_field(WORD))
+    LABEL = Field(sequential=False, batch_first=True)
+    TREE = RawField(postprocessing=ListOpsDataset.tree_field(WORD))
     TREE.is_target = False
     train = ListOpsDataset(
         "data/train_d20s.tsv",
@@ -243,7 +241,7 @@ def main():
         train, batch_size=1500, device="cuda:0", key=lambda x: len(x.word)
     )
     train_iter.repeat = False
-    valid_iter = data.BucketIterator(
+    valid_iter = BucketIterator(
         train, batch_size=50, train=False, sort=False, device="cuda:0"
     )
 

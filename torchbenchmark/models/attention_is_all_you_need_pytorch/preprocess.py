@@ -1,10 +1,13 @@
 ''' Handling the data io '''
+import contextlib
 import os
+import pathlib
 import argparse
 import logging
 import dill as pickle
 import urllib
 from tqdm import tqdm
+import json
 import sys
 import codecs
 import spacy
@@ -12,12 +15,23 @@ import torch
 import tarfile
 import torchtext.data
 import torchtext.datasets
-try:
-    from torchtext.legacy.data import Field
-    from torchtext.legacy.datasets.translation import TranslationDataset, Multi30k
-except ImportError:
-    from torchtext.data import Field
-    from torchtext.datasets import TranslationDataset, Multi30k
+
+# Handle torchtext_legacy import
+@contextlib.contextmanager
+def _with_sys_path(path):
+    """Temporarily add the given path to `sys.path`"""
+    path = os.fspath(path)
+    try:
+        sys.path.insert(0, path)
+        yield
+    finally:
+        sys.path.remove(path)
+
+package_root = pathlib.Path(os.path.dirname(os.path.realpath(__file__))).parent.parent.parent
+
+with _with_sys_path(package_root):
+    from torchbenchmark.util.torchtext_legacy.field import Field
+    from torchbenchmark.util.torchtext_legacy.translation import TranslationDataset, Multi30k
 
 import transformer.Constants as Constants
 from learn_bpe import learn_bpe

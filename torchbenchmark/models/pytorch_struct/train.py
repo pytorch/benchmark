@@ -1,11 +1,8 @@
 import torchtext
 import torch
-try:
-  from torchtext.legacy.data import Field
-  from torchtext.legacy.datasets import UDPOS
-except ImportError:
-  from torchtext.data import Field
-  from torchtext.datasets import UDPOS
+
+from torchbenchmark.util.torchtext_legacy.field import Field
+from torchbenchmark.util.torchtext_legacy.datasets import UDPOS
 from torch_struct import SentCFG
 from torch_struct.networks import NeuralCFG
 import torch_struct.data
