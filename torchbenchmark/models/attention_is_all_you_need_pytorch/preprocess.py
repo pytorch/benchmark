@@ -28,10 +28,8 @@ def _with_sys_path(path):
         sys.path.remove(path)
 
 package_root = pathlib.Path(os.path.dirname(os.path.realpath(__file__))).parent.parent.parent
-print(package_root)
 
 with _with_sys_path(package_root):
-    print(sys.path)
     from torchbenchmark.util.torchtext_legacy.field import Field
     from torchbenchmark.util.torchtext_legacy.translation import TranslationDataset, Multi30k
 
