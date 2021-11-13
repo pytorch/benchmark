@@ -12,12 +12,11 @@ from tqdm import tqdm
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-try:
-    from torchtext.legacy.data import Field, Dataset, BucketIterator
-    from torchtext.legacy.datasets.translation import TranslationDataset
-except ImportError:
-    from torchtext.data import Field, Dataset, BucketIterator
-    from torchtext.datasets import TranslationDataset
+
+from torchbenchmark.util.torchtext_legacy.field import Field
+from torchbenchmark.util.torchtext_legacy.data import Dataset
+from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
+from torchbenchmark.util.torchtext_legacy.translation import TranslationDataset
 
 from .transformer import Constants
 from .transformer.Models import Transformer
