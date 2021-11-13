@@ -57,8 +57,8 @@ class Model(BenchmarkModel):
         preloaded_data = []
         for d in data_iter:
             src_seq = patch_src(d.src, self.opt.src_pad_idx).to(self.device)
-            trg_seq, self.gold = map(lambda x: x.to(self.device), patch_trg(d.trg, self.opt.trg_pad_idx))
-            preloaded_data.append((src_seq, trg_seq))
+            trg_seq, gold = map(lambda x: x.to(self.device), patch_trg(d.trg, self.opt.trg_pad_idx))
+            preloaded_data.append((src_seq, trg_seq, gold))
         return preloaded_data
 
     def __init__(self, device=None, jit=False, train_bs=128, eval_bs=32):
@@ -116,8 +116,8 @@ class Model(BenchmarkModel):
             2.0, self.opt.d_model, self.opt.n_warmup_steps)
 
     def get_module(self):
-        for _, example_inputs in zip(range(niter), self.train_data_loader):
-            return self.module, (example_inputs, )
+        for (src_seq, trg_seq, gold) in self.train_data_loader:
+            return self.module, ((src_seq, trg_seq), )
 
     def eval(self, niter=1):
         self.module.eval()
@@ -126,11 +126,12 @@ class Model(BenchmarkModel):
 
     def train(self, niter=1):
         self.module.train()
-        for _, example_inputs in zip(range(niter), self.train_data_loader):
+        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.train_data_loader):
             self.optimizer.zero_grad()
-            pred = self.module(*example_inputs)
+            example_inputs = (src_seq, trg_seq)
+            pred = self.module(example_inputs)
             loss, n_correct, n_word = cal_performance(
-                pred, self.gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
+                pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
             self.optimizer.step_and_update_lr()
 
