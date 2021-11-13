@@ -101,7 +101,8 @@ class Model(BenchmarkModel):
 
         self.train_data_loader = self._preprocess(train_data)
         self.eval_data_loader = self._preprocess(test_data)
-        example_inputs = self.eval_data_loader[0]
+        src_seq, trg_seq, gold = self.train_data_loader[0]
+        example_inputs = (src_seq, trg_seq)
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
                 transformer = torch.jit._script_pdt(transformer, example_inputs = [example_inputs, ])
@@ -121,15 +122,15 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         self.module.eval()
-        for _, example_inputs in zip(range(niter), self.eval_data_loader):
-            self.eval_model(*example_inputs)
+        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.eval_data_loader):
+            self.eval_model(*(src_seq, trg_seq))
 
     def train(self, niter=1):
         self.module.train()
         for _, (src_seq, trg_seq, gold) in zip(range(niter), self.train_data_loader):
             self.optimizer.zero_grad()
             example_inputs = (src_seq, trg_seq)
-            pred = self.module(example_inputs)
+            pred = self.module(*example_inputs)
             loss, n_correct, n_word = cal_performance(
                 pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
