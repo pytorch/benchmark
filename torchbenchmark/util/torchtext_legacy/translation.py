@@ -9,17 +9,18 @@ import codecs
 
 from .data import Dataset
 from .example import Example
-from torchtext.data.utils import interleave_keys
+
 
 class TranslationDataset(Dataset):
     """Defines a dataset for machine translation."""
 
     @staticmethod
     def sort_key(ex):
-        return interleave_keys(len(ex.src), len(ex.trg))
+        return data.interleave_keys(len(ex.src), len(ex.trg))
 
     def __init__(self, path, exts, fields, **kwargs):
         """Create a TranslationDataset given paths and fields.
+
         Args:
             path: Common prefix of paths to the data files for both languages.
             exts: A tuple containing the extension to path for each language.
@@ -48,6 +49,7 @@ class TranslationDataset(Dataset):
     def splits(cls, exts, fields, path=None, root='.data',
                train='train', validation='val', test='test', **kwargs):
         """Create dataset objects for splits of a TranslationDataset.
+
         Args:
             exts: A tuple containing the extension to path for each language.
             fields: A tuple containing the fields that will be used for data
@@ -88,6 +90,7 @@ class Multi30k(TranslationDataset):
     def splits(cls, exts, fields, root='.data',
                train='train', validation='val', test='test2016', **kwargs):
         """Create dataset objects for splits of the Multi30k dataset.
+
         Args:
             exts: A tuple containing the extension to path for each language.
             fields: A tuple containing the fields that will be used for data
@@ -127,6 +130,7 @@ class IWSLT(TranslationDataset):
                train='train', validation='IWSLT16.TED.tst2013',
                test='IWSLT16.TED.tst2014', **kwargs):
         """Create dataset objects for splits of the IWSLT dataset.
+
         Args:
             exts: A tuple containing the extension to path for each language.
             fields: A tuple containing the fields that will be used for data
@@ -185,6 +189,7 @@ class IWSLT(TranslationDataset):
 
 class WMT14(TranslationDataset):
     """The WMT 2014 English-German dataset, as preprocessed by Google Brain.
+
     Though this download contains test sets from 2015 and 2016, the train set
     differs slightly from WMT 2015 and 2016 and significantly from WMT 2017."""
 
@@ -199,6 +204,7 @@ class WMT14(TranslationDataset):
                validation='newstest2013.tok.bpe.32000',
                test='newstest2014.tok.bpe.32000', **kwargs):
         """Create dataset objects for splits of the WMT 2014 dataset.
+
         Args:
             exts: A tuple containing the extensions for each language. Must be
                 either ('.en', '.de') or the reverse.

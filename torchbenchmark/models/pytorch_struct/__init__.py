@@ -11,9 +11,9 @@ import torch_struct
 from torch_struct import SentCFG
 from .networks.NeuralCFG import NeuralCFG
 
-from .legacy.field import Field
-from .legacy.datasets import UDPOS
-from .legacy.iterator import BucketIterator
+from torchbenchmark.util.torchtext_legacy.field import Field
+from torchbenchmark.util.torchtext_legacy.datasets import UDPOS
+from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
