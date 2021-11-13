@@ -2,15 +2,14 @@ import torchtext
 import torch, random
 import numpy as np
 import pytest
-from torch_struct import SentCFG
-from torch_struct.networks import NeuralCFG
-import torch_struct.data
-try:
-  from torchtext.legacy.data import Field
-  from torchtext.legacy.datasets import UDPOS
-except ImportError:
-  from torchtext.data import Field
-  from torchtext.datasets import UDPOS
+from .torch_struct import SentCFG
+from .torch_struct.networks import NeuralCFG
+from .torch_struct import data
+
+from torchbenchmark.util.torchtext_legacy.field import Field
+from torchbenchmark.util.torchtext_legacy.datasets import UDPOS
+from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
+
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
@@ -41,7 +40,7 @@ class Model(BenchmarkModel):
 
     WORD.build_vocab(train.word, min_freq=3)
     UD_TAG.build_vocab(train.udtag)
-    self.train_iter = torch_struct.data.TokenBucket(train, batch_size=100, device=device)
+    self.train_iter = data.TokenBucket(train, batch_size=100, device=device)
 
     H = 256
     T = 30
