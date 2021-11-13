@@ -61,7 +61,7 @@ class Model(BenchmarkModel):
             preloaded_data.append((src_seq, trg_seq))
         return preloaded_data
 
-    def __init__(self, device=None, jit=False, train_bs=128, eval_bs=128):
+    def __init__(self, device=None, jit=False, train_bs=128, eval_bs=32):
         super().__init__()
         self.device = device
         self.jit = jit
