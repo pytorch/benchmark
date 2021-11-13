@@ -118,7 +118,7 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         for (src_seq, trg_seq, gold) in self.train_data_loader:
-            return self.module, ((src_seq, trg_seq), )
+            return self.module, (*(src_seq, trg_seq), )
 
     def eval(self, niter=1):
         self.module.eval()
