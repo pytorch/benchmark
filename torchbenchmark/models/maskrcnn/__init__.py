@@ -76,8 +76,9 @@ class Model(BenchmarkModel):
 
 
     def get_module(self):
-        for (example_inputs, example_targets) in self.train_loader:
-            return self.model, (example_inputs, example_targets, )
+        self.model.eval()
+        for (example_inputs, _example_targets) in self.eval_data_loader:
+            return self.model, (example_inputs, )
 
     def train(self, niter=1):
         if self.jit:
@@ -101,7 +102,7 @@ class Model(BenchmarkModel):
             return NotImplementedError("CPU is not supported by this model")
         self.model.eval()
         with torch.no_grad():
-            for _, (images, targets) in zip(range(niter), self.eval_data_loader):
+            for _, (images, _targets) in zip(range(niter), self.eval_data_loader):
                 # images = list(image.to(self.device) for image in images)
                 self.model(images)
 
