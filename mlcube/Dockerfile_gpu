@@ -4,7 +4,7 @@ RUN apt-get update -y && apt-get install -y git build-essential ffmpeg libsm6 li
 
 RUN git clone https://github.com/pytorch/benchmark.git && \
     cd benchmark && \
-    python install.py
+    python install.py && cd /
 
 RUN pip install typer
     
