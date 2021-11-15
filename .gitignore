@@ -1,6 +1,7 @@
 .benchmarks
 .vscode/
 .data
+._*
 */**/__pycache__
 */**/*.pyc
 *.out*
