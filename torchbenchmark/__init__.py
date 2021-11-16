@@ -354,7 +354,12 @@ class ModelTask(base_task.TaskBase):
         if current_device is None:
             raise RuntimeError('Missing device in BenchmarkModel.')
 
-        model, inputs = instance.get_module()
+        try:
+            model, inputs = instance.get_module()
+        except NotImplementedError:
+            # Skip this check_device for models without get_module() implementation. Otherwise
+            # all the tests such as train, eval, and example will also get skipped in test.py.
+            return
         model_name = getattr(model, 'name', None)
 
         # Check the model tensors are assigned to the expected device.
