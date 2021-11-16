@@ -26,9 +26,9 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.args = Namespace(**{
-            'validate_episodes': 5,
+            'validate_episodes': 1,
             'validate_interval': 1,  # Allows us to capture the discriminator model in the 1st iteration.
-            'max_step': 40,
+            'max_step': 1,
             'env_batch': 64,
             'batch_size': 96,
             'discount': 0.95**5,
@@ -47,7 +47,8 @@ class Model(BenchmarkModel):
                           discount=self.args.discount, device=self.device)
         self.evaluate = Evaluator(args=self.args, writer=None)
         self.step = 0
-        self.observation = None
+        self.observation = self.env.reset()
+        self.agent.reset(self.observation, self.args.noise_factor)
 
     def get_module(self):
         raise NotImplementedError()
@@ -58,7 +59,6 @@ class Model(BenchmarkModel):
         episode = episode_steps = 0
         for _ in range(niter):
             episode_steps += 1
-            # reset if it is the start of episode
             if self.observation is None:
                 self.observation = self.env.reset()
                 self.agent.reset(self.observation, self.args.noise_factor)
@@ -67,8 +67,8 @@ class Model(BenchmarkModel):
             self.agent.observe(reward, self.observation, done, self.step)
             if (episode_steps >= self.args.max_step and self.args.max_step):
                 # [optional] evaluate
-                if self.args.episode > 0 and self.args.validate_interval > 0 and \
-                        self.args.episode % self.args.validate_interval == 0:
+                if episode > 0 and self.args.validate_interval > 0 and \
+                        episode % self.args.validate_interval == 0:
                     reward, dist = self.evaluate(self.env, self.agent.select_action)
                 tot_Q = 0.
                 tot_value_loss = 0.
@@ -87,7 +87,7 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
-            self.agent.eval()
+            reward, dist = self.evaluate(self.env, self.agent.select_action)
 
 if __name__ == '__main__':
     m = Model(device='cpu', jit=False)
