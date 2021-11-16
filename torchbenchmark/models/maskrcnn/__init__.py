@@ -52,11 +52,8 @@ class Model(BenchmarkModel):
         self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True).to(self.device)
 
         # setup optimizer
-        lr = 0.02
-        momentum = 0.9
-        weight_decay = 1e-4
         params = [p for p in self.model.parameters() if p.requires_grad]
-        self.optimizer = torch.optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
+        self.optimizer = torch.optim.SGD(params)
 
         self.train_bs = train_bs
         self.eval_bs = eval_bs
