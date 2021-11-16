@@ -1,6 +1,7 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from torchbenchmark.models.opacus_cifar10.cifar10model import CIFAR10Model
 import torchvision.models as models
 from opacus.utils.module_modification import convert_batchnorm_modules
 from opacus import PrivacyEngine
@@ -15,7 +16,7 @@ def _preload():
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device=None, jit=False, cifar10=False, train_bs=64, eval_bs=64):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -24,11 +25,24 @@ class Model(BenchmarkModel):
         self.model = convert_batchnorm_modules(self.model)
         self.model = self.model.to(device)
 
-        self.example_inputs = (
+        if cifar10:
+            kwargs = {
+                'train_bs': train_bs,
+                'eval_bs': eval_bs,
+                'format': 'NCHW'
+            }
+            learning_rate = 
+            train_loader, test_loader, train_sample_size = load_cifar10(**kwargs)
+            self.example_inputs, self.example_target = _preload(train_loader)
+            self.infer_example_inputs = _preload(test_loader)
+            self.cifar10_model = CIFAR10Model(batch_size=train_bs)
+            self.optimizer  = optim.SGD(self.cifar10_model.parameters(), lr=learning_rate, momentum=0)
+        else:
+            self.example_inputs = (
                 torch.randn((64, 3, 32, 32), device=self.device),
-        )
-        self.example_target = torch.randint(0, 10, (64,), device=self.device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+            )
+            self.example_target = torch.randint(0, 10, (64,), device=self.device)
+            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.CrossEntropyLoss()
 
         # This is supposed to equal the number of data points.
