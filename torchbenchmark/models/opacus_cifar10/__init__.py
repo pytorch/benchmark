@@ -5,13 +5,17 @@ import torchvision.models as models
 from opacus.utils.module_modification import convert_batchnorm_modules
 from opacus import PrivacyEngine
 
+from .cifar10 import load_cifar10
+
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
+def _preload():
+    pass
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device=None, jit=False, cifar10=False, train_bs=64, eval_bs=64):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -20,10 +24,15 @@ class Model(BenchmarkModel):
         self.model = convert_batchnorm_modules(self.model)
         self.model = self.model.to(device)
 
-        self.example_inputs = (
-            torch.randn((64, 3, 32, 32), device=self.device),
-        )
-        self.example_target = torch.randint(0, 10, (64,), device=self.device)
+        if cifar10:
+            train_loader, test_loader, train_len = load_cifar10(train_bs, eval_bs)
+            self.example_inputs, self.example_target = _preload(train_loader)
+            self.infer_example_inputs = _preload(test_loader)
+        else:
+            self.example_inputs = (
+                torch.randn((64, 3, 32, 32), device=self.device),
+            )
+            self.example_target = torch.randint(0, 10, (64,), device=self.device)
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.CrossEntropyLoss()
