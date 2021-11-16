@@ -51,7 +51,15 @@ class Model(BenchmarkModel):
         self.agent.reset(self.observation, self.args.noise_factor)
 
     def get_module(self):
-        raise NotImplementedError()
+        actor = self.agent.actor
+        action = self.agent.select_action(self.observation, noise_factor=self.args.noise_factor)
+        self.observation, reward, done, _ = self.env.step(action)
+        self.agent.observe(reward, self.observation, done, self.step)
+        state, action, reward, \
+            next_state, terminal = self.agent.memory.sample_batch(self.args.batch_size, self.device)
+        state = torch.cat((state[:, :6].float() / 255, state[:, 6:7].float() / self.args.max_step,
+                           self.agent.coord.expand(state.shape[0], 2, 128, 128)), 1)
+        return actor, (state, )
 
     def train(self, niter=1):
         if self.jit:
