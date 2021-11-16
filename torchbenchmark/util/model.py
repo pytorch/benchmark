@@ -26,7 +26,7 @@ class BenchmarkModel():
     A base class for adding models to torch benchmark.
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
-    def __init__(self, *args, **kwargs): 
+    def __init__(self, *args, **kwargs):
         pass
 
     def train(self):
@@ -45,7 +45,11 @@ class BenchmarkModel():
         return True
 
     def _set_mode(self, train):
-        (model, _) = self.get_module()
+        try:
+            (model, _) = self.get_module()
+        except NotImplementedError:
+            # Raise an error for models without a get_module() implementation.
+            raise RuntimeError('Missing get_module() implementation. Required for all models.')
         model.train(train)
 
     def check_opt_vs_noopt_jit(self):
@@ -89,14 +93,14 @@ class BenchmarkModel():
                 raise RuntimeError("Encountered an supported type.\n" +
                     "Please add the type or override `bench_allclose`")
 
-       
+
         try:
             opt = model(*inputs)
         except Exception as e:
             print(e)
             warnings.warn(UserWarning(f"{model_name}.eval() doesn't support `check_results` yet!"))
             return
-        
+
         # disable optimizations and force a recompilation
         # to a baseline version
         fwd = model._c._get_method("forward")

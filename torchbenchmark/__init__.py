@@ -337,7 +337,13 @@ class ModelTask(base_task.TaskBase):
     @staticmethod
     def check_example() -> None:
         model = globals()["model"]
-        module, example_inputs = model.get_module()
+
+        try:
+            module, example_inputs = model.get_module()
+        except NotImplementedError:
+            # Raise an error for models without a get_module() implementation.
+            raise RuntimeError('Missing get_module() implementation. Required for all models.')
+
         if isinstance(example_inputs, dict):
             # Huggingface models pass **kwargs as arguments, not *args
             module(**example_inputs)
@@ -354,7 +360,12 @@ class ModelTask(base_task.TaskBase):
         if current_device is None:
             raise RuntimeError('Missing device in BenchmarkModel.')
 
-        model, inputs = instance.get_module()
+        try:
+            model, inputs = instance.get_module()
+        except NotImplementedError:
+            # Raise an error for models without a get_module() implementation.
+            raise RuntimeError('Missing get_module() implementation. Required for all models.')
+
         model_name = getattr(model, 'name', None)
 
         # Check the model tensors are assigned to the expected device.
