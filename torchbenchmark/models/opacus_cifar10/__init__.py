@@ -5,13 +5,9 @@ import torchvision.models as models
 from opacus.utils.module_modification import convert_batchnorm_modules
 from opacus import PrivacyEngine
 
-from .cifar10 import load_cifar10
-
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-def _preload():
-    pass
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
@@ -25,9 +21,10 @@ class Model(BenchmarkModel):
         self.model = self.model.to(device)
 
         self.example_inputs = (
-                torch.randn((64, 3, 32, 32), device=self.device),
+            torch.randn((64, 3, 32, 32), device=self.device),
         )
         self.example_target = torch.randint(0, 10, (64,), device=self.device)
+
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.CrossEntropyLoss()
 
