@@ -4,18 +4,16 @@ Maskrcnn model from torchvision
 
 import torch
 import os
-import yaml
 import random
 import numpy as np
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
+from pathlib import Path
 
 # Model specific imports
 import torchvision
-from torch.utils.data import DataLoader
 from .coco_utils import ConvertCocoPolysToMask
 from torchvision.datasets.coco import CocoDetection
-from pycocotools.coco import COCO
 
 MASTER_SEED = 1337
 torch.manual_seed(MASTER_SEED)
@@ -24,8 +22,9 @@ np.random.seed(MASTER_SEED)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR = os.path.join(CURRENT_DIR, ".data", "coco2017-minimal")
+CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
+DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-minimal")
+assert os.path.exists(DATA_DIR), "Couldn't find coco2017 minimal data dir, please run install.py again."
 COCO_DATA_KEY = "coco_2017_val_100"
 COCO_DATA = {
     "coco_2017_val_100": ("coco/val2017", "coco/annotations/instances_val2017_100.json")
@@ -105,6 +104,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _, (images, _targets) in zip(range(niter), self.eval_data_loader):
                 self.eval_model(images)
-
-if __name__ == "__main__":
-    pass
