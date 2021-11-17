@@ -340,8 +340,7 @@ class ModelTask(base_task.TaskBase):
         try:
             module, example_inputs = model.get_module()
         except NotImplementedError:
-            # Raise an error for models without a get_module() implementation. Otherwise
-            # all the tests such as train, eval, and example will get skipped in unit testing.
+            # Raise an error for models without a get_module() implementation.
             raise RuntimeError('Missing get_module() implementation. Required for all models.')
 
         if isinstance(example_inputs, dict):
