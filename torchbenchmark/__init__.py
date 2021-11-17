@@ -337,7 +337,13 @@ class ModelTask(base_task.TaskBase):
     @staticmethod
     def check_example() -> None:
         model = globals()["model"]
-        module, example_inputs = model.get_module()
+        try:
+            module, example_inputs = model.get_module()
+        except NotImplementedError:
+            # Raise an error for models without a get_module() implementation. Otherwise
+            # all the tests such as train, eval, and example will get skipped in unit testing.
+            raise RuntimeError('Missing get_module() implementation. Required for all models.')
+
         if isinstance(example_inputs, dict):
             # Huggingface models pass **kwargs as arguments, not *args
             module(**example_inputs)
@@ -357,9 +363,9 @@ class ModelTask(base_task.TaskBase):
         try:
             model, inputs = instance.get_module()
         except NotImplementedError:
-            # Skip this check_device for models without get_module() implementation. Otherwise
-            # all the tests such as train, eval, and example will also get skipped in test.py.
-            return
+            # Raise an error for models without a get_module() implementation. Otherwise
+            # all the tests such as train, eval, and example will get skipped in unit testing.
+            raise RuntimeError('Missing get_module() implementation. Required for all models.')
         model_name = getattr(model, 'name', None)
 
         # Check the model tensors are assigned to the expected device.
