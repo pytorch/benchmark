@@ -50,6 +50,11 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True).to(self.device)
+        if self.jit:
+            self.model = torch.jit.script(self.model)
+            self.eval_model = torch.jit.script(self.model)
+            self.eval_model.eval()
+            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
         # setup optimizer
         # optimizer parameters copied from
@@ -83,8 +88,6 @@ class Model(BenchmarkModel):
             return self.model, (example_inputs, )
 
     def train(self, niter=1):
-        if self.jit:
-            return NotImplementedError("JIT is not supported by this model")
         if not self.device == "cuda":
             return NotImplementedError("CPU is not supported by this model")
         self.model.train()
@@ -98,15 +101,12 @@ class Model(BenchmarkModel):
             self.optimizer.step()
 
     def eval(self, niter=1):
-        if self.jit:
-            return NotImplementedError("JIT is not supported by this model")
         if not self.device == "cuda":
             return NotImplementedError("CPU is not supported by this model")
-        self.model.eval()
+        self.eval_model.eval()
         with torch.no_grad():
             for _, (images, _targets) in zip(range(niter), self.eval_data_loader):
-                # images = list(image.to(self.device) for image in images)
-                self.model(images)
+                self.eval_model(images)
 
 if __name__ == "__main__":
     pass
