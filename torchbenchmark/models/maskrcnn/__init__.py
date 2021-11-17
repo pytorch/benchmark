@@ -13,7 +13,6 @@ from torchbenchmark.tasks import COMPUTER_VISION
 # Model specific imports
 import torchvision
 from torch.utils.data import DataLoader
-from .transforms import Compose
 from .coco_utils import ConvertCocoPolysToMask
 from torchvision.datasets.coco import CocoDetection
 from pycocotools.coco import COCO
@@ -67,8 +66,7 @@ class Model(BenchmarkModel):
 
         self.train_bs = train_bs
         self.eval_bs = eval_bs
-        t = [ConvertCocoPolysToMask()]
-        transforms = Compose(t)
+        transforms = ConvertCocoPolysToMask()
         dataset = CocoDetection(root=os.path.join(DATA_DIR, COCO_DATA[COCO_DATA_KEY][0]),
                                 annFile=os.path.join(DATA_DIR, COCO_DATA[COCO_DATA_KEY][1]),
                                 transforms=transforms)
