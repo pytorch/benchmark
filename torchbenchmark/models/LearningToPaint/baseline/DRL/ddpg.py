@@ -12,13 +12,14 @@ from ..utils.util import *
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-criterion = nn.MSELoss()
+# Instead of having these as globals, create Decoder inside TB model and criterion in this DDPG model.
+# criterion = nn.MSELoss()
 # Use default Renderer instead of importing one.
-Decoder = FCN()
+# Decoder = FCN()
 # Decoder.load_state_dict(torch.load('../renderer.pkl'))
 
 
-def decode(x, canvas):  # b * (10 + 3)
+def decode(x, canvas, Decoder):  # b * (10 + 3)
     x = x.view(-1, 10 + 3)
     stroke = 1 - Decoder(x[:, :10])
     stroke = stroke.view(-1, 128, 128, 1)
@@ -39,7 +40,7 @@ def cal_trans(s, t):
 class DDPG(object):
     def __init__(self, batch_size=64, env_batch=1, max_step=40,
                  tau=0.001, discount=0.9, rmsize=800,
-                 writer=None, resume=None, output_path=None, device='cpu'):
+                 writer=None, resume=None, output_path=None, device='cpu', Decoder=None):
 
         self.max_step = max_step
         self.env_batch = env_batch
@@ -50,6 +51,9 @@ class DDPG(object):
         self.actor_target = ResNet(9, 18, 65)
         self.critic = ResNet_wobn(3 + 9, 18, 1)  # add the last canvas for better prediction
         self.critic_target = ResNet_wobn(3 + 9, 18, 1)
+
+        self.criterion = nn.MSELoss()
+        self.Decoder = Decoder
 
         self.actor_optim = Adam(self.actor.parameters(), lr=1e-2)
         self.critic_optim = Adam(self.critic.parameters(), lr=1e-2)
@@ -103,7 +107,7 @@ class DDPG(object):
         T = state[:, 6 : 7]
         gt = state[:, 3 : 6].float() / 255
         canvas0 = state[:, :3].float() / 255
-        canvas1 = decode(action, canvas0)
+        canvas1 = decode(action, canvas0, self.Decoder)
         gan_reward = cal_reward(canvas1, gt) - cal_reward(canvas0, gt)
         # L2_reward = ((canvas0 - gt) ** 2).mean(1).mean(1).mean(1) - ((canvas1 - gt) ** 2).mean(1).mean(1).mean(1)
         coord_ = self.coord.expand(state.shape[0], 2, 128, 128)
@@ -141,7 +145,7 @@ class DDPG(object):
         cur_q, step_reward = self.evaluate(state, action)
         target_q += step_reward.detach()
 
-        value_loss = criterion(cur_q, target_q)
+        value_loss = self.criterion(cur_q, target_q)
         self.critic.zero_grad()
         value_loss.backward(retain_graph=True)
         self.critic_optim.step()
@@ -220,7 +224,7 @@ class DDPG(object):
         self.critic_target.train()
 
     def choose_device(self):
-        Decoder.to(self.device)
+        self.Decoder.to(self.device)
         self.actor.to(self.device)
         self.actor_target.to(self.device)
         self.critic.to(self.device)

@@ -3,7 +3,6 @@ import torch
 import numpy as np
 from ..env import Paint
 from ..utils.util import *
-from .ddpg import decode
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -11,11 +10,12 @@ from .ddpg import decode
 class fastenv():
     def __init__(self,
                  max_episode_length=10, env_batch=64,
-                 writer=None, images=None, device="cpu"):
+                 writer=None, images=None, device="cpu", Decoder=None):
         self.max_episode_length = max_episode_length
         self.env_batch = env_batch
         self.device = device
-        self.env = Paint(self.env_batch, self.max_episode_length, device=self.device)
+        self.Decoder = Decoder
+        self.env = Paint(self.env_batch, self.max_episode_length, device=self.device, Decoder=self.Decoder)
         self.env.load_data(images)
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space

@@ -24,13 +24,14 @@ test_num = 0
 
 
 class Paint:
-    def __init__(self, batch_size, max_step, device='cpu'):
+    def __init__(self, batch_size, max_step, device='cpu', Decoder=None):
         self.batch_size = batch_size
         self.max_step = max_step
         self.action_space = (13)
         self.observation_space = (self.batch_size, width, width, 7)
         self.test = False
         self.device = device
+        self.Decoder = Decoder
 
     def load_data(self, images=None):
         # CelebA
@@ -97,7 +98,7 @@ class Paint:
         return (s.transpose(0, 3) * t).transpose(0, 3)
 
     def step(self, action):
-        self.canvas = (decode(action, self.canvas.float() / 255) * 255).byte()
+        self.canvas = (decode(action, self.canvas.float() / 255, self.Decoder) * 255).byte()
         self.stepnum += 1
         ob = self.observation()
         done = (self.stepnum == self.max_step)
