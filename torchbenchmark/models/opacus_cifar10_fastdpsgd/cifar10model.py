@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 class CIFAR10Model(nn.Module):

@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from torchbenchmark.models.opacus_cifar10_2.cifar10model import CIFAR10Model
+from .cifar10model import CIFAR10Model
 import torchvision.models as models
 
 from opacus.utils.module_modification import convert_batchnorm_modules
@@ -31,16 +31,15 @@ class Model(BenchmarkModel):
             'eval_bs': eval_bs,
             'format': 'NCHW'
         }
-        train_loader, test_loader, train_sample_size = load_cifar10(**kwargs)
+        train_loader, _, train_sample_size = load_cifar10(**kwargs)
         self.example_inputs, self.example_target = _preload(train_loader)
-        self.infer_example_inputs = _preload(test_loader)
         self.cifar10_model = CIFAR10Model(batch_size=train_bs)
         self.optimizer  = optim.SGD(self.cifar10_model.parameters(), lr=learning_rate, momentum=0)
 
         self.privacy_engine = PrivacyEngine(
             self.model,
             batch_size=64,
-            sample_size=sample_size,
+            sample_size=train_sample_size,
             alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
             noise_multiplier=1.0,
             max_grad_norm=1.0,
@@ -55,19 +54,18 @@ class Model(BenchmarkModel):
 
         return self.model, self.example_inputs
 
-    def train(self):
+    def train(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT is not implemented on this model")
+        if self.device != "CPU":
+            raise NotImplementedError("CPU is not implemented on this model")
 
-        model, (images,) = self.get_module()
-        model.train()
-        targets = self.example_target
-
-        output = model(images)
-        loss = self.criterion(output, targets)
-        loss.backward()
-        self.optimizer.step()
-        self.optimizer.zero_grad()
+        for _, (x, y) in zip(niter, self.train_loader):
+            self.model.zero_grad()
+            outputs = self.model.forward(x)
+            loss = nn.CrossEntropyLoss()(outputs, y)
+            loss.backward()
+            self.optimizer.step()
 
     def eval(self):
         return NotImplementedError("Eval is not implemented")
