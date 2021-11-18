@@ -30,23 +30,15 @@ class Model(BenchmarkModel):
         max_per_sample_grad_norm = 1.0
         base_model = "cifar10"
 
+        # Build the model
         if base_model == "cifar10":
             self.model = CIFAR10Model(batch_size=train_bs)
         elif base_model == "resnet18":
             self.model = convert_batchnorm_modules(models.resnet18(num_classes=10))
+        else:
+            raise RuntimeError(f"only supported models are 'cifar10' or 'resnet18' got {base_model}")
         self.model = self.model.to(device)        
-        self.optimizer  = optim.SGD(self.cifar10_model.parameters(),
-                                    lr=learning_rate, momentum=0)
 
-        self.privacy_engine = PrivacyEngine(
-            self.model,
-            batch_size=train_bs,
-            sample_size=train_sample_size,
-            alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
-            noise_multiplier=sigma,
-            max_grad_norm=max_per_sample_grad_norm,
-        )
-        self.privacy_engine.attach(self.optimizer)
         # Build the input
         kwargs = {
             'train_bs': train_bs,
@@ -55,18 +47,32 @@ class Model(BenchmarkModel):
         train_loader, _, train_sample_size = load_cifar10(**kwargs)
         self.example_inputs, self.example_target = _prefetch(train_loader)
 
-    def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
+        # Build optimizer and privacy engine
+        self.privacy_engine = PrivacyEngine(
+            self.model,
+            batch_size=train_bs,
+            sample_size=train_sample_size,
+            alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
+            noise_multiplier=sigma,
+            max_grad_norm=max_per_sample_grad_norm,
+        )
+        self.optimizer  = optim.SGD(self.model.parameters(),
+                                    lr=learning_rate, momentum=0)
+        self.privacy_engine.attach(self.optimizer)
 
-        return self.model, self.example_inputs
+    def get_module(self, niter=1):
+        if self.jit:
+            raise NotImplementedError("JIT is not implemented on this model")
+        if not self.device == "cuda":
+            raise NotImplementedError("CPU is not implemented on this model")
+        for _, (x, y) in zip(niter, self.train_loader):
+            return self.model, (x, )
 
     def train(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT is not implemented on this model")
-        if self.device != "CPU":
+        if not self.device == "cuda":
             raise NotImplementedError("CPU is not implemented on this model")
-
         for _, (x, y) in zip(niter, self.train_loader):
             self.model.zero_grad()
             outputs = self.model.forward(x)
