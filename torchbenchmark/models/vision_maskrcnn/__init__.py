@@ -86,8 +86,6 @@ class Model(BenchmarkModel):
             return self.model, (example_inputs, )
 
     def train(self, niter=1):
-        if not self.device == "cuda":
-            return NotImplementedError("CPU is not supported by this model")
         self.model.train()
         for _, (images, targets) in zip(range(niter), self.train_data_loader):
             # images = list(image.to(self.device) for image in images)
@@ -99,8 +97,6 @@ class Model(BenchmarkModel):
             self.optimizer.step()
 
     def eval(self, niter=1):
-        if not self.device == "cuda":
-            return NotImplementedError("CPU is not supported by this model")
         self.eval_model.eval()
         with torch.no_grad():
             for _, (images, _targets) in zip(range(niter), self.eval_data_loader):
