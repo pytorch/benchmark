@@ -1,52 +1,59 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from .cifar10model import CIFAR10Model
 import torchvision.models as models
 
 from opacus.utils.module_modification import convert_batchnorm_modules
 from opacus import PrivacyEngine
 
-from .cifar10 import load_cifar10
+from .cifar10data import load_cifar10
+from .cifar10model import CIFAR10Model
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-def _preload():
+def _prefetch():
     pass
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=64):
+    def __init__(self, device=None, jit=False, train_bs=64):
         super().__init__()
         self.device = device
         self.jit = jit
 
-        self.model = models.resnet18(num_classes=10)
-        self.model = convert_batchnorm_modules(self.model)
-        self.model = self.model.to(device)
+        # set parameters
+        learning_rate = 0.15
+        noise_multiplier = 1.1
+        l2_norm_clip = 1.0
+        sigma = 1.0
+        max_per_sample_grad_norm = 1.0
+        base_model = "cifar10"
 
-        kwargs = {
-            'train_bs': train_bs,
-            'eval_bs': eval_bs,
-            'format': 'NCHW'
-        }
-        train_loader, _, train_sample_size = load_cifar10(**kwargs)
-        self.example_inputs, self.example_target = _preload(train_loader)
-        self.cifar10_model = CIFAR10Model(batch_size=train_bs)
-        self.optimizer  = optim.SGD(self.cifar10_model.parameters(), lr=learning_rate, momentum=0)
+        if base_model == "cifar10":
+            self.model = CIFAR10Model(batch_size=train_bs)
+        elif base_model == "resnet18":
+            self.model = convert_batchnorm_modules(models.resnet18(num_classes=10))
+        self.model = self.model.to(device)        
+        self.optimizer  = optim.SGD(self.cifar10_model.parameters(),
+                                    lr=learning_rate, momentum=0)
 
         self.privacy_engine = PrivacyEngine(
             self.model,
-            batch_size=64,
+            batch_size=train_bs,
             sample_size=train_sample_size,
             alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
-            noise_multiplier=1.0,
-            max_grad_norm=1.0,
-            secure_rng=False,
-            **clipping,
+            noise_multiplier=sigma,
+            max_grad_norm=max_per_sample_grad_norm,
         )
         self.privacy_engine.attach(self.optimizer)
+        # Build the input
+        kwargs = {
+            'train_bs': train_bs,
+            'format': 'NCHW'
+        }
+        train_loader, _, train_sample_size = load_cifar10(**kwargs)
+        self.example_inputs, self.example_target = _prefetch(train_loader)
 
     def get_module(self):
         if self.jit:
