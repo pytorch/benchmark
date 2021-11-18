@@ -28,7 +28,6 @@ class Model(BenchmarkModel):
 
         # set parameters
         learning_rate = 0.15
-        noise_multiplier = 1.1
         l2_norm_clip = 1.0
         sigma = 1.0
         max_per_sample_grad_norm = 1.0
