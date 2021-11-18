@@ -12,8 +12,12 @@ from .cifar10model import CIFAR10Model
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-def _prefetch():
-    pass
+def _prefetch(train_loader):
+    inputs, targets = [], []
+    for input, target in train_loader:
+        inputs.append(input)
+        targets.append(target)
+    return inputs, targets
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
@@ -44,7 +48,7 @@ class Model(BenchmarkModel):
             'train_bs': train_bs,
             'format': 'NCHW'
         }
-        train_loader, _, train_sample_size = load_cifar10(**kwargs)
+        train_loader, train_sample_size = load_cifar10(**kwargs)
         self.example_inputs, self.example_target = _prefetch(train_loader)
 
         # Build optimizer and privacy engine
