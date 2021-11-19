@@ -4,12 +4,10 @@ Use random Chinese characters with the same length as the original dataset.
 """
 import os
 import pathlib
-import numpy
 import json
 import random
-import fastNLP
 
-TRAIN_BATCH_SIZE = 1
+TRAIN_BATCH_SIZE = 6
 EVAL_BATCH_SIZE = 1
 
 CMRC2018_TRAIN_SPEC = {
