@@ -68,7 +68,7 @@ class Model(BenchmarkModel):
     def get_module(self, niter=1):
         if not self.device == "cuda":
             raise NotImplementedError("CPU is not implemented on this model")
-        for _, (x, y) in zip(niter, self.train_loader):
+        for _, (x, y) in zip(range(niter), self.train_loader):
             return self.model, (x, )
 
     def train(self, niter=1):
