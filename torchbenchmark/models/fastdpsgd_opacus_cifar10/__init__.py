@@ -47,7 +47,7 @@ class Model(BenchmarkModel):
             'format': 'NCHW'
         }
         train_loader, train_sample_size = load_cifar10(**kwargs)
-        self.train_loader = _prefetch(train_loader)
+        self.train_loader = _prefetch(train_loader, device)
 
         if self.jit:
             self.model = torch.jit.script(self.model)
