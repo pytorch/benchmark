@@ -12,11 +12,11 @@ from .cifar10model import CIFAR10Model
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-def _prefetch(train_loader):
-    train_loader = []
+def _prefetch(train_loader, device):
+    prefetch_train_loader = []
     for input, target in train_loader:
-        train_loader.append((input, target))
-    return train_loader
+        prefetch_train_loader.append((input.to(device), target.to(device)))
+    return prefetch_train_loader
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
@@ -39,7 +39,7 @@ class Model(BenchmarkModel):
             self.model = convert_batchnorm_modules(models.resnet18(num_classes=10))
         else:
             raise RuntimeError(f"only supported models are 'cifar10' or 'resnet18' got {base_model}")
-        self.model = self.model.to(device)        
+        self.model = self.model.to(device)
 
         # Build the input
         kwargs = {
@@ -48,6 +48,9 @@ class Model(BenchmarkModel):
         }
         train_loader, train_sample_size = load_cifar10(**kwargs)
         self.train_loader = _prefetch(train_loader)
+
+        if self.jit:
+            self.model = torch.jit.script(self.model)
 
         # Build optimizer and privacy engine
         self.privacy_engine = PrivacyEngine(
@@ -63,19 +66,15 @@ class Model(BenchmarkModel):
         self.privacy_engine.attach(self.optimizer)
 
     def get_module(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT is not implemented on this model")
         if not self.device == "cuda":
             raise NotImplementedError("CPU is not implemented on this model")
         for _, (x, y) in zip(niter, self.train_loader):
             return self.model, (x, )
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT is not implemented on this model")
         if not self.device == "cuda":
             raise NotImplementedError("CPU is not implemented on this model")
-        for _, (x, y) in zip(niter, self.train_loader):
+        for _, (x, y) in zip(range(niter), self.train_loader):
             self.model.zero_grad()
             outputs = self.model.forward(x)
             loss = nn.CrossEntropyLoss()(outputs, y)
