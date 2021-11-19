@@ -37,6 +37,7 @@ class Model(BenchmarkModel):
         )
 
         if jit:
+            self.model = torch.jit.script(self.model)
             self.eval_model = torch.jit.script(self.eval_model)
             assert isinstance(self.eval_model, torch.jit.ScriptModule)
             # self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
