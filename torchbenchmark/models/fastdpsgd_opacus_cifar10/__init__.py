@@ -13,11 +13,10 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
 def _prefetch(train_loader):
-    inputs, targets = [], []
+    train_loader = []
     for input, target in train_loader:
-        inputs.append(input)
-        targets.append(target)
-    return inputs, targets
+        train_loader.append((input, target))
+    return train_loader
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
@@ -48,7 +47,7 @@ class Model(BenchmarkModel):
             'format': 'NCHW'
         }
         train_loader, train_sample_size = load_cifar10(**kwargs)
-        self.example_inputs, self.example_target = _prefetch(train_loader)
+        self.train_loader = _prefetch(train_loader)
 
         # Build optimizer and privacy engine
         self.privacy_engine = PrivacyEngine(
