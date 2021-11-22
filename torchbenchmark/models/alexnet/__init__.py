@@ -15,7 +15,9 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
-    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=16):
+    # Train batch size: use the smallest example batch of 128 (assuming only 1 worker)
+    # Source: https://arxiv.org/pdf/1404.5997.pdf
+    def __init__(self, device=None, jit=False, train_bs=128, eval_bs=16):
         super().__init__()
         self.device = device
         self.jit = jit
