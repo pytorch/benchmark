@@ -146,10 +146,8 @@ if __name__ == "__main__":
         exit(-1)
 
     found = False
-    model_name = find_model_by_name(args.model)
-    if model_name:
-        Model = load_model(model_name)
-    else:
+    Model = load_model_by_name(args.model)
+    if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
 
