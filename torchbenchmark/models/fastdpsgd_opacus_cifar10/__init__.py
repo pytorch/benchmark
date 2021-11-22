@@ -12,6 +12,10 @@ from .cifar10model import CIFAR10Model
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
+torch.manual_seed(1337)
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = True
+
 def _prefetch(train_loader, device):
     prefetch_train_loader = []
     for input, target in train_loader:
@@ -20,7 +24,7 @@ def _prefetch(train_loader, device):
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False, train_bs=64):
+    def __init__(self, device=None, jit=False, train_bs=16):
         super().__init__()
         self.device = device
         self.jit = jit
