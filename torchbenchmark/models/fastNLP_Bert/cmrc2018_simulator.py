@@ -4,12 +4,12 @@ Use random Chinese characters with the same length as the original dataset.
 """
 import os
 import pathlib
-import numpy
 import json
 import random
-import fastNLP
 
-TRAIN_BATCH_SIZE = 1
+# Use the train batch size from the original CMRC2018 Q&A task
+# Source: https://fastnlp.readthedocs.io/zh/latest/tutorials/extend_1_bert_embedding.html
+TRAIN_BATCH_SIZE = 6
 EVAL_BATCH_SIZE = 1
 
 CMRC2018_TRAIN_SPEC = {
