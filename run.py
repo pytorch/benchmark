@@ -12,7 +12,7 @@ import argparse
 import time
 import torch.profiler as profiler
 
-from torchbenchmark import find_model_by_name, load_model
+from torchbenchmark import load_model_by_name
 import torch
 
 WARMUP_ROUNDS = 3
