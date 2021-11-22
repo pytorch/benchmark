@@ -12,7 +12,7 @@ import argparse
 import time
 import torch.profiler as profiler
 
-from torchbenchmark import list_models
+from torchbenchmark import find_model_by_name, load_model
 import torch
 
 WARMUP_ROUNDS = 3
@@ -146,15 +146,14 @@ if __name__ == "__main__":
         exit(-1)
 
     found = False
-    for Model in list_models():
-        if args.model.lower() in Model.name.lower():
-            found = True
-            break
-    if found:
-        print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
+    model_name = find_model_by_name(args.model)
+    if model_name:
+        Model = load_model(model_name)
     else:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
+
+    print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
 
     # build the model and get the chosen test method
     if args.bs:
