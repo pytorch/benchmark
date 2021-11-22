@@ -15,7 +15,9 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
-    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=16):
+    # Default train batch size is set to 512, which is batch_size (32) * iter_size (16)
+    # Source: https://github.com/forresti/SqueezeNet
+    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=16):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -46,7 +48,7 @@ class Model(BenchmarkModel):
     def set_eval(self):
         pass
 
-    def train(self, niter=3):
+    def train(self, niter=16):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
