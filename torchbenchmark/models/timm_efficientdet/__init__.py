@@ -26,7 +26,7 @@ from .loader import create_datasets_and_loaders
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-minimal")
+DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-minimal", "coco")
 
 torch.manual_seed(1337)
 random.seed(1337)
@@ -51,10 +51,16 @@ class Model(BenchmarkModel):
         args.torchscript = jit
         args.world_size = 1
         args.rank = 0
+        args.pretrained_backbone = not args.no_pretrained_backbone
+        args.prefetcher = not args.no_prefetcher
+        args.root = DATA_DIR
+
+        if not self.device == "cuda":
+            raise NotImplementedError("Only CUDA is supported by this model") 
 
         with set_layer_config(scriptable=args.torchscript):
             model = create_model(
-                model=args.model,
+                model_name=args.model,
                 bench_task='train',
                 num_classes=args.num_classes,
                 pretrained=args.pretrained,

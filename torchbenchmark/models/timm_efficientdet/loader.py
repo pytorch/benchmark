@@ -2,6 +2,19 @@ from effdet.data import resolve_input_config, SkipSubset
 from effdet import create_loader, create_dataset, create_evaluator
 from effdet.anchors import Anchors, AnchorLabeler
 
+from effdet.data.dataset_config import CocoCfg
+
+from dataclasses import dataclass, field
+from typing import Dict
+
+@dataclass
+class Coco2017MinimalCfg(CocoCfg):
+    variant: str = '2017-minimal'
+    splits: Dict[str, dict] = field(default_factory=lambda: dict(
+        train=dict(ann_filename='annotations/instances_val2017_100.json', img_dir='val2017', has_labels=True),
+        val=dict(ann_filename='annotations/instances_val2017_100.json', img_dir='val2017', has_labels=True),
+    ))
+
 def create_datasets_and_loaders(
         args,
         model_config,
@@ -21,7 +34,7 @@ def create_datasets_and_loaders(
     """
     input_config = resolve_input_config(args, model_config=model_config)
 
-    dataset_train, dataset_eval = create_dataset(args.dataset, args.root)
+    dataset_train, dataset_eval = create_dataset(args.dataset, args.root, custom_dataset_cfg=Coco2017MinimalCfg())
 
     # setup labeler in loader/collate_fn if not enabled in the model bench
     labeler = None
