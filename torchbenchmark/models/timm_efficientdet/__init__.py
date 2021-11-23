@@ -99,7 +99,6 @@ class Model(BenchmarkModel):
             logging.warning(
                 f'Model {model_config.num_classes} has more classes than dataset {loader_train.dataset.parser.max_label}.')
 
-
     def get_module(self):
         self.model.eval()
 
