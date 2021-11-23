@@ -26,28 +26,33 @@ class Model(BenchmarkModel):
         super(Model, self).__init__()
         self.device = device
         self.jit = jit
-        # All of these options are from source code. The paper mentions batch size is 96.
+        # Train: These options are from source code and uses batch size of 96.
+        # Source: https://arxiv.org/pdf/1903.04411.pdf
+        # Code: https://github.com/megvii-research/ICCV2019-LearningToPaint/blob/master/baseline/train.py
         self.args = Namespace(**{
             'validate_episodes': 5,
             'validate_interval': 50,
             'max_step': 40,
-            'env_batch': 64,
+            'env_batch': 96,
             'batch_size': 96,
             'discount': 0.95**5,
             'episode_train_times': 10,
             'noise_factor': 0.0,
+            'tau': 0.001,
+            'rmsize': 800,
         })
-        # The paper mentions input images are from CelebFaces and resized to 128 x 128.
-        # Create 2000 random tensors for input, but fastenv will still load 200,000 images.
+        # Train: input images are from CelebFaces and resized to 128 x 128.
+        # Create 2000 random tensors for input, but randomly sample 200,000 images.
         self.width = 128
         self.image_examples = torch.rand(2000, 3, self.width, self.width)
 
-        # LearningToPaint includes actor, critic, and discriminator models, make sure to run all of them!
+        # LearningToPaint includes actor, critic, and discriminator models.
         self.Decoder = FCN()
         self.env = fastenv(max_episode_length=self.args.max_step, env_batch=self.args.env_batch,
                            images=self.image_examples, device=self.device, Decoder=self.Decoder)
-        self.agent = DDPG(batch_size=self.args.batch_size, env_batch=self.args.env_batch, max_step=self.args.max_step,
-                          discount=self.args.discount, device=self.device, Decoder=self.Decoder)
+        self.agent = DDPG(batch_size=self.args.batch_size, env_batch=self.args.env_batch,
+                          max_step=self.args.max_step, tau=self.args.tau, discount=self.args.discount,
+                          rmsize=self.args.rmsize, device=self.device, Decoder=self.Decoder)
         self.evaluate = Evaluator(args=self.args, writer=None)
         self.step = 0
         self.observation = self.env.reset()
