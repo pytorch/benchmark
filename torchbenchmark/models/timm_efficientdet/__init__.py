@@ -22,6 +22,7 @@ from timm.scheduler import create_scheduler
 
 # local imports
 from .parser import get_args
+from .train import train_epoch, validate
 from .loader import create_datasets_and_loaders
 
 # setup environment variable
@@ -107,6 +108,21 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
+        for epoch in range(niter):
+            train_metrics = train_epoch(
+                epoch, self.model, self.loader_train,
+                self.optimizer, self.args,
+                lr_scheduler=self.lr_scheduler, amp_autocast=self.amp_autocast,
+                loss_scaler=self.loss_scaler, model_ema=self.model_ema
+            )
+            # the overhead of evaluating with coco style datasets is fairly high, so just ema or non, not both
+            if self.model_ema is not None:
+                eval_metrics = validate(self.model_ema.module, self.loader_eval, args, evaluator, log_suffix=' (EMA)')
+            else:
+                eval_metrics = validate(self.model, self.loader_eval, self.args, evaluator)
+            if self.lr_scheduler is not None:
+                # step LR for next epoch
+                self.lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])
 
     def eval(self, niter=2):
         if not self.device == "cuda":
