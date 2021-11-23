@@ -12,9 +12,7 @@ from torchbenchmark.util.torch_feature_checker import check_native_amp
 from torchbenchmark.tasks import COMPUTER_VISION
 
 # effdet imports
-from effdet import create_model, unwrap_bench, create_loader, create_dataset, create_evaluator
-from effdet.data import resolve_input_config, SkipSubset
-from effdet.anchors import Anchors, AnchorLabeler
+from effdet import create_model
 
 # timm imports
 from timm.models.layers import set_layer_config
