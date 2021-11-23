@@ -19,11 +19,12 @@ from effdet.anchors import Anchors, AnchorLabeler
 # timm imports
 from timm.models.layers import set_layer_config
 from timm.optim import create_optimizer
-from timm.utils import ModelEMA2, NativeScaler
+from timm.utils import ModelEmaV2, NativeScaler
 from timm.scheduler import create_scheduler
 
 # local imports
 from .parser import get_args
+from .loader import create_datasets_and_loaders
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -97,19 +98,16 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         self.model.eval()
-        pass
 
     def train(self, niter=1):
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
-       pass
 
     def eval(self, niter=2):
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
-        pass
 
