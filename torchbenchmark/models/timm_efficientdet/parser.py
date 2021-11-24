@@ -169,5 +169,9 @@ def get_args(config_file=None):
                         help='Test/inference time augmentation (oversampling) factor. 0=None (default: 0)')
     parser.add_argument("--local_rank", default=0, type=int)
 
+    # Evaluation parameters
+    parser.add_argument('--img-size', default=None, type=int,
+                    metavar='N', help='Input image dimension, uses model default if empty')
+
     args, _ = _parse_args()
     return args
