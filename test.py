@@ -26,7 +26,7 @@ TIMEOUT = 300  # Seconds
 
 # Skip this list of unit tests. One reason may be that the original batch size
 # used in the paper is too large to fit on the CI's GPU.
-TRAIN_BLACKLIST = {("densenet121", "cuda")}
+TRAIN_EXCLUDELIST = {("densenet121", "cuda")}
 
 
 class TestBenchmark(unittest.TestCase):
@@ -105,7 +105,7 @@ def _load_test(path, device):
     name = os.path.basename(path)
     setattr(TestBenchmark, f'test_{name}_example_{device}', example)
     setattr(TestBenchmark, f'test_{name}_train_{device}',
-            (unittest.skipIf((name, device) in TRAIN_BLACKLIST, "This test is on the blacklist")(train)))
+            (unittest.skipIf((name, device) in TRAIN_EXCLUDELIST, "This test is on the exclude list")(train)))
     setattr(TestBenchmark, f'test_{name}_eval_{device}', eval_fn)
     setattr(TestBenchmark, f'test_{name}_check_device_{device}', check_device_fn)
 
