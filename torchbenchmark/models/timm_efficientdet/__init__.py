@@ -60,6 +60,9 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Only CUDA is supported by this model") 
 
         with set_layer_config(scriptable=args.torchscript):
+            extra_args = {}
+            if args.img_size is not None:
+                extra_args = dict(image_size=(args.img_size, args.img_size))
             model = create_model(
                 model_name=args.model,
                 bench_task='train',
@@ -74,12 +77,24 @@ class Model(BenchmarkModel):
                 bench_labeler=args.bench_labeler,
                 checkpoint_path=args.initial_checkpoint,
             )
+            eval_model = create_model(
+                model_name=args.model,
+                bench_task='predict',
+                num_classes=args.num_classes,
+                pretrained=args.pretrained,
+                redundant_bias=args.redundant_bias,
+                soft_nms=args.soft_nms,
+                checkpoint_path=args.checkpoint,
+                checkpoint_ema=args.use_ema,
+                **extra_args,
+            )
         model_config = model.config  # grab before we obscure with DP/DDP wrappers
         model = model.to(device)
         if args.channels_last:
             model = model.to(memory_format=torch.channels_last)
+        eval_model = eval_model.to(device)
 
-        self.model, self.eval_model = jit_model(model, jit=jit)
+        self.model, self.eval_model = jit_model(model, eval_model, jit=jit)
         self.optimizer = create_optimizer(args, model)
         self.amp_autocast = suppress
         if args.native_amp:
