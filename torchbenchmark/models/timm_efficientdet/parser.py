@@ -172,6 +172,10 @@ def get_args(config_file=None):
     # Evaluation parameters
     parser.add_argument('--img-size', default=None, type=int,
                     metavar='N', help='Input image dimension, uses model default if empty')
+    parser.add_argument('--checkpoint', default='', type=str, metavar='PATH',
+                    help='path to latest checkpoint (default: none)')
+    parser.add_argument('--use-ema', dest='use_ema', action='store_true',
+                    help='use ema version of weights if present')
 
     args, _ = _parse_args()
     return args
