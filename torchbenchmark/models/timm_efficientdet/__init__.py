@@ -124,7 +124,7 @@ class Model(BenchmarkModel):
                 input_size=input_config['input_size'],
                 batch_size=args.eval_batch_size,
                 use_prefetcher=args.prefetcher,
-                interpolation=input_config['interpolation'],
+                interpolation=args.eval_interpolation,
                 fill_color=input_config['fill_color'],
                 mean=input_config['mean'],
                 std=input_config['std'],
