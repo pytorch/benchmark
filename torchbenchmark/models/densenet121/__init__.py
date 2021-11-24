@@ -15,6 +15,12 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
+        # Temporarily disable tests because it causes CUDA OOM on CI platform
+        # TODO: Re-enable these tests when better hardware is available
+        if self.device == 'cuda':
+            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
+        if self.device == 'cpu' and self.jit:
+            raise NotImplementedError('CPU with jit disabled due to out of memory on CI CPU')
         self.model = models.densenet121().to(self.device)
         self.eval_model = models.densenet121().to(self.device)
         # Input data is ImageNet shaped as 3, 224, 224.
@@ -34,6 +40,8 @@ class Model(BenchmarkModel):
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
     def get_module(self):
+        if self.device == 'cuda':
+            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         return self.model, self.example_inputs
 
     # vision models have another model
@@ -43,6 +51,10 @@ class Model(BenchmarkModel):
         pass
 
     def train(self, niter=3):
+        if self.device == 'cuda':
+            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
+        if self.device == 'cpu':
+            raise NotImplementedError('CPU disabled due to out of memory on CI CPU')
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
@@ -53,10 +65,12 @@ class Model(BenchmarkModel):
             optimizer.step()
 
     def eval(self, niter=1):
+        if self.device == 'cuda':
+            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         model = self.eval_model
         example_inputs = self.infer_example_inputs
         for i in range(niter):
-            model(example_inputs)
+            model(*example_inputs)
 
 
 if __name__ == "__main__":
