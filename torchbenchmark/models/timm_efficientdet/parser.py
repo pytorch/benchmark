@@ -56,7 +56,7 @@ def get_args(config_file=None):
                         help='Image resize interpolation type (overrides model)')
     parser.add_argument('--fill-color', default=None, type=str, metavar='NAME',
                         help='Image augmentation fill (background) color ("mean" or int)')
-    parser.add_argument('-b', '--batch-size', type=int, default=32, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                         help='input batch size for training (default: 32)')
     parser.add_argument('--clip-grad', type=float, default=10.0, metavar='NORM',
                         help='Clip gradient norm (default: 10.0)')
@@ -170,7 +170,7 @@ def get_args(config_file=None):
     parser.add_argument("--local_rank", default=0, type=int)
 
     # Evaluation parameters
-    parser.add_argument('-b', '--eval-batch-size', default=128, type=int,
+    parser.add_argument('--eval-batch-size', default=128, type=int,
                 metavar='N', help='eval mini-batch size (default: 128)')
     parser.add_argument('--img-size', default=None, type=int,
                     metavar='N', help='Input image dimension, uses model default if empty')
