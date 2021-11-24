@@ -470,7 +470,7 @@ def load_model_by_name(model):
     models = list(models)
     if not models:
         return None
-    assert len(models) == 1, f"Find more than one models {models} with the exact name: {model}"
+    assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
     try:
         module = importlib.import_module(f'.models.{model_name}', package=__name__)
