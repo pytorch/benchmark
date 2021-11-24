@@ -12,7 +12,8 @@ from torchbenchmark.util.torch_feature_checker import check_native_amp
 from torchbenchmark.tasks import COMPUTER_VISION
 
 # effdet imports
-from effdet import create_model
+from effdet import create_model, create_loader
+from effdet.data import resolve_input_config
 
 # timm imports
 from timm.models.layers import set_layer_config
@@ -106,7 +107,7 @@ class Model(BenchmarkModel):
             self.model_ema = ModelEmaV2(model, decay=args.model_ema_decay)
         self.lr_scheduler, self.num_epochs = create_scheduler(args, self.optimizer)
 
-        self.loader_train, self.loader_eval, self.evaluator = create_datasets_and_loaders(args, model_config)
+        self.loader_train, self.loader_eval, self.evaluator, _, dataset_eval = create_datasets_and_loaders(args, model_config)
         if model_config.num_classes < self.loader_train.dataset.parser.max_label:
             logging.error(
                 f'Model {model_config.num_classes} has fewer classes than dataset {self.loader_train.dataset.parser.max_label}.')
@@ -115,6 +116,20 @@ class Model(BenchmarkModel):
             logging.warning(
                 f'Model {model_config.num_classes} has more classes than dataset {self.loader_train.dataset.parser.max_label}.')
         self.train_num_batch = 1
+
+        # Create eval loader
+        input_config = resolve_input_config(args, model_config)
+        self.eval_loader = create_loader(
+                dataset_eval,
+                input_size=input_config['input_size'],
+                batch_size=args.batch_size,
+                use_prefetcher=args.prefetcher,
+                interpolation=input_config['interpolation'],
+                fill_color=input_config['fill_color'],
+                mean=input_config['mean'],
+                std=input_config['std'],
+                num_workers=args.workers,
+                pin_mem=args.pin_mem)
         self.eval_num_batch = 1
         self.args = args
 
@@ -155,7 +170,7 @@ class Model(BenchmarkModel):
         self.eval_model.eval()
         for _ in range(niter):
             with torch.no_grad():
-                for _, (input, target) in zip(range(self.eval_num_batch), self.loader_eval):
+                for _, (input, target) in zip(range(self.eval_num_batch), self.eval_loader):
                     with self.amp_autocast():
                         output = self.eval_model(input, img_info=target)
                     self.evaluator.add_predictions(output, target)

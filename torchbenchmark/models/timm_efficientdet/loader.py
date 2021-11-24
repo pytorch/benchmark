@@ -87,4 +87,4 @@ def create_datasets_and_loaders(
 
     evaluator = create_evaluator(args.dataset, loader_eval.dataset, distributed=args.distributed, pred_yxyx=False)
 
-    return loader_train, loader_eval, evaluator
+    return loader_train, loader_eval, evaluator, dataset_train, dataset_eval

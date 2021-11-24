@@ -1,7 +1,6 @@
 import torch
 
 def jit_model(model, eval_model, jit, optimize_for_inference=True):
-    eval_model = model
     if jit:
         model = torch.jit.script(model)
         eval_model = torch.jit.script(eval_model)

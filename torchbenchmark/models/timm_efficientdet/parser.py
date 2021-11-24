@@ -176,6 +176,12 @@ def get_args(config_file=None):
                     help='path to latest checkpoint (default: none)')
     parser.add_argument('--use-ema', dest='use_ema', action='store_true',
                     help='use ema version of weights if present')
+    parser.add_argument('-b', '--eval-batch-size', default=128, type=int,
+                    metavar='N', help='eval mini-batch size (default: 128)')
+    parser.add_argument('--interpolation', default='bilinear', type=str, metavar='NAME',
+                    help='Image resize interpolation type (overrides model)')
+    parser.add_argument('--fill-color', default=None, type=str, metavar='NAME',
+                    help='Image augmentation fill (background) color ("mean" or int)')
 
     args, _ = _parse_args()
     return args
