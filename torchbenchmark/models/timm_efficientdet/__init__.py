@@ -104,7 +104,9 @@ class Model(BenchmarkModel):
         self.args = args
 
     def get_module(self):
-        self.model.eval()
+        self.eval_model.eval()
+        for _, (input, target) in zip(range(self.eval_num_batch), self.loader_eval):
+            return (self.eval_model, (input, target))
 
     def train(self, niter=1):
         if not self.device == "cuda":
@@ -112,6 +114,7 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         eval_metric = self.args.eval_metric
+        self.model.train()
         for epoch in range(niter):
             train_metrics = train_epoch(
                 epoch, self.model, self.loader_train,
@@ -134,9 +137,10 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
+        self.eval_model.eval()
         for _ in range(niter):
             with torch.no_grad():
-                for _, (input, target) in zip(self.eval_num_batch, self.eval_loader):
+                for _, (input, target) in zip(range(self.eval_num_batch), self.loader_eval):
                     with self.amp_autocast():
                         output = self.eval_model(input, img_info=target)
                     self.evaluator.add_predictions(output, target)
