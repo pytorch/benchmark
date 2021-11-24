@@ -15,11 +15,8 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
-<<<<<<< HEAD
-=======
     # Train batch size 256
     # Source: https://arxiv.org/pdf/1409.1556.pdf
->>>>>>> 7816c91 (Use batch size 256 in the paper for vgg16)
     def __init__(self, device=None, jit=False, train_bs=256, eval_bs=4):
         super().__init__()
         self.device = device
