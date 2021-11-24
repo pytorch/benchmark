@@ -22,7 +22,7 @@ from timm.utils import ModelEmaV2, NativeScaler
 from timm.scheduler import create_scheduler
 
 # local imports
-from .parser import get_args
+from .args import get_args
 from .train import train_epoch, validate
 from .loader import create_datasets_and_loaders
 
@@ -39,12 +39,15 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
     # This model doesn't support setting batch size for inference
-    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=2):
+    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=128):
         super().__init__()
         self.device = device
         self.jit = jit
         # generate arguments
         args = get_args()
+        # setup train and eval batch size
+        args.batch_size = train_bs
+        args.eval_batch_size = eval_bs
         # Use native amp if possible
         args.native_amp = check_native_amp()
         # Disable distributed
@@ -155,9 +158,9 @@ class Model(BenchmarkModel):
             )
             # the overhead of evaluating with coco style datasets is fairly high, so just ema or non, not both
             if self.model_ema is not None:
-                eval_metrics = validate(self.model_ema.module, self.loader_eval, self.args, self.evaluator, log_suffix=' (EMA)')
+                eval_metrics = validate(self.model_ema.module, self.loader_eval, self.args, self.evaluator, log_suffix=' (EMA)', num_batch=self.train_num_batch)
             else:
-                eval_metrics = validate(self.model, self.loader_eval, self.args, self.evaluator)
+                eval_metrics = validate(self.model, self.loader_eval, self.args, self.evaluator, num_batch=self.train_num_batch)
             if self.lr_scheduler is not None:
                 # step LR for next epoch
                 self.lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])

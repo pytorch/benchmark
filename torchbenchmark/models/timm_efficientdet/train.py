@@ -94,7 +94,8 @@ def train_epoch(
 
     return OrderedDict([('loss', losses_m.avg)])
 
-def validate(model, loader, args, num_batch=1, evaluator=None, log_suffix=''):
+def validate(model, loader, args, evaluator=None, log_suffix='',
+             num_batch=1):
     # batch_time_m = AverageMeter()
     losses_m = AverageMeter()
 
