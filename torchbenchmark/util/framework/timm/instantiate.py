@@ -26,7 +26,9 @@ from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler
 from timm.utils import NativeScaler
 from timm.loss import JsdCrossEntropy, BinaryCrossEntropy, SoftTargetCrossEntropy, LabelSmoothingCrossEntropy
-from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
+from timm.data import create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
+
+from .loader import create_fake_imagenet_dataset
 
 def timm_instantiate_eval(args):
     # create eval model
@@ -46,7 +48,7 @@ def timm_instantiate_eval(args):
         eval_model = torch.nn.DataParallel(eval_model, device_ids=list(range(args.num_gpu)))
     crop_pct = data_config['crop_pct']
     # create dataset
-    dataset_eval = create_dataset()
+    dataset_eval = create_fake_imagenet_dataset()
     loader_eval = create_loader(
         dataset_eval,
         input_size=data_config['input_size'],
@@ -119,9 +121,9 @@ def timm_instantiate_train(args):
     # setup learning rate schedule and starting epoch
     lr_scheduler, _ = create_scheduler(args, optimizer)
 
-    # TODO: create dataset
-    dataset_train = create_dataset()
-    dataset_eval = create_dataset()
+    # create fake imagenet dataset
+    dataset_train = create_fake_imagenet_dataset()
+    dataset_eval = create_fake_imagenet_dataset()
 
     # setup mixup / cutmix
     collate_fn = None
