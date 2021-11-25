@@ -8,7 +8,9 @@ import logging
 from torchbenchmark.util.env_check import has_native_amp
 from torchbenchmark.util.framework.timm.args import get_args, setup_args_distributed
 from torchbenchmark.util.framework.timm.train import train_one_epoch, validate
-from torchbenchmark.util.framework.timm.instantiate import timm_instantiate
+from torchbenchmark.util.framework.timm.instantiate import timm_instantiate_train, timm_instantiate_eval
+
+from torchbenchmark.util.jit import jit_if_needed
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
@@ -45,10 +47,12 @@ class Model(BenchmarkModel):
         args.eval_batch_size = eval_bs
         self.args = args
 
-        self.model, self.eval_model, self.loader_train, self.loader_validate,
-        self.loader_eval, self.optimizer, self.train_loss_fn,
-        self.lr_scheduler, self.amp_autocast,
-        self.loss_scaler, self.mixup_fn, self.validate_loss_fn = timm_instantiate(args)
+        model, self.loader_train, self.loader_validate, self.optimizer, \
+            self.train_loss_fn, self.lr_scheduler, self.amp_autocast, \
+            self.loss_scaler, self.mixup_fn, self.validate_loss_fn = timm_instantiate_train(args)
+        eval_model, self.loader_eval = timm_instantiate_eval(args)
+        # jit the model if required
+        self.model, self.eval_model = jit_if_needed(model, eval_model, jit=jit)
         
         # setup number of batches to run
         self.train_num_batch = 1

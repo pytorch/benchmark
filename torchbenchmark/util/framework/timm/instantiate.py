@@ -28,9 +28,41 @@ from timm.utils import NativeScaler
 from timm.loss import JsdCrossEntropy, BinaryCrossEntropy, SoftTargetCrossEntropy, LabelSmoothingCrossEntropy
 from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
 
-from torchbenchmark.util.jit import jit_if_needed
+def timm_instantiate_eval(args):
+    # create eval model
+    eval_model = create_model(
+        args.model_name,
+        pretrained=args.pretrained,
+        num_classes=args.num_classes,
+        in_chans=3,
+        global_pool=args.gp,
+        scriptable=args.torchscript)
+    data_config = resolve_data_config(vars(args), model=eval_model, use_test_size=True, verbose=True)
+    eval_model = eval_model.to(args.device)
+    # enable channels last layout if set
+    if args.channels_last:
+        eval_model = eval_model.to(memory_format=torch.channels_last)
+    if args.num_gpu > 1:
+        eval_model = torch.nn.DataParallel(eval_model, device_ids=list(range(args.num_gpu)))
+    crop_pct = data_config['crop_pct']
+    # create dataset
+    dataset_eval = create_dataset()
+    loader_eval = create_loader(
+        dataset_eval,
+        input_size=data_config['input_size'],
+        batch_size=args.eval_batch_size,
+        use_prefetcher=args.prefetcher,
+        interpolation=data_config['interpolation'],
+        mean=data_config['mean'],
+        std=data_config['std'],
+        num_workers=args.workers,
+        crop_pct=crop_pct,
+        pin_memory=args.pin_mem,
+        tf_preprocessing=args.tf_preprocessing
+    )
+    return eval_model, loader_eval
 
-def timm_instantiate(args):
+def timm_instantiate_train(args):
     # create train model
     model = create_model(
         args.model_name,
@@ -57,22 +89,9 @@ def timm_instantiate(args):
         assert num_aug_splits > 1 or args.resplit
         model = convert_splitbn_model(model, max(num_aug_splits, 2))
     model = model.to(args.device)
-    # create eval model
-    eval_model = create_model(
-        args.model_name,
-        pretrained=args.pretrained,
-        num_classes=args.num_classes,
-        in_chans=3,
-        global_pool=args.gp,
-        scriptable=args.torchscript)
-    eval_data_config = resolve_data_config(vars(args), model=eval_model, use_test_size=True, verbose=True)
-    eval_model = eval_model.to(args.device)
     # enable channels last layout if set
     if args.channels_last:
         model = model.to(memory_format=torch.channels_last)
-        eval_model = eval_model.to(memory_format=torch.channels_last)
-    if args.num_gpu > 1:
-        eval_model = torch.nn.DataParallel(eval_model, device_ids=list(range(args.num_gpu)))
     # setup synchronized BatchNorm for distributed training
     if args.distributed and args.sync_bn:
         assert not args.split_bn
@@ -81,8 +100,6 @@ def timm_instantiate(args):
             print(
                 'Converted model to use Synchronized BatchNorm. WARNING: You may have issues if using '
                 'zero initialized BN layers (enabled by default for ResNets) while sync-bn enabled.')
-    # jit the model if needed
-    model, eval_model = jit_if_needed(model, eval_model, jit=args.torchscript)
 
     # setup optimizer
     optimizer = create_optimizer_v2(model, **optimizer_kwargs(cfg=args))
@@ -100,7 +117,7 @@ def timm_instantiate(args):
         # NOTE: EMA model does not need to be wrapped by DDP
 
     # setup learning rate schedule and starting epoch
-    lr_scheduler, num_epochs = create_scheduler(args, optimizer)
+    lr_scheduler, _ = create_scheduler(args, optimizer)
 
     # TODO: create dataset
     dataset_train = create_dataset()
@@ -174,21 +191,6 @@ def timm_instantiate(args):
         pin_memory=args.pin_mem,
     )
 
-    crop_pct = eval_data_config['crop_pct']
-    loader_eval = create_loader(
-        dataset_eval,
-        input_size=data_config['input_size'],
-        batch_size=args.eval_batch_size,
-        use_prefetcher=args.prefetcher,
-        interpolation=data_config['interpolation'],
-        mean=data_config['mean'],
-        std=data_config['std'],
-        num_workers=args.workers,
-        crop_pct=crop_pct,
-        pin_memory=args.pin_mem,
-        tf_preprocessing=args.tf_preprocessing
-    )
-
     # setup loss function
     if args.jsd_loss:
         assert num_aug_splits > 1  # JSD only valid with aug splits set
@@ -210,4 +212,6 @@ def timm_instantiate(args):
     validate_loss_fn = nn.CrossEntropyLoss().to(args.device)
 
     # return all the inputs needed by train and eval loop
-    return model, eval_model, loader_train, loader_validate, loader_eval, optimizer, train_loss_fn, lr_scheduler, amp_autocast, loss_scaler, mixup_fn, validate_loss_fn
+    return model, loader_train, loader_validate, optimizer, \
+        train_loss_fn, lr_scheduler, amp_autocast, \
+        loss_scaler, mixup_fn, validate_loss_fn
