@@ -63,7 +63,10 @@ class Model(BenchmarkModel):
         self.eval_num_batch = 1
 
     def get_module(self):
-        return self.model, (self.cfg.example_inputs,)
+        self.eval_model.eval()
+        with torch.no_grad():
+            for _, (input, _) in zip(range(self.eval_num_batch), self.loader_eval):
+                return self.eval_model, (input, )
 
     def train(self, niter=1):
         self.model.train()
