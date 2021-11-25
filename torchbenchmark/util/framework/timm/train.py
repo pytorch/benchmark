@@ -169,7 +169,8 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
             else:
                 reduced_loss = loss.data
 
-            torch.cuda.synchronize()
+            if args.device == "cuda":
+                torch.cuda.synchronize()
 
             losses_m.update(reduced_loss.item(), input.size(0))
             top1_m.update(acc1.item(), output.size(0))
