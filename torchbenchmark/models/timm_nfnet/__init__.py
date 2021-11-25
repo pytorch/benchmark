@@ -11,6 +11,7 @@ from torchbenchmark.util.framework.timm.train import train_one_epoch, validate
 from torchbenchmark.util.framework.timm.instantiate import timm_instantiate_train, timm_instantiate_eval
 
 from torchbenchmark.util.jit import jit_if_needed
+from torchbenchmark.util.prefetch import prefetch_loader
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
@@ -58,7 +59,12 @@ class Model(BenchmarkModel):
         # jit the model if required
         self.model, self.eval_model = jit_if_needed(model, eval_model, jit=jit)
         
-        # setup number of batches to run
+        # prefetch the loader
+        self.loader_train = prefetch_loader(self.loader_train, device)
+        self.loader_validate = prefetch_loader(self.loader_validate, device)
+        self.loader_eval = prefetch_loader(self.loader_eval, device)
+
+        # set number of batches to run per epoch
         self.train_num_batch = 1
         self.eval_num_batch = 1
 
@@ -72,6 +78,7 @@ class Model(BenchmarkModel):
         self.model.train()
         eval_metric = self.args.eval_metric
         for epoch in range(niter):
+            # run "train_num_batch" batches per epoch
             train_metrics = train_one_epoch(epoch, self.model, self.loader_train,
                                             self.optimizer, self.train_loss_fn, self.args,
                                             lr_scheduler=self.lr_scheduler, saver=None,
@@ -79,7 +86,8 @@ class Model(BenchmarkModel):
                                             amp_autocast=self.amp_autocast,
                                             loss_scaler=self.loss_scaler,
                                             model_ema=None,
-                                            mixup_fn=self.mixup_fn)
+                                            mixup_fn=self.mixup_fn,
+                                            train_num_batch=self.train_num_batch)
             eval_metrics = validate(self.model, self.loader_validate, self.validate_loss_fn,
                                     self.args, amp_autocast=self.amp_autocast)
             if self.lr_scheduler is not None:

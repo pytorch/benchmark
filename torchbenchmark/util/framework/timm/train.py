@@ -25,7 +25,7 @@ from timm.models.helpers import model_parameters
 def train_one_epoch(
         epoch, model, loader, optimizer, loss_fn, args,
         lr_scheduler=None, saver=None, output_dir=None, amp_autocast=suppress,
-        loss_scaler=None, model_ema=None, mixup_fn=None):
+        loss_scaler=None, model_ema=None, mixup_fn=None, train_num_batch=1):
 
     if args.mixup_off_epoch and epoch >= args.mixup_off_epoch:
         if args.prefetcher and loader.mixup_enabled:
@@ -43,7 +43,7 @@ def train_one_epoch(
     # end = time.time()
     last_idx = len(loader) - 1
     num_updates = epoch * len(loader)
-    for batch_idx, (input, target) in enumerate(loader):
+    for batch_idx, (input, target) in zip(range(train_num_batch), loader):
         last_batch = batch_idx == last_idx
         # data_time_m.update(time.time() - end)
         if not args.prefetcher and args.device == "cuda":
