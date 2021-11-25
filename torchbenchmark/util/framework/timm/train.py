@@ -16,6 +16,7 @@ NVIDIA CUDA specific speedups adopted from NVIDIA Apex examples
 Hacked together by / Copyright 2020 Ross Wightman (https://github.com/rwightman)
 """
 import torch
+from collections import OrderedDict
 from contextlib import suppress
 from timm.utils import reduce_tensor, dispatch_clip_grad, accuracy
 from timm.utils import AverageMeter
@@ -187,6 +188,6 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
             #             log_name, batch_idx, last_idx, batch_time=batch_time_m,
             #             loss=losses_m, top1=top1_m, top5=top5_m))
 
-    # metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])
+    metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])
 
-    # return metrics
+    return metrics
