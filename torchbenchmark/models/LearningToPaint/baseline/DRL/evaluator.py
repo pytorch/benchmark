@@ -4,10 +4,10 @@ from ..utils.util import *
 
 class Evaluator(object):
 
-    def __init__(self, args, writer):
+    def __init__(self, args, env_batch, writer):
         self.validate_episodes = args.validate_episodes
         self.max_step = args.max_step
-        self.env_batch = args.env_batch
+        self.env_batch = env_batch
         self.writer = writer
         self.log = 0
 
