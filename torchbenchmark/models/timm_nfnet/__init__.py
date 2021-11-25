@@ -1,149 +1,86 @@
-from timm.data.dataset_factory import create_dataset
 import torch
-from collections import OrderedDict
-from contextlib import suppress
+import os
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
+import logging
 
-# timm imports
-from timm.data import create_dataset, create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
-from timm.models import create_model, convert_splitbn_model, safe_model_name, model_parameters
-from timm.optim import create_optimizer_v2, optimizer_kwargs
-from timm.scheduler import create_scheduler
-from timm.utils import NativeScaler
-
-from torchbenchmark.util.jit import jit_if_needed
 from torchbenchmark.util.env_check import has_native_amp
-from torchbenchmark.util.frameworks.timm.args import get_args
+from torchbenchmark.util.framework.timm.args import get_args, setup_args_distributed
+from torchbenchmark.util.framework.timm.train import train_one_epoch, validate
+from torchbenchmark.util.framework.timm.instantiate import timm_instantiate
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
+_logger = logging.getLogger('train')
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
-    def __init__(self, device=None, jit=False, variant='dm_nfnet_f0', precision='float32',
-                 train_bs=128, eval_bs=256):
+    def __init__(self, device=None, jit=False, train_bs=128, eval_bs=256,
+                 variant='dm_nfnet_f0'):
         super().__init__()
         self.device = device
         self.jit = jit
 
-        # Setup args
+        # setup timm args
         args = get_args()
-        args.prefetcher = not args.no_prefetcher
-        args.distributed = False
-        args.world_size = 1
-        args.rank = 0  # global rank
-        # resolve AMP arguments based on PyTorch amp availability
-        use_amp = None
-        if args.amp and has_native_amp():
-            use_amp = 'native'
-        args.model_name = variant
         args.torchscript = jit
+        args.device = device
+        # setup distributed
+        args = setup_args_distributed(args)
+        if args.distributed:
+            _logger.info('Training in distributed mode with multiple processes, 1 GPU per process. Process %d, total %d.'
+                          % (args.rank, args.world_size))
+        else:
+            _logger.info('Testing with a single process on 1 GPU.')
+        args.prefetcher = not args.no_prefetcher
+        # resolve AMP arguments based on PyTorch amp availability
+        args.use_amp = None
+        if args.amp and has_native_amp():
+            args.use_amp = 'native'
+        args.model_name = variant
+        args.batch_size = train_bs
+        args.eval_batch_size = eval_bs
+        self.args = args
 
-        # create train model
-        model = create_model(
-            args.model,
-            pretrained=args.pretrained,
-            num_classes=args.num_classes,
-            drop_rate=args.drop,
-            drop_connect_rate=args.drop_connect,  # DEPRECATED, use drop_path
-            drop_path_rate=args.drop_path,
-            drop_block_rate=args.drop_block,
-            global_pool=args.gp,
-            bn_tf=args.bn_tf,
-            bn_momentum=args.bn_momentum,
-            bn_eps=args.bn_eps,
-            scriptable=args.torchscript,
-            checkpoint_path=args.initial_checkpoint)
-        # instantiate eval model
-        eval_model = create_model(variant, pretrained=False, scriptable=True)
+        self.model, self.eval_model, self.loader_train, self.loader_validate,
+        self.loader_eval, self.optimizer, self.train_loss_fn,
+        self.lr_scheduler, self.amp_autocast,
+        self.loss_scaler, self.mixup_fn, self.validate_loss_fn = timm_instantiate(args)
         
-        # setup augmentation batch splits for contrastive loss or split bn
-        num_aug_splits = 0
-        if args.aug_splits > 0:
-            assert args.aug_splits > 1, 'A split of 1 makes no sense'
-            num_aug_splits = args.aug_splits
-
-        # enable split bn (separate bn stats per batch-portion)
-        if args.split_bn:
-            assert num_aug_splits > 1 or args.resplit
-            model = convert_splitbn_model(model, max(num_aug_splits, 2))
-        model = model.to(device)
-        eval_model = eval_model.to(device)
-        # enable channels last layout if set
-        if args.channels_last:
-            model = model.to(memory_format=torch.channels_last)
-            eval_model = eval_model.to(memory_format=torch.channels_last)
-
-        self.model, self.eval_model = jit_if_needed(model, eval_model, jit=self.jit)
-
-        # setup optimizer
-        self.optimizer = create_optimizer_v2(model, **optimizer_kwargs(cfg=args))
-
-        # setup automatic mixed-precision (AMP) loss scaling and op casting
-        amp_autocast = suppress  # do nothing
-        loss_scaler = None
-        if use_amp == 'native':
-            amp_autocast = torch.cuda.amp.autocast
-            loss_scaler = NativeScaler()
-
-        # setup scheduler
-        lr_scheduler, num_epochs = create_scheduler(args, self.optimizer)
-
-        # setup input
-        data_config = resolve_data_config(vars(args), model=model, verbose=args.local_rank == 0)
-        dataset_train = create_dataset()
-        dataset_eval = create_dataset()
-
-        # setup mixup / cutmix
-        collate_fn = None
-        mixup_fn = None
-        mixup_active = args.mixup > 0 or args.cutmix > 0. or args.cutmix_minmax is not None
-        if mixup_active:
-            mixup_args = dict(
-                mixup_alpha=args.mixup, cutmix_alpha=args.cutmix, cutmix_minmax=args.cutmix_minmax,
-                prob=args.mixup_prob, switch_prob=args.mixup_switch_prob, mode=args.mixup_mode,
-                label_smoothing=args.smoothing, num_classes=args.num_classes)
-            if args.prefetcher:
-                assert not num_aug_splits  # collate conflict (need to support deinterleaving in collate mixup)
-                collate_fn = FastCollateMixup(**mixup_args)
-            else:
-                mixup_fn = Mixup(**mixup_args)
-
-        # wrap dataset in AugMix helper
-        if num_aug_splits > 1:
-            dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
-
-        # setup loader
+        # setup number of batches to run
         self.train_num_batch = 1
         self.eval_num_batch = 1
-
-    def _step_eval(self):
-        self.eval_model(self.cfg.infer_example_inputs)
 
     def get_module(self):
         return self.model, (self.cfg.example_inputs,)
 
     def train(self, niter=1):
         self.model.train()
-        for _ in range(niter):
-            train_one_epoch()
+        eval_metric = self.args.eval_metric
+        for epoch in range(niter):
+            train_metrics = train_one_epoch(epoch, self.model, self.loader_train,
+                                            self.optimizer, self.train_loss_fn, self.args,
+                                            lr_scheduler=self.lr_scheduler, saver=None,
+                                            output_dir=None,
+                                            amp_autocast=self.amp_autocast,
+                                            loss_scaler=self.loss_scaler,
+                                            model_ema=None,
+                                            mixup_fn=self.mixup_fn)
+            eval_metrics = validate(self.model, self.loader_validate, self.validate_loss_fn,
+                                    self.args, amp_autocast=self.amp_autocast)
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step(epoch+1, eval_metrics[eval_metric])
 
-    # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
+    # We skipped computing loss and accuracy in eval
     def eval(self, niter=1):
         self.eval_model.eval()
-        with torch.no_grad():
-            for _ in range(niter):
-                self._step_eval()
-
-if __name__ == "__main__":
-    for device in ['cpu', 'cuda']:
-        for jit in [False, True]:
-            print("Test config: device %s, JIT %s" % (device, jit))
-            m = Model(device=device, jit=jit)
-            m, example_inputs = m.get_module()
-            m(example_inputs)
-            m.train()
-            m.eval()
+        for epoch in range(niter):
+            with torch.no_grad():
+                for _, (input, _) in zip(range(self.eval_num_batch), self.loader_eval):
+                    if self.args.channels_last:
+                        input = input.contiguous(memory_format=torch.channels_last)
+                    with self.amp_autocast():
+                        output = self.eval_model(input)

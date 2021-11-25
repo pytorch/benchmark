@@ -16,8 +16,25 @@ NVIDIA CUDA specific speedups adopted from NVIDIA Apex examples
 Hacked together by / Copyright 2020 Ross Wightman (https://github.com/rwightman)
 """
 
+import os
 import yaml
+import torch
 import argparse
+
+def setup_args_distributed(args):
+    args.distributed = False
+    if 'WORLD_SIZE' in os.environ:
+        args.distributed = int(os.environ['WORLD_SIZE']) > 1
+    args.world_size = 1
+    args.rank = 0  # global rank
+    if args.distributed:
+        args.device = 'cuda:%d' % args.local_rank
+        torch.cuda.set_device(args.local_rank)
+        torch.distributed.init_process_group(backend='nccl', init_method='env://')
+        args.world_size = torch.distributed.get_world_size()
+        args.rank = torch.distributed.get_rank()
+    assert args.rank >= 0
+    return args
 
 def get_args(config_file):
     def _parse_args():
