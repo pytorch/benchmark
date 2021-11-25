@@ -19,3 +19,4 @@ from torchvision.datasets.fakedata import FakeData
 
 def create_fake_imagenet_dataset():
     fakedata = FakeData()
+    return fakedata

@@ -36,7 +36,7 @@ def setup_args_distributed(args):
     assert args.rank >= 0
     return args
 
-def get_args(config_file):
+def get_args(config_file=None):
     def _parse_args():
         # Do we have a config file to parse?
         if config_file:
@@ -100,7 +100,7 @@ def get_args(config_file):
                         help='Override std deviation of of dataset')
     parser.add_argument('--interpolation', default='', type=str, metavar='NAME',
                         help='Image resize interpolation type (overrides model)')
-    parser.add_argument('-b', '--batch-size', type=int, default=128, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                         help='input batch size for training (default: 128)')
     parser.add_argument('-vb', '--validation-batch-size', type=int, default=None, metavar='N',
                         help='validation batch size override (default: None)')
@@ -255,8 +255,8 @@ def get_args(config_file):
                         help='how many batches to wait before writing recovery checkpoint')
     parser.add_argument('--checkpoint-hist', type=int, default=10, metavar='N',
                         help='number of checkpoints to keep (default: 10)')
-    parser.add_argument('-j', '--workers', type=int, default=4, metavar='N',
-                        help='how many training processes to use (default: 4)')
+    parser.add_argument('-j', '--workers', type=int, default=0, metavar='N',
+                        help='how many training processes to use (default: 0)')
     parser.add_argument('--save-images', action='store_true', default=False,
                         help='save images of input bathes every log interval for debugging')
     parser.add_argument('--amp', action='store_true', default=False,
@@ -290,8 +290,12 @@ def get_args(config_file):
                         help='log training and validation metrics to wandb')
 
     # Inference args
-    parser.add_argument('-b', '--eval-batch-size', type=int, default=256, metavar='N',
+    parser.add_argument('--eval-batch-size', type=int, default=256, metavar='N',
                         help='input batch size for inference (default: 256)')
+    parser.add_argument('--num-gpu', type=int, default=1,
+                    help='Number of GPUS to use')
+    parser.add_argument('--tf-preprocessing', action='store_true', default=False,
+                    help='Use Tensorflow preprocessing pipeline (require CPU TF installed')
 
     args, _args_text = _parse_args()
     return args

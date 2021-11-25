@@ -25,7 +25,7 @@ from timm.models import create_model, convert_splitbn_model
 from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler
 from timm.utils import NativeScaler
-from timm.loss import JsdCrossEntropy, BinaryCrossEntropy, SoftTargetCrossEntropy, LabelSmoothingCrossEntropy
+from timm.loss import JsdCrossEntropy, SoftTargetCrossEntropy, LabelSmoothingCrossEntropy
 from timm.data import create_loader, resolve_data_config, Mixup, FastCollateMixup, AugMixDataset
 
 from .loader import create_fake_imagenet_dataset
@@ -60,7 +60,8 @@ def timm_instantiate_eval(args):
         num_workers=args.workers,
         crop_pct=crop_pct,
         pin_memory=args.pin_mem,
-        tf_preprocessing=args.tf_preprocessing
+        tf_preprocessing=args.tf_preprocessing,
+        persistent_workers=False,
     )
     return eval_model, loader_eval
 
@@ -165,7 +166,8 @@ def timm_instantiate_train(args):
         vflip=args.vflip,
         color_jitter=args.color_jitter,
         auto_augment=args.aa,
-        num_aug_repeats=args.aug_repeats,
+        # Not supported by timm 0.4.12
+        # num_aug_repeats=args.aug_repeats,
         num_aug_splits=num_aug_splits,
         interpolation=train_interpolation,
         mean=data_config['mean'],
@@ -175,7 +177,9 @@ def timm_instantiate_train(args):
         collate_fn=collate_fn,
         pin_memory=args.pin_mem,
         use_multi_epochs_loader=args.use_multi_epochs_loader,
-        worker_seeding=args.worker_seeding,
+        # Not supported by timm 0.4.12
+        # worker_seeding=args.worker_seeding,
+        persistent_workers=False,
     )
 
     loader_validate = create_loader(
@@ -191,6 +195,7 @@ def timm_instantiate_train(args):
         distributed=args.distributed,
         crop_pct=data_config['crop_pct'],
         pin_memory=args.pin_mem,
+        persistent_workers=False,
     )
 
     # setup loss function
@@ -198,16 +203,17 @@ def timm_instantiate_train(args):
         assert num_aug_splits > 1  # JSD only valid with aug splits set
         train_loss_fn = JsdCrossEntropy(num_splits=num_aug_splits, smoothing=args.smoothing)
     elif mixup_active:
+        # NOTE: the latest timm package (0.4.12) doesn't support BinaryCrossEntropy
         # smoothing is handled with mixup target transform which outputs sparse, soft targets
-        if args.bce_loss:
-            train_loss_fn = BinaryCrossEntropy(target_threshold=args.bce_target_thresh)
-        else:
-            train_loss_fn = SoftTargetCrossEntropy()
+        # if args.bce_loss:
+        #     train_loss_fn = BinaryCrossEntropy(target_threshold=args.bce_target_thresh)
+        # else:
+        train_loss_fn = SoftTargetCrossEntropy()
     elif args.smoothing:
-        if args.bce_loss:
-            train_loss_fn = BinaryCrossEntropy(smoothing=args.smoothing, target_threshold=args.bce_target_thresh)
-        else:
-            train_loss_fn = LabelSmoothingCrossEntropy(smoothing=args.smoothing)
+        # if args.bce_loss:
+        #     train_loss_fn = BinaryCrossEntropy(smoothing=args.smoothing, target_threshold=args.bce_target_thresh)
+        # else:
+        train_loss_fn = LabelSmoothingCrossEntropy(smoothing=args.smoothing)
     else:
         train_loss_fn = nn.CrossEntropyLoss()
     train_loss_fn = train_loss_fn.to(args.device)

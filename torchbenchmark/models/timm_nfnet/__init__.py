@@ -37,8 +37,11 @@ class Model(BenchmarkModel):
                           % (args.rank, args.world_size))
         else:
             _logger.info('Testing with a single process on 1 GPU.')
-        args.prefetcher = not args.no_prefetcher
-        assert args.prefetcher, "Test requires the data to be prefetched during execution"
+        if not device or device == "cpu":
+            args.prefetcher = False
+        else:
+            args.prefetcher = not args.no_prefetcher
+            assert args.prefetcher, "Test requires the data to be prefetched during execution"
         # resolve AMP arguments based on PyTorch amp availability
         args.use_amp = None
         if args.amp and has_native_amp():

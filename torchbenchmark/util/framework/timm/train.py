@@ -45,7 +45,7 @@ def train_one_epoch(
     for batch_idx, (input, target) in enumerate(loader):
         last_batch = batch_idx == last_idx
         # data_time_m.update(time.time() - end)
-        if not args.prefetcher:
+        if not args.prefetcher and args.device == "cuda":
             input, target = input.cuda(), target.cuda()
             if mixup_fn is not None:
                 input, target = mixup_fn(input, target)
@@ -76,8 +76,8 @@ def train_one_epoch(
 
         # if model_ema is not None:
         #     model_ema.update(model)
-
-        torch.cuda.synchronize()
+        if args.device == "cuda":
+            torch.cuda.synchronize()
         num_updates += 1
         # batch_time_m.update(time.time() - end)
         if last_batch or batch_idx % args.log_interval == 0:
