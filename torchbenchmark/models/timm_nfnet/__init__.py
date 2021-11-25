@@ -18,6 +18,9 @@ torch.backends.cudnn.benchmark = True
 
 _logger = logging.getLogger('train')
 
+TRAIN_NUM_BATCH = 1
+EVAL_NUM_BATCH = 1
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
@@ -50,6 +53,8 @@ class Model(BenchmarkModel):
         args.model_name = variant
         args.batch_size = train_bs
         args.eval_batch_size = eval_bs
+        args.train_num_batch = TRAIN_NUM_BATCH
+        args.eval_num_batch = EVAL_NUM_BATCH
         self.args = args
 
         model, self.loader_train, self.loader_validate, self.optimizer, \
@@ -64,14 +69,10 @@ class Model(BenchmarkModel):
         self.loader_validate = prefetch_loader(self.loader_validate, device)
         self.loader_eval = prefetch_loader(self.loader_eval, device)
 
-        # set number of batches to run per epoch
-        self.train_num_batch = 1
-        self.eval_num_batch = 1
-
     def get_module(self):
         self.eval_model.eval()
         with torch.no_grad():
-            for _, (input, _) in zip(range(self.eval_num_batch), self.loader_eval):
+            for _, (input, _) in zip(range(self.args.eval_num_batch), self.loader_eval):
                 return self.eval_model, (input, )
 
     def train(self, niter=1):
@@ -86,8 +87,7 @@ class Model(BenchmarkModel):
                                             amp_autocast=self.amp_autocast,
                                             loss_scaler=self.loss_scaler,
                                             model_ema=None,
-                                            mixup_fn=self.mixup_fn,
-                                            train_num_batch=self.train_num_batch)
+                                            mixup_fn=self.mixup_fn)
             eval_metrics = validate(self.model, self.loader_validate, self.validate_loss_fn,
                                     self.args, amp_autocast=self.amp_autocast)
             if self.lr_scheduler is not None:
@@ -98,7 +98,7 @@ class Model(BenchmarkModel):
         self.eval_model.eval()
         for epoch in range(niter):
             with torch.no_grad():
-                for _, (input, _) in zip(range(self.eval_num_batch), self.loader_eval):
+                for _, (input, _) in zip(range(self.args.eval_num_batch), self.loader_eval):
                     if self.args.channels_last:
                         input = input.contiguous(memory_format=torch.channels_last)
                     with self.amp_autocast():

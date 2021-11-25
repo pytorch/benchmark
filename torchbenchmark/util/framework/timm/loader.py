@@ -17,6 +17,6 @@ Hacked together by / Copyright 2020 Ross Wightman (https://github.com/rwightman)
 """
 from torchvision.datasets.fakedata import FakeData
 
-def create_fake_imagenet_dataset():
-    fakedata = FakeData()
+def create_fake_imagenet_dataset(size):
+    fakedata = FakeData(size=size)
     return fakedata

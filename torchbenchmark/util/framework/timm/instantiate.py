@@ -48,7 +48,7 @@ def timm_instantiate_eval(args):
         eval_model = torch.nn.DataParallel(eval_model, device_ids=list(range(args.num_gpu)))
     crop_pct = data_config['crop_pct']
     # create dataset
-    dataset_eval = create_fake_imagenet_dataset()
+    dataset_eval = create_fake_imagenet_dataset(size=args.eval_num_batch*args.eval_batch_size)
     loader_eval = create_loader(
         dataset_eval,
         input_size=data_config['input_size'],
@@ -123,8 +123,9 @@ def timm_instantiate_train(args):
     lr_scheduler, _ = create_scheduler(args, optimizer)
 
     # create fake imagenet dataset
-    dataset_train = create_fake_imagenet_dataset()
-    dataset_eval = create_fake_imagenet_dataset()
+    fake_dataset = create_fake_imagenet_dataset(size=args.batch_size * args.train_num_batch)
+    dataset_train = fake_dataset
+    dataset_eval = fake_dataset
 
     # setup mixup / cutmix
     collate_fn = None
