@@ -464,6 +464,26 @@ def list_models(model_match=None):
                 models.append(Model)
     return models
 
+def load_model_by_name(model):
+    models = filter(lambda x: model.lower() == x.lower(),
+                    map(lambda y: os.path.basename(y), _list_model_paths()))
+    models = list(models)
+    if not models:
+        return None
+    assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
+    model_name = models[0]
+    try:
+        module = importlib.import_module(f'.models.{model_name}', package=__name__)
+    except ModuleNotFoundError as e:
+        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it")
+        return None
+    Model = getattr(module, 'Model', None)
+    if Model is None:
+        print(f"Warning: {module} does not define attribute Model, skip it")
+        return None
+    if not hasattr(Model, 'name'):
+        Model.name = model_name
+    return Model
 
 def get_metadata_from_yaml(path):
     import yaml
