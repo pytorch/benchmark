@@ -38,8 +38,9 @@ torch.backends.cudnn.benchmark = True
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
-    # This model doesn't support setting batch size for inference
-    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=128):
+    # Original Train batch size 32 on 2x RTX 3090 (24 GB cards)
+    # Downscale to batch size 16 on single GPU
+    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=128):
         super().__init__()
         self.device = device
         self.jit = jit
