@@ -44,12 +44,6 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    # vision models have another model
-    # instance for inference that has
-    # already been optimized for inference
-    def set_eval(self):
-        pass
-
     def train(self, niter=1):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
@@ -66,11 +60,3 @@ class Model(BenchmarkModel):
         example_inputs = self.infer_example_inputs
         for i in range(niter):
             model(*example_inputs)
-
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=True)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)
