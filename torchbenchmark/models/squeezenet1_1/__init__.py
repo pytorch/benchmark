@@ -15,12 +15,14 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
-    # Default train batch size is set to 512, which is batch_size (32) * iter_size (16)
+    # Original train batch size: 512, out of memory on V100 GPU
+    # Use hierarchical batching to scale down: 512 = batch_size (32) * epoch_size (16)
     # Source: https://github.com/forresti/SqueezeNet
     def __init__(self, device=None, jit=False, train_bs=32, eval_bs=16):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.epoch_size = 16
         self.model = models.squeezenet1_1().to(self.device)
         self.eval_model = models.squeezenet1_1().to(self.device)
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
@@ -48,15 +50,16 @@ class Model(BenchmarkModel):
     def set_eval(self):
         pass
 
-    def train(self, niter=16):
+    def train(self, niter=1):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
-            loss(pred, y).backward()
-            optimizer.step()
+            for _ in range(self.epoch_size):
+                optimizer.zero_grad()
+                pred = self.model(*self.example_inputs)
+                y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
+                loss(pred, y).backward()
+                optimizer.step()
 
     def eval(self, niter=1):
         model = self.eval_model
