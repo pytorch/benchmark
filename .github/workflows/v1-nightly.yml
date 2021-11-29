@@ -12,7 +12,8 @@ jobs:
       CONDA_ENV_NAME:  "torchbench-v1-nightly-ci"
       OUTPUT_DIR: ".torchbench/v1-nightly-ci"
       BISECTION_ROOT: ".torchbench/v1-bisection-ci"
-      CUDA_VERSION: "cu102"
+      CUDA_VERSION: "cu113"
+      PYTHON_VERSION: "3.8"
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -28,7 +29,7 @@ jobs:
           ref: v1.0
       - name: Create conda env
         run: |
-          conda create -y -q --name "${CONDA_ENV_NAME}" python=3.7
+          conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
       - name: Install PyTorch nightly
         run: |
           . activate "${CONDA_ENV_NAME}"

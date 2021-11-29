@@ -17,7 +17,7 @@ jobs:
       TORCHBENCH_VER: "v1.1"
       CONFIG_VER: "v1"
       SWEEP_DIR: ".torchbench/v1-sweep-ci"
-      PYTHON_VER: "3.7"
+      PYTHON_VERSION: "3.8"
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: us-east-1
@@ -41,7 +41,7 @@ jobs:
             # Create a new conda env
             CONFIG_BASE=$(basename ${CONFIG})
             CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/.*-\(.*\)\.txt/\1/')
-            conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
+            conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
             . activate ${CONDA_ENV_NAME}
             pip install -r "${CONFIG}"
             python install.py
