@@ -26,10 +26,10 @@ TIMEOUT = 300  # Seconds
 
 # Skip this list of unit tests. One reason may be that the original batch size
 # used in the paper is too large to fit on the CI's GPU.
-EXCLUDELIST = {("densenet121", "train", "cuda"),
-               ("densenet121", "train", "cpu"),
-               ("densenet121", "example", "cuda"),
-               ("densenet121", "example", "cpu")}
+EXCLUDELIST = {("densenet121", "train", "cuda"),  # GPU train runs out of memory on CI.
+               ("densenet121", "train", "cpu"),  # CPU train runs for too long on CI.
+               ("densenet121", "example", "cuda"),  # GPU train runs out of memory on CI.
+               ("densenet121", "example", "cpu")}  # CPU train runs for too long on CI.
 
 
 class TestBenchmark(unittest.TestCase):
