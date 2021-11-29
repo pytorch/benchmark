@@ -66,11 +66,11 @@ class Model(BenchmarkModel):
             shuffle=False)
 
         trainData, trainFrameIndex = next(iter(trainloader))
-        trainData = _prefetch(trainData)
+        trainData = _prefetch(trainData, self.device)
         self.example_inputs = trainFrameIndex.to(self.device), *trainData
 
         evalData, evalFrameIndex = next(iter(evalloader))
-        evalData = _prefetch(evalData)
+        evalData = _prefetch(evalData, self.device)
         self.infer_example_inputs = evalFrameIndex.to(self.device), *evalData
 
         if jit:
