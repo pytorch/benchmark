@@ -15,9 +15,10 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
-    # Train batch size 256
+    # Original train batch size 256 on 4-GPU system
+    # Downscale to 64 to run on single GPU
     # Source: https://arxiv.org/pdf/1409.1556.pdf
-    def __init__(self, device=None, jit=False, train_bs=256, eval_bs=4):
+    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=4):
         super().__init__()
         self.device = device
         self.jit = jit
