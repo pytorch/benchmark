@@ -24,6 +24,10 @@ EVAL_NUM_BATCH = 1
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
+    # Original train batch size 128, hardware Nvidia rtx 3090
+    # Source: https://gist.github.com/rwightman/bb59f9e245162cee0e38bd66bd8cd77f#file-bench_by_train-csv-L147
+    # Eval batch size 256, hardware Nvidia rtx 3090
+    # Source: https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/results/model_benchmark_amp_nchw_rtx3090.csv
     def __init__(self, device=None, jit=False, train_bs=128, eval_bs=256,
                  variant='dm_nfnet_f0'):
         super().__init__()

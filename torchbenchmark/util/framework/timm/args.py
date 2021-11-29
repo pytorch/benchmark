@@ -36,7 +36,7 @@ def setup_args_distributed(args):
     assert args.rank >= 0
     return args
 
-def get_args(config_file=None):
+def get_args(config_string="", config_file=None):
     def _parse_args():
         # Do we have a config file to parse?
         if config_file:
@@ -45,7 +45,7 @@ def get_args(config_file=None):
             parser.set_defaults(**cfg)
         # The main arg parser parses the rest of the args, the usual
         # defaults will have been overridden if config file specified.
-        args, remaining = parser.parse_known_args()
+        args = parser.parse_args(config_string)
         # Cache the args as a text string to save them in the output dir later
         args_text = yaml.safe_dump(args.__dict__, default_flow_style=False)
         return args, args_text
