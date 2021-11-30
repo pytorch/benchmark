@@ -34,13 +34,11 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         model_name = "bert-base-cased"
-        dataset_name = "imdb" 
         max_seq_length = "128"
         learning_rate = "2e-5"
         num_train_epochs = "3"
         output_dir = OUTPUT_DIR
         in_arg = ["--model_name_or_path", model_name, "--task_name", task_name,
-                  "--dataset_name", dataset_name,
                   "--do_train", "--do_eval", "--max_seq_length", max_seq_length,
                   "--per_device_train_batch_size", str(train_bs), 
                   "--learning_rate", learning_rate,
