@@ -12,9 +12,15 @@ from transformers import (
     default_data_collator,
 )
 import numpy as np
+import os
+from pathlib import Path
 
 from torchbenchmark.util.framework.transformers.text_classification.dataset import prep_dataset, preprocess_dataset, prep_labels
 from torchbenchmark.util.framework.transformers.text_classification.args import parse_args
+
+# setup environment variable
+CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
+OUTPUT_DIR = os.path.join(CURRENT_DIR, ".output")
 
 torch.manual_seed(1337)
 torch.backends.cudnn.deterministic = False
@@ -23,27 +29,30 @@ torch.backends.cudnn.benchmark = True
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
-    def __init__(self, device=None, jit=False, train_bs=32):
+    def __init__(self, device=None, jit=False, train_bs=32, task_name="cola"):
         super().__init__()
         self.device = device
         self.jit = jit
         model_name = "bert-base-cased"
         dataset_name = "imdb" 
-        max_seq_length = 128
-        learning_rate = 2e-5
-        num_train_epochs = 3
-        in_arg = ["--model_name_or_path", model_name, "--dataset_name", dataset_name,
-                  "--do_train", "--do_predict", "--max_seq_length", max_seq_length,
-                  "--per_device_train_batch_size", train_bs, 
+        max_seq_length = "128"
+        learning_rate = "2e-5"
+        num_train_epochs = "3"
+        output_dir = OUTPUT_DIR
+        in_arg = ["--model_name_or_path", model_name, "--task_name", task_name,
+                  "--dataset_name", dataset_name,
+                  "--do_train", "--do_eval", "--max_seq_length", max_seq_length,
+                  "--per_device_train_batch_size", str(train_bs), 
                   "--learning_rate", learning_rate,
-                  "--num_train_epochs", num_train_epochs]
+                  "--num_train_epochs", num_train_epochs,
+                  "--output_dir", OUTPUT_DIR]
         model_args, data_args, training_args = parse_args(in_arg)
         # setup other members
         self.prep(model_args, data_args, training_args)
     
     def prep(self, model_args, data_args, training_args):
-        raw_datasets = prep_dataset(data_args)
-        num_labels, label_list, is_regression = prep_labels(raw_datasets)
+        raw_datasets = prep_dataset(data_args, training_args)
+        num_labels, label_list, is_regression = prep_labels(data_args, raw_datasets)
         # Load pretrained model and tokenizer
         #
         # In distributed training, the .from_pretrained methods guarantee that only one local process can concurrently
@@ -132,7 +141,6 @@ class Model(BenchmarkModel):
                 predict_dataset = predict_dataset.remove_columns("label")
                 predictions = self.trainer.predict(predict_dataset, metric_key_prefix="predict").predictions
                 predictions = np.squeeze(predictions) if self.is_regression else np.argmax(predictions, axis=1)
-
 
     def eval(self, niter=1):
         raise NotImplementedError("Eval is not supported by this model")

@@ -80,6 +80,7 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
             load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset",
         )
+    train_dataset, eval_dataset, predict_dataset = None, None, None
     if training_args.do_train:
         if "train" not in raw_datasets:
             raise ValueError("--do_train requires a train dataset")
@@ -102,7 +103,7 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
             predict_dataset = predict_dataset.select(range(data_args.max_predict_samples))
     return train_dataset, eval_dataset, predict_dataset
 
-def prep_dataset(args):
+def prep_dataset(data_args, training_args):
     # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
     # or specify a GLUE benchmark task (the dataset will be downloaded automatically from the datasets Hub).
 
@@ -115,26 +116,44 @@ def prep_dataset(args):
 
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    if args.task_name is not None:
+    if data_args.task_name is not None:
         # Downloading and loading a dataset from the hub.
-        raw_datasets = load_dataset("glue", args.task_name)
+        raw_datasets = load_dataset("glue", data_args.task_name)
     else:
-        # Loading the dataset from local csv or json file.
-        data_files = {}
-        if args.train_file is not None:
-            data_files["train"] = args.train_file
-        if args.validation_file is not None:
-            data_files["validation"] = args.validation_file
-        extension = (args.train_file if args.train_file is not None else args.valid_file).split(".")[-1]
-        raw_datasets = load_dataset(extension, data_files=data_files)
+        # Loading a dataset from your local files.
+        # CSV/JSON training and evaluation files are needed.
+        data_files = {"train": data_args.train_file, "validation": data_args.validation_file}
+
+        # Get the test dataset: you can provide your own CSV/JSON test file (see below)
+        # when you use `do_predict` without specifying a GLUE benchmark task.
+        if training_args.do_predict:
+            if data_args.test_file is not None:
+                train_extension = data_args.train_file.split(".")[-1]
+                test_extension = data_args.test_file.split(".")[-1]
+                assert (
+                    test_extension == train_extension
+                ), "`test_file` should have the same extension (csv or json) as `train_file`."
+                data_files["test"] = data_args.test_file
+            else:
+                raise ValueError("Need either a GLUE task or a test file for `do_predict`.")
+
+        # for key in data_files.keys():
+        #     logger.info(f"load a local file for {key}: {data_files[key]}")
+
+        if data_args.train_file.endswith(".csv"):
+            # Loading a dataset from local csv files
+            raw_datasets = load_dataset("csv", data_files=data_files, cache_dir=model_args.cache_dir)
+        else:
+            # Loading a dataset from local json files
+            raw_datasets = load_dataset("json", data_files=data_files, cache_dir=model_args.cache_dir)
     # See more about loading any type of standard or custom dataset at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
     return raw_datasets
 
-def prep_labels(args, raw_datasets):
+def prep_labels(data_args, raw_datasets):
     # Labels
-    if args.task_name is not None:
-        is_regression = args.task_name == "stsb"
+    if data_args.task_name is not None:
+        is_regression = data_args.task_name == "stsb"
         if not is_regression:
             label_list = raw_datasets["train"].features["label"].names
             num_labels = len(label_list)
