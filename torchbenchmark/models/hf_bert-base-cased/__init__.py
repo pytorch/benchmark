@@ -3,9 +3,13 @@ import torch.optim as optim
 import torchvision.models as models
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
-from transformers import *
-from datasets import load_dataset
+from transformers import (
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
 
+from torchbenchmark.util.framework.transformers.text_classification.dataset import prep_dataset, preprocess_dataset, prep_labels
 from torchbenchmark.util.framework.transformers.text_classification.args import parse_args
 
 torch.manual_seed(1337)
@@ -30,9 +34,11 @@ class Model(BenchmarkModel):
                   "--learning_rate", learning_rate,
                   "--num_train_epochs", num_train_epochs]
         model_args, data_args, training_args = parse_args(in_arg)
-        self.prep()
+        self.prep(model_args, data_args, training_args)
     
-    def prep(self):
+    def prep(self, model_args, data_args, training_args):
+        raw_datasets = prep_dataset(data_args)
+        num_labels, label_list, is_regression = prep_labels(raw_datasets)
         # Load pretrained model and tokenizer
         #
         # In distributed training, the .from_pretrained methods guarantee that only one local process can concurrently
@@ -60,6 +66,7 @@ class Model(BenchmarkModel):
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
+        prosessed_dataset = preprocess_dataset(training_args, model, tokenizer, raw_datasets, num_labels, label_list, is_regression)
 
     def get_module(self):
         if self.jit:
