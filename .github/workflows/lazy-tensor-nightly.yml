@@ -15,7 +15,7 @@ jobs:
       - name: Check out TorchBench
         uses: actions/checkout@v2
         with:
-          ref: lazytensor
+          ref: main
       - name: Check out PyTorch
         uses: actions/checkout@v2
         with:
