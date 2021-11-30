@@ -7,7 +7,11 @@ from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
     AutoTokenizer,
+    DataCollatorWithPadding,
+    Trainer,
+    default_data_collator,
 )
+import numpy as np
 
 from torchbenchmark.util.framework.transformers.text_classification.dataset import prep_dataset, preprocess_dataset, prep_labels
 from torchbenchmark.util.framework.transformers.text_classification.args import parse_args
@@ -34,6 +38,7 @@ class Model(BenchmarkModel):
                   "--learning_rate", learning_rate,
                   "--num_train_epochs", num_train_epochs]
         model_args, data_args, training_args = parse_args(in_arg)
+        # setup other members
         self.prep(model_args, data_args, training_args)
     
     def prep(self, model_args, data_args, training_args):
@@ -66,22 +71,68 @@ class Model(BenchmarkModel):
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-        prosessed_dataset = preprocess_dataset(training_args, model, tokenizer, raw_datasets, num_labels, label_list, is_regression)
+        train_dataset, eval_dataset, predict_dataset = preprocess_dataset(data_args, training_args, config, model, \
+            tokenizer, raw_datasets, num_labels, label_list, is_regression)
+        # Data collator will default to DataCollatorWithPadding, so we change it if we already did the padding.
+        if data_args.pad_to_max_length:
+            data_collator = default_data_collator
+        elif training_args.fp16:
+            data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
+        else:
+            data_collator = None
+        # Setup class members
+        self.trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset if training_args.do_train else None,
+            eval_dataset=eval_dataset if training_args.do_eval else None,
+            compute_metrics=None,
+            tokenizer=tokenizer,
+            data_collator=data_collator,
+        )
+        self.raw_datasets = raw_datasets
+        self.train_dataset = train_dataset
+        self.eval_dataset = eval_dataset
+        self.predict_dataset = predict_dataset
+        self.data_args = data_args
+        self.training_args = training_args
+        self.is_regression = is_regression
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
-        
-        return self.model, (self.eval_inputs["input_ids"], )
+        raise NotImplementedError("get_module is not supported by this model")
 
     def train(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
+        assert self.training_args.do_train, "Must train with `do_train` arg being set"
+        self.trainer.train()
+        if self.training_args.do_eval:
+            # Loop to handle MNLI double evaluation (matched, mis-matched)
+            tasks = [self.data_args.task_name]
+            eval_datasets = [self.eval_dataset]
+            if self.data_args.task_name == "mnli":
+                tasks.append("mnli-mm")
+                eval_datasets.append(self.raw_datasets["validation_mismatched"])
+
+            for eval_dataset, task in zip(eval_datasets, tasks):
+                metrics = self.trainer.evaluate(eval_dataset=eval_dataset)
+        if self.training_args.do_predict:
+            # logger.info("*** Predict ***")
+            # Loop to handle MNLI double evaluation (matched, mis-matched)
+            tasks = [self.data_args.task_name]
+            predict_datasets = [self.predict_dataset]
+            if self.data_args.task_name == "mnli":
+                tasks.append("mnli-mm")
+                predict_datasets.append(self.raw_datasets["test_mismatched"])
+
+            for predict_dataset, task in zip(predict_datasets, tasks):
+                # Removing the `label` columns because it contains -1 and Trainer won't like that.
+                predict_dataset = predict_dataset.remove_columns("label")
+                predictions = self.trainer.predict(predict_dataset, metric_key_prefix="predict").predictions
+                predictions = np.squeeze(predictions) if self.is_regression else np.argmax(predictions, axis=1)
+
 
     def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
-        if not self.device == "cuda":
-            raise NotImplementedError("Only CUDA is supported by this model")
+        raise NotImplementedError("Eval is not supported by this model")

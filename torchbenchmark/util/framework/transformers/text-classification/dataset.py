@@ -3,25 +3,10 @@ from transformers import PretrainedConfig
 
 from .args import task_to_keys
 
-def preprocess_dataset(args, model, tokenizer, raw_datasets, num_labels, label_list, is_regression):
-    def preprocess_function(examples):
-        # Tokenize the texts
-        texts = (
-            (examples[sentence1_key],) if sentence2_key is None else (examples[sentence1_key], examples[sentence2_key])
-        )
-        result = tokenizer(*texts, padding="max_length", max_length=args.max_length, truncation=True)
-
-        if "label" in examples:
-            if label_to_id is not None:
-                # Map labels to IDs (not necessary for GLUE tasks)
-                result["labels"] = [label_to_id[l] for l in examples["label"]]
-            else:
-                # In all cases, rename the column to labels because the model will expect that.
-                result["labels"] = examples["label"]
-        return result
-    # Preprocessing the datasets
-    if args.task_name is not None:
-        sentence1_key, sentence2_key = task_to_keys[args.task_name]
+def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_datasets, num_labels, label_list, is_regression):
+    # Preprocessing the raw_datasets
+    if data_args.task_name is not None:
+        sentence1_key, sentence2_key = task_to_keys[data_args.task_name]
     else:
         # Again, we try to have some nice defaults but don't hesitate to tweak to your use case.
         non_label_column_names = [name for name in raw_datasets["train"].column_names if name != "label"]
@@ -33,33 +18,89 @@ def preprocess_dataset(args, model, tokenizer, raw_datasets, num_labels, label_l
             else:
                 sentence1_key, sentence2_key = non_label_column_names[0], None
 
+    # Padding strategy
+    if data_args.pad_to_max_length:
+        padding = "max_length"
+    else:
+        # We will pad later, dynamically at batch creation, to the max sequence length in each batch
+        padding = False
+
     # Some models have set the order of the labels to use, so let's make sure we do use it.
     label_to_id = None
     if (
         model.config.label2id != PretrainedConfig(num_labels=num_labels).label2id
-        and args.task_name is not None
+        and data_args.task_name is not None
         and not is_regression
     ):
         # Some have all caps in their config, some don't.
         label_name_to_id = {k.lower(): v for k, v in model.config.label2id.items()}
         if list(sorted(label_name_to_id.keys())) == list(sorted(label_list)):
-            # logger.info(
-            #     f"The configuration of the model provided the following label correspondence: {label_name_to_id}. "
-            #     "Using it!"
+            label_to_id = {i: int(label_name_to_id[label_list[i]]) for i in range(num_labels)}
+        else:
+            # logger.warning(
+            #     "Your model seems to have been trained with labels, but they don't match the dataset: ",
+            #     f"model labels: {list(sorted(label_name_to_id.keys()))}, dataset labels: {list(sorted(label_list))}."
+            #     "\nIgnoring the model labels as a result.",
             # )
-            label_to_id = {i: label_name_to_id[label_list[i]] for i in range(num_labels)}
-        # else:
-        #     logger.warning(
-        #         "Your model seems to have been trained with labels, but they don't match the dataset: ",
-        #         f"model labels: {list(sorted(label_name_to_id.keys()))}, dataset labels: {list(sorted(label_list))}."
-        #         "\nIgnoring the model labels as a result.",
-        #     )
-    elif args.task_name is None:
+            pass
+    elif data_args.task_name is None and not is_regression:
         label_to_id = {v: i for i, v in enumerate(label_list)}
-    processed_datasets = raw_datasets.map(
-        preprocess_function, batched=True, remove_columns=raw_datasets["train"].column_names
-    )
-    return processed_datasets
+
+    if label_to_id is not None:
+        model.config.label2id = label_to_id
+        model.config.id2label = {id: label for label, id in config.label2id.items()}
+    elif data_args.task_name is not None and not is_regression:
+        model.config.label2id = {l: i for i, l in enumerate(label_list)}
+        model.config.id2label = {id: label for label, id in config.label2id.items()}
+
+    if data_args.max_seq_length > tokenizer.model_max_length:
+        # logger.warning(
+        #    f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
+        #     f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
+        # )
+        pass
+    max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
+
+    def preprocess_function(examples):
+        # Tokenize the texts
+        args = (
+            (examples[sentence1_key],) if sentence2_key is None else (examples[sentence1_key], examples[sentence2_key])
+        )
+        result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
+
+        # Map labels to IDs (not necessary for GLUE tasks)
+        if label_to_id is not None and "label" in examples:
+            result["label"] = [(label_to_id[l] if l != -1 else -1) for l in examples["label"]]
+        return result
+
+    with training_args.main_process_first(desc="dataset map pre-processing"):
+        raw_datasets = raw_datasets.map(
+            preprocess_function,
+            batched=True,
+            load_from_cache_file=not data_args.overwrite_cache,
+            desc="Running tokenizer on dataset",
+        )
+    if training_args.do_train:
+        if "train" not in raw_datasets:
+            raise ValueError("--do_train requires a train dataset")
+        train_dataset = raw_datasets["train"]
+        if data_args.max_train_samples is not None:
+            train_dataset = train_dataset.select(range(data_args.max_train_samples))
+
+    if training_args.do_eval:
+        if "validation" not in raw_datasets and "validation_matched" not in raw_datasets:
+            raise ValueError("--do_eval requires a validation dataset")
+        eval_dataset = raw_datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
+        if data_args.max_eval_samples is not None:
+            eval_dataset = eval_dataset.select(range(data_args.max_eval_samples))
+
+    if training_args.do_predict or data_args.task_name is not None or data_args.test_file is not None:
+        if "test" not in raw_datasets and "test_matched" not in raw_datasets:
+            raise ValueError("--do_predict requires a test dataset")
+        predict_dataset = raw_datasets["test_matched" if data_args.task_name == "mnli" else "test"]
+        if data_args.max_predict_samples is not None:
+            predict_dataset = predict_dataset.select(range(data_args.max_predict_samples))
+    return train_dataset, eval_dataset, predict_dataset
 
 def prep_dataset(args):
     # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
