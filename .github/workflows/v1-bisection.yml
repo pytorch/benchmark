@@ -13,6 +13,7 @@ jobs:
       BISECT_CONDA_ENV: "bisection-ci-v1"
       BISECT_DIR: ".torchbench/v1-bisection-ci"
       PYTHON_VERSION: "3.8"
+      MAGMA_VERSION: "magma-cuda113"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
@@ -25,7 +26,8 @@ jobs:
         run: |
           conda create -y -n "$BISECT_CONDA_ENV" python="${PYTHON_VERSION}"
           . activate "$BISECT_CONDA_ENV"
-          conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses tabulate gitpython
+          conda install -y numpy requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi \
+                           typing_extensions future six dataclasses tabulate gitpython "${MAGMA_VERSION}"
           # Install pytorch nightly
           conda install -y -c pytorch-nightly torchtext torchvision
           python install.py
