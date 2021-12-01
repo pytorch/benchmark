@@ -63,24 +63,24 @@ class Model(BenchmarkModel):
             model_args.config_name if model_args.config_name else model_args.model_name_or_path,
             num_labels=num_labels,
             finetuning_task=data_args.task_name,
-            cache_dir=model_args.cache_dir,
-            revision=model_args.model_revision,
-            use_auth_token=True if model_args.use_auth_token else None,
+            # cache_dir=model_args.cache_dir,
+            # revision=model_args.model_revision,
+            # use_auth_token=True if model_args.use_auth_token else None,
         )
         tokenizer = AutoTokenizer.from_pretrained(
             model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-            cache_dir=model_args.cache_dir,
+            # cache_dir=model_args.cache_dir,
             use_fast=model_args.use_fast_tokenizer,
-            revision=model_args.model_revision,
-            use_auth_token=True if model_args.use_auth_token else None,
+            # revision=model_args.model_revision,
+            # use_auth_token=True if model_args.use_auth_token else None,
         )
         model = AutoModelForSequenceClassification.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
             config=config,
-            cache_dir=model_args.cache_dir,
-            revision=model_args.model_revision,
-            use_auth_token=True if model_args.use_auth_token else None,
+            # cache_dir=model_args.cache_dir,
+            # revision=model_args.model_revision,
+            # use_auth_token=True if model_args.use_auth_token else None,
         )
         train_dataset, eval_dataset, _predict_dataset = preprocess_dataset(data_args, training_args, config, model, \
             tokenizer, raw_datasets, num_labels, label_list, is_regression)
@@ -124,6 +124,7 @@ class Model(BenchmarkModel):
             training_args.max_steps = training_args.num_train_epochs * num_update_steps_per_epoch
         else:
             training_args.num_train_epochs = math.ceil(training_args.max_steps / num_update_steps_per_epoch)
+        training_args.num_train_epochs = int(training_args.num_train_epochs)
 
         lr_scheduler = get_scheduler(
             name=training_args.lr_scheduler_type,
