@@ -163,7 +163,7 @@ class Model(BenchmarkModel):
                     self.optimizer.step()
                     self.lr_scheduler.step()
                     self.optimizer.zero_grad()
-                    self.completed_steps += 1
+                    completed_steps += 1
 
                 if completed_steps >= self.training_args.max_steps:
                     break
