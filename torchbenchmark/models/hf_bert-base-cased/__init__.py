@@ -140,6 +140,7 @@ class Model(BenchmarkModel):
         self.train_dataloader = train_dataloader
         self.eval_dataloader = eval_dataloader
         self.lr_scheduler = lr_scheduler
+        self.accelerator = accelerator
 
     def get_module(self):
         raise NotImplementedError("get_module is not supported by this model")
