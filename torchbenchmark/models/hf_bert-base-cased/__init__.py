@@ -91,8 +91,8 @@ class Model(BenchmarkModel):
         else:
             data_collator = None
         train_dataloader = DataLoader(
-            train_dataset, shuffle=True, collate_fn=data_collator, batch_size=data_args.per_device_train_batch_size)
-        eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=data_args.per_device_eval_batch_size)
+            train_dataset, shuffle=True, collate_fn=data_collator, batch_size=training_args.per_device_train_batch_size)
+        eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=training_args.per_device_eval_batch_size)
 
         # Optimizer
         # Split weights in two groups, one with weight decay and the other not.
@@ -100,14 +100,14 @@ class Model(BenchmarkModel):
         optimizer_grouped_parameters = [
             {
                 "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": model_args.weight_decay,
+                "weight_decay": training_args.weight_decay,
             },
             {
                 "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=model_args.learning_rate)
+        optimizer = AdamW(optimizer_grouped_parameters, lr=training_args.learning_rate)
 
         # Prepare everything with our `accelerator`.
         model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
