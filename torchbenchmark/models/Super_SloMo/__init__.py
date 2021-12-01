@@ -42,6 +42,7 @@ class Model(BenchmarkModel):
         self.args = args = Namespace(**{
             'dataset_root': f'{root}/dataset',
             'train_batch_size': train_bs,
+            'eval_batch_size': eval_bs,
             'init_learning_rate': 0.0001,
         })
 
@@ -58,11 +59,11 @@ class Model(BenchmarkModel):
                                          transform=transform, train=True)
         trainloader = torch.utils.data.DataLoader(
             trainset,
-            batch_size=train_bs,
+            batch_size=self.args.train_batch_size,
             shuffle=False)
         evalloader = torch.utils.data.DataLoader(
             trainset,
-            batch_size=eval_bs,
+            batch_size=self.args.eval_batch_size,
             shuffle=False)
 
         trainData, trainFrameIndex = next(iter(trainloader))
