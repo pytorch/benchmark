@@ -77,6 +77,7 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
         raw_datasets = raw_datasets.map(
             preprocess_function,
             batched=True,
+            remove_columns=raw_datasets["train"].column_names,
             load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset",
         )
