@@ -1,17 +1,17 @@
 import torch
-import torch.optim as optim
-import torchvision.models as models
+from torch.utils.data import DataLoader
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
+from accelerate import Accelerator
 from transformers import (
+    AdamW,
     AutoConfig,
     AutoModelForSequenceClassification,
     AutoTokenizer,
     DataCollatorWithPadding,
-    Trainer,
     default_data_collator,
+    get_scheduler,
 )
-import numpy as np
 import os
 from pathlib import Path
 
@@ -29,7 +29,7 @@ torch.backends.cudnn.benchmark = True
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
-    def __init__(self, device=None, jit=False, train_bs=32, task_name="cola"):
+    def __init__(self, device=None, jit=False, train_bs=32, task_name="cola", run_style="single-batch"):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -49,6 +49,9 @@ class Model(BenchmarkModel):
         self.prep(model_args, data_args, training_args)
     
     def prep(self, model_args, data_args, training_args):
+        # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
+        accelerator = Accelerator()
+        accelerator.wait_for_everyone()
         raw_datasets = prep_dataset(data_args, training_args)
         num_labels, label_list, is_regression = prep_labels(data_args, raw_datasets)
         # Load pretrained model and tokenizer
@@ -78,7 +81,7 @@ class Model(BenchmarkModel):
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-        train_dataset, eval_dataset, predict_dataset = preprocess_dataset(data_args, training_args, config, model, \
+        train_dataset, eval_dataset, _predict_dataset = preprocess_dataset(data_args, training_args, config, model, \
             tokenizer, raw_datasets, num_labels, label_list, is_regression)
         # Data collator will default to DataCollatorWithPadding, so we change it if we already did the padding.
         if data_args.pad_to_max_length:
@@ -87,23 +90,47 @@ class Model(BenchmarkModel):
             data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8)
         else:
             data_collator = None
-        # Setup class members
-        self.trainer = Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=train_dataset if training_args.do_train else None,
-            eval_dataset=eval_dataset if training_args.do_eval else None,
-            compute_metrics=None,
-            tokenizer=tokenizer,
-            data_collator=data_collator,
+        train_dataloader = DataLoader(
+            train_dataset, shuffle=True, collate_fn=data_collator, batch_size=data_args.per_device_train_batch_size)
+        eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=data_args.per_device_eval_batch_size)
+
+        # Optimizer
+        # Split weights in two groups, one with weight decay and the other not.
+        no_decay = ["bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "weight_decay": model_args.weight_decay,
+            },
+            {
+                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+        optimizer = AdamW(optimizer_grouped_parameters, lr=model_args.learning_rate)
+
+        # Prepare everything with our `accelerator`.
+        model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
+            model, optimizer, train_dataloader, eval_dataloader
         )
-        self.raw_datasets = raw_datasets
-        self.train_dataset = train_dataset
-        self.eval_dataset = eval_dataset
-        self.predict_dataset = predict_dataset
-        self.data_args = data_args
+
+        # Note -> the training dataloader needs to be prepared before we grab his length below (cause its length will be
+        # shorter in multiprocess)
+
+        lr_scheduler = get_scheduler(
+            name=training_args.lr_scheduler_type,
+            optimizer=optimizer,
+            num_warmup_steps=training_args.num_warmup_steps,
+            num_training_steps=training_args.max_steps,
+        )
+        # Setup class members
         self.training_args = training_args
         self.is_regression = is_regression
+        self.model = model
+        self.optimizer = optimizer
+        self.train_dataloader = train_dataloader
+        self.eval_dataloader = eval_dataloader
+        self.lr_scheduler = lr_scheduler
 
     def get_module(self):
         raise NotImplementedError("get_module is not supported by this model")
@@ -114,31 +141,27 @@ class Model(BenchmarkModel):
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         assert self.training_args.do_train, "Must train with `do_train` arg being set"
-        self.trainer.train()
-        if self.training_args.do_eval:
-            # Loop to handle MNLI double evaluation (matched, mis-matched)
-            tasks = [self.data_args.task_name]
-            eval_datasets = [self.eval_dataset]
-            if self.data_args.task_name == "mnli":
-                tasks.append("mnli-mm")
-                eval_datasets.append(self.raw_datasets["validation_mismatched"])
+        completed_steps = 0
+        for _epoch in range(self.training_args.num_train_epochs):
+            self.model.train()
+            for step, batch in enumerate(self.train_dataloader):
+                outputs = self.model(**batch)
+                loss = outputs.loss
+                loss = loss / self.training_args.gradient_accumulation_steps
+                self.accelerator.backward(loss)
+                if step % self.training_args.gradient_accumulation_steps == 0 or step == len(self.train_dataloader) - 1:
+                    self.optimizer.step()
+                    self.lr_scheduler.step()
+                    self.optimizer.zero_grad()
+                    self.completed_steps += 1
 
-            for eval_dataset, task in zip(eval_datasets, tasks):
-                metrics = self.trainer.evaluate(eval_dataset=eval_dataset)
-        if self.training_args.do_predict:
-            # logger.info("*** Predict ***")
-            # Loop to handle MNLI double evaluation (matched, mis-matched)
-            tasks = [self.data_args.task_name]
-            predict_datasets = [self.predict_dataset]
-            if self.data_args.task_name == "mnli":
-                tasks.append("mnli-mm")
-                predict_datasets.append(self.raw_datasets["test_mismatched"])
+                if completed_steps >= self.training_args.max_steps:
+                    break
 
-            for predict_dataset, task in zip(predict_datasets, tasks):
-                # Removing the `label` columns because it contains -1 and Trainer won't like that.
-                predict_dataset = predict_dataset.remove_columns("label")
-                predictions = self.trainer.predict(predict_dataset, metric_key_prefix="predict").predictions
-                predictions = np.squeeze(predictions) if self.is_regression else np.argmax(predictions, axis=1)
+            self.model.eval()
+            for step, batch in enumerate(self.eval_dataloader):
+                outputs = self.model(**batch)
+                predictions = outputs.logits.argmax(dim=-1) if not self.is_regression else outputs.logits.squeeze()
 
     def eval(self, niter=1):
         raise NotImplementedError("Eval is not supported by this model")
