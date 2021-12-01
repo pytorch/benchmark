@@ -1,4 +1,5 @@
 import torch
+import math
 from torch.utils.data import DataLoader
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
@@ -117,10 +118,17 @@ class Model(BenchmarkModel):
         # Note -> the training dataloader needs to be prepared before we grab his length below (cause its length will be
         # shorter in multiprocess)
 
+        # Scheduler and math around the number of training steps.
+        num_update_steps_per_epoch = math.ceil(len(train_dataloader) / training_args.gradient_accumulation_steps)
+        if training_args.max_steps is None or training_args.max_steps == -1:
+            training_args.max_steps = training_args.num_train_epochs * num_update_steps_per_epoch
+        else:
+            training_args.num_train_epochs = math.ceil(training_args.max_steps / num_update_steps_per_epoch)
+
         lr_scheduler = get_scheduler(
             name=training_args.lr_scheduler_type,
             optimizer=optimizer,
-            num_warmup_steps=training_args.num_warmup_steps,
+            num_warmup_steps=training_args.warmup_steps,
             num_training_steps=training_args.max_steps,
         )
         # Setup class members
