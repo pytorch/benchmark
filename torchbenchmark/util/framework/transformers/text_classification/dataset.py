@@ -18,13 +18,6 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
             else:
                 sentence1_key, sentence2_key = non_label_column_names[0], None
 
-    # Padding strategy
-    if data_args.pad_to_max_length:
-        padding = "max_length"
-    else:
-        # We will pad later, dynamically at batch creation, to the max sequence length in each batch
-        padding = False
-
     # Some models have set the order of the labels to use, so let's make sure we do use it.
     label_to_id = None
     if (
@@ -53,24 +46,30 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
         model.config.label2id = {l: i for i, l in enumerate(label_list)}
         model.config.id2label = {id: label for label, id in config.label2id.items()}
 
-    if data_args.max_seq_length > tokenizer.model_max_length:
+    padding = "max_length" if data_args.pad_to_max_length else False
+
+    # if data_args.max_seq_length > tokenizer.model_max_length:
         # logger.warning(
         #    f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
         #     f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
         # )
-        pass
-    max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
+    #     pass
+    # max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
+    max_seq_length = data_args.max_seq_length
 
     def preprocess_function(examples):
         # Tokenize the texts
-        args = (
+        texts = (
             (examples[sentence1_key],) if sentence2_key is None else (examples[sentence1_key], examples[sentence2_key])
         )
-        result = tokenizer(*args, padding=padding, max_length=max_seq_length, truncation=True)
-
-        # Map labels to IDs (not necessary for GLUE tasks)
-        if label_to_id is not None and "label" in examples:
-            result["label"] = [(label_to_id[l] if l != -1 else -1) for l in examples["label"]]
+        result = tokenizer(*texts, padding=padding, max_length=max_seq_length, truncation=True)
+        if "label" in examples:
+            if label_to_id is not None:
+                # Map labels to IDs (not necessary for GLUE tasks)
+                result["labels"] = [label_to_id[l] for l in examples["label"]]
+            else:
+                # In all cases, rename the column to labels because the model will expect that.
+                result["labels"] = examples["label"]
         return result
 
     with training_args.main_process_first(desc="dataset map pre-processing"):
