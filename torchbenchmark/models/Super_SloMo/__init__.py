@@ -19,9 +19,20 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
+def _prefetch(data, device):
+    result = []
+    for item in data:
+        result.append(item.to(device))
+    return tuple(result)
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.OTHER_COMPUTER_VISION
-    def __init__(self, device=None, jit=False):
+    # Original code config:
+    #    train batch size: 6
+    #    eval batch size: 10
+    #    hardware platform: Nvidia GTX 1080 Ti
+    # Source: https://github.com/avinashpaliwal/Super-SloMo/blob/master/train.ipynb
+    def __init__(self, device=None, jit=False, train_bs=6, eval_bs=10):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -30,7 +41,8 @@ class Model(BenchmarkModel):
         root = str(Path(__file__).parent)
         self.args = args = Namespace(**{
             'dataset_root': f'{root}/dataset',
-            'train_batch_size': 6,
+            'train_batch_size': train_bs,
+            'eval_batch_size': eval_bs,
             'init_learning_rate': 0.0001,
         })
 
@@ -47,15 +59,20 @@ class Model(BenchmarkModel):
                                          transform=transform, train=True)
         trainloader = torch.utils.data.DataLoader(
             trainset,
-            batch_size=args.train_batch_size,
+            batch_size=self.args.train_batch_size,
+            shuffle=False)
+        evalloader = torch.utils.data.DataLoader(
+            trainset,
+            batch_size=self.args.eval_batch_size,
             shuffle=False)
 
         trainData, trainFrameIndex = next(iter(trainloader))
-        frame0, frameT, frame1 = trainData
-        trainData = (frame0.to(device),
-                     frameT.to(device),
-                     frame1.to(device))
+        trainData = _prefetch(trainData, self.device)
         self.example_inputs = trainFrameIndex.to(self.device), *trainData
+
+        evalData, evalFrameIndex = next(iter(evalloader))
+        evalData = _prefetch(evalData, self.device)
+        self.infer_example_inputs = evalFrameIndex.to(self.device), *evalData
 
         if jit:
             if hasattr(torch.jit, '_script_pdt'):
@@ -71,7 +88,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
         for _ in range(niter):
-            self.module(*self.example_inputs)
+            self.module(*self.infer_example_inputs)
 
     def train(self, niter=1):
         if self.device == 'cpu':
