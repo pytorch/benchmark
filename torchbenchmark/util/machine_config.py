@@ -284,7 +284,8 @@ def get_machine_state():
     machine_type = get_machine_type()
     state['machine_type'] = machine_type
     if MACHINE.AMAZON_LINUX == machine_type:
-        state['cpu_temps'] = get_cpu_temp()
+        # NOTE: Do not record cpu temp because the runner doesn't have this interface anymore
+        # state['cpu_temps'] = get_cpu_temp()
         if has_nvidia_smi():
             state['nvidia_gpu_temps'] = get_nvidia_gpu_temps()
             state['nvidia_gpu_clocks'] = get_nvidia_gpu_clocks()
