@@ -1,1 +1,1 @@
-opacus
+opacus<1.0.0
