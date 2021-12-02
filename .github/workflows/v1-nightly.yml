@@ -35,7 +35,7 @@ jobs:
         run: |
           . activate "${CONDA_ENV_NAME}"
           # Install dependencies
-          conda install -c pytorch "${MAGMA_VERSION}"
+          conda install -y -c pytorch "${MAGMA_VERSION}"
           pip install requests bs4 argparse gitpython boto3
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)

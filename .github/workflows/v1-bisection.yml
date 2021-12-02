@@ -27,7 +27,8 @@ jobs:
           conda create -y -n "$BISECT_CONDA_ENV" python="${PYTHON_VERSION}"
           . activate "$BISECT_CONDA_ENV"
           conda install -y numpy requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi \
-                           typing_extensions future six dataclasses tabulate gitpython "${MAGMA_VERSION}"
+                           typing_extensions future six dataclasses tabulate gitpython
+          conda install -y -c pytorch "${MAGMA_VERSION}"
           # Install pytorch nightly
           conda install -y -c pytorch-nightly torchtext torchvision
           python install.py

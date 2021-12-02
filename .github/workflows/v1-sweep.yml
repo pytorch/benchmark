@@ -44,7 +44,7 @@ jobs:
             CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/.*-\(.*\)\.txt/\1/')
             conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VERSION}
             . activate ${CONDA_ENV_NAME}
-            conda install -c pytorch ${MAGMA_VERSION}
+            conda install -y -c pytorch ${MAGMA_VERSION}
             pip install -r "${CONFIG}"
             python install.py
             bash .github/scripts/run.sh "${SWEEP_JOB_OUTPUT}"
