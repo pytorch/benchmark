@@ -60,8 +60,8 @@ def get_args(config_string="", config_file=None):
     parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 
     # Dataset parameters
-    parser.add_argument('data_dir', metavar='DIR',
-                        help='path to dataset')
+    # parser.add_argument('data_dir', metavar='DIR',
+    #                     help='path to dataset')
     parser.add_argument('--dataset', '-d', metavar='NAME', default='',
                         help='dataset type (default: ImageFolder/ImageTar if empty)')
     parser.add_argument('--train-split', metavar='NAME', default='train',
