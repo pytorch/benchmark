@@ -2,7 +2,16 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import torchvision.models as models
-from opacus.utils.module_modification import convert_batchnorm_modules
+import opacus
+from packaging import version
+OPACUS_API_1_0 = None
+if version.parse(opacus.__version__) < version.parse("1.0.0"):
+    OPACUS_API_1_0 = False
+    from opacus.utils.module_modification import convert_batchnorm_modules
+else:
+    OPACUS_API_1_0 = True
+    from opacus.validators.module_validator import ModuleValidator
+
 from opacus import PrivacyEngine
 
 from ...util.model import BenchmarkModel
@@ -17,7 +26,10 @@ class Model(BenchmarkModel):
         self.jit = jit
 
         self.model = models.resnet18(num_classes=10)
-        self.model = convert_batchnorm_modules(self.model)
+        if OPACUS_API_1_0:
+            self.model = ModuleValidator.fix(self.model)
+        else:
+            self.model = convert_batchnorm_modules(self.model)
         self.model = self.model.to(device)
 
         self.example_inputs = (
