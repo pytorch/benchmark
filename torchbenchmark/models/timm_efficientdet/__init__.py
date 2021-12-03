@@ -142,7 +142,10 @@ class Model(BenchmarkModel):
         for _, (input, target) in zip(range(self.eval_num_batch), self.loader_eval):
             return (self.eval_model, (input, target))
 
+    # Temporarily disable training because this will cause CUDA OOM in CI
+    # TODO: re-enable this test when better hardware is available
     def train(self, niter=1):
+        raise NotImplementedError("Disable this test because it causes CUDA OOM on Nvidia T4 GPU")
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
