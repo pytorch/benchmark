@@ -79,7 +79,10 @@ class Model(BenchmarkModel):
             for _, (input, _) in zip(range(self.args.eval_num_batch), self.loader_eval):
                 return self.eval_model, (input, )
 
+    # Temporarily disable training because this will cause CUDA OOM in CI
+    # TODO: re-enable this test when better hardware is available
     def train(self, niter=1):
+        raise NotImplementedError("Disable the train test because it causes CUDA OOM on Nvidia T4")
         self.model.train()
         eval_metric = self.args.eval_metric
         for epoch in range(niter):
