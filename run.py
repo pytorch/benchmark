@@ -15,10 +15,7 @@ import torch.profiler as profiler
 from torchbenchmark import load_model_by_name
 import torch
 
-from torchbenchmark.util.features.lazy_tensor import has_lazy_tensor
-
 WARMUP_ROUNDS = 3
-LAZY_TENSOR_SUPPORT = has_lazy_tensor()
 
 def run_one_step_with_cudastreams(func, streamcount):
 
@@ -129,7 +126,7 @@ def _validate_devices(devices: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
-    SUPPORT_DEVICE_LIST = ["cpu", "cuda", "lazy"] if has_lazy_tensor() else ["cpu", "cuda"]
+    SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
     parser.add_argument("-d", "--device", choices=SUPPORT_DEVICE_LIST, default="cpu", help="Which device to use.")
     parser.add_argument("-m", "--mode", choices=["eager", "jit"], default="eager", help="Which mode to run.")
@@ -178,8 +175,3 @@ if __name__ == "__main__":
         run_one_step_with_cudastreams(test, 10)
     else:
         run_one_step(test)
-
-    # If run with lazy tensor, print the lazy tensor metrics
-    if args.device == 'lazy':
-        import lazy_tensor_core.debug.metrics as metrics
-        print(metrics.counter_names())

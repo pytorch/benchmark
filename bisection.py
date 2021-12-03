@@ -213,7 +213,6 @@ class TorchSource:
     def _build_lazy_tensor(self, commit: Commit, build_env: Dict[str, str]):
         if self.build_lazy:
             print(f"Building pytorch lazy tensor on {commit.sha} ...", end="", flush=True)
-            print(f"Building LazyTensor ...", end="", flush=True)
             lazy_tensor_path = os.path.join(self.srcpath, "lazy_tensor_core")
             command = "./scripts/apply_patches.sh"
             subprocess.check_call(command, cwd=self.lazy_tensor_path, env=build_env, shell=True)
