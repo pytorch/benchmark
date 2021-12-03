@@ -444,7 +444,7 @@ def _run_block(
         _log_progress("SUCCESS")
         result = SUCCESS_BYTES
 
-    except (Exception, KeyboardInterrupt) as e:
+    except (Exception, KeyboardInterrupt, SystemExit) as e:
         tb = sys.exc_info()[2]
         assert tb is not None
         serialized_e = SerializedException.from_exception(e, tb)

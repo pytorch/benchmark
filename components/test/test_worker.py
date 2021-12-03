@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import textwrap
 import typing
@@ -246,6 +247,12 @@ class TestBenchmarkWorker(TestCase):
         # Make sure `_kill_proc` is idempotent.
         worker._kill_proc()
         worker._kill_proc()
+
+    def test_subprocess_worker_sys_exit(self):
+        worker = subprocess_worker.SubprocessWorker(timeout=1)
+        with self.assertRaisesRegex(subprocess_rpc.UnserializableException, "SystemExit"):
+            worker.run("import sys")
+            worker.run("sys.exit()")
 
 
 if __name__ == '__main__':
