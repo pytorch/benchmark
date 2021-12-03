@@ -26,7 +26,10 @@ TIMEOUT = 300  # Seconds
 
 # Skip this list of unit tests. One reason may be that the original batch size
 # used in the paper is too large to fit on the CI's GPU.
-TRAIN_EXCLUDELIST = {("densenet121", "cuda")}
+EXCLUDELIST = {("densenet121", "train", "cuda"),  # GPU train runs out of memory on CI.
+               ("densenet121", "train", "cpu"),  # CPU train runs for too long on CI.
+               ("densenet121", "example", "cuda"),  # GPU train runs out of memory on CI.
+               ("densenet121", "example", "cpu")}  # CPU train runs for too long on CI.
 
 
 class TestBenchmark(unittest.TestCase):
@@ -51,7 +54,7 @@ class TestBenchmark(unittest.TestCase):
 
 def _load_test(path, device):
 
-    def example(self):
+    def example_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
@@ -62,7 +65,7 @@ def _load_test(path, device):
             except NotImplementedError:
                 self.skipTest('Method get_module is not implemented, skipping...')
 
-    def train(self):
+    def train_fn(self):
         metadata = get_metadata_from_yaml(path)
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
@@ -103,11 +106,10 @@ def _load_test(path, device):
                 self.skipTest('Method check_device is not implemented, skipping...')
 
     name = os.path.basename(path)
-    setattr(TestBenchmark, f'test_{name}_example_{device}', example)
-    setattr(TestBenchmark, f'test_{name}_train_{device}',
-            (unittest.skipIf((name, device) in TRAIN_EXCLUDELIST, "This test is on the exclude list")(train)))
-    setattr(TestBenchmark, f'test_{name}_eval_{device}', eval_fn)
-    setattr(TestBenchmark, f'test_{name}_check_device_{device}', check_device_fn)
+    for fn, fn_name in zip([example_fn, train_fn, eval_fn, check_device_fn],
+                           ["example", "train", "eval", "check_device"]):
+        setattr(TestBenchmark, f'test_{name}_{fn_name}_{device}',
+                (unittest.skipIf((name, fn_name, device) in EXCLUDELIST, "This test is on the EXCLUDELIST")(fn)))
 
 
 def _load_tests():

@@ -159,7 +159,7 @@ def get_cpu_temp():
     temps = {}
     if MACHINE.AMAZON_LINUX == get_machine_type():
         thermal_path = Path('/sys/class/thermal/')
-        for zone in os.listdir(thermal_path):
+        for zone in filter(lambda x: "thermal_zone" in x, os.listdir(thermal_path)):
             temps[zone] = int(read_sys_file(thermal_path / zone / "temp")) / 1000.
     return temps
 

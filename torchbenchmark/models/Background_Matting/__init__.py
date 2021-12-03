@@ -20,8 +20,8 @@ from torchbenchmark.tasks import COMPUTER_VISION
 torch.manual_seed(1337)
 random.seed(1337)
 np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = True
 
 def _collate_filter_none(batch):
     batch = list(filter(lambda x: x is not None, batch))
@@ -29,14 +29,17 @@ def _collate_filter_none(batch):
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.OTHER_COMPUTER_VISION
-    def __init__(self, device=None, jit=False):
+    # Original btach size: 4
+    # Original hardware: unknown
+    # Source: https://arxiv.org/pdf/2004.00626.pdf
+    def __init__(self, device=None, jit=False, train_bs=4):
         super().__init__()
         self.device = device
         self.jit = jit
         self.opt = Namespace(**{
             'n_blocks1': 7,
             'n_blocks2': 3,
-            'batch_size': 1,
+            'batch_size': train_bs,
             'resolution': 512,
             'name': 'Real_fixed'
         })
