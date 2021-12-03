@@ -45,12 +45,12 @@ class Model(BenchmarkModel):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
+            optimizer.zero_grad()
             for _ in range(self.epoch_size):
-                optimizer.zero_grad()
                 pred = self.model(*self.example_inputs)
                 y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
                 loss(pred, y).backward()
-                optimizer.step()
+            optimizer.step()
 
     def eval(self, niter=1):
         model = self.eval_model
