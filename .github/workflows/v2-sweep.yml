@@ -1,0 +1,85 @@
+name: TorchBench V2 sweep
+on:
+  workflow_dispatch:
+    inputs:
+      sweep_name:
+        description: "Sweep job name"
+        required: true
+        default: "sweep-example"
+      upload_result:
+        description: "Upload result"
+        required: true
+        default: "no"
+
+jobs:
+  run-benchmark:
+    env:
+      TORCHBENCH_VER: "v2"
+      CONFIG_VER: "v2"
+      SWEEP_DIR: ".torchbench/v2-sweep-ci"
+      PYTHON_VER: "3.8"
+      CUDA_VER: "11.3"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      BUILD_ENVIRONMENT: benchmark-sweep
+      IS_GHA: 1
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 2880 # 48 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: v1.0
+      - name: Run sweep job
+        run: |
+          SWEEP_JOB=${{ github.event.inputs.sweep_name }}
+          SWEEP_JOB_ROOT="${HOME}/${SWEEP_DIR}/${SWEEP_JOB}"
+          SWEEP_JOB_OUTPUT="${SWEEP_JOB_ROOT}/results/gh${GITHUB_RUN_ID}"
+          for CONFIG in ${SWEEP_JOB_ROOT}/configs/*.txt; do
+            echo "Running config $CONFIG ..."
+            # Create a new conda env
+            CONFIG_BASE=$(basename ${CONFIG})
+            CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/.*-\(.*\)\.txt/\1/')
+            conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
+            . activate ${CONDA_ENV_NAME}
+            conda install -y git-lfs
+            pip install -r "${CONFIG}"
+            python install.py
+            bash .github/scripts/run.sh "${SWEEP_JOB_OUTPUT}"
+            # Remove the conda env
+            conda deactivate
+            conda env remove --name ${CONDA_ENV_NAME}
+          done
+          echo "Finished running tasks"
+      - name: Upload result
+        run: |
+          UPLOAD_COND=${{ github.event.inputs.upload_result }}
+          # Quit if upload is not specified
+          if [ "$UPLOAD_COND" != "yes" ]; then
+            exit 0
+          fi
+          # Otherwise, continue upload
+          SWEEP_JOB=${{ github.event.inputs.sweep_name }}
+          SWEEP_JOB_ROOT="${HOME}/${SWEEP_DIR}/${SWEEP_JOB}"
+          SWEEP_JOB_OUTPUT="${SWEEP_JOB_ROOT}/results/gh${GITHUB_RUN_ID}"
+          CONDA_ENV_NAME=sweep-ci
+          conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
+          . activate ${CONDA_ENV_NAME}
+          pip install -r requirements.txt
+          pip install boto3
+          for RESULT in ${SWEEP_JOB_OUTPUT}/*.json; do
+            # Upload when the file is non-empty
+            if [ ! -s $RESULT ]; then
+              # Generate score file
+              SCORE_FILE="${RESULT}.score.json"
+              python compute_score.py --score_version v1 --benchmark_data_file "${RESULT}" > "${SCORE_FILE}"
+              # Enable OSS stat uploads
+              wget -O scripts/scribe.py https://github.com/pytorch/pytorch/raw/master/tools/stats/scribe.py || echo "failed to copy oss stat utils"
+              # Upload score
+              python scripts/upload_scribe.py --pytest_bench_json "${RESULT}" --torchbench_score_file "${SCORE_FILE}"
+            fi
+          done
+          conda deactivate
+          conda env remove --name ${CONDA_ENV_NAME}
