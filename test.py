@@ -76,7 +76,7 @@ def _load_test(path, device):
                 task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
             except NotImplementedError:
-                self.skipTest('Method train is not implemented, skipping...')
+                self.skipTest(f'Method train on {device} is not implemented, skipping...')
 
     def eval_fn(self):
         metadata = get_metadata_from_yaml(path)
@@ -93,7 +93,7 @@ def _load_test(path, device):
                 task.check_details_eval(device=device, md=metadata)
                 task.del_model_instance()
             except NotImplementedError:
-                self.skipTest('Method eval is not implemented, skipping...')
+                self.skipTest(f'Method eval on {device} is not implemented, skipping...')
 
     def check_device_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
@@ -103,7 +103,7 @@ def _load_test(path, device):
                 task.check_device()
                 task.del_model_instance()
             except NotImplementedError:
-                self.skipTest('Method check_device is not implemented, skipping...')
+                self.skipTest(f'Method check_device on {device} is not implemented, skipping...')
 
     name = os.path.basename(path)
     for fn, fn_name in zip([example_fn, train_fn, eval_fn, check_device_fn],
