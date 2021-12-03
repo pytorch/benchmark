@@ -11,6 +11,7 @@ jobs:
       CONFIG_VER: "v2"
       PYTHON_VER: "3.8"
       CUDA_VER: "11.3"
+      MAGMA_VERSION: "magma-cuda113"
       CONDA_ENV_NAME:  "torchbench-v2-nightly-ci"
       OUTPUT_DIR: ".torchbench/v2-nightly-ci"
       BISECTION_ROOT: ".torchbench/v2-bisection-ci"
@@ -43,6 +44,8 @@ jobs:
               echo "Torch nightly build failed. Cancel the workflow."
               exit 1
           fi
+          # Install magma
+          conda install -y -c pytorch "${MAGMA_VERSION}"
           # Install PyTorch nightly from pip
           pip install --pre torch torchtext torchvision \
           -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
