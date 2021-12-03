@@ -260,6 +260,10 @@ class ModelTask(base_task.TaskBase):
         else:
             maybe_sync = lambda: None
 
+        # check if model supports lazy tensor
+        if device == 'lazy' and not model.support_lazy:
+            raise NotImplementedError("Model does not support lazy tensor")
+
         globals().update({
             "model": model,
             "maybe_sync": maybe_sync,
