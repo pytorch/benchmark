@@ -26,8 +26,8 @@ def get_args(config_file=None):
 
     parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
     # Dataset / Model parameters
-    parser.add_argument('root', metavar='DIR',
-                        help='path to dataset')
+    # parser.add_argument('root', metavar='DIR',
+    #                     help='path to dataset')
     parser.add_argument('--dataset', default='coco', type=str, metavar='DATASET',
                         help='Name of dataset to train (default: "coco"')
     parser.add_argument('--model', default='tf_efficientdet_d1', type=str, metavar='MODEL',
