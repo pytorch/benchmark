@@ -11,7 +11,9 @@ from torchbenchmark.tasks import SPEECH
 class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
 
-    def __init__(self, device=None, jit=False):
+    # Training batch size comes from the source code:
+    # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L84
+    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=64):
         super().__init__()
         """ Required """
         self.device = device
@@ -20,17 +22,23 @@ class Model(BenchmarkModel):
             # TODO - currently load_model assumes cuda
             return
 
-        self.hparams = self.create_hparams()
-        self.model = load_model(self.hparams).to(device=device)
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.hparams.learning_rate,
-                                          weight_decay=self.hparams.weight_decay)
+        self.train_hparams = self.create_hparams(batch_size=train_bs)
+        self.eval_hparams = self.create_hparams(batch_size=eval_bs)
+        self.train_model = load_model(self.train_hparams).to(device=device)
+        self.eval_model = load_model(self.eval_hparams).to(device=device)
+        self.train_optimizer = torch.optim.Adam(self.train_model.parameters(),
+                                                lr=self.train_hparams.learning_rate,
+                                                weight_decay=self.train_hparams.weight_decay)
+        self.eval_optimizer = torch.optim.Adam(self.eval_model.parameters(),
+                                               lr=self.eval_hparams.learning_rate,
+                                               weight_decay=self.eval_hparams.weight_decay)
         self.criterion = Tacotron2Loss().to(device=device)
-        train_loader, valset, collate_fn = prepare_dataloaders(self.hparams)
-        self.example_input, self.target = self.model.parse_batch(list(train_loader)[0], device=self.device)
+        train_loader, valset, collate_fn = prepare_dataloaders(self.train_hparams)
+        self.example_input, self.target = self.train_model.parse_batch(next(iter(train_loader)), device=self.device)
 
     # Parameters were obtained from the source code.
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L5
-    def create_hparams(hparams_string=None, verbose=False):
+    def create_hparams(hparams_string=None, verbose=False, batch_size=64):
         """Create model hyperparameters. Parse nondefault from given string."""
         root = str(Path(__file__).parent)
         hparams = Namespace(**{
@@ -109,7 +117,7 @@ class Model(BenchmarkModel):
             'learning_rate': 1e-3,
             'weight_decay': 1e-6,
             'grad_clip_thresh': 1.0,
-            'batch_size': 64,
+            'batch_size': batch_size,
             'mask_padding': True  # set model's padded outputs to padded values
         })
         return hparams
@@ -119,30 +127,30 @@ class Model(BenchmarkModel):
             raise NotImplementedError('CPU not supported')
         if self.jit:
             raise NotImplementedError('JIT not supported')
-        return self.model, (self.example_input,)
+        return self.train_model, (self.example_input,)
 
     def train(self, niterations=1):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
         if self.jit:
             raise NotImplementedError('JIT not supported')
-        self.model.train()
+        self.train_model.train()
         for _ in range(niterations):
-            self.model.zero_grad()
-            y_pred = self.model(self.example_input)
+            self.train_model.zero_grad()
+            y_pred = self.train_model(self.example_input)
 
             loss = self.criterion(y_pred, self.target)
             loss.backward()
-            self.optimizer.step()
+            self.train_optimizer.step()
 
     def eval(self, niterations=1):
         if self.device == 'cpu':
             raise NotImplementedError('CPU not supported')
         if self.jit:
             raise NotImplementedError('JIT not supported')
-        self.model.eval()
+        self.eval_model.eval()
         for _ in range(niterations):
-            self.model(self.example_input)
+            self.eval_model(self.example_input)
 
 
 if __name__ == '__main__':
