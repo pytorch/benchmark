@@ -18,6 +18,8 @@ import time
 import torch
 from tabulate import tabulate 
 from torchbenchmark import list_models
+import lazy_tensor_core
+lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
 def list_model_names():
     return [Model.name for Model in list_models()]
@@ -98,8 +100,6 @@ def get_model_class(name):
         raise RuntimeError(f"Unable to find model matching {name}")
 
 def _check_model(model_name, test, output_file, niter):
-    import lazy_tensor_core
-    lazy_tensor_core._LAZYC._ltc_init_ts_backend()
     import lazy_tensor_core.core.lazy_model as ltm
     import lazy_tensor_core.debug.metrics as metrics
     torch.manual_seed(42)
