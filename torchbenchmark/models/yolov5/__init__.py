@@ -1,9 +1,20 @@
+"""
+YoloV5 Model with DDP support.
+Does not support evolving hyperparameters
+"""
+from subprocess import call
 import torch
 import random
 import numpy as np
+import torch.nn as nn
+import torch.distributed as dist
 
+from torchbenchmark.models.yolov5.prep import train_prep
+
+from .yolov5 import val  # for end-of-epoch mAP
 from .yolov5.models.yolo import Model
-from .yolov5.utils.general import check_img_size
+from .yolov5.utils.metrics import fitness
+from .yolov5.utils.general import labels_to_image_weights
 
 random.seed(1337)
 torch.manual_seed(1337)
@@ -11,6 +22,8 @@ np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
+import os
+import math
 from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
@@ -18,20 +31,72 @@ from torchbenchmark.tasks import COMPUTER_VISION
 from .args import parse_opt_train, parse_opt_eval
 from .model import get_model
 
+LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
+RANK = int(os.getenv('RANK', -1))
+WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
 
     def __init__(self, device=None, jit=False, train_bs=1, eval_bs=1):
-        train_args = parse_opt_train()
-        eval_args = parse_opt_eval()
+        train_opt = parse_opt_train()
+        # This benchmark does not support evolving hyperparameters
+        train_opt.evolve = None
+        eval_opt = parse_opt_eval()
 
-    def prep(hyp, opt, callbacks):
+        # setup DDP mode
+        self.device = device
+        if LOCAL_RANK != -1:
+            assert torch.cuda.device_count() > LOCAL_RANK, 'insufficient CUDA devices for DDP command'
+            assert train_opt.batch_size % WORLD_SIZE == 0, '--batch-size must be multiple of CUDA device count'
+            assert not train_opt.image_weights, '--image-weights argument is not compatible with DDP training'
+            assert not train_opt.evolve, '--evolve argument is not compatible with DDP training'
+            torch.cuda.set_device(LOCAL_RANK)
+            self.device = torch.device('cuda', LOCAL_RANK)
+            dist.init_process_group(backend="nccl" if dist.is_nccl_available() else "gloo")
+
+        # setup other members
+        self.train_prep(train_opt.hyp, train_opt, callbacks=None)
+        self.eval_prep()
+
+    def eval_prep(self):
         pass
+
+    def train_prep(self, hyp, opt, callbacks):
+        hyp, opt = train_prep(hyp, opt, self.device, callbacks)
+
+        # set instance members
+        self.hyp = hyp
+        self.opt = opt
 
     def get_module(self):
         pass
 
     def train(self, niter=1):
+        hyp = self.hyp
+        opt = self.opt
+        scaler = self.scaler
+        optimizer = self.optimizer
+        dataset = self.dataset
+        nb = self.nb
+        nbs = self.nbs
+        maps = self.maps
+        nc = self.nc
+        amp = self.amp
+        train_loader = self.trian_loader
+        epoch = self.epoch
+        device = self.device
+        ema = self.ema
+        cuda = self.cuda
+        compute_loss = self.compuse_loss
+        batch_size = self.batch_size
+        scheduler = self.scheduler
+        imgsz = self.imgsz
+        lf = self.lf
+        gs = self.gs
+        noval = self.opt.noval
+        best_fitness = self.best_fitness
+
         self.model.train()
         nw = max(round(hyp['warmup_epochs'] * nb), 1000)  # number of warmup iterations, max(3 epochs, 1k iterations)
         # Update image weights (optional, single-GPU only)
@@ -48,9 +113,9 @@ class Model(BenchmarkModel):
         if RANK != -1:
             train_loader.sampler.set_epoch(epoch)
         pbar = enumerate(train_loader)
-        LOGGER.info(('\n' + '%10s' * 7) % ('Epoch', 'gpu_mem', 'box', 'obj', 'cls', 'labels', 'img_size'))
-        if RANK in [-1, 0]:
-            pbar = tqdm(pbar, total=nb, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
+        # LOGGER.info(('\n' + '%10s' * 7) % ('Epoch', 'gpu_mem', 'box', 'obj', 'cls', 'labels', 'img_size'))
+        # if RANK in [-1, 0]:
+        #     pbar = tqdm(pbar, total=nb, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
         optimizer.zero_grad()
         for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
             ni = i + nb * epoch  # number integrated batches (since train start)
@@ -97,12 +162,12 @@ class Model(BenchmarkModel):
                 last_opt_step = ni
 
             # Log
-            if RANK in [-1, 0]:
-                mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
-                mem = f'{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G'  # (GB)
-                pbar.set_description(('%10s' * 2 + '%10.4g' * 5) % (
-                    f'{epoch}/{epochs - 1}', mem, *mloss, targets.shape[0], imgs.shape[-1]))
-                callbacks.run('on_train_batch_end', ni, model, imgs, targets, paths, plots, opt.sync_bn)
+            # if RANK in [-1, 0]:
+                # mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
+                # mem = f'{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G'  # (GB)
+                # pbar.set_description(('%10s' * 2 + '%10.4g' * 5) % (
+                #     f'{epoch}/{epochs - 1}', mem, *mloss, targets.shape[0], imgs.shape[-1]))
+                # callbacks.run('on_train_batch_end', ni, model, imgs, targets, paths, plots, opt.sync_bn)
             # end batch ------------------------------------------------------------------------------------------------
 
         # Scheduler
@@ -111,7 +176,7 @@ class Model(BenchmarkModel):
 
         if RANK in [-1, 0]:
             # mAP
-            callbacks.run('on_train_epoch_end', epoch=epoch)
+            # callbacks.run('on_train_epoch_end', epoch=epoch)
             ema.update_attr(model, include=['yaml', 'nc', 'hyp', 'names', 'stride', 'class_weights'])
             final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
             if not noval or final_epoch:  # Calculate mAP
@@ -131,31 +196,31 @@ class Model(BenchmarkModel):
             if fi > best_fitness:
                 best_fitness = fi
             log_vals = list(mloss) + list(results) + lr
-            callbacks.run('on_fit_epoch_end', log_vals, epoch, best_fitness, fi)
+            # callbacks.run('on_fit_epoch_end', log_vals, epoch, best_fitness, fi)
 
             # Save model
-            if (not nosave) or (final_epoch and not evolve):  # if save
-                ckpt = {'epoch': epoch,
-                        'best_fitness': best_fitness,
-                        'model': deepcopy(de_parallel(model)).half(),
-                        'ema': deepcopy(ema.ema).half(),
-                        'updates': ema.updates,
-                        'optimizer': optimizer.state_dict(),
-                        'wandb_id': loggers.wandb.wandb_run.id if loggers.wandb else None,
-                        'date': datetime.now().isoformat()}
+            # if (not nosave) or (final_epoch and not evolve):  # if save
+            #     ckpt = {'epoch': epoch,
+            #             'best_fitness': best_fitness,
+            #             'model': deepcopy(de_parallel(model)).half(),
+            #             'ema': deepcopy(ema.ema).half(),
+            #             'updates': ema.updates,
+            #             'optimizer': optimizer.state_dict(),
+            #             'wandb_id': loggers.wandb.wandb_run.id if loggers.wandb else None,
+            #             'date': datetime.now().isoformat()}
 
-                # Save last, best and delete
-                torch.save(ckpt, last)
-                if best_fitness == fi:
-                    torch.save(ckpt, best)
-                if (epoch > 0) and (opt.save_period > 0) and (epoch % opt.save_period == 0):
-                    torch.save(ckpt, w / f'epoch{epoch}.pt')
-                del ckpt
-                callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
+            #     # Save last, best and delete
+            #     torch.save(ckpt, last)
+            #     if best_fitness == fi:
+            #         torch.save(ckpt, best)
+            #     if (epoch > 0) and (opt.save_period > 0) and (epoch % opt.save_period == 0):
+            #         torch.save(ckpt, w / f'epoch{epoch}.pt')
+            #     del ckpt
+            #     callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
 
             # Stop Single-GPU
-            if RANK == -1 and stopper(epoch=epoch, fitness=fi):
-                break
+            # if RANK == -1 and stopper(epoch=epoch, fitness=fi):
+            #     break
 
             # Stop DDP TODO: known issues shttps://github.com/ultralytics/yolov5/pull/4576
             # stop = stopper(epoch=epoch, fitness=fi)

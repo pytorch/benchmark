@@ -1,9 +1,60 @@
 from pathlib import Path
+import torch
+import torch.nn as nn
+from torch.optim import SGD, Adam, lr_scheduler
+
+import numpy as np
+from torch.cuda import amp
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+from . import RANK, LOCAL_RANK, WORLD_SIZE
+from .yolov5.models.yolo import Model
+from .yolov5.utils.downloads import attempt_download
+from .yolov5.utils.autoanchor import check_anchors
+from .yolov5.utils.autobatch import check_train_batch_size
+from .yolov5.utils.datasets import create_dataloader
+from .yolov5.utils.general import (init_seeds, check_dataset, check_suffix, intersect_dicts,
+                                   check_img_size, one_cycle, colorstr, labels_to_class_weights)
+from .yolov5.utils.plots import plot_labels
+from .yolov5.utils.loss import ComputeLoss
+from .yolov5.utils.torch_utils import torch_distributed_zero_first, ModelEMA, de_parallel, EarlyStopping
 
 def train_prep(hyp, opt, device, callbacks):
     save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze, = \
         Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
         opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
+
+    # # Directories
+    # w = save_dir / 'weights'  # weights dir
+    # (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  # make dir
+    # last, best = w / 'last.pt', w / 'best.pt'
+
+    # # Hyperparameters
+    # if isinstance(hyp, str):
+    #     with open(hyp, errors='ignore') as f:
+    #         hyp = yaml.safe_load(f)  # load hyps dict
+    # LOGGER.info(colorstr('hyperparameters: ') + ', '.join(f'{k}={v}' for k, v in hyp.items()))
+
+    # # Save run settings
+    # if not evolve:
+    #     with open(save_dir / 'hyp.yaml', 'w') as f:
+    #         yaml.safe_dump(hyp, f, sort_keys=False)
+    #     with open(save_dir / 'opt.yaml', 'w') as f:
+    #         yaml.safe_dump(vars(opt), f, sort_keys=False)
+
+    # # Loggers
+    data_dict = None
+    # if RANK in [-1, 0]:
+    #     loggers = Loggers(save_dir, weights, opt, hyp, LOGGER)  # loggers instance
+    #     if loggers.wandb:
+    #         data_dict = loggers.wandb.data_dict
+    #         if resume:
+    #             weights, epochs, hyp = opt.weights, opt.epochs, opt.hyp
+
+    #     # Register actions
+    #     for k in methods(loggers):
+    #         callbacks.register_action(k, callback=getattr(loggers, k))
+
     # Config
     plots = not evolve  # create plots
     cuda = device.type != 'cpu'
@@ -17,7 +68,20 @@ def train_prep(hyp, opt, device, callbacks):
     is_coco = isinstance(val_path, str) and val_path.endswith('coco/val2017.txt')  # COCO dataset
     
     # Model
-    model = get_model()
+    check_suffix(weights, '.pt')  # check weights
+    pretrained = weights.endswith('.pt')
+    if pretrained:
+        with torch_distributed_zero_first(LOCAL_RANK):
+            weights = attempt_download(weights)  # download if not found locally
+        ckpt = torch.load(weights, map_location=device)  # load checkpoint
+        model = Model(cfg or ckpt['model'].yaml, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
+        exclude = ['anchor'] if (cfg or hyp.get('anchors')) and not resume else []  # exclude keys
+        csd = ckpt['model'].float().state_dict()  # checkpoint state_dict as FP32
+        csd = intersect_dicts(csd, model.state_dict(), exclude=exclude)  # intersect
+        model.load_state_dict(csd, strict=False)  # load
+        # LOGGER.info(f'Transferred {len(csd)}/{len(model.state_dict())} items from {weights}')  # report
+    else:
+        model = Model(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
     
     # Freeze
     freeze = [f'model.{x}.' for x in range(freeze)]  # layers to freeze
@@ -68,16 +132,39 @@ def train_prep(hyp, opt, device, callbacks):
     # EMA
     ema = ModelEMA(model) if RANK in [-1, 0] else None
 
+    # Resume
+    start_epoch, best_fitness = 0, 0.0
+    if pretrained:
+        # Optimizer
+        if ckpt['optimizer'] is not None:
+            optimizer.load_state_dict(ckpt['optimizer'])
+            best_fitness = ckpt['best_fitness']
+
+        # EMA
+        if ema and ckpt.get('ema'):
+            ema.ema.load_state_dict(ckpt['ema'].float().state_dict())
+            ema.updates = ckpt['updates']
+
+        # Epochs
+        start_epoch = ckpt['epoch'] + 1
+        if resume:
+            assert start_epoch > 0, f'{weights} training to {epochs} epochs is finished, nothing to resume.'
+        if epochs < start_epoch:
+            # LOGGER.info(f"{weights} has been trained for {ckpt['epoch']} epochs. Fine-tuning for {epochs} more epochs.")
+            epochs += ckpt['epoch']  # finetune additional epochs
+
+        del ckpt, csd
+
     # DP mode
     if cuda and RANK == -1 and torch.cuda.device_count() > 1:
-        LOGGER.warning('WARNING: DP not recommended, use torch.distributed.run for best DDP Multi-GPU results.\n'
-                        'See Multi-GPU Tutorial at https://github.com/ultralytics/yolov5/issues/475 to get started.')
+        # LOGGER.warning('WARNING: DP not recommended, use torch.distributed.run for best DDP Multi-GPU results.\n'
+        #                 'See Multi-GPU Tutorial at https://github.com/ultralytics/yolov5/issues/475 to get started.')
         model = torch.nn.DataParallel(model)
 
     # SyncBatchNorm
     if opt.sync_bn and cuda and RANK != -1:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(device)
-        LOGGER.info('Using SyncBatchNorm()')
+        # LOGGER.info('Using SyncBatchNorm()')
 
     # Trainloader
     train_loader, dataset = create_dataloader(train_path, imgsz, batch_size // WORLD_SIZE, gs, single_cls,
