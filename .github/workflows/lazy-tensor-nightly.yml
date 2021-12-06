@@ -26,11 +26,11 @@ jobs:
       - name: Create Conda env
         run: |
           pushd benchmark
-          bash .github/scripts/lazy-tensor-benchmark/create-nightly-env.sh
+          bash .github/scripts/lazy-tensor-benchmark/create-env.sh
       - name: Run benchmark
         run: |
           echo "Running the lazy tensor benchmark"
       - name: Clean up environment
         run: |
           pushd benchmark
-          bash .github/scripts/lazy-tensor-benchmark/remove-nightly-env.sh
+          bash .github/scripts/lazy-tensor-benchmark/remove-env.sh
