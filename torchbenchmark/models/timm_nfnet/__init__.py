@@ -68,9 +68,10 @@ class Model(BenchmarkModel):
         # jit the model if required
         self.model, self.eval_model = jit_if_needed(model, eval_model, jit=jit)
         
-        # prefetch the loader
-        self.loader_train = prefetch_loader(self.loader_train, device)
-        self.loader_validate = prefetch_loader(self.loader_validate, device)
+        # Disable train data load as there is not enough GPU memory
+        # TODO: enable with larger GPU
+        # self.loader_train = prefetch_loader(self.loader_train, device)
+        # self.loader_validate = prefetch_loader(self.loader_validate, device)
         self.loader_eval = prefetch_loader(self.loader_eval, device)
 
     def get_module(self):
