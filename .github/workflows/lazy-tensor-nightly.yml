@@ -16,10 +16,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: main
+          path: benchmark
       - name: Check out PyTorch
         uses: actions/checkout@v2
         with:
+          repository: pytorch/pytorch
           ref: lazy_tensor_staging
+          path: pytorch
       - name: Create Conda env
         run: |
           bash .github/scripts/lazy-tensor-benchmark/create-nightly-env.sh
