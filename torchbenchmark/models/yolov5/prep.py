@@ -260,11 +260,10 @@ def train_prep(hyp, opt, device, callbacks):
 
 def eval_prep(args):
     source = args.source
-    nosave = args.nosave
     half = args.half
 
     source = str(source)
-    save_img = not nosave and not source.endswith('.txt')  # save inference images
+    # save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
     is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
     webcam = source.isnumeric() or source.endswith('.txt') or (is_url and not is_file)
@@ -293,7 +292,7 @@ def eval_prep(args):
         dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt)
         bs = len(dataset)  # batch_size
     else:
-        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
+        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, limit=(args.eval_batch_num*args.eval_bs))
         bs = 1  # batch_size
     vid_path, vid_writer = [None] * bs, [None] * bs
 

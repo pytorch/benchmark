@@ -36,6 +36,9 @@ RANK = int(os.getenv('RANK', -1))
 WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
 TRAIN_BATCH_NUM = 1
 EVAL_BATCH_NUM = 1
+CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
+DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-minimal")
+assert os.path.exists(DATA_DIR), "Couldn't find coco2017 minimal data dir, please run install.py again."
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
@@ -47,7 +50,10 @@ class Model(BenchmarkModel):
         train_opt.train_batch_num = TRAIN_BATCH_NUM
         train_opt.evolve = None
         eval_opt = parse_opt_eval()
+        # load eval_batch_num * eval_bs images
+        eval_opt.source = os.path.join(DATA_DIR, "coco", "val2017")
         eval_opt.eval_batch_num = EVAL_BATCH_NUM
+        eval_opt.eval_bs = eval_bs
 
         # setup DDP mode
         self.device = device
