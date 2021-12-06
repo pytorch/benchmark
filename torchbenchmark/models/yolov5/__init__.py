@@ -28,7 +28,6 @@ from torchbenchmark.tasks import COMPUTER_VISION
 
 from .args import parse_opt_train, parse_opt_eval
 from .prep import train_prep, eval_prep
-from .model import get_model
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
