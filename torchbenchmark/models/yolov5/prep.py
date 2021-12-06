@@ -262,3 +262,5 @@ def eval_prep(args):
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
         bs = 1  # batch_size
     vid_path, vid_writer = [None] * bs, [None] * bs
+
+    return dataset, webcam

@@ -9,8 +9,6 @@ import numpy as np
 import torch.nn as nn
 import torch.distributed as dist
 
-from torchbenchmark.models.yolov5.prep import train_prep
-
 from .yolov5 import val  # for end-of-epoch mAP
 from .yolov5.models.yolo import Model
 from .yolov5.utils.metrics import fitness
@@ -29,6 +27,7 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
 from .args import parse_opt_train, parse_opt_eval
+from .prep import train_prep, eval_prep
 from .model import get_model
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
@@ -61,6 +60,7 @@ class Model(BenchmarkModel):
 
     def eval_prep(self, eval_opt):
         self.eval_opt = eval_opt
+        self.eval_dataset, self.eval_webcam = eval_prep(self.eval_opt)
 
     def train_prep(self, hyp, opt, callbacks):
         hyp, opt = train_prep(hyp, opt, self.device, callbacks)
@@ -244,7 +244,6 @@ class Model(BenchmarkModel):
     @torch.no_grad()
     def eval(self, niter=1):
         device = self.device
-        # save_dir = self.save_dir
         dataset = self.eval_dataset
         webcam = self.eval_webcam
         half = self.eval_opt.half
