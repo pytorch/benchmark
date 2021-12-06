@@ -57,7 +57,7 @@ def run(data,
         dnn=False,  # use OpenCV DNN for ONNX inference
         model=None,
         dataloader=None,
-        save_dir=Path(''),
+        # save_dir=Path(''),
         plots=True,
         callbacks=Callbacks(),
         compute_loss=None,
@@ -193,7 +193,7 @@ def run(data,
     # Compute metrics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
-        tp, fp, p, r, f1, ap, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
+        tp, fp, p, r, f1, ap, ap_class = ap_per_class(*stats, plot=plots, save_dir=None, names=names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
         mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
         nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
@@ -216,9 +216,9 @@ def run(data,
         # LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {shape}' % t)
 
     # Plots
-    if plots:
-        confusion_matrix.plot(save_dir=save_dir, names=list(names.values()))
-        callbacks.run('on_val_end')
+    # if plots:
+    #     confusion_matrix.plot(save_dir=save_dir, names=list(names.values()))
+    #     callbacks.run('on_val_end')
 
     # # Save JSON
     # if save_json and len(jdict):
@@ -248,9 +248,9 @@ def run(data,
 
     # Return results
     model.float()  # for training
-    if not training:
-        s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-        # LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
+    # if not training:
+    #     s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
+    #     # LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
     maps = np.zeros(nc) + map
     for i, c in enumerate(ap_class):
         maps[c] = ap[i]

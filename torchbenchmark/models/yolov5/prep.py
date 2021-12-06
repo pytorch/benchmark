@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 import torch
 import torch.nn as nn
 from torch.optim import SGD, Adam, lr_scheduler
@@ -223,6 +224,39 @@ def train_prep(hyp, opt, device, callbacks):
     scaler = amp.GradScaler(enabled=cuda)
     stopper = EarlyStopping(patience=opt.patience)
     compute_loss = ComputeLoss(model)  # init loss class
+
+    train_args = SimpleNamespace()
+    train_args.hyp = hyp
+    train_args.opt = opt
+    train_args.scaler = scaler
+    train_args.optimizer = optimizer
+    train_args.dataset = dataset
+    train_args.model = model
+    train_args.nb = nb
+    train_args.nbs = nbs
+    train_args.maps = maps
+    train_args.nc = nc
+    train_args.lf = lf
+    train_args.gs = gs
+    train_args.amp = amp
+    train_args.train_loader = train_loader
+    train_args.start_epoch = start_epoch
+    train_args.device = device
+    train_args.ema = ema
+    train_args.cuda = cuda
+    train_args.compute_loss = compute_loss
+    train_args.batch_size = batch_size
+    train_args.scheduler = scheduler
+    train_args.imgsz = imgsz
+    train_args.noval = opt.noval
+    train_args.epochs = epochs
+    train_args.stopper = stopper
+    train_args.data_dict = data_dict
+    train_args.single_cls = single_cls
+    train_args.val_loader = val_loader
+    train_args.callbacks = callbacks
+    train_args.best_fitness = best_fitness
+    return train_args
 
 def eval_prep(args):
     source = args.source
