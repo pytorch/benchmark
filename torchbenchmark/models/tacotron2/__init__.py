@@ -123,6 +123,8 @@ class Model(BenchmarkModel):
         return hparams
 
     def get_module(self):
+        if self.device == 'cuda':
+            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         if self.device == 'cpu':
             raise NotImplementedError('CPU not supported')
         if self.jit:
@@ -130,6 +132,8 @@ class Model(BenchmarkModel):
         return self.train_model, (self.example_input,)
 
     def train(self, niterations=1):
+        if self.device == 'cuda':
+            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
         if self.jit:
@@ -144,6 +148,8 @@ class Model(BenchmarkModel):
             self.train_optimizer.step()
 
     def eval(self, niterations=1):
+        if self.device == 'cuda':
+            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         if self.device == 'cpu':
             raise NotImplementedError('CPU not supported')
         if self.jit:
