@@ -5,19 +5,21 @@ from torch.optim import SGD, Adam, lr_scheduler
 
 import numpy as np
 from torch.cuda import amp
+import torch.backends.cudnn as cudnn
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from . import RANK, LOCAL_RANK, WORLD_SIZE
 from .yolov5.models.yolo import Model
+from .yolov5.models.common import DetectMultiBackend
 from .yolov5.utils.downloads import attempt_download
 from .yolov5.utils.autoanchor import check_anchors
 from .yolov5.utils.autobatch import check_train_batch_size
-from .yolov5.utils.datasets import create_dataloader
-from .yolov5.utils.general import (init_seeds, check_dataset, check_suffix, intersect_dicts,
-                                   check_img_size, one_cycle, colorstr, labels_to_class_weights)
+from .yolov5.utils.datasets import create_dataloader, IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams
+from .yolov5.utils.general import (init_seeds, check_file, check_dataset, check_suffix, intersect_dicts,
+                                   increment_path, check_imshow, check_img_size, one_cycle, colorstr, labels_to_class_weights)
 from .yolov5.utils.plots import plot_labels
 from .yolov5.utils.loss import ComputeLoss
-from .yolov5.utils.torch_utils import torch_distributed_zero_first, ModelEMA, de_parallel, EarlyStopping
+from .yolov5.utils.torch_utils import select_device, torch_distributed_zero_first, ModelEMA, de_parallel, EarlyStopping
 
 def train_prep(hyp, opt, device, callbacks):
     save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze, = \
@@ -223,6 +225,10 @@ def train_prep(hyp, opt, device, callbacks):
     compute_loss = ComputeLoss(model)  # init loss class
 
 def eval_prep(args):
+    source = args.source
+    nosave = args.nosave
+    half = args.half
+
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -232,14 +238,14 @@ def eval_prep(args):
         source = check_file(source)  # download
 
     # Directories
-    save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
-    (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+    # save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
+    # (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Load model
-    device = select_device(device)
-    model = DetectMultiBackend(weights, device=device, dnn=dnn)
+    device = select_device(args.device)
+    model = DetectMultiBackend(args.weights, device=device, dnn=args.dnn)
     stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
-    imgsz = check_img_size(imgsz, s=stride)  # check image size
+    imgsz = check_img_size(args.imgsz, s=stride)  # check image size
 
     # Half
     half &= (pt or jit or engine) and device.type != 'cpu'  # half precision only supported by PyTorch on CUDA

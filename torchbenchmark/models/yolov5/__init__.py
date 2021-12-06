@@ -14,7 +14,7 @@ from torchbenchmark.models.yolov5.prep import train_prep
 from .yolov5 import val  # for end-of-epoch mAP
 from .yolov5.models.yolo import Model
 from .yolov5.utils.metrics import fitness
-from .yolov5.utils.general import labels_to_image_weights
+from .yolov5.utils.general import labels_to_image_weights, increment_path, non_max_suppression, scale_coords
 
 random.seed(1337)
 torch.manual_seed(1337)
@@ -57,10 +57,10 @@ class Model(BenchmarkModel):
 
         # setup other members
         self.train_prep(train_opt.hyp, train_opt, callbacks=None)
-        self.eval_prep()
+        self.eval_prep(eval_opt)
 
-    def eval_prep(self):
-        pass
+    def eval_prep(self, eval_opt):
+        self.eval_opt = eval_opt
 
     def train_prep(self, hyp, opt, callbacks):
         hyp, opt = train_prep(hyp, opt, self.device, callbacks)
@@ -95,6 +95,13 @@ class Model(BenchmarkModel):
         lf = self.lf
         gs = self.gs
         noval = self.opt.noval
+        epochs = self.epochs
+        stopper = self.stopper
+        data_dict = self.data_dict
+        single_cls = self.single_cls
+        val_loader = self.val_loader
+        save_dir = self.save_dir
+        callbacks = self.callbacks
         best_fitness = self.best_fitness
 
         self.model.train()
@@ -234,7 +241,20 @@ class Model(BenchmarkModel):
         # end epoch ----------------------------------------------------------------------------------------------------
         # end training -----------------------------------------------------------------------------------------------------
 
+    @torch.no_grad()
     def eval(self, niter=1):
+        device = self.device
+        # save_dir = self.save_dir
+        dataset = self.eval_dataset
+        webcam = self.eval_webcam
+        half = self.eval_opt.half
+        augment = self.eval_opt.augment
+        max_det = self.eval_opt.max_det
+        conf_thres = self.eval_opt.conf_thres
+        iou_thres = self.eval_opt.iou_thres
+        classes = self.eval_opt.classes
+        agnostic_nms = self.eval_opt.agnostic_nms
+
         dt, seen = [0.0, 0.0, 0.0], 0
         for path, im, im0s, vid_cap, s in dataset:
             im = torch.from_numpy(im).to(device)
@@ -244,7 +264,8 @@ class Model(BenchmarkModel):
                 im = im[None]  # expand for batch dim
 
             # Inference
-            visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
+            # visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
+            visualize = False
             pred = model(im, augment=augment, visualize=visualize)
 
             # NMS
