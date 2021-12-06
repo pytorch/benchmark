@@ -37,6 +37,7 @@ class Model(BenchmarkModel):
         )
 
         if jit:
+            self.model = torch.jit.script(self.model)
             self.eval_model = torch.jit.script(self.eval_model)
             assert isinstance(self.eval_model, torch.jit.ScriptModule)
             # self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
@@ -77,7 +78,7 @@ class Model(BenchmarkModel):
 
     # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1):
-        self.model.eval()
+        self.eval_model.eval()
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()

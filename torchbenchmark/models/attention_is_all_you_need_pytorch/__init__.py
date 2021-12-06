@@ -1,18 +1,18 @@
 from argparse import Namespace
 import math
 import time
+import os
 import dill as pickle
 from tqdm import tqdm
 
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-try:
-    from torchtext.legacy.data import Field, Dataset, BucketIterator
-    from torchtext.legacy.datasets.translation import TranslationDataset
-except ImportError:
-    from torchtext.data import Field, Dataset, BucketIterator
-    from torchtext.datasets import TranslationDataset
+
+from torchbenchmark.util.torchtext_legacy.field import Field
+from torchbenchmark.util.torchtext_legacy.data import Dataset
+from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
+from torchbenchmark.util.torchtext_legacy.translation import TranslationDataset
 
 from .transformer import Constants
 from .transformer.Models import Transformer
@@ -27,7 +27,7 @@ from torchbenchmark.tasks import NLP
 torch.manual_seed(1337)
 random.seed(1337)
 np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
@@ -53,13 +53,24 @@ class Model(BenchmarkModel):
         
         return transformer
 
-    def __init__(self, device=None, jit=False):
+    def _preprocess(self, data_iter):
+        preloaded_data = []
+        for d in data_iter:
+            src_seq = patch_src(d.src, self.opt.src_pad_idx).to(self.device)
+            trg_seq, gold = map(lambda x: x.to(self.device), patch_trg(d.trg, self.opt.trg_pad_idx))
+            preloaded_data.append((src_seq, trg_seq, gold))
+        return preloaded_data
+
+    # Original batch size 256, hardware platform unknown
+    # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
+    def __init__(self, device=None, jit=False, train_bs=256, eval_bs=32):
         super().__init__()
         self.device = device
         self.jit = jit
-        root = str(Path(__file__).parent)
+        root = os.path.join(str(Path(__file__).parent), ".data")
         self.opt = Namespace(**{
-            'batch_size': 128,
+            'batch_size': train_bs,
+            'eval_batch_size': eval_bs,
             'd_inner_hid': 2048,
             'd_k': 64,
             'd_model': 512,
@@ -84,47 +95,48 @@ class Model(BenchmarkModel):
             'val_path': None,
         })
 
-        _, validation_data = prepare_dataloaders(self.opt, self.device)
+        train_data, test_data = prepare_dataloaders(self.opt, self.device)
 
         transformer = self._create_transformer()
         self.eval_model = self._create_transformer()
         self.eval_model.eval()
 
-        batch = list(validation_data)[0]
-        src_seq = patch_src(batch.src, self.opt.src_pad_idx).to(self.device)
-        trg_seq, self.gold = map(lambda x: x.to(self.device), patch_trg(batch.trg, self.opt.trg_pad_idx))
-        # We use validation_data for training as well so that it can finish fast enough.
-        self.example_inputs = (src_seq, trg_seq)
+        self.train_data_loader = self._preprocess(train_data)
+        self.eval_data_loader = self._preprocess(test_data)
+        src_seq, trg_seq, gold = self.train_data_loader[0]
+        example_inputs = (src_seq, trg_seq)
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                transformer = torch.jit._script_pdt(transformer, example_inputs = [self.example_inputs, ])
-                self.eval_model = torch.jit._script_pdt(self.eval_model, example_inputs = [self.example_inputs, ])
+                transformer = torch.jit._script_pdt(transformer, example_inputs = [example_inputs, ])
+                self.eval_model = torch.jit._script_pdt(self.eval_model, example_inputs = [example_inputs, ])
             else:
-                transformer = torch.jit.script(transformer, example_inputs = [self.example_inputs, ])
-                self.eval_model = torch.jit.script(self.eval_model, example_inputs = [self.example_inputs, ])
+                transformer = torch.jit.script(transformer, example_inputs = [example_inputs, ])
+                self.eval_model = torch.jit.script(self.eval_model, example_inputs = [example_inputs, ])
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
         self.module = transformer
+        self.optimizer = ScheduledOptim(
+            optim.Adam(self.module.parameters(), betas=(0.9, 0.98), eps=1e-09),
+            2.0, self.opt.d_model, self.opt.n_warmup_steps)
 
     def get_module(self):
-        return self.module, self.example_inputs
+        for (src_seq, trg_seq, gold) in self.train_data_loader:
+            return self.module, (*(src_seq, trg_seq), )
 
     def eval(self, niter=1):
         self.module.eval()
-        for _ in range(niter):
-            self.eval_model(*self.example_inputs)
+        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.eval_data_loader):
+            self.eval_model(*(src_seq, trg_seq))
 
     def train(self, niter=1):
-        optimizer = ScheduledOptim(
-            optim.Adam(self.module.parameters(), betas=(0.9, 0.98), eps=1e-09),
-            2.0, self.opt.d_model, self.opt.n_warmup_steps)
-        for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.module(*self.example_inputs)
-
+        self.module.train()
+        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.train_data_loader):
+            self.optimizer.zero_grad()
+            example_inputs = (src_seq, trg_seq)
+            pred = self.module(*example_inputs)
             loss, n_correct, n_word = cal_performance(
-                pred, self.gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
+                pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
-            optimizer.step_and_update_lr()
+            self.optimizer.step_and_update_lr()
 
 
 if __name__ == '__main__':

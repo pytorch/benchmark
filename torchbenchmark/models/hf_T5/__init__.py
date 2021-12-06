@@ -11,6 +11,15 @@ from torchbenchmark.tasks import NLP
 from transformers import *
 from datasets import load_dataset
 
+
+class ArgsToKwargsWrapper(torch.nn.Module):
+    def __init__(self, model):
+        super(ArgsToKwargsWrapper, self).__init__()
+        self.model = model
+
+    def forward(self, input_ids, decoder_input_ids):
+        return self.model(input_ids=input_ids, decoder_input_ids=decoder_input_ids)
+
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
@@ -35,7 +44,8 @@ class Model(BenchmarkModel):
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        return self.model, self.eval_inputs
+        return ArgsToKwargsWrapper(self.model), (
+            self.eval_inputs["input_ids"], self.eval_inputs["decoder_input_ids"])
 
     def train(self, niter=3):
         if self.jit:

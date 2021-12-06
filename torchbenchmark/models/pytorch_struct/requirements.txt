@@ -2,3 +2,5 @@ torch
 torchtext
 dgl
 wandb
+pytorch-transformers
+git+https://github.com/harvardnlp/pytorch-struct@f4e374e

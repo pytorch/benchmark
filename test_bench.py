@@ -60,7 +60,7 @@ class TestBenchNetwork:
             benchmark.extra_info['machine_state'] = get_machine_state()
 
         except NotImplementedError:
-            print('Method eval is not implemented, skipping...')
+            print(f'Method train on {device} is not implemented, skipping...')
 
     def test_eval(self, model_path, device, compiler, benchmark, pytestconfig):
         try:
@@ -78,7 +78,7 @@ class TestBenchNetwork:
                     task.check_opt_vs_noopt_jit()
 
         except NotImplementedError:
-            print('Method eval is not implemented, skipping...')
+            print(f'Method eval on {device} is not implemented, skipping...')
 
 
 @pytest.mark.benchmark(

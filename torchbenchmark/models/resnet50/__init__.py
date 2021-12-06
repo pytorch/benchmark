@@ -21,6 +21,7 @@ import lazy_tensor_core.core.lazy_model as ltm
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
+
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
@@ -71,7 +72,6 @@ class Model(BenchmarkModel):
             model(example_inputs)
             if self.device == 'lazy':
                 ltm.mark_step()
-
 
 if __name__ == "__main__":
     m = Model(device="cuda", jit=True)

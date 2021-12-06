@@ -35,7 +35,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        return self.model, self.eval_inputs
+        return self.model, (self.eval_inputs["input_ids"], )
 
     def train(self, niter=3):
         if self.jit:
@@ -56,7 +56,6 @@ class Model(BenchmarkModel):
                 out = self.model(**self.eval_inputs)
         # return the output tensor
         return out.to_tuple()[0]
-
 
 if __name__ == "__main__":
     import time
