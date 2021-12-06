@@ -263,4 +263,4 @@ def eval_prep(args):
         bs = 1  # batch_size
     vid_path, vid_writer = [None] * bs, [None] * bs
 
-    return dataset, webcam
+    return dataset, webcam, model

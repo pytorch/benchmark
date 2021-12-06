@@ -59,11 +59,10 @@ class Model(BenchmarkModel):
 
     def eval_prep(self, eval_opt):
         self.eval_opt = eval_opt
-        self.eval_dataset, self.eval_webcam = eval_prep(self.eval_opt)
+        self.eval_dataset, self.eval_webcam, self.eval_model = eval_prep(self.eval_opt)
 
     def train_prep(self, hyp, opt, callbacks):
         hyp, opt = train_prep(hyp, opt, self.device, callbacks)
-
         # set instance members
         self.hyp = hyp
         self.opt = opt
@@ -77,6 +76,7 @@ class Model(BenchmarkModel):
         scaler = self.scaler
         optimizer = self.optimizer
         dataset = self.dataset
+        model = self.model
         nb = self.nb
         nbs = self.nbs
         maps = self.maps
@@ -242,9 +242,12 @@ class Model(BenchmarkModel):
 
     @torch.no_grad()
     def eval(self, niter=1):
+        if self.jit:
+            return NotImplementedError("JIT is not supported by this model")
         device = self.device
         dataset = self.eval_dataset
         webcam = self.eval_webcam
+        model = self.eval_model
         half = self.eval_opt.half
         augment = self.eval_opt.augment
         max_det = self.eval_opt.max_det
