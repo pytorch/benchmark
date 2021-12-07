@@ -45,7 +45,6 @@ echo "Running check_lazy.py"
 #             --benchmark-min-rounds "${NUM_ROUNDS}" \
 #             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
 # done
-taskset -c "${CORE_LIST}" python check_lazy.py
-    --output_file ${DATA_DIR}/sweep.out
+taskset -c "${CORE_LIST}" python check_lazy.py --output_file ${DATA_DIR}/sweep.out
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
