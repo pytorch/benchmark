@@ -1,1 +1,2 @@
 coco2017-minimal.tar.gz filter=lfs diff=lfs merge=lfs -text
+coco128.tar.gz filter=lfs diff=lfs merge=lfs -text
