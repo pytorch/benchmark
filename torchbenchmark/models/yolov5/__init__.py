@@ -104,9 +104,29 @@ class Model(BenchmarkModel):
         self.train_args = train_prep(hyp, opt, opt.device, callbacks)
 
     def get_module(self):
-        pass
+        device = self.device
+        dataset = self.eval_dataset
+        model = self.eval_model
+        half = self.eval_opt.half
+        augment = self.eval_opt.augment
+        dataset_iter = zip(range(self.eval_opt.eval_batch_num), dataset)
+        for _bactch_num, (path, im, im0s, vid_cap, s) in dataset_iter:
+            im = torch.from_numpy(im).to(device)
+            im = im.half() if half else im.float()  # uint8 to fp16/32
+            im /= 255  # 0 - 255 to 0.0 - 1.0
+            if len(im.shape) == 3:
+                im = im[None]  # expand for batch dim
+
+            # Inference
+            # visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
+            visualize = False
+            return model, (im, augment, visualize)
 
     def train(self, niter=1):
+        if self.device == "cpu":
+            raise NotImplementedError("Disable CPU test because it takes too long.")
+        if self.jit:
+            raise NotImplementedError("Disable JIT test because it is not supported.")
         hyp = self.train_args.hyp
         opt = self.train_args.opt
         scaler = self.train_args.scaler
