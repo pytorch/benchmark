@@ -55,7 +55,10 @@ with add_path(os.path.join(CURRENT_DIR, "yolov5")):
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
 
-    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=16):
+    # Original batch size: 16
+    # Used in 
+    # Max eval bs: 128 (the coco128 dataset has 128 images)
+    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=128):
         self.device = device
         self.jit = jit
         train_opt = parse_opt_train()

@@ -99,9 +99,10 @@ def train_prep(hyp, opt, device, callbacks):
     gs = max(int(model.stride.max()), 32)  # grid size (max stride)
     imgsz = check_img_size(opt.imgsz, gs, floor=gs * 2)  # verify imgsz is gs-multiple
 
-        # Batch size
+    # Batch size
     if RANK == -1 and batch_size == -1:  # single-GPU only, estimate best batch size
         batch_size = check_train_batch_size(model, imgsz)
+    print(f"Optimal train batch size: {batch_size}")
 
     # Optimizer
     nbs = 64  # nominal batch size
