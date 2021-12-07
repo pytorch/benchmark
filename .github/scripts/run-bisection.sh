@@ -46,4 +46,3 @@ python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
        --config ${BISECT_BASE}/config.yaml \
        --output ${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json \
-       --build_lazy true
