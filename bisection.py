@@ -216,7 +216,7 @@ class TorchSource:
             lazy_tensor_path = os.path.join(self.srcpath, "lazy_tensor_core")
             command = "./scripts/apply_patches.sh"
             subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
-            command = "python setup.py install"
+            command = "DEBUG=1 USE_CUDA=1 USE_XNNPACK=0 python setup.py install"
             subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
             print("done")
 
@@ -237,7 +237,7 @@ class TorchSource:
         version_py_path = os.path.join(self.srcpath, "torch/version.py")
         if os.path.exists(version_py_path):
             os.remove(version_py_path)
-        command = "python setup.py install"
+        command = "DEBUG=1 USE_CUDA=1 USE_XNNPACK=0 python setup.py install"
         subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
         # build pytorch lazy tensor if needed
