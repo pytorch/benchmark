@@ -64,6 +64,8 @@ def train_prep(hyp, opt, device, callbacks):
     init_seeds(1 + RANK)
     with torch_distributed_zero_first(LOCAL_RANK):
         data_dict = data_dict or check_dataset(data)  # check if None
+    data_dict['train'] = opt.train_path
+    data_dict['val'] = opt.val_path
     train_path, val_path = data_dict['train'], data_dict['val']
     nc = 1 if single_cls else int(data_dict['nc'])  # number of classes
     names = ['item'] if single_cls and len(data_dict['names']) != 1 else data_dict['names']  # class names
@@ -276,7 +278,9 @@ def eval_prep(args):
 
     # Load model
     device = select_device(args.device)
-    model = DetectMultiBackend(args.weights, device=device, dnn=args.dnn)
+    # model = DetectMultiBackend(args.weights, device=device, dnn=args.dnn)
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')  # or yolov5m, yolov5l, yolov5x, custom
+    model = model.to(device)
     stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
     imgsz = check_img_size(args.imgsz, s=stride)  # check image size
 
