@@ -68,7 +68,7 @@ class Model(BenchmarkModel):
         if device == "cuda":
             train_opt.device = "0"
         train_opt.epochs = 1 # run only 1 epoch
-        train_opt.cfg = os.path.join(CURRENT_DIR, "yolov5", "models", "yolov5s.yaml")
+        train_opt.cfg = os.path.join(CURRENT_DIR, "yolov5", "models", "yolov5l.yaml")
         train_opt.weights = ''
         train_opt.train_batch_num = TRAIN_BATCH_NUM
         train_opt.batch_size = train_bs
