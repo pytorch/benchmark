@@ -354,6 +354,8 @@ class TorchBench:
         # Build pytorch and its dependencies
         self.torch_src.build(commit)
         # Run benchmark
+        command = "python install.py"
+        subprocess.check_call(command, cwd=self.srcpath, shell=True)
         result_dir = self.run_benchmark(commit, targets)
         commit.digest = self.gen_digest(result_dir, targets)
         self.torch_src.cleanup(commit)
