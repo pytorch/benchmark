@@ -172,8 +172,8 @@ class LoadImages:
         else:
             raise Exception(f'ERROR: {p} does not exist')
 
-        images = [x for x in files if x.split('.')[-1].lower() in IMG_FORMATS]
-        videos = [x for x in files if x.split('.')[-1].lower() in VID_FORMATS]
+        images = [x for x in files if x.split('.')[-1].lower() in IMG_FORMATS][:limit]
+        videos = [x for x in files if x.split('.')[-1].lower() in VID_FORMATS][:limit]
         ni, nv = len(images), len(videos)
 
         self.img_size = img_size
