@@ -553,7 +553,7 @@ if __name__ == "__main__":
                                     targets=targets,
                                     output_json=args.output,
                                     devbig=args.devbig,
-                                    build_lazy=True,
+                                    build_lazy=args.build_lazy,
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
