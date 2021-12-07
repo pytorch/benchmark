@@ -62,6 +62,8 @@ class Model(BenchmarkModel):
         # This benchmark does not support evolving hyperparameters
         train_opt.hyp = str(train_opt.hyp)
         train_opt.device = device
+        if device == "cuda":
+            train_opt.device = "0"
         train_opt.epochs = 1 # run only 1 epoch
         train_opt.cfg = os.path.join(CURRENT_DIR, "yolov5", "models", "yolov5s.yaml")
         train_opt.weights = ''
