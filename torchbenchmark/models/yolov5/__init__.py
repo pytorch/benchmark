@@ -55,7 +55,7 @@ with add_path(os.path.join(CURRENT_DIR, "yolov5")):
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
 
-    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=1):
+    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=16):
         self.device = device
         self.jit = jit
         train_opt = parse_opt_train()
@@ -68,11 +68,11 @@ class Model(BenchmarkModel):
         train_opt.cfg = os.path.join(CURRENT_DIR, "yolov5", "models", "yolov5s.yaml")
         train_opt.weights = ''
         train_opt.train_batch_num = TRAIN_BATCH_NUM
+        train_opt.batch_size = train_bs
         train_opt.evolve = None
         eval_opt = parse_opt_eval()
         # load eval_batch_num * eval_bs images
         eval_opt.device = device
-        eval_opt.weights = os.path.join(CURRENT_DIR, "yolov5s.pt")
         eval_opt.source = os.path.join(DATA_DIR, "images", "train2017")
         eval_opt.eval_batch_num = EVAL_BATCH_NUM
         eval_opt.eval_bs = eval_bs
