@@ -278,10 +278,14 @@ def eval_prep(args):
 
     # Load model
     device = select_device(args.device)
-    model = DetectMultiBackend(args.weights, device=device, dnn=args.dnn)
-    stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
+    # model = DetectMultiBackend(args.weights, device=device, dnn=args.dnn)
+    # stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
     model = Model(cfg).to(device)  # create
+    # Arguments read from yolov5s.pt
     stride = 32
+    pt = True
+    jit = False
+    engine = False
     imgsz = check_img_size(args.imgsz, s=stride)  # check image size
 
     # Half
