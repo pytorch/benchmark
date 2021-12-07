@@ -1,5 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
+from matplotlib.pyplot import isinteractive
+from numpy.lib.arraysetops import isin
 import torch
 import torch.nn as nn
 from torch.optim import SGD, Adam, lr_scheduler
@@ -9,6 +11,7 @@ import yaml
 from torch.cuda import amp
 import torch.backends.cudnn as cudnn
 from torch.nn.parallel import DistributedDataParallel as DDP
+from collections import Sequence
 
 from .rank import RANK, LOCAL_RANK, WORLD_SIZE
 from .yolov5.models.yolo import Model
@@ -22,6 +25,17 @@ from .yolov5.utils.general import (init_seeds, check_file, check_dataset, check_
 from .yolov5.utils.plots import plot_labels
 from .yolov5.utils.loss import ComputeLoss
 from .yolov5.utils.torch_utils import select_device, torch_distributed_zero_first, ModelEMA, de_parallel, EarlyStopping
+
+def _prefetch_loader(loader, size, fields=[], collate_fn=lambda x: x):
+    result = []
+    for index, item in enumerate(loader):
+        litem = list(item)
+        for f in fields:
+            litem[f] = collate_fn(litem[f])
+        result.append(tuple(litem))
+        if index == size:
+            break
+    return result
 
 def train_prep(hyp, opt, device, callbacks):
     epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze, = \
@@ -177,6 +191,10 @@ def train_prep(hyp, opt, device, callbacks):
                                                 hyp=hyp, augment=True, cache=opt.cache, rect=opt.rect, rank=LOCAL_RANK,
                                                 workers=workers, image_weights=opt.image_weights, quad=opt.quad,
                                                 prefix=colorstr('train: '), shuffle=True)
+    if opt.prefetch:
+        train_loader = _prefetch_loader(train_loader, size=opt.train_batch_num*batch_size//WORLD_SIZE,
+                                        fields=[0, 1], # imgs and targets
+                                        collate_fn=lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
     mlc = int(np.concatenate(dataset.labels, 0)[:, 0].max())  # max label class
     nb = len(train_loader)  # number of batches
     assert mlc < nc, f'Label class {mlc} exceeds nc={nc} in {data}. Possible class labels are 0-{nc - 1}'
@@ -187,6 +205,10 @@ def train_prep(hyp, opt, device, callbacks):
                                         hyp=hyp, cache=None if noval else opt.cache, rect=True, rank=-1,
                                         workers=workers, pad=0.5,
                                         prefix=colorstr('val: '))[0]
+        if opt.prefetch:
+            val_loader = _prefetch_loader(val_loader, size=opt.train_batch_num*batch_size//WORLD_SIZE * 2,
+                                          fields=[0, 1], # imgs and targets
+                                          collate_fn=lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
 
         if not resume:
             labels = np.concatenate(dataset.labels, 0)
@@ -305,5 +327,8 @@ def eval_prep(args):
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, limit=(args.eval_batch_num*args.eval_bs))
         bs = 1  # batch_size
     vid_path, vid_writer = [None] * bs, [None] * bs
-
+    if args.prefetch:
+        dataset = _prefetch_loader(dataset, size=args.eval_batch_num*args.eval_bs,
+                                   fields=[1],
+                                   collate_fn=lambda x: torch.from_numpy(x).to(device) if isinstance(x, np.ndarray) else x)
     return dataset, webcam, model

@@ -58,7 +58,7 @@ class Model(BenchmarkModel):
     # Original batch size: 16
     # Used in https://github.com/ultralytics/yolov5/blob/554f782537b9af336c02c013468b78fe16ce092d/train.py#L448
     # Max eval bs: 128 (the coco128 dataset has 128 images)
-    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=128):
+    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=128, prefetch=True):
         self.device = device
         self.jit = jit
         train_opt = parse_opt_train()
@@ -73,6 +73,7 @@ class Model(BenchmarkModel):
         train_opt.train_batch_num = TRAIN_BATCH_NUM
         train_opt.batch_size = train_bs
         train_opt.evolve = None
+        train_opt.prefetch = prefetch
         eval_opt = parse_opt_eval()
         # load eval_batch_num * eval_bs images
         eval_opt.device = device
@@ -80,6 +81,7 @@ class Model(BenchmarkModel):
         eval_opt.eval_batch_num = EVAL_BATCH_NUM
         eval_opt.eval_bs = eval_bs
         eval_opt.cfg = train_opt.cfg
+        eval_opt.prefetch = prefetch
 
         # setup DDP mode
         train_opt.device = select_device(train_opt.device, batch_size=train_bs)
@@ -306,6 +308,7 @@ class Model(BenchmarkModel):
         model = self.eval_model
         half = self.eval_opt.half
         augment = self.eval_opt.augment
+        prefetch = self.eval_opt.prefetch
         max_det = self.eval_opt.max_det
         conf_thres = self.eval_opt.conf_thres
         iou_thres = self.eval_opt.iou_thres
@@ -315,7 +318,8 @@ class Model(BenchmarkModel):
         dt, seen = [0.0, 0.0, 0.0], 0
         dataset_iter = zip(range(self.eval_opt.eval_batch_num), dataset)
         for _bactch_num, (path, im, im0s, vid_cap, s) in dataset_iter:
-            im = torch.from_numpy(im).to(device)
+            if not prefetch:
+                im = torch.from_numpy(im).to(device)
             im = im.half() if half else im.float()  # uint8 to fp16/32
             im /= 255  # 0 - 255 to 0.0 - 1.0
             if len(im.shape) == 3:
