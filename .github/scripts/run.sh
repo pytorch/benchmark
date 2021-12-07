@@ -36,13 +36,16 @@ sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
-echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
+# echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
+echo "Running check_lazy.py"
 
 # Run the benchmark
-for c in $(seq 1 $NUM_ITER); do
-    taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
-            --benchmark-min-rounds "${NUM_ROUNDS}" \
-            --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
-done
+# for c in $(seq 1 $NUM_ITER); do
+#     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
+#             --benchmark-min-rounds "${NUM_ROUNDS}" \
+#             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
+# done
+taskset -c "${CORE_LIST}" python check_lazy.py
+    --output_file ${DATA_DIR}/sweep.out
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
