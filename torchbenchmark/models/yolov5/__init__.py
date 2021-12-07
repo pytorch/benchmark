@@ -56,7 +56,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
 
     # Original batch size: 16
-    # Used in 
+    # Used in https://github.com/ultralytics/yolov5/blob/554f782537b9af336c02c013468b78fe16ce092d/train.py#L448
     # Max eval bs: 128 (the coco128 dataset has 128 images)
     def __init__(self, device=None, jit=False, train_bs=16, eval_bs=128):
         self.device = device

@@ -102,6 +102,7 @@ def train_prep(hyp, opt, device, callbacks):
     # Batch size
     if RANK == -1 and batch_size == -1:  # single-GPU only, estimate best batch size
         batch_size = check_train_batch_size(model, imgsz)
+    # batch size is 16 for coco128 dataset
     print(f"Optimal train batch size: {batch_size}")
 
     # Optimizer
