@@ -2,19 +2,17 @@
 YoloV5 Model with DDP support.
 Does not support evolving hyperparameters
 """
-from subprocess import call
 import torch
 import random
 import numpy as np
 import torch.nn as nn
 import torch.distributed as dist
-from torch.optim import optimizer
-from torch.utils.data import dataset
 
-from .yolov5 import val  # for end-of-epoch mAP
-from .yolov5.models.yolo import Model
+from torchbenchmark.models.yolov5.yolov5.utils.callbacks import Callbacks
+
 from .yolov5.utils.metrics import fitness
-from .yolov5.utils.general import labels_to_image_weights, increment_path, non_max_suppression, scale_coords
+from .yolov5.utils.general import labels_to_image_weights, non_max_suppression, scale_coords
+from .yolov5.utils.torch_utils import select_device
 
 random.seed(1337)
 torch.manual_seed(1337)
@@ -23,53 +21,74 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
 import os
+import sys
 import math
 from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-from .args import parse_opt_train, parse_opt_eval
-from .prep import train_prep, eval_prep
-
-LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
-RANK = int(os.getenv('RANK', -1))
-WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
+from .rank import RANK, LOCAL_RANK, WORLD_SIZE
 TRAIN_BATCH_NUM = 1
 EVAL_BATCH_NUM = 1
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco128")
 assert os.path.exists(DATA_DIR), "Couldn't find coco128 data dir, please run install.py again."
 
+class add_path():
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
+
+with add_path(os.path.join(CURRENT_DIR, "yolov5")):
+    from . import val  # for end-of-epoch mAP
+    from .args import parse_opt_train, parse_opt_eval
+    from .prep import train_prep, eval_prep
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
 
     def __init__(self, device=None, jit=False, train_bs=1, eval_bs=1):
+        self.device = device
+        self.jit = jit
         train_opt = parse_opt_train()
         # This benchmark does not support evolving hyperparameters
-        train_opt.epochs = 1
+        train_opt.hyp = str(train_opt.hyp)
+        train_opt.device = device
+        train_opt.epochs = 1 # run only 1 epoch
         train_opt.cfg = os.path.join(CURRENT_DIR, "yolov5", "models", "yolov5s.yaml")
         train_opt.weights = ''
         train_opt.train_batch_num = TRAIN_BATCH_NUM
         train_opt.evolve = None
         eval_opt = parse_opt_eval()
         # load eval_batch_num * eval_bs images
+        eval_opt.device = device
+        eval_opt.weights = os.path.join(CURRENT_DIR, "yolov5s.pt")
         eval_opt.source = os.path.join(DATA_DIR, "images", "train2017")
         eval_opt.eval_batch_num = EVAL_BATCH_NUM
         eval_opt.eval_bs = eval_bs
+        eval_opt.cfg = train_opt.cfg
 
         # setup DDP mode
-        self.device = device
+        train_opt.device = select_device(train_opt.device, batch_size=train_bs)
         if LOCAL_RANK != -1:
             assert torch.cuda.device_count() > LOCAL_RANK, 'insufficient CUDA devices for DDP command'
             assert train_opt.batch_size % WORLD_SIZE == 0, '--batch-size must be multiple of CUDA device count'
             assert not train_opt.image_weights, '--image-weights argument is not compatible with DDP training'
             assert not train_opt.evolve, '--evolve argument is not compatible with DDP training'
             torch.cuda.set_device(LOCAL_RANK)
-            self.device = torch.device('cuda', LOCAL_RANK)
+            train_opt.device = torch.device('cuda', LOCAL_RANK)
             dist.init_process_group(backend="nccl" if dist.is_nccl_available() else "gloo")
 
         # setup other members
-        self.train_prep(train_opt.hyp, train_opt, callbacks=None)
+        self.train_prep(train_opt.hyp, train_opt, callbacks=Callbacks())
         self.eval_prep(eval_opt)
 
     def eval_prep(self, eval_opt):
@@ -77,7 +96,7 @@ class Model(BenchmarkModel):
         self.eval_dataset, self.eval_webcam, self.eval_model = eval_prep(self.eval_opt)
 
     def train_prep(self, hyp, opt, callbacks):
-        self.train_args = train_prep(hyp, opt, self.device, callbacks)
+        self.train_args = train_prep(hyp, opt, opt.device, callbacks)
 
     def get_module(self):
         pass
@@ -114,9 +133,9 @@ class Model(BenchmarkModel):
         callbacks = self.train_args.callbacks
         best_fitness = self.train_args.best_fitness
         train_batch_num = self.train_args.opt.train_batch_num
-
+        last_opt_step = -1
         for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
-            self.model.train()
+            model.train()
             nw = max(round(hyp['warmup_epochs'] * nb), 1000)  # number of warmup iterations, max(3 epochs, 1k iterations)
             # Update image weights (optional, single-GPU only)
             if opt.image_weights:
@@ -131,7 +150,7 @@ class Model(BenchmarkModel):
             mloss = torch.zeros(3, device=device)  # mean losses
             if RANK != -1:
                 train_loader.sampler.set_epoch(epoch)
-            pbar = zip(train_batch_num, train_loader)
+            pbar = zip(range(train_batch_num), train_loader)
             # LOGGER.info(('\n' + '%10s' * 7) % ('Epoch', 'gpu_mem', 'box', 'obj', 'cls', 'labels', 'img_size'))
             # if RANK in [-1, 0]:
             #     pbar = tqdm(pbar, total=nb, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
@@ -205,7 +224,6 @@ class Model(BenchmarkModel):
                                             model=ema.ema,
                                             single_cls=single_cls,
                                             dataloader=val_loader,
-                                            save_dir=None,
                                             plots=False,
                                             callbacks=callbacks,
                                             compute_loss=compute_loss)
@@ -270,7 +288,7 @@ class Model(BenchmarkModel):
         agnostic_nms = self.eval_opt.agnostic_nms
 
         dt, seen = [0.0, 0.0, 0.0], 0
-        dataset_iter = zip(self.eval_opt.eval_batch_num, dataset)
+        dataset_iter = zip(range(self.eval_opt.eval_batch_num), dataset)
         for _bactch_num, (path, im, im0s, vid_cap, s) in dataset_iter:
             im = torch.from_numpy(im).to(device)
             im = im.half() if half else im.float()  # uint8 to fp16/32
@@ -281,22 +299,4 @@ class Model(BenchmarkModel):
             # Inference
             # visualize = increment_path(save_dir / Path(path).stem, mkdir=True) if visualize else False
             visualize = False
-            pred = model(im, augment=augment, visualize=visualize)
-
-            # NMS
-            pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
-
-            # Second-stage classifier (optional)
-            # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-
-            # Process predictions
-            for i, det in enumerate(pred):  # per image
-                seen += 1
-                if webcam:  # batch_size >= 1
-                    _, im0, _ = path[i], im0s[i].copy(), dataset.count
-                else:
-                    _, im0, _ = path, im0s.copy(), getattr(dataset, 'frame', 0)
-                
-                if len(det):
-                    # Rescale boxes from img_size to im0 size
-                    det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
+            prediction = model(im, augment=augment, visualize=visualize)

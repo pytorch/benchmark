@@ -5,11 +5,12 @@ import torch.nn as nn
 from torch.optim import SGD, Adam, lr_scheduler
 
 import numpy as np
+import yaml
 from torch.cuda import amp
 import torch.backends.cudnn as cudnn
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from . import RANK, LOCAL_RANK, WORLD_SIZE
+from .rank import RANK, LOCAL_RANK, WORLD_SIZE
 from .yolov5.models.yolo import Model
 from .yolov5.models.common import DetectMultiBackend
 from .yolov5.utils.downloads import attempt_download
@@ -23,8 +24,8 @@ from .yolov5.utils.loss import ComputeLoss
 from .yolov5.utils.torch_utils import select_device, torch_distributed_zero_first, ModelEMA, de_parallel, EarlyStopping
 
 def train_prep(hyp, opt, device, callbacks):
-    save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze, = \
-        Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
+    epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze, = \
+        opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
         opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
 
     # # Directories
@@ -32,10 +33,10 @@ def train_prep(hyp, opt, device, callbacks):
     # (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  # make dir
     # last, best = w / 'last.pt', w / 'best.pt'
 
-    # # Hyperparameters
-    # if isinstance(hyp, str):
-    #     with open(hyp, errors='ignore') as f:
-    #         hyp = yaml.safe_load(f)  # load hyps dict
+    # Hyperparameters
+    if isinstance(hyp, str):
+        with open(hyp, errors='ignore') as f:
+            hyp = yaml.safe_load(f)  # load hyps dict
     # LOGGER.info(colorstr('hyperparameters: ') + ', '.join(f'{k}={v}' for k, v in hyp.items()))
 
     # # Save run settings
@@ -64,8 +65,6 @@ def train_prep(hyp, opt, device, callbacks):
     init_seeds(1 + RANK)
     with torch_distributed_zero_first(LOCAL_RANK):
         data_dict = data_dict or check_dataset(data)  # check if None
-    data_dict['train'] = opt.train_path
-    data_dict['val'] = opt.val_path
     train_path, val_path = data_dict['train'], data_dict['val']
     nc = 1 if single_cls else int(data_dict['nc'])  # number of classes
     names = ['item'] if single_cls and len(data_dict['names']) != 1 else data_dict['names']  # class names
@@ -189,11 +188,11 @@ def train_prep(hyp, opt, device, callbacks):
 
         if not resume:
             labels = np.concatenate(dataset.labels, 0)
-            # c = torch.tensor(labels[:, 0])  # classes
-            # cf = torch.bincount(c.long(), minlength=nc) + 1.  # frequency
-            # model._initialize_biases(cf.to(device))
-            if plots:
-                plot_labels(labels, names, save_dir)
+            c = torch.tensor(labels[:, 0])  # classes
+            cf = torch.bincount(c.long(), minlength=nc) + 1.  # frequency
+            model._initialize_biases(cf.to(device))
+            # if plots:
+            #     plot_labels(labels, names, save_dir)
 
             # Anchors
             if not opt.noautoanchor:
@@ -233,7 +232,7 @@ def train_prep(hyp, opt, device, callbacks):
     train_args.scaler = scaler
     train_args.optimizer = optimizer
     train_args.dataset = dataset
-    train_args.model = model
+    train_args.train_model = model
     train_args.nb = nb
     train_args.nbs = nbs
     train_args.maps = maps
@@ -261,6 +260,7 @@ def train_prep(hyp, opt, device, callbacks):
     return train_args
 
 def eval_prep(args):
+    cfg = args.cfg
     source = args.source
     half = args.half
 
@@ -278,10 +278,10 @@ def eval_prep(args):
 
     # Load model
     device = select_device(args.device)
-    # model = DetectMultiBackend(args.weights, device=device, dnn=args.dnn)
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')  # or yolov5m, yolov5l, yolov5x, custom
-    model = model.to(device)
+    model = DetectMultiBackend(args.weights, device=device, dnn=args.dnn)
     stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
+    model = Model(cfg).to(device)  # create
+    stride = 32
     imgsz = check_img_size(args.imgsz, s=stride)  # check image size
 
     # Half
