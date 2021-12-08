@@ -36,7 +36,7 @@ sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
-# Comment out the ordinal benchmark steps, and replace them with LTC custom ones.
+# Comment out the ordinary benchmark steps, and replace them with LTC custom ones.
 # echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
 
 # Run the benchmark
