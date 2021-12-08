@@ -459,14 +459,15 @@ class TorchBenchBisection:
                 targets = left.digest.keys()
             if targets == None and len(right.digest):
                 targets = right.digest.keys()
-            updated_targets = self.regression(left, right, targets)
-            if len(updated_targets):
-                mid = self.torch_src.get_mid_commit(left, right)
-                if mid == None:
-                    self.result.append((left, right))
-                else:
-                    self.bisectq.append((left, mid, updated_targets))
-                    self.bisectq.append((mid, right, updated_targets))
+            # Commented out for now.
+            # updated_targets = self.regression(left, right, targets)
+            # if len(updated_targets):
+            #     mid = self.torch_src.get_mid_commit(left, right)
+            #     if mid == None:
+            #         self.result.append((left, right))
+            #     else:
+            #         self.bisectq.append((left, mid, updated_targets))
+            #         self.bisectq.append((mid, right, updated_targets))
 
     def output(self):
         json_obj = dict()
