@@ -181,7 +181,7 @@ class TorchSource:
     def setup_build_env(self, env) -> Dict[str, str]:
         env["USE_CUDA"] = "1"
         env["BUILD_CAFFE2_OPS"] = "0"
-        env["USE_XNNPACK"] = "0"
+        env["USE_XNNPACK"] = "1" # Customized for LTC.
         env["USE_MKLDNN"] = "1"
         env["USE_MKL"] = "1"
         env["USE_CUDNN"] = "1"
@@ -215,9 +215,10 @@ class TorchSource:
             print(f"Building pytorch lazy tensor on {commit.sha} ...", end="", flush=True)
             lazy_tensor_path = os.path.join(self.srcpath, "lazy_tensor_core")
             command = "./scripts/apply_patches.sh"
-            subprocess.check_call(command, cwd=self.lazy_tensor_path, env=build_env, shell=True)
-            command = "python setup.py install"
-            subprocess.check_call(command, cwd=self.lazy_tensor_path, env=build_env, shell=True)
+            subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
+            # Turns on DEBUG build to get assertions as well.
+            command = "DEBUG=1 python setup.py install"
+            subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
             print("done")
 
     def build(self, commit: Commit):
@@ -458,14 +459,15 @@ class TorchBenchBisection:
                 targets = left.digest.keys()
             if targets == None and len(right.digest):
                 targets = right.digest.keys()
-            updated_targets = self.regression(left, right, targets)
-            if len(updated_targets):
-                mid = self.torch_src.get_mid_commit(left, right)
-                if mid == None:
-                    self.result.append((left, right))
-                else:
-                    self.bisectq.append((left, mid, updated_targets))
-                    self.bisectq.append((mid, right, updated_targets))
+            # Commented out for now.
+            # updated_targets = self.regression(left, right, targets)
+            # if len(updated_targets):
+            #     mid = self.torch_src.get_mid_commit(left, right)
+            #     if mid == None:
+            #         self.result.append((left, right))
+            #     else:
+            #         self.bisectq.append((left, mid, updated_targets))
+            #         self.bisectq.append((mid, right, updated_targets))
 
     def output(self):
         json_obj = dict()
@@ -558,7 +560,8 @@ if __name__ == "__main__":
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
     bisection.run()
-    if bisection.abtest:
-        bisection.output_abtest_result()
-    else:
-        bisection.output()
+    # Don't bother the ordinary results. We have our owns.
+    # if bisection.abtest:
+    #     bisection.output_abtest_result()
+    # else:
+    #     bisection.output()

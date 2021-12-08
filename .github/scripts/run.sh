@@ -36,13 +36,20 @@ sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
-echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
+# Comment out the ordinary benchmark steps, and replace them with LTC custom ones.
+# echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
 
 # Run the benchmark
-for c in $(seq 1 $NUM_ITER); do
-    taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
-            --benchmark-min-rounds "${NUM_ROUNDS}" \
-            --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
-done
+# for c in $(seq 1 $NUM_ITER); do
+#     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
+#             --benchmark-min-rounds "${NUM_ROUNDS}" \
+#             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
+# done
+
+echo "Running check_lazy.py"
+python check_lazy.py --output_file ${DATA_DIR}/sweep.json
+# TODO(alanwaketan): Enable the below format conversion.
+# At the same time, we can workaround it by running the command by hands.
+# python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.json --output_file ${DATA_DIR}/sweep.csv
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
