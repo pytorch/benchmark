@@ -47,6 +47,7 @@ export GOMP_CPU_AFFINITY="${CORE_LIST}"
 # done
 
 echo "Running check_lazy.py"
-python check_lazy.py --output_file ${DATA_DIR}/sweep.out
+python check_lazy.py --output_file ${DATA_DIR}/sweep.json
+python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.json --output_file ${DATA_DIR}/sweep.csv
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
