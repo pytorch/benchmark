@@ -14,6 +14,7 @@ jobs:
       BISECT_DIR: ".torchbench/v1-bisection-ci"
       PYTHON_VERSION: "3.8"
       MAGMA_VERSION: "magma-cuda113"
+      CUDA_VERSION: "11.3"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
@@ -30,7 +31,7 @@ jobs:
                            typing_extensions future six dataclasses tabulate gitpython
           conda install -y -c pytorch "${MAGMA_VERSION}"
           # Install pytorch nightly
-          conda install -y -c pytorch-nightly torchtext torchvision
+          conda install -y -c pytorch-nightly torchtext torchvision cudatoolkit="${CUDA_VERSION}"
           python install.py
       - name: Bisection
         run: |
