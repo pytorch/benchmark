@@ -286,6 +286,14 @@ class SubprocessWorker(base.WorkerBase):
                 return
 
             assert isinstance(result, dict)
+            if not result:
+                stdout, stderr = get_output()
+                raise subprocess.SubprocessError(
+                    "Uncaught Exception in worker:"
+                    f"    working_dir: {self.working_dir}\n"
+                    f"    stdout:\n{textwrap.indent(stdout, ' ' * 8)}\n\n"
+                    f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}")
+
             serialized_e = subprocess_rpc.SerializedException(**result)
             stdout, stderr = get_output()
             subprocess_rpc.SerializedException.raise_from(
