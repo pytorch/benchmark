@@ -113,7 +113,8 @@ class Model(BenchmarkModel):
         augment = self.eval_opt.augment
         dataset_iter = zip(range(self.eval_opt.eval_batch_num), dataset)
         for _bactch_num, (path, im, im0s, vid_cap, s) in dataset_iter:
-            im = torch.from_numpy(im).to(device)
+            if not self.eval_opt.prefetch:
+                im = torch.from_numpy(im).to(device)
             im = im.half() if half else im.float()  # uint8 to fp16/32
             im /= 255  # 0 - 255 to 0.0 - 1.0
             if len(im.shape) == 3:
