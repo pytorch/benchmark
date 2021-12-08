@@ -36,8 +36,8 @@ sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
+# Comment out the ordinal benchmark steps, and replace them with LTC custom ones.
 # echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
-echo "Running check_lazy.py"
 
 # Run the benchmark
 # for c in $(seq 1 $NUM_ITER); do
@@ -45,6 +45,8 @@ echo "Running check_lazy.py"
 #             --benchmark-min-rounds "${NUM_ROUNDS}" \
 #             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
 # done
+
+echo "Running check_lazy.py"
 python check_lazy.py --output_file ${DATA_DIR}/sweep.out
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."

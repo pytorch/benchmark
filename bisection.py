@@ -216,6 +216,7 @@ class TorchSource:
             lazy_tensor_path = os.path.join(self.srcpath, "lazy_tensor_core")
             command = "./scripts/apply_patches.sh"
             subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
+            # Turns on DEBUG build to get assertions as well.
             command = "DEBUG=1 python setup.py install"
             subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
             print("done")
@@ -558,7 +559,8 @@ if __name__ == "__main__":
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
     bisection.run()
-    if bisection.abtest:
-        bisection.output_abtest_result()
-    else:
-        bisection.output()
+    # Don't bother the ordinal results. We have our owns.
+    # if bisection.abtest:
+    #     bisection.output_abtest_result()
+    # else:
+    #     bisection.output()
