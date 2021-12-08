@@ -48,8 +48,8 @@ export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
 echo "Running check_lazy.py"
 python check_lazy.py --output_file ${DATA_DIR}/sweep.json
-# TODO(alanwaketan): Enable the below format conversion.
-# At the same time, we can workaround it by running the command by hands.
-# python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.json --output_file ${DATA_DIR}/sweep.csv
+# Ignore the error for this command such that we can still have the json file
+# where we can then run the command by hands.
+python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.json --output_file ${DATA_DIR}/sweep.csv || true
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
