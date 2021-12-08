@@ -76,6 +76,7 @@ class Model(BenchmarkModel):
         self.loader_eval = prefetch_loader(self.loader_eval, device)
 
     def get_module(self):
+        raise NotImplementedError("Disable the train test because it causes CUDA OOM on Nvidia T4")
         self.eval_model.eval()
         with torch.no_grad():
             for _, (input, _) in zip(range(self.args.eval_num_batch), self.loader_eval):
