@@ -130,11 +130,13 @@ class Commit:
 
 class TorchSource:
     srcpath: str
+    build_lazy: bool
     commits: List[Commit]
     # Map from commit SHA to index in commits
     commit_dict: Dict[str, int]
-    def __init__(self, srcpath: str):
+    def __init__(self, srcpath: str, build_lazy: bool):
         self.srcpath = srcpath
+        self.build_lazy = build_lazy
         self.commits = []
         self.commit_dict = dict()
 
@@ -179,12 +181,11 @@ class TorchSource:
         else:
             return self.commits[int((left_index + right_index) / 2)]
 
-    def setup_build_env(self, env):
+    def setup_build_env(self, env)-> Dict[str, str]:
         env["USE_CUDA"] = "1"
         env["BUILD_CAFFE2_OPS"] = "0"
         # Do not build the test
         env["BUILD_TEST"] = "0"
-        env["USE_XNNPACK"] = "0"
         env["USE_MKLDNN"] = "1"
         env["USE_MKL"] = "1"
         env["USE_CUDNN"] = "1"
@@ -212,6 +213,16 @@ class TorchSource:
         command = "python setup.py clean install"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"], env=build_env, shell=True)
         print("done")
+
+    def _build_lazy_tensor(self, commit: Commit, build_env: Dict[str, str]):
+        if self.build_lazy:
+            print(f"Building pytorch lazy tensor on {commit.sha} ...", end="", flush=True)
+            lazy_tensor_path = os.path.join(self.srcpath, "lazy_tensor_core")
+            command = "./scripts/apply_patches.sh"
+            subprocess.check_call(command, cwd=self.lazy_tensor_path, env=build_env, shell=True)
+            command = "python setup.py install"
+            subprocess.check_call(command, cwd=self.lazy_tensor_path, env=build_env, shell=True)
+            print("done")
  
     def build(self, commit: Commit):
         # checkout pytorch commit
@@ -242,6 +253,8 @@ class TorchSource:
                 shutil.rmtree(build_path)
             subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
+        # build pytorch lazy tensor if needed
+        self._build_lazy_tensor(commit, build_env)
         self.build_install_deps(build_env)
 
     def cleanup(self):
@@ -393,6 +406,7 @@ class TorchBenchBisection:
                  targets: List[str],
                  output_json: str,
                  devbig: str,
+                 build_lazy: bool = False,
                  debug: bool = False):
         self.workdir = workdir
         self.start = start
@@ -402,7 +416,7 @@ class TorchBenchBisection:
         self.targets = targets
         self.bisectq = list()
         self.result = list()
-        self.torch_src = TorchSource(srcpath = torch_src)
+        self.torch_src = TorchSource(srcpath = torch_src, build_lazy=build_lazy)
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
@@ -523,6 +537,10 @@ if __name__ == "__main__":
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
                         action='store_true')
+    # by default, do not build lazy tensor
+    parser.add_argument("--build-lazy",
+                        action='store_true',
+                        help="build lazy tensor feature in PyTorch")
     args = parser.parse_args()
 
     # If this is to print the overview of a test result, don't need to run the actual execution
@@ -555,6 +573,7 @@ if __name__ == "__main__":
                                     targets=targets,
                                     output_json=args.output,
                                     devbig=args.devbig,
+                                    build_lazy=args.build_lazy,
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
