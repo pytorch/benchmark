@@ -156,7 +156,7 @@ class TorchSource:
             repos.append((value, "main"))
         for (repo, branch) in repos:
             gitutils.clean_git_repo(repo)
-            assert gitutils.update_git_repo(repo, branch), f"Failed to update repository {repo}."
+            assert gitutils.update_git_repo(repo, branch), f"Failed to update {branch} branch of repository {repo}."
 
     # Get all commits between start and end, save them in self.commits
     def init_commits(self, start: str, end: str, abtest: bool) -> bool:
