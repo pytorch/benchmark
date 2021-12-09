@@ -181,7 +181,7 @@ class TorchSource:
     def setup_build_env(self, env) -> Dict[str, str]:
         env["USE_CUDA"] = "1"
         env["BUILD_CAFFE2_OPS"] = "0"
-        env["USE_XNNPACK"] = "1" # Customized for LTC.
+        env["USE_XNNPACK"] = "0" # Customized for LTC.
         env["USE_MKLDNN"] = "1"
         env["USE_MKL"] = "1"
         env["USE_CUDNN"] = "1"
