@@ -31,7 +31,7 @@ jobs:
           # Install magma
           conda install -y -c pytorch "${MAGMA_VERSION}"
           # Install pytorch nightly
-          conda install -y -c pytorch-nightly torchtext torchvision
+          conda install -y -c pytorch-nightly torchtext torchvision cudatoolkit="${CUDA_VER}"
           python install.py
       - name: Bisection
         run: |
