@@ -40,7 +40,7 @@ class Model(BenchmarkModel):
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L5
     def create_hparams(hparams_string=None, verbose=False, batch_size=64):
         """Create model hyperparameters. Parse nondefault from given string."""
-        root = str(Path(__file__).parent)
+        root = str(Path(__file__).parent.parent.parent)
         hparams = Namespace(**{
             ################################
             # Experiment Parameters        #
@@ -61,8 +61,8 @@ class Model(BenchmarkModel):
             # Data Parameters             #
             ################################
             'load_mel_from_disk': False,
-            'training_files': f'{root}/filelists/ljs_audio_text_train_filelist.txt',
-            'validation_files': f'{root}/filelists/ljs_audio_text_val_filelist.txt',
+            'training_files': f'{root}/data/.data/tacotron2-minimal/filelists/ljs_audio_text_train_filelist.txt',
+            'validation_files': f'{root}/data/.data/tacotron2-minimal/filelists/ljs_audio_text_val_filelist.txt',
             'text_cleaners': ['english_cleaners'],
 
             ################################

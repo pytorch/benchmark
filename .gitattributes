@@ -188,7 +188,6 @@ torchbenchmark/models/Super_SloMo/dataset/validation/0/0315.jpg filter=lfs diff=
 torchbenchmark/models/Super_SloMo/dataset/validation/0/0317.jpg filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Super_SloMo/dataset/validation/0/0319.jpg filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Super_SloMo/dataset/validation/0/0320.jpg filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/tacotron2/data/LJSpeech-1.1 filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/yolov3/data/coco128/images/train2017/000000000321.jpg filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/yolov3/data/coco128/images/train2017/000000000384.jpg filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/yolov3/data/coco128/images/train2017/000000000486.jpg filter=lfs diff=lfs merge=lfs -text
