@@ -14,9 +14,10 @@ from .yolov5.utils.metrics import fitness
 from .yolov5.utils.general import labels_to_image_weights, non_max_suppression, scale_coords
 from .yolov5.utils.torch_utils import select_device
 
-random.seed(1337)
-torch.manual_seed(1337)
-np.random.seed(1337)
+MASTER_SEED = 1337
+random.seed(MASTER_SEED)
+torch.manual_seed(MASTER_SEED)
+np.random.seed(MASTER_SEED)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
