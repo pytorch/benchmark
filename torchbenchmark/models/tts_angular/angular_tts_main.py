@@ -254,10 +254,10 @@ class TTSModel:
         del TRAIN_SYNTHETIC_DATA[0]
         del EVAL_SYNTHETIC_DATA[0]
 
-    def train(self, niter, bs):
+    def train(self, niter):
         _, global_step = self._train(self.model, self.criterion,
                                      self.optimizer, self.scheduler, None,
-                                     self.global_step, self.c, niter, bs)
+                                     self.global_step, self.c, niter)
 
     def eval(self):
         start = time.time()
