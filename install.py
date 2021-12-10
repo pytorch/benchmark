@@ -51,6 +51,8 @@ def pip_install_requirements():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--continue_on_fail", action="store_true")
+    parser.add_argument("--models", nargs='+', default=[],
+                        help="Specify one or more models to install. If not set, install all models.")
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
@@ -71,7 +73,7 @@ if __name__ == '__main__':
         print(errmsg)
         if not args.continue_on_fail:
             sys.exit(-1)
-    success &= setup(verbose=args.verbose, continue_on_fail=args.continue_on_fail)
+    success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail)
     if not success:
         if args.continue_on_fail:
             print("Warning: some benchmarks were not installed due to failure")
