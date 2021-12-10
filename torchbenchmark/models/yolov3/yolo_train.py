@@ -257,9 +257,9 @@ def prepare_training_loop(args):
             # torch.autograd.set_detect_anomaly(True)
             results = (0, 0, 0, 0, 0, 0, 0)  # 'P', 'R', 'mAP', 'F1', 'val GIoU', 'val Objectness', 'val Classification'
             t0 = time.time()
-            print('Image sizes %g - %g train, %g test' % (imgsz_min, imgsz_max, imgsz_test))
-            print('Using %g dataloader workers' % nw)
-            print('Starting training for %g epochs...' % epochs)
+            # print('Image sizes %g - %g train, %g test' % (imgsz_min, imgsz_max, imgsz_test))
+            # print('Using %g dataloader workers' % nw)
+            # print('Starting training for %g epochs...' % epochs)
             for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
                 model.train()
 
@@ -270,7 +270,7 @@ def prepare_training_loop(args):
                     dataset.indices = random.choices(range(dataset.n), weights=image_weights, k=dataset.n)  # rand weighted idx
 
                 mloss = torch.zeros(4).to(device)  # mean losses
-                print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
+                # print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
                 pbar = tqdm(zip(range(opt.train_num_batch), dataloader), total=nb)  # progress bar
                 for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
                     if i > 3:
@@ -405,9 +405,9 @@ def prepare_training_loop(args):
                         strip_optimizer(f2) if ispt else None  # strip optimizer
                         os.system('gsutil cp %s gs://%s/weights' % (f2, opt.bucket)) if opt.bucket and ispt else None  # upload
 
-            if not opt.evolve:
-                plot_results()  # save as results.png
-            print('%g epochs completed in %.3f hours.\n' % (epoch - start_epoch + 1, (time.time() - t0) / 3600))
+            # if not opt.evolve:
+            #     plot_results()  # save as results.png
+            # print('%g epochs completed in %.3f hours.\n' % (epoch - start_epoch + 1, (time.time() - t0) / 3600))
             # dist.destroy_process_group() if torch.cuda.device_count() > 1 else None
             torch.cuda.empty_cache()
             return results
@@ -454,7 +454,7 @@ def prepare_training_loop(args):
 
     tb_writer = None
     if not opt.evolve:  # Train normally
-        print('Start Tensorboard with "tensorboard --logdir=runs", view at http://localhost:6006/')
+        # print('Start Tensorboard with "tensorboard --logdir=runs", view at http://localhost:6006/')
         # tb_writer = SummaryWriter(comment=opt.name)
         return get_train(hyp)  # train normally
     else:  # Evolve hyperparameters (optional)
