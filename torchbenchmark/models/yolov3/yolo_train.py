@@ -271,7 +271,7 @@ def prepare_training_loop(args):
 
                 mloss = torch.zeros(4).to(device)  # mean losses
                 print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
-                pbar = tqdm(zip(args.train_num_batch, dataloader), total=nb)  # progress bar
+                pbar = tqdm(zip(opt.train_num_batch, dataloader), total=nb)  # progress bar
                 for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
                     if i > 3:
                         break
