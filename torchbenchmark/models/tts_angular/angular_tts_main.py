@@ -240,8 +240,8 @@ class TTSModel:
                                     num_lstm_layers=c.model['num_lstm_layers'])
         self.optimizer = RAdam(self.model.parameters(), lr=c.lr)
         self.criterion = AngleProtoLoss()
-        TRAIN_SYNTHETIC_DATA.append(T.rand(train_bs, 64, 50, 40).to(device=self.device))
-        EVAL_SYNTHETIC_DATA.append(T.rand(eval_bs, 64, 50, 40).to(device=self.device))
+        TRAIN_SYNTHETIC_DATA.append(T.rand(train_bs, 50, 40).to(device=self.device))
+        EVAL_SYNTHETIC_DATA.append(T.rand(eval_bs, 50, 40).to(device=self.device))
 
         if self.use_cuda:
             self.model = self.model.cuda()
