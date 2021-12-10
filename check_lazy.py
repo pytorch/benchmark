@@ -19,6 +19,7 @@ import torch
 from tabulate import tabulate 
 from torchbenchmark import list_models
 import lazy_tensor_core
+import datetime
 lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
 def list_model_names():
@@ -54,9 +55,13 @@ def sweep_models(output_filename, tests=['eval', 'train']):
                     env = os.environ
                     env["LTC_TS_CUDA"] = "1"
                     launch_command = run_model_command(name, test, model_output_file.name)
-                    print(f"Running launch_command {' '.join(launch_command)}")
+                    # python stdlib didn't include tzones until 3.9
+                    PST_OFFSET = datetime.timedelta(hours=8)
+                    dt = datetime.datetime.now() - PST_OFFSET
+                    print(f"{datetime.strptime(dt,'%Y-%m-%d %H:%M:%S')} : Running launch_command {' '.join(launch_command)}")
                     rc = subprocess.call(launch_command,
                                         env=env,
+                                        timeout = 120, # 30 minutes, 10 min max per iter
                                         stdout=subprocess.DEVNULL,
                                         stderr=subprocess.STDOUT)
 
