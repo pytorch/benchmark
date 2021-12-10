@@ -6,7 +6,9 @@ from .angular_tts_main import TTSModel, EVAL_SYNTHETIC_DATA
 
 class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
-    def __init__(self, device=None, jit=False, train_bs=128, eval_bs=128):
+    # Original train batch size: 64
+    # Source: https://github.com/mozilla/TTS/blob/master/TTS/speaker_encoder/config.json#L38
+    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=128):
         super().__init__()
         self.device = device
         self.jit = jit
