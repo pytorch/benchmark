@@ -163,8 +163,8 @@ class Model(BenchmarkModel):
 
         # Preparing data
         X, lS_o, lS_i, self.targets = next(iter(self.train_ld))
+        X = X.to(self.device)
         if self.device == "cuda":
-            X = X.to(self.device)
             lS_i = [S_i.to(self.device) for S_i in lS_i] if isinstance(lS_i, list) \
                 else lS_i.to(self.device)
             lS_o = [S_o.to(self.device) for S_o in lS_o] if isinstance(lS_o, list) \
