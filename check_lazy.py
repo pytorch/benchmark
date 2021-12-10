@@ -16,7 +16,6 @@ import sys
 import tempfile
 import time
 import torch
-from tabulate import tabulate 
 from torchbenchmark import list_models
 import lazy_tensor_core
 import datetime
@@ -65,7 +64,7 @@ def sweep_models(output_filename, tests=['eval', 'train']):
                                         stdout=subprocess.DEVNULL,
                                         stderr=subprocess.STDOUT)
 
-                    model_stats = process_model_stats(name, test, model_output_file) 
+                    model_stats = process_model_stats(name, test, model_output_file)
                     stats.append(model_stats)
                     print(f"Ran {name}:{test}, RC={rc}, stats: ")
                     print(model_stats)
@@ -79,9 +78,9 @@ def json_to_csv(json_file, csv_file):
         buf = f.read();
         while True:
             try:
-                model_stats, pos = d.raw_decode(buf) 
+                model_stats, pos = d.raw_decode(buf)
                 stats.append(model_stats)
-            except ValueError: 
+            except ValueError:
                 break
             buf = buf[pos:]
 
@@ -157,6 +156,6 @@ if __name__ == "__main__":
         model = Model(device=args.device, jit=False)
         test = getattr(model, args.test)
         exit(check_model(args.check_model, test, args.output_file))
-    
+
     exit(sweep_models(args.output_file))
 

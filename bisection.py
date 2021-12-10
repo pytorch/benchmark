@@ -356,7 +356,9 @@ class TorchBench:
         self.torch_src.build(commit)
         # Run benchmark
         result_dir = self.run_benchmark(commit, targets)
-        commit.digest = self.gen_digest(result_dir, targets)
+        # LTC has its own digests which the following parser won't understand.
+        # commit.digest = self.gen_digest(result_dir, targets)
+        commit.digest = dict()
         self.torch_src.cleanup(commit)
         return commit.digest
 
