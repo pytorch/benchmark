@@ -9,7 +9,7 @@ import yaml
 from typing import Any, Dict, List, Tuple
 
 import torch
-from torchbenchmark import list_models, _list_model_paths, ModelTask, ModelDetails
+from torchbenchmark import list_models, load_model_by_name, _list_model_paths, ModelTask, ModelDetails
 
 TIMEOUT = 300  # seconds
 torchbench_dir = 'torchbenchmark'
@@ -124,8 +124,7 @@ def _write_metadata_yaml_files(extracted_details: List[Tuple[str, Dict[str, Any]
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("--model", default=None,
-                        help="Full or partial name of a model to update. If partial, picks the first match.  \
-                              If absent, applies to all models.")
+                        help="Full name of a model to update. If absent, applies to all models.")
     parser.add_argument("--extract-only", default=False, action="store_true",
                         help="Only extract model details.")
     parser.add_argument("--train-benchmark", default=None, type=_parser_helper,
@@ -153,15 +152,20 @@ if __name__ == "__main__":
         print("This tool is currently only supported when the system has a cuda device.")
         exit(1)
 
-    # Find the list of matching models.
-    models = list_models(model_match=args.model)
-    model_names = [m.name for m in models]
+    # Find the matching model, or use all models.
+    models = []
+    model_names = []
     if args.model is not None:
-        if not models:
+        Model = load_model_by_name(args.model)
+        if not Model:
             print(f"Unable to find model matching: {args.model}.")
             exit(-1)
-        print(f"Generating metadata to select models: {model_names}.")
+        models.append(Model)
+        model_names.append(Model.name)
+        print(f"Generating metadata to select model: {model_names}.")
     else:
+        models.extend(list_models(model_match=args.model))
+        model_names.extend([m.name for m in models])
         print("Generating metadata to all models.")
 
     # Extract all model details from models.
@@ -171,7 +175,7 @@ if __name__ == "__main__":
 
     # Stop here for extract-only.
     if args.extract_only:
-        print("Extract-only is set. Stop here.")
+        print("--extract-only is set. Stop here.")
         exit(0)
 
     # Apply details passed in by flags.
@@ -181,5 +185,5 @@ if __name__ == "__main__":
 
     # TODO: Modify and update the model to apply metadata changes by the user.
 
-    # Generate a metadata files for each matching model.
+    # Generate metadata files for each matching models.
     _write_metadata_yaml_files(extracted_details)
