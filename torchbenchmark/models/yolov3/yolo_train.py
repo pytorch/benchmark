@@ -233,9 +233,9 @@ def prepare_training_loop(args):
                                                 collate_fn=dataset.collate_fn)
 
         # TorchBench: prefetch the dataloader
-        if args.prefetch:
-            dataloader = _prefetch_loader(dataloader, size=opt.train_batch_num*batch_size, 
-                                          device=device, fields=[0, 1],
+        if opt.prefetch:
+            dataloader = _prefetch_loader(dataloader, size=opt.train_num_batch*batch_size, 
+                                          fields=[0, 1],
                                           collate_fn=lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
 
         # Model parameters
@@ -434,7 +434,11 @@ def prepare_training_loop(args):
     parser.add_argument('--adam', action='store_true', help='use adam optimizer')
     parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
     parser.add_argument('--freeze-layers', action='store_true', help='Freeze non-output layers')
+    # Extra args added by TorchBench
+    parser.add_argument('--train-num-batch', type=int, default=1, help='Number of batches to run')
+    parser.add_argument('--prefetch', action='store_true', help='Whether to prefetch dataloader')
     opt = parser.parse_args(args)
+
     opt.weights = last if opt.resume else opt.weights
     # check_git_status()
     opt.cfg = check_file(opt.cfg)  # check file

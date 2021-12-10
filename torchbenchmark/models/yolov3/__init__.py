@@ -37,9 +37,12 @@ class Model(BenchmarkModel):
         self.jit = jit
         # run just 1 epoch
         self.num_epochs = 1
-        train_args = split(f"--data {DATA_DIR}/data/coco128.data --img 416 --batch {train_bs} --nosave --notest --epochs {self.num_epochs} --device {self.device_str} --weights ''")
-        train_args.train_num_batch = 1
-        train_args.prefetch = True
+        self.train_num_batch = 1
+        self.prefetch = True
+        train_args = split(f"--data {DATA_DIR}/coco128.data --img 416 --batch {train_bs} --nosave --notest \
+                             --epochs {self.num_epochs} --device {self.device_str} --weights '' \
+                             --train-num-batch {self.train_num_batch} \
+                             --prefetch")
         self.training_loop = prepare_training_loop(train_args)
         self.eval_example_input = (torch.rand(eval_bs, 3, 384, 512).to(device),)
 
@@ -49,7 +52,7 @@ class Model(BenchmarkModel):
         parser = argparse.ArgumentParser()
         root = str(Path(yolo_train.__file__).parent.absolute())
         parser.add_argument('--cfg', type=str, default=f'{root}/cfg/yolov3-spp.cfg', help='*.cfg path')
-        parser.add_argument('--names', type=str, default=f'{root}/data/coco.names', help='*.names path')
+        parser.add_argument('--names', type=str, default=f'{DATA_DIR}/coco.names', help='*.names path')
         parser.add_argument('--weights', type=str, default='weights/yolov3-spp-ultralytics.pt', help='weights path')
         parser.add_argument('--source', type=str, default='data/samples', help='source')  # input file/folder, 0 for webcam
         parser.add_argument('--output', type=str, default='output', help='output folder')  # output folder
