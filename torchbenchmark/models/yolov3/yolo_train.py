@@ -12,6 +12,17 @@ from .yolo_utils.utils import *
 from .yolo_utils.parse_config import parse_data_cfg
 from pathlib import Path
 
+def _prefetch_loader(loader, size, fields=[], collate_fn=lambda x: x):
+    result = []
+    for index, item in enumerate(loader):
+        litem = list(item)
+        for f in fields:
+            litem[f] = collate_fn(litem[f])
+        result.append(tuple(litem))
+        if index == size:
+            break
+    return result
+
 def prepare_training_loop(args):
     mixed_precision = True
     try:  # Mixed precision training https://github.com/NVIDIA/apex
@@ -221,6 +232,12 @@ def prepare_training_loop(args):
                                                 pin_memory=True,
                                                 collate_fn=dataset.collate_fn)
 
+        # TorchBench: prefetch the dataloader
+        if args.prefetch:
+            dataloader = _prefetch_loader(dataloader, size=opt.train_batch_num*batch_size, 
+                                          device=device, fields=[0, 1],
+                                          collate_fn=lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
+
         # Model parameters
         model.nc = nc  # attach number of classes to model
         model.hyp = hyp  # attach hyperparameters to model
@@ -254,7 +271,7 @@ def prepare_training_loop(args):
 
                 mloss = torch.zeros(4).to(device)  # mean losses
                 print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
-                pbar = tqdm(enumerate(dataloader), total=nb)  # progress bar
+                pbar = tqdm(zip(args.train_num_batch, dataloader), total=nb)  # progress bar
                 for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
                     if i > 3:
                         break
