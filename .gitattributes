@@ -1,3 +1,5 @@
+*.png filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Background_Matting/ak.png filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Background_Matting/Video_data_train.csv filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Background_Matting/ak/0005_img.png filter=lfs diff=lfs merge=lfs -text
@@ -27,8 +29,6 @@ torchbenchmark/models/LearningToPaint/image/degang.png filter=lfs diff=lfs merge
 torchbenchmark/models/LearningToPaint/image/mayun.png filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/LearningToPaint/image/poster.png filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/LearningToPaint/image/test.png filter=lfs diff=lfs merge=lfs -text
-*.png filter=lfs diff=lfs merge=lfs -text
-*.pkl filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/LearningToPaint/demo/sunflower.gif filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/LearningToPaint/demo/sunrise.gif filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/LearningToPaint/demo/deepdream_bird.gif filter=lfs diff=lfs merge=lfs -text
@@ -167,6 +167,10 @@ torchbenchmark/models/Super_SloMo/dataset/validation/0/0315.jpg filter=lfs diff=
 torchbenchmark/models/Super_SloMo/dataset/validation/0/0317.jpg filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Super_SloMo/dataset/validation/0/0319.jpg filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/Super_SloMo/dataset/validation/0/0320.jpg filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/Super_SloMo/misc/original.gif filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/Super_SloMo/misc/slomo.gif filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/Super_SloMo/.github/ISSUE_TEMPLATE/bug_report.md filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/models/Super_SloMo/.github/ISSUE_TEMPLATE/feature_request.md filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/speech_transformer/input_data filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/speech_transformer/input_data/dev/ filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/speech_transformer/input_data/dev/data.json filter=lfs diff=lfs merge=lfs -text
@@ -199,15 +203,10 @@ torchbenchmark/models/pytorch_stargan/data/celeba/images/000018.jpg filter=lfs d
 torchbenchmark/models/pytorch_stargan/data/celeba/list_attr_celeba.txt filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_CycleGAN_and_pix2pix/imgs/edges2cats.jpg filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_CycleGAN_and_pix2pix/imgs/horse2zebra.gif filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/Super_SloMo/misc/original.gif filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/Super_SloMo/misc/slomo.gif filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_struct/docs/source/model.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_struct/docs/source/semiring.ipynb filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/yolov3/tutorial.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/BERT_pytorch/data/corpus.small filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/BERT_pytorch/data/vocab.small filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/Super_SloMo/.github/ISSUE_TEMPLATE/bug_report.md filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/Super_SloMo/.github/ISSUE_TEMPLATE/feature_request.md filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/dlrm/input/dist_emb_0.log filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/dlrm/input/dist_emb_1.log filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/dlrm/input/dist_emb_2.log filter=lfs diff=lfs merge=lfs -text
