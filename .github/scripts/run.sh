@@ -53,8 +53,8 @@ python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.out --output_file ${DATA_DI
 
 echo "Running lazy_bench.py"
 pushd ../pytorch/lazy_tensor_core/
-LTC_TS_CUDA=1 python lazy_bench.py -d cuda --fuser fuser2  --test train -x div -x hard -k resnet18 --repeat 3
-LTC_TS_CUDA=1 python lazy_bench.py -d cuda --fuser fuser2  --test eval -k resnet18 --repeat 3
+LTC_TS_CUDA=1 python lazy_bench.py -d cuda --fuser fuser2  --test train
+LTC_TS_CUDA=1 python lazy_bench.py -d cuda --fuser fuser2  --test eval
 popd
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
