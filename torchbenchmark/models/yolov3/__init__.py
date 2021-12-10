@@ -10,8 +10,8 @@ import numpy as np
 random.seed(1337)
 torch.manual_seed(1337)
 np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = True
 
 from shlex import split
 from .yolo_train import prepare_training_loop
@@ -31,7 +31,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
     # Original train batch size: 16
     # Source: https://github.com/ultralytics/yolov3/blob/master/train.py#L447
-    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=16):
+    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=64):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -39,16 +39,16 @@ class Model(BenchmarkModel):
         self.num_epochs = 1
         self.train_num_batch = 1
         self.prefetch = True
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
         train_args = split(f"--data {DATA_DIR}/coco128.data --img 416 --batch {train_bs} --nosave --notest \
                              --epochs {self.num_epochs} --device {self.device_str} --weights '' \
                              --train-num-batch {self.train_num_batch} \
                              --prefetch")
         self.training_loop = prepare_training_loop(train_args)
-        self.eval_example_input = (torch.rand(eval_bs, 3, 384, 512).to(device),)
+        self.eval_model, self.eval_example_input = self.prep_eval()
 
-    def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
+    def prep_eval(self):
         parser = argparse.ArgumentParser()
         root = str(Path(yolo_train.__file__).parent.absolute())
         parser.add_argument('--cfg', type=str, default=f'{root}/cfg/yolov3-spp.cfg', help='*.cfg path')
@@ -72,7 +72,13 @@ class Model(BenchmarkModel):
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)
         model.to(opt.device).eval()
-        return model, self.eval_example_input
+        example_input = (torch.rand(self.eval_bs, 3, 384, 512).to(self.device),)
+        return model, example_input
+
+    def get_module(self):
+        if self.jit:
+            raise NotImplementedError()
+        return self.eval_model, self.eval_example_input
 
     def train(self, niter=1):
         # the training process is not patched to use scripted models
@@ -80,7 +86,6 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         return self.training_loop(niter)
 
     def eval(self, niter=1):
