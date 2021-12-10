@@ -30,6 +30,9 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
+        root = str(Path(yolo_train.__file__).parent.absolute())
+        train_args = split(f"--data {root}/data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {self.device_str} --weights ''")
+        self.training_loop = prepare_training_loop(train_args)
 
     def get_module(self):
         if self.jit:
@@ -60,32 +63,19 @@ class Model(BenchmarkModel):
         input = (torch.rand(1, 3, 384, 512).to(opt.device),)
         return model, input
 
-    def set_train(self):
-        # another model instance is used for training
-        # and the train mode is on by default
-        pass
-
-    def train(self, niterations=1):
+    def train(self, niter=1):
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
-
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
-        root = str(Path(yolo_train.__file__).parent.absolute())
-        train_args = split(f"--data {root}/data/coco128.data --img 416 --batch 8 --nosave --notest --epochs 1 --device {self.device_str} --weights ''")
-        print(train_args)
-        training_loop = prepare_training_loop(train_args)
+        return self.training_loop(niter)
 
-        return training_loop(niterations)
-
-    def eval(self, niterations=1):
+    def eval(self, niter=1):
         model, example_inputs = self.get_module()
-        img = example_inputs[0]
-        im0s_shape = (480, 640, 3)
-        for i in range(niterations):
-            pred = model(img, augment=False)[0]
+        for i in range(niter):
+            pred = model(*example_inputs, augment=False)[0]
             # Apply NMS
             pred = non_max_suppression(pred, 0.3, 0.6,
                                     multi_label=False, classes=None, agnostic=False)
@@ -97,10 +87,3 @@ class Model(BenchmarkModel):
             torch.cuda.current_device() if self.device == "cuda"
             else self.device
         )
-
-if __name__ == '__main__':
-    m = Model(device='cpu', jit=False)
-    model, example_inputs = m.get_module()
-    model(*example_inputs)
-    m.train()
-    m.eval()
