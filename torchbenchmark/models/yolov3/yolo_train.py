@@ -271,7 +271,8 @@ def prepare_training_loop(args):
 
                 mloss = torch.zeros(4).to(device)  # mean losses
                 # print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
-                pbar = tqdm(zip(range(opt.train_num_batch), dataloader), total=nb)  # progress bar
+                # pbar = tqdm(zip(range(opt.train_num_batch), dataloader), total=nb)  # progress bar
+                pbar = zip(range(opt.train_num_batch), dataloader)
                 for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
                     if i > 3:
                         break
@@ -327,7 +328,7 @@ def prepare_training_loop(args):
                     mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
                     mem = '%.3gG' % (torch.cuda.memory_cached() / 1E9 if torch.cuda.is_available() else 0)  # (GB)
                     s = ('%10s' * 2 + '%10.3g' * 6) % ('%g/%g' % (epoch, epochs - 1), mem, *mloss, len(targets), img_size)
-                    pbar.set_description(s)
+                    # pbar.set_description(s)
 
                     # Plot
                     if ni < 1:
