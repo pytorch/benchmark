@@ -455,7 +455,7 @@ def prepare_training_loop(args):
     tb_writer = None
     if not opt.evolve:  # Train normally
         print('Start Tensorboard with "tensorboard --logdir=runs", view at http://localhost:6006/')
-        tb_writer = SummaryWriter(comment=opt.name)
+        # tb_writer = SummaryWriter(comment=opt.name)
         return get_train(hyp)  # train normally
     else:  # Evolve hyperparameters (optional)
         opt.notest, opt.nosave = True, True  # only test/save final epoch
