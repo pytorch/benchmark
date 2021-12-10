@@ -57,7 +57,7 @@ def sweep_models(output_filename, tests=['eval', 'train']):
                     # python stdlib didn't include tzones until 3.9
                     PST_OFFSET = datetime.timedelta(hours=8)
                     dt = datetime.datetime.now() - PST_OFFSET
-                    print(f"{datetime.strptime(dt,'%Y-%m-%d %H:%M:%S')} : Running launch_command {' '.join(launch_command)}")
+                    print(f"{str(dt)} : Running launch_command {' '.join(launch_command)}")
                     rc = subprocess.call(launch_command,
                                         env=env,
                                         timeout = 120, # 30 minutes, 10 min max per iter
