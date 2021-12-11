@@ -10,12 +10,14 @@ from ...util.model import BenchmarkModel
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
-    def __init__(self, device=None, jit=False):
+    # Train batch size: 96
+    # Source: https://arxiv.org/pdf/1801.04381.pdf
+    def __init__(self, device=None, jit=False, train_bs=96):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.mobilenet_v2().to(self.device)
-        self.example_inputs = (torch.randn((96, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
         self.prep_qat_train()  # config+prepare steps are required for both train and eval
 
     def prep_qat_train(self):
