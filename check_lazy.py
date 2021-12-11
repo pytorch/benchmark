@@ -65,13 +65,15 @@ def sweep_models(output_filename, tests=['eval', 'train']):
                                             stdout=subprocess.DEVNULL,
                                             stderr=subprocess.STDOUT)
                         model_stats = process_model_stats(name, test, model_output_file)
+                        print(f"Ran {name}:{test}, RC={rc}, stats: ")
                     except subprocess.TimeoutExpired:
                         model_stats = {
                             'model': name, 'test': test,
                             'exception': 'model timed out'
                         }
+                        print(f"Ran {name}:{test}, RC=1, stats: ")
+
                     stats.append(model_stats)
-                    print(f"Ran {name}:{test}, RC=1, stats: ")
                     print(model_stats)
                     json.dump(model_stats, output_file)
 
