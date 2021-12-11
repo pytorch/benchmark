@@ -40,7 +40,7 @@ class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
     # Original train batch size: 64
     # Source: https://github.com/facebookresearch/demucs/blob/3e5ea549ba921316c587e5f03c0afc0be47a0ced/conf/config.yaml#L37
-    def __init__(self, device: Optional[str]=None, jit: bool=False, train_bs=64, eval_bs=64) -> None:
+    def __init__(self, device: Optional[str]=None, jit: bool=False, train_bs=64, eval_bs=32) -> None:
         super().__init__()
         self.device = device
         self.jit = jit
@@ -54,9 +54,8 @@ class Model(BenchmarkModel):
 
         if 1:
             samples = 80000
-            # TODO: calculate the right shape
-            self.example_inputs = (torch.rand([train_bs, 5, 2, 135576], device=device),)
-            self.eval_example_inputs = (torch.rand([eval_bs, 5, 2, 135576], device=device),)
+            self.example_inputs = (torch.rand([train_bs, 5, 2, 426888], device=device),)
+            self.eval_example_inputs = (torch.rand([eval_bs, 5, 2, 426888], device=device),)
 
         self.duration = Fraction(samples + args.data_stride, args.samplerate)
         self.stride = Fraction(args.data_stride, args.samplerate)
@@ -88,7 +87,6 @@ class Model(BenchmarkModel):
         return self.model, self.example_inputs
 
     def eval(self, niter=1):
-        # TODO: implement the eval version
         for _ in range(niter):
             sources, estimates = self.model(*self.eval_example_inputs)
             sources = center_trim(sources, estimates)
