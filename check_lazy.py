@@ -57,16 +57,21 @@ def sweep_models(output_filename, tests=['eval', 'train']):
                     # python stdlib didn't include tzones until 3.9
                     PST_OFFSET = datetime.timedelta(hours=8)
                     dt = datetime.datetime.now() - PST_OFFSET
-                    print(f"{str(dt)} : Running launch_command {' '.join(launch_command)}")
-                    rc = subprocess.call(launch_command,
-                                        env=env,
-                                        timeout = 120, # 30 minutes, 10 min max per iter
-                                        stdout=subprocess.DEVNULL,
-                                        stderr=subprocess.STDOUT)
-
-                    model_stats = process_model_stats(name, test, model_output_file)
+                    print(f"{dt} : Running launch_command {' '.join(launch_command)}")
+                    try:
+                        rc = subprocess.call(launch_command,
+                                            env=env,
+                                            timeout = 180, # 3 minutes, 1 min max per iter
+                                            stdout=subprocess.DEVNULL,
+                                            stderr=subprocess.STDOUT)
+                        model_stats = process_model_stats(name, test, model_output_file)
+                    except subprocess.TimeoutExpired:
+                        model_stats = {
+                            'model': name, 'test': test,
+                            'exception': 'model timed out'
+                        }
                     stats.append(model_stats)
-                    print(f"Ran {name}:{test}, RC={rc}, stats: ")
+                    print(f"Ran {name}:{test}, RC=1, stats: ")
                     print(model_stats)
                     json.dump(model_stats, output_file)
 
