@@ -40,7 +40,7 @@ class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
     # Original train batch size: 64
     # Source: https://github.com/facebookresearch/demucs/blob/3e5ea549ba921316c587e5f03c0afc0be47a0ced/conf/config.yaml#L37
-    def __init__(self, device: Optional[str]=None, jit: bool=False, train_bs=64, eval_bs=32) -> None:
+    def __init__(self, device: Optional[str]=None, jit: bool=False, train_bs=64, eval_bs=8) -> None:
         super().__init__()
         self.device = device
         self.jit = jit
@@ -54,7 +54,8 @@ class Model(BenchmarkModel):
 
         if 1:
             samples = 80000
-            self.example_inputs = (torch.rand([train_bs, 5, 2, 426888], device=device),)
+            # TODO: enable GPU training after it is supported by infra
+            # self.example_inputs = (torch.rand([train_bs, 5, 2, 426888], device=device),)
             self.eval_example_inputs = (torch.rand([eval_bs, 5, 2, 426888], device=device),)
 
         self.duration = Fraction(samples + args.data_stride, args.samplerate)
@@ -93,6 +94,10 @@ class Model(BenchmarkModel):
             loss = self.criterion(estimates, sources)
 
     def train(self, niter=1):
+        if self.device == "cpu":
+            raise NotImplementedError("Disable CPU training because it is too slow (> 1min)")
+        if self.device == "cuda":
+            raise NotImplementedError("Disable GPU training because it causes CUDA OOM on T4")
         for _ in range(niter):
             sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
