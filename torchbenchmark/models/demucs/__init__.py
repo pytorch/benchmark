@@ -19,8 +19,8 @@ from typing import Optional, Tuple
 torch.manual_seed(1337)
 random.seed(1337)
 np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = True
 
 
 class DemucsWrapper(torch.nn.Module):
@@ -102,12 +102,3 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
-
-
-if __name__ == '__main__':
-    for jit in [True, False]:
-        m = Model(device='cuda', jit=jit)
-        module, example_inputs = m.get_module()
-        module(*example_inputs)
-        m.train(niter=1)
-        m.eval(niter=1)
