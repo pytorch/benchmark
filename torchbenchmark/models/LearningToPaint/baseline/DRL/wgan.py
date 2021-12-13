@@ -7,7 +7,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from torch.autograd import grad as torch_grad
 import torch.nn.utils.weight_norm as weightNorm
-from utils.util import *
+from ..utils.util import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dim = 128

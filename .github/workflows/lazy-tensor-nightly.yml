@@ -1,0 +1,36 @@
+name: Lazy Tensor Nightly Testing
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *' # run at 2 PM UTC
+jobs:
+  run-benchmark:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    env:
+      SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+      CONDA_ENV: lazytensor-ci
+      PYTHON_VERSION: 3.8
+    steps:
+      - name: Check out TorchBench
+        uses: actions/checkout@v2
+        with:
+          ref: main
+          path: benchmark
+      - name: Check out PyTorch
+        uses: actions/checkout@v2
+        with:
+          repository: pytorch/pytorch
+          ref: lazy_tensor_staging
+          path: pytorch
+      - name: Create Conda env
+        run: |
+          pushd benchmark
+          bash .github/scripts/lazy-tensor-benchmark/create-env.sh
+      - name: Run benchmark
+        run: |
+          echo "Running the lazy tensor benchmark"
+      - name: Clean up environment
+        run: |
+          pushd benchmark
+          bash .github/scripts/lazy-tensor-benchmark/remove-env.sh

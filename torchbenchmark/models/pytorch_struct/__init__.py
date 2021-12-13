@@ -11,9 +11,9 @@ import torch_struct
 from torch_struct import SentCFG
 from .networks.NeuralCFG import NeuralCFG
 
-from .legacy.field import Field
-from .legacy.datasets import UDPOS
-from .legacy.iterator import BucketIterator
+from torchbenchmark.util.torchtext_legacy.field import Field
+from torchbenchmark.util.torchtext_legacy.datasets import UDPOS
+from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
@@ -55,7 +55,9 @@ def TokenBucket(
 class Model(BenchmarkModel):
   task = OTHER.OTHER_TASKS
 
-  def __init__(self, device=None, jit=False, train_bs=128):
+  # Original train batch size: 200
+  # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
+  def __init__(self, device=None, jit=False, train_bs=200):
     super().__init__()
     self.device = device
     self.jit = jit

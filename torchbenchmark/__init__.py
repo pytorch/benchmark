@@ -52,7 +52,7 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
                 run_kwargs['stdout'] = output_buffer
             subprocess.run(*run_args, **run_kwargs)  # type: ignore
         else:
-            return (False, f"No install.py is found in {model_path}.", None)
+            return (True, f"No install.py is found in {model_path}. Skip.", None)
     except subprocess.CalledProcessError as e:
         return (False, e.output, io.FileIO(stdout_fpath, mode="r").read().decode())
     except Exception as e:
@@ -69,16 +69,20 @@ def _list_model_paths() -> List[str]:
     return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
 
 
-def setup(verbose: bool = True, continue_on_fail: bool = False) -> bool:
+def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False) -> bool:
     if not _test_https():
         print(proxy_suggestion)
         sys.exit(-1)
 
     failures = {}
-    for model_path in _list_model_paths():
+    models = list(map(lambda p: p.lower(), models))
+    model_paths = filter(lambda p: True if not models else os.path.basename(p).lower() in models, _list_model_paths())
+    for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         success, errmsg, stdout_stderr = _install_deps(model_path, verbose=verbose)
-        if success:
+        if success and errmsg and "No install.py is found" in errmsg:
+            print("SKIP - No install.py is found")
+        elif success:
             print("OK")
         else:
             print("FAIL")
@@ -464,6 +468,26 @@ def list_models(model_match=None):
                 models.append(Model)
     return models
 
+def load_model_by_name(model):
+    models = filter(lambda x: model.lower() == x.lower(),
+                    map(lambda y: os.path.basename(y), _list_model_paths()))
+    models = list(models)
+    if not models:
+        return None
+    assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
+    model_name = models[0]
+    try:
+        module = importlib.import_module(f'.models.{model_name}', package=__name__)
+    except ModuleNotFoundError as e:
+        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it")
+        return None
+    Model = getattr(module, 'Model', None)
+    if Model is None:
+        print(f"Warning: {module} does not define attribute Model, skip it")
+        return None
+    if not hasattr(Model, 'name'):
+        Model.name = model_name
+    return Model
 
 def get_metadata_from_yaml(path):
     import yaml

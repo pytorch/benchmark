@@ -12,7 +12,7 @@ import argparse
 import time
 import torch.profiler as profiler
 
-from torchbenchmark import list_models
+from torchbenchmark import load_model_by_name
 import torch
 
 WARMUP_ROUNDS = 3
@@ -126,8 +126,9 @@ def _validate_devices(devices: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
+    SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
-    parser.add_argument("-d", "--device", choices=["cpu", "cuda"], default="cpu", help="Which device to use.")
+    parser.add_argument("-d", "--device", choices=SUPPORT_DEVICE_LIST, default="cpu", help="Which device to use.")
     parser.add_argument("-m", "--mode", choices=["eager", "jit"], default="eager", help="Which mode to run.")
     parser.add_argument("-t", "--test", choices=["eval", "train"], default="eval", help="Which test to run.")
     parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
@@ -146,15 +147,12 @@ if __name__ == "__main__":
         exit(-1)
 
     found = False
-    for Model in list_models():
-        if args.model.lower() in Model.name.lower():
-            found = True
-            break
-    if found:
-        print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
-    else:
+    Model = load_model_by_name(args.model)
+    if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
+
+    print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
 
     # build the model and get the chosen test method
     if args.bs:
