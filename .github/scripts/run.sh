@@ -48,13 +48,13 @@ export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
 echo "Running check_lazy.py"
 # The output is a file full of JSON objects but not legit .JSON.
-python check_lazy.py --output_file ${DATA_DIR}/sweep.out
-python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.out --output_file ${DATA_DIR}/sweep.csv
+# python check_lazy.py --output_file ${DATA_DIR}/sweep.out
+# python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.out --output_file ${DATA_DIR}/sweep.csv
 
 echo "Running lazy_bench.py"
-pushd ../pytorch/lazy_tensor_core/
-LTC_TS_CUDA=1 python lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test train
-LTC_TS_CUDA=1 python lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test eval
-popd
+# pushd ../pytorch/lazy_tensor_core/
+LTC_TS_CUDA=1 python ../pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test train
+LTC_TS_CUDA=1 python ../pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test eval
+# popd
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
