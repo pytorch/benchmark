@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 import torch
-from tabulate import tabulate 
+import importlib
 from torchbenchmark import _list_model_paths
 import lazy_tensor_core
 import datetime
@@ -102,14 +102,15 @@ def json_to_csv(json_file, csv_file):
 
 def get_model_class(model_name):
     try:
-        module = importlib.import_module(f'.models.{model_name}', package=__name__)
+        module = importlib.import_module(f'.models.{model_name}', package="torchbenchmark")
+        Model = getattr(module, 'Model', None)
+        if Model is None:
+             raise RuntimeError(f"{module} does not define attribute Model, skip it")
+        if not hasattr(Model, 'name'):
+            Model.name = model_name
+        return Model
     except ModuleNotFoundError as e:
-        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it")
-    Model = getattr(module, 'Model', None)
-    if Model is None:
-        print(f"Warning: {module} does not define attribute Model, skip it")
-    if not hasattr(Model, 'name'):
-        Model.name = model_name
+        raise RuntimeError(f"Could not find dependent module {e.name} for Model {model_name}, skip it")
 
 def _check_model(model_name, test, output_file, niter):
     import lazy_tensor_core.core.lazy_model as ltm
