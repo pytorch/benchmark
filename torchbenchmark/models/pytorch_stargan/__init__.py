@@ -23,7 +23,10 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False):
+    # Original train batch size: 16
+    # Source: https://github.com/yunjey/stargan/blob/94dd002e93a2863d9b987a937b85925b80f7a19f/main.py#L73
+    # This model doesn't support setting eval batch size and will use the same bs as train
+    def __init__(self, device=None, jit=False, train_bs=16):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -32,7 +35,7 @@ class Model(BenchmarkModel):
         config.celeba_image_dir = os.path.join(os.path.dirname(__file__), 'data/celeba/images')
         config.attr_path = os.path.join(os.path.dirname(__file__), 'data/celeba/list_attr_celeba.txt')
         config.num_iters = 1
-        config.batch_size = 24
+        config.batch_size = train_bs
         config.use_tensorboard = False
         config.device = device
         config.should_script = jit
