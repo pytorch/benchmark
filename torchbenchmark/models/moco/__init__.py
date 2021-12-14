@@ -51,8 +51,8 @@ class Model(BenchmarkModel):
             'distributed': True,
         })
 
-        if device != "cuda":
-            return
+        if self.device == "cpu":
+            raise NotImplementedError("CPU is not supported by this model")
 
         try:
             dist.init_process_group(backend='nccl', init_method='tcp://localhost:10001',
@@ -102,8 +102,8 @@ class Model(BenchmarkModel):
         Both model and example_inputs should be on self.device properly.
         `model(*example_inputs)` should execute one step of model forward.
         """
-        if self.device != "cuda":
-            raise NotImplementedError("GPU only")
+        if self.device == "cpu":
+            raise NotImplementedError("CPU is not supported by this model")
 
         images = []
         for (i, _) in self.train_loader:
@@ -121,8 +121,8 @@ class Model(BenchmarkModel):
 
         Leave warmup to the caller (e.g. don't do it inside)
         """
-        if self.device != "cuda":
-            raise NotImplementedError("GPU only")
+        if self.device == "cpu":
+            raise NotImplementedError("CPU is not supported by this model")
 
         self.model.train()
         for e in range(niterations):
@@ -149,8 +149,8 @@ class Model(BenchmarkModel):
 
         Leave warmup to the caller (e.g. don't do it inside)
         """
-        if self.device != "cuda":
-            raise NotImplementedError("GPU only")
+        if self.device == "cpu":
+            raise NotImplementedError("CPU is not supported by this model")
 
         for i in range(niterations):
             for i, (images, _) in enumerate(self.train_loader):

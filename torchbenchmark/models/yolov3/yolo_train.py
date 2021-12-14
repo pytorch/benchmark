@@ -12,6 +12,17 @@ from .yolo_utils.utils import *
 from .yolo_utils.parse_config import parse_data_cfg
 from pathlib import Path
 
+def _prefetch_loader(loader, size, fields=[], collate_fn=lambda x: x):
+    result = []
+    for index, item in enumerate(loader):
+        litem = list(item)
+        for f in fields:
+            litem[f] = collate_fn(litem[f])
+        result.append(tuple(litem))
+        if index == size:
+            break
+    return result
+
 def prepare_training_loop(args):
     mixed_precision = True
     try:  # Mixed precision training https://github.com/NVIDIA/apex
@@ -221,6 +232,12 @@ def prepare_training_loop(args):
                                                 pin_memory=True,
                                                 collate_fn=dataset.collate_fn)
 
+        # TorchBench: prefetch the dataloader
+        if opt.prefetch:
+            dataloader = _prefetch_loader(dataloader, size=opt.train_num_batch*batch_size, 
+                                          fields=[0, 1],
+                                          collate_fn=lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
+
         # Model parameters
         model.nc = nc  # attach number of classes to model
         model.hyp = hyp  # attach hyperparameters to model
@@ -240,9 +257,9 @@ def prepare_training_loop(args):
             # torch.autograd.set_detect_anomaly(True)
             results = (0, 0, 0, 0, 0, 0, 0)  # 'P', 'R', 'mAP', 'F1', 'val GIoU', 'val Objectness', 'val Classification'
             t0 = time.time()
-            print('Image sizes %g - %g train, %g test' % (imgsz_min, imgsz_max, imgsz_test))
-            print('Using %g dataloader workers' % nw)
-            print('Starting training for %g epochs...' % epochs)
+            # print('Image sizes %g - %g train, %g test' % (imgsz_min, imgsz_max, imgsz_test))
+            # print('Using %g dataloader workers' % nw)
+            # print('Starting training for %g epochs...' % epochs)
             for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
                 model.train()
 
@@ -253,8 +270,9 @@ def prepare_training_loop(args):
                     dataset.indices = random.choices(range(dataset.n), weights=image_weights, k=dataset.n)  # rand weighted idx
 
                 mloss = torch.zeros(4).to(device)  # mean losses
-                print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
-                pbar = tqdm(enumerate(dataloader), total=nb)  # progress bar
+                # print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
+                # pbar = tqdm(zip(range(opt.train_num_batch), dataloader), total=nb)  # progress bar
+                pbar = zip(range(opt.train_num_batch), dataloader)
                 for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
                     if i > 3:
                         break
@@ -310,7 +328,7 @@ def prepare_training_loop(args):
                     mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
                     mem = '%.3gG' % (torch.cuda.memory_cached() / 1E9 if torch.cuda.is_available() else 0)  # (GB)
                     s = ('%10s' * 2 + '%10.3g' * 6) % ('%g/%g' % (epoch, epochs - 1), mem, *mloss, len(targets), img_size)
-                    pbar.set_description(s)
+                    # pbar.set_description(s)
 
                     # Plot
                     if ni < 1:
@@ -388,9 +406,9 @@ def prepare_training_loop(args):
                         strip_optimizer(f2) if ispt else None  # strip optimizer
                         os.system('gsutil cp %s gs://%s/weights' % (f2, opt.bucket)) if opt.bucket and ispt else None  # upload
 
-            if not opt.evolve:
-                plot_results()  # save as results.png
-            print('%g epochs completed in %.3f hours.\n' % (epoch - start_epoch + 1, (time.time() - t0) / 3600))
+            # if not opt.evolve:
+            #     plot_results()  # save as results.png
+            # print('%g epochs completed in %.3f hours.\n' % (epoch - start_epoch + 1, (time.time() - t0) / 3600))
             # dist.destroy_process_group() if torch.cuda.device_count() > 1 else None
             torch.cuda.empty_cache()
             return results
@@ -417,7 +435,11 @@ def prepare_training_loop(args):
     parser.add_argument('--adam', action='store_true', help='use adam optimizer')
     parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
     parser.add_argument('--freeze-layers', action='store_true', help='Freeze non-output layers')
+    # Extra args added by TorchBench
+    parser.add_argument('--train-num-batch', type=int, default=1, help='Number of batches to run')
+    parser.add_argument('--prefetch', action='store_true', help='Whether to prefetch dataloader')
     opt = parser.parse_args(args)
+
     opt.weights = last if opt.resume else opt.weights
     # check_git_status()
     opt.cfg = check_file(opt.cfg)  # check file
@@ -433,8 +455,8 @@ def prepare_training_loop(args):
 
     tb_writer = None
     if not opt.evolve:  # Train normally
-        print('Start Tensorboard with "tensorboard --logdir=runs", view at http://localhost:6006/')
-        tb_writer = SummaryWriter(comment=opt.name)
+        # print('Start Tensorboard with "tensorboard --logdir=runs", view at http://localhost:6006/')
+        # tb_writer = SummaryWriter(comment=opt.name)
         return get_train(hyp)  # train normally
     else:  # Evolve hyperparameters (optional)
         opt.notest, opt.nosave = True, True  # only test/save final epoch

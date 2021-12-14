@@ -1,0 +1,67 @@
+name: TorchBench V2 nightly
+on:
+  workflow_dispatch:
+
+jobs:
+  run-benchmark:
+    env:
+      TORCHBENCH_VER: "v2"
+      CONFIG_VER: "v2"
+      PYTHON_VER: "3.8"
+      CUDA_VER: "11.3"
+      MAGMA_VERSION: "magma-cuda113"
+      CONDA_ENV_NAME:  "torchbench-v2-nightly-ci"
+      OUTPUT_DIR: ".torchbench/v2-nightly-ci"
+      BISECTION_ROOT: ".torchbench/v2-bisection-ci"
+      CUDA_VERSION: "cu113"
+      SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      IS_GHA: 1
+      AWS_DEFAULT_REGION: us-east-1
+      BUILD_ENVIRONMENT: benchmark-nightly
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: v1.0
+      - name: Create conda env
+        run: |
+          conda create -y -q --name "${CONDA_ENV_NAME}" python=%{{ env.PYTHON_VER }}
+      - name: Install PyTorch nightly
+        run: |
+          . activate "${CONDA_ENV_NAME}"
+          # Install dependencies
+          pip install requests bs4 argparse gitpython boto3
+          # Check if nightly builds are available
+          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+          # If failed, the script will generate empty result
+          if [ -z $NIGHTLIES ]; then
+              echo "Torch nightly build failed. Cancel the workflow."
+              exit 1
+          fi
+          # Install magma
+          conda install -y -c pytorch "${MAGMA_VERSION}"
+          # Install PyTorch nightly from pip
+          pip install --pre torch torchtext torchvision \
+          -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
+      - name: Install other TorchBench dependencies
+        run: |
+          . activate "${CONDA_ENV_NAME}"
+          conda install -y git-lfs
+          python install.py
+      - name: Run benchmark
+        run: |
+          . activate "${CONDA_ENV_NAME}"
+          WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
+          bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Benchmark result
+          path: benchmark-output/
+      - name: Destroy conda env
+        run: |
+          conda env remove --name "${CONDA_ENV_NAME}"
