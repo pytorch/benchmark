@@ -19,7 +19,7 @@ import torch.autograd.profiler as profiler
 
 def getCommandLineArgs() :
   parser = argparse.ArgumentParser(description='RecoEncoder')
-  
+
   parser.add_argument('--drop_prob', type=float, default=0.0, metavar='N',
                       help='dropout drop probability')
   parser.add_argument('--constrained', action='store_true',
@@ -52,7 +52,7 @@ def getCommandLineArgs() :
                       help='disable output messages')
   parser.add_argument('--profile', action='store_true',
                       help='enable profiler and stat print')
-  
+
   args = parser.parse_args()
 
   return args
@@ -61,7 +61,7 @@ def getBenchmarkArgs(forceCuda):
 
   class Args:
     pass
-  
+
   args = Args()
 
   args.drop_prob          = 0.8
@@ -87,27 +87,27 @@ def processArgState(args) :
 
   if not args.silent:
     print(args)
-  
+
   if args.forcecpu and args.forcecuda:
       print("Error, force cpu and cuda cannot both be set")
       quit()
-  
+
   args.use_cuda = torch.cuda.is_available() # global flag
   if not args.silent:
     if args.use_cuda:
-      print('GPU is available.') 
-    else: 
+      print('GPU is available.')
+    else:
       print('GPU is not available.')
-  
+
   if args.use_cuda and args.forcecpu:
       args.use_cuda = False
-  
+
   if not args.silent:
     if args.use_cuda:
       print('Running On GPU')
     else:
       print('Running On CUDA')
-  
+
     if args.profile:
       print('Profiler Enabled')
 
@@ -116,7 +116,6 @@ def processArgState(args) :
 class DeepRecommenderInferenceBenchmark:
 
   def __init__(self, device = 'cpu', jit=False, usecommandlineargs = False) :
-
     self.toytest = True
 
     self.batch_size = 256
@@ -132,11 +131,8 @@ class DeepRecommenderInferenceBenchmark:
     else:
       if device == "cpu":
         forcecuda = False
-      elif device == "cuda":
-        forcecuda = True
       else:
-        # unknown device string, quit init
-        return
+        forcecuda = True
 
       self.args = getBenchmarkArgs(forcecuda)
 
@@ -150,22 +146,22 @@ class DeepRecommenderInferenceBenchmark:
     self.params['userIdInd'] = 0
     if not self.args.silent:
       print("Loading training data")
-    
+
     if self.toytest == False:
       self.data_layer = input_layer.UserItemRecDataProvider(params=self.params)
-    
+
       if not self.args.silent:
         print("Data loaded")
         print("Total items found: {}".format(len(self.data_layer.data.keys())))
         print("Vector dim: {}".format(self.data_layer.vector_dim))
-  
+
         print("Loading eval data")
 
     self.eval_params = copy.deepcopy(self.params)
     # must set eval batch size to 1 to make sure no examples are missed
     self.eval_params['batch_size'] = 1
     self.eval_params['data_dir'] = self.args.path_to_eval_data
-  
+
     if self.toytest:
       self.rencoder = model.AutoEncoder(layer_sizes=[self.node_count] + [int(l) for l in self.args.hidden_layers.split(',')],
                                         nl_type=self.args.non_linearity_type,
@@ -181,12 +177,12 @@ class DeepRecommenderInferenceBenchmark:
                                         is_constrained=self.args.constrained,
                                         dp_drop_prob=self.args.drop_prob,
                                         last_layer_activations=not self.args.skip_last_layer_nl)
-  
+
     self.path_to_model = Path(self.args.save_path)
     if self.path_to_model.is_file():
       print("Loading model from: {}".format(self.path_to_model))
       self.rencoder.load_state_dict(torch.load(self.args.save_path))
-  
+
     if not self.args.silent:
       print('######################################################')
       print('######################################################')
@@ -199,14 +195,16 @@ class DeepRecommenderInferenceBenchmark:
 
     if self.args.jit:
       self.rencoder = torch.jit.trace(self.rencoder, (self.toyinputs, ))
-  
+
     if self.args.use_cuda: self.rencoder = self.rencoder.cuda()
 
     if self.toytest == False:
       self.inv_userIdMap = {v: k for k, v in self.data_layer.userIdMap.items()}
       self.inv_itemIdMap = {v: k for k, v in self.data_layer.itemIdMap.items()}
-  
+
       self.eval_data_layer.src_data = self.data_layer.data
+
+    self.rencoder = self.rencoder.to(device)
 
   def eval(self, niter=1):
     for iteration in range(niter):
@@ -218,9 +216,9 @@ class DeepRecommenderInferenceBenchmark:
       for i, ((out, src), majorInd) in enumerate(self.eval_data_layer.iterate_one_epoch_eval(for_inf=True)):
         inputs = Variable(src.cuda().to_dense() if self.args.use_cuda else src.to_dense())
         targets_np = out.to_dense().numpy()[0, :]
-  
+
         out = self.rencoder(inputs)
-  
+
         if not self.args.nooutput:
             self.outputs = out.cpu().data.numpy()[0, :]
             non_zeros = targets_np.nonzero()[0].tolist()
@@ -232,26 +230,26 @@ class DeepRecommenderInferenceBenchmark:
                 print("Done: {}".format(i))
 
   def TimedInferenceRun(self) :
-  
+
       print('Timed Inference Start')
-  
+
       e_start_time = time.time()
-  
+
       if self.args.profile:
         with profiler.profile(record_shapes=True, use_cuda=True) as prof:
           with profiler.record_function("Inference"):
             self.eval()
       else:
         self.eval()
-  
+
       e_end_time = time.time()
-  
+
       print('Timed Inference Complete')
       print('Inference finished in {} seconds'
             .format(e_end_time - e_start_time))
-  
+
       if self.args.profile:
-        print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))        
+        print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
         prof.export_chrome_trace("trace.json")
 
 def main():

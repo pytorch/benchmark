@@ -30,9 +30,6 @@ class Model(BenchmarkModel):
     if jit:
       self.not_implemented_reason = "Jit Not Supported"
 
-    elif self.device != "cpu" and self.device != "cuda":
-      self.not_implemented_reason = "device type not supported"
-
     elif self.device == "cuda" and torch.cuda.is_available() == False:
       self.not_implemented_reason = "cuda not available on this device"
 
