@@ -105,7 +105,7 @@ def getTrainCommandLineArgs() :
                       help='force cpu use')
   parser.add_argument('--profile', action='store_true',
                       help='enable profiler and stat print')
-  
+
   args = parser.parse_args()
 
   return args
@@ -114,7 +114,7 @@ def processTrainArgState(args) :
 
   if not args.silent:
     print(args)
-  
+
   if args.forcecpu and args.forcecuda:
     print("Error, force cpu and cuda cannot both be set")
     quit()
@@ -122,13 +122,13 @@ def processTrainArgState(args) :
   args.use_cuda = torch.cuda.is_available() # global flag
   if not args.silent:
     if args.use_cuda:
-      print('GPU is available.') 
-    else: 
+      print('GPU is available.')
+    else:
       print('GPU is not available.')
-  
+
   if args.use_cuda and args.forcecpu:
     args.use_cuda = False
-  
+
   if not args.silent:
     if args.use_cuda:
       print('Running On CUDA')
@@ -201,11 +201,8 @@ class DeepRecommenderTrainBenchmark:
 
       if device == "cpu":
         forcecuda = False
-      elif device == "cuda":
-        forcecuda = True
       else:
-        # unknown device string, quit init
-        return
+        forcecuda = True
 
       self.args.forcecuda = forcecuda
       self.args.forcecpu = not forcecuda
@@ -224,15 +221,15 @@ class DeepRecommenderTrainBenchmark:
     if self.toytest == False:
       if not self.args.silent:
         print("Loading training data")
-    
+
       self.data_layer = input_layer.UserItemRecDataProvider(params=self.params)
       if not self.args.silent:
         print("Data loaded")
         print("Total items found: {}".format(len(self.data_layer.data.keys())))
         print("Vector dim: {}".format(self.data_layer.vector_dim))
-  
+
         print("Loading eval data")
-    
+
     self.eval_params = copy.deepcopy(self.params)
 
     # must set eval batch size to 1 to make sure no examples are missed
@@ -260,7 +257,7 @@ class DeepRecommenderTrainBenchmark:
       if self.path_to_model.is_file():
         print("Loading model from: {}".format(self.model_checkpoint))
         self.rencoder.load_state_dict(torch.load(self.model_checkpoint))
-  
+
     if not self.args.silent:
       print('######################################################')
       print('######################################################')
@@ -271,12 +268,12 @@ class DeepRecommenderTrainBenchmark:
 
     if jit:
       self.rencoder = torch.jit.trace(self.rencoder, (self.toyinputs,))
-  
+
     if self.args.use_cuda:
       gpu_ids = [int(g) for g in self.args.gpu_ids.split(',')]
       if not self.args.silent:
         print('Using GPUs: {}'.format(gpu_ids))
-      
+
       if len(gpu_ids)>1:
         self.rencoder = nn.DataParallel(self.rencoder,
                                    device_ids=gpu_ids)
@@ -284,7 +281,7 @@ class DeepRecommenderTrainBenchmark:
       self.rencoder = self.rencoder.cuda()
       self.toyinputs = self.toyinputs.to(device)
 
-  
+
     if self.args.optimizer == "adam":
       self.optimizer = optim.Adam(self.rencoder.parameters(),
                                   lr=self.args.lr,
@@ -304,30 +301,32 @@ class DeepRecommenderTrainBenchmark:
                                 weight_decay=self.args.weight_decay)
     else:
       raise  ValueError('Unknown optimizer kind')
-  
+
     self.t_loss = 0.0
     self.t_loss_denom = 0.0
     self.denom = 0.0
     self.total_epoch_loss = 0.0
     self.global_step = 0
-  
+
     if self.args.noise_prob > 0.0:
       self.dp = nn.Dropout(p=self.args.noise_prob)
 
+    self.rencoder = self.rencoder.to(device)
+
   def DoTrain(self):
-  
+
     self.rencoder.train()
     #if self.args.optimizer == "momentum":
     #  self.scheduler.step()
-  
+
     for i, mb in enumerate(self.data_layer.iterate_one_epoch()):
-  
+
       inputs = Variable(mb.cuda().to_dense() if self.args.use_cuda else mb.to_dense())
 
       self.optimizer.zero_grad()
-  
+
       outputs = self.rencoder(inputs)
-  
+
       loss, num_ratings = model.MSEloss(outputs, inputs)
       loss = loss / num_ratings
       loss.backward()
@@ -335,7 +334,7 @@ class DeepRecommenderTrainBenchmark:
       self.global_step += 1
       self.t_loss += loss.item()
       self.t_loss_denom += 1
-  
+
       if not self.args.nooutput:
         if i % self.args.summary_frequency == 0:
           print('[%d, %5d] RMSE: %.7f' % (self.epoch, i, sqrt(self.t_loss / self.t_loss_denom)))
@@ -347,10 +346,10 @@ class DeepRecommenderTrainBenchmark:
           if not self.rencoder.is_constrained:
             log_var_and_grad_summaries(self.logger, self.rencoder.decode_w, self.global_step, "Decode_W")
           log_var_and_grad_summaries(self.logger, self.rencoder.decode_b, self.global_step, "Decode_b")
-  
+
       self.total_epoch_loss += loss.item()
       self.denom += 1
-  
+
       #if args.aug_step > 0 and i % args.aug_step == 0 and i > 0:
       if self.args.aug_step > 0:
         # Magic data augmentation trick happen here
@@ -364,13 +363,13 @@ class DeepRecommenderTrainBenchmark:
           loss = loss / num_ratings
           loss.backward()
           self.optimizer.step()
-  
+
   def train(self, niter=1) :
     for self.epoch in range(niter):
 
       if self.toytest:
         self.rencoder.train()
-        self.optimizer.zero_grad()  
+        self.optimizer.zero_grad()
         outputs = self.rencoder(self.toyinputs)
         loss, num_ratings = model.MSEloss(outputs, self.toyinputs)
         loss = loss / num_ratings
@@ -382,17 +381,17 @@ class DeepRecommenderTrainBenchmark:
         print('Doing epoch {} of {}'.format(self.epoch, niter))
         print('Timing Start')
         e_start_time = time.time()
-  
+
       self.DoTrain()
-  
+
       if not self.args.silent:
         e_end_time = time.time()
         print('Timing End')
-  
+
         if self.args.profile:
-          print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))        
+          print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
           prof.export_chrome_trace("trace.json")
-  
+
         print('Total epoch {} finished in {} seconds with TRAINING RMSE loss: {}'
               .format(self.epoch, e_end_time - e_start_time, sqrt(self.total_epoch_loss/self.denom)))
 
@@ -402,18 +401,18 @@ class DeepRecommenderTrainBenchmark:
         if self.epoch % self.args.save_every == 0 or self.epoch == self.args.num_epochs - 1:
           eval_loss = DoTrainEval(self.rencoder, self.eval_data_layer, self.args.use_cuda)
           print('Epoch {} EVALUATION LOSS: {}'.format(self.epoch, eval_loss))
-  
-          self.logger.scalar_summary("EVALUATION_RMSE", eval_loss, self.epoch) 
+
+          self.logger.scalar_summary("EVALUATION_RMSE", eval_loss, self.epoch)
           print("Saving model to {}".format(self.model_checkpoint + ".epoch_"+str(self.epoch)))
           torch.save(self.rencoder.state_dict(), self.model_checkpoint + ".epoch_"+str(self.epoch))
-  
+
     if not self.args.nooutput:
       print("Saving model to {}".format(self.model_checkpoint + ".last"))
       torch.save(self.rencoder.state_dict(), self.model_checkpoint + ".last")
-  
+
       # save to onnx
       dummy_input = Variable(torch.randn(self.params['batch_size'], self.data_layer.vector_dim).type(torch.float))
-      torch.onnx.export(self.rencoder.float(), dummy_input.cuda() if self.args.use_cuda else dummy_input, 
+      torch.onnx.export(self.rencoder.float(), dummy_input.cuda() if self.args.use_cuda else dummy_input,
                         self.model_checkpoint + ".onnx", verbose=True)
       print("ONNX model saved to {}!".format(self.model_checkpoint + ".onnx"))
 
