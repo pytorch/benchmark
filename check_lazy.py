@@ -22,6 +22,10 @@ import lazy_tensor_core
 import datetime
 lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
+# The following models don't have the corresponding tests.
+skip_tests = { 'eval': {'pytorch_struct'}, \
+               'train': {'pyhpc_equation_of_state', 'pyhpc_isoneutral_mixing'}}
+
 def list_model_names():
     return [os.path.basename(model_path) for model_path in _list_model_paths()]
 
@@ -51,6 +55,9 @@ def sweep_models(output_filename, tests=['eval', 'train']):
     with open(output_filename, 'w') as output_file:
         for name in list_model_names():
             for test in tests:
+                if name in skip_tests[test]:
+                    continue
+
                 with tempfile.NamedTemporaryFile(mode='r') as model_output_file:
                     env = os.environ
                     env["LTC_TS_CUDA"] = "1"
