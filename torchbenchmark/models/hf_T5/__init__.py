@@ -11,6 +11,9 @@ from torchbenchmark.tasks import NLP
 from transformers import *
 from datasets import load_dataset
 
+torch.manual_seed(1337)
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = True
 
 class ArgsToKwargsWrapper(torch.nn.Module):
     def __init__(self, model):
@@ -23,13 +26,14 @@ class ArgsToKwargsWrapper(torch.nn.Module):
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
-    def __init__(self, device=None, jit=False, train_bs=2, eval_bs=1):
+    # Original train batch size per device: 8
+    # Source: https://github.com/huggingface/transformers/blob/master/examples/flax/language-modeling/run_t5_mlm_flax.py#L83
+    def __init__(self, device=None, jit=False, train_bs=8, eval_bs=8):
         super().__init__()
         self.device = device
         self.jit = jit
 
-        torch.manual_seed(42)
-        config = AutoConfig.from_pretrained("t5-base")
+        config = AutoConfig.from_pretrained("t5-large")
         self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
@@ -64,22 +68,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.eval_inputs)
-
-
-if __name__ == "__main__":
-    import time
-    m = Model(device="cuda")
-    module, example_inputs = m.get_module()
-
-    m.train(niter=1)
-    torch.cuda.synchronize()
-
-    begin = time.time()
-    m.train(niter=1)
-    torch.cuda.synchronize()
-    print(time.time()-begin)
-
-    begin = time.time()
-    m.eval(niter=1)
-    torch.cuda.synchronize()
-    print(time.time()-begin)
