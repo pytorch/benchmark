@@ -52,6 +52,9 @@ echo "Running check_lazy.py"
 # python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.out --output_file ${DATA_DIR}/sweep.csv
 
 echo "Running lazy_bench.py"
+# We have two copies of repos. $HOME/pytorch for actual benchmarking. ../pytorch for user check-out.
+# Here we use lazy_bench.py from $HOME/pytorch which points to the correct install of pytorch,
+# and TorchBench from pwd which has the LTC enhancements.
 LTC_TS_CUDA=1 python $HOME/pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test train --torchbench_dir .
 LTC_TS_CUDA=1 python $HOME/pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test eval --torchbench_dir .
 
