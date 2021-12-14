@@ -5,7 +5,7 @@
 # The input data files in the input_data/ directory are generated with a minimized aishell data
 # containing the following files in the original dataset:
 # S0002.tar.gz, S0757.tar.gz, S0915.tar.gz
-# 
+#
 import os
 import torch
 
@@ -20,7 +20,7 @@ class Model(BenchmarkModel):
         self.device = device
         if jit:
             return
-        if not device == "cuda":
+        if device == "cpu":
             return
         self.traincfg = SpeechTransformerTrainConfig()
         self.evalcfg = SpeechTransformerEvalConfig(self.traincfg)
@@ -28,7 +28,7 @@ class Model(BenchmarkModel):
         self.evalcfg.model.cuda()
 
     def get_module(self):
-        if not self.device == "cuda":
+        if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
@@ -37,7 +37,7 @@ class Model(BenchmarkModel):
             return self.traincfg.model, (padded_input.cuda(), input_lengths.cuda(), padded_target.cuda())
 
     def train(self, niter=1):
-        if not self.device == "cuda":
+        if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
@@ -45,7 +45,7 @@ class Model(BenchmarkModel):
             self.traincfg.train(epoch = i)
 
     def eval(self, niter=1):
-        if not self.device == "cuda":
+        if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
