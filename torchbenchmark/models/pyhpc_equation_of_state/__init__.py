@@ -31,13 +31,13 @@ class Model(BenchmarkModel):
 
     # Original size: [2 ** i for i in range(12, 23, 2)
     # Source: https://github.com/dionhaefner/pyhpc-benchmarks/blob/650ecc650e394df829944ffcf09e9d646ec69691/run.py#L25
-    # Pick data point: i = 14, size = 16384
+    # Pick data point: i = 20, size = 1048576
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = EquationOfState().to(device=self.device)
-        input_size = 16384
+        input_size = 1048576
         raw_inputs = _generate_inputs(input_size)
         if hasattr(eos_pytorch, "prepare_inputs"):
             inputs = eos_pytorch.prepare_inputs(*raw_inputs, device=device)
