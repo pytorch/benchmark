@@ -279,7 +279,6 @@ def isoneutral_diffusion_pre(
 
 def prepare_inputs(*inputs, device):
     out = [
-        # torch.as_tensor(a, device="cuda" if device == "gpu" else "cpu") for a in inputs
         torch.as_tensor(a, device=device) for a in inputs
     ]
     if device == "gpu":
