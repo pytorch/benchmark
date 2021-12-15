@@ -252,7 +252,7 @@ def gsw_dHdT(sa, ct, p):
 
 def prepare_inputs(sa, ct, p, device):
     out = [
-        torch.as_tensor(a, device="cuda" if device == "gpu" else "cpu")
+        torch.as_tensor(a, device=device)
         for a in (sa, ct, p)
     ]
     if device == "gpu":
