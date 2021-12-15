@@ -2,8 +2,11 @@ import argparse
 import subprocess
 import os
 import sys
+import importlib
 import tarfile
-from torchbenchmark import setup, _test_https, proxy_suggestion
+from torchbenchmark import setup, _test_https, proxy_suggestion, TORCH_DEPS
+from torchbenchmark.util.env_check import get_pkg_versions
+
 
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
@@ -56,6 +59,15 @@ if __name__ == '__main__':
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
+    print(f"checking packages {', '.join(TORCH_DEPS)} are installed...", end="", flush=True)
+    try:
+        versions = get_pkg_versions(TORCH_DEPS)
+    except ModuleNotFoundError as e:
+        print("FAIL")
+        print(f"Error: Users must first manually install packages {TORCH_DEPS} before installing the benchmark.")
+        sys.exit(-1)
+    print("OK")
+
     print("checking out Git LFS files...", end="", flush=True)
     success, errmsg = git_lfs_checkout()
     if success:
@@ -64,7 +76,7 @@ if __name__ == '__main__':
         print("FAIL")
         print("Failed to checkout git lfs files. Please make sure you have installed git lfs.")
         print(errmsg)
-        exit(-1)
+        sys.exit(-1)
     decompress_input()
 
     success, errmsg = pip_install_requirements()
@@ -73,6 +85,11 @@ if __name__ == '__main__':
         print(errmsg)
         if not args.continue_on_fail:
             sys.exit(-1)
+    new_versions = get_pkg_versions(TORCH_DEPS)
+    if versions != new_versions:
+        print(f"The torch packages are re-installed after installing the benchmark deps. \
+                Before: {versions}, after: {new_versions}")
+        sys.exit(-1)
     success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail)
     if not success:
         if args.continue_on_fail:
