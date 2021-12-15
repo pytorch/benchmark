@@ -48,8 +48,8 @@ export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
 echo "Running check_lazy.py"
 # The output is a file full of JSON objects but not legit .JSON.
-# python check_lazy.py --output_file ${DATA_DIR}/sweep.out
-# python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.out --output_file ${DATA_DIR}/sweep.csv
+python check_lazy.py --output_file ${DATA_DIR}/sweep.out
+python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.out --output_file ${DATA_DIR}/sweep.csv
 
 echo "Running lazy_bench.py"
 # We have two copies of repos. $HOME/pytorch for actual benchmarking. ../pytorch for user check-out.

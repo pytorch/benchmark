@@ -220,8 +220,7 @@ class TorchSource:
             lazy_tensor_path = os.path.join(self.srcpath, "lazy_tensor_core")
             command = "./scripts/apply_patches.sh"
             subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
-            # Turns on DEBUG build to get assertions as well.
-            command = "DEBUG=1 python setup.py install"
+            command = "python setup.py install"
             subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
             print("done")
 
