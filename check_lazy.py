@@ -22,9 +22,13 @@ import lazy_tensor_core
 import datetime
 lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
-# The following models don't have the corresponding tests.
-skip_tests = { 'eval': {'pytorch_struct'},
-               'train': {'pyhpc_equation_of_state', 'pyhpc_isoneutral_mixing'}}
+# The following models are skipped:
+# pytorch_struct/eval: Don't exist.
+# pyhpc_equation_of_state/train: Don't exist.
+# pyhpc_isoneutral_mixing/train: Don't exist.
+# dlrm/train: Sparse layout doesn't support lazy devices.
+skip_tests = {'eval': {'pytorch_struct'},
+              'train': {'pyhpc_equation_of_state', 'pyhpc_isoneutral_mixing', 'dlrm'}}
 
 def list_model_names():
     return [os.path.basename(model_path) for model_path in _list_model_paths()]
