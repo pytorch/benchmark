@@ -55,6 +55,7 @@ class Model(BenchmarkModel):
         if 1:
             samples = 80000
             # TODO: enable GPU training after it is supported by infra
+            #       see GH issue https://github.com/pytorch/benchmark/issues/652
             # self.example_inputs = (torch.rand([train_bs, 5, 2, 426888], device=device),)
             self.eval_example_inputs = (torch.rand([eval_bs, 5, 2, 426888], device=device),)
 
