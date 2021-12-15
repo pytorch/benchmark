@@ -128,8 +128,8 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        self.model = IsoneutralMixing(self.device).to(device=self.device)
-        input_size = 16384
+        self.model = IsoneutralMixing().to(device=device)
+        input_size = 1048576
         raw_inputs = _generate_inputs(input_size)
         if hasattr(isoneutral_pytorch, "prepare_inputs"):
             inputs = isoneutral_pytorch.prepare_inputs(*raw_inputs, device=device)
