@@ -4,9 +4,9 @@ import os
 import sys
 import importlib
 import tarfile
-from torchbenchmark import setup, _test_https, proxy_suggestion
+from torchbenchmark import setup, _test_https, proxy_suggestion, TORCH_DEPS
+from torchbenchmark.util.env_check import get_pkg_versions
 
-DEPS = ['torch', 'torchvision', 'torchtext']
 
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
@@ -59,13 +59,12 @@ if __name__ == '__main__':
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
-    print(f"checking packages {DEPS} are installed...", end="", flush=True)
+    print(f"checking packages {', '.join(TORCH_DEPS)} are installed...", end="", flush=True)
     try:
-        for module in DEPS:
-            module = importlib.import_module(module)
+        versions = get_pkg_versions(TORCH_DEPS)
     except ModuleNotFoundError as e:
         print("FAIL")
-        print(f"Error: Users must first install packages {DEPS} before installing the benchmark")
+        print(f"Error: Users must first manually install packages {TORCH_DEPS} before installing the benchmark.")
         sys.exit(-1)
     print("OK")
 
@@ -86,6 +85,11 @@ if __name__ == '__main__':
         print(errmsg)
         if not args.continue_on_fail:
             sys.exit(-1)
+    new_versions = get_pkg_versions(TORCH_DEPS)
+    if versions != new_versions:
+        print(f"The torch packages are re-installed after installing the benchmark deps. \
+                Before: {versions}, after: {new_versions}")
+        sys.exit(-1)
     success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail)
     if not success:
         if args.continue_on_fail:
