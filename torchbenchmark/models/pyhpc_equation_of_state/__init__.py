@@ -37,11 +37,11 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.model = EquationOfState().to(device=self.device)
-        size = 16384
-        self.example_inputs = tuple(
-            torch.from_numpy(x).to(self.device)
-            for x in _generate_inputs(size)
-        )
+        input_size = 16384
+        raw_inputs = _generate_inputs(input_size)
+        if hasattr(eos_pytorch, "prepare_inputs"):
+            inputs = eos_pytorch.prepare_inputs(*raw_inputs, device=device)
+        self.example_inputs = inputs
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
                 self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])

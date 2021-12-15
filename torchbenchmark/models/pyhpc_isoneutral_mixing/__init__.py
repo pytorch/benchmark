@@ -3,7 +3,6 @@ from . import isoneutral_pytorch
 from torchbenchmark.tasks import OTHER
 from ...util.model import BenchmarkModel
 
-
 def _generate_inputs(size):
     import math
     import numpy as np
@@ -95,7 +94,6 @@ class IsoneutralMixing(torch.nn.Module):
         Ai_by,
     ):
         return isoneutral_pytorch.isoneutral_diffusion_pre(
-            self.device,
             maskT,
             maskU,
             maskV,
@@ -121,7 +119,6 @@ class IsoneutralMixing(torch.nn.Module):
             Ai_by,
         )
 
-
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
@@ -134,9 +131,10 @@ class Model(BenchmarkModel):
         self.jit = jit
         self.model = IsoneutralMixing(self.device).to(device=self.device)
         input_size = 16384
-        self.example_inputs = tuple(
-            torch.from_numpy(x).to(self.device) for x in _generate_inputs(input_size)
-        )
+        raw_inputs = _generate_inputs(input_size)
+        if hasattr(isoneutral_pytorch, "prepare_inputs"):
+            inputs = isoneutral_pytorch.prepare_inputs(*raw_inputs, device=device)
+        self.example_inputs = inputs
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
                 self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
