@@ -2,8 +2,11 @@ import argparse
 import subprocess
 import os
 import sys
+import importlib
 import tarfile
 from torchbenchmark import setup, _test_https, proxy_suggestion
+
+DEPS = ['torch', 'torchvision', 'torchtext']
 
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
@@ -56,6 +59,16 @@ if __name__ == '__main__':
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
+    print(f"checking packages {DEPS} are installed...", end="", flush=True)
+    try:
+        for module in DEPS:
+            module = importlib.import_module(module)
+    except ModuleNotFoundError as e:
+        print("FAIL")
+        print(f"Error: Users must first install packages {DEPS} before installing the benchmark")
+        sys.exit(-1)
+    print("OK")
+
     print("checking out Git LFS files...", end="", flush=True)
     success, errmsg = git_lfs_checkout()
     if success:
@@ -64,7 +77,7 @@ if __name__ == '__main__':
         print("FAIL")
         print("Failed to checkout git lfs files. Please make sure you have installed git lfs.")
         print(errmsg)
-        exit(-1)
+        sys.exit(-1)
     decompress_input()
 
     success, errmsg = pip_install_requirements()
