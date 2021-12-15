@@ -23,7 +23,7 @@ import datetime
 lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
 # The following models don't have the corresponding tests.
-skip_tests = { 'eval': {'pytorch_struct'}, \
+skip_tests = { 'eval': {'pytorch_struct'},
                'train': {'pyhpc_equation_of_state', 'pyhpc_isoneutral_mixing'}}
 
 def list_model_names():
@@ -69,7 +69,7 @@ def sweep_models(output_filename, tests=['eval', 'train']):
                     try:
                         rc = subprocess.call(launch_command,
                                             env=env,
-                                            timeout = 180, # 3 minutes, 1 min max per iter
+                                            timeout = 360, # 6 minutes, 2 min max per iter
                                             stdout=subprocess.DEVNULL,
                                             stderr=subprocess.STDOUT)
                         model_stats = process_model_stats(name, test, model_output_file)
