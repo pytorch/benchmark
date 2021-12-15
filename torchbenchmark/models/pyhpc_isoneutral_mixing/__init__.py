@@ -63,9 +63,8 @@ def _generate_inputs(size):
 
 
 class IsoneutralMixing(torch.nn.Module):
-    def __init__(self, device):
+    def __init__(self):
         super(IsoneutralMixing, self).__init__()
-        self.device = device
 
     def forward(
         self,
