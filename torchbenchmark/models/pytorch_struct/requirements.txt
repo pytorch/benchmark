@@ -1,5 +1,3 @@
-torch
-torchtext
 dgl
 wandb
 pytorch-transformers
