@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-import random
-import argparse
-import torch
 import os
+import torch
+import random
 import numpy as np
-from torch.utils import data
 from .solver import Solver
 from .data_loader import get_loader
 from .main import parse_config, makedirs
