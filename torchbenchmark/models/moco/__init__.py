@@ -20,19 +20,24 @@ from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1058467)
 random.seed(1058467)
-cudnn.deterministic = True
+cudnn.deterministic = False
+cudnn.benchmark = True
 
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False):
+
+    # Original train batch size: 32
+    # Paper and code uses batch size of 256 for 8 GPUs.
+    # Source: https://arxiv.org/pdf/1911.05722.pdf
+    def __init__(self, device=None, jit=False, train_bs=32):
         super().__init__()
         """ Required """
         self.device = device
         self.jit = jit
         self.opt = Namespace(**{
             'arch': 'resnet50',
-            'batch_size': 32,
+            'batch_size': train_bs,
             'epochs': 2,
             'start_epoch': 0,
             'lr': 0.03,
@@ -58,8 +63,7 @@ class Model(BenchmarkModel):
             dist.init_process_group(backend='nccl', init_method='tcp://localhost:10001',
                                     world_size=1, rank=0)
         except RuntimeError:
-            pass # already initialized?
-
+            pass  # already initialized?
 
         self.model = MoCo(
             models.__dict__[self.opt.arch],
@@ -82,11 +86,11 @@ class Model(BenchmarkModel):
         batches = []
 
         for i in range(4):
-          batches.append(torch.randn(self.opt.batch_size, 3, 224, 224).to(self.device))
+            batches.append(torch.randn(self.opt.batch_size, 3, 224, 224).to(self.device))
 
         def collate_fn(data):
             ind = data[0]
-            return [batches[2*ind], batches[2*ind+1]], 0
+            return [batches[2 * ind], batches[2 * ind + 1]], 0
 
         self.train_loader = torch.utils.data.DataLoader(
             range(2), collate_fn=collate_fn)
