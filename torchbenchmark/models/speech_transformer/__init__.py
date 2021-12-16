@@ -13,10 +13,14 @@ from .config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 
+NUM_TRAIN_BATCH = 1
+NUM_EVAL_BATCH = 1
+
 class Model(BenchmarkModel):
     task = SPEECH.RECOGNITION
     # Original batch size: 32
     # Source: https://github.com/kaituoxu/Speech-Transformer/blob/e6847772d6a786336e117a03c48c62ecbf3016f6/src/bin/train.py#L68
+    # This model does not support adjusting eval bs
     def __init__(self, device=None, jit=False, train_bs=32):
         self.jit = jit
         self.device = device
@@ -24,8 +28,8 @@ class Model(BenchmarkModel):
             return
         if device == "cpu":
             return
-        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs)
-        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg)
+        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs, num_train_bs=NUM_TRAIN_BATCH)
+        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_bs=NUM_EVAL_BATCH)
         self.traincfg.model.cuda()
         self.evalcfg.model.cuda()
 

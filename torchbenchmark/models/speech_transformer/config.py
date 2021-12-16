@@ -58,7 +58,7 @@ class SpeechTransformerTrainConfig:
     train_json = "input_data/train/data.json"
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
-    def __init__(self, prefetch=True, train_bs=16):
+    def __init__(self, prefetch=True, train_bs=16, num_train_bs=1):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.train_json = os.path.join(dir_path, self.train_json)
         self.valid_json = os.path.join(dir_path, self.valid_json)
@@ -102,7 +102,7 @@ class SpeechTransformerTrainConfig:
         self.data_loader = self.tr_loader if not SpeechTransformerTrainConfig.cross_valid else self.cv_loader
         if prefetch:
             result = []
-            for data in self.data_loader:
+            for data in zip(range(num_train_bs), self.data_loader):
                 padded_input, input_lengths, padded_target = data
                 padded_input = padded_input.cuda()
                 input_lengths = input_lengths.cuda()
@@ -156,7 +156,7 @@ class SpeechTransformerEvalConfig:
     # The input files. Their paths are relative to the directory of __file__
     recog_json = "input_data/test/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
-    def __init__(self, traincfg):
+    def __init__(self, traincfg, num_eval_batch=1):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.base_path = dir_path
         self.recog_json = os.path.join(dir_path, self.recog_json)
@@ -178,6 +178,8 @@ class SpeechTransformerEvalConfig:
             input = input.cuda()
             input_length = input_length.cuda()
             self.eval_example_input.append((input, input_length))
+            if len(self.eval_example_input) == num_eval_batch:
+                break
     def eval(self):
         with torch.no_grad():
             for input, input_length in self.eval_example_input:
