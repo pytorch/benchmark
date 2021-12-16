@@ -15,14 +15,16 @@ from torchbenchmark.tasks import SPEECH
 
 class Model(BenchmarkModel):
     task = SPEECH.RECOGNITION
-    def __init__(self, device=None, jit=False):
+    # Original batch size: 32
+    # Source: https://github.com/kaituoxu/Speech-Transformer/blob/e6847772d6a786336e117a03c48c62ecbf3016f6/src/bin/train.py#L68
+    def __init__(self, device=None, jit=False, train_bs=32):
         self.jit = jit
         self.device = device
         if jit:
             return
         if device == "cpu":
             return
-        self.traincfg = SpeechTransformerTrainConfig()
+        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs)
         self.evalcfg = SpeechTransformerEvalConfig(self.traincfg)
         self.traincfg.model.cuda()
         self.evalcfg.model.cuda()
