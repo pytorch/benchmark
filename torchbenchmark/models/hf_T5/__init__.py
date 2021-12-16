@@ -24,8 +24,8 @@ class Model(BenchmarkModel):
     # Original train batch size per device: 8
     # Source: https://github.com/huggingface/transformers/blob/master/examples/flax/language-modeling/run_t5_mlm_flax.py#L83
     # Original eval batch size per device: 8
-    # Downscale to 1 to fit in Nvidia T4 of the infra
-    def __init__(self, device=None, jit=False, train_bs=8, eval_bs=1):
+    # Downscale to 2 to fit in Nvidia T4 of the infra
+    def __init__(self, device=None, jit=False, train_bs=8, eval_bs=2):
         super().__init__()
         self.device = device
         self.jit = jit
