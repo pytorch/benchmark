@@ -29,7 +29,7 @@ jobs:
           ref: v1.0
       - name: Create conda env
         run: |
-          conda create -y -q --name "${CONDA_ENV_NAME}" python=%{{ env.PYTHON_VER }}
+          conda create -y -q --name "${CONDA_ENV_NAME}" python=${{ env.PYTHON_VER }}
       - name: Install PyTorch nightly
         run: |
           . activate "${CONDA_ENV_NAME}"
