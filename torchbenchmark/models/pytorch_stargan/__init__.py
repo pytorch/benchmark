@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-import random
-import argparse
-import torch
 import os
+import torch
+import random
 import numpy as np
 from .solver import Solver
 from .data_loader import get_loader
@@ -15,15 +14,22 @@ from torchbenchmark.tasks import COMPUTER_VISION
 random.seed(1337)
 torch.manual_seed(1337)
 np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = True
 
+def _prefetch(loader, size, collate_fn):
+    result = []
+    for _, item in zip(range(size), loader):
+        result.append(collate_fn(item))
+    return result
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
-    optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False):
+    # Original train batch size: 16
+    # Source: https://github.com/yunjey/stargan/blob/94dd002e93a2863d9b987a937b85925b80f7a19f/main.py#L73
+    # This model doesn't support setting eval batch size and will use the same bs as train
+    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=16, prefetch=True):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -32,7 +38,7 @@ class Model(BenchmarkModel):
         config.celeba_image_dir = os.path.join(os.path.dirname(__file__), 'data/celeba/images')
         config.attr_path = os.path.join(os.path.dirname(__file__), 'data/celeba/list_attr_celeba.txt')
         config.num_iters = 1
-        config.batch_size = 24
+        config.batch_size = train_bs
         config.use_tensorboard = False
         config.device = device
         config.should_script = jit
@@ -40,17 +46,23 @@ class Model(BenchmarkModel):
         makedirs(config)
 
         self.data_loader = self.get_data_loader(config)
+        eval_config = config
+        eval_config.batch_size =eval_bs
+        self.eval_data_loader = self.get_data_loader(eval_config)
+        if prefetch:
+            self.data_loader = _prefetch(self.data_loader, size=config.num_iters, collate_fn=lambda item: tuple([m.to(self.device) for m in item]))
+            self.eval_data_loader = _prefetch(self.eval_data_loader, size=config.num_iters, collate_fn=lambda item: tuple([m.to(self.device) for m in item]))
         self.solver = Solver(celeba_loader=self.data_loader,
                              rafd_loader=None,
                              config=config,
                              should_script=config.should_script)
         self.model = self.solver.G
 
-        eval_solver = Solver(celeba_loader=self.data_loader,
+        self.eval_solver = Solver(celeba_loader=self.eval_data_loader,
                              rafd_loader=None,
-                             config=config,
-                             should_script=config.should_script)
-        self.eval_model = eval_solver.G
+                             config=eval_config,
+                             should_script=eval_config.should_script)
+        self.eval_model = self.eval_solver.G
         self.eval_model.eval()
 
         if self.jit:
@@ -65,7 +77,7 @@ class Model(BenchmarkModel):
         return celeba_loader
 
     def generate_example_inputs(self):
-        for x_real, c_trg_list in self.solver.get_test_inputs():
+        for x_real, c_trg_list in self.eval_solver.get_test_inputs():
             return x_real, c_trg_list[0] # batch > #images
 
     def get_module(self):
