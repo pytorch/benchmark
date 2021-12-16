@@ -102,7 +102,7 @@ class SpeechTransformerTrainConfig:
         self.data_loader = self.tr_loader if not SpeechTransformerTrainConfig.cross_valid else self.cv_loader
         if prefetch:
             result = []
-            for data in zip(range(num_train_bs), self.data_loader):
+            for _batch_num, data in zip(range(num_train_bs), self.data_loader):
                 padded_input, input_lengths, padded_target = data
                 padded_input = padded_input.cuda()
                 input_lengths = input_lengths.cuda()
