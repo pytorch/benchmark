@@ -28,8 +28,8 @@ class Model(BenchmarkModel):
             return
         if device == "cpu":
             return
-        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs, num_train_bs=NUM_TRAIN_BATCH)
-        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_bs=NUM_EVAL_BATCH)
+        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs, num_train_batch=NUM_TRAIN_BATCH)
+        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_batch=NUM_EVAL_BATCH)
         self.traincfg.model.cuda()
         self.evalcfg.model.cuda()
 

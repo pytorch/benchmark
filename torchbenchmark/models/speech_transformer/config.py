@@ -58,7 +58,7 @@ class SpeechTransformerTrainConfig:
     train_json = "input_data/train/data.json"
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
-    def __init__(self, prefetch=True, train_bs=16, num_train_bs=1):
+    def __init__(self, prefetch=True, train_bs=16, num_train_batch=1):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.train_json = os.path.join(dir_path, self.train_json)
         self.valid_json = os.path.join(dir_path, self.valid_json)
@@ -102,7 +102,7 @@ class SpeechTransformerTrainConfig:
         self.data_loader = self.tr_loader if not SpeechTransformerTrainConfig.cross_valid else self.cv_loader
         if prefetch:
             result = []
-            for _batch_num, data in zip(range(num_train_bs), self.data_loader):
+            for _batch_num, data in zip(range(num_train_batch), self.data_loader):
                 padded_input, input_lengths, padded_target = data
                 padded_input = padded_input.cuda()
                 input_lengths = input_lengths.cuda()
