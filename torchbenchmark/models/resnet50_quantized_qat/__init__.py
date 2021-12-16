@@ -10,14 +10,15 @@ from torchbenchmark.tasks import COMPUTER_VISION
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
-    optimized_for_inference = True
-    def __init__(self, device=None, jit=False):
+    # Train batch size: 32
+    # Source: https://openreview.net/pdf?id=B1Yy1BxCZ
+    def __init__(self, device=None, jit=False, train_bs=32):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.resnet50().to(self.device)
         self.eval_model = models.resnet50().to(self.device)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
         self.prep_qat_train()
 
     def prep_qat_train(self):
