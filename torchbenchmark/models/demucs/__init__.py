@@ -77,16 +77,16 @@ class Model(BenchmarkModel):
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs = [self.example_inputs, ])
+                self.model = torch.jit._script_pdt(self.model, example_inputs = [self.eval_example_inputs, ])
             else:
-                self.model = torch.jit.script(self.model, example_inputs = [self.example_inputs, ])
+                self.model = torch.jit.script(self.model, example_inputs = [self.eval_example_inputs, ])
 
     def _set_mode(self, train):
         self.model.train(train)
 
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
         self.model.eval()
-        return self.model, self.example_inputs
+        return self.model, self.eval_example_inputs
 
     def eval(self, niter=1):
         for _ in range(niter):
@@ -100,7 +100,7 @@ class Model(BenchmarkModel):
         if self.device == "cuda":
             raise NotImplementedError("Disable GPU training because it causes CUDA OOM on T4")
         for _ in range(niter):
-            sources, estimates = self.model(*self.example_inputs)
+            sources, estimates = self.model(*self.eval_example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
             loss.backward()
