@@ -22,12 +22,15 @@ class Model(BenchmarkModel):
         # Turn on fp16 for inference by default
         self.eval_fp16 = True
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
+        if self.eval_fp16:
+            self.eval_model.half()
+            self.eval_example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device).half(),)
         self.extra_args = parse_extraargs(extra_args)
 
         if self.extra_args.fx2trt:
             assert self.device == 'cuda', "fx2trt is only available with CUDA."
             assert not self.jit, "fx2trt with JIT is not available."
-            self.eval_model = lower_to_trt(module=self.eval_model, input=self.example_inputs, \
+            self.eval_model = lower_to_trt(module=self.eval_model, input=self.eval_example_inputs, \
                                            max_batch_size=self.batch_size, fp16_mode=self.eval_fp16)
 
         if self.jit:
@@ -64,8 +67,7 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         model = self.eval_model
-        example_inputs = self.example_inputs
-        example_inputs = example_inputs[0]
+        example_inputs = self.eval_example_inputs
         for i in range(niter):
             model(example_inputs)
 
