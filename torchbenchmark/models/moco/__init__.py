@@ -20,19 +20,23 @@ from torchbenchmark.tasks import OTHER
 
 torch.manual_seed(1058467)
 random.seed(1058467)
-cudnn.deterministic = True
+cudnn.deterministic = False
+cudnn.benchmark = True
 
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False):
+
+    # Original train batch size: 32
+    # Paper and code uses batch size of 256 for 8 GPUs.
+    # Source: https://arxiv.org/pdf/1911.05722.pdf
+    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=32):
         super().__init__()
         """ Required """
         self.device = device
         self.jit = jit
         self.opt = Namespace(**{
             'arch': 'resnet50',
-            'batch_size': 32,
             'epochs': 2,
             'start_epoch': 0,
             'lr': 0.03,
@@ -50,6 +54,8 @@ class Model(BenchmarkModel):
             'fake_data': True,
             'distributed': True,
         })
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
 
         if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
@@ -58,40 +64,57 @@ class Model(BenchmarkModel):
             dist.init_process_group(backend='nccl', init_method='tcp://localhost:10001',
                                     world_size=1, rank=0)
         except RuntimeError:
-            pass # already initialized?
+            pass  # already initialized?
 
-
-        self.model = MoCo(
+        self.train_model = MoCo(
+            models.__dict__[self.opt.arch],
+            self.opt.moco_dim, self.opt.moco_k, self.opt.moco_m, self.opt.moco_t, self.opt.mlp)
+        self.eval_model = MoCo(
             models.__dict__[self.opt.arch],
             self.opt.moco_dim, self.opt.moco_k, self.opt.moco_m, self.opt.moco_t, self.opt.mlp)
 
-        self.model.cuda(0)
-        self.model = torch.nn.parallel.DistributedDataParallel(
-            self.model, device_ids=[0])
+        self.train_model.to(self.device)
+        self.eval_model.to(self.device)
+        self.train_model = torch.nn.parallel.DistributedDataParallel(
+            self.train_model, device_ids=[0])
+        self.eval_model = torch.nn.parallel.DistributedDataParallel(
+            self.eval_model, device_ids=[0])
 
         # if self.jit:
         #     self.model = torch.jit.script(self.model)
 
-        # define loss function (criterion) and optimizer
-        self.criterion = nn.CrossEntropyLoss().cuda(0)
+        # Define loss function (criterion) and optimizer
+        self.criterion = nn.CrossEntropyLoss().to(self.device)
 
-        self.optimizer = torch.optim.SGD(self.model.parameters(), self.opt.lr,
+        self.optimizer = torch.optim.SGD(self.train_model.parameters(), self.opt.lr,
                                          momentum=self.opt.momentum,
                                          weight_decay=self.opt.weight_decay)
 
-        batches = []
+        train_batches = []
+        eval_batches = []
 
         for i in range(4):
-          batches.append(torch.randn(self.opt.batch_size, 3, 224, 224).to(self.device))
+            train_batches.append(torch.randn(self.train_bs, 3, 224, 224).to(self.device))
+            eval_batches.append(torch.randn(self.eval_bs, 3, 224, 224).to(self.device))
 
-        def collate_fn(data):
+        def collate_train_fn(data):
             ind = data[0]
-            return [batches[2*ind], batches[2*ind+1]], 0
+            return [train_batches[2 * ind], train_batches[2 * ind + 1]], 0
+
+        def collate_eval_fn(data):
+            ind = data[0]
+            return [eval_batches[2 * ind], eval_batches[2 * ind + 1]], 0
 
         self.train_loader = torch.utils.data.DataLoader(
-            range(2), collate_fn=collate_fn)
+            range(2), collate_fn=collate_train_fn)
+        self.eval_loader = torch.utils.data.DataLoader(
+            range(2), collate_fn=collate_eval_fn)
 
         for i, (images, _) in enumerate(self.train_loader):
+            images[0] = images[0].cuda(device=0, non_blocking=True)
+            images[1] = images[1].cuda(device=0, non_blocking=True)
+
+        for i, (images, _) in enumerate(self.eval_loader):
             images[0] = images[0].cuda(device=0, non_blocking=True)
             images[1] = images[1].cuda(device=0, non_blocking=True)
 
@@ -106,9 +129,9 @@ class Model(BenchmarkModel):
             raise NotImplementedError("CPU is not supported by this model")
 
         images = []
-        for (i, _) in self.train_loader:
+        for (i, _) in self.eval_loader:
             images = (i[0], i[1])
-        return (self.model, images)
+        return (self.eval_model, images)
 
     def train(self, niterations=1):
         """ Recommended
@@ -124,12 +147,12 @@ class Model(BenchmarkModel):
         if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
 
-        self.model.train()
+        self.train_model.train()
         for e in range(niterations):
             adjust_learning_rate(self.optimizer, e, self.opt)
             for i, (images, _) in enumerate(self.train_loader):
                 # compute output
-                output, target = self.model(im_q=images[0], im_k=images[1])
+                output, target = self.train_model(im_q=images[0], im_k=images[1])
                 loss = self.criterion(output, target)
 
                 # compute gradient and do SGD step
@@ -153,8 +176,8 @@ class Model(BenchmarkModel):
             raise NotImplementedError("CPU is not supported by this model")
 
         for i in range(niterations):
-            for i, (images, _) in enumerate(self.train_loader):
-                self.model(im_q=images[0], im_k=images[1])
+            for i, (images, _) in enumerate(self.eval_loader):
+                self.eval_model(im_q=images[0], im_k=images[1])
 
 
 if __name__ == '__main__':
