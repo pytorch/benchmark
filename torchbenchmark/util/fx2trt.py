@@ -1,3 +1,4 @@
+import torch
 from torch.fx.experimental.fx2trt import LowerSetting
 from torch.fx.experimental.fx2trt.lower import Lowerer
 
