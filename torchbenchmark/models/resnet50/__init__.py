@@ -23,7 +23,7 @@ class Model(BenchmarkModel):
         self.extra_args = parse_extraargs(extra_args)
         if self.extra_args.eval_fp16:
             self.eval_model.half()
-            self.eval_example_inputs = (self.eval_example_inputs.half(),)
+            self.eval_example_inputs = (self.eval_example_inputs[0].half(),)
         if self.extra_args.fx2trt:
             assert self.device == 'cuda', "fx2trt is only available with CUDA."
             assert not self.jit, "fx2trt with JIT is not available."
