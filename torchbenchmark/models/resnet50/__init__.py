@@ -6,6 +6,8 @@ import torchvision.models as models
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
+from torchbenchmark.util.fx2trt import lower_to_trt
+
 #######################################################
 #
 #       DO NOT MODIFY THESE FILES DIRECTLY!!!
@@ -17,13 +19,20 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False):
+    def __init__(self, device=None, jit=False, fx2trt=False, train_bs=32):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.resnet50().to(self.device)
         self.eval_model = models.resnet50().to(self.device)
-        self.example_inputs = (torch.randn((32, 3, 224, 224)).to(self.device),)
+        self.batch_size = train_bs
+        # Turn on fp16 for inference by default
+        self.eval_fp16 = True
+        self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
+
+        if self.fx2trt:
+            assert not self.jit, "fx2trt with JIT is not available."
+            self.eval_model = lower_to_trt(max_batch_size=self.batch_size, fp16_mode=self.eval_fp16)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
