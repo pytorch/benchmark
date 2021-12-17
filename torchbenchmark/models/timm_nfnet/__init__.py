@@ -68,7 +68,7 @@ class Model(BenchmarkModel):
         model, self.loader_train, self.loader_validate, self.optimizer, \
             self.train_loss_fn, self.lr_scheduler, self.amp_autocast, \
             self.loss_scaler, self.mixup_fn, self.validate_loss_fn = timm_instantiate_train(args)
-        eval_model, self.loader_eval, self.eval_ampautocast = timm_instantiate_eval(args)
+        eval_model, self.loader_eval, self.eval_amp_autocast = timm_instantiate_eval(args)
         # jit the model if required
         self.model, self.eval_model = jit_if_needed(model, eval_model, jit=jit)
         
