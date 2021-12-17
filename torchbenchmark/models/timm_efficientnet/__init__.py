@@ -59,8 +59,7 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        with self.eval_amp_autocast():
-            output = self.eval_model(self.cfg.infer_example_inputs)
+        output = self.eval_model(self.cfg.infer_example_inputs)
 
     def get_module(self):
         return self.model, (self.cfg.example_inputs,)
