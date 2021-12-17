@@ -11,19 +11,19 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False, train_bs=32, extra_args=[]):
+    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=32, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = models.resnet50().to(self.device)
         self.eval_model = models.resnet50().to(self.device)
-        self.batch_size = train_bs
         # Turn on fp16 for inference by default
         self.eval_fp16 = True
-        self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
+        self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
         if self.eval_fp16:
             self.eval_model.half()
-            self.eval_example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device).half(),)
+            self.eval_example_inputs = (self.eval_example_inputs.half(),)
         
         # process extra args
         self.extra_args = parse_extraargs(extra_args)
@@ -32,7 +32,7 @@ class Model(BenchmarkModel):
             assert not self.jit, "fx2trt with JIT is not available."
             from torchbenchmark.util.fx2trt import lower_to_trt
             self.eval_model = lower_to_trt(module=self.eval_model, input=self.eval_example_inputs, \
-                                           max_batch_size=self.batch_size, fp16_mode=self.eval_fp16)
+                                           max_batch_size=eval_bs, fp16_mode=self.eval_fp16)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
