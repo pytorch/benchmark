@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import torch
-=======
->>>>>>> 863e837 (Add initial fx2trt code)
 from torch.fx.experimental.fx2trt import LowerSetting
 from torch.fx.experimental.fx2trt.lower import Lowerer
 
