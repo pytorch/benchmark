@@ -6,7 +6,6 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
 from torchbenchmark.util.env_check import parse_extraargs
-from torchbenchmark.util.fx2trt import lower_to_trt
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
@@ -25,11 +24,13 @@ class Model(BenchmarkModel):
         if self.eval_fp16:
             self.eval_model.half()
             self.eval_example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device).half(),)
+        
+        # process extra args
         self.extra_args = parse_extraargs(extra_args)
-
         if self.extra_args.fx2trt:
             assert self.device == 'cuda', "fx2trt is only available with CUDA."
             assert not self.jit, "fx2trt with JIT is not available."
+            from torchbenchmark.util.fx2trt import lower_to_trt
             self.eval_model = lower_to_trt(module=self.eval_model, input=self.eval_example_inputs, \
                                            max_batch_size=self.batch_size, fp16_mode=self.eval_fp16)
 
