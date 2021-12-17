@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
             assert not self.jit, "fx2trt with JIT is not available."
             from torchbenchmark.util.fx2trt import lower_to_trt
             self.eval_model = lower_to_trt(module=self.eval_model, input=self.eval_example_inputs, \
-                                           max_batch_size=eval_bs, fp16_mode=self.eval_fp16)
+                                           max_batch_size=eval_bs, fp16_mode=self.extra_args.eval_fp16)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
