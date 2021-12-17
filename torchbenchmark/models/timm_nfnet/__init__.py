@@ -60,12 +60,15 @@ class Model(BenchmarkModel):
         args.eval_batch_size = eval_bs
         args.train_num_batch = TRAIN_NUM_BATCH
         args.eval_num_batch = EVAL_NUM_BATCH
+        # Enable eval amp by default
+        if has_native_amp():
+            args.eval_use_amp = 'native'
         self.args = args
 
         model, self.loader_train, self.loader_validate, self.optimizer, \
             self.train_loss_fn, self.lr_scheduler, self.amp_autocast, \
             self.loss_scaler, self.mixup_fn, self.validate_loss_fn = timm_instantiate_train(args)
-        eval_model, self.loader_eval = timm_instantiate_eval(args)
+        eval_model, self.loader_eval, self.eval_ampautocast = timm_instantiate_eval(args)
         # jit the model if required
         self.model, self.eval_model = jit_if_needed(model, eval_model, jit=jit)
         
@@ -113,5 +116,5 @@ class Model(BenchmarkModel):
                 for _, (input, _) in zip(range(self.args.eval_num_batch), self.loader_eval):
                     if self.args.channels_last:
                         input = input.contiguous(memory_format=torch.channels_last)
-                    with self.amp_autocast():
+                    with self.eval_amp_autocast():
                         output = self.eval_model(input)

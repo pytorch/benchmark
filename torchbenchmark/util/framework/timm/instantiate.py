@@ -63,7 +63,12 @@ def timm_instantiate_eval(args):
         tf_preprocessing=args.tf_preprocessing,
         persistent_workers=False,
     )
-    return eval_model, loader_eval
+
+    # setup automatic mixed-precision (AMP) loss scaling and op casting
+    amp_autocast = suppress  # do nothing
+    if args.eval_use_amp == 'native':
+        amp_autocast = torch.cuda.amp.autocast
+    return eval_model, loader_eval, amp_autocast
 
 def timm_instantiate_train(args):
     # create train model
