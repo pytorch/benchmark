@@ -20,7 +20,7 @@ class Model(BenchmarkModel):
         self.jit = jit
 
         torch.manual_seed(42)
-        config = BertConfig()
+        config = BertConfig(hidden_size = 768, num_hidden_layers = 6, num_attention_heads = 12)
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 

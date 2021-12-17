@@ -315,7 +315,7 @@ def getFlowCoeff (indices, device: torch.device):
         tensor
             coefficients C00, C01, C10, C11.
     """
-    t = torch.linspace(0.125, 0.875, 7)
+    t = torch.linspace(0.125, 0.875, 7, device=device)
 
 
     # Convert indices tensor to numpy array
@@ -324,7 +324,7 @@ def getFlowCoeff (indices, device: torch.device):
     C11 = C00 = - (1 - (t[ind])) * (t[ind])
     C01 = (t[ind]) * (t[ind])
     C10 = (1 - (t[ind])) * (1 - (t[ind]))
-    return C00[None, None, None, :].permute(3, 0, 1, 2).to(device), C01[None, None, None, :].permute(3, 0, 1, 2).to(device), C10[None, None, None, :].permute(3, 0, 1, 2).to(device), C11[None, None, None, :].permute(3, 0, 1, 2).to(device)
+    return C00[None, None, None, :].permute(3, 0, 1, 2), C01[None, None, None, :].permute(3, 0, 1, 2), C10[None, None, None, :].permute(3, 0, 1, 2), C11[None, None, None, :].permute(3, 0, 1, 2)
 
 def getWarpCoeff (indices, device: torch.device):
     """
@@ -353,11 +353,11 @@ def getWarpCoeff (indices, device: torch.device):
         tensor
             coefficients C0 and C1.
     """
-    t = torch.linspace(0.125, 0.875, 7)
+    t = torch.linspace(0.125, 0.875, 7, device=device)
 
 
     # Convert indices tensor to numpy array
     ind = indices
     C0 = 1 - t[ind]
     C1 = t[ind]
-    return C0[None, None, None, :].permute(3, 0, 1, 2).to(device), C1[None, None, None, :].permute(3, 0, 1, 2).to(device)
+    return C0[None, None, None, :].permute(3, 0, 1, 2), C1[None, None, None, :].permute(3, 0, 1, 2)
