@@ -153,7 +153,7 @@ if __name__ == "__main__":
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
     model_args = inspect.signature(Model)
-    if extra_args and not extra_args in model_args.args:
+    if extra_args and not 'extra_args' in model_args.parameters:
         print(f"The model {args.model} doesn't accept extra args: {extra_args}")
         exit(-1)
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
