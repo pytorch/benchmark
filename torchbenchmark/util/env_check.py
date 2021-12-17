@@ -1,5 +1,11 @@
 import importlib
+import argparse
 from typing import List, Dict
+
+def parse_extraargs(extra_args: List[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
+    return parser.parse_args(extra_args)
 
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
