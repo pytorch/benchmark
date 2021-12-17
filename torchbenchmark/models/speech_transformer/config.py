@@ -34,7 +34,6 @@ class SpeechTransformerTrainConfig:
     label_smoothing = 0.1
     # minibatch
     shuffle = 1
-    batch_size = 32
     batch_frames = 15000
     maxlen_in = 800
     maxlen_out = 150
@@ -58,7 +57,7 @@ class SpeechTransformerTrainConfig:
     train_json = "input_data/train/data.json"
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
-    def __init__(self, prefetch=True, train_bs=16, num_train_batch=1):
+    def __init__(self, prefetch=True, train_bs=32, num_train_batch=1):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         self.train_json = os.path.join(dir_path, self.train_json)
         self.valid_json = os.path.join(dir_path, self.valid_json)
