@@ -11,5 +11,8 @@ else
     file_name=test_bench_"$MODE"_"$(date +%Y%m%d_%H%M%S)".txt
     echo "* Running: pytest ./test_bench.py" $COMMAND_ARGS 2>&1 |& tee -a $OUTPUT_DIR/$PLATFORM/$file_name
     pytest ./test_bench.py $COMMAND_ARGS 2>&1 |& tee -a $OUTPUT_DIR/$PLATFORM/$file_name
-    cp -Rf ./.benchmarks/* $OUTPUT_DIR/$PLATFORM
+    if [[ $COMMAND_ARGS != *"-k"* ]]
+    then
+        cp -Rf ./.benchmarks/* $OUTPUT_DIR/$PLATFORM
+    fi
 fi

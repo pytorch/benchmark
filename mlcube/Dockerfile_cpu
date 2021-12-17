@@ -9,11 +9,11 @@ RUN  python -m pip install --upgrade pip && pip install typer  \
     torchtext \
     torchaudio==0.10.0+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
 
+RUN git clone https://github.com/davidjurado/benchmark.git && \
+    cd benchmark && git checkout mlcube && \
+    python install.py && pip install -U numpy && cd /
+
 COPY . .
-
-RUN python install.py
-
-RUN pip install -U numpy
 
 RUN chmod +x ./mlcube/run_test.sh ./mlcube/run_test_bench.sh
 
