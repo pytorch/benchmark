@@ -69,7 +69,7 @@ class Model(BenchmarkModel):
         model = self.eval_model
         example_inputs = self.eval_example_inputs
         for i in range(niter):
-            model(example_inputs)
+            model(*example_inputs)
 
 if __name__ == "__main__":
     m = Model(device="cuda", jit=True)
