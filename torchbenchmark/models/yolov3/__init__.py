@@ -67,7 +67,7 @@ class Model(BenchmarkModel):
         parser.add_argument('--classes', nargs='+', type=int, help='filter by class')
         parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
         parser.add_argument('--augment', action='store_true', help='augmented inference')
-        opt = parser.parse_args(['--device', self.device])
+        opt = parser.parse_args(['--device', self.device, "--half"])
         opt.cfg = check_file(opt.cfg)  # check file
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)

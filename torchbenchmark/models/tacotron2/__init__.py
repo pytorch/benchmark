@@ -23,7 +23,7 @@ class Model(BenchmarkModel):
             return
 
         self.train_hparams = self.create_hparams(batch_size=train_bs)
-        self.eval_hparams = self.create_hparams(batch_size=eval_bs)
+        self.eval_hparams = self.create_hparams(batch_size=eval_bs, fp16_run=True)
         self.train_model = load_model(self.train_hparams).to(device=device)
         self.eval_model = load_model(self.eval_hparams).to(device=device)
         self.train_optimizer = torch.optim.Adam(self.train_model.parameters(),
@@ -38,7 +38,7 @@ class Model(BenchmarkModel):
 
     # Parameters were obtained from the source code.
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L5
-    def create_hparams(hparams_string=None, verbose=False, batch_size=64):
+    def create_hparams(hparams_string=None, verbose=False, batch_size=64, fp16_run=False):
         """Create model hyperparameters. Parse nondefault from given string."""
         root = str(Path(__file__).parent.parent.parent)
         hparams = Namespace(**{
@@ -49,7 +49,7 @@ class Model(BenchmarkModel):
             'iters_per_checkpoint': 1000,
             'seed': 1234,
             'dynamic_loss_scaling': True,
-            'fp16_run': False,
+            'fp16_run': fp16_run,
             'distributed_run': False,
             'dist_backend': "nccl",
             'dist_url': "tcp://localhost:54321",
