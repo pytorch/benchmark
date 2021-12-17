@@ -1,11 +1,12 @@
 import torch
-from . import isoneutral_pytorch
+from . import tke_pytorch
 from torchbenchmark.tasks import OTHER
 from ...util.model import BenchmarkModel
 
+
 def _generate_inputs(size):
-    import math
     import numpy as np
+    import math
 
     np.random.seed(17)
 
@@ -16,27 +17,30 @@ def _generate_inputs(size):
     )
 
     # masks
-    maskT, maskU, maskV, maskW = (
-        (np.random.rand(*shape) < 0.8).astype("float64") for _ in range(4)
+    maskU, maskV, maskW = (
+        (np.random.rand(*shape) < 0.8).astype("float64") for _ in range(3)
     )
 
     # 1d arrays
     dxt, dxu = (np.random.randn(shape[0]) for _ in range(2))
     dyt, dyu = (np.random.randn(shape[1]) for _ in range(2))
-    dzt, dzw, zt = (np.random.randn(shape[2]) for _ in range(3))
+    dzt, dzw = (np.random.randn(shape[2]) for _ in range(2))
     cost, cosu = (np.random.randn(shape[1]) for _ in range(2))
 
+    # 2d arrays
+    kbot = np.random.randint(0, shape[2], size=shape[:2])
+    forc_tke_surface = np.random.randn(*shape[:2])
+
     # 3d arrays
-    K_iso, K_iso_steep, K_11, K_22, K_33 = (np.random.randn(*shape) for _ in range(5))
+    kappaM, mxl, forc = (np.random.randn(*shape) for _ in range(3))
 
     # 4d arrays
-    salt, temp = (np.random.randn(*shape, 3) for _ in range(2))
-
-    # 5d arrays
-    Ai_ez, Ai_nz, Ai_bx, Ai_by = (np.zeros((*shape, 2, 2)) for _ in range(4))
+    u, v, w, tke, dtke = (np.random.randn(*shape, 3) for _ in range(5))
 
     return (
-        maskT,
+        u,
+        v,
+        w,
         maskU,
         maskV,
         maskW,
@@ -48,27 +52,25 @@ def _generate_inputs(size):
         dzw,
         cost,
         cosu,
-        salt,
-        temp,
-        zt,
-        K_iso,
-        K_11,
-        K_22,
-        K_33,
-        Ai_ez,
-        Ai_nz,
-        Ai_bx,
-        Ai_by,
+        kbot,
+        kappaM,
+        mxl,
+        forc,
+        forc_tke_surface,
+        tke,
+        dtke,
     )
 
-
-class IsoneutralMixing(torch.nn.Module):
-    def __init__(self):
-        super(IsoneutralMixing, self).__init__()
+class TurbulentKineticEnergy(torch.nn.Module):
+    def __init__(self, device):
+        super(TurbulentKineticEnergy, self).__init__()
+        self.device = device
 
     def forward(
         self,
-        maskT,
+        u,
+        v,
+        w,
         maskU,
         maskV,
         maskW,
@@ -80,20 +82,18 @@ class IsoneutralMixing(torch.nn.Module):
         dzw,
         cost,
         cosu,
-        salt,
-        temp,
-        zt,
-        K_iso,
-        K_11,
-        K_22,
-        K_33,
-        Ai_ez,
-        Ai_nz,
-        Ai_bx,
-        Ai_by,
+        kbot,
+        kappaM,
+        mxl,
+        forc,
+        forc_tke_surface,
+        tke,
+        dtke,
     ):
-        return isoneutral_pytorch.isoneutral_diffusion_pre(
-            maskT,
+        return tke_pytorch.integrate_tke(
+            u,
+            v,
+            w,
             maskU,
             maskV,
             maskW,
@@ -105,18 +105,15 @@ class IsoneutralMixing(torch.nn.Module):
             dzw,
             cost,
             cosu,
-            salt,
-            temp,
-            zt,
-            K_iso,
-            K_11,
-            K_22,
-            K_33,
-            Ai_ez,
-            Ai_nz,
-            Ai_bx,
-            Ai_by,
+            kbot,
+            kappaM,
+            mxl,
+            forc,
+            forc_tke_surface,
+            tke,
+            dtke,
         )
+
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
@@ -128,12 +125,11 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        self.model = IsoneutralMixing().to(device=device)
+        self.model = TurbulentKineticEnergy(self.device).to(device=self.device)
         input_size = 1048576
-        raw_inputs = _generate_inputs(input_size)
-        if hasattr(isoneutral_pytorch, "prepare_inputs"):
-            inputs = isoneutral_pytorch.prepare_inputs(*raw_inputs, device=device)
-        self.example_inputs = inputs
+        self.example_inputs = tuple(
+            torch.from_numpy(x).to(self.device) for x in _generate_inputs(input_size)
+        )
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
                 self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
