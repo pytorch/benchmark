@@ -27,7 +27,8 @@ class Model(BenchmarkModel):
         if self.extra_args.fx2trt:
             assert self.device == 'cuda', "fx2trt is only available with CUDA."
             assert not self.jit, "fx2trt with JIT is not available."
-            self.eval_model = lower_to_trt(max_batch_size=self.batch_size, fp16_mode=self.eval_fp16)
+            self.eval_model = lower_to_trt(module=self.eval_model, input=self.example_inputs, \
+                                           max_batch_size=self.batch_size, fp16_mode=self.eval_fp16)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
