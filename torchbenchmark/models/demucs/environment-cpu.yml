@@ -12,7 +12,7 @@ dependencies:
   - tqdm>=4.36.1
   - pip
   - pip:
-    - lameenc==1.2.2
+    - lameenc
     - musdb==0.3.1
     - museval==0.3.0
     - requests==2.22

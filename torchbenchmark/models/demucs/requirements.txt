@@ -2,7 +2,7 @@ torch
 ffmpeg-python==0.2.0
 scipy>=1.3.1
 tqdm>=4.36.1
-lameenc==1.2.2
+lameenc
 musdb==0.3.1
 museval==0.3.0
 requests==2.22
