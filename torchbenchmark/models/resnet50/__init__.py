@@ -9,7 +9,6 @@ from torchbenchmark.util.env_check import parse_extraargs
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
-    optimized_for_inference = True
 
     def __init__(self, device=None, jit=False, train_bs=32, eval_bs=32, extra_args=[]):
         super().__init__()
@@ -17,16 +16,14 @@ class Model(BenchmarkModel):
         self.jit = jit
         self.model = models.resnet50().to(self.device)
         self.eval_model = models.resnet50().to(self.device)
-        # Turn on fp16 for inference by default
-        self.eval_fp16 = True
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
         self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
-        if self.eval_fp16:
-            self.eval_model.half()
-            self.eval_example_inputs = (self.eval_example_inputs.half(),)
         
         # process extra args
         self.extra_args = parse_extraargs(extra_args)
+        if self.extra_args.eval_fp16:
+            self.eval_model.half()
+            self.eval_example_inputs = (self.eval_example_inputs.half(),)
         if self.extra_args.fx2trt:
             assert self.device == 'cuda', "fx2trt is only available with CUDA."
             assert not self.jit, "fx2trt with JIT is not available."
@@ -71,10 +68,3 @@ class Model(BenchmarkModel):
         example_inputs = self.eval_example_inputs
         for i in range(niter):
             model(*example_inputs)
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=True)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)

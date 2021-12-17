@@ -4,6 +4,8 @@ from typing import List, Dict
 
 def parse_extraargs(extra_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    # by default, enable half precision for inference
+    parser.add_argument("--eval-fp16", action='store_false', help="enable eval fp16")
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     return parser.parse_args(extra_args)
 
