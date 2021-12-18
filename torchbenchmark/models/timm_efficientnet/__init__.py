@@ -12,11 +12,10 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
     def __init__(self, device=None, jit=False, train_bs=32, eval_bs=64,
-                 variant='mixnet_m', extra_args=[]):
+                 variant='mixnet_m', precision='float32', extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
-        precision = "float32"
         self.extra_args = parse_extraargs(extra_args)
 
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
@@ -65,12 +64,6 @@ class Model(BenchmarkModel):
         self.cfg.loss(output, target).backward()
         self.cfg.optimizer.step()
 
-    # vision models have another model
-    # instance for inference that has
-    # already been optimized for inference
-    def set_eval(self):
-        pass
-
     def _step_eval(self):
         output = self.eval_model(self.eval_example_inputs)
 
@@ -88,13 +81,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
-
-if __name__ == "__main__":
-    for device in ['cpu', 'cuda']:
-        for jit in [False, True]:
-            print("Test config: device %s, JIT %s" % (device, jit))
-            m = Model(device=device, jit=jit)
-            m, example_inputs = m.get_module()
-            m(example_inputs)
-            m.train()
-            m.eval()
