@@ -24,6 +24,8 @@ from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
+from torchbenchmark.util.env_check import parse_extraargs
+
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco128")
 assert os.path.exists(DATA_DIR), "Couldn't find coco128 data dir, please run install.py again."
@@ -31,7 +33,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
     # Original train batch size: 16
     # Source: https://github.com/ultralytics/yolov3/blob/master/train.py#L447
-    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=16):
+    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=16, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -41,6 +43,7 @@ class Model(BenchmarkModel):
         self.prefetch = True
         self.train_bs = train_bs
         self.eval_bs = eval_bs
+        self.extra_args = parse_extraargs(extra_args)
         train_args = split(f"--data {DATA_DIR}/coco128.data --img 416 --batch {train_bs} --nosave --notest \
                              --epochs {self.num_epochs} --device {self.device_str} --weights '' \
                              --train-num-batch {self.train_num_batch} \
@@ -67,7 +70,10 @@ class Model(BenchmarkModel):
         parser.add_argument('--classes', nargs='+', type=int, help='filter by class')
         parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
         parser.add_argument('--augment', action='store_true', help='augmented inference')
-        opt = parser.parse_args(['--device', self.device, "--half"])
+        if self.extra_args.eval_fp16:
+            opt = parser.parse_args(['--device', self.device, "--half"])
+        else:
+            opt = parser.parse_args(['--device', self.device])
         opt.cfg = check_file(opt.cfg)  # check file
         opt.names = check_file(opt.names)  # check file
         model = Darknet(opt.cfg, opt.img_size)

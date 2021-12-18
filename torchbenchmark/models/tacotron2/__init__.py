@@ -7,13 +7,14 @@ from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 
+from torchbenchmark.util.env_check import parse_extraargs
 
 class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
 
     # Training batch size comes from the source code:
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L84
-    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=64):
+    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=64, extra_args=[]):
         super().__init__()
         """ Required """
         self.device = device
@@ -22,8 +23,9 @@ class Model(BenchmarkModel):
             # TODO - currently load_model assumes cuda
             return
 
+        self.extra_args = parse_extraargs(extra_args)
         self.train_hparams = self.create_hparams(batch_size=train_bs)
-        self.eval_hparams = self.create_hparams(batch_size=eval_bs, fp16_run=True)
+        self.eval_hparams = self.create_hparams(batch_size=eval_bs, fp16_run=self.extra_args.eval_fp16)
         self.train_model = load_model(self.train_hparams).to(device=device)
         self.eval_model = load_model(self.eval_hparams).to(device=device)
         self.train_optimizer = torch.optim.Adam(self.train_model.parameters(),
