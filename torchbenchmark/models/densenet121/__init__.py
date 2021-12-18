@@ -4,14 +4,14 @@ import torchvision.models as models
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
+from torchbenchmark.util.env_check import parse_extraargs
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
-    optimized_for_inference = True
 
     # Train batch size: use the training batch in paper.
     # Source: https://arxiv.org/pdf/1608.06993.pdf
-    def __init__(self, device=None, jit=False, train_bs=256, eval_bs=64):
+    def __init__(self, device=None, jit=False, train_bs=256, eval_bs=64, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -25,7 +25,19 @@ class Model(BenchmarkModel):
         self.eval_model = models.densenet121().to(self.device)
         # Input data is ImageNet shaped as 3, 224, 224.
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
-        self.infer_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+        self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+
+        # process extra args
+        self.extra_args = parse_extraargs(extra_args)
+        if self.extra_args.eval_fp16:
+            self.eval_model.half()
+            self.eval_example_inputs = (self.eval_example_inputs[0].half(),)
+        if self.extra_args.fx2trt:
+            assert self.device == 'cuda', "fx2trt is only available with CUDA."
+            assert not self.jit, "fx2trt with JIT is not available."
+            from torchbenchmark.util.fx2trt import lower_to_trt
+            self.eval_model = lower_to_trt(module=self.eval_model, input=self.eval_example_inputs, \
+                                           max_batch_size=eval_bs, fp16_mode=self.extra_args.eval_fp16)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
@@ -43,12 +55,6 @@ class Model(BenchmarkModel):
         if self.device == 'cuda':
             raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         return self.model, self.example_inputs
-
-    # vision models have another model
-    # instance for inference that has
-    # already been optimized for inference
-    def set_eval(self):
-        pass
 
     def train(self, niter=3):
         if self.device == 'cuda':
@@ -68,14 +74,6 @@ class Model(BenchmarkModel):
         if self.device == 'cuda':
             raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         model = self.eval_model
-        example_inputs = self.infer_example_inputs
+        example_inputs = self.eval_example_inputs
         for i in range(niter):
             model(*example_inputs)
-
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=True)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)

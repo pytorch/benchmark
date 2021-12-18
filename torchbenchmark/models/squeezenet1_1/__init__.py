@@ -6,13 +6,15 @@ import torchvision.models as models
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
+from torchbenchmark.util.env_check import parse_extraargs
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
     # Original train batch size: 512, out of memory on V100 GPU
     # Use hierarchical batching to scale down: 512 = batch_size (32) * epoch_size (16)
     # Source: https://github.com/forresti/SqueezeNet
-    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=16):
+    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=16, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -20,7 +22,19 @@ class Model(BenchmarkModel):
         self.model = models.squeezenet1_1().to(self.device)
         self.eval_model = models.squeezenet1_1().to(self.device)
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
-        self.infer_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+        self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+
+        # process extra args
+        self.extra_args = parse_extraargs(extra_args)
+        if self.extra_args.eval_fp16:
+            self.eval_model.half()
+            self.eval_example_inputs = (self.eval_example_inputs[0].half(),)
+        if self.extra_args.fx2trt:
+            assert self.device == 'cuda', "fx2trt is only available with CUDA."
+            assert not self.jit, "fx2trt with JIT is not available."
+            from torchbenchmark.util.fx2trt import lower_to_trt
+            self.eval_model = lower_to_trt(module=self.eval_model, input=self.eval_example_inputs, \
+                                           max_batch_size=eval_bs, fp16_mode=self.extra_args.eval_fp16)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
@@ -54,6 +68,6 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         model = self.eval_model
-        example_inputs = self.infer_example_inputs
+        example_inputs = self.eval_example_inputs
         for i in range(niter):
             model(*example_inputs)
