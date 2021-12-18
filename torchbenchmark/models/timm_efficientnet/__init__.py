@@ -6,30 +6,42 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 from .config import TimmConfig
 
+from torchbenchmark.util.framework.timm.args import parse_extraargs
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False, variant='mixnet_m', precision='float32'):
+    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=64,
+                 variant='mixnet_m', extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
-        self.model = timm.create_model(variant, pretrained=False, scriptable=True)
+        precision = "float32"
+        self.extra_args = parse_extraargs(extra_args)
+
         self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
+        self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
         )
-        if device == 'cuda':
-            torch.cuda.empty_cache()
+        self.example_inputs = self._gen_input(train_bs)
 
-        # instantiate another model for inference
+        # instantiate model for inference
         self.eval_model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.eval_model.eval()
         self.eval_model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
         )
+        self.eval_example_inputs = self._gen_input(eval_bs)
+        if self.extra_args.fx2trt:
+            assert self.device == 'cuda', "fx2trt is only available with CUDA."
+            assert not self.jit, "fx2trt with JIT is not available."
+            from torchbenchmark.util.fx2trt import lower_to_trt
+            self.eval_model = lower_to_trt(module=self.eval_model, input=self.eval_example_inputs, \
+                                           max_batch_size=eval_bs, fp16_mode=self.extra_args.eval_fp16)
 
         if jit:
             self.model = torch.jit.script(self.model)
@@ -37,6 +49,8 @@ class Model(BenchmarkModel):
             assert isinstance(self.eval_model, torch.jit.ScriptModule)
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
     
+    def _gen_input(self, batch_size):
+        return torch.randn((batch_size,) + self.cfg.input_size, device=self.device, dtype=self.cfg.data_dtype)
 
     def _gen_target(self, batch_size):
         return torch.empty(
@@ -45,7 +59,7 @@ class Model(BenchmarkModel):
 
     def _step_train(self):
         self.cfg.optimizer.zero_grad()
-        output = self.model(self.cfg.example_inputs)
+        output = self.model(self.example_inputs)
         if isinstance(output, tuple):
             output = output[0]
         target = self._gen_target(output.shape[0])
@@ -59,10 +73,10 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.cfg.infer_example_inputs)
+        output = self.eval_model(self.infer_example_inputs)
 
     def get_module(self):
-        return self.model, (self.cfg.example_inputs,)
+        return self.model, (self.example_inputs,)
 
     def train(self, niter=1):
         self.model.train()

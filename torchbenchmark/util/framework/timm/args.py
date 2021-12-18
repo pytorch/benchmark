@@ -21,6 +21,13 @@ import yaml
 import torch
 import argparse
 
+def parse_extraargs(extra_args):
+    parser = argparse.ArgumentParser()
+    # By default, timm models doesn't support fp16 (half precision)
+    parser.add_argument("--eval-fp16", action='store_true', help="enable eval fp16")
+    parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
+    return parser.parse_args(extra_args)
+
 def setup_args_distributed(args):
     args.distributed = False
     if 'WORLD_SIZE' in os.environ:
