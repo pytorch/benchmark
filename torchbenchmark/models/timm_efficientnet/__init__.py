@@ -20,8 +20,8 @@ class Model(BenchmarkModel):
         precision = "float32"
         self.extra_args = parse_extraargs(extra_args)
 
-        self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
+        self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
         self.model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
