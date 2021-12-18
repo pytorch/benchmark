@@ -80,13 +80,11 @@ class Model(BenchmarkModel):
 
     def train(self, niter=1):
         self.model.train()
-        self.example_inputs = self.example_inputs
         for _ in range(niter):
             self._step_train()
 
     def eval(self, niter=1):
         self.eval_model.eval()
-        self.infer_example_inputs = self.infer_example_inputs
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
