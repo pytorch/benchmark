@@ -10,7 +10,6 @@ from torchbenchmark.util.framework.timm.args import parse_extraargs
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
-    optimized_for_inference = True
 
     def __init__(self, device=None, jit=False, train_bs=32, eval_bs=64,
                  variant='mixnet_m', extra_args=[]):
@@ -73,7 +72,7 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.infer_example_inputs)
+        output = self.eval_model(self.eval_example_inputs)
 
     def get_module(self):
         return self.model, (self.example_inputs,)
