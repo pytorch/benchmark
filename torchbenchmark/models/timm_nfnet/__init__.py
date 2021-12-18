@@ -11,7 +11,8 @@ from torchbenchmark.util.framework.timm.train import train_one_epoch, validate
 from torchbenchmark.util.framework.timm.instantiate import timm_instantiate_train, timm_instantiate_eval
 
 from torchbenchmark.util.jit import jit_if_needed
-from torchbenchmark.util.prefetch import prefetch_loader
+from torchbenchmark.util.prefetch import prefetch_loader, get_data_example
+from torchbenchmark.util.framework.timm.args import parse_extraargs
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
@@ -30,10 +31,11 @@ class Model(BenchmarkModel):
     # Source: https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/results/model_benchmark_amp_nchw_rtx3090.csv
     # Downscale to 128 to fit T4
     def __init__(self, device=None, jit=False, train_bs=128, eval_bs=128,
-                 variant='dm_nfnet_f0'):
+                 variant='dm_nfnet_f0', extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.extra_args = parse_extraargs(extra_args)
 
         # setup timm args
         args = get_args()
@@ -74,6 +76,12 @@ class Model(BenchmarkModel):
         # self.loader_train = prefetch_loader(self.loader_train, device)
         # self.loader_validate = prefetch_loader(self.loader_validate, device)
         self.loader_eval = prefetch_loader(self.loader_eval, device)
+        if self.extra_args.fx2trt:
+            assert self.device == 'cuda', "fx2trt is only available with CUDA."
+            assert not self.jit, "fx2trt with JIT is not available."
+            from torchbenchmark.util.fx2trt import lower_to_trt
+            self.eval_model = lower_to_trt(module=self.eval_model, input=get_data_example(self.loader_eval), \
+                                           max_batch_size=eval_bs, fp16_mode=self.extra_args.eval_fp16)
 
     def get_module(self):
         if self.device == "cuda":
