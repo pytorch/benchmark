@@ -10,6 +10,7 @@ Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
 import time
+import inspect
 import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
@@ -140,7 +141,7 @@ if __name__ == "__main__":
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
-    args = parser.parse_args()
+    args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
@@ -151,21 +152,33 @@ if __name__ == "__main__":
     if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
-
+    model_args = inspect.signature(Model)
+    if extra_args and not 'extra_args' in model_args.parameters:
+        print(f"The model {args.model} doesn't accept extra args: {extra_args}")
+        exit(-1)
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
 
     # build the model and get the chosen test method
     if args.bs:
         try:
             if args.test == "eval":
-                m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
+                if extra_args:
+                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs, extra_args=extra_args)
+                else:
+                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
             elif args.test == "train":
-                m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs)
+                if extra_args:
+                    m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
+                else:
+                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
         except:
             print(f"The model {args.model} doesn't support specifying batch size, please remove --bs argument in the commandline.")
             exit(1)
     else:
-        m = Model(device=args.device, jit=(args.mode == "jit"))
+        if extra_args:
+            m = Model(device=args.device, jit=(args.mode == "jit"), extra_args=extra_args)
+        else:
+            m = Model(device=args.device, jit=(args.mode == "jit"))
 
     test = getattr(m, args.test)
 
