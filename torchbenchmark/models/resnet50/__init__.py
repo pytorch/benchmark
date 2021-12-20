@@ -39,6 +39,13 @@ class Model(BenchmarkModel):
             self.eval_model.eval()
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
+    def get_flops(self, test='eval'):
+        from fvcore.nn import FlopCountAnalysis
+        if test == 'eval':
+            return FlopCountAnalysis(self.eval_model, tuple(self.eval_example_inputs)).total()
+        elif test == 'train':
+            return FlopCountAnalysis(self.model, tuple(self.example_inputs)).total()
+        assert False, "get_flops() only support eval or train mode."
 
     def get_module(self):
         return self.model, self.example_inputs

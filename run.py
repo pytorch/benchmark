@@ -52,7 +52,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, flops=False):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -78,6 +78,11 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, flops=False):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
         print('{:<20} {:>20}'.format("CPU Dispatch Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % ((t2 - t0) / 1_000_000)), sep='')
+
+        # if flops is not None, output the TFLOPs per sec
+        if model_flops:
+            tflops = (t2 - t0) / 1_000_000_000 * model_flops / 1.0e12
+            print('{{:<20} {:>20}}'.format("FLOPS:", "%.5f TFLOPs per second." % tflops, sep=''))
 
     else:
         t0 = time.time_ns()
@@ -182,10 +187,13 @@ if __name__ == "__main__":
             m = Model(device=args.device, jit=(args.mode == "jit"))
 
     test = getattr(m, args.test)
-
+    model_flops = None
+    if args.flops:
+        assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
+        model_flops = m.get_flops(test=args.test)
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, flops=args.flops)
+        run_one_step(test, flops=model_flops)
