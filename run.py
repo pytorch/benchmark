@@ -196,4 +196,4 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, flops=model_flops)
+        run_one_step(test, model_flops=model_flops)
