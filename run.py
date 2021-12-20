@@ -52,7 +52,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, flops=False):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -141,6 +141,7 @@ if __name__ == "__main__":
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
+    parser.add_argument("--flops", action="store_true", help="Return the flops result")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -187,4 +188,4 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test)
+        run_one_step(test, flops=args.flops)
