@@ -73,22 +73,25 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
         torch.cuda.synchronize()
         t2 = time.time_ns()
 
+        wall_latency = t2 - t0
+
         # CPU Dispatch time include only the time it took to dispatch all the work to the GPU.
         # CPU Total Wall Time will include the CPU Dispatch, GPU time and device latencies.
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
         print('{:<20} {:>20}'.format("CPU Dispatch Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % ((t2 - t0) / 1_000_000)), sep='')
 
-        # if flops is not None, output the TFLOPs per sec
-        if model_flops:
-            tflops = (t2 - t0) / 1_000_000_000 * model_flops / 1.0e12
-            print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second." % tflops, sep=''))
-
     else:
         t0 = time.time_ns()
         func()
         t1 = time.time_ns()
+        wall_latency = t1 - t0
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
+
+    # if model_flops is not None, output the TFLOPs per sec
+    if model_flops:
+        tflops = wall_latency / 1_000_000_000 * model_flops / 1.0e12
+        print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
