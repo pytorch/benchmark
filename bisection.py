@@ -473,10 +473,11 @@ class TorchBenchBisection:
     def run(self):
         while len(self.bisectq):
             (left, right, targets) = self.bisectq.pop(0)
-            self.bench.get_digest(left, targets, self.debug)
+            # For LTC, we only care about the last commit.
+            # self.bench.get_digest(left, targets, self.debug)
             self.bench.get_digest(right, targets, self.debug)
-            if targets == None and len(left.digest):
-                targets = left.digest.keys()
+            # if targets == None and len(left.digest):
+            #     targets = left.digest.keys()
             if targets == None and len(right.digest):
                 targets = right.digest.keys()
             # Commented out for now.
