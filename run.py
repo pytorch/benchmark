@@ -82,7 +82,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
         # if flops is not None, output the TFLOPs per sec
         if model_flops:
             tflops = (t2 - t0) / 1_000_000_000 * model_flops / 1.0e12
-            print('{{:<20} {:>20}}'.format("FLOPS:", "%.5f TFLOPs per second." % tflops, sep=''))
+            print('{:<20} {:>20}'.format("FLOPS:", "%.5f TFLOPs per second." % tflops, sep=''))
 
     else:
         t0 = time.time_ns()
