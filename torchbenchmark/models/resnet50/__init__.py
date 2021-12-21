@@ -43,14 +43,11 @@ class Model(BenchmarkModel):
     # However, in our context, we count 1 FMA as 2 flops instead of 1.
     # https://github.com/facebookresearch/fvcore/blob/7a0ef0c0839fa0f5e24d2ef7f5d48712f36e7cd7/fvcore/nn/flop_count.py
     def get_flops(self, test='eval', flops_fma=2.0):
-        from fvcore.nn import FlopCountAnalysis
         if test == 'eval':
-            flops = FlopCountAnalysis(self.eval_model, tuple(self.eval_example_inputs)).total() / \
-                    self.eval_bs * flops_fma
+            flops = self.eval_flops / self.eval_bs * flops_fma
             return flops, self.eval_bs
         elif test == 'train':
-            flops = FlopCountAnalysis(self.model, tuple(self.example_inputs)).total() * flops_fma / \
-                    self.train_bs * flops_fma
+            flops = self.train_flops / self.train_bs * flops_fma
             return flops, self.train_bs
         assert False, "get_flops() only support eval or train mode."
 

@@ -169,26 +169,19 @@ if __name__ == "__main__":
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
 
     # build the model and get the chosen test method
+    if args.flops:
+        extra_args.append("--flops")
     if args.bs:
         try:
             if args.test == "eval":
-                if extra_args:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs, extra_args=extra_args)
-                else:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
+                m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs, extra_args=extra_args)
             elif args.test == "train":
-                if extra_args:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
-                else:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
+                m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
         except:
             print(f"The model {args.model} doesn't support specifying batch size, please remove --bs argument in the commandline.")
             exit(1)
     else:
-        if extra_args:
-            m = Model(device=args.device, jit=(args.mode == "jit"), extra_args=extra_args)
-        else:
-            m = Model(device=args.device, jit=(args.mode == "jit"))
+        m = Model(device=args.device, jit=(args.mode == "jit"), extra_args=extra_args)
 
     test = getattr(m, args.test)
     model_flops = None
