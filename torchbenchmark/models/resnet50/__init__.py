@@ -39,12 +39,17 @@ class Model(BenchmarkModel):
             self.eval_model.eval()
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
-    def get_flops(self, test='eval'):
+    # By default, FlopCountAnalysis count one fused-mult-add (FMA) as one flop.
+    # However, in our context, we count 1 FMA as 2 flops instead of 1.
+    # https://github.com/facebookresearch/fvcore/blob/7a0ef0c0839fa0f5e24d2ef7f5d48712f36e7cd7/fvcore/nn/flop_count.py
+    def get_flops(self, test='eval', flops_fma=2.0):
         from fvcore.nn import FlopCountAnalysis
         if test == 'eval':
-            return FlopCountAnalysis(self.eval_model, tuple(self.eval_example_inputs)).total() * self.eval_bs
+            return FlopCountAnalysis(self.eval_model, tuple(self.eval_example_inputs)).total() \
+                   * self.eval_bs * flops_fma
         elif test == 'train':
-            return FlopCountAnalysis(self.model, tuple(self.example_inputs)).total() * self.train_bs
+            return FlopCountAnalysis(self.model, tuple(self.example_inputs)).total() * \
+                   self.train_bs * flops_fma
         assert False, "get_flops() only support eval or train mode."
 
     def get_module(self):
