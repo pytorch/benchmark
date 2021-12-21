@@ -90,7 +90,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
 
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
-        tflops = wall_latency / 1_000_000_000 * model_flops / 1.0e12
+        tflops = model_flops / (wall_latency / 1.0e9) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
 

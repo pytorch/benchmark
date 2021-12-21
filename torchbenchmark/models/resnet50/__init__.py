@@ -42,9 +42,9 @@ class Model(BenchmarkModel):
     def get_flops(self, test='eval'):
         from fvcore.nn import FlopCountAnalysis
         if test == 'eval':
-            return FlopCountAnalysis(self.eval_model, tuple(self.eval_example_inputs)).total()
+            return FlopCountAnalysis(self.eval_model, tuple(self.eval_example_inputs)).total() * self.eval_bs
         elif test == 'train':
-            return FlopCountAnalysis(self.model, tuple(self.example_inputs)).total()
+            return FlopCountAnalysis(self.model, tuple(self.example_inputs)).total() * self.train_bs
         assert False, "get_flops() only support eval or train mode."
 
     def get_module(self):
