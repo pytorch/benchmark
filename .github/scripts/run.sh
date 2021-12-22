@@ -7,12 +7,17 @@
 
 set -xeo pipefail
 
+# Number of iterations
+if [ -z "$NUM_ITER" ]; then
+    NUM_ITER=1
+fi
 # Version of the config
 if [ -z "$CONFIG_VER" ]; then
     CONFIG_VER=v1
 fi
 CONFIG_DIR=${PWD}/torchbenchmark/score/configs/${CONFIG_VER}
 CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
+
 # Load environment variables
 set -a;
 source ${CONFIG_ENV}
@@ -20,7 +25,7 @@ set +a;
 
 DATA_JSON_PREFIX=$(date +"%Y%m%d_%H%M%S")
 if [ -z "$1" ]; then
-    echo "You must specify output data dir"
+    echo "You must specify the output data dir"
     exit 1
 fi
 DATA_DIR="$1"
