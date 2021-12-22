@@ -43,6 +43,7 @@ def _prefetch(loader, device):
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
+    optimized_for_inference = True
 
     def __init__(self, device=None, jit=False, train_bs=4, eval_bs=4):
         self.device = device

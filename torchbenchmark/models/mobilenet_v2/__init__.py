@@ -6,10 +6,11 @@ import torchvision.models as models
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-from torchbenchmark.util.env_check import parse_extraargs
+from torchbenchmark.util.framework.vision.args import parse_args, apply_args
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
+    optimized_for_inference = True
 
     # Train batch size: 96
     # Source: https://arxiv.org/pdf/1801.04381.pdf
@@ -17,22 +18,17 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
+
         self.model = models.mobilenet_v2().to(self.device)
         self.eval_model = models.mobilenet_v2().to(self.device)
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
         self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
 
         # process extra args
-        self.extra_args = parse_extraargs(extra_args)
-        if self.extra_args.eval_fp16:
-            self.eval_model.half()
-            self.eval_example_inputs = (self.eval_example_inputs[0].half(),)
-        if self.extra_args.fx2trt:
-            assert self.device == 'cuda', "fx2trt is only available with CUDA."
-            assert not self.jit, "fx2trt with JIT is not available."
-            from torchbenchmark.util.fx2trt import lower_to_trt
-            self.eval_model = lower_to_trt(module=self.eval_model, input=self.eval_example_inputs, \
-                                           max_batch_size=eval_bs, fp16_mode=self.extra_args.eval_fp16)
+        self.args = parse_args(self, extra_args)
+        apply_args(self, self.args)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
@@ -46,15 +42,8 @@ class Model(BenchmarkModel):
             self.eval_model.eval()
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
-
     def get_module(self):
         return self.model, self.example_inputs
-
-    # vision models have another model
-    # instance for inference that has
-    # already been optimized for inference
-    def set_eval(self):
-        pass
 
     def train(self, niter=3):
         optimizer = optim.Adam(self.model.parameters())
@@ -71,11 +60,3 @@ class Model(BenchmarkModel):
         example_inputs = self.eval_example_inputs
         for i in range(niter):
             model(*example_inputs)
-
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=True)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)
