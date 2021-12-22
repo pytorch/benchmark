@@ -8,7 +8,7 @@ from torchbenchmark.util.framework.vision.args import parse_args, apply_args
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
 
-    def __init__(self, model_name=None, device=None, jit=False, train_bs=32, eval_bs=32, extra_args=[]):
+    def __init__(self, model_name=None, device=None, jit=False, train_bs=1, eval_bs=1, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
