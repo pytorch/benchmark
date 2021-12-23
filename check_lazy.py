@@ -27,8 +27,9 @@ lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 # pyhpc_equation_of_state/train: Don't exist.
 # pyhpc_isoneutral_mixing/train: Don't exist.
 # dlrm/train: Sparse layout doesn't support lazy devices.
+# timm_nfnet/train: OOM on CUDA eager.
 skip_tests = {'eval': {'pytorch_struct'},
-              'train': {'pyhpc_equation_of_state', 'pyhpc_isoneutral_mixing', 'dlrm'}}
+              'train': {'pyhpc_equation_of_state', 'pyhpc_isoneutral_mixing', 'dlrm', 'timm_nfnet'}}
 
 def list_model_names():
     return [os.path.basename(model_path) for model_path in _list_model_paths()]
