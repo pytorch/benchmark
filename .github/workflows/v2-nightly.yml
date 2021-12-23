@@ -26,10 +26,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: v1.0
+          ref: xz9/v2-testrun
       - name: Create conda env
         run: |
-          conda create -y -q --name "${CONDA_ENV_NAME}" python=%{{ env.PYTHON_VER }}
+          conda create -y -q --name "${CONDA_ENV_NAME}" python=${{ env.PYTHON_VER }}
       - name: Install PyTorch nightly
         run: |
           . activate "${CONDA_ENV_NAME}"
