@@ -13,7 +13,6 @@ from .networks.NeuralCFG import NeuralCFG
 from torchtext.datasets import UDPOS
 from torchtext.vocab import build_vocab_from_iterator
 from torchtext.data.utils import (
-    get_tokenizer,
     ngrams_iterator,
 )
 
@@ -27,16 +26,16 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
 
-def yield_tokens(data_iter, ngrams, tokenizer):
-    for _, text in data_iter:
-        yield ngrams_iterator(tokenizer(text), ngrams)
+def yield_tokens(data_iter):
+    for text in data_iter:
+        yield from text
 
 
-def collate_batch(batch, tokenizer, device):
+def collate_batch(batch, vocab, device):
     label_list, text_list = [], []
     for (_label, _text) in batch:
         label_list.append(_label)
-        processed_text = torch.tensor(tokenizer(_text), dtype=torch.int64)
+        processed_text = torch.tensor(vocab(_text), dtype=torch.int64)
         text_list.append(processed_text)
     label_list = torch.tensor(label_list, dtype=torch.int64)
     text_list = torch.cat(text_list)
@@ -55,20 +54,16 @@ class Model(BenchmarkModel):
         self.jit = jit
         ngrams = 5
 
-        tokenizer = get_tokenizer('basic_english')
-
         train_iter = UDPOS(split='train')
-        vocab = build_vocab_from_iterator(yield_tokens(train_iter, ngrams=ngrams, tokenizer=tokenizer), specials=["<unk>"])
+        vocab = build_vocab_from_iterator(yield_tokens(train_iter), specials=["<unk>"])
         vocab.set_default_index(vocab["<unk>"])
-        text_pipeline = lambda sent: vocab(list(ngrams_iterator(tokenizer(sent), ngrams)))
 
         pin_memory = device == 'cuda'
         self.train_data = DataLoader(
           UDPOS(split='train'),
           batch_size=train_bs,
-          shuffle=True,
           pin_memory=pin_memory,
-          collate_fn=lambda batch: collate_batch(batch, text_pipeline, device)
+          collate_fn=lambda batch: collate_batch(batch, vocab, device)
         )
 
         # Build model
