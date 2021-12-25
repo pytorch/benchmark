@@ -54,17 +54,14 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        ngrams = 5
 
         train_iter = UDPOS(split='train')
         vocab = build_vocab_from_iterator(yield_tokens(train_iter), specials=["<unk>"])
         vocab.set_default_index(vocab["<unk>"])
 
-        pin_memory = device == 'cuda'
         self.train_data = DataLoader(
           UDPOS(split='train'),
           batch_size=train_bs,
-          pin_memory=pin_memory,
           collate_fn=lambda batch: collate_batch(batch, vocab, device, padding_value=0)
         )
 
