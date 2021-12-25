@@ -33,72 +33,73 @@ def yield_tokens(data_iter, ngrams, tokenizer):
 
 
 class Model(BenchmarkModel):
-  task = OTHER.OTHER_TASKS
+    task = OTHER.OTHER_TASKS
 
-  # Original train batch size: 200
-  # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
-  def __init__(self, device=None, jit=False, train_bs=200):
-    super().__init__()
-    self.device = device
-    self.jit = jit
+    # Original train batch size: 200
+    # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
+    def __init__(self, device=None, jit=False, train_bs=200):
+        super().__init__()
+        self.device = device
+        self.jit = jit
 
-    tokenizer = get_tokenizer('basic_english')
+        tokenizer = get_tokenizer('basic_english')
 
-    train_iter = UDPOS(split='train')
-    vocab = build_vocab_from_iterator(yield_tokens(train_iter, ngrams=5, tokenizer=tokenizer), specials=["<unk>"])
-    vocab.set_default_index(vocab["<unk>"])
+        train_iter = UDPOS(split='train')
+        vocab = build_vocab_from_iterator(yield_tokens(train_iter, ngrams=5, tokenizer=tokenizer), specials=["<unk>"])
+        vocab.set_default_index(vocab["<unk>"])
 
-    pin_memory = device == 'cuda'
-    self.train_data = DataLoader(UDPOS(split='train'), batch_size=train_bs, shuffle=True, pin_memory=pin_memory)
+        pin_memory = device == 'cuda'
+        self.train_data = DataLoader(UDPOS(split='train'), batch_size=train_bs, shuffle=True, pin_memory=pin_memory)
 
-    # Build model
-    H = 256
-    T = 30
-    NT = 30
-    self.model = NeuralCFG(len(vocab), T, NT, H)
-    self.model.to(device=device)
-    self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=(0.75, 0.999))
+        # Build model
+        H = 256
+        T = 30
+        NT = 30
+        self.model = NeuralCFG(len(vocab), T, NT, H)
+        self.model.to(device=device)
+        self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=(0.75, 0.999))
 
-  def get_module(self):
-    for words, _ in self.train_data:
-      return self.model, (words, )
+    def get_module(self):
+        for words, _ in self.train_data:
+            return self.model, (words,)
 
-  def train(self, niter=1):
-    if self.jit:
-        raise NotImplementedError("JIT is not supported by this model")
-    for _, (words, lengths) in zip(range(niter), self.train_data):
-      losses = []
-      self.opt.zero_grad()
-      params = self.model(words)
-      dist = SentCFG(params, lengths=lengths)
-      loss = dist.partition.mean()
-      (-loss).backward()
-      losses.append(loss.detach())
-      torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3.0)
-      self.opt.step()
+    def train(self, niter=1):
+        if self.jit:
+            raise NotImplementedError("JIT is not supported by this model")
+        for _, (words, lengths) in zip(range(niter), self.train_data):
+            losses = []
+            self.opt.zero_grad()
+            params = self.model(words)
+            dist = SentCFG(params, lengths=lengths)
+            loss = dist.partition.mean()
+            (-loss).backward()
+            losses.append(loss.detach())
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3.0)
+            self.opt.step()
 
-
-  def eval(self, niter=1):
-    raise NotImplementedError("Eval is not supported by this model")
+    def eval(self, niter=1):
+        raise NotImplementedError("Eval is not supported by this model")
 
 
 def cuda_sync(func, sync=False):
     func()
     if sync:
-      torch.cuda.synchronize()
+        torch.cuda.synchronize()
 
-@pytest.mark.parametrize('jit',  [True, False], ids=['jit', 'no-jit'])
-@pytest.mark.parametrize('device',  ['cpu', 'cuda'])
+
+@pytest.mark.parametrize('jit', [True, False], ids=['jit', 'no-jit'])
+@pytest.mark.parametrize('device', ['cpu', 'cuda'])
 class TestBench():
-  def test_train(self, benchmark, device, jit):
-    m = Model(device=device, jit=jit)
-    benchmark(cuda_sync, m.train, device=='cuda')
+    def test_train(self, benchmark, device, jit):
+        m = Model(device=device, jit=jit)
+        benchmark(cuda_sync, m.train, device == 'cuda')
+
 
 if __name__ == '__main__':
-  for device in ['cpu', 'cuda']:
-    for jit in [True, False]:
-      print("Testing device {}, JIT {}".format(device, jit))
-      m = Model(device=device, jit=jit)
-      model, example_inputs = m.get_module()
-      model(*example_inputs)
-      m.train()
+    for device in ['cpu', 'cuda']:
+        for jit in [True, False]:
+            print("Testing device {}, JIT {}".format(device, jit))
+            m = Model(device=device, jit=jit)
+            model, example_inputs = m.get_module()
+            model(*example_inputs)
+            m.train()
