@@ -5,6 +5,8 @@ https://github.com/harvardnlp/pytorch-struct/blob/master/notebooks/Unsupervised_
 import pytest
 import numpy as np
 import torch, random
+
+from torch.utils.data import DataLoader
 from torch_struct import SentCFG
 from .networks.NeuralCFG import NeuralCFG
 
@@ -46,7 +48,8 @@ class Model(BenchmarkModel):
     vocab = build_vocab_from_iterator(yield_tokens(train_iter, ngrams=5, tokenizer=tokenizer), specials=["<unk>"])
     vocab.set_default_index(vocab["<unk>"])
 
-    self.train_iter = UDPOS(split='train')
+    pin_memory = device == 'cuda'
+    self.train_data = DataLoader(UDPOS(split='train'), batch_size=train_bs, shuffle=True, pin_memory=pin_memory)
 
     # Build model
     H = 256
@@ -54,7 +57,7 @@ class Model(BenchmarkModel):
     NT = 30
     self.model = NeuralCFG(len(vocab), T, NT, H)
     self.model.to(device=device)
-    self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=[0.75, 0.999])
+    self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=(0.75, 0.999))
 
   def get_module(self):
     for words, _ in self.train_data:
@@ -63,7 +66,7 @@ class Model(BenchmarkModel):
   def train(self, niter=1):
     if self.jit:
         raise NotImplementedError("JIT is not supported by this model")
-    for _, (words, lengths) in zip(range(niter), self.train_iter):
+    for _, (words, lengths) in zip(range(niter), self.train_data):
       losses = []
       self.opt.zero_grad()
       params = self.model(words)
