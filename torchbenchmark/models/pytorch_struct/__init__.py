@@ -6,15 +6,15 @@ import pytest
 import numpy as np
 import torch, random
 
+
 from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pad_sequence
+
 from torch_struct import SentCFG
 from .networks.NeuralCFG import NeuralCFG
 
 from torchtext.datasets import UDPOS
 from torchtext.vocab import build_vocab_from_iterator
-from torchtext.data.utils import (
-    ngrams_iterator,
-)
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
@@ -31,14 +31,16 @@ def yield_tokens(data_iter):
         yield from text
 
 
-def collate_batch(batch, vocab, device):
+def collate_batch(batch, vocab, device, padding_value):
     label_list, text_list = [], []
-    for (_label, _text) in batch:
-        label_list.append(_label)
-        processed_text = torch.tensor(vocab(_text), dtype=torch.int64)
+
+    for example in batch:
+        processed_text = torch.tensor(vocab(example[0]), dtype=torch.int64)
         text_list.append(processed_text)
-    label_list = torch.tensor(label_list, dtype=torch.int64)
-    text_list = torch.cat(text_list)
+        label_list.append(torch.tensor(vocab(example[1]), dtype=torch.int64))
+
+    label_list = pad_sequence(label_list, padding_value=padding_value, batch_first=True)
+    text_list = pad_sequence(text_list, padding_value=padding_value, batch_first=True)
     return label_list.to(device), text_list.to(device)
 
 
@@ -63,7 +65,7 @@ class Model(BenchmarkModel):
           UDPOS(split='train'),
           batch_size=train_bs,
           pin_memory=pin_memory,
-          collate_fn=lambda batch: collate_batch(batch, vocab, device)
+          collate_fn=lambda batch: collate_batch(batch, vocab, device, padding_value=0)
         )
 
         # Build model
