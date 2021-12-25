@@ -1,4 +1,4 @@
 dgl
 wandb
-pytorch-transformers
+transformers
 git+https://github.com/harvardnlp/pytorch-struct@f4e374e
