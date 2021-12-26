@@ -1,7 +1,6 @@
 import torch
 
 
-@torch.jit.script
 def get_drhodT(salt, temp, p):
     rho0 = 1024.0
     z0 = 0.0
@@ -16,14 +15,12 @@ def get_drhodT(salt, temp, p):
     return -(betaTs * thetas + betaT * (1 - gammas * grav * zz * rho0)) * rho0
 
 
-@torch.jit.script
 def get_drhodS(salt, temp, p):
     betaS = 0.78e-3
     rho0 = 1024.0
     return betaS * rho0 * torch.ones_like(temp)
 
 
-@torch.jit.script
 def dm_taper(sx):
     """
     tapering function for isopycnal slopes
@@ -33,7 +30,6 @@ def dm_taper(sx):
     return 0.5 * (1.0 + torch.tanh((-torch.abs(sx) + iso_slopec) / iso_dslope))
 
 
-@torch.jit.script
 def isoneutral_diffusion_pre(
     maskT,
     maskU,

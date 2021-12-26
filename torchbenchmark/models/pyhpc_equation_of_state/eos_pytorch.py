@@ -10,7 +10,6 @@
 import torch
 
 
-@torch.jit.script
 def gsw_dHdT(sa, ct, p):
     """
     d/dT of dynamic enthalpy, analytical derivative
