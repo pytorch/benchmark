@@ -1,5 +1,4 @@
 import pickle
-import tqdm
 from collections import Counter
 
 
@@ -119,7 +118,7 @@ class Vocab(TorchVocab):
 class WordVocab(Vocab):
     def __init__(self, texts, max_size=None, min_freq=1):
         counter = Counter()
-        for line in tqdm.tqdm(texts):
+        for line in texts:
             if isinstance(line, list):
                 words = line
             else:

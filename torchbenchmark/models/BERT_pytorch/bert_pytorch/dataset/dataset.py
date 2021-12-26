@@ -1,5 +1,4 @@
 from torch.utils.data import Dataset
-import tqdm
 import torch
 import random
 
@@ -24,12 +23,12 @@ class BERTDataset(Dataset):
         with generator as f:
 
             if self.corpus_lines is None and not on_memory:
-                for _ in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines, disable=QUIET):
+                for _ in f:
                     self.corpus_lines += 1
 
             if on_memory:
                 self.lines = [line[:-1].split("\\t")
-                              for line in tqdm.tqdm(f, desc="Loading Dataset", total=corpus_lines, disable=QUIET)]
+                              for line in f]
                 self.corpus_lines = len(self.lines)
 
         if not on_memory:

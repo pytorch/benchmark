@@ -12,6 +12,9 @@ from .yolo_utils.utils import *
 from .yolo_utils.parse_config import parse_data_cfg
 from pathlib import Path
 
+def print(*args):
+    pass
+
 def _prefetch_loader(loader, size, fields=[], collate_fn=lambda x: x):
     result = []
     for index, item in enumerate(loader):
