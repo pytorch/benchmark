@@ -43,14 +43,14 @@ def collate_batch(batch, vocab, device, padding_value, filter_pred):
         label_list.append(torch.tensor(vocab(selected_labels), dtype=torch.int64))
     label_list = pad_sequence(label_list, padding_value=padding_value, batch_first=True)
     text_list = pad_sequence(text_list, padding_value=padding_value, batch_first=True)
-    return label_list.to(device), text_list.to(device)
+    return text_list.to(device), (text_list != padding_value).sum(axis=1).to(device)
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
     # Original train batch size: 200
     # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
-    def __init__(self, device=None, jit=False, train_bs=200):
+    def __init__(self, device=None, jit=False, train_bs=40):
         super().__init__()
         self.device = device
         self.jit = jit
