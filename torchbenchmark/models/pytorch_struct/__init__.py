@@ -31,19 +31,19 @@ def yield_tokens(data_iter):
         yield from text
 
 
-def collate_batch(batch, vocab, device, padding_value):
+def collate_batch(batch, vocab, device, padding_value, filter_pred):
     label_list, text_list = [], []
 
     for example in batch:
-        processed_text = torch.tensor(vocab(example[0]), dtype=torch.int64)
+        mask = [i for i, e in enumerate(example[0]) if filter_pred(e)]
+        selected_text = [example[0][i] for i in mask]
+        selected_labels = [example[1][i] for i in mask]
+        processed_text = torch.tensor(vocab(selected_text), dtype=torch.int64)
         text_list.append(processed_text)
-        label_list.append(torch.tensor(vocab(example[1]), dtype=torch.int64))
-
+        label_list.append(torch.tensor(vocab(selected_labels), dtype=torch.int64))
     label_list = pad_sequence(label_list, padding_value=padding_value, batch_first=True)
     text_list = pad_sequence(text_list, padding_value=padding_value, batch_first=True)
     return label_list.to(device), text_list.to(device)
-
-
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
@@ -56,13 +56,17 @@ class Model(BenchmarkModel):
         self.jit = jit
 
         train_iter = UDPOS(split='train')
-        vocab = build_vocab_from_iterator(yield_tokens(train_iter), specials=["<unk>"])
+        vocab = build_vocab_from_iterator(
+            yield_tokens(train_iter), specials=["<unk>", "<bos>", "<eos>"], min_freq=3
+        )
         vocab.set_default_index(vocab["<unk>"])
 
         self.train_data = DataLoader(
           UDPOS(split='train'),
           batch_size=train_bs,
-          collate_fn=lambda batch: collate_batch(batch, vocab, device, padding_value=0)
+          collate_fn=lambda batch: collate_batch(
+              batch, vocab, device, padding_value=vocab(["<pad>"])[0], filter_pred=lambda word: 5 < len(word) < 30
+          )
         )
 
         # Build model
