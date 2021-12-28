@@ -220,8 +220,7 @@ class TorchSource:
             lazy_tensor_path = os.path.join(self.srcpath, "lazy_tensor_core")
             command = "./scripts/apply_patches.sh"
             subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
-            # Turns on DEBUG build to get assertions as well.
-            command = "DEBUG=1 python setup.py install"
+            command = "python setup.py install"
             subprocess.check_call(command, cwd=lazy_tensor_path, env=build_env, shell=True)
             print("done")
 
@@ -474,10 +473,11 @@ class TorchBenchBisection:
     def run(self):
         while len(self.bisectq):
             (left, right, targets) = self.bisectq.pop(0)
-            self.bench.get_digest(left, targets, self.debug)
+            # For LTC, we only care about the last commit.
+            # self.bench.get_digest(left, targets, self.debug)
             self.bench.get_digest(right, targets, self.debug)
-            if targets == None and len(left.digest):
-                targets = left.digest.keys()
+            # if targets == None and len(left.digest):
+            #     targets = left.digest.keys()
             if targets == None and len(right.digest):
                 targets = right.digest.keys()
             # Commented out for now.
