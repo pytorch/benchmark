@@ -298,7 +298,7 @@ class Model(BenchmarkModel):
                 errD_real = criterion(output, label)
                 # Calculate gradients for D in backward pass
                 errD_real.backward()
-                D_x = output.mean().item()
+                # D_x = output.mean().item()
 
                 ## Train with all-fake batch
                 # Generate batch of latent vectors
@@ -312,7 +312,7 @@ class Model(BenchmarkModel):
                 errD_fake = criterion(output, label)
                 # Calculate the gradients for this batch, accumulated (summed) with previous gradients
                 errD_fake.backward()
-                D_G_z1 = output.mean().item()
+                # D_G_z1 = output.mean().item()
                 # Compute error of D as sum over the fake and the real batches
                 errD = errD_real + errD_fake
                 # Update D
@@ -329,6 +329,6 @@ class Model(BenchmarkModel):
                 errG = criterion(output, label)
                 # Calculate gradients for G
                 errG.backward()
-                D_G_z2 = output.mean().item()
+                # D_G_z2 = output.mean().item()
                 # Update G
                 optimizerG.step()
