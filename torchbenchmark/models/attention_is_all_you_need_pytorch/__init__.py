@@ -17,7 +17,7 @@ from torchbenchmark.util.torchtext_legacy.translation import TranslationDataset
 from .transformer import Constants
 from .transformer.Models import Transformer
 from .transformer.Optim import ScheduledOptim
-from .train import prepare_dataloaders, cal_performance, patch_src, patch_trg
+from .train import prepare_dataloaders, cal_loss, patch_src, patch_trg
 import random
 import numpy as np
 from pathlib import Path
@@ -133,8 +133,12 @@ class Model(BenchmarkModel):
             self.optimizer.zero_grad()
             example_inputs = (src_seq, trg_seq)
             pred = self.module(*example_inputs)
-            loss, n_correct, n_word = cal_performance(
-                pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
+            # cal_performance computes n_correct and n_word inefficiently with .item(),
+            # we don't use the results here at all,
+            # so just compute the loss, which enables lazy tensor to be efficient
+            loss = cal_loss(pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
+            # loss, n_correct, n_word = cal_performance(
+            #     pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
             self.optimizer.step_and_update_lr()
 
