@@ -27,12 +27,7 @@ def _prefetch_loader(loader, size, fields=[], collate_fn=lambda x: x):
     return result
 
 def prepare_training_loop(args):
-    mixed_precision = True
-    try:  # Mixed precision training https://github.com/NVIDIA/apex
-        from apex import amp
-    except:
-        print('Apex recommended for faster mixed precision training: https://github.com/NVIDIA/apex')
-        mixed_precision = False  # not installed
+    mixed_precision = False
 
     wdir = 'weights' + os.sep  # weights dir
     last = wdir + 'last.pt'
