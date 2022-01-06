@@ -57,6 +57,14 @@ jobs:
           . activate "${CONDA_ENV_NAME}"
           WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
+      - name: Copy artifact and upload to scribe
+        run: |
+          . activate "${CONDA_ENV_NAME}"
+          TODAY=$(date "+%Y%m%d%H%M%S")
+          LATEST_RESULT=$(find ${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID} -name "*.json" | sort -r | head -1)
+          echo "Benchmark result file: ${LATEST_RESULT}"
+          mkdir -p benchmark-output/
+          cp "${LATEST_RESULT}" ./benchmark-output/benchmark-result-v1-${TODAY}.json
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
