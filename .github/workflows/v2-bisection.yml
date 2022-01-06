@@ -22,7 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: v1.0
+          ref: v2.0
       - name: Create conda environment
         run: |
           conda create -y -n "$BISECT_CONDA_ENV" python=${{ }}

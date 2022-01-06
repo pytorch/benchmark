@@ -32,7 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: v1.0
+          ref: v2.0
       - name: Run sweep job
         run: |
           SWEEP_JOB=${{ github.event.inputs.sweep_name }}
