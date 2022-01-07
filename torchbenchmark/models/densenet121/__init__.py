@@ -7,11 +7,11 @@ class Model(TorchVisionModel):
     # Train batch size: use the training batch in paper.
     # Source: https://arxiv.org/pdf/1608.06993.pdf
     def __init__(self, device=None, jit=False, train_bs=256, eval_bs=64, extra_args=[]):
-        super().__init__(model_name="densenet121", device=device, jit=jit,
-                         train_bs=train_bs, eval_bs=eval_bs, extra_args=extra_args)
         # Temporarily disable tests because it causes CUDA OOM on CI platform
         # TODO: Re-enable these tests when better hardware is available
         if self.device == 'cuda':
             raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         if self.device == 'cpu' and self.jit:
             raise NotImplementedError('CPU with jit disabled due to out of memory on CI CPU')
+        super().__init__(model_name="densenet121", device=device, jit=jit,
+                         train_bs=train_bs, eval_bs=eval_bs, extra_args=extra_args)
