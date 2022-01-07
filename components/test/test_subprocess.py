@@ -156,8 +156,6 @@ class TestParseFunction(TestCase):
                 raise ValueError
 
             q = 1
-            # Trailing comment isn't part of the execution, so it is actually
-            # dropped by `inspect`. (Surprisingly.)
 
         _, body = task_base.parse_f(f)
         self.assertExpectedInline(
