@@ -66,5 +66,3 @@ class TorchVisionModel(BenchmarkModel):
         example_inputs = self.eval_example_inputs
         for _i in range(niter):
             model(*example_inputs)
-
-    
