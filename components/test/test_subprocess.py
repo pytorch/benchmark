@@ -72,7 +72,7 @@ class TestParseFunction(TestCase):
         ) -> typing.Any:  # Comment on return line.
             """Docstring
 
-            Note: This will be dropped. See `parse_f` for details.
+            Note: This will be dropped in Python 3.7. See `parse_f` for details.
             """
 
             x += 1
@@ -85,8 +85,10 @@ class TestParseFunction(TestCase):
             return y
 
         _, body = task_base.parse_f(f)
-        self.assertExpectedInline(
-            self._indent(body), """\
+        # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
+        if sys.version_info[:2] == (3, 7):
+            self.assertExpectedInline(
+                self._indent(body), """\
             x += 1
 
             y = \"\"\"
@@ -95,7 +97,25 @@ class TestParseFunction(TestCase):
 
             # Comment in src.
             return y""",
-        )
+            )
+        else:
+            self.assertExpectedInline(
+                self._indent(body), """\
+            \"\"\"Docstring
+
+            Note: This will be dropped in Python 3.7. See `parse_f` for details.
+            \"\"\"
+
+            x += 1
+
+            y = \"\"\"
+                This is preserved.
+            \"\"\"
+
+            # Comment in src.
+            return y""",
+            )
+
 
     def test_parse_method(self) -> None:
         class MyClass:
@@ -121,10 +141,22 @@ class TestParseFunction(TestCase):
         )
 
         _, body = task_base.parse_f(MyClass.g)
-        self.assertExpectedInline(
-            self._indent(body), """\
+        # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
+        if sys.version_info[:2] == (3, 7):
+            self.assertExpectedInline(
+                self._indent(body), """\
             return x""",
-        )
+            )
+        else:
+            self.assertExpectedInline(
+                self._indent(body), """\
+            \"\"\"Identity, but with more steps
+
+            Culled, as this is a multi-line docstring
+            \"\"\"
+            return x""",
+            )
+
 
     def test_parse_pathological(self) -> None:
         def f(
@@ -158,8 +190,10 @@ class TestParseFunction(TestCase):
             q = 1
 
         _, body = task_base.parse_f(f)
-        self.assertExpectedInline(
-            self._indent(body), """\
+        # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
+        if sys.version_info[:2] == (3, 7):
+            self.assertExpectedInline(
+                self._indent(body), """\
             del x
             q = y.get(
                 z,
@@ -174,7 +208,30 @@ class TestParseFunction(TestCase):
                 raise ValueError
 
             q = 1""",
-        )
+            )
+        else:
+            self.assertExpectedInline(
+                self._indent(body), """\
+            \"\"\"Begin the actual body.
+
+            (For better or worse...)
+            \"\"\"
+            del x
+            q = y.get(
+                z,
+                None,
+            )
+
+            # Intermediate comment
+
+            if False:
+                return 1
+            elif q:
+                raise ValueError
+
+            q = 1""",
+            )
+            
 
     def test_fully_typed(self) -> None:
         def f(x):

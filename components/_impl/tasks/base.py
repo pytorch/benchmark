@@ -1,7 +1,6 @@
 """Add Task abstraction to reduce the friction of controlling a remote worker."""
 import abc
 import ast
-import sys
 import functools
 import inspect
 import marshal
@@ -120,28 +119,16 @@ def parse_f(f: typing.Callable) -> typing.Tuple[inspect.Signature, str]:
     src_lines = f_src.splitlines(keepends=False)
 
     node: ast.AST
-    for idx, node in enumerate(f_ast.body[0].body):
+    for node in f_ast.body[0].body:
         # In Python 3.7, there is a bug in `ast` that causes it to incorrectly
         # report the start line of bare multi-line strings:
         #   https://bugs.python.org/issue16806
         # Given that the only use for such strings is a docstring (or multi
         # line comment), we simply elect to skip over them and index on the
         # first node that will give valid indices.
-        # To support both Python 3.7 and 3.8,
-        # We also need to drop bare multi-line strings in 3.8
-        if sys.version_info[:2] == (3, 7):
-            if node.col_offset == -1:
-                assert isinstance(node.value, ast.Str), f"Expected `ast.Str`, got {type(node)}. ({node}) {node.lineno}" 
-                continue
-        else:
-            if idx == 0 and isinstance(node, ast.Expr):
-                text: Option[str] = None
-                if isinstance(node.value, ast.Str):
-                    text = node.value.s
-                elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                    text = node.value
-                if text and "\n" in text and ast.get_docstring(f_ast.body[0], clean=False) == text:
-                    continue
+        if node.col_offset == -1:
+            assert isinstance(node.value, ast.Str), f"Expected `ast.Str`, got {type(node)}. ({node}) {node.lineno}"
+            continue
 
         raw_body_lines = src_lines[node.lineno - 1:]
         col_offset = node.col_offset
