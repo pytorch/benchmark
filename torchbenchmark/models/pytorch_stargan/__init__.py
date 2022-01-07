@@ -80,14 +80,14 @@ class Model(BenchmarkModel):
         # eval_model is already set to `eval()`
         pass
 
-    def train(self, niterations=1):
-        for _ in range(niterations):
+    def train(self, niter=1):
+        for _ in range(niter):
             self.solver.train()
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1):
         model = self.eval_model
         example_inputs = self.example_inputs
-        for _ in range(niterations):
+        for _ in range(niter):
             model(*example_inputs)
 
 

@@ -46,7 +46,7 @@ class Model(BenchmarkModel):
         # and the train mode is on by default
         pass
 
-    def train(self, niterations=None):
+    def train(self, niter=None):
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
@@ -54,11 +54,11 @@ class Model(BenchmarkModel):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
-        return self.training_loop(niterations)
+        return self.training_loop(niter)
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1):
         model, example_inputs = self.get_module()
-        for i in range(niterations):
+        for i in range(niter):
             model(*example_inputs)
 
 
