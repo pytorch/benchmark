@@ -13,7 +13,7 @@ chmod +x "$filename"
 
 . ~/miniconda3/etc/profile.d/conda.sh
 conda activate base
-# Use python3.8 by default, supports python 3.7 and 3.8
+# Use python3.8 by default
 conda install -y python=3.8
 
 

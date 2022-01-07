@@ -11,7 +11,7 @@ except for the torch products which are intended to be installed separately so
 different torch versions can be benchmarked.
 
 ### Using Pre-built Packages
-We support python 3.7 and 3.8 and 3.8 is recommended. Currently, there are compatibility issues with 3.9+.  Conda is optional but suggested. To switch to python 3.8 in conda:
+We support python 3.7 and 3.8, and 3.8 is recommended. Currently, there are compatibility issues with 3.9+.  Conda is optional but suggested. To switch to python 3.8 in conda:
 ```
 # using your current conda environment:
 conda install -y python=3.8
