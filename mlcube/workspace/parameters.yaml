@@ -1,4 +1,4 @@
 model_name: "yolov3" # Model name
 mode: "eval"  # "train" | "eval"
-platform: "cuda" # "cpu" | "cuda"
-test_bench_name: "test_eval[opacus_cifar10-cpu-eager]" #"test_eval[demucs-cpu-eager]" # Test name, use the list_test_bench MLCube task to check them
+platform: "cpu" # "cpu" | "cuda"
+test_bench_name: "test_eval[demucs-cpu-eager]" # Test name, use the list_test_bench MLCube task to check them
