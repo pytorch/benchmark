@@ -133,9 +133,9 @@ class Model(BenchmarkModel):
             images = (i[0], i[1])
         return (self.eval_model, images)
 
-    def train(self, niterations=1):
+    def train(self, niter=1):
         """ Recommended
-        Runs training on model for `niterations` times. When `niterations` is left
+        Runs training on model for `niter` times. When `niter` is left
         to its default value, it should run for at most two minutes, and be representative
         of the performance of a traditional training loop. One iteration should be sufficient
         to warm up the model for the purpose of profiling.
@@ -148,7 +148,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("CPU is not supported by this model")
 
         self.train_model.train()
-        for e in range(niterations):
+        for e in range(niter):
             adjust_learning_rate(self.optimizer, e, self.opt)
             for i, (images, _) in enumerate(self.train_loader):
                 # compute output
@@ -160,9 +160,9 @@ class Model(BenchmarkModel):
                 loss.backward()
                 self.optimizer.step()
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1):
         """ Recommended
-        Run evaluation on model for `niterations` inputs. One iteration should be sufficient
+        Run evaluation on model for `niter` inputs. One iteration should be sufficient
         to warm up the model for the purpose of profiling.
         In most cases this can use the `get_module` API but in some cases libraries
         do not have a single Module object used for inference. In these case, you can
@@ -175,7 +175,7 @@ class Model(BenchmarkModel):
         if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
 
-        for i in range(niterations):
+        for i in range(niter):
             for i, (images, _) in enumerate(self.eval_loader):
                 self.eval_model(im_q=images[0], im_k=images[1])
 
