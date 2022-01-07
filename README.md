@@ -19,7 +19,8 @@ conda install -y python=3.8
 # or, using a new conda environment
 conda create -n torchbenchmark python=3.8
 conda activate torchbenchmark
-# we depend on git lfs tool to store minimal input dataset such as images and annotations, the size of which is ~20 MB
+# we depend on git lfs tool to store minimal input dataset such as images and annotations
+# the total size of input dataset is ~20 MB
 conda install -y git-lfs
 ```
 
