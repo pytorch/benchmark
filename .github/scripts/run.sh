@@ -55,7 +55,7 @@ echo "Running lazy_bench.py"
 # We have two copies of repos. $HOME/pytorch for actual benchmarking. ../pytorch for user check-out.
 # Here we use lazy_bench.py from $HOME/pytorch which points to the correct install of pytorch,
 # and TorchBench from pwd which has the LTC enhancements.
-PYTORCH_NVFUSER_DISABLE_FALLBACK=1 LTC_TS_CUDA=1 python $HOME/pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test train --torchbench_dir .
-PYTORCH_NVFUSER_DISABLE_FALLBACK=1 LTC_TS_CUDA=1 python $HOME/pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test eval --torchbench_dir .
+PYTORCH_NVFUSER_DISABLE_FALLBACK=1 LTC_TS_CUDA=1 python $HOME/pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --repeat 1 --warmup 1 --output_dir ${DATA_DIR} --test train --torchbench_dir .
+PYTORCH_NVFUSER_DISABLE_FALLBACK=1 LTC_TS_CUDA=1 python $HOME/pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --repeat 1 --warmup 1 --output_dir ${DATA_DIR} --test eval --torchbench_dir .
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
