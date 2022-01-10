@@ -90,7 +90,7 @@ class TestParseFunction(TestCase):
             \"\"\"Docstring
 
             Note: This will be dropped in Python 3.7. See `parse_f` for details.
-            \"\"\"\n\n""" if not sys.version_info[:2] == (3,7) else ""
+            \"\"\"\n\n""" if sys.version_info[:2] > (3,7) else ""
         self.assertExpectedInline(
             self._indent(body), f"""{docstring}\
             x += 1
@@ -132,7 +132,7 @@ class TestParseFunction(TestCase):
             \"\"\"Identity, but with more steps
 
             Culled, as this is a multi-line docstring
-            \"\"\"\n""" if not sys.version_info[:2] == (3, 7) else ""
+            \"\"\"\n""" if sys.version_info[:2] > (3,7) else ""
         self.assertExpectedInline(
             self._indent(body), f"""{docstring}\
             return x""",
@@ -175,7 +175,7 @@ class TestParseFunction(TestCase):
             \"\"\"Begin the actual body.
 
             (For better or worse...)
-            \"\"\"\n""" if not sys.version_info[:2]==(3,7) else ""
+            \"\"\"\n""" if sys.version_info[:2] > (3,7) else ""
         self.assertExpectedInline(
             self._indent(body), f"""{docstring}\
             del x
