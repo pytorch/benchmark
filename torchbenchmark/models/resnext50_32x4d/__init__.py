@@ -5,5 +5,5 @@ class Model(TorchVisionModel):
     task = COMPUTER_VISION.CLASSIFICATION
 
     def __init__(self, device=None, jit=False, train_bs=8, eval_bs=8, extra_args=[]):
-        super().__init__(model_name="resnet50_32x4d", device=device, jit=jit,
+        super().__init__(model_name="resnext50_32x4d", device=device, jit=jit,
                          train_bs=train_bs, eval_bs=eval_bs, extra_args=extra_args)
