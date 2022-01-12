@@ -91,7 +91,7 @@ def analyze_abtest_result_dir(result_dir: str):
     delta = False
     json_files = list(filter(len, map(find_latest_json_file, dirs)))
     out = [['Benchmark']]
-    assert(len(json_files), f"Don't find benchmark result files in {result_dir}.")
+    assert json_files, f"Don't find benchmark result files in {result_dir}."
     # If there are only two json files, we believe it is an abtest, so print delta of the mean
     if len(json_files) == 2:
         delta = True
