@@ -11,7 +11,7 @@ class Model(TorchVisionModel):
         # TODO: Re-enable these tests when better hardware is available
         if device == 'cuda':
             raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
-        if device == 'cpu' and jit:
-            raise NotImplementedError('CPU with jit disabled due to out of memory on CI CPU')
+        if device == 'cpu':
+            raise NotImplementedError('CPU disabled due to out of memory on CI CPU')
         super().__init__(model_name="densenet121", device=device, jit=jit,
                          train_bs=train_bs, eval_bs=eval_bs, extra_args=extra_args)
