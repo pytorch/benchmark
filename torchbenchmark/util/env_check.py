@@ -1,5 +1,12 @@
 import importlib
+import argparse
 from typing import List, Dict
+
+def parse_extraargs(extraargs):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--eval-fp16", action='store_false', help="Enable fp16 for inference")
+    args = parser.parse_args(extraargs)
+    return args
 
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
