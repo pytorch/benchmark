@@ -1,5 +1,6 @@
 from .train_tacotron2 import load_model, prepare_dataloaders
 import torch
+import argparse
 from .loss_function import Tacotron2Loss
 from argparse import Namespace
 from .text import symbols
@@ -7,7 +8,11 @@ from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 
-from torchbenchmark.util.env_check import parse_extraargs
+def tacotron2_parse_extraargs(extraargs):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--eval-fp16", action='store_false', help="Enable fp16 for inference")
+    args = parser.parse_args(extraargs)
+    return args
 
 class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
@@ -23,7 +28,7 @@ class Model(BenchmarkModel):
             # TODO - currently load_model assumes cuda
             return
 
-        self.extra_args = parse_extraargs(extra_args)
+        self.extra_args = tacotron2_parse_extraargs(extra_args)
         self.train_hparams = self.create_hparams(batch_size=train_bs)
         self.eval_hparams = self.create_hparams(batch_size=eval_bs, fp16_run=self.extra_args.eval_fp16)
         self.train_model = load_model(self.train_hparams).to(device=device)
