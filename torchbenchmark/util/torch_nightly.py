@@ -110,7 +110,8 @@ if __name__ == "__main__":
     parser.add_argument("--priordays", type=int, default=1, help="Number of days")
     parser.add_argument("--reverse", action="store_true", help="Return reversed result")
     parser.add_argument("--packages", required=True, type=str, nargs="+", help="List of package names")
-    parser.add_argument("--dump-latest-build", type=str, help="Find the latest successful build of packages and dump into a file")
+    parser.add_argument("--dump-latest-wheels", type=str,
+                        help="Dump the latest successful build of pytorch domain packages into a file")
     args = parser.parse_args()
 
     if args.dump_latest_build:
