@@ -121,7 +121,8 @@ if __name__ == "__main__":
                 dump_wheels(wheels, args.dump_latest_build)
                 exit(0)
             else:
-                # TODO: check if end_date is earlier than the earliest version available in pip nightly builds
+                # TODO: check if d is earlier than the earliest version available in pip nightly builds
+                # Unlikely to happen, but still good to check
                 d = d - timedelta(days=1)
 
     wheels = get_n_prior_nightly_wheels(packages=args.packages,
