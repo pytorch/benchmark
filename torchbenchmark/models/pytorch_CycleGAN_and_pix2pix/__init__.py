@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        if device != 'cuda': # NYI implemented for things that aren't on the GPU
+        if device != 'cuda' or device != 'lazy':  # NYI implemented for things that aren't on the GPU
             self.get_module = self.train = self.eval = nyi
             return
 
