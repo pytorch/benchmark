@@ -101,8 +101,8 @@ class TorchBenchScoreV2:
             return 0.0
         return delta / 100.0
 
-    # compute the V2 total score
     def _get_delta_score(self, data_norm):
+        "Compute V2 delta score"
         delta = 0.0
         for test in self.suite.all_stable_tests:
             ref_norm = test.norm
@@ -110,6 +110,18 @@ class TorchBenchScoreV2:
             delta_weight = self._get_test_delta_weight(ref_norm, data_test_norm)
             delta += delta_weight
         return delta
+
+    def _get_total_score(self, data_norm):
+        "Compute V2 total score (geometric average)"
+        score = 0.0
+        for test in self.suite.all_stable_tests:
+            ref_norm = test.norm
+            data_test_norm = data_norm["tests"][test.name]["norm"]
+        return score
+
+    def _get_domain_score():
+        "Compute V2 domain score"
+        pass
 
     def _setup_benchmark_norms(self, ref_data):
         """
