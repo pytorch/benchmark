@@ -33,11 +33,11 @@ jobs:
       - run:
           name: Validate training benchmark suite
           command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py
-          no_output_timeout: "30m"
+          no_output_timeout: "60m"
       - run:
           name: Validate pytest-benchmark invocation of training suite
           command: ./scripts/run_bench_and_upload.sh
-          no_output_timeout: "30m"
+          no_output_timeout: "60m"
 
 workflows:
   version: 2

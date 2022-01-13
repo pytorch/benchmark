@@ -52,7 +52,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -73,6 +73,8 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS):
         torch.cuda.synchronize()
         t2 = time.time_ns()
 
+        wall_latency = t2 - t0
+
         # CPU Dispatch time include only the time it took to dispatch all the work to the GPU.
         # CPU Total Wall Time will include the CPU Dispatch, GPU time and device latencies.
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
@@ -83,7 +85,14 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS):
         t0 = time.time_ns()
         func()
         t1 = time.time_ns()
+        wall_latency = t1 - t0
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
+
+    # if model_flops is not None, output the TFLOPs per sec
+    if model_flops:
+        flops, batch_size = model_flops
+        tflops = flops * batch_size / (wall_latency / 1.0e9) / 1.0e12
+        print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
@@ -141,6 +150,7 @@ if __name__ == "__main__":
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
+    parser.add_argument("--flops", action="store_true", help="Return the flops result")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -159,32 +169,28 @@ if __name__ == "__main__":
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
 
     # build the model and get the chosen test method
+    if args.flops:
+        extra_args.append("--flops")
     if args.bs:
         try:
             if args.test == "eval":
-                if extra_args:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs, extra_args=extra_args)
-                else:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
+                m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs, extra_args=extra_args)
             elif args.test == "train":
-                if extra_args:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
-                else:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
+                m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
         except:
             print(f"The model {args.model} doesn't support specifying batch size, please remove --bs argument in the commandline.")
             exit(1)
     else:
-        if extra_args:
-            m = Model(device=args.device, jit=(args.mode == "jit"), extra_args=extra_args)
-        else:
-            m = Model(device=args.device, jit=(args.mode == "jit"))
+        m = Model(device=args.device, jit=(args.mode == "jit"), extra_args=extra_args)
 
     test = getattr(m, args.test)
-
+    model_flops = None
+    if args.flops:
+        assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
+        model_flops = m.get_flops(test=args.test)
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test)
+        run_one_step(test, model_flops=model_flops)
