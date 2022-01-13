@@ -13,8 +13,8 @@ from datetime import date, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 
-torch_wheel_nightly_base ="https://download.pytorch.org/whl/nightly/cu102/" 
-torch_nightly_wheel_index = "https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html" 
+torch_wheel_nightly_base ="https://download.pytorch.org/whl/nightly/cu113/"
+torch_nightly_wheel_index = "https://download.pytorch.org/whl/nightly/cu113/torch_nightly.html"
 torch_nightly_wheel_index_override = "torch_nightly.html" 
 
 def memoize(function):
@@ -94,6 +94,15 @@ def get_n_prior_nightly_wheels(packages:list, n:int,
     return get_nightly_wheels_in_range(packages, start_date, end_date,
                                        py_version=py_version, platform_version=platform_version, reverse=reverse)
 
+def wheels_contain_all_packages(wheels, packages) -> bool:
+    return [p for p in args.packages if p in wheels] == args.packages
+
+def dump_wheels(wheels, out_file):
+    "Output wheels URL to a file with pip requirements.txt format"
+    s = [wheels[x]["wheel"] for x in wheels]
+    with open(out_file, "w") as of:
+        of.write("\n".join(s) + "\n")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pyver", type=str, default="cp37", help="PyTorch Python version")
@@ -101,7 +110,20 @@ if __name__ == "__main__":
     parser.add_argument("--priordays", type=int, default=1, help="Number of days")
     parser.add_argument("--reverse", action="store_true", help="Return reversed result")
     parser.add_argument("--packages", required=True, type=str, nargs="+", help="List of package names")
+    parser.add_argument("--dump-latest-build", type=str, help="Find the latest successful build of packages and dump into a file")
     args = parser.parse_args()
+
+    if args.dump_latest_build:
+        d = date.today()
+        while True:
+            wheels = get_nightly_wheel_urls(args.packages, d, py_version=args.pyver, platform_version=args.platform)
+            if wheels and wheels_contain_all_packages(wheels, args.packages):
+                dump_wheels(wheels, args.dump_latest_build)
+                exit(0)
+            else:
+                # TODO: check if end_date is earlier than the earliest version available in pip nightly builds
+                d = d - timedelta(days=1)
+
     wheels = get_n_prior_nightly_wheels(packages=args.packages,
                                         n=args.priordays,
                                         py_version=args.pyver,
