@@ -114,12 +114,12 @@ if __name__ == "__main__":
                         help="Dump the latest successful build of pytorch domain packages into a file")
     args = parser.parse_args()
 
-    if args.dump_latest_build:
+    if args.dump_latest_wheels:
         d = date.today()
         while True:
             wheels = get_nightly_wheel_urls(args.packages, d, py_version=args.pyver, platform_version=args.platform)
             if wheels and wheels_contain_all_packages(wheels, args.packages):
-                dump_wheels(wheels, args.dump_latest_build)
+                dump_wheels(wheels, args.dump_latest_wheels)
                 exit(0)
             else:
                 # TODO: check if d is earlier than the earliest version available in pip nightly builds
