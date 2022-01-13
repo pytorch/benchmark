@@ -50,7 +50,9 @@ class Model(BenchmarkModel):
 
         return self.model, self.example_inputs
 
-    def train(self):
+    def train(self, niter=1):
+        if niter != 1:
+            raise NotImplementedError("niter not implemented")
         if self.jit:
             raise NotImplementedError()
 
@@ -64,7 +66,9 @@ class Model(BenchmarkModel):
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-    def eval(self):
+    def eval(self, niter=1):
+        if niter != 1:
+            raise NotImplementedError("niter not implemented")
         if self.jit:
             raise NotImplementedError()
 
