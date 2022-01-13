@@ -52,7 +52,7 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
     return data
 
 def get_nightly_wheel_urls(packages:list, date:date,
-                           py_version='cp37', platform_version='linux_x86_64'):
+                           py_version='cp38', platform_version='linux_x86_64'):
     """Gets urls to wheels for specified packages matching the date, py_version, platform_version
     """
     date_str = f"{date.year}{date.month:02}{date.day:02}"
@@ -73,7 +73,7 @@ def get_nightly_wheel_urls(packages:list, date:date,
     return rc
 
 def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
-                                py_version='cp37', platform_version='linux_x86_64', reverse=False):
+                                py_version='cp38', platform_version='linux_x86_64', reverse=False):
     rc = []
     curr_date = start_date
     while curr_date <= end_date:
@@ -88,7 +88,7 @@ def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
     return rc
 
 def get_n_prior_nightly_wheels(packages:list, n:int,
-                               py_version='cp37', platform_version='linux_x86_64', reverse=False):
+                               py_version='cp38', platform_version='linux_x86_64', reverse=False):
     end_date = date.today()
     start_date = end_date - timedelta(days=n)
     return get_nightly_wheels_in_range(packages, start_date, end_date,
@@ -105,7 +105,7 @@ def dump_wheels(wheels, out_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pyver", type=str, default="cp37", help="PyTorch Python version")
+    parser.add_argument("--pyver", type=str, default="cp38", help="PyTorch Python version")
     parser.add_argument("--platform", type=str, default="linux_x86_64", help="PyTorch platform")
     parser.add_argument("--priordays", type=int, default=1, help="Number of days")
     parser.add_argument("--reverse", action="store_true", help="Return reversed result")
