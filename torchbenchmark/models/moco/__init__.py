@@ -65,7 +65,7 @@ class Model(BenchmarkModel):
             models.__dict__[self.opt.arch],
             self.opt.moco_dim, self.opt.moco_k, self.opt.moco_m, self.opt.moco_t, self.opt.mlp)
 
-        self.model.cuda(0)
+        self.model.to(self.device)
         self.model = torch.nn.parallel.DistributedDataParallel(
             self.model, device_ids=[0])
 
@@ -73,7 +73,7 @@ class Model(BenchmarkModel):
         #     self.model = torch.jit.script(self.model)
 
         # define loss function (criterion) and optimizer
-        self.criterion = nn.CrossEntropyLoss().cuda(0)
+        self.criterion = nn.CrossEntropyLoss().to(self.device)
 
         self.optimizer = torch.optim.SGD(self.model.parameters(), self.opt.lr,
                                          momentum=self.opt.momentum,
@@ -92,8 +92,8 @@ class Model(BenchmarkModel):
             range(2), collate_fn=collate_fn)
 
         for i, (images, _) in enumerate(self.train_loader):
-            images[0] = images[0].cuda(device=0, non_blocking=True)
-            images[1] = images[1].cuda(device=0, non_blocking=True)
+            images[0] = images[0].to(self.device)
+            images[1] = images[1].to(self.device)
 
     def get_module(self):
         """ Recommended

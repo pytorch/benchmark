@@ -13,8 +13,8 @@ import json
 import numpy as np
 import torch
 import torch.utils.data as data
-
 import kaldi_io
+import os
 from ..utils import IGNORE_ID, pad_list
 
 
@@ -96,23 +96,24 @@ class AudioDataLoader(data.DataLoader):
     NOTE: just use batchsize=1 here, so drop_last=True makes no sense here.
     """
 
-    def __init__(self, *args, LFR_m=1, LFR_n=1, **kwargs):
+    def __init__(self, torchbench_root, *args, LFR_m=1, LFR_n=1, **kwargs):
         super(AudioDataLoader, self).__init__(*args, **kwargs)
-        self.collate_fn = LFRCollate(LFR_m=LFR_m, LFR_n=LFR_n)
+        self.collate_fn = LFRCollate(torchbench_root, LFR_m=LFR_m, LFR_n=LFR_n)
 
 
 class LFRCollate(object):
     """Build this wrapper to pass arguments(LFR_m, LFR_n) to _collate_fn"""
-    def __init__(self, LFR_m=1, LFR_n=1):
+    def __init__(self, torchbench_root, LFR_m=1, LFR_n=1):
         self.LFR_m = LFR_m
         self.LFR_n = LFR_n
+        self.torchbench_root = torchbench_root
 
     def __call__(self, batch):
-        return _collate_fn(batch, LFR_m=self.LFR_m, LFR_n=self.LFR_n)
+        return _collate_fn(batch, self.torchbench_root, LFR_m=self.LFR_m, LFR_n=self.LFR_n)
 
 
 # From: espnet/src/asr/asr_pytorch.py: CustomConverter:__call__
-def _collate_fn(batch, LFR_m=1, LFR_n=1):
+def _collate_fn(batch, torchbench_root, LFR_m=1, LFR_n=1):
     """
     Args:
         batch: list, len(batch) = 1. See AudioDataset.__getitem__()
@@ -123,7 +124,7 @@ def _collate_fn(batch, LFR_m=1, LFR_n=1):
     """
     # batch should be located in list
     assert len(batch) == 1
-    batch = load_inputs_and_targets(batch[0], LFR_m=LFR_m, LFR_n=LFR_n)
+    batch = load_inputs_and_targets(batch[0], torchbench_root, LFR_m=LFR_m, LFR_n=LFR_n)
     xs, ys = batch
 
     # TODO: perform subsamping
@@ -139,11 +140,12 @@ def _collate_fn(batch, LFR_m=1, LFR_n=1):
 
 
 # ------------------------------ utils ------------------------------------
-def load_inputs_and_targets(batch, LFR_m=1, LFR_n=1):
+def load_inputs_and_targets(batch, torchbench_root, LFR_m=1, LFR_n=1):
     # From: espnet/src/asr/asr_utils.py: load_inputs_and_targets
     # load acoustic features and target sequence of token ids
     # for b in batch:
-    #     print(b[1]['input'][0]['feat'])
+        # print(b[1]['input'][0]['feat'])
+    print("!!!!!!!!!!!!!!!!!!!!!")
     xs = [kaldi_io.read_mat(b[1]['input'][0]['feat']) for b in batch]
     ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
 

@@ -58,7 +58,8 @@ class SpeechTransformerTrainConfig:
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = os.path.dirname(os.path.abspath(__file__))
+        torchbench_root = os.path.join(dir_path, "../../../")
         self.train_json = os.path.join(dir_path, self.train_json)
         self.valid_json = os.path.join(dir_path, self.valid_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
@@ -70,12 +71,14 @@ class SpeechTransformerTrainConfig:
         self.cv_dataset = AudioDataset(self.valid_json, self.batch_size,
                                        self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
-        self.tr_loader = AudioDataLoader(self.tr_dataset, batch_size=1,
+        self.tr_loader = AudioDataLoader(self.tr_dataset, torchbench_root,
+                                         batch_size=1,
                                          num_workers=self.num_workers,
                                          shuffle=self.shuffle,
                                          LFR_m=self.LFR_m,
                                          LFR_n=self.LFR_n)
-        self.cv_loader = AudioDataLoader(self.cv_dataset, batch_size=1,
+        self.cv_loader = AudioDataLoader(self.cv_dataset, torchbench_root,
+                                         batch_size=1,
                                          num_workers=self.num_workers,
                                          LFR_m=self.LFR_m,
                                          LFR_n=self.LFR_n)
@@ -146,7 +149,7 @@ class SpeechTransformerEvalConfig:
     recog_json = "input_data/test/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self, traincfg):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = os.path.dirname(os.path.abspath(__file__))
         self.base_path = dir_path
         self.recog_json = os.path.join(dir_path, self.recog_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
