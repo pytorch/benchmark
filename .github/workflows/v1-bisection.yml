@@ -28,11 +28,8 @@ jobs:
           conda create -y -n "$BISECT_CONDA_ENV" python="${PYTHON_VERSION}"
           . activate "$BISECT_CONDA_ENV"
           conda install -y numpy requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi \
-                           typing_extensions future six dataclasses tabulate gitpython
+                           typing_extensions future six dataclasses tabulate gitpython tqdm
           conda install -y -c pytorch "${MAGMA_VERSION}"
-          # Install pytorch nightly
-          conda install -y -c pytorch-nightly torchtext torchvision cudatoolkit="${CUDA_VERSION}"
-          python install.py
       - name: Bisection
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
