@@ -114,7 +114,7 @@ class TorchBenchScoreV2:
         return delta
 
     def _get_domain_score(self, data_norm, condition=None) -> Optional[float]:
-        "Compute V2 domain subscore"
+        "Compute V2 domain subscore or total score"
         def _test_filter(test, condition) -> bool:
             # Total score, condition is None
             if not condition:
