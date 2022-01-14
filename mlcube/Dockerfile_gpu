@@ -1,16 +1,22 @@
-FROM pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime
+FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
 
-RUN apt-get update -y && apt-get install -y git-lfs llvm build-essential ffmpeg libsm6 libxext6 libsndfile1
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -y
+
+RUN apt-get install -y python3-dev python3-pip git-lfs llvm build-essential ffmpeg libsm6 libxext6 libsndfile1
 
 RUN git clone https://github.com/davidjurado/benchmark.git
 
-RUN cd benchmark && git checkout mlcube && \
-    python install.py && cd /
+RUN pip3 install torch==1.10.1+cu113 torchvision==0.11.2+cu113 torchaudio==0.10.1+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
 
-RUN pip install typer && pip install -U numpy
+RUN cd benchmark && git checkout mlcube && \
+    python3 install.py && cd /
+
+RUN pip3 install typer && pip3 install -U numpy
     
 COPY . .
 
 RUN chmod +x ./mlcube/run_test.sh ./mlcube/run_test_bench.sh
 
-ENTRYPOINT ["python", "mlcube/mlcube.py"]
+ENTRYPOINT ["python3", "mlcube/mlcube.py"]
