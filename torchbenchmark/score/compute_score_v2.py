@@ -2,10 +2,12 @@
 Compute TorchBench Score V2.
 """
 import re
+import math
 import yaml
 import importlib
+import itertools
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 TORCHBENCH_V2_REF_DATA = Path(__file__).parent.joinpath("configs/v2/config-v2.yaml")
 TORCHBENCH_V2_DEFAULT_THRESHOLD = 0.07
@@ -111,17 +113,32 @@ class TorchBenchScoreV2:
             delta += delta_weight
         return delta
 
-    def _get_total_score(self, data_norm):
-        "Compute V2 total score (geometric average)"
+    def _get_domain_score(self, data_norm, condition=None) -> Optional[float]:
+        "Compute V2 domain subscore"
+        def _test_filter(test, condition) -> bool:
+            # Total score, condition is None
+            if not condition:
+                return True
+            device, test_type, domain = condition
+            in_device = device in test.name
+            in_type = test_type in test.name
+            in_domain = test.domain in domain or test.category in domain
+            return in_device and in_type and in_domain
         score = 0.0
-        for test in self.suite.all_stable_tests:
-            ref_norm = test.norm
-            data_test_norm = data_norm["tests"][test.name]["norm"]
-        return score
-
-    def _get_domain_score():
-        "Compute V2 domain score"
-        pass
+        tests = self.suite.all_stable_tests
+        filtered_tests = list(filter(lambda x: _test_filter(x, condition), tests))
+        # Don't have any test in this category
+        if not len(filtered_tests):
+            return None
+        # Each test has equal weight
+        weight = 1.0 / len(filtered_tests)
+        for test in tests:
+            norm = data_norm["tests"][test.name]["norm"]
+            delta = (norm - test.norm) / test.norm
+            if abs(delta) <= self.suite.threshold:
+                norm = test.norm
+            score += weight * math.log(test.norm / norm)
+        return math.exp(score)
 
     def _setup_benchmark_norms(self, ref_data):
         """
@@ -158,13 +175,27 @@ class TorchBenchScoreV2:
         """
         This API calculates the total V2 score for all the benchmark tests in the set.
         """
+        def domain_to_condition(all_domains, domain):
+            if domain == "OVERALL":
+                return all_domains[1:]
+            else:
+                return [domain]
         # Check the input test set is the superset of the ref
         data_norm = self._get_norm_from_ref_json_obj(data)
         diff_set = set(self.norm.keys()) - set(data_norm.keys())
         assert not diff_set, f"The request benchmark json doesn't include the V2 test: {diff_set}"
         summary = {}
         # overall score
+        summary["total"] = self._get_domain_score(data_norm)
         # delta score
         summary["delta"] = self._get_delta_score(data_norm)
-        # domain score
+        # domain scores
+        summary["domain"] = {}
+        axis_device = ["cuda", "cpu"]
+        axis_test = ["train", "eval"]
+        axis_domain = ["OVERALL", "NLP", "CLASSIFICATION", "SEGMENTATION", "SPEECH", "RECOMMENDATION"]
+        for element in itertools.product(*[axis_device, axis_test,
+                       list(map(lambda x: domain_to_condition(axis_domain, x), axis_domain))]):
+            dev, tp, domain = element
+            summary["domain"][f"{dev}-{tp}-{domain.lower()}"] = self._get_domain_score(data_norm, element)
         return summary
