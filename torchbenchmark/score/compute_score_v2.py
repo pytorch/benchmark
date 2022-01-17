@@ -33,8 +33,8 @@ def _parse_test_name(name):
     return (test, model_name, device, mode)
 
 class TorchBenchV2Test:
-    def __init__(self, test_item):
-        self._name = test_item.keys()[0]
+    def __init__(self, test_name, test_item):
+        self._name = test_name
         self._test_type, self._model, self._device, self._mode = _parse_test_name(self._name)
         self._task = _get_model_task(self._model)
         self._stable = test_item["stable"]
@@ -73,7 +73,7 @@ class TorchBenchV2Suite:
         self._tests_dict = {}
         self._threshold = norm["stable_threshold"]
         for test in norm["tests"]:
-            test_item = TorchBenchV2Test(test)
+            test_item = TorchBenchV2Test(test, norm["tests"][test])
             self._add_test(test_item)
     @property
     def all_stable_tests(self) -> List[TorchBenchV2Test]:
