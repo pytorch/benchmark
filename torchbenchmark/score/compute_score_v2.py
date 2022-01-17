@@ -11,6 +11,7 @@ from typing import List, Optional
 
 TORCHBENCH_V2_REF_DATA = Path(__file__).parent.joinpath("configs/v2/config-v2.yaml")
 TORCHBENCH_V2_DEFAULT_THRESHOLD = 0.07
+TORCHBENCH_V2_DEFAULT_TARGET = 1000.0
 
 def _get_model_task(model_name):
     """
@@ -72,15 +73,19 @@ class TorchBenchV2Suite:
         self._tests = []
         self._tests_dict = {}
         self._threshold = norm["stable_threshold"]
+        self._target = norm["target"]
         for test in norm["tests"]:
             test_item = TorchBenchV2Test(test, norm["tests"][test])
             self._add_test(test_item)
+    @property
+    def target(self) -> float:
+        return self._target
     @property
     def all_stable_tests(self) -> List[TorchBenchV2Test]:
         return list(filter(lambda x: x.stable, self._tests))
     @property
     def threshold(self) -> float:
-        return self.threshold
+        return self._threshold
     def _add_test(self, test: TorchBenchV2Test):
         self._tests.append(test)
         self._tests_dict[test.name] = test
@@ -97,11 +102,11 @@ class TorchBenchScoreV2:
         self.suite = TorchBenchV2Suite(self._setup_benchmark_norms(ref_data))
 
     def _get_test_delta_weight(self, ref_norm, data_norm):
-        delta = (ref_norm - data_norm) / ref_norm * 100.0
+        delta = (ref_norm - data_norm) / ref_norm
         # Not a valid signal because it is below threshold
         if abs(delta) <= self.suite.threshold:
             return 0.0
-        return delta / 100.0
+        return delta * 100
 
     def _get_delta_score(self, data_norm):
         "Compute V2 delta score"
@@ -110,6 +115,8 @@ class TorchBenchScoreV2:
             ref_norm = test.norm
             data_test_norm = data_norm["tests"][test.name]["norm"]
             delta_weight = self._get_test_delta_weight(ref_norm, data_test_norm)
+            if delta:
+                print(f"Test {test.name} with delta: {delta}, before: {ref_norm}, after: {data_test_norm}")
             delta += delta_weight
         return delta
 
@@ -138,7 +145,7 @@ class TorchBenchScoreV2:
             if abs(delta) <= self.suite.threshold:
                 norm = test.norm
             score += weight * math.log(test.norm / norm)
-        return math.exp(score)
+        return math.exp(score) * self.suite.target
 
     def _setup_benchmark_norms(self, ref_data):
         """
@@ -160,6 +167,7 @@ class TorchBenchScoreV2:
         """
         norm = dict()
         norm["stable_threshold"] = TORCHBENCH_V2_DEFAULT_THRESHOLD
+        norm["target"] = TORCHBENCH_V2_DEFAULT_TARGET
         norm["tests"] = dict()
         for b in ref_json_obj['benchmarks']:
             name = b['name']
@@ -182,7 +190,8 @@ class TorchBenchScoreV2:
                 return [domain]
         # Check the input test set is the superset of the ref
         data_norm = self._get_norm_from_ref_json_obj(data)
-        diff_set = set(self.norm.keys()) - set(data_norm.keys())
+        stable_tests = map(lambda x: x.name, self.suite.all_stable_tests)
+        diff_set = set(stable_tests) - set(data_norm["tests"].keys())
         assert not diff_set, f"The request benchmark json doesn't include the V2 test: {diff_set}"
         summary = {}
         # overall score
@@ -194,8 +203,8 @@ class TorchBenchScoreV2:
         axis_device = ["cuda", "cpu"]
         axis_test = ["train", "eval"]
         axis_domain = ["OVERALL", "NLP", "CLASSIFICATION", "SEGMENTATION", "SPEECH", "RECOMMENDATION"]
-        for element in itertools.product(*[axis_device, axis_test,
-                       list(map(lambda x: domain_to_condition(axis_domain, x), axis_domain))]):
+        for element in itertools.product(*[axis_device, axis_test, axis_domain]):
             dev, tp, domain = element
-            summary["domain"][f"{dev}-{tp}-{domain.lower()}"] = self._get_domain_score(data_norm, element)
+            cond = (dev, tp, domain_to_condition(axis_domain, domain))
+            summary["domain"][f"{dev}-{tp}-{domain.lower()}"] = self._get_domain_score(data_norm, cond)
         return summary
