@@ -273,6 +273,7 @@ class TorchBench:
     workdir: str
     devbig: str
     models: List[str]
+    first_time: bool
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
@@ -287,6 +288,7 @@ class TorchBench:
         self.workdir = workdir
         self.devbig = devbig
         self.branch = branch
+        self.first_time = True
         self.models = list()
 
     def prep(self) -> bool:
@@ -298,7 +300,12 @@ class TorchBench:
         self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
                         if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
         return True
- 
+
+    def _install_benchmark(self):
+        "Install and build TorchBench dependencies"
+        command = ["python", "install.py"]
+        subprocess.check_call(command, cwd=self.srcpath, shell=False)
+
     def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
         # Return the result json file path
         output_dir = os.path.join(self.workdir, commit.sha)
@@ -311,6 +318,10 @@ class TorchBench:
         else:
             os.mkdir(output_dir)
         bmfilter = targets_to_bmfilter(targets, self.models)
+        # If the first time to run benchmark, install the dependencies first
+        if self.first_time:
+            self._install_benchmark()
+            self.first_time = False
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         if not self.devbig:
             command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
