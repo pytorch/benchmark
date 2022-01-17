@@ -163,7 +163,8 @@ if __name__ == "__main__":
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
     model_args = inspect.signature(Model)
-    if extra_args and not 'extra_args' in model_args.parameters:
+    support_extra_args = 'extra_args' in model_args.parameters
+    if extra_args and not support_extra_args:
         print(f"The model {args.model} doesn't accept extra args: {extra_args}")
         exit(-1)
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
@@ -174,14 +175,23 @@ if __name__ == "__main__":
     if args.bs:
         try:
             if args.test == "eval":
-                m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs, extra_args=extra_args)
+                if support_extra_args:
+                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs, extra_args=extra_args)
+                else:
+                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
             elif args.test == "train":
-                m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
+                if support_extra_args:
+                    m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
+                else:
+                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
         except:
             print(f"The model {args.model} doesn't support specifying batch size, please remove --bs argument in the commandline.")
             exit(1)
     else:
-        m = Model(device=args.device, jit=(args.mode == "jit"), extra_args=extra_args)
+        if support_extra_args:
+            m = Model(device=args.device, jit=(args.mode == "jit"), extra_args=extra_args)
+        else:
+            m = Model(device=args.device, jit=(args.mode == "jit"))
 
     test = getattr(m, args.test)
     model_flops = None
