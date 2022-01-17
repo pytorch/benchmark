@@ -37,7 +37,11 @@ class SpeechTransformerTrainConfig:
     batch_frames = 15000
     maxlen_in = 800
     maxlen_out = 150
-    num_workers = 4
+    # don't use subprocess in dataloader
+    # because TorchBench is only running 1 batch
+    num_workers = 0
+    # original value
+    # num_workers = 4
     # optimizer
     k = 0.2
     warmup_steps = 1
