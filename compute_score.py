@@ -13,7 +13,7 @@ from torchbenchmark.score.compute_score import TorchBenchScore
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--score_version", choices=['v1', 'v2'], default="v2",
+    parser.add_argument("--score_version", choices=['v1', 'v2'], default="v1",
         help="which version of score to use - choose from v1 or v2")
     parser.add_argument("--benchmark_data_file",
         help="pytest-benchmark json file with current benchmark data")
