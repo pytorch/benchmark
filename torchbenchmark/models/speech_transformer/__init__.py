@@ -30,8 +30,8 @@ class Model(BenchmarkModel):
             return
         self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs, num_train_batch=NUM_TRAIN_BATCH)
         self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_batch=NUM_EVAL_BATCH)
-        self.traincfg.model.cuda()
-        self.evalcfg.model.cuda()
+        self.traincfg.model.to(self.device)
+        self.evalcfg.model.to(self.device)
 
     def get_module(self):
         if self.device == "cpu":
@@ -40,7 +40,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         for data in self.traincfg.tr_loader:
             padded_input, input_lengths, padded_target = data
-            return self.traincfg.model, (padded_input.cuda(), input_lengths.cuda(), padded_target.cuda())
+            return self.traincfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
 
     def train(self, niter=1):
         if self.device == "cpu":
