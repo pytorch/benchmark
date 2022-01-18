@@ -46,7 +46,7 @@ class Model(BenchmarkModel):
         # and the train mode is on by default
         pass
 
-    def train(self, niter=None):
+    def train(self, niter=1):
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
