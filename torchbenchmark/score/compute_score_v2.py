@@ -115,8 +115,6 @@ class TorchBenchScoreV2:
             ref_norm = test.norm
             data_test_norm = data_norm["tests"][test.name]["norm"]
             delta_weight = self._get_test_delta_weight(ref_norm, data_test_norm)
-            if delta:
-                print(f"Test {test.name} with delta: {delta}, before: {ref_norm}, after: {data_test_norm}")
             delta += delta_weight
         return delta
 
