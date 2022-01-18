@@ -33,11 +33,10 @@ def prepare_training_loop(args):
     model.setup(opt)               # regular setup: load and print networks; create schedulers
     visualizer = Visualizer(opt)   # create a visualizer that display/save images and plots
 
-    def training_loop(niteration = 1):
+    def training_loop(niteration):
         total_iters = 0                # the total number of training iterations
-        if niteration == None:
-            niteration = 1
-        niteration *= (opt.n_epochs + opt.n_epochs_decay + 1)
+        if niteration is None:
+            niteration = opt.n_epochs + opt.n_epochs_decay + 1
         for epoch in range(opt.epoch_count, niteration):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
             epoch_start_time = time.time()  # timer for entire epoch
             iter_data_time = time.time()    # timer for data loading per iteration

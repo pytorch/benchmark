@@ -54,7 +54,12 @@ class Model(BenchmarkModel):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
-        return self.training_loop(niter)
+        for i in range(niter):
+            # training_loop has its own count logic inside.  It actually runs 7 epochs per niter=1 (with each 'epoch'
+            # being limited to a small set of data)
+            # it would be more in symmetry with the rest of torchbenchmark if niter=1 ran just an inner-loop
+            # step rather than 7 epochs, but changing it now would potentially cause discontinuity with existing/historical measurement
+            self.training_loop(None)
 
     def eval(self, niter=1):
         model, example_inputs = self.get_module()
