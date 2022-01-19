@@ -271,7 +271,6 @@ class TorchBench:
     branch: str
     timelimit: int # timeout limit in minutes
     workdir: str
-    devbig: str
     models: List[str]
     first_time: bool
     torch_src: TorchSource
@@ -321,10 +320,7 @@ class TorchBench:
             self._install_benchmark()
             self.first_time = False
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
-        if not self.devbig:
-            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
-        else:
-            command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" 2>&1 | tee {output_dir}/benchmark.log"""
+        command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
@@ -414,7 +410,6 @@ class TorchBenchBisection:
                  timeout: int,
                  targets: List[str],
                  output_json: str,
-                 devbig: str,
                  build_lazy: bool = False,
                  debug: bool = False):
         self.workdir = workdir
@@ -429,7 +424,6 @@ class TorchBenchBisection:
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
-                                devbig = devbig,
                                 workdir = self.workdir)
         self.output_json = output_json
         self.debug = debug
@@ -577,7 +571,6 @@ if __name__ == "__main__":
                                     timeout=bisect_config["timeout"],
                                     targets=targets,
                                     output_json=args.output,
-                                    devbig=args.devbig,
                                     build_lazy=args.build_lazy,
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
