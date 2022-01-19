@@ -504,3 +504,8 @@ def get_metadata_from_yaml(path):
         with open(metadata_path, 'r') as f:
             md = yaml.load(f, Loader=yaml.FullLoader)
     return md
+
+def str_to_bool(input: Any) -> bool:
+    if not input:
+        return False
+    return str(input).lower() in ("1", "yes", "y", "true", "t", "on")
