@@ -58,11 +58,14 @@ if __name__ == "__main__":
 
     results = []
     for fname, data in zip(files, benchmark_data):
-        result = {}
-        score = score_config.compute_score(data)
-        result["file"] = fname
-        result["pytorch_version"] = data['machine_info']['pytorch_version']
-        result["score"] = score
-        results.append(result)
+        try:
+            result = {}
+            score = score_config.compute_score(data)
+            result["file"] = fname
+            result["pytorch_version"] = data['machine_info']['pytorch_version']
+            result["score"] = score
+            results.append(result)
+        except ValueError as e:
+            print(f"Error when analyzing file {fname}: {e}")
 
     print(json.dumps(results, indent=4))

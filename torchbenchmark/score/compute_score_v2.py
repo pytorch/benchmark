@@ -190,7 +190,8 @@ class TorchBenchScoreV2:
         data_norm = self._get_norm_from_ref_json_obj(data)
         stable_tests = map(lambda x: x.name, self.suite.all_stable_tests)
         diff_set = set(stable_tests) - set(data_norm["tests"].keys())
-        assert not diff_set, f"The request benchmark json doesn't include the V2 test: {diff_set}"
+        if diff_set:
+            raise ValueError(f"The request benchmark json doesn't include the V2 test: {diff_set}")
         summary = {}
         # overall score
         summary["total"] = self._get_domain_score(data_norm)
