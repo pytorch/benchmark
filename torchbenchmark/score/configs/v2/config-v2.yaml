@@ -167,7 +167,7 @@ tests:
     stable: true
   test_eval[maml_omniglot-cpu-eager]:
     norm: 0.0011535915109561756
-    stable: false
+    stable: true
   test_eval[maml_omniglot-cuda-eager]:
     norm: 0.0012055760162184015
     stable: true
@@ -197,7 +197,7 @@ tests:
     stable: true
   test_eval[mobilenet_v2_quantized_qat-cpu-eager]:
     norm: 0.008757004761719145
-    stable: false
+    stable: true
   test_eval[mobilenet_v2_quantized_qat-cpu-jit]:
     norm: 0.00437830550072249
     stable: true
@@ -323,10 +323,10 @@ tests:
     stable: true
   test_eval[resnet50_quantized_qat-cpu-eager]:
     norm: 0.009280586506065447
-    stable: false
+    stable: true
   test_eval[resnet50_quantized_qat-cpu-jit]:
     norm: 0.005236730256001465
-    stable: false
+    stable: true
   test_eval[resnext50_32x4d-cpu-eager]:
     norm: 0.11460087399245822
     stable: false
