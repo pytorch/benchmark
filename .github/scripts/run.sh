@@ -47,7 +47,8 @@ echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
 for c in $(seq 1 $NUM_ITER); do
     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
             --benchmark-min-rounds "${NUM_ROUNDS}" \
-            --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
+            --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json \
+            --verbose
 done
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
