@@ -1,9 +1,28 @@
-@misc{TorchBench2020,
-    title={TorchBench: A collection of open source benchmarks for PyTorch performance and usability evaluation},
-    author={Will Constable, Xu Zhao, Victor Bittorf, Eric Christoffersen, Taylor Robie, Eric Han, Peng Wu, Nick Korovaiko, Jason Ansel, Orion Reblitz-Richardson, and Soumith Chintala},
-    year={2020},
-    publisher={GitHub},
-    journal={GitHub repository},
-    howpublished={\url{https://github.com/pytorch/benchmark}},
-    primaryClass={cs.PF}
-}
+cff-version: 1.2.0
+title: "TorchBench: A collection of open source benchmarks for PyTorch performance and usability evaluation"
+authors:
+- family-names: Constable
+  given-names: Will
+- family-names: Zhao
+  given-names: Xu
+- family-names: Bittorf
+  given-names: Victor
+- family-names: Christoffersen
+  given-names: Eric
+- family-names: Robie
+  given-names: Taylor
+- family-names: Han
+  given-names: Eric
+- family-names: Wu
+  given-names: Peng
+- family-names: Korovaiko
+  given-names: Nick
+- family-names: Ansel
+  given-names: Jason
+- family-names: Reblitz-Richardson
+  given-names: Orion
+- family-names: Chintala
+  given-names: Soumith
+message: "If you use this software, please cite it using these metadata."
+date-released: 2020-09-03
+repository-code: "https://github.com/pytorch/benchmark"
