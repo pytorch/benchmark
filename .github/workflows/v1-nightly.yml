@@ -110,7 +110,6 @@ jobs:
           CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
           # Load environment variables
           set -a; source "${CONFIG_ENV}"; set +a
-          CONFIG_NORM_FILE="${CONFIG_DIR}/${CONFIG_FILE}"
           SCORE_FILE="./benchmark-result-v1-score-${TODAY}.json"
           # Generate score file
           python compute_score.py --score_version v1 --benchmark_data_file "${LATEST_RESULT}" > "${SCORE_FILE}"
