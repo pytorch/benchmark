@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        if device != 'cuda': # NYI implemented for things that aren't on the GPU
+        if device != 'cuda' or device != 'lazy':  # NYI implemented for things that aren't on the GPU
             self.get_module = self.train = self.eval = nyi
             return
 
@@ -46,7 +46,7 @@ class Model(BenchmarkModel):
         # and the train mode is on by default
         pass
 
-    def train(self, niterations=None):
+    def train(self, niter=1):
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
@@ -54,11 +54,16 @@ class Model(BenchmarkModel):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
-        return self.training_loop(niterations)
+        for i in range(niter):
+            # training_loop has its own count logic inside.  It actually runs 7 epochs per niter=1 (with each 'epoch'
+            # being limited to a small set of data)
+            # it would be more in symmetry with the rest of torchbenchmark if niter=1 ran just an inner-loop
+            # step rather than 7 epochs, but changing it now would potentially cause discontinuity with existing/historical measurement
+            self.training_loop(None)
 
-    def eval(self, niterations=1):
+    def eval(self, niter=1):
         model, example_inputs = self.get_module()
-        for i in range(niterations):
+        for i in range(niter):
             model(*example_inputs)
 
 
