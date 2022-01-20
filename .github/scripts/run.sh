@@ -51,6 +51,8 @@ export GOMP_CPU_AFFINITY="${CORE_LIST}"
 #             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
 #             --verbose
 # done
+# needed by lazy_bench. not sure why requirements.txt isn't being installed first
+pip install scipy
 
 echo "Running check_lazy.py"
 # The output is a file full of JSON objects but not legit .JSON.
