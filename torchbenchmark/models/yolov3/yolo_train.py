@@ -12,6 +12,9 @@ from .yolo_utils.utils import *
 from .yolo_utils.parse_config import parse_data_cfg
 from pathlib import Path
 
+def print(*args):
+    pass
+
 def _prefetch_loader(loader, size, fields=[], collate_fn=lambda x: x):
     result = []
     for index, item in enumerate(loader):
@@ -24,12 +27,7 @@ def _prefetch_loader(loader, size, fields=[], collate_fn=lambda x: x):
     return result
 
 def prepare_training_loop(args):
-    mixed_precision = True
-    try:  # Mixed precision training https://github.com/NVIDIA/apex
-        from apex import amp
-    except:
-        print('Apex recommended for faster mixed precision training: https://github.com/NVIDIA/apex')
-        mixed_precision = False  # not installed
+    mixed_precision = False
 
     wdir = 'weights' + os.sep  # weights dir
     last = wdir + 'last.pt'

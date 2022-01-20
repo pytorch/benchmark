@@ -13,19 +13,25 @@ from .config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 
+NUM_TRAIN_BATCH = 1
+NUM_EVAL_BATCH = 1
+
 class Model(BenchmarkModel):
     task = SPEECH.RECOGNITION
-    def __init__(self, device=None, jit=False):
+    # Original batch size: 32
+    # Source: https://github.com/kaituoxu/Speech-Transformer/blob/e6847772d6a786336e117a03c48c62ecbf3016f6/src/bin/train.py#L68
+    # This model does not support adjusting eval bs
+    def __init__(self, device=None, jit=False, train_bs=32):
         self.jit = jit
         self.device = device
         if jit:
             return
         if device == "cpu":
             return
-        self.traincfg = SpeechTransformerTrainConfig()
-        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg)
-        self.traincfg.model.cuda()
-        self.evalcfg.model.cuda()
+        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs, num_train_batch=NUM_TRAIN_BATCH)
+        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_batch=NUM_EVAL_BATCH)
+        self.traincfg.model.to(self.device)
+        self.evalcfg.model.to(self.device)
 
     def get_module(self):
         if self.device == "cpu":
@@ -34,7 +40,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         for data in self.traincfg.tr_loader:
             padded_input, input_lengths, padded_target = data
-            return self.traincfg.model, (padded_input.cuda(), input_lengths.cuda(), padded_target.cuda())
+            return self.traincfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
 
     def train(self, niter=1):
         if self.device == "cpu":

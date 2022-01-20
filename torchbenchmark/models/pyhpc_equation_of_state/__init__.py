@@ -29,15 +29,19 @@ class EquationOfState(torch.nn.Module):
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
+    # Original size: [2 ** i for i in range(12, 23, 2)
+    # Source: https://github.com/dionhaefner/pyhpc-benchmarks/blob/650ecc650e394df829944ffcf09e9d646ec69691/run.py#L25
+    # Pick data point: i = 20, size = 1048576
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit
         self.model = EquationOfState().to(device=self.device)
-        self.example_inputs = tuple(
-            torch.from_numpy(x).to(self.device)
-            for x in _generate_inputs(2 ** 22)
-        )
+        input_size = 1048576
+        raw_inputs = _generate_inputs(input_size)
+        if hasattr(eos_pytorch, "prepare_inputs"):
+            inputs = eos_pytorch.prepare_inputs(*raw_inputs, device=device)
+        self.example_inputs = inputs
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
                 self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
@@ -52,11 +56,6 @@ class Model(BenchmarkModel):
 
     def eval(self, niter=1):
         model, example_inputs = self.get_module()
-        for i in range(niter):
-            model(*example_inputs)
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=True)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.eval(niter=1)
+        with torch.no_grad():
+            for i in range(niter):
+                model(*example_inputs)

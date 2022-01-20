@@ -14,8 +14,9 @@ from urllib import request
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
+from .util.env_check import get_pkg_versions
 
-
+TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
                    "Do you need to use a proxy?"
@@ -50,7 +51,13 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
             if not verbose:
                 run_kwargs['stderr'] = subprocess.STDOUT
                 run_kwargs['stdout'] = output_buffer
+            versions = get_pkg_versions(TORCH_DEPS)
             subprocess.run(*run_args, **run_kwargs)  # type: ignore
+            new_versions = get_pkg_versions(TORCH_DEPS)
+            if versions != new_versions:
+                errmsg = f"The torch packages are re-installed after installing the benchmark deps. \
+                           Before: {versions}, after: {new_versions}"
+                return (False, errmsg, None)
         else:
             return (True, f"No install.py is found in {model_path}. Skip.", None)
     except subprocess.CalledProcessError as e:
@@ -497,3 +504,8 @@ def get_metadata_from_yaml(path):
         with open(metadata_path, 'r') as f:
             md = yaml.load(f, Loader=yaml.FullLoader)
     return md
+
+def str_to_bool(input: Any) -> bool:
+    if not input:
+        return False
+    return str(input).lower() in ("1", "yes", "y", "true", "t", "on")
