@@ -35,7 +35,7 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
         model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
     # apply cuda graph for train
     if args.train_cudagraph:
-        model.model = enable_cudagraph(model)
+        model.model = enable_cudagraph(model, model.example_input)
 
 def enable_cudagraph(model: BenchmarkModel, example_input: Tuple[torch.tensor]):
     # setup input and output
