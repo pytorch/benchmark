@@ -62,7 +62,7 @@ class TorchVisionModel(BenchmarkModel):
         real_input = [ torch.rand_like(self.example_inputs[0]) ]
         real_output = [ torch.rand_like(self.example_outputs) ]
         for _ in range(niter):
-            for data, target in real_input, real_output:
+            for data, target in zip(real_input, real_output):
                 if self.args.train_cudagraph:
                     self.example_inputs[0].copy_(data)
                     self.example_outputs.copy_(target)
