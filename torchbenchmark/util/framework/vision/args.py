@@ -1,5 +1,6 @@
 import argparse
 import torch
+import torch.optim as optim
 from torchbenchmark.util.model import BenchmarkModel
 from typing import List, Tuple
 
@@ -39,17 +40,18 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
 
 def enable_cudagraph(model: BenchmarkModel, example_input: Tuple[torch.tensor]):
     # setup input and output
+    optimizer = optim.Adam(model.model.parameters())
     example_output = torch.rand_like(model.model(*example_input))
     # warmup
     s = torch.cuda.Stream()
     s.wait_stream(torch.cuda.current_stream())
     with torch.cuda.stream(s):
         for _ in range(3):
-            model.optimizer.zero_grad(set_to_none=True)
+            optimizer.zero_grad(set_to_none=True)
             y_pred = model(*example_input)
             loss = model.loss(y_pred, example_output)
             loss.backward()
-            model.optimizer.step()
+            optimizer.step()
     torch.cuda.current_stream().wait_stream(s)
     # capture
     g = torch.cuda.CUDAGraph()
@@ -57,7 +59,7 @@ def enable_cudagraph(model: BenchmarkModel, example_input: Tuple[torch.tensor]):
         static_y_pred = model(*example_input)
         static_loss = model.loss(static_y_pred, example_output)
         static_loss.backward()
-        model.optimizer.step()
+        optimizer.step()
     real_input = [ torch.rand_like(example_input) ]
     real_output = [ torch.rand_like(example_output) ]
     for data, target in real_input, real_output:
