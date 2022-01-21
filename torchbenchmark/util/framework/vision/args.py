@@ -9,7 +9,7 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     parser.add_argument("--eval-fp16", action='store_false', help="enable eval fp16")
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--flops", action='store_true', help="enable flops counting")
-    parser.add_argument("--train_cudagraph", action='store_false', help="enable CUDA Graph for train")
+    parser.add_argument("--train_cudagraph", action='store_true', help="enable CUDA Graph for train")
     args = parser.parse_args(extra_args)
     args.device = model.device
     args.jit = model.jit
@@ -23,8 +23,8 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
 def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     if args.flops:
         from fvcore.nn import FlopCountAnalysis
-        model.train_flops = FlopCountAnalysis(model.model, tuple(self.example_inputs)).total()
-        model.eval_flops = FlopCountAnalysis(model.eval_model, tuple(self.eval_example_inputs)).total()
+        model.train_flops = FlopCountAnalysis(model.model, tuple(model.example_inputs)).total()
+        model.eval_flops = FlopCountAnalysis(model.eval_model, tuple(model.eval_example_inputs)).total()
     # apply eval_fp16
     if args.eval_fp16:
         model.eval_model, model.eval_example_inputs = enable_fp16(model.eval_model, model.eval_example_inputs)
