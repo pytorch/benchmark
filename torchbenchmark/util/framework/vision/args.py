@@ -38,7 +38,7 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
         model.model = enable_cudagraph(model.model)
 
 def enable_cudagraph(model: torch.nn.Module):
-    return torch.cuda.make_graph_callables(model.model, model.example_inputs)
+    return torch.cuda.make_graphed_callables(model.model, model.example_inputs)
 
 def enable_fp16(model: torch.nn.Module, example_input: Tuple[torch.tensor]) -> Tuple[torch.nn.Module, Tuple[torch.tensor]]:
     return model.half(), (example_input[0].half(),)
