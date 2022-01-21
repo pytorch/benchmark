@@ -36,12 +36,11 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
         model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
     # apply cuda graph for train
     if args.train_cudagraph:
-        model.model = enable_cudagraph(model, model.example_inputs)
+        enable_cudagraph(model, model.example_inputs)
 
 def enable_cudagraph(model: BenchmarkModel, example_input: Tuple[torch.tensor]):
     # setup input and output
     optimizer = optim.Adam(model.model.parameters())
-    example_output = torch.rand_like(model.model(*example_input))
     loss_fn = torch.nn.CrossEntropyLoss()
     # warmup
     s = torch.cuda.Stream()
@@ -50,7 +49,7 @@ def enable_cudagraph(model: BenchmarkModel, example_input: Tuple[torch.tensor]):
         for _ in range(3):
             optimizer.zero_grad(set_to_none=True)
             y_pred = model.model(*example_input)
-            loss = loss_fn(y_pred, example_output)
+            loss = loss_fn(y_pred, model.example_output)
             loss.backward()
             optimizer.step()
     torch.cuda.current_stream().wait_stream(s)
@@ -58,16 +57,10 @@ def enable_cudagraph(model: BenchmarkModel, example_input: Tuple[torch.tensor]):
     g = torch.cuda.CUDAGraph()
     with torch.cuda.graph(g):
         static_y_pred = model.model(*example_input)
-        static_loss = loss_fn(static_y_pred, example_output)
+        static_loss = loss_fn(static_y_pred, model.example_output)
         static_loss.backward()
         optimizer.step()
-    real_input = [ torch.rand_like(example_input) ]
-    real_output = [ torch.rand_like(example_output) ]
-    for data, target in real_input, real_output:
-        example_input.copy_(data)
-        example_output.copy_(target)
-        g.replay()
-    exit(0)
+    model.g = g
 
 def enable_fp16(model: torch.nn.Module, example_input: Tuple[torch.tensor]) -> Tuple[torch.nn.Module, Tuple[torch.tensor]]:
     return model.half(), (example_input[0].half(),)

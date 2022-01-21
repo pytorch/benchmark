@@ -19,6 +19,7 @@ class TorchVisionModel(BenchmarkModel):
         self.eval_model = getattr(models, model_name)().to(self.device)
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
         self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+        self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
 
         # setup target shapes, used in cuda graph
         target_shape = [32, 1000]
@@ -58,11 +59,19 @@ class TorchVisionModel(BenchmarkModel):
     def train(self, niter=3):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
+        real_input = [ torch.rand_like(self.example_inputs[0]) ]
+        real_output = [ torch.rand_like(self.example_outputs) ]
         for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.model(*self.example_inputs)
-            loss(pred, self.target).backward()
-            optimizer.step()
+            for data, target in real_input, real_output:
+                if self.args.train_cudagraph:
+                    self.example_inputs[0].copy_(data)
+                    self.example_outputs.copy_(target)
+                    self.g.replay()
+                else:
+                    optimizer.zero_grad()
+                    pred = self.model(data)
+                    loss(pred, target).backward()
+                    optimizer.step()
 
     def eval(self, niter=1):
         model = self.eval_model
