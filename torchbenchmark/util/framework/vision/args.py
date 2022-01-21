@@ -35,10 +35,10 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
         model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
     # apply cuda graph for train
     if args.train_cudagraph:
-        model.model = enable_cudagraph(model.model)
+        model.model = enable_cudagraph(model.model, model.example_inputs)
 
-def enable_cudagraph(model: torch.nn.Module):
-    return torch.cuda.make_graphed_callables(model.model, model.example_inputs)
+def enable_cudagraph(model: torch.nn.Module, example_input: Tuple[torch.tensor]):
+    return torch.cuda.make_graphed_callables(model, example_input)
 
 def enable_fp16(model: torch.nn.Module, example_input: Tuple[torch.tensor]) -> Tuple[torch.nn.Module, Tuple[torch.tensor]]:
     return model.half(), (example_input[0].half(),)
