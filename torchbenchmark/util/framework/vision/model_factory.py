@@ -21,17 +21,13 @@ class TorchVisionModel(BenchmarkModel):
         self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
         self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
 
-        # setup target shapes, used in cuda graph
-        target_shape = [32, 1000]
-        self.target = torch.empty(target_shape[0], dtype=torch.long, device=self.device).random_(target_shape[1])
+        # setup optimizer and loss_fn
+        self.optimizer = optim.Adam(self.model.parameters())
+        self.loss_fn = torch.nn.CrossEntropyLoss()
 
         # process extra args
         self.args = parse_args(self, extra_args)
         apply_args(self, self.args)
-
-        # setup optimizer and loss_fn
-        self.optimizer = optim.Adam(self.model.parameters())
-        self.loss_fn = torch.nn.CrossEntropyLoss()
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
