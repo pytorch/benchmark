@@ -29,6 +29,10 @@ class TorchVisionModel(BenchmarkModel):
         self.args = parse_args(self, extra_args)
         apply_args(self, self.args)
 
+        # setup optimizer and loss_fn
+        self.optimizer = optim.Adam(self.model.parameters())
+        self.loss_fn = torch.nn.CrossEntropyLoss()
+
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
                 self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
@@ -57,21 +61,19 @@ class TorchVisionModel(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self, niter=3):
-        optimizer = optim.Adam(self.model.parameters())
-        loss = torch.nn.CrossEntropyLoss()
         real_input = [ torch.rand_like(self.example_inputs[0]) ]
         real_output = [ torch.rand_like(self.example_outputs) ]
         for _ in range(niter):
+            self.optimizer.zero_grad()
             for data, target in zip(real_input, real_output):
                 if self.args.train_cudagraph:
                     self.example_inputs[0].copy_(data)
                     self.example_outputs.copy_(target)
                     self.g.replay()
                 else:
-                    optimizer.zero_grad()
                     pred = self.model(data)
-                    loss(pred, target).backward()
-                    optimizer.step()
+                    self.loss_fn(pred, target).backward()
+                    self.optimizer.step()
 
     def eval(self, niter=1):
         model = self.eval_model

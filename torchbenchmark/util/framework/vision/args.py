@@ -40,8 +40,8 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
 
 def enable_cudagraph(model: BenchmarkModel, example_inputs: Tuple[torch.tensor]):
     # setup input and output
-    optimizer = optim.Adam(model.model.parameters())
-    loss_fn = torch.nn.CrossEntropyLoss()
+    optimizer = model.optimizer
+    loss_fn = model.loss_fn
     # warmup
     s = torch.cuda.Stream()
     s.wait_stream(torch.cuda.current_stream())
