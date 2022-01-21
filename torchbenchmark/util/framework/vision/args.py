@@ -42,22 +42,23 @@ def enable_cudagraph(model: BenchmarkModel, example_input: Tuple[torch.tensor]):
     # setup input and output
     optimizer = optim.Adam(model.model.parameters())
     example_output = torch.rand_like(model.model(*example_input))
+    loss_fn = torch.nn.CrossEntropyLoss()
     # warmup
     s = torch.cuda.Stream()
     s.wait_stream(torch.cuda.current_stream())
     with torch.cuda.stream(s):
         for _ in range(3):
             optimizer.zero_grad(set_to_none=True)
-            y_pred = model(*example_input)
-            loss = model.loss(y_pred, example_output)
+            y_pred = model.model(*example_input)
+            loss = loss_fn(y_pred, example_output)
             loss.backward()
             optimizer.step()
     torch.cuda.current_stream().wait_stream(s)
     # capture
     g = torch.cuda.CUDAGraph()
     with torch.cuda.graph(g):
-        static_y_pred = model(*example_input)
-        static_loss = model.loss(static_y_pred, example_output)
+        static_y_pred = model.model(*example_input)
+        static_loss = loss_fn(static_y_pred, example_output)
         static_loss.backward()
         optimizer.step()
     real_input = [ torch.rand_like(example_input) ]
