@@ -35,10 +35,36 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
         model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
     # apply cuda graph for train
     if args.train_cudagraph:
-        model.model = enable_cudagraph(model.model, model.example_inputs)
+        model.model = enable_cudagraph(model)
 
-def enable_cudagraph(model: torch.nn.Module, example_input: Tuple[torch.tensor]):
-    return torch.cuda.make_graphed_callables(model, example_input)
+def enable_cudagraph(model: BenchmarkModel, example_input: Tuple[torch.tensor]):
+    # setup input and output
+    example_output = torch.rand_like(model.model(*example_input))
+    # warmup
+    s = torch.cuda.Stream()
+    s.wait_stream(torch.cuda.current_stream())
+    with torch.cuda.stream(s):
+        for _ in range(3):
+            model.optimizer.zero_grad(set_to_none=True)
+            y_pred = model(*example_input)
+            loss = model.loss(y_pred, example_output)
+            loss.backward()
+            model.optimizer.step()
+    torch.cuda.current_stream().wait_stream(s)
+    # capture
+    g = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(g):
+        static_y_pred = model(*example_input)
+        static_loss = model.loss(static_y_pred, example_output)
+        static_loss.backward()
+        model.optimizer.step()
+    real_input = [ torch.rand_like(example_input) ]
+    real_output = [ torch.rand_like(example_output) ]
+    for data, target in real_input, real_output:
+        example_input.copy_(data)
+        example_output.copy_(target)
+        g.replay()
+    exit(0)
 
 def enable_fp16(model: torch.nn.Module, example_input: Tuple[torch.tensor]) -> Tuple[torch.nn.Module, Tuple[torch.tensor]]:
     return model.half(), (example_input[0].half(),)
