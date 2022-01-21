@@ -20,6 +20,10 @@ class TorchVisionModel(BenchmarkModel):
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
         self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
 
+        # setup target shapes, used in cuda graph
+        target_shape = [32, 1000]
+        self.target = torch.empty(target_shape[0], dtype=torch.long, device=self.device).random_(target_shape[1])
+
         # process extra args
         self.args = parse_args(self, extra_args)
         apply_args(self, self.args)
@@ -57,8 +61,7 @@ class TorchVisionModel(BenchmarkModel):
         for _ in range(niter):
             optimizer.zero_grad()
             pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
-            loss(pred, y).backward()
+            loss(pred, self.target).backward()
             optimizer.step()
 
     def eval(self, niter=1):
