@@ -9,6 +9,7 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     parser.add_argument("--eval-fp16", action='store_false', help="enable eval fp16")
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--flops", action='store_true', help="enable flops counting")
+    parser.add_argument("--train_cudagraph", action='store_false', help="enable CUDA Graph for train")
     args = parser.parse_args(extra_args)
     args.device = model.device
     args.jit = model.jit
@@ -32,6 +33,12 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
         assert args.device == 'cuda', "fx2trt is only available with CUDA."
         assert not args.jit, "fx2trt with JIT is not available."
         model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
+    # apply cuda graph for train
+    if args.train_cudagraph:
+        model.model = enable_cudagraph(model.model)
+
+def enable_cudagraph(model: torch.nn.Module):
+    return torch.cuda.make_graph_callables(model.model, model.example_inputs)
 
 def enable_fp16(model: torch.nn.Module, example_input: Tuple[torch.tensor]) -> Tuple[torch.nn.Module, Tuple[torch.tensor]]:
     return model.half(), (example_input[0].half(),)
