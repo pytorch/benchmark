@@ -1,6 +1,5 @@
-import argparse
 import torch
-import torch.optim as optim
+import argparse
 from torchbenchmark.util.model import BenchmarkModel
 from typing import List, Tuple
 
@@ -55,6 +54,7 @@ def enable_cudagraph(model: BenchmarkModel, example_inputs: Tuple[torch.tensor])
     torch.cuda.current_stream().wait_stream(s)
     # capture
     g = torch.cuda.CUDAGraph()
+    optimizer.zero_grad(set_to_none=True)
     with torch.cuda.graph(g):
         static_y_pred = model.model(*example_inputs)
         static_loss = loss_fn(static_y_pred, model.example_outputs)
