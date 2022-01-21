@@ -50,9 +50,18 @@ def exist_dir_path(string):
 def get_pytorch_main_commit(pytorch_repo, nightly_commit):
     repo = git.Repo(pytorch_repo)
     msg = repo.commit(nightly_commit).message
+    # There are two possibilities of the hash `nightly_commit`:
+    # 1. The hash belongs to the nightly branch
+    #    If so, the git commit message should match `NIGHTLY_COMMIT_MSG`
+    # 2. The hash belongs to the master/main branch
+    #    We can directly use this hash in this case
     nightly_commit_regex = re.compile(NIGHTLY_COMMIT_MSG)
-    commit_msg = nightly_commit_regex.search(msg).group(1)
-    return commit_msg
+    search_result = nightly_commit_regex.search(msg)
+    if search_result:
+        return search_result.group(1)
+    # We now believe the commit now belongs to the master/main branch
+    # Unfortunately, there is no way to map a commit back to a branch with gitpython
+    return nightly_commit
 
 def find_latest_nonempty_json(path):
     json_files = list(filter(lambda x: x.endswith(".json"), os.listdir(path)))
