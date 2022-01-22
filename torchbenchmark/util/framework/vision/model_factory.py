@@ -19,6 +19,11 @@ class TorchVisionModel(BenchmarkModel):
         self.eval_model = getattr(models, model_name)().to(self.device)
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
         self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+        self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
+
+        # setup optimizer and loss_fn
+        self.optimizer = optim.Adam(self.model.parameters())
+        self.loss_fn = torch.nn.CrossEntropyLoss()
 
         # process extra args
         self.args = parse_args(self, extra_args)
@@ -52,16 +57,23 @@ class TorchVisionModel(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self, niter=3):
-        optimizer = optim.Adam(self.model.parameters())
-        loss = torch.nn.CrossEntropyLoss()
+        real_input = [ torch.rand_like(self.example_inputs[0]) ]
+        real_output = [ torch.rand_like(self.example_outputs) ]
         for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
-            loss(pred, y).backward()
-            optimizer.step()
+            self.optimizer.zero_grad()
+            for data, target in zip(real_input, real_output):
+                if self.args.cudagraph:
+                    self.example_inputs[0].copy_(data)
+                    self.example_outputs.copy_(target)
+                    self.g.replay()
+                else:
+                    pred = self.model(data)
+                    self.loss_fn(pred, target).backward()
+                    self.optimizer.step()
 
     def eval(self, niter=1):
+        if self.args.cudagraph:
+            return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.eval_model
         example_inputs = self.eval_example_inputs
         for _i in range(niter):
