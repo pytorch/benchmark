@@ -41,14 +41,29 @@ sudo nvidia-smi -ac ${GPU_FREQUENCY}
 export CUDA_VISIBLE_DEVICES="${GPU_LIST}"
 export GOMP_CPU_AFFINITY="${CORE_LIST}"
 
-echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
+# Comment out the ordinary benchmark steps, and replace them with LTC custom ones.
+# echo "Running benchmark with filter: \"${BENCHMARK_FILTER}\""
 
 # Run the benchmark
-for c in $(seq 1 $NUM_ITER); do
-    taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
-            --benchmark-min-rounds "${NUM_ROUNDS}" \
-            --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json \
-            --verbose
-done
+# for c in $(seq 1 $NUM_ITER); do
+#     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
+#             --benchmark-min-rounds "${NUM_ROUNDS}" \
+#             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json
+#             --verbose
+# done
+# needed by lazy_bench. not sure why requirements.txt isn't being installed first
+pip install -r requirements.txt
+
+echo "Running check_lazy.py"
+# The output is a file full of JSON objects but not legit .JSON.
+python check_lazy.py --output_file ${DATA_DIR}/sweep.out
+python check_lazy.py --json_to_csv ${DATA_DIR}/sweep.out --output_file ${DATA_DIR}/sweep.csv
+
+echo "Running lazy_bench.py"
+# We have two copies of repos. $HOME/pytorch for actual benchmarking. ../pytorch for user check-out.
+# Here we use lazy_bench.py from $HOME/pytorch which points to the correct install of pytorch,
+# and TorchBench from pwd which has the LTC enhancements.
+LTC_TS_CUDA=1 python $HOME/pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test train --torchbench_dir .
+LTC_TS_CUDA=1 python $HOME/pytorch/lazy_tensor_core/lazy_bench.py -d cuda --fuser fuser2 --output_dir ${DATA_DIR} --test eval --torchbench_dir .
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."

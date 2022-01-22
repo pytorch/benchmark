@@ -203,6 +203,9 @@ class DeepRecommenderTrainBenchmark:
         forcecuda = False
       elif device == "cuda":
         forcecuda = True
+      elif device == "lazy":
+        # TODO(whc) should change this to accomodate lazy cpu...
+        forcecuda = True
       else:
         # unknown device string, quit init
         return

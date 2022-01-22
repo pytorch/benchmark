@@ -134,6 +134,9 @@ class DeepRecommenderInferenceBenchmark:
         forcecuda = False
       elif device == "cuda":
         forcecuda = True
+      elif device == "lazy":
+        # TODO(whc) should change this to accomodate lazy cpu...
+        forcecuda = True
       else:
         # unknown device string, quit init
         return
@@ -207,6 +210,7 @@ class DeepRecommenderInferenceBenchmark:
       self.inv_itemIdMap = {v: k for k, v in self.data_layer.itemIdMap.items()}
   
       self.eval_data_layer.src_data = self.data_layer.data
+    self.rencoder = self.rencoder.to(device)
 
   def eval(self, niter=1):
     for iteration in range(niter):

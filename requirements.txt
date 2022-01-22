@@ -12,3 +12,4 @@ MonkeyType
 psutil
 pyyaml
 numpy == 1.21.0
+scipy  # for lazy_bench.py

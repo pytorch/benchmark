@@ -54,6 +54,7 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.eval_inputs)
+        return out
 
 if __name__ == "__main__":
     import time
