@@ -38,7 +38,6 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
         enable_cudagraph(model, model.example_inputs)
 
 def enable_cudagraph(model: BenchmarkModel, example_inputs: Tuple[torch.tensor]):
-    # setup input and output
     optimizer = model.optimizer
     loss_fn = model.loss_fn
     # warmup
