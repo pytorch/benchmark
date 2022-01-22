@@ -64,14 +64,12 @@ class Model(BenchmarkModel):
         self.train_data = []
         for data in train_loader:
             self.train_data.append(data)
-            if device == 'cuda':
-                for key in data:
-                    data[key].cuda()
+            for key in data:
+                data[key].to(self.device)
 
         netB = ResnetConditionHR(input_nc=(
             3, 3, 1, 4), output_nc=4, n_blocks1=self.opt.n_blocks1, n_blocks2=self.opt.n_blocks2)
-        if self.device == 'cuda':
-            netB.cuda()
+        netB.to(self.device)
         netB.eval()
         for param in netB.parameters():  # freeze netB
             param.requires_grad = False
@@ -82,18 +80,18 @@ class Model(BenchmarkModel):
         netG.apply(conv_init)
         self.netG = netG
 
-        if self.device == 'cuda':
-            self.netG.cuda()
+        self.netG.to(self.device)
+        # if self.device == 'cuda':
             # TODO(asuhan): is this needed?
-            torch.backends.cudnn.benchmark = True
+            # (whc) - i'm removing this so lazy/cuda have an even playing field
+            # torch.backends.cudnn.benchmark = True
 
         netD = MultiscaleDiscriminator(
             input_nc=3, num_D=1, norm_layer=nn.InstanceNorm2d, ndf=64)
         netD.apply(conv_init)
         # netD = nn.DataParallel(netD)
         self.netD = netD
-        if self.device == 'cuda':
-            self.netD.cuda()
+        self.netD.to(self.device)
 
         self.l1_loss = alpha_loss()
         self.c_loss = compose_loss()
@@ -111,12 +109,8 @@ class Model(BenchmarkModel):
     def _maybe_trace(self):
         for data in self.train_data:
             bg, image, seg, multi_fr = data['bg'], data['image'], data['seg'], data['multi_fr']
-            if self.device == 'cuda':
-                bg, image, seg, multi_fr = Variable(bg.cuda()), Variable(
-                    image.cuda()), Variable(seg.cuda()), Variable(multi_fr.cuda())
-            else:
-                bg, image, seg, multi_fr = Variable(bg), Variable(
-                    image), Variable(seg), Variable(multi_fr)
+            bg, image, seg, multi_fr = Variable(bg.to(self.device)), Variable(
+                image.to(self.device)), Variable(seg.to(self.device)), Variable(multi_fr.to(self.device))
             if self.jit:
                 self.netB = torch.jit.trace(
                     self.netB, (image, bg, seg, multi_fr))
@@ -157,14 +151,9 @@ class Model(BenchmarkModel):
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
 
-            if self.device == 'cuda':
-                bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg.cuda()), Variable(image.cuda()), Variable(
-                    seg.cuda()), Variable(multi_fr.cuda()), Variable(seg_gt.cuda()), Variable(back_rnd.cuda())
-                mask0 = Variable(torch.ones(seg.shape).cuda())
-            else:
-                bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg), Variable(
-                    image), Variable(seg), Variable(multi_fr), Variable(seg_gt), Variable(back_rnd)
-                mask0 = Variable(torch.ones(seg.shape))
+            bg, image, seg, multi_fr, seg_gt, back_rnd = Variable(bg.to(self.device)), Variable(image.to(self.device)), Variable(
+                seg.to(self.device)), Variable(multi_fr.to(self.device)), Variable(seg_gt.to(self.device)), Variable(back_rnd.to(self.device))
+            mask0 = Variable(torch.ones(seg.shape).to(self.device))
 
             tr0 = time.time()
 
