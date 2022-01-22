@@ -62,7 +62,7 @@ class TorchVisionModel(BenchmarkModel):
         for _ in range(niter):
             self.optimizer.zero_grad()
             for data, target in zip(real_input, real_output):
-                if self.args.train_cudagraph:
+                if self.args.cudagraph:
                     self.example_inputs[0].copy_(data)
                     self.example_outputs.copy_(target)
                     self.g.replay()
@@ -72,6 +72,8 @@ class TorchVisionModel(BenchmarkModel):
                     self.optimizer.step()
 
     def eval(self, niter=1):
+        if self.args.cudagraph:
+            return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.eval_model
         example_inputs = self.eval_example_inputs
         for _i in range(niter):
