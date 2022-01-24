@@ -293,6 +293,10 @@ class TorchBench:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCHBENCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCHBENCH_GITREPO}")
+        # Clean, checkout, and update the branch
+        clean_git_repo(self.srcpath)
+        checkout_git_branch(self.srcpath, self.branch)
+        update_git_repo_branch(self.srcpath, self.branch)
         # get list of models
         self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
                         if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
@@ -403,6 +407,7 @@ class TorchBenchBisection:
                  workdir: str,
                  torch_src: str,
                  bench_src: str,
+                 bench_branch: str,
                  start: str,
                  end: str,
                  threshold: float,
@@ -424,7 +429,8 @@ class TorchBenchBisection:
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
-                                workdir = self.workdir)
+                                workdir = self.workdir,
+                                branch = bench_branch)
         self.output_json = output_json
         self.debug = debug
         # Special treatment for abtest
@@ -526,12 +532,15 @@ if __name__ == "__main__":
     parser.add_argument("--torchbench-src",
                         help="the directory of torchbench source code git repository",
                         type=exist_dir_path)
+    parser.add_argument("--torchbench-branch",
+                        default="main",
+                        help="specify the branch of torchbench to bisect")
     parser.add_argument("--config",
                         help="the bisection configuration in YAML format")
     parser.add_argument("--output",
                         help="the output json file")
     parser.add_argument("--analyze-result",
-                        help="specify the the output result directory to analyze")
+                        help="specify the output result directory to analyze")
     # by default, do not build lazy tensor
     parser.add_argument("--build-lazy",
                         action='store_true',
@@ -564,6 +573,7 @@ if __name__ == "__main__":
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_src=args.pytorch_src,
                                     bench_src=args.torchbench_src,
+                                    bench_branch=args.torchbench_branch,
                                     start=bisect_config["start"],
                                     end=bisect_config["end"],
                                     threshold=bisect_config["threshold"],

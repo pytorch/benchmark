@@ -12,6 +12,7 @@ jobs:
     env:
       BISECT_CONDA_ENV: "bisection-ci-v2"
       BISECT_DIR: ".torchbench/v2-bisection-ci"
+      BISECT_BRANCH: "v2.0"
       PYTHON_VER: "3.8"
       CUDA_VER: "11.3"
       MAGMA_VERSION: "magma-cuda113"

@@ -34,7 +34,13 @@ fi
 
 if [ -z ${BISECT_BASE} ]; then
     echo "You must set the env BISECT_BASE to run the bisector script."
+    exit 1
 fi
+
+if [ -z ${BISECT_BRANCH} ]; then
+    BISECT_BRANCH="main"
+fi
+
 # create the work directory
 mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 
@@ -44,5 +50,6 @@ mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
+       --torchbench-branch "${BISECT_BRANCH}" \
        --config ${BISECT_BASE}/config.yaml \
        --output ${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json
