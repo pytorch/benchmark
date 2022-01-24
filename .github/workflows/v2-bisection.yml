@@ -10,11 +10,11 @@ on:
 jobs:
   bisection:
     env:
-      CUDA_VER: "11.3"
-      PYTHON_VER: "3.8"
-      MAGMA_VERSION: "magma-cuda113"
-      BISECT_CONDA_ENV: "torchbench-v2-bisection-ci"
+      BISECT_CONDA_ENV: "bisection-ci-v2"
       BISECT_DIR: ".torchbench/v2-bisection-ci"
+      PYTHON_VER: "3.8"
+      CUDA_VER: "11.3"
+      MAGMA_VERSION: "magma-cuda113"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
@@ -33,8 +33,8 @@ jobs:
           conda install -y -c pytorch "${MAGMA_VERSION}"
       - name: Bisection
         run: |
-          BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
-          BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
+          export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"
