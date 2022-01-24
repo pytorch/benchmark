@@ -50,6 +50,5 @@ mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
        --torchbench-src ${TORCHBENCH_SRC_DIR} \
-       --torchbench-branch "${BISECT_BRANCH}" \
        --config ${BISECT_BASE}/config.yaml \
        --output ${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json

@@ -36,6 +36,7 @@ jobs:
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
           export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          export TORCHBENCH_SRC_DIR="${PWD}"
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"
