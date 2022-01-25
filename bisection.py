@@ -530,10 +530,6 @@ if __name__ == "__main__":
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
                         action='store_true')
-    # by default, do not build lazy tensor
-    parser.add_argument("--build-lazy",
-                        action='store_true',
-                        help="build lazy tensor feature in PyTorch")
     args = parser.parse_args()
 
     # If this is to print the overview of a test result, don't need to run the actual execution
