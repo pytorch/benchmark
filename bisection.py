@@ -291,7 +291,7 @@ class TorchBench:
         if not repo_origin_url == TORCHBENCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCHBENCH_GITREPO}")
         # get the name of current branch
-        self.branch = get_current_branch(self.srcpath)
+        self.branch = gitutils.get_current_branch(self.srcpath)
         # get list of models
         self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
                         if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
