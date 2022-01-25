@@ -278,15 +278,12 @@ class TorchBench:
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
                  timelimit: int,
-                 workdir: str,
-                 devbig: str,
-                 branch: str = "main"):
+                 workdir: str):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
         self.workdir = workdir
-        self.devbig = devbig
-        self.branch = branch
+        self.first_time = True
         self.models = list()
 
     def prep(self) -> bool:
@@ -294,6 +291,8 @@ class TorchBench:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCHBENCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCHBENCH_GITREPO}")
+        # get the name of current branch
+        self.branch = get_current_branch(self.srcpath)
         # get list of models
         self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
                         if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
@@ -528,11 +527,11 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         help="the output json file")
     parser.add_argument("--analyze-result",
-                        help="specify the the output result directory to analyze")
-    # running on devbig
-    parser.add_argument("--devbig",
-                        type=str,
-                        help="if running on devbig, specify the devbig conda env")
+                        help="specify the output result directory to analyze")
+    # by default, do not build lazy tensor
+    parser.add_argument("--build-lazy",
+                        action='store_true',
+                        help="build lazy tensor feature in PyTorch")
     # by default, debug mode is disabled
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
