@@ -66,7 +66,17 @@ jobs:
           LATEST_RESULT=$(find ${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID} -name "*.json" | sort -r | head -1)
           echo "Benchmark result file: ${LATEST_RESULT}"
           mkdir -p benchmark-output/
-          cp "${LATEST_RESULT}" ./benchmark-output/benchmark-result-v1-${TODAY}.json
+          cp "${LATEST_RESULT}" ./benchmark-output/benchmark-result-${CONFIG_VER}-${TODAY}.json
+          # Load environment variables
+          CONFIG_DIR=torchbenchmark/score/configs/${CONFIG_VER}
+          CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
+          # Load environment variables
+          set -a; source "${CONFIG_ENV}"; set +a
+          SCORE_FILE="./benchmark-result-${CONFIG_VER}-score-${TODAY}.json"
+          # Generate score file
+          python compute_score.py --score_version "${CONFIG_VER}" --benchmark_data_file "${LATEST_RESULT}" > "${SCORE_FILE}"
+          # Upload result to Scribe
+          python scripts/upload_scribe_${CONFIG_VER}.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
