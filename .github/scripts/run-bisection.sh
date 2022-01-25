@@ -1,14 +1,5 @@
 #!/bin/sh
 # Script that run the PR bisection
-# Requirements:
-# 1. Conda environment created using the following command:
-#     conda create -y -n bisection python=3.7
-#     # numpy=1.17 is from yolov3 requirements.txt, requests=2.22 is from demucs
-#     conda install numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six dataclasses
-# 2. PyTorch git repo (specified by PYTORCH_SRC_DIR) and TorchBench git repo (specified by TORCHBENCH_SRC_DIR)
-#    in clean state with the latest code.
-# 3. Bisection config, in the YAML format.
-#    An example of bisection configuration in YAML can be found in bisection-config.sample.yaml
 
 set -xeo pipefail
 
@@ -20,7 +11,8 @@ if [ -z ${PYTORCH_SRC_DIR} ]; then
 fi
 
 if [ -z ${TORCHBENCH_SRC_DIR} ]; then
-    TORCHBENCH_SRC_DIR=${HOME}/benchmark
+    echo "User must set the env TORCHBENCH_SRC_DIR to run the bisector script."
+    exit 1
 fi
 
 if [ -z ${BISECT_CONDA_ENV} ]; then
@@ -33,8 +25,10 @@ if [ -z ${BISECT_ISSUE} ]; then
 fi
 
 if [ -z ${BISECT_BASE} ]; then
-    echo "You must set the env BISECT_BASE to run the bisector script."
+    echo "User must set the env BISECT_BASE to run the bisector script."
+    exit 1
 fi
+
 # create the work directory
 mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 
