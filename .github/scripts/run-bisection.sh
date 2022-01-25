@@ -20,7 +20,8 @@ if [ -z ${PYTORCH_SRC_DIR} ]; then
 fi
 
 if [ -z ${TORCHBENCH_SRC_DIR} ]; then
-    TORCHBENCH_SRC_DIR=${HOME}/benchmark
+    echo "User must set the env TORCHBENCH_SRC_DIR to run the bisector script."
+    exit 1
 fi
 
 if [ -z ${BISECT_CONDA_ENV} ]; then
@@ -33,12 +34,8 @@ if [ -z ${BISECT_ISSUE} ]; then
 fi
 
 if [ -z ${BISECT_BASE} ]; then
-    echo "You must set the env BISECT_BASE to run the bisector script."
+    echo "User must set the env BISECT_BASE to run the bisector script."
     exit 1
-fi
-
-if [ -z ${BISECT_BRANCH} ]; then
-    BISECT_BRANCH="main"
 fi
 
 # create the work directory
