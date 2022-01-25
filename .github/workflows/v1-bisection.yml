@@ -1,0 +1,50 @@
+name: TorchBench V1 bisection
+on:
+  workflow_dispatch:
+    inputs:
+      issue_name:
+        description: "Bisection Issue Name"
+        required: true
+        default: "example-issue"
+
+jobs:
+  bisection:
+    env:
+      BISECT_CONDA_ENV: "bisection-ci-v1"
+      BISECT_DIR: ".torchbench/v1-bisection-ci"
+      BISECT_BRANCH: "v1.0"
+      PYTHON_VERSION: "3.8"
+      MAGMA_VERSION: "magma-cuda113"
+      CUDA_VERSION: "11.3"
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 2880 # 48 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: v1.0
+      - name: Create conda environment
+        run: |
+          conda create -y -n "$BISECT_CONDA_ENV" python="${PYTHON_VERSION}"
+          . activate "$BISECT_CONDA_ENV"
+          conda install -y numpy requests=2.22 ninja pyyaml mkl mkl-include setuptools cmake cffi \
+                           typing_extensions future six dataclasses tabulate gitpython tqdm
+          conda install -y -c pytorch "${MAGMA_VERSION}"
+      - name: Bisection
+        run: |
+          export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
+          export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          export TORCHBENCH_SRC_DIR="${PWD}"
+          bash ./.github/scripts/run-bisection.sh
+          # Update the result json symbolic link
+          ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"
+          cp -r "${BISECT_BASE}" ./bisection-result
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Bisection result
+          path: bisection-result/
+      - name: Remove conda environment
+        run: |
+          conda env remove --name "$BISECT_CONDA_ENV"

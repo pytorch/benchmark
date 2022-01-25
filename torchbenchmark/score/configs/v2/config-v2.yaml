@@ -1,0 +1,641 @@
+# Score v2 norm file
+# Origin: .torchbench/v2-nightly-testrun/20211222-repeated/ghtest/*.json
+# 210 stable tests
+# 74 unstable tests (71 cpu tests, 3 cuda tests)
+# PyTorch nightly version: 1.11.0.dev20211222+cu113
+
+# threshold to determine a test is stable: max delta across repeated runs
+# max delta: (max - min) / min = 7%
+stable_threshold: 0.07
+target: 1000.0
+tests:
+  test_eval[BERT_pytorch-cpu-jit]:
+    norm: 0.26309246465098113
+    stable: true
+  test_eval[BERT_pytorch-cuda-eager]:
+    norm: 0.13535679993219674
+    stable: true
+  test_eval[BERT_pytorch-cuda-jit]:
+    norm: 0.13535568490624428
+    stable: true
+  test_eval[LearningToPaint-cuda-eager]:
+    norm: 9.556996289640665
+    stable: true
+  test_eval[Super_SloMo-cuda-eager]:
+    norm: 0.8848286324646324
+    stable: true
+  test_eval[Super_SloMo-cuda-jit]:
+    norm: 0.8748341839527711
+    stable: true
+  test_eval[alexnet-cpu-eager]:
+    norm: 0.019976751995272934
+    stable: true
+  test_eval[alexnet-cpu-jit]:
+    norm: 0.012015949469059706
+    stable: true
+  test_eval[alexnet-cuda-eager]:
+    norm: 0.0035700059961527586
+    stable: true
+  test_eval[alexnet-cuda-jit]:
+    norm: 0.0033223649952560663
+    stable: true
+  test_eval[attention_is_all_you_need_pytorch-cpu-eager]:
+    norm: 0.06995468109380454
+    stable: true
+  test_eval[attention_is_all_you_need_pytorch-cpu-jit]:
+    norm: 0.06454386550467461
+    stable: true
+  test_eval[attention_is_all_you_need_pytorch-cuda-eager]:
+    norm: 0.029354333877563477
+    stable: true
+  test_eval[attention_is_all_you_need_pytorch-cuda-jit]:
+    norm: 0.026960783055983484
+    stable: true
+  test_eval[dcgan-cuda-eager]:
+    norm: 0.018106368952430785
+    stable: true
+  test_eval[dcgan-cuda-jit]:
+    norm: 0.01811566506512463
+    stable: true
+  test_eval[demucs-cpu-eager]:
+    norm: 1.9323730143951252
+    stable: true
+  test_eval[demucs-cpu-jit]:
+    norm: 1.8325699190609157
+    stable: true
+  test_eval[demucs-cuda-eager]:
+    norm: 0.38475887302774936
+    stable: true
+  test_eval[demucs-cuda-jit]:
+    norm: 0.38404491008259356
+    stable: true
+  test_eval[detectron2_maskrcnn-cuda-eager]:
+    norm: 0.6040626890026033
+    stable: true
+  test_eval[dlrm-cuda-eager]:
+    norm: 0.006324257934466004
+    stable: true
+  test_eval[drq-cpu-eager]:
+    norm: 0.0022932940628379583
+    stable: true
+  test_eval[drq-cuda-eager]:
+    norm: 0.0025021793553605676
+    stable: true
+  test_eval[fastNLP_Bert-cuda-eager]:
+    norm: 0.1563201390672475
+    stable: true
+  test_eval[hf_Albert-cuda-eager]:
+    norm: 0.04251672746613622
+    stable: true
+  test_eval[hf_Bart-cuda-eager]:
+    norm: 0.05284689599648118
+    stable: true
+  test_eval[hf_Bert-cuda-eager]:
+    norm: 0.04188396560493857
+    stable: true
+  test_eval[hf_BigBird-cuda-eager]:
+    norm: 0.4780000135069713
+    stable: true
+  test_eval[hf_DistilBert-cuda-eager]:
+    norm: 0.023768492974340916
+    stable: true
+  test_eval[hf_GPT2-cuda-eager]:
+    norm: 0.1048151709837839
+    stable: true
+  test_eval[hf_Longformer-cpu-eager]:
+    norm: 1.8915577951120213
+    stable: true
+  test_eval[hf_Longformer-cuda-eager]:
+    norm: 0.45273185952100903
+    stable: true
+  test_eval[hf_Reformer-cuda-eager]:
+    norm: 0.04113313113339245
+    stable: true
+  test_eval[hf_T5-cpu-eager]:
+    norm: 0.9194496345007792
+    stable: true
+  test_eval[maml-cuda-eager]:
+    norm: 0.05438489851076156
+    stable: true
+  test_eval[maml_omniglot-cpu-eager]:
+    norm: 0.0011488560121506453
+    stable: true
+  test_eval[maml_omniglot-cuda-eager]:
+    norm: 0.0012119750026613474
+    stable: true
+  test_eval[mnasnet1_0-cpu-jit]:
+    norm: 0.02850807609502226
+    stable: true
+  test_eval[mnasnet1_0-cuda-eager]:
+    norm: 0.024485791102051735
+    stable: true
+  test_eval[mnasnet1_0-cuda-jit]:
+    norm: 0.23326675058342516
+    stable: true
+  test_eval[mobilenet_v2-cpu-jit]:
+    norm: 0.017389205982908607
+    stable: true
+  test_eval[mobilenet_v2-cuda-eager]:
+    norm: 0.014513510977849364
+    stable: true
+  test_eval[mobilenet_v2-cuda-jit]:
+    norm: 0.009530195035040379
+    stable: true
+  test_eval[mobilenet_v2_quantized_qat-cpu-eager]:
+    norm: 0.008776520960964262
+    stable: true
+  test_eval[mobilenet_v2_quantized_qat-cpu-jit]:
+    norm: 0.004301117500290275
+    stable: true
+  test_eval[mobilenet_v3_large-cuda-eager]:
+    norm: 0.021236654021777213
+    stable: true
+  test_eval[mobilenet_v3_large-cuda-jit]:
+    norm: 0.0989519968861714
+    stable: true
+  test_eval[moco-cuda-eager]:
+    norm: 0.37123431952204555
+    stable: true
+  test_eval[moco-cuda-jit]:
+    norm: 0.371515081031248
+    stable: true
+  test_eval[nvidia_deeprecommender-cpu-eager]:
+    norm: 0.0802286519901827
+    stable: true
+  test_eval[opacus_cifar10-cpu-eager]:
+    norm: 0.009801564970985055
+    stable: true
+  test_eval[opacus_cifar10-cuda-eager]:
+    norm: 0.008273817133158445
+    stable: true
+  test_eval[pyhpc_equation_of_state-cpu-eager]:
+    norm: 0.0762754495954141
+    stable: true
+  test_eval[pyhpc_equation_of_state-cpu-jit]:
+    norm: 0.003364439937286079
+    stable: true
+  test_eval[pyhpc_equation_of_state-cuda-eager]:
+    norm: 0.045221850043162704
+    stable: true
+  test_eval[pyhpc_equation_of_state-cuda-jit]:
+    norm: 0.007016091491095722
+    stable: true
+  test_eval[pyhpc_isoneutral_mixing-cuda-eager]:
+    norm: 0.06156120344530791
+    stable: true
+  test_eval[pyhpc_isoneutral_mixing-cuda-jit]:
+    norm: 0.04559514007996768
+    stable: true
+  test_eval[pyhpc_turbulent_kinetic_energy-cpu-jit]:
+    norm: 0.04867501591797918
+    stable: true
+  test_eval[pyhpc_turbulent_kinetic_energy-cuda-eager]:
+    norm: 0.034724386874586344
+    stable: true
+  test_eval[pyhpc_turbulent_kinetic_energy-cuda-jit]:
+    norm: 0.019833894562907517
+    stable: true
+  test_eval[pytorch_CycleGAN_and_pix2pix-cuda-eager]:
+    norm: 0.03607821464538574
+    stable: true
+  test_eval[pytorch_CycleGAN_and_pix2pix-cuda-jit]:
+    norm: 0.036118117976002395
+    stable: true
+  test_eval[pytorch_stargan-cpu-eager]:
+    norm: 0.40138995402958244
+    stable: true
+  test_eval[pytorch_stargan-cpu-jit]:
+    norm: 0.4325328584527597
+    stable: true
+  test_eval[pytorch_stargan-cuda-eager]:
+    norm: 0.05800434004049748
+    stable: true
+  test_eval[pytorch_stargan-cuda-jit]:
+    norm: 0.05801298248115927
+    stable: true
+  test_eval[pytorch_unet-cpu-eager]:
+    norm: 0.9114485095487908
+    stable: true
+  test_eval[pytorch_unet-cpu-jit]:
+    norm: 0.9181402331450954
+    stable: true
+  test_eval[pytorch_unet-cuda-eager]:
+    norm: 0.2189915725030005
+    stable: true
+  test_eval[pytorch_unet-cuda-jit]:
+    norm: 0.21919604402501136
+    stable: true
+  test_eval[resnet18-cpu-eager]:
+    norm: 0.03338945400901139
+    stable: true
+  test_eval[resnet18-cpu-jit]:
+    norm: 0.013716061948798597
+    stable: true
+  test_eval[resnet18-cuda-eager]:
+    norm: 0.0073015030939131975
+    stable: true
+  test_eval[resnet18-cuda-jit]:
+    norm: 0.0045502770226448774
+    stable: true
+  test_eval[resnet50-cuda-eager]:
+    norm: 0.05474640510510653
+    stable: true
+  test_eval[resnet50-cuda-jit]:
+    norm: 0.028755520936101675
+    stable: true
+  test_eval[resnet50_quantized_qat-cpu-eager]:
+    norm: 0.009356311988085508
+    stable: true
+  test_eval[resnet50_quantized_qat-cpu-jit]:
+    norm: 0.005246591637842357
+    stable: true
+  test_eval[resnext50_32x4d-cpu-jit]:
+    norm: 0.0406138701364398
+    stable: true
+  test_eval[resnext50_32x4d-cuda-eager]:
+    norm: 0.02290813601575792
+    stable: true
+  test_eval[resnext50_32x4d-cuda-jit]:
+    norm: 0.01396998402196914
+    stable: true
+  test_eval[shufflenet_v2_x1_0-cpu-eager]:
+    norm: 0.144051305600442
+    stable: true
+  test_eval[shufflenet_v2_x1_0-cuda-eager]:
+    norm: 0.022139581968076527
+    stable: true
+  test_eval[shufflenet_v2_x1_0-cuda-jit]:
+    norm: 0.013053457951173186
+    stable: true
+  test_eval[soft_actor_critic-cuda-eager]:
+    norm: 0.009270562557503581
+    stable: true
+  test_eval[speech_transformer-cuda-eager]:
+    norm: 5.634360914467834
+    stable: true
+  test_eval[squeezenet1_1-cuda-eager]:
+    norm: 0.006255245069041848
+    stable: true
+  test_eval[squeezenet1_1-cuda-jit]:
+    norm: 0.004721385659649968
+    stable: true
+  test_eval[timm_efficientnet-cuda-eager]:
+    norm: 0.12373655301053077
+    stable: true
+  test_eval[timm_efficientnet-cuda-jit]:
+    norm: 0.28269368200562894
+    stable: true
+  test_eval[timm_nfnet-cpu-eager]:
+    norm: 5.729675678536296
+    stable: true
+  test_eval[timm_nfnet-cpu-jit]:
+    norm: 5.361156929982826
+    stable: true
+  test_eval[timm_regnet-cuda-eager]:
+    norm: 0.0673502084100619
+    stable: true
+  test_eval[timm_regnet-cuda-jit]:
+    norm: 0.04575059295166284
+    stable: true
+  test_eval[timm_resnest-cuda-eager]:
+    norm: 0.05981410399544984
+    stable: true
+  test_eval[timm_resnest-cuda-jit]:
+    norm: 0.04477550997398794
+    stable: true
+  test_eval[timm_vision_transformer-cuda-eager]:
+    norm: 0.03022891061846167
+    stable: true
+  test_eval[timm_vision_transformer-cuda-jit]:
+    norm: 0.03060797112993896
+    stable: true
+  test_eval[timm_vovnet-cpu-eager]:
+    norm: 0.5307599559891969
+    stable: true
+  test_eval[timm_vovnet-cpu-jit]:
+    norm: 0.46509505598805845
+    stable: true
+  test_eval[timm_vovnet-cuda-eager]:
+    norm: 0.09846923046279699
+    stable: true
+  test_eval[timm_vovnet-cuda-jit]:
+    norm: 0.08263505809009075
+    stable: true
+  test_eval[tts_angular-cpu-eager]:
+    norm: 0.31690120697021484
+    stable: true
+  test_eval[tts_angular-cuda-eager]:
+    norm: 0.07922354713082314
+    stable: true
+  test_eval[vgg16-cuda-eager]:
+    norm: 0.012236703536473215
+    stable: true
+  test_eval[vgg16-cuda-jit]:
+    norm: 0.010689504444599152
+    stable: true
+  test_eval[vision_maskrcnn-cpu-eager]:
+    norm: 5.312478391453624
+    stable: true
+  test_eval[vision_maskrcnn-cuda-eager]:
+    norm: 0.7819517200114205
+    stable: true
+  test_eval[yolov3-cuda-eager]:
+    norm: 0.3853816259652376
+    stable: true
+  test_train[BERT_pytorch-cpu-eager]:
+    norm: 1.0651170399505645
+    stable: true
+  test_train[BERT_pytorch-cpu-jit]:
+    norm: 1.0412283025216311
+    stable: true
+  test_train[BERT_pytorch-cuda-eager]:
+    norm: 0.45552763110026717
+    stable: true
+  test_train[BERT_pytorch-cuda-jit]:
+    norm: 0.45556395256426185
+    stable: true
+  test_train[Background_Matting-cuda-eager]:
+    norm: 3.2586846104823053
+    stable: true
+  test_train[Background_Matting-cuda-jit]:
+    norm: 3.118781154975295
+    stable: true
+  test_train[LearningToPaint-cpu-eager]:
+    norm: 0.20216494402848184
+    stable: true
+  test_train[LearningToPaint-cuda-eager]:
+    norm: 0.06395061989314854
+    stable: true
+  test_train[Super_SloMo-cuda-eager]:
+    norm: 1.9976071724668145
+    stable: true
+  test_train[Super_SloMo-cuda-jit]:
+    norm: 1.9902016795240343
+    stable: true
+  test_train[alexnet-cpu-eager]:
+    norm: 1.3287478756392375
+    stable: true
+  test_train[alexnet-cpu-jit]:
+    norm: 1.310012875474058
+    stable: true
+  test_train[alexnet-cuda-eager]:
+    norm: 0.32518827950116247
+    stable: true
+  test_train[alexnet-cuda-jit]:
+    norm: 0.3255895880283788
+    stable: true
+  test_train[attention_is_all_you_need_pytorch-cuda-eager]:
+    norm: 0.7674085305770859
+    stable: true
+  test_train[attention_is_all_you_need_pytorch-cuda-jit]:
+    norm: 0.7794392879586667
+    stable: true
+  test_train[dcgan-cpu-eager]:
+    norm: 1.2124564830446616
+    stable: true
+  test_train[dcgan-cpu-jit]:
+    norm: 1.1788515970110893
+    stable: true
+  test_train[dcgan-cuda-eager]:
+    norm: 0.34197683655656874
+    stable: true
+  test_train[dcgan-cuda-jit]:
+    norm: 0.3424148199846968
+    stable: true
+  test_train[dlrm-cpu-eager]:
+    norm: 3.1003996550571173
+    stable: true
+  test_train[dlrm-cuda-eager]:
+    norm: 0.02726724895182997
+    stable: true
+  test_train[drq-cuda-eager]:
+    norm: 0.3753297444200143
+    stable: true
+  test_train[fastNLP_Bert-cuda-eager]:
+    norm: 2.872787294909358
+    stable: true
+  test_train[hf_Albert-cpu-eager]:
+    norm: 7.167599138454534
+    stable: true
+  test_train[hf_Albert-cuda-eager]:
+    norm: 2.54136356851086
+    stable: true
+  test_train[hf_Bart-cpu-eager]:
+    norm: 11.845310006989166
+    stable: true
+  test_train[hf_Bart-cuda-eager]:
+    norm: 1.8960610890062526
+    stable: true
+  test_train[hf_Bert-cuda-eager]:
+    norm: 1.4686918463557959
+    stable: true
+  test_train[hf_BigBird-cpu-eager]:
+    norm: 14.596380564034916
+    stable: true
+  test_train[hf_BigBird-cuda-eager]:
+    norm: 2.8949769055470824
+    stable: true
+  test_train[hf_GPT2-cuda-eager]:
+    norm: 1.83139475598
+    stable: true
+  test_train[hf_Longformer-cuda-eager]:
+    norm: 2.867161439033225
+    stable: true
+  test_train[hf_Reformer-cpu-eager]:
+    norm: 47.348063210607506
+    stable: true
+  test_train[hf_Reformer-cuda-eager]:
+    norm: 3.459243025514297
+    stable: true
+  test_train[maml-cpu-eager]:
+    norm: 1.0575717006577179
+    stable: true
+  test_train[maml-cuda-eager]:
+    norm: 0.9602036104770377
+    stable: true
+  test_train[maml_omniglot-cpu-eager]:
+    norm: 7.770545017090626
+    stable: true
+  test_train[maml_omniglot-cuda-eager]:
+    norm: 5.653109809500165
+    stable: true
+  test_train[mnasnet1_0-cuda-eager]:
+    norm: 0.3862084854627028
+    stable: true
+  test_train[mnasnet1_0-cuda-jit]:
+    norm: 0.38758562854491174
+    stable: true
+  test_train[mobilenet_v2-cuda-eager]:
+    norm: 1.1744886379456148
+    stable: true
+  test_train[mobilenet_v2-cuda-jit]:
+    norm: 1.1749910719227046
+    stable: true
+  test_train[mobilenet_v2_quantized_qat-cuda-eager]:
+    norm: 2.0812276230426505
+    stable: true
+  test_train[mobilenet_v3_large-cuda-eager]:
+    norm: 0.34527704445645213
+    stable: true
+  test_train[mobilenet_v3_large-cuda-jit]:
+    norm: 0.3456300540128723
+    stable: true
+  test_train[moco-cuda-eager]:
+    norm: 0.8813730864785612
+    stable: true
+  test_train[moco-cuda-jit]:
+    norm: 0.881861591944471
+    stable: true
+  test_train[nvidia_deeprecommender-cpu-eager]:
+    norm: 0.4567167004570365
+    stable: true
+  test_train[nvidia_deeprecommender-cuda-eager]:
+    norm: 0.12184291298035532
+    stable: true
+  test_train[opacus_cifar10-cpu-eager]:
+    norm: 0.8705031130230054
+    stable: true
+  test_train[opacus_cifar10-cuda-eager]:
+    norm: 0.1083877639612183
+    stable: true
+  test_train[pytorch_CycleGAN_and_pix2pix-cuda-eager]:
+    norm: 64.72892184602097
+    stable: true
+  test_train[pytorch_stargan-cpu-eager]:
+    norm: 1.0924470589961857
+    stable: true
+  test_train[pytorch_stargan-cpu-jit]:
+    norm: 1.106193762505427
+    stable: true
+  test_train[pytorch_stargan-cuda-eager]:
+    norm: 0.28103039041161537
+    stable: true
+  test_train[pytorch_stargan-cuda-jit]:
+    norm: 0.280938713112846
+    stable: true
+  test_train[pytorch_struct-cuda-eager]:
+    norm: 0.46295464306604117
+    stable: true
+  test_train[pytorch_unet-cpu-eager]:
+    norm: 2.2978561989730224
+    stable: true
+  test_train[pytorch_unet-cpu-jit]:
+    norm: 2.3161962955491617
+    stable: true
+  test_train[pytorch_unet-cuda-eager]:
+    norm: 0.9382883239304647
+    stable: true
+  test_train[pytorch_unet-cuda-jit]:
+    norm: 0.9388137634377927
+    stable: true
+  test_train[resnet18-cuda-eager]:
+    norm: 0.1840514059877023
+    stable: true
+  test_train[resnet18-cuda-jit]:
+    norm: 0.1837820305954665
+    stable: true
+  test_train[resnet50-cuda-eager]:
+    norm: 1.1682114381110296
+    stable: true
+  test_train[resnet50-cuda-jit]:
+    norm: 1.1684443159028888
+    stable: true
+  test_train[resnet50_quantized_qat-cuda-eager]:
+    norm: 1.6868030660552904
+    stable: true
+  test_train[resnext50_32x4d-cpu-eager]:
+    norm: 0.9453937389189377
+    stable: true
+  test_train[resnext50_32x4d-cpu-jit]:
+    norm: 0.9227029499597847
+    stable: true
+  test_train[resnext50_32x4d-cuda-eager]:
+    norm: 0.45850558346137404
+    stable: true
+  test_train[resnext50_32x4d-cuda-jit]:
+    norm: 0.45873574598226696
+    stable: true
+  test_train[shufflenet_v2_x1_0-cuda-eager]:
+    norm: 0.5229905863525346
+    stable: true
+  test_train[shufflenet_v2_x1_0-cuda-jit]:
+    norm: 0.523432009620592
+    stable: true
+  test_train[soft_actor_critic-cuda-eager]:
+    norm: 0.014518485870212317
+    stable: true
+  test_train[speech_transformer-cuda-eager]:
+    norm: 0.2954857220174745
+    stable: true
+  test_train[timm_efficientnet-cuda-eager]:
+    norm: 0.27228866156656295
+    stable: true
+  test_train[timm_efficientnet-cuda-jit]:
+    norm: 0.27348562714178115
+    stable: true
+  test_train[timm_nfnet-cpu-eager]:
+    norm: 12.60150410758797
+    stable: true
+  test_train[timm_nfnet-cpu-jit]:
+    norm: 12.582268424448557
+    stable: true
+  test_train[timm_regnet-cpu-eager]:
+    norm: 0.6039618605282158
+    stable: true
+  test_train[timm_regnet-cuda-eager]:
+    norm: 0.356108694919385
+    stable: true
+  test_train[timm_regnet-cuda-jit]:
+    norm: 0.3578574045095593
+    stable: true
+  test_train[timm_resnest-cpu-eager]:
+    norm: 1.0030247380491346
+    stable: true
+  test_train[timm_resnest-cuda-eager]:
+    norm: 0.26308706251438707
+    stable: true
+  test_train[timm_resnest-cuda-jit]:
+    norm: 0.2634521130239591
+    stable: true
+  test_train[timm_vision_transformer-cpu-eager]:
+    norm: 0.21801050007343292
+    stable: true
+  test_train[timm_vision_transformer-cuda-eager]:
+    norm: 0.09340403764508665
+    stable: true
+  test_train[timm_vision_transformer-cuda-jit]:
+    norm: 0.09994646697305143
+    stable: true
+  test_train[timm_vovnet-cuda-eager]:
+    norm: 0.33761161647271365
+    stable: true
+  test_train[timm_vovnet-cuda-jit]:
+    norm: 0.33823113108519465
+    stable: true
+  test_train[tts_angular-cpu-eager]:
+    norm: 0.4812111044302583
+    stable: true
+  test_train[tts_angular-cuda-eager]:
+    norm: 0.08382122917100787
+    stable: true
+  test_train[vgg16-cpu-eager]:
+    norm: 14.60458565549925
+    stable: true
+  test_train[vgg16-cpu-jit]:
+    norm: 14.617735512903892
+    stable: true
+  test_train[vgg16-cuda-eager]:
+    norm: 2.810381438001059
+    stable: true
+  test_train[vgg16-cuda-jit]:
+    norm: 2.8114426670363173
+    stable: true
+  test_train[vision_maskrcnn-cpu-eager]:
+    norm: 18.21174587495625
+    stable: true
+  test_train[vision_maskrcnn-cuda-eager]:
+    norm: 2.1079968286212534
+    stable: true
+  test_train[yolov3-cuda-eager]:
+    norm: 1.7193434356013313
+    stable: true
