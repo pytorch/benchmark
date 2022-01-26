@@ -59,6 +59,8 @@ if __name__ == '__main__':
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
+    os.chdir(os.path.dirname(__file__))
+
     print(f"checking packages {', '.join(TORCH_DEPS)} are installed...", end="", flush=True)
     try:
         versions = get_pkg_versions(TORCH_DEPS)
