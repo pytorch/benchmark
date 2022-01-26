@@ -71,12 +71,10 @@ jobs:
           pip install boto3
           for RESULT in ${SWEEP_JOB_OUTPUT}/*.json; do
             # Upload when the file is non-empty
-            if [ ! -s $RESULT ]; then
+            if [ -s $RESULT ]; then
               # Generate score file
               SCORE_FILE="${RESULT}.score.json"
               python compute_score.py --score_version v1 --benchmark_data_file "${RESULT}" > "${SCORE_FILE}"
-              # Enable OSS stat uploads
-              wget -O scripts/scribe.py https://github.com/pytorch/pytorch/raw/master/tools/stats/scribe.py || echo "failed to copy oss stat utils"
               # Upload score
               python scripts/upload_scribe.py --pytest_bench_json "${RESULT}" --torchbench_score_file "${SCORE_FILE}"
             fi
