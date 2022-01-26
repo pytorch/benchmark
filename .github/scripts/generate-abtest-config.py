@@ -113,16 +113,18 @@ def generate_bisection_tests(base, tip):
             signal_details[benchmark] = delta_percent
     return (signals, signal_details)
 
-def generate_bisection_config(base_file, tip_file):
+def generate_bisection_config(base_file, tip_file, base_commit, tip_commit):
     result = {}
     with open(base_file, "r") as bf:
         base = json.load(bf)
     with open(tip_file, "r") as tf:
         tip = json.load(tf)
     result["start_version"] = base["machine_info"]["pytorch_version"]
-    result["start"] = base["machine_info"]["pytorch_git_version"]
+    result["start_git_version"] = base["machine_info"]["pytorch_git_version"]
+    result["start"] = base_commit
     result["end_version"] = tip["machine_info"]["pytorch_version"]
-    result["end"] = tip["machine_info"]["pytorch_git_version"]
+    result["end_git_version"] = tip["machine_info"]["pytorch_git_version"]
+    result["end"] = tip_commit
     result["threshold"] = PERF_CHANGE_THRESHOLD
     result["direction"] = "both"
     result["timeout"] = PERF_TEST_TIMEOUT_THRESHOLD
@@ -180,7 +182,8 @@ if __name__ == "__main__":
         if json_file:
             base_version = get_pytorch_version(args.pytorch_dir, json_file)
             if base_version.commit != tip_version.commit:
-                result = generate_bisection_config(json_file, tip_json_file)
+                result = generate_bisection_config(json_file, tip_json_file,
+                                                   base_version.commit, tip_version.commit)
                 break
     with open(args.out, "w") as fo:
         yaml.dump(result, fo)
