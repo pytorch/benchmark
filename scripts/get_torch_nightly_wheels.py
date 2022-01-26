@@ -88,7 +88,7 @@ def get_n_prior_nightly_wheels(packages:list, n:int,
 
 
 def create_requirements_files(root: Path, packages: list, start_date: date, end_date: date,
-                               py_version=torch_wheel_python_version, platform_version=torch_wheel_platform):
+                              py_version=torch_wheel_python_version, platform_version=torch_wheel_platform):
     root = Path(root)
     curr_date = start_date
     while curr_date < end_date:
