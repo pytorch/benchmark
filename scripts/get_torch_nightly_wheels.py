@@ -6,8 +6,12 @@ from collections import defaultdict
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
-torch_wheel_nightly_base ="https://download.pytorch.org/whl/nightly/cu102/" 
-torch_nightly_wheel_index = "https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html" 
+torch_wheel_cuda_version = "cu113"
+torch_wheel_python_version = "cp38"
+torch_wheel_platform = "linux_x86_64"
+torch_wheel_nightly_base = f"https://download.pytorch.org/whl/nightly/{torch_wheel_cuda_version}/"
+torch_nightly_wheel_index = f"https://download.pytorch.org/whl/nightly/{torch_wheel_cuda_version}/torch_nightly.html"
+
 
 def memoize(function):
     """ 
@@ -39,7 +43,7 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
     return data
 
 def get_nightly_wheel_urls(packages:list, date:date,
-                           py_version='cp37', platform_version='linux_x86_64'):
+                           py_version=torch_wheel_python_version, platform_version=torch_wheel_platform):
     """Gets urls to wheels for specified packages matching the date, py_version, platform_version
     """
     date_str = f"{date.year}{date.month:02}{date.day:02}"
@@ -62,7 +66,7 @@ def get_nightly_wheel_urls(packages:list, date:date,
     return tuple(versions)
 
 def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
-                                py_version='cp37', platform_version='linux_x86_64'):
+                                py_version=torch_wheel_python_version, platform_version=torch_wheel_platform):
     rc = []
     curr_date = start_date
     while curr_date < end_date:
@@ -76,7 +80,7 @@ def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
     return rc
 
 def get_n_prior_nightly_wheels(packages:list, n:int,
-                               py_version='cp37', platform_version='linux_x86_64'):
+                               py_version=torch_wheel_python_version, platform_version=torch_wheel_platform):
     end_date = date.today()
     start_date = end_date - timedelta(days=n)
     return get_nightly_wheels_in_range(packages, start_date, end_date,
@@ -84,7 +88,7 @@ def get_n_prior_nightly_wheels(packages:list, n:int,
 
 
 def create_requirements_files(root: Path, packages: list, start_date: date, end_date: date,
-                              py_version='cp37', platform_version='linux_x86_64'):
+                               py_version=torch_wheel_python_version, platform_version=torch_wheel_platform):
     root = Path(root)
     curr_date = start_date
     while curr_date < end_date:
@@ -102,11 +106,6 @@ def parse_date_str(s: str):
     return datetime.strptime(s, '%Y%m%d').date() 
 
 if __name__ == "__main__":
-    # from tabulate import tabulate
-    # print(tabulate(get_n_prior_nightly_wheels(['torch', 'torchvision', 'torchtext'], 200)))
-    # wheels = get_n_prior_nightly_wheels(['torch', 'torchvision', 'torchtext'], 200)
-    # for a, b, c in wheels:
-        # print(f"   \"{a} {b} {c}\"  \\")
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['create_requirements'])
