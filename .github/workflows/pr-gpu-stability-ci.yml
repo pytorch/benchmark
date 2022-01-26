@@ -13,7 +13,8 @@ jobs:
     env:
       CONDA_ENV: "stability-test-ci"
       TEST_HOME: "/tmp/tb-stability-ci"
-      CUDA_VERSION: "cu102"
+      PYTHON_VERSION: "3.8"
+      CUDA_VERSION: "cu113"
       PR_BODY: ${{ github.event.pull_request.body }}
       MODEL: ${{ github.event.inputs.model }}
       GPU_ID: "1"
@@ -27,9 +28,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Create conda environment with pytorch nightly
         run: |
-          conda create -y -n "${CONDA_ENV}" python=3.7
+          conda create -y -n "${CONDA_ENV}" python="${PYTHON_VERSION}"
           . activate "${CONDA_ENV}"
-          conda install -y numpy=1.17 requests=2.22 ninja pyyaml mkl mkl-include setuptools \
+          conda install -y numpy requests=2.22 ninja pyyaml mkl mkl-include setuptools \
                            cmake cffi typing_extensions future six dataclasses tabulate gitpython git-lfs
           # Install pytorch nightly
           pip install --pre torch torchtext torchvision \
