@@ -42,7 +42,7 @@ jobs:
             echo "Running config $CONFIG ..."
             # Create a new conda env
             CONFIG_BASE=$(basename ${CONFIG})
-            CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/.*-\(.*\)\.txt/\1/')
+            CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/[^-]*-\(.*\)\.txt/\1/')
             conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
             . activate ${CONDA_ENV_NAME}
             conda install -y git-lfs
