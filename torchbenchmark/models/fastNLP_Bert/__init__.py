@@ -5,7 +5,7 @@ This model resembles the "BertEmedding Q&A" task in [fastNLP Tutorial](https://f
 Input data simulates [CMRC2018 dataset](https://ymcui.com/cmrc2018/).
 The program runs only for benchmark purposes and doesn't provide correctness results.
 """
-import os
+import logging
 import torch
 import random
 import inspect
@@ -19,7 +19,7 @@ from fastNLP.core.metrics import CMRC2018Metric
 from fastNLP.io.pipe.qa import CMRC2018BertPipe
 from fastNLP import WarmupCallback, GradientClipCallback
 from fastNLP.core.optimizer import AdamW
-from fastNLP import BucketSampler
+from fastNLP.core import logger
 
 # Import CMRC2018 data generator
 from .cmrc2018_simulator import generate_inputs
@@ -35,6 +35,8 @@ random.seed(1337)
 np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+logger.setLevel(logging.WARNING)
+
 
 class Model(BenchmarkModel):
     task = NLP.OTHER_NLP

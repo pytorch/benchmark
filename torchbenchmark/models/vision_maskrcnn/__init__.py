@@ -15,6 +15,10 @@ import torchvision
 from .coco_utils import ConvertCocoPolysToMask
 from torchvision.datasets.coco import CocoDetection
 
+# silence some spam
+from pycocotools import coco
+coco.print = lambda *args: None
+
 MASTER_SEED = 1337
 torch.manual_seed(MASTER_SEED)
 random.seed(MASTER_SEED)
