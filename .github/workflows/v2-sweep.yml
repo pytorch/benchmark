@@ -50,7 +50,7 @@ jobs:
             conda install -y -c pytorch "${MAGMA_VERSION}"
             pip install -r "${CONFIG}"
             python install.py
-            bash .github/scripts/run.sh "${SWEEP_JOB_OUTPUT}"
+            # bash .github/scripts/run.sh "${SWEEP_JOB_OUTPUT}"
             # Remove the conda env
             conda deactivate
             conda env remove --name ${CONDA_ENV_NAME}
