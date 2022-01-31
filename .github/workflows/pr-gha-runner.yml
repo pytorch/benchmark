@@ -1,6 +1,7 @@
 name: TorchBench Infra GHA runner test
 on:
   workflow_dispatch:
+  pull_request:
 
 jobs:
   place_holder:
