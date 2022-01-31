@@ -129,6 +129,9 @@ def generate_bisection_config(base_file, tip_file, base_commit, tip_commit):
     result["direction"] = "both"
     result["timeout"] = PERF_TEST_TIMEOUT_THRESHOLD
     (result["tests"], result["details"]) = generate_bisection_tests(base, tip)
+    if not result["tests"]:
+        del result["tests"]
+        del result["details"]
     return result
 
 def generate_gh_issue(ghi_fpath, result):
