@@ -46,8 +46,6 @@ class Model(BenchmarkModel):
                   "--num_train_epochs", num_train_epochs,
                   "--output_dir", OUTPUT_DIR]
         model_args, data_args, training_args = parse_args(in_arg)
-        # setup max training steps
-        training_args.max_steps = 1
         # setup other members
         self.prep(model_args, data_args, training_args)
     
