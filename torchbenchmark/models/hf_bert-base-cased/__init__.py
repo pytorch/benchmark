@@ -38,6 +38,9 @@ class Model(BenchmarkModel):
         max_seq_length = "128"
         learning_rate = "2e-5"
         num_train_epochs = "3"
+        # this benchmark runs on a single GPU
+        cuda_visible_devices = "0"
+        os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
         output_dir = OUTPUT_DIR
         in_arg = ["--model_name_or_path", model_name, "--task_name", task_name,
                   "--do_train", "--do_eval", "--max_seq_length", max_seq_length,
