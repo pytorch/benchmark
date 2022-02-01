@@ -183,7 +183,7 @@ if __name__ == "__main__":
                 if support_extra_args:
                     m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
                 else:
-                    m = Model(device=args.device, jit=(args.mode == "jit"), eval_bs=args.bs)
+                    m = Model(device=args.device, jit=(args.mode == "jit"), train_bs=args.bs)
         except:
             print(f"The model {args.model} doesn't support specifying batch size, please remove --bs argument in the commandline.")
             exit(1)
