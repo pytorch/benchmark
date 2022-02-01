@@ -1,5 +1,7 @@
 import torch
 import math
+import os
+from pathlib import Path
 from torch.utils.data import DataLoader
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
@@ -13,8 +15,6 @@ from transformers import (
     default_data_collator,
     get_scheduler,
 )
-import os
-from pathlib import Path
 
 from torchbenchmark.util.framework.transformers.text_classification.dataset import prep_dataset, preprocess_dataset, prep_labels
 from torchbenchmark.util.framework.transformers.text_classification.args import parse_args
@@ -30,10 +30,9 @@ torch.backends.cudnn.benchmark = True
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
-    def __init__(self, device=None, jit=False, train_bs=32, task_name="cola", run_style="single-batch"):
+    def __init__(self, device=None, train_bs=32, task_name="cola"):
         super().__init__()
         self.device = device
-        self.jit = jit
         model_name = "bert-base-cased"
         max_seq_length = "128"
         learning_rate = "2e-5"
