@@ -21,7 +21,7 @@ class Model(BenchmarkModel):
         self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
 
         self.example_inputs = self._gen_input(train_bs)
-        self.infer_example_inputs = self._gen_input(eval_bs)
+        self.eval_example_inputs = self._gen_input(eval_bs)
 
         self.model.to(
             device=self.device,
@@ -72,7 +72,7 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.infer_example_inputs)
+        output = self.eval_model(self.eval_example_inputs)
 
     def get_module(self):
         return self.model, (self.example_inputs,)
