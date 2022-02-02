@@ -11,12 +11,18 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False, variant='mixnet_m', precision='float32', extra_args=[]):
+    def __init__(self, device=None, jit=False, variant='mixnet_m', precision='float32', train_bs=32, eval_bs=64, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
+        self.input_size = self.model.default_cfg["input_size"]
+
+        self.example_inputs = torch.randn(
+            (self.batch_size,) + self.input_size, device=self.device, dtype=self.data_dtype)
         self.model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
@@ -25,6 +31,8 @@ class Model(BenchmarkModel):
             torch.cuda.empty_cache()
 
         # instantiate another model for inference
+        self.eval_example_inputs = torch.randn(
+            (self.eval_batch_size,) + self.input_size, device=self.device, dtype=self.data_dtype)
         self.eval_model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.eval_model.eval()
         self.eval_model.to(
@@ -50,7 +58,7 @@ class Model(BenchmarkModel):
 
     def _step_train(self):
         self.cfg.optimizer.zero_grad()
-        output = self.model(self.cfg.example_inputs)
+        output = self.model(self.example_inputs)
         if isinstance(output, tuple):
             output = output[0]
         target = self._gen_target(output.shape[0])
@@ -64,10 +72,10 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.cfg.infer_example_inputs)
+        output = self.eval_model(self.eval_example_inputs)
 
     def get_module(self):
-        return self.model, (self.cfg.example_inputs,)
+        return self.model, (self.example_inputs,)
 
     def train(self, niter=1):
         self.model.train()
@@ -80,13 +88,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
-
-if __name__ == "__main__":
-    for device in ['cpu', 'cuda']:
-        for jit in [False, True]:
-            print("Test config: device %s, JIT %s" % (device, jit))
-            m = Model(device=device, jit=jit)
-            m, example_inputs = m.get_module()
-            m(example_inputs)
-            m.train()
-            m.eval()

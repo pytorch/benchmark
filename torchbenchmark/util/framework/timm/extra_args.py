@@ -1,4 +1,3 @@
-import torch
 import argparse
 from torchbenchmark.util.model import BenchmarkModel
 from typing import List, Tuple
@@ -27,14 +26,14 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     # apply eval_fp16
     if args.eval_fp16:
         assert args.device == 'cuda', "fp16 is only available with CUDA."
-        model.eval_model, model.cfg.infer_example_inputs = enable_fp16(model.eval_model, model.cfg.infer_example_inputs)
+        model.eval_model, model.eval_example_inputs = enable_fp16(model.eval_model, model.eval_example_inputs)
     # apply fx2trt for eval
     if args.fx2trt:
         assert args.device == 'cuda', "fx2trt is only available with CUDA."
         assert not args.jit, "fx2trt with JIT is not available."
-        model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.cfg.infer_example_inputs)
+        model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
     # apply torch_tensorrt for eval
     if args.torch_tensorrt:
         assert args.device == 'cuda', "torch_tensorrt is only available with CUDA."
         assert not args.jit, "torch_tensorrt with JIT is not available."
-        model.eval_model = enable_tensortrt(model.cfg.infer_example_inputs, args.eval_fp16, model.eval_model)
+        model.eval_model = enable_tensortrt(model.eval_example_inputs, args.eval_fp16, model.eval_model)
