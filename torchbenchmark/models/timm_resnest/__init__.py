@@ -5,6 +5,7 @@ import timm.models.resnest
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 from .config import TimmConfig
+from torchbenchmark.util.framework.timm.extra_args import parse_args, apply_args
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
@@ -12,14 +13,17 @@ class Model(BenchmarkModel):
 
     def __init__(self, device=None, jit=False,
                  variant='resnest14d', precision='float32',
-                 eval_bs=32, train_bs=32):
+                 eval_bs=32, train_bs=32, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
+
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
         self.example_inputs = self._gen_input(train_bs)
-        self.infer_example_inputs = self._gen_input(eval_bs)
+        self.eval_example_inputs = self._gen_input(eval_bs)
         self.model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
@@ -34,6 +38,10 @@ class Model(BenchmarkModel):
             device=self.device,
             dtype=self.cfg.model_dtype
         )
+
+        # process extra args
+        self.args = parse_args(self, extra_args)
+        apply_args(self, self.args)
 
         if jit:
             self.model = torch.jit.script(self.model)
@@ -65,7 +73,7 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.infer_example_inputs)
+        output = self.eval_model(self.eval_example_inputs)
 
     def get_module(self):
         self.example_inputs = self.example_inputs
