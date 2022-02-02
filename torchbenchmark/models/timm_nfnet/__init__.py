@@ -13,6 +13,8 @@ from torchbenchmark.util.framework.timm.instantiate import timm_instantiate_trai
 from torchbenchmark.util.jit import jit_if_needed
 from torchbenchmark.util.prefetch import prefetch_loader
 
+from torchbenchmark.util.framework.timm.extra_args import parse_args_nfnet, apply_args_nfnet
+
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
@@ -30,13 +32,17 @@ class Model(BenchmarkModel):
     # Source: https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/results/model_benchmark_amp_nchw_rtx3090.csv
     # Downscale to 128 to fit T4
     def __init__(self, device=None, jit=False, train_bs=128, eval_bs=128,
-                 variant='dm_nfnet_f0'):
+                 variant='dm_nfnet_f0', extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
 
         # setup timm args
         args = get_args()
+        # use fp16 by default for both train and eval
+        args.amp = True
         args.torchscript = jit
         args.device = device
         # setup distributed
@@ -65,7 +71,7 @@ class Model(BenchmarkModel):
         model, self.loader_train, self.loader_validate, self.optimizer, \
             self.train_loss_fn, self.lr_scheduler, self.amp_autocast, \
             self.loss_scaler, self.mixup_fn, self.validate_loss_fn = timm_instantiate_train(args)
-        eval_model, self.loader_eval = timm_instantiate_eval(args)
+        eval_model, self.eval_example_inputs = timm_instantiate_eval(args)
         # jit the model if required
         self.model, self.eval_model = jit_if_needed(model, eval_model, jit=jit)
         
@@ -73,7 +79,10 @@ class Model(BenchmarkModel):
         # TODO: enable with larger GPU
         # self.loader_train = prefetch_loader(self.loader_train, device)
         # self.loader_validate = prefetch_loader(self.loader_validate, device)
-        self.loader_eval = prefetch_loader(self.loader_eval, device)
+        self.eval_example_inputs = prefetch_loader(self.eval_example_inputs, device)
+
+        self.extra_args = parse_args_nfnet(self, extra_args)
+        apply_args_nfnet(self, self.extra_args)
 
     def get_module(self):
         if self.device == "cuda":
