@@ -11,7 +11,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False, variant='mixnet_m', precision='float32', train_bs=32, eval_bs=64, extra_args=[]):
+    def __init__(self, device=None, jit=False, variant='efficientnet_b0', precision='float32', train_bs=32, eval_bs=64, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
