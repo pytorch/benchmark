@@ -1,5 +1,6 @@
 import torch
 import argparse
+from contextlib import suppress
 from torchbenchmark.util.model import BenchmarkModel
 from typing import List, Tuple
 
@@ -35,8 +36,8 @@ def parse_args_nfnet(model: BenchmarkModel, extra_args: List[str]) -> argparse.N
     assert not (args.fx2trt and args.torch_tensorrt), "User cannot enable torch_tensorrt and fx2trt at the same time."
     return args
 
-# The nfnet model needs special treatment to apply the args
 def apply_args_nfnet(model: BenchmarkModel, args: argparse.Namespace):
+    args.eval_fp16 = not (model.amp_autocast == suppress)
     # apply fx2trt for eval
     if args.fx2trt:
         assert args.device == 'cuda', "fx2trt is only available with CUDA."
