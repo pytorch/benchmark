@@ -16,7 +16,7 @@ class Model(BenchmarkModel):
     # Source: https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/results/model_benchmark_amp_nchw_rtx3090.csv
     # Downscale to 128 to fit T4
     def __init__(self, device=None, jit=False,
-                 variant='dm_nfnet_f0', precision='float32',
+                 variant='dm_nfnet_f0',
                  eval_bs=128, train_bs=128, extra_args=[]):
         super().__init__()
         self.device = device
@@ -24,12 +24,11 @@ class Model(BenchmarkModel):
         self.train_bs = train_bs
         self.eval_bs = eval_bs
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
-        self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
+        self.cfg = TimmConfig(model = self.model, device = device)
         self.example_inputs = self._gen_input(train_bs)
         self.eval_example_inputs = self._gen_input(eval_bs)
         self.model.to(
-            device=self.device,
-            dtype=self.cfg.model_dtype
+            device=self.device
         )
         if device == 'cuda':
             torch.cuda.empty_cache()
@@ -38,8 +37,7 @@ class Model(BenchmarkModel):
         self.eval_model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.eval_model.eval()
         self.eval_model.to(
-            device=self.device,
-            dtype=self.cfg.model_dtype
+            device=self.device
         )
 
         # process extra args
@@ -53,7 +51,7 @@ class Model(BenchmarkModel):
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
     def _gen_input(self, batch_size):
-        return torch.randn((batch_size,) + self.cfg.input_size, device=self.device, dtype=self.cfg.data_dtype)
+        return torch.randn((batch_size,) + self.cfg.input_size, device=self.device)
 
     def _gen_target(self, batch_size):
         return torch.empty(
