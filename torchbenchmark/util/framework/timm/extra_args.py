@@ -22,33 +22,6 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     assert not (args.fx2trt and args.torch_tensorrt), "User cannot enable torch_tensorrt and fx2trt at the same time."
     return args
 
-# in timm_nfnet model, fp16 is controlled by amp, so no special args here
-def parse_args_nfnet(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
-    parser.add_argument("--torch_tensorrt", action='store_true', help="enable torch_tensorrt")
-    args = parser.parse_args(extra_args)
-    args.device = model.device
-    args.jit = model.jit
-    args.train_bs = model.train_bs
-    args.eval_bs = model.eval_bs
-    # sanity checks
-    assert not (args.fx2trt and args.torch_tensorrt), "User cannot enable torch_tensorrt and fx2trt at the same time."
-    return args
-
-def apply_args_nfnet(model: BenchmarkModel, args: argparse.Namespace):
-    args.eval_fp16 = not (model.amp_autocast == suppress)
-    # apply fx2trt for eval
-    if args.fx2trt:
-        assert args.device == 'cuda', "fx2trt is only available with CUDA."
-        assert not args.jit, "fx2trt with JIT is not available."
-        model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs[0])
-    # apply torch_tensorrt for eval
-    if args.torch_tensorrt:
-        assert args.device == 'cuda', "torch_tensorrt is only available with CUDA."
-        assert not args.jit, "torch_tensorrt with JIT is not available."
-        model.eval_model = enable_tensortrt(model.eval_example_inputs[0], args.eval_fp16, model.eval_model)
-
 def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     # apply eval_fp16
     if args.eval_fp16:
