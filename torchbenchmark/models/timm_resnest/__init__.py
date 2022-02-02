@@ -81,23 +81,11 @@ class Model(BenchmarkModel):
 
     def train(self, niter=1):
         self.model.train()
-        self.example_inputs = self.example_inputs
         for _ in range(niter):
             self._step_train()
 
     def eval(self, niter=1):
         self.eval_model.eval()
-        self.infer_example_inputs = self.infer_example_inputs
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
-
-if __name__ == "__main__":
-    for device in ['cpu', 'cuda']:
-        for jit in [False, True]:
-            print("Test config: device %s, JIT %s" % (device, jit))
-            m = Model(device=device, jit=jit)
-            m, example_inputs = m.get_module()
-            m(example_inputs)
-            m.train()
-            m.eval()

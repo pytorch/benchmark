@@ -79,19 +79,9 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             self._step_train()
 
-    # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1):
         self.eval_model.eval()
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
 
-if __name__ == "__main__":
-    for device in ['cpu', 'cuda']:
-        for jit in [False, True]:
-            print("Test config: device %s, JIT %s" % (device, jit))
-            m = Model(device=device, jit=jit)
-            m, example_inputs = m.get_module()
-            m(example_inputs)
-            m.train()
-            m.eval()
