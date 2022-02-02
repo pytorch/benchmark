@@ -72,7 +72,7 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.eval_example_inputs)
+        output = self.eval_model(self.infer_example_inputs)
 
     def get_module(self):
         return self.model, (self.example_inputs,)
