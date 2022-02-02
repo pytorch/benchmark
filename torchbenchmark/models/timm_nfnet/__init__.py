@@ -89,7 +89,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Disable get_module() because it causes CUDA OOM on Nvidia T4")
         self.eval_model.eval()
         with torch.no_grad():
-            for _, (input, _) in zip(range(self.args.eval_num_batch), self.loader_eval):
+            for _, (input, _) in zip(range(self.args.eval_num_batch), self.eval_example_inputs):
                 return self.eval_model, (input, )
 
     # Temporarily disable training because this will cause CUDA OOM in CI
@@ -119,7 +119,7 @@ class Model(BenchmarkModel):
         self.eval_model.eval()
         for epoch in range(niter):
             with torch.no_grad():
-                for _, (input, _) in zip(range(self.args.eval_num_batch), self.loader_eval):
+                for _, (input, _) in zip(range(self.args.eval_num_batch), self.eval_example_inputs):
                     if self.args.channels_last:
                         input = input.contiguous(memory_format=torch.channels_last)
                     with self.amp_autocast():
