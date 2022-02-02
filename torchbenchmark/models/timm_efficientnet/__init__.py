@@ -5,12 +5,13 @@ import timm.models.efficientnet
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 from .config import TimmConfig
+from torchbenchmark.util.framework.timm.extra_args import parse_args, apply_args
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False, variant='mixnet_m', precision='float32'):
+    def __init__(self, device=None, jit=False, variant='mixnet_m', precision='float32', extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -30,6 +31,10 @@ class Model(BenchmarkModel):
             device=self.device,
             dtype=self.cfg.model_dtype
         )
+
+        # process extra args
+        self.args = parse_args(self, extra_args)
+        apply_args(self, self.args)
 
         if jit:
             self.model = torch.jit.script(self.model)
