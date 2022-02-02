@@ -22,7 +22,7 @@ class Model(BenchmarkModel):
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
         self.example_inputs = self._gen_input(train_bs)
-        self.infer_example_inputs = self._gen_input(eval_bs)
+        self.eval_example_inputs = self._gen_input(eval_bs)
         self.model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
@@ -72,7 +72,7 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.infer_example_inputs)
+        output = self.eval_model(self.eval_example_inputs)
 
     def get_module(self):
         return self.model, (self.example_inputs,)
@@ -87,13 +87,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
-
-if __name__ == "__main__":
-    for device in ['cpu', 'cuda']:
-        for jit in [False, True]:
-            print("Test config: device %s, JIT %s" % (device, jit))
-            m = Model(device=device, jit=jit)
-            m, example_inputs = m.get_module()
-            m(example_inputs)
-            m.train()
-            m.eval()
