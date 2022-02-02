@@ -32,11 +32,10 @@ class TimmConfig:
         self.device = device
         self.use_amp, self.model_dtype, self.data_dtype = resolve_precision(precision)
         # Configurations
-        self.batch_size = 32
-        self.eval_batch_size = 64
         self.num_classes = self.model.num_classes
         self.loss = nn.CrossEntropyLoss().to(self.device)
         self.target_shape = tuple()
+        self.input_size = self.model.default_cfg["input_size"]
         # Default optimizer configurations borrowed from:
         # https://github.com/rwightman/pytorch-image-models/blob/779107b693010934ac87c8cecbeb65796e218488/timm/optim/optim_factory.py#L78
         opt_args = OptimizerOption(lr=1e-4, opt="sgd", weight_decay = 0.0001, momentum = 0.9)

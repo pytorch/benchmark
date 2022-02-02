@@ -19,10 +19,10 @@ class Model(BenchmarkModel):
         self.eval_bs = eval_bs
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device, precision = precision)
-        self.input_size = self.model.default_cfg["input_size"]
 
-        self.example_inputs = torch.randn(
-            (self.train_bs,) + self.input_size, device=self.device, dtype=self.cfg.data_dtype)
+        self.example_inputs = self._gen_input(train_bs)
+        self.infer_example_inputs = self._gen_input(eval_bs)
+
         self.model.to(
             device=self.device,
             dtype=self.cfg.model_dtype
@@ -31,8 +31,6 @@ class Model(BenchmarkModel):
             torch.cuda.empty_cache()
 
         # instantiate another model for inference
-        self.eval_example_inputs = torch.randn(
-            (self.eval_bs,) + self.input_size, device=self.device, dtype=self.cfg.data_dtype)
         self.eval_model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.eval_model.eval()
         self.eval_model.to(
@@ -50,6 +48,8 @@ class Model(BenchmarkModel):
             assert isinstance(self.eval_model, torch.jit.ScriptModule)
             self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
     
+    def _gen_input(self, batch_size):
+        return torch.randn((batch_size,) + self.cfg.input_size, device=self.device, dtype=self.cfg.data_dtype)
 
     def _gen_target(self, batch_size):
         return torch.empty(
