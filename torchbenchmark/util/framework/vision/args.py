@@ -8,6 +8,7 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     # by default, enable half precision for inference
     parser.add_argument("--eval-fp16", action='store_false', help="enable eval fp16")
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
+    parser.add_argument("--torch_tensorrt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--flops", action='store_true', help="enable flops counting")
     parser.add_argument("--cudagraph", action='store_true', help="enable CUDA Graph. Currently only implemented for train.")
     args = parser.parse_args(extra_args)
@@ -18,6 +19,8 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     # only enable fp16 in GPU inference
     if args.device == "cpu":
         args.eval_fp16 = False
+    # sanity checks
+    assert not (args.fx2trt and args.torch_tensorrt), "User cannot enable torch_tensorrt and fx2trt at the same time."
     return args
 
 def apply_args(model: BenchmarkModel, args: argparse.Namespace):
@@ -33,9 +36,23 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
         assert args.device == 'cuda', "fx2trt is only available with CUDA."
         assert not args.jit, "fx2trt with JIT is not available."
         model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
+    # apply torch_tensorrt for eval
+    if args.torch_tensorrt:
+        assert args.device == 'cuda', "torch_tensorrt is only available with CUDA."
+        assert not args.jit, "torch_tensorrt with JIT is not available."
+        model.eval_model = enable_tensortrt()
     # apply cuda graph for train
     if args.cudagraph:
         enable_cudagraph(model, model.example_inputs)
+
+def enable_tensortrt(eval_input: Tuple[torch.tensor], eval_fp16: bool, eval_model: torch.nn.Module) -> torch.nn.Module:
+    import torch_tensorrt
+    trt_input = torch_tensorrt.Input(eval_input[0].shape)
+    if eval_fp16:
+        enabled_precisions = torch_tensorrt.dtype.half
+    else:
+        enabled_precisions = torch_tensorrt.dtype.float
+    return torch_tensorrt.compile(eval_model, inputs=trt_input, enabled_precisions=enabled_precisions)
 
 def enable_cudagraph(model: BenchmarkModel, example_inputs: Tuple[torch.tensor]):
     optimizer = model.optimizer
