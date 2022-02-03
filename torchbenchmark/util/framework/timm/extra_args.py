@@ -35,12 +35,12 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     if args.torch_tensorrt:
         assert args.device == 'cuda', "torch_tensorrt is only available with CUDA."
         assert not args.jit, "torch_tensorrt with JIT is not available."
-        model.eval_model = enable_tensortrt(model.eval_example_inputs, args.eval_fp16, model.eval_model)
+        model.eval_model = enable_torchtrt(model.eval_example_inputs, args.eval_fp16, model.eval_model)
 
 def enable_fp16(model: torch.nn.Module, example_input: torch.tensor) -> Tuple[torch.nn.Module, torch.tensor]:
     return model.half(), example_input.half()
 
-def enable_tensortrt(eval_input: torch.tensor, eval_fp16: bool, eval_model: torch.nn.Module) -> torch.nn.Module:
+def enable_torchtrt(eval_input: torch.tensor, eval_fp16: bool, eval_model: torch.nn.Module) -> torch.nn.Module:
     import torch_tensorrt
     trt_input = [torch_tensorrt.Input(eval_input.shape)]
     if eval_fp16:
