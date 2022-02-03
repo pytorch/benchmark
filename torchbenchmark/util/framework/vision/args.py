@@ -39,7 +39,6 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     # apply torch_tensorrt for eval
     if args.torch_tensorrt:
         assert args.device == 'cuda', "torch_tensorrt is only available with CUDA."
-        assert not args.jit, "torch_tensorrt with JIT is not available."
         model.eval_model = enable_torchtrt(model.eval_example_inputs, args.eval_fp16, model.eval_model)
     # apply cuda graph for train
     if args.cudagraph:
