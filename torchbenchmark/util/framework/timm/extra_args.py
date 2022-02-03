@@ -1,5 +1,6 @@
 import torch
 import argparse
+from contextlib import suppress
 from torchbenchmark.util.model import BenchmarkModel
 from typing import List, Tuple
 
@@ -9,8 +10,6 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     parser.add_argument("--eval-fp16", action='store_false', help="enable eval fp16")
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--torch_tensorrt", action='store_true', help="enable torch_tensorrt")
-    parser.add_argument("--flops", action='store_true', help="enable flops counting")
-    parser.add_argument("--cudagraph", action='store_true', help="enable CUDA Graph. Currently only implemented for train.")
     args = parser.parse_args(extra_args)
     args.device = model.device
     args.jit = model.jit
@@ -24,10 +23,6 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     return args
 
 def apply_args(model: BenchmarkModel, args: argparse.Namespace):
-    if args.flops:
-        from fvcore.nn import FlopCountAnalysis
-        model.train_flops = FlopCountAnalysis(model.model, tuple(model.example_inputs)).total()
-        model.eval_flops = FlopCountAnalysis(model.eval_model, tuple(model.eval_example_inputs)).total()
     # apply eval_fp16
     if args.eval_fp16:
         model.eval_model, model.eval_example_inputs = enable_fp16(model.eval_model, model.eval_example_inputs)
@@ -40,47 +35,20 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     if args.torch_tensorrt:
         assert args.device == 'cuda', "torch_tensorrt is only available with CUDA."
         model.eval_model = enable_torchtrt(model.eval_example_inputs, args.eval_fp16, model.eval_model)
-    # apply cuda graph for train
-    if args.cudagraph:
-        enable_cudagraph(model, model.example_inputs)
 
-def enable_torchtrt(eval_input: Tuple[torch.tensor], eval_fp16: bool, eval_model: torch.nn.Module) -> torch.nn.Module:
+def enable_fp16(model: torch.nn.Module, example_input: torch.tensor) -> Tuple[torch.nn.Module, torch.tensor]:
+    return model.half(), example_input.half()
+
+def enable_torchtrt(eval_input: torch.tensor, eval_fp16: bool, eval_model: torch.nn.Module) -> torch.nn.Module:
     import torch_tensorrt
-    trt_input = [torch_tensorrt.Input(eval_input[0].shape)]
+    trt_input = [torch_tensorrt.Input(eval_input.shape)]
     if eval_fp16:
         enabled_precisions = torch_tensorrt.dtype.half
     else:
         enabled_precisions = torch_tensorrt.dtype.float
     return torch_tensorrt.compile(eval_model, inputs=trt_input, enabled_precisions=enabled_precisions)
 
-def enable_cudagraph(model: BenchmarkModel, example_inputs: Tuple[torch.tensor]):
-    optimizer = model.optimizer
-    loss_fn = model.loss_fn
-    # warmup
-    s = torch.cuda.Stream()
-    s.wait_stream(torch.cuda.current_stream())
-    with torch.cuda.stream(s):
-        for _ in range(3):
-            optimizer.zero_grad(set_to_none=True)
-            y_pred = model.model(*example_inputs)
-            loss = loss_fn(y_pred, model.example_outputs)
-            loss.backward()
-            optimizer.step()
-    torch.cuda.current_stream().wait_stream(s)
-    # capture
-    g = torch.cuda.CUDAGraph()
-    optimizer.zero_grad(set_to_none=True)
-    with torch.cuda.graph(g):
-        static_y_pred = model.model(*example_inputs)
-        static_loss = loss_fn(static_y_pred, model.example_outputs)
-        static_loss.backward()
-        optimizer.step()
-    model.g = g
-
-def enable_fp16(model: torch.nn.Module, example_input: Tuple[torch.tensor]) -> Tuple[torch.nn.Module, Tuple[torch.tensor]]:
-    return model.half(), (example_input[0].half(),)
-
-def enable_fx2trt(max_batch_size: int, fp16: bool, model: torch.nn.Module, example_inputs: Tuple[torch.tensor]) -> torch.nn.Module:
+def enable_fx2trt(max_batch_size: int, fp16: bool, model: torch.nn.Module, example_inputs: torch.tensor) -> torch.nn.Module:
     from torchbenchmark.util.fx2trt import lower_to_trt
-    return lower_to_trt(module=model, input=example_inputs, \
+    return lower_to_trt(module=model, input=(example_inputs,), \
                         max_batch_size=max_batch_size, fp16_mode=fp16)
