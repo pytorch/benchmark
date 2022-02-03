@@ -124,7 +124,7 @@ class Model(BenchmarkModel):
     # Original input size: [2 ** i for i in range(12, 23, 2)]
     # Source: https://github.com/dionhaefner/pyhpc-benchmarks/blob/650ecc650e394df829944ffcf09e9d646ec69691/run.py#L25
     # Pick data-point when i = 20, size = 1048576
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test="eval", device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit

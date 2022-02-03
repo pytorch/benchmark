@@ -74,7 +74,7 @@ class Model(BenchmarkModel):
         random.seed(seed)
         np.random.seed(seed)
 
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test="eval", device=None, jit=False):
         super().__init__()
 
         debug_print = False

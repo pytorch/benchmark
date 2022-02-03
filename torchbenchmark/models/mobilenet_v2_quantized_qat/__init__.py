@@ -12,7 +12,7 @@ class Model(BenchmarkModel):
 
     # Train batch size: 96
     # Source: https://arxiv.org/pdf/1801.04381.pdf
-    def __init__(self, device=None, jit=False, train_bs=96):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=96):
         super().__init__()
         self.device = device
         self.jit = jit

@@ -32,7 +32,7 @@ class Model(BenchmarkModel):
     # Original btach size: 4
     # Original hardware: unknown
     # Source: https://arxiv.org/pdf/2004.00626.pdf
-    def __init__(self, device=None, jit=False, train_bs=4):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=4):
         super().__init__()
         self.device = device
         self.jit = jit

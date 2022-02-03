@@ -12,7 +12,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     # Train batch size: 32
     # Source: https://openreview.net/pdf?id=B1Yy1BxCZ
-    def __init__(self, device=None, jit=False, train_bs=32):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=32):
         super().__init__()
         self.device = device
         self.jit = jit

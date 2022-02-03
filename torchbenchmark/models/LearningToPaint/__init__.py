@@ -22,7 +22,7 @@ torch.backends.cudnn.benchmark = True
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
 
-    def __init__(self, device=None, jit=False, train_bs=96, eval_bs=96):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=96, eval_bs=96):
         super(Model, self).__init__()
         self.device = device
         self.jit = jit

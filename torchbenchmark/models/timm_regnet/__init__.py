@@ -10,7 +10,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False,
+    def __init__(self, test="eval", device=None, jit=False,
                  variant='regnety_016',
                  eval_bs=32, train_bs=32, extra_args=[]):
         super().__init__()

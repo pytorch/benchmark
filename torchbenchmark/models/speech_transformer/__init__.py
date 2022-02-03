@@ -21,7 +21,7 @@ class Model(BenchmarkModel):
     # Original batch size: 32
     # Source: https://github.com/kaituoxu/Speech-Transformer/blob/e6847772d6a786336e117a03c48c62ecbf3016f6/src/bin/train.py#L68
     # This model does not support adjusting eval bs
-    def __init__(self, device=None, jit=False, train_bs=32):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=32):
         self.jit = jit
         self.device = device
         if jit:

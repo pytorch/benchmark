@@ -10,7 +10,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False, variant='vovnet39a',
+    def __init__(self, test="eval", device=None, jit=False, variant='vovnet39a',
                  train_bs=32, eval_bs=32, extra_args=[]):
         super().__init__()
         self.device = device

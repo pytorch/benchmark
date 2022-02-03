@@ -21,7 +21,7 @@ class Model(BenchmarkModel):
 
   task = RECOMMENDATION.RECOMMENDATION
 
-  def __init__(self, device="cpu", jit=False):
+  def __init__(self, test="eval", device="cpu", jit=False):
     super().__init__()
     self.device = device
     self.not_implemented_reason = "Implemented"

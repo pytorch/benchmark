@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
     # Original train batch size: 16
     # Source: https://github.com/yunjey/stargan/blob/94dd002e93a2863d9b987a937b85925b80f7a19f/main.py#L73
     # This model doesn't support setting eval batch size and will use the same bs as train
-    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=16, prefetch=True):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=16, eval_bs=16, prefetch=True):
         super().__init__()
         self.device = device
         self.jit = jit

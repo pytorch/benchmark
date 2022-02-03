@@ -15,7 +15,7 @@ class Model(BenchmarkModel):
     # Eval batch size 256, hardware Nvidia rtx 3090
     # Source: https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/results/model_benchmark_amp_nchw_rtx3090.csv
     # Downscale to 128 to fit T4
-    def __init__(self, device=None, jit=False,
+    def __init__(self, test="eval", device=None, jit=False,
                  variant='dm_nfnet_f0',
                  eval_bs=128, train_bs=128, extra_args=[]):
         super().__init__()

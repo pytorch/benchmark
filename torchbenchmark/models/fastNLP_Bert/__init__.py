@@ -40,7 +40,7 @@ logger.setLevel(logging.WARNING)
 
 class Model(BenchmarkModel):
     task = NLP.OTHER_NLP
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test="eval", device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit

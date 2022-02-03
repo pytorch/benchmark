@@ -63,7 +63,7 @@ class Model(BenchmarkModel):
 
     # Original batch size 256, hardware platform unknown
     # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
-    def __init__(self, device=None, jit=False, train_bs=256, eval_bs=32):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=256, eval_bs=32):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -137,11 +137,3 @@ class Model(BenchmarkModel):
                 pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
             self.optimizer.step_and_update_lr()
-
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)

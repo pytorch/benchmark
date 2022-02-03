@@ -57,7 +57,7 @@ class Model(BenchmarkModel):
 
   # Original train batch size: 200
   # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
-  def __init__(self, device=None, jit=False, train_bs=200):
+  def __init__(self, test="eval", device=None, jit=False, train_bs=200):
     super().__init__()
     self.device = device
     self.jit = jit

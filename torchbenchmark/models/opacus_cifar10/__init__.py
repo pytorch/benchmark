@@ -15,7 +15,7 @@ BATCH_SIZE = 64
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test="eval", device=None, jit=False):
         super().__init__()
         self.device = device
         self.jit = jit
