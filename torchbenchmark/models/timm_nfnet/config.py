@@ -12,7 +12,7 @@ class OptimizerOption:
     momentum: float
 
 class TimmConfig:
-    def __init__(self, model, device, precision):
+    def __init__(self, model, device):
         self.model = model
         self.device = device
         # Configurations
