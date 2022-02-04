@@ -99,7 +99,7 @@ def _load_test(path, device):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(device=device, jit=False)
+                task.make_model_instance(test="eval", device=device, jit=False)
                 task.check_device()
                 task.del_model_instance()
             except NotImplementedError:
