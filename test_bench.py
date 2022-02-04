@@ -46,7 +46,7 @@ def pytest_generate_tests(metafunc):
 )
 class TestBenchNetwork:
 
-    def test_train(self, model_path,  device, compiler, benchmark):
+    def test_train(self, model_path, device, compiler, benchmark):
         try:
             task = ModelTask(model_path)
             if not task.model_details.exists:
