@@ -6,43 +6,15 @@ from typing import List, Tuple
 def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     # by default, enable half precision for inference
-    parser.add_argument("--eval-fp16", action='store_false', help="enable fp16 for eval")
-    parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
-    parser.add_argument("--torch_tensorrt", action='store_true', help="enable torch_tensorrt")
-    parser.add_argument("--flops", action='store_true', help="enable flops counting")
-    parser.add_argument("--cudagraph", action='store_true', help="enable CUDA Graph. Currently only implemented for train.")
     args = parser.parse_args(extra_args)
     args.device = model.device
     args.jit = model.jit
     args.train_bs = model.train_bs
     args.eval_bs = model.eval_bs
-    # only enable fp16 in GPU inference
-    if args.device == "cpu":
-        args.eval_fp16 = False
-    # sanity checks
-    assert not (args.fx2trt and args.torch_tensorrt), "User cannot enable torch_tensorrt and fx2trt at the same time."
     return args
 
 def apply_args(model: BenchmarkModel, args: argparse.Namespace):
-    if args.flops:
-        from fvcore.nn import FlopCountAnalysis
-        model.train_flops = FlopCountAnalysis(model.model, tuple(model.example_inputs)).total()
-        model.eval_flops = FlopCountAnalysis(model.eval_model, tuple(model.eval_example_inputs)).total()
-    # apply eval_fp16
-    if args.eval_fp16:
-        model.eval_model, model.eval_example_inputs = enable_fp16(model.eval_model, model.eval_example_inputs)
-    # apply fx2trt for eval
-    if args.fx2trt:
-        assert args.device == 'cuda', "fx2trt is only available with CUDA."
-        assert not args.jit, "fx2trt with JIT is not available."
-        model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
-    # apply torch_tensorrt for eval
-    if args.torch_tensorrt:
-        assert args.device == 'cuda', "torch_tensorrt is only available with CUDA."
-        model.eval_model = enable_torchtrt(model.eval_example_inputs, args.eval_fp16, model.eval_model)
-    # apply cuda graph for train
-    if args.cudagraph:
-        enable_cudagraph(model, model.example_inputs)
+   pass
 
 def enable_torchtrt(eval_input: Tuple[torch.tensor], eval_fp16: bool, eval_model: torch.nn.Module) -> torch.nn.Module:
     import torch_tensorrt
