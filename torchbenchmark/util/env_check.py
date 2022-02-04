@@ -2,7 +2,7 @@ import importlib
 from typing import List, Dict
 
 # Apply post initialization features
-def post_processing(model: 'BenchmarkModel'):
+def post_processing(model: 'torchbenchmark.util.model.BenchmarkModel'):
     # run the checks
     pass
 
