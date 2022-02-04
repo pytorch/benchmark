@@ -16,6 +16,7 @@ class TorchVisionModel(BenchmarkModel):
         self.jit = jit
         self.train_bs = train_bs
         self.eval_bs = eval_bs
+        self.extra_args = extra_args
 
         self.model = getattr(models, model_name)().to(self.device)
         self.eval_model = getattr(models, model_name)().to(self.device)

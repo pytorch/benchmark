@@ -62,6 +62,7 @@ class Model(BenchmarkModel):
     self.device = device
     self.jit = jit
     self.test = test
+    self.extra_args = extra_args
 
     WORD = Field(include_lengths=True)
     UD_TAG = Field(init_token="<bos>", eos_token="<eos>", include_lengths=True)

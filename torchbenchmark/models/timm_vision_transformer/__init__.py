@@ -16,6 +16,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device)
         self.example_inputs = self._gen_input(train_bs)

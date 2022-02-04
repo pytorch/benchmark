@@ -45,6 +45,8 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
+
         self.input_dir = CMRC2018_DIR
         # Generate input data files
         generate_inputs()

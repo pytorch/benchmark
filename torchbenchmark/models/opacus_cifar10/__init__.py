@@ -20,6 +20,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
 
         self.model = models.resnet18(num_classes=10)
         self.model = ModuleValidator.fix(self.model)

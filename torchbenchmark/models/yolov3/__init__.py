@@ -36,6 +36,7 @@ class Model(BenchmarkModel):
         self.test = test
         self.device = device
         self.jit = jit
+        self.extra_args = extra_args
         # run just 1 epoch
         self.num_epochs = 1
         self.train_num_batch = 1

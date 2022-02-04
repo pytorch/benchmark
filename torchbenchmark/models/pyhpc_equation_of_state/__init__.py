@@ -37,6 +37,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         self.model = EquationOfState().to(device=self.device)
         input_size = 1048576
         raw_inputs = _generate_inputs(input_size)

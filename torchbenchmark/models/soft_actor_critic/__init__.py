@@ -122,6 +122,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         self.args = SACConfig()
         self.args.batch_size = train_bs
         # Construct agent

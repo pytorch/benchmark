@@ -151,9 +151,10 @@ class Model(BenchmarkModel):
 
         self.test = test
         self.device = device
-        self.root = str(Path(__file__).parent)
         self.jit = jit
+        self.extra_args = extra_args
 
+        self.root = str(Path(__file__).parent)
         self.dcgan = DCGAN(self)
 
         dcgan = self.dcgan

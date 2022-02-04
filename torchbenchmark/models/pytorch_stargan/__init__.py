@@ -35,6 +35,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         # init config
         config = parse_config()
         config.celeba_image_dir = os.path.join(os.path.dirname(__file__), 'data/celeba/images')

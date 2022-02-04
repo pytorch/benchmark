@@ -30,6 +30,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
 
         config = AutoConfig.from_pretrained("t5-small")
         self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)

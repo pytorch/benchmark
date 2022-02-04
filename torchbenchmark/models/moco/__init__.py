@@ -36,6 +36,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         self.opt = Namespace(**{
             'arch': 'resnet50',
             'epochs': 2,

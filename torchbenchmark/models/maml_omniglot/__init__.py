@@ -34,6 +34,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
 
         n_way = 5
         net = nn.Sequential(

@@ -126,6 +126,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         self.model = TurbulentKineticEnergy(self.device).to(device=self.device)
         input_size = 1048576
         self.example_inputs = tuple(

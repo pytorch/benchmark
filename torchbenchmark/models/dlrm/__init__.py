@@ -46,6 +46,8 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
+
         # Train architecture: use the configuration in the paper.
         # Source: https://arxiv.org/pdf/1906.00091.pdf
         arch_embedding_size = "1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000"

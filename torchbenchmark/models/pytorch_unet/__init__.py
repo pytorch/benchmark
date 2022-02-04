@@ -29,6 +29,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
 
         self.args = self._get_args()
         # The sample inputs shape used here mimic the setting of the original repo

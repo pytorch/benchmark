@@ -24,6 +24,7 @@ class Model(BenchmarkModel):
     def __init__(self, test="eval", device=None, jit=False, train_bs=32, extra_args=[]):
         self.jit = jit
         self.device = device
+        self.extra_args = extra_args
         self.test = test
         if jit:
             return

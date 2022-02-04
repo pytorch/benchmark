@@ -13,6 +13,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         self.model = TTSModel(device=self.device, train_bs=train_bs, eval_bs=eval_bs)
         self.model.model.to(self.device)
 

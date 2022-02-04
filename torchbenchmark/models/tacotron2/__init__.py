@@ -19,6 +19,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         if device == 'cpu' or jit:
             # TODO - currently load_model assumes cuda
             return

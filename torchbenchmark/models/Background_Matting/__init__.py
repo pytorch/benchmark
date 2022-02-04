@@ -37,6 +37,8 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
+
         self.opt = Namespace(**{
             'n_blocks1': 7,
             'n_blocks2': 3,

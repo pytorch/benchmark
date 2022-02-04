@@ -27,6 +27,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.extra_args = extra_args
         # Train: These options are from source code.
         # Source: https://arxiv.org/pdf/1903.04411.pdf
         # Code: https://github.com/megvii-research/ICCV2019-LearningToPaint/blob/master/baseline/train.py

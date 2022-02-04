@@ -35,6 +35,7 @@ class Model(BenchmarkModel):
        self.device = device
        self.jit = jit
        self.test = test
+       self.extra_args = extra_args
 
        model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
        self.model = instantiate(model_cfg).to(self.device)
