@@ -40,8 +40,10 @@ class Model(BenchmarkModel):
       self.not_implemented_reason = "cuda not available on this device"
 
     else:
-      self.train_obj = DeepRecommenderTrainBenchmark(device = self.device, jit = jit, batch_size=train_bs)
-      self.infer_obj = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit, batch_size=eval_bs)
+      if test == "train":
+        self.train_obj = DeepRecommenderTrainBenchmark(device = self.device, jit = jit, batch_size=train_bs)
+      elif test == "eval":
+        self.infer_obj = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit, batch_size=eval_bs)
 
   def get_module(self):
     if self.eval_mode:
@@ -78,12 +80,3 @@ class Model(BenchmarkModel):
   def timed_train(self):
     self.check_implemented()
     self.train_obj.TimedTrainingRun()
-
-def main():
-  cudaBenchMark = DeepRecommenderBenchmark(device = 'cuda', jit = False)
-  cudaBenchMark.timed_train()
-  cudaBenchMark.timed_infer()
-
-  cpuBenchMark = DeepRecommenderBenchmark(device = 'cpu', jit = False)
-  cpuBenchMark.timed_train()
-  cpuBenchMark.timed_infer()
