@@ -10,6 +10,7 @@ class TorchVisionModel(BenchmarkModel):
 
     def __init__(self, model_name=None, test=None, device=None, jit=False, train_bs=1, eval_bs=1, extra_args=[]):
         super().__init__()
+        assert test == "train" or test == "eval", f"Test must be 'train' or 'eval', but provided {test}."
         self.test = test
         self.device = device
         self.jit = jit
