@@ -1,10 +1,13 @@
 import importlib
 from typing import List, Dict
+from torchbenchmark.util.extra_args import parse_args, apply_args
 
 # Apply post initialization features
 def post_processing(model: 'torchbenchmark.util.model.BenchmarkModel'):
-    # run the checks
-    pass
+    # sanity checks of the options
+    assert model.test == "train" or model.test == "eval", f"Test must be 'train' or 'eval', but provided {model.test}."
+    model.extra_args = parse_args(model, model.extra_args)
+    apply_args(model, model.extra_args)
 
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
