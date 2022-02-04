@@ -21,7 +21,7 @@ class Model(BenchmarkModel):
 
   task = RECOMMENDATION.RECOMMENDATION
 
-  def __init__(self, test, device, jit=False, extra_args=[]):
+  def __init__(self, test, device, train_bs=256, eval_bs=256, jit=False, extra_args=[]):
     super().__init__()
     self.device = device
     self.jit = jit
@@ -40,8 +40,8 @@ class Model(BenchmarkModel):
       self.not_implemented_reason = "cuda not available on this device"
 
     else:
-      self.train_obj = DeepRecommenderTrainBenchmark(device = self.device, jit = jit)
-      self.infer_obj = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit)
+      self.train_obj = DeepRecommenderTrainBenchmark(device = self.device, jit = jit, batch_size=train_bs)
+      self.infer_obj = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit, batch_size=eval_bs)
 
   def get_module(self):
     if self.eval_mode:
