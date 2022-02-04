@@ -12,10 +12,8 @@ e.g. --benchmark-autosave
      ...
 """
 import os
-import gc
 import pytest
 import time
-import torch
 from components._impl.workers import subprocess_worker
 from torchbenchmark import _list_model_paths, ModelTask
 from torchbenchmark.util.machine_config import get_machine_state
@@ -48,13 +46,13 @@ def pytest_generate_tests(metafunc):
 )
 class TestBenchNetwork:
 
-    def test_train(self, model_path, device, compiler, benchmark):
+    def test_train(self, model_path,  device, compiler, benchmark):
         try:
             task = ModelTask(model_path)
             if not task.model_details.exists:
                 return  # Model is not supported.
 
-            task.make_model_instance(device=device, jit=(compiler == 'jit'))
+            task.make_model_instance(test="train", device=device, jit=(compiler == 'jit'))
             task.set_train()
             benchmark(task.train)
             benchmark.extra_info['machine_state'] = get_machine_state()
@@ -68,7 +66,7 @@ class TestBenchNetwork:
             if not task.model_details.exists:
                 return  # Model is not supported.
 
-            task.make_model_instance(device=device, jit=(compiler == 'jit'))
+            task.make_model_instance(test="eval", device=device, jit=(compiler == 'jit'))
 
             with task.no_grad(disable_nograd=pytestconfig.getoption("disable_nograd")):
                 task.set_eval()
