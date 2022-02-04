@@ -9,7 +9,7 @@ from datasets import load_dataset
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
-    def __init__(self, test="eval", device=None, jit=False, extra_args=[]):
+    def __init__(self, test, device, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit

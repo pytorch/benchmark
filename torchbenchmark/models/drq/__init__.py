@@ -83,7 +83,7 @@ def make_env(cfg):
 
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
-    def __init__(self, test="eval", device=None, jit=False, extra_args=[]):
+    def __init__(self, test, device, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit

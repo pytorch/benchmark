@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
     # Original train batch size: 32
     # Paper and code uses batch size of 256 for 8 GPUs.
     # Source: https://arxiv.org/pdf/1911.05722.pdf
-    def __init__(self, test="eval", device=None, jit=False, train_bs=32, eval_bs=32, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=32, eval_bs=32, extra_args=[]):
         super().__init__()
         """ Required """
         self.device = device

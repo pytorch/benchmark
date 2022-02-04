@@ -49,7 +49,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
     optimized_for_inference = True
 
-    def __init__(self, test="eval", device=None, jit=False, train_bs=4, eval_bs=4, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=4, eval_bs=4, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit

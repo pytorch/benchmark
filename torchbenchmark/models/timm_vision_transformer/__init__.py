@@ -9,7 +9,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
     optimized_for_inference = True
 
-    def __init__(self, test="eval", device=None, jit=False,
+    def __init__(self, test, device, jit=False,
                  variant='vit_small_patch16_224',
                  train_bs=8, eval_bs=8, extra_args=[]):
         super().__init__()

@@ -8,7 +8,7 @@ class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
     # Original train batch size: 64
     # Source: https://github.com/mozilla/TTS/blob/master/TTS/speaker_encoder/config.json#L38
-    def __init__(self, test="eval", device=None, jit=False, train_bs=64, eval_bs=256, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=64, eval_bs=256, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit

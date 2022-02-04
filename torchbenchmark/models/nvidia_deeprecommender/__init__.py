@@ -21,7 +21,7 @@ class Model(BenchmarkModel):
 
   task = RECOMMENDATION.RECOMMENDATION
 
-  def __init__(self, test="eval", device="cpu", jit=False, extra_args=[]):
+  def __init__(self, test, device, jit=False, extra_args=[]):
     super().__init__()
     self.device = device
     self.jit = jit

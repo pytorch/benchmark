@@ -32,7 +32,7 @@ class Model(BenchmarkModel):
     #    eval batch size: 10
     #    hardware platform: Nvidia GTX 1080 Ti
     # Source: https://github.com/avinashpaliwal/Super-SloMo/blob/master/train.ipynb
-    def __init__(self, test="eval", device=None, jit=False, train_bs=6, eval_bs=10, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=6, eval_bs=10, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit

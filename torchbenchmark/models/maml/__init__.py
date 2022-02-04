@@ -18,7 +18,7 @@ torch.backends.cudnn.benchmark = False
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
-    def __init__(self, test="eval", device=None, jit=False, extra_args=[]):
+    def __init__(self, test, device, jit=False, extra_args=[]):
         super().__init__()
 
         # load from disk or synthesize data

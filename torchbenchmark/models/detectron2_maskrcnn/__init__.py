@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
     # This model doesn't support setting batch size for inference
-    def __init__(self, test="eval", device=None, jit=False, train_bs=1, eval_bs=2, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=1, eval_bs=2, extra_args=[]):
        super().__init__()
        self.device = device
        self.jit = jit

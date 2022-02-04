@@ -12,12 +12,13 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     # Train batch size: 32
     # Source: https://openreview.net/pdf?id=B1Yy1BxCZ
-    def __init__(self, test="eval", device=None, jit=False, train_bs=32, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=32, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
         self.test = test
         self.extra_args = extra_args
+
         self.model = models.resnet50().to(self.device)
         self.eval_model = models.resnet50().to(self.device)
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)

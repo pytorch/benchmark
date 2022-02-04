@@ -13,9 +13,8 @@ class Model(BenchmarkModel):
 
     # Training batch size comes from the source code:
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L84
-    def __init__(self, test="eval", device=None, jit=False, train_bs=64, eval_bs=64, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=64, eval_bs=64, extra_args=[]):
         super().__init__()
-        """ Required """
         self.device = device
         self.jit = jit
         self.test = test

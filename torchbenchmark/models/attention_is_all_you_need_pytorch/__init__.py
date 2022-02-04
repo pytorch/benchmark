@@ -63,7 +63,7 @@ class Model(BenchmarkModel):
 
     # Original batch size 256, hardware platform unknown
     # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
-    def __init__(self, test="eval", device=None, jit=False, train_bs=256, eval_bs=32, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=256, eval_bs=32, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
