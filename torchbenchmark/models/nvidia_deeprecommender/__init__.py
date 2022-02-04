@@ -21,9 +21,11 @@ class Model(BenchmarkModel):
 
   task = RECOMMENDATION.RECOMMENDATION
 
-  def __init__(self, test="eval", device="cpu", jit=False):
+  def __init__(self, test="eval", device="cpu", jit=False, extra_args=[]):
     super().__init__()
     self.device = device
+    self.jit = jit
+    self.test = test
     self.not_implemented_reason = "Implemented"
     self.eval_mode = True #default to inference
 
@@ -84,6 +86,3 @@ def main():
   cpuBenchMark = DeepRecommenderBenchmark(device = 'cpu', jit = False)
   cpuBenchMark.timed_train()
   cpuBenchMark.timed_infer()
-
-if __name__ == '__main__':
-  main()

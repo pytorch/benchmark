@@ -32,10 +32,11 @@ class Model(BenchmarkModel):
     #    eval batch size: 10
     #    hardware platform: Nvidia GTX 1080 Ti
     # Source: https://github.com/avinashpaliwal/Super-SloMo/blob/master/train.ipynb
-    def __init__(self, test="eval", device=None, jit=False, train_bs=6, eval_bs=10):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=6, eval_bs=10, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
         self.module = ModelWrapper(device)
 
         root = str(Path(__file__).parent)
@@ -101,11 +102,3 @@ class Model(BenchmarkModel):
 
             loss.backward()
             self.optimizer.step()
-
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)

@@ -40,10 +40,11 @@ class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
     # Original train batch size: 64
     # Source: https://github.com/facebookresearch/demucs/blob/3e5ea549ba921316c587e5f03c0afc0be47a0ced/conf/config.yaml#L37
-    def __init__(self, test="eval", device: Optional[str]=None, jit: bool=False, train_bs=64, eval_bs=8) -> None:
+    def __init__(self, test="eval", device: Optional[str]=None, jit: bool=False, train_bs=64, eval_bs=8, extra_args=[]) -> None:
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
         self.parser = get_parser()
         self.args = self.parser.parse_args([])
         args = self.args

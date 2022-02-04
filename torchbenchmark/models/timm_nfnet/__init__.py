@@ -21,6 +21,7 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
         self.train_bs = train_bs
         self.eval_bs = eval_bs
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)

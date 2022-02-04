@@ -30,10 +30,11 @@ class Model(BenchmarkModel):
     # Original train batch size: 16
     # Source: https://github.com/yunjey/stargan/blob/94dd002e93a2863d9b987a937b85925b80f7a19f/main.py#L73
     # This model doesn't support setting eval batch size and will use the same bs as train
-    def __init__(self, test="eval", device=None, jit=False, train_bs=16, eval_bs=16, prefetch=True):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=16, eval_bs=16, prefetch=True, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
         # init config
         config = parse_config()
         config.celeba_image_dir = os.path.join(os.path.dirname(__file__), 'data/celeba/images')
@@ -102,16 +103,3 @@ class Model(BenchmarkModel):
         example_inputs = self.example_inputs
         for _ in range(niter):
             model(*example_inputs)
-
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    m.eval()
-    model, example_inputs = m.get_module()
-    model(*example_inputs)
-
-    m.train(1)
-    m.eval()
-
-    m2 = Model(device='cpu', jit=True)
-    m2.eval()

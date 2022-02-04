@@ -49,9 +49,11 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
     optimized_for_inference = True
 
-    def __init__(self, test="eval", device=None, jit=False, train_bs=4, eval_bs=4):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=4, eval_bs=4, extra_args=[]):
+        super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
         self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True).to(self.device)
         self.eval_model = self.model
         if self.jit:

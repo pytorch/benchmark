@@ -145,11 +145,11 @@ class Discriminator(nn.Module):
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
 
-    def __init__(self, test="eval", device=None, jit=False, eval_bs=256, train_bs=32):
+    def __init__(self, test="eval", device=None, jit=False, eval_bs=256, train_bs=32, extra_args=[]):
         super().__init__()
-
         self.debug_print = False
 
+        self.test = test
         self.device = device
         self.root = str(Path(__file__).parent)
         self.jit = jit

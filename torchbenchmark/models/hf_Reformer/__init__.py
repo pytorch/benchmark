@@ -9,10 +9,11 @@ from datasets import load_dataset
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
-    def __init__(self, test="eval", device=None, jit=False):
+    def __init__(self, test="eval", device=None, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
 
         torch.manual_seed(42)
         config = ReformerConfig()
@@ -52,23 +53,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.eval_inputs)
-
-
-if __name__ == "__main__":
-    import time
-    m = Model(device="cuda")
-    module, example_inputs = m.get_module()
-
-    m.train(niter=1)
-    torch.cuda.synchronize()
-
-    begin = time.time()
-    m.train(niter=1)
-    torch.cuda.synchronize()
-    print(time.time()-begin)
-
-    begin = time.time()
-    m.eval(niter=1)
-    torch.cuda.synchronize()
-    print(time.time()-begin)
-    

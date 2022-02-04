@@ -31,8 +31,9 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
     # Original train batch size: 16
     # Source: https://github.com/ultralytics/yolov3/blob/master/train.py#L447
-    def __init__(self, test="eval", device=None, jit=False, train_bs=16, eval_bs=16):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=16, eval_bs=16, extra_args=[]):
         super().__init__()
+        self.test = test
         self.device = device
         self.jit = jit
         # run just 1 epoch

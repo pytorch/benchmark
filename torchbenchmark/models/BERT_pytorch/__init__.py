@@ -74,13 +74,13 @@ class Model(BenchmarkModel):
         random.seed(seed)
         np.random.seed(seed)
 
-    def __init__(self, test="eval", device=None, jit=False):
+    def __init__(self, test="eval", device=None, jit=False, extra_args=[]):
         super().__init__()
-
         debug_print = False
 
         self.device = device
         self.jit = jit
+        self.test = test
         root = str(Path(__file__).parent)
         args = parse_args(args=[
             '--train_dataset', f'{root}/data/corpus.small',
@@ -195,14 +195,3 @@ class Model(BenchmarkModel):
             trainer.optim_schedule.zero_grad()
             loss.backward()
             trainer.optim_schedule.step_and_update_lr()
-
-
-if __name__ == '__main__':
-    for device in ['cpu', 'cuda']:
-        for jit in [True, False]:
-            print("Testing device {}, JIT {}".format(device, jit))
-            m = Model(device=device, jit=jit)
-            bert, example_inputs = m.get_module()
-            bert(*example_inputs)
-            m.train()
-            m.eval()

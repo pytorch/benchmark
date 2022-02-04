@@ -9,10 +9,11 @@ from datasets import load_dataset
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
 
-    def __init__(self, test="eval", device=None, jit=False):
+    def __init__(self, test="eval", device=None, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
 
         torch.manual_seed(42)
         config = AutoConfig.from_pretrained("albert-base-v2")

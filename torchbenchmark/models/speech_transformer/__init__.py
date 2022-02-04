@@ -21,9 +21,10 @@ class Model(BenchmarkModel):
     # Original batch size: 32
     # Source: https://github.com/kaituoxu/Speech-Transformer/blob/e6847772d6a786336e117a03c48c62ecbf3016f6/src/bin/train.py#L68
     # This model does not support adjusting eval bs
-    def __init__(self, test="eval", device=None, jit=False, train_bs=32):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=32, extra_args=[]):
         self.jit = jit
         self.device = device
+        self.test = test
         if jit:
             return
         if device == "cpu":
@@ -57,12 +58,3 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         for _ in range(niter):
             self.evalcfg.eval()
-
-if __name__ == '__main__':
-    for device in ['cuda']:
-        for jit in [False]:
-            m = Model(device=device, jit=jit)
-            model, example_inputs = m.get_module()
-            model(*example_inputs)
-            m.train()
-            m.eval()

@@ -22,10 +22,11 @@ torch.backends.cudnn.benchmark = True
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
 
-    def __init__(self, test="eval", device=None, jit=False, train_bs=96, eval_bs=96):
-        super(Model, self).__init__()
+    def __init__(self, test="eval", device=None, jit=False, train_bs=96, eval_bs=96, extra_args=[]):
+        super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
         # Train: These options are from source code.
         # Source: https://arxiv.org/pdf/1903.04411.pdf
         # Code: https://github.com/megvii-research/ICCV2019-LearningToPaint/blob/master/baseline/train.py
@@ -120,12 +121,3 @@ class Model(BenchmarkModel):
     # Using separate models for train and infer, so skip this function.
     def _set_mode(self, train):
         pass
-
-if __name__ == '__main__':
-    m = Model(device='cpu', jit=False)
-    module, example_inputs = m.get_module()
-    while m.step < 100:
-        m.train(niter=1)
-        if m.step % 100 == 0:
-            m.eval(niter=1)
-        m.step += 1

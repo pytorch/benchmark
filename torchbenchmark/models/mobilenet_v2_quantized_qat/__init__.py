@@ -12,10 +12,11 @@ class Model(BenchmarkModel):
 
     # Train batch size: 96
     # Source: https://arxiv.org/pdf/1801.04381.pdf
-    def __init__(self, test="eval", device=None, jit=False, train_bs=96):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=96, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
         self.model = models.mobilenet_v2().to(self.device)
         self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
         self.prep_qat_train()  # config+prepare steps are required for both train and eval
@@ -56,11 +57,3 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         return self.model, self.example_inputs
-
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=True)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.eval(niter=1)
-    m.train(niter=1)

@@ -25,10 +25,11 @@ class Model(BenchmarkModel):
     # Source: https://github.com/huggingface/transformers/blob/master/examples/flax/language-modeling/run_t5_mlm_flax.py#L83
     # Original eval batch size per device: 8
     # Downscale to 1 to fit in Nvidia T4 of the infra
-    def __init__(self, test="eval", device=None, jit=False, train_bs=8, eval_bs=1):
+    def __init__(self, test="eval", device=None, jit=False, train_bs=8, eval_bs=1, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
 
         config = AutoConfig.from_pretrained("t5-small")
         self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
