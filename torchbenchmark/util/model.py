@@ -8,6 +8,13 @@ from contextlib import contextmanager
 import warnings
 import inspect
 import os
+from torchbenchmark.util.env_check import post_processing
+
+class PostInitProcessor(type):
+    def __call__(cls, *args, **kwargs):
+        obj = type.__call__(cls, *args, **kwargs)
+        obj.__post__init__()
+        return obj
 
 @contextmanager
 def no_grad(val):
@@ -21,13 +28,17 @@ def no_grad(val):
     finally:
         torch.set_grad_enabled(old_state)
 
-class BenchmarkModel():
+class BenchmarkModel(metaclass=PostInitProcessor):
     """
     A base class for adding models to torch benchmark.
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
     def __init__(self, *args, **kwargs): 
         pass
+
+    # Run the post processing for model acceleration
+    def __post__init__(self):
+        post_processing(self)
 
     def train(self):
         raise NotImplementedError()

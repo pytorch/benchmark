@@ -1,6 +1,11 @@
 import importlib
 from typing import List, Dict
 
+# Apply post initialization features
+def post_processing(model: 'BenchmarkModel'):
+    # run the checks
+    pass
+
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
     for module in packages:
