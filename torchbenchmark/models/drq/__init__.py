@@ -88,6 +88,9 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        # train and eval bs are unadjustable, therefore they are not used as parameters
+        self.train_bs = 1
+        self.eval_bs = 1
         self.extra_args = extra_args
 
         self.cfg = DRQConfig()

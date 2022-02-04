@@ -74,7 +74,7 @@ class Model(BenchmarkModel):
         random.seed(seed)
         np.random.seed(seed)
 
-    def __init__(self, test, device, jit=False, extra_args=[]):
+    def __init__(self, test, device, train_bs=16, eval_bs=16, jit=False, extra_args=[]):
         super().__init__()
         debug_print = False
 
@@ -108,7 +108,7 @@ class Model(BenchmarkModel):
 
         # parameters for work size, these were chosen to provide a profile
         # that matches processing of an original trained en-de corpus.
-        args.batch_size = 16
+        args.batch_size = train_bs
         vocab_size = 20000
         args.corpus_lines = 50000
 
@@ -153,11 +153,16 @@ class Model(BenchmarkModel):
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                                    with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
-        INFERENCE_BATCH_SIZE = args.batch_size
         example_batch = next(iter(train_data_loader))
-        self.example_inputs = example_batch['bert_input'].to(self.device)[:INFERENCE_BATCH_SIZE], example_batch['segment_label'].to(self.device)[:INFERENCE_BATCH_SIZE]
-        self.is_next = example_batch['is_next'].to(self.device)[:INFERENCE_BATCH_SIZE]
-        self.bert_label = example_batch['bert_label'].to(self.device)[:INFERENCE_BATCH_SIZE]
+        if test == "train":
+            self.example_inputs = example_batch['bert_input'].to(self.device)[:train_bs], example_batch['segment_label'].to(self.device)[:train_bs]
+            self.is_next = example_batch['is_next'].to(self.device)[:train_bs]
+            self.bert_label = example_batch['bert_label'].to(self.device)[:train_bs]
+        elif test == "eval":
+            self.example_inputs = example_batch['bert_input'].to(self.device)[:eval_bs], example_batch['segment_label'].to(self.device)[:eval_bs]
+            self.is_next = example_batch['is_next'].to(self.device)[:eval_bs]
+            self.bert_label = example_batch['bert_label'].to(self.device)[:eval_bs]
+        
         if args.script:
             if hasattr(torch.jit, '_script_pdt'):
                 bert = torch.jit._script_pdt(bert, example_inputs=[self.example_inputs, ])

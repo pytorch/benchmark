@@ -37,6 +37,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.train_bs = train_bs
         self.extra_args = extra_args
 
         self.opt = Namespace(**{
@@ -58,7 +59,7 @@ class Model(BenchmarkModel):
         traindata = VideoData(csv_file=csv_file,
                               data_config=data_config_train, transform=None)
         train_loader = torch.utils.data.DataLoader(
-            traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=self.opt.batch_size, collate_fn=_collate_filter_none)
+            traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=0, collate_fn=_collate_filter_none)
         self.train_data = []
         for data in train_loader:
             self.train_data.append(data)

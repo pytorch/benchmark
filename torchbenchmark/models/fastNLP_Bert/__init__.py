@@ -40,7 +40,9 @@ logger.setLevel(logging.WARNING)
 
 class Model(BenchmarkModel):
     task = NLP.OTHER_NLP
-    def __init__(self, test, device, jit=False, extra_args=[]):
+    # Use the train batch size from the original CMRC2018 Q&A task
+    # Source: https://fastnlp.readthedocs.io/zh/latest/tutorials/extend_1_bert_embedding.html
+    def __init__(self, test, device, train_bs=6, eval_bs=1, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -49,7 +51,7 @@ class Model(BenchmarkModel):
 
         self.input_dir = CMRC2018_DIR
         # Generate input data files
-        generate_inputs()
+        generate_inputs(train_bs, eval_bs)
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
         self.embed = BertEmbedding(data_bundle.get_vocab('words'),
@@ -64,8 +66,6 @@ class Model(BenchmarkModel):
             self._forward_func = self.model.forward
         self.losser = CMRC2018Loss()
         self.metrics = CMRC2018Metric()
-        # Use Train batch for batch size
-        self.batch_size = CMRC2018_TRAIN_SPEC["data_size"]
         self.update_every = 10
         # Do not spawn new processes on small scale of data
         self.num_workers = 0
@@ -76,14 +76,16 @@ class Model(BenchmarkModel):
         self.callback_manager = CallbackManager(env={"trainer":self}, callbacks=callbacks)
         self.train_data = data_bundle.get_dataset('train')
         self.eval_data = data_bundle.get_dataset('dev')
-        self.train_data_iterator = DataSetIter(dataset=self.train_data,
-                                               batch_size=CMRC2018_TRAIN_SPEC["data_size"],
-                                               sampler=None,
-                                               num_workers=self.num_workers, drop_last=False)
-        self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
-                                              batch_size=CMRC2018_DEV_SPEC["data_size"],
-                                              sampler=None,
-                                              num_workers=self.num_workers, drop_last=False)
+        if self.test == "train":
+            self.train_data_iterator = DataSetIter(dataset=self.train_data,
+                                                batch_size=train_bs,
+                                                sampler=None,
+                                                num_workers=self.num_workers, drop_last=False)
+        elif self.test == "eval":
+            self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
+                                                batch_size=eval_bs,
+                                                sampler=None,
+                                                num_workers=self.num_workers, drop_last=False)
 
     def get_module(self):
         batch_x, batch_y = list(self.train_data_iterator)[0]
