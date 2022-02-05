@@ -54,6 +54,8 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
         self.extra_args = extra_args
         self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True).to(self.device)
         self.eval_model = self.model

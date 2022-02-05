@@ -35,6 +35,8 @@ class Model(BenchmarkModel):
         super().__init__()
         self.test = test
         self.device = device
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
         self.jit = jit
         self.extra_args = extra_args
         # run just 1 epoch

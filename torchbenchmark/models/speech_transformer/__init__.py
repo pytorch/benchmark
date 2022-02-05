@@ -24,6 +24,8 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, train_bs=32, extra_args=[]):
         self.jit = jit
         self.device = device
+        self.train_bs = train_bs
+        self.eval_bs = 1 # not adjustable
         self.extra_args = extra_args
         self.test = test
         if jit:
