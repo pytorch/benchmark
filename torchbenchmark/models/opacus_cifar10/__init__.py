@@ -9,13 +9,11 @@ from opacus.validators.module_validator import ModuleValidator
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-BATCH_SIZE = 64
-
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
-    def __init__(self, test, device, jit=False, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=64, eval_bs=64, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -27,13 +25,17 @@ class Model(BenchmarkModel):
         self.model = self.model.to(device)
 
         # Cifar10 images are 32x32 and have 10 classes
-        self.example_inputs = (
-            torch.randn((BATCH_SIZE, 3, 32, 32), device=self.device),
-        )
-        self.example_target = torch.randint(0, 10, (BATCH_SIZE,), device=self.device)
-
-        dataset = data.TensorDataset(self.example_inputs[0], self.example_target)
-        dummy_loader = data.DataLoader(dataset, batch_size=BATCH_SIZE)
+        if test == "train":
+            self.example_inputs = (
+                torch.randn((train_bs, 3, 32, 32), device=self.device),
+            )
+            self.example_target = torch.randint(0, 10, (train_bs,), device=self.device)
+            dataset = data.TensorDataset(self.example_inputs[0], self.example_target)
+            dummy_loader = data.DataLoader(dataset, batch_size=train_bs)
+        elif test == "eval":
+            self.eval_example_inputs = (
+                torch.randn((train_bs, 3, 32, 32), device=self.device),
+            )
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.CrossEntropyLoss()
@@ -52,15 +54,15 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError()
 
-        return self.model, self.example_inputs
+        return self.model, self.eval_example_inputs
 
     def train(self, niter=1):
         if niter != 1:
             raise NotImplementedError("niter not implemented")
         if self.jit:
             raise NotImplementedError()
-
-        model, (images,) = self.get_module()
+        model = self.model
+        (images, ) = self.example_inputs
         model.train()
         targets = self.example_target
 
@@ -75,8 +77,8 @@ class Model(BenchmarkModel):
             raise NotImplementedError("niter not implemented")
         if self.jit:
             raise NotImplementedError()
-
-        model, (images,) = self.get_module()
+        model = self.model
+        (images, ) = self.eval_example_inputs
         model.eval()
         targets = self.example_target
         with torch.no_grad():
