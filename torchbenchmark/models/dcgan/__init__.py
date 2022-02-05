@@ -152,6 +152,8 @@ class Model(BenchmarkModel):
         self.test = test
         self.device = device
         self.jit = jit
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
         self.extra_args = extra_args
 
         self.root = str(Path(__file__).parent)

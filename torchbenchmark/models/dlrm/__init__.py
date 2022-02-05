@@ -46,6 +46,7 @@ class Model(BenchmarkModel):
         self.device = device
         self.jit = jit
         self.test = test
+        self.train_bs = 1000
         self.extra_args = extra_args
 
         # Train architecture: use the configuration in the paper.
@@ -56,7 +57,7 @@ class Model(BenchmarkModel):
         arch_mlp_top = "1024-1024-1024-1"
         data_generation = "random"
         mini_batch_size = 2048
-        num_batches = 1000
+        num_batches = self.train_bs
         num_indicies_per_lookup = 100
 
         self.opt = Namespace(**{

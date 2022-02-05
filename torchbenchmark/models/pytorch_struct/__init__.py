@@ -62,6 +62,7 @@ class Model(BenchmarkModel):
     self.device = device
     self.jit = jit
     self.test = test
+    self.train_bs = train_bs
     self.extra_args = extra_args
 
     WORD = Field(include_lengths=True)

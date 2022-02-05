@@ -10,6 +10,8 @@
 import torch
 import torch.optim as optim
 import torchvision.models as models
+
+from torchbenchmark.models.attention_is_all_you_need_pytorch.train import train
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
 
@@ -25,6 +27,8 @@ class Model(BenchmarkModel):
     super().__init__()
     self.device = device
     self.jit = jit
+    self.train_bs = train_bs
+    self.eval_bs = eval_bs
     self.test = test
     self.extra_args = extra_args
     self.not_implemented_reason = "Implemented"

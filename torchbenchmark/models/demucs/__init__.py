@@ -44,6 +44,8 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
         self.test = test
         self.extra_args = extra_args
 

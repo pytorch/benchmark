@@ -24,11 +24,13 @@ class Model(BenchmarkModel):
 
     task = COMPUTER_VISION.SEGMENTATION
 
-    def __init__(self, test, device, jit=False, extra_args=[]):
+    def __init__(self, test, device, train_bs=1, eval_bs=1, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
         self.test = test
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
         self.extra_args = extra_args
 
         self.args = self._get_args()
@@ -36,14 +38,17 @@ class Model(BenchmarkModel):
         # Source image link: https://www.kaggle.com/c/carvana-image-masking-challenge/code
         # Source images are 1280 x 1918, but the original code scales it in half to 640 x 959
         # The batch size is 1 and there are 3 channels for the image inputs and 1 for the mask
-        self.sample_inputs = torch.rand((1, 3, 640, 959), dtype=torch.float32).to(self.device)
-        self.sample_masks = torch.randint(0, 1, (1, 640, 959), dtype=torch.int64).to(self.device)
-        self.model = UNet(n_channels=3, n_classes=2, bilinear=True).to(self.device)
+        if test == "train":
+            self.example_inputs = torch.rand((self.train_bs, 3, 640, 959), dtype=torch.float32).to(self.device)
+            self.sample_masks = torch.randint(0, 1, (1, 640, 959), dtype=torch.int64).to(self.device)
+            self.model = UNet(n_channels=3, n_classes=2, bilinear=True).to(self.device)
+        elif test == "eval":
+            self.eval_example_inputs = torch.rand((self.eval_bs, 3, 640, 959), dtype=torch.float32).to(self.device)
         if self.jit:
             self.model = torch.jit.script(self.model)
 
     def get_module(self):
-        return self.model, (self.sample_inputs,)
+        return self.model, (self.example_inputs,)
 
     def train(self, niter=1):
         optimizer = optim.RMSprop(self.model.parameters(), lr=self.args.lr, weight_decay=1e-8, momentum=0.9)
@@ -54,7 +59,7 @@ class Model(BenchmarkModel):
 
         with torch.cuda.amp.autocast(enabled=self.args.amp):
             for _ in range(niter):
-                masks_pred = self.model(self.sample_inputs)
+                masks_pred = self.model(self.example_inputs)
                 masks_true = self.sample_masks
                 loss = criterion(masks_pred, masks_true) + \
                     dice_loss(
@@ -71,7 +76,7 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
-                mask_pred = self.model(self.sample_inputs)
+                mask_pred = self.model(self.eval_example_inputs)
 
                 if self.model.n_classes == 1:
                     mask_pred = (F.sigmoid(mask_pred) > 0.5).float()

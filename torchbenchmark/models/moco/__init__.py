@@ -35,6 +35,8 @@ class Model(BenchmarkModel):
         """ Required """
         self.device = device
         self.jit = jit
+        self.train_bs = train_bs
+        self.eval_bs = eval_bs
         self.test = test
         self.extra_args = extra_args
         self.opt = Namespace(**{
@@ -56,8 +58,6 @@ class Model(BenchmarkModel):
             'fake_data': True,
             'distributed': True,
         })
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
 
         if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")

@@ -12,7 +12,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     # Train batch size: 32
     # Source: https://openreview.net/pdf?id=B1Yy1BxCZ
-    def __init__(self, test, device, jit=False, train_bs=32, extra_args=[]):
+    def __init__(self, test, device, jit=False, train_bs=32, eval_bs=32, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
@@ -21,7 +21,10 @@ class Model(BenchmarkModel):
 
         self.model = models.resnet50().to(self.device)
         self.eval_model = models.resnet50().to(self.device)
-        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
+        if test == "train":
+            self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
+        elif test == "eval":
+            self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
         self.prep_qat_train()
 
     def prep_qat_train(self):
@@ -31,7 +34,7 @@ class Model(BenchmarkModel):
 
 
     def get_module(self):
-        return self.model, self.example_inputs
+        return self.model, self.eval_example_inputs
 
     # vision models have another model
     # instance for inference that has
@@ -61,7 +64,7 @@ class Model(BenchmarkModel):
         if self.device != 'cpu':
             raise NotImplementedError()
         model = self.eval_model
-        example_inputs = self.example_inputs
+        example_inputs = self.eval_example_inputs
         example_inputs = example_inputs[0][0].unsqueeze(0)
         for i in range(niter):
             model(example_inputs)
