@@ -3,6 +3,7 @@ Run a config of benchmarking with a list of models.
 If unspecified, run a sweep of all models.
 """
 import argparse
+from distutils.log import error
 import json
 import os
 import torch
@@ -35,6 +36,7 @@ def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS) -> float:
         func()
         t1 = time.time_ns()
     wall_latency = (t1 - t0) / NANOSECONDS_PER_MILLISECONDS
+    print(f"wall latency: {wall_latency}")
     return wall_latency
 
 @dataclasses.dataclass
@@ -43,9 +45,9 @@ class ModelTestResult:
     test: str
     device: str
     extra_args: List[str]
-    batch_size: Optional[int]
     latency: Optional[float]
     status: str
+    error_message: Optional[str]
 
 def _list_model_paths(models: List[str]) -> List[str]:
     p = pathlib.Path(__file__).parent.joinpath(*MODEL_DIR)
@@ -74,12 +76,11 @@ def _validate_devices(devices: str) -> List[str]:
 def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool, batch_size: Optional[int], extra_args: List[str]) -> ModelTestResult:
     assert test == "train" or test == "eval", f"Test must be either 'train' or 'eval', but get {test}."
     result = ModelTestResult(name=model_path.name, test=test, device=device, extra_args=extra_args,
-                             batch_size=None,
-                             latency=None, status=None)
+                             latency=None, status="OK", error_message=None)
     # Run the benchmark test in a separate process
     print(f"Running model {model_path.name} ... ", end='', flush=True)
     status: str = "OK"
-    bs_vname = "train_bs" if test == "train" else "eval_bs"
+    error_message: Optional[str] = None
     try:
         task = ModelTask(os.path.basename(model_path))
         if not task.model_details.exists:
@@ -93,14 +94,21 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
                 task.make_model_instance(test=test, device=device, jit=jit, eval_bs=batch_size, extra_args=extra_args)
         else:
             task.make_model_instance(test=test, device=device, jit=jit, extra_args=extra_args)
-        result.batch_size = getattr(task, bs_vname)
         func = getattr(task, test)
         result.latency = run_one_step(func, device)
-    except NotImplementedError:
+    except NotImplementedError as e:
         status = "NotImplemented"
+        error_message = str(e)
+    except TypeError as e:
+        status = "TypeError"
+        error_message = str(e)
+    except Exception as e:
+        status = f"{type(e).__name__}"
+        error_message = str(e)
     finally:
         print(f"[ {status} ]")
         result.status = status
+        result.error_message = error_message
         return result
 
 if __name__ == "__main__":
