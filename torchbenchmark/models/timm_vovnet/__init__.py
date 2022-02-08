@@ -10,11 +10,13 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False, variant='vovnet39a',
+    def __init__(self, test, device, jit=False, variant='vovnet39a',
                  train_bs=32, eval_bs=32, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
         self.train_bs = train_bs
         self.eval_bs = eval_bs
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)

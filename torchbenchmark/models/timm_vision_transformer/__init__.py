@@ -9,12 +9,14 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
     optimized_for_inference = True
 
-    def __init__(self, device=None, jit=False,
+    def __init__(self, test, device, jit=False,
                  variant='vit_small_patch16_224',
-                 train_bs=8, eval_bs=8):
+                 train_bs=8, eval_bs=8, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device)
         self.example_inputs = self._gen_input(train_bs)
@@ -79,13 +81,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()
-
-if __name__ == "__main__":
-    for device in ['cpu', 'cuda']:
-        for jit in [False, True]:
-            print("Test config: device %s, JIT %s" % (device, jit))
-            m = Model(device=device, jit=jit)
-            m, example_inputs = m.get_module()
-            m(example_inputs)
-            m.train()
-            m.eval()

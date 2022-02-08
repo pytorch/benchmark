@@ -32,10 +32,13 @@ class Model(BenchmarkModel):
     # Original btach size: 4
     # Original hardware: unknown
     # Source: https://arxiv.org/pdf/2004.00626.pdf
-    def __init__(self, device=None, jit=False, train_bs=4):
+    def __init__(self, test, device, jit=False, train_bs=4, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
+
         self.opt = Namespace(**{
             'n_blocks1': 7,
             'n_blocks2': 3,

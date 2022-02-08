@@ -41,10 +41,13 @@ torch.manual_seed(123)
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
 
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test, device, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
+
         # Train architecture: use the configuration in the paper.
         # Source: https://arxiv.org/pdf/1906.00091.pdf
         arch_embedding_size = "1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000"
@@ -215,10 +218,3 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
             self.lr_scheduler.step()
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train()
-    m.eval()

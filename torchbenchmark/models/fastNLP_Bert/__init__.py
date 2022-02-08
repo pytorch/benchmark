@@ -40,10 +40,13 @@ logger.setLevel(logging.WARNING)
 
 class Model(BenchmarkModel):
     task = NLP.OTHER_NLP
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test, device, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
+
         self.input_dir = CMRC2018_DIR
         # Generate input data files
         generate_inputs()
@@ -207,11 +210,3 @@ class Model(BenchmarkModel):
         :return: a scalar
         """
         return self.losser(predict, truth)
-
-if __name__ == "__main__":
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    m = Model(device=device, jit=False)
-    model, example_inputs = m.get_module()
-    model(*example_inputs)
-    m.train()
-    m.eval()

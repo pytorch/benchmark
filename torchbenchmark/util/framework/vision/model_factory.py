@@ -8,12 +8,15 @@ from torchbenchmark.util.framework.vision.args import parse_args, apply_args
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
 
-    def __init__(self, model_name=None, device=None, jit=False, train_bs=1, eval_bs=1, extra_args=[]):
+    def __init__(self, model_name, test, device, jit=False, train_bs=1, eval_bs=1, extra_args=[]):
         super().__init__()
+        assert test == "train" or test == "eval", f"Test must be 'train' or 'eval', but provided {test}."
+        self.test = test
         self.device = device
         self.jit = jit
         self.train_bs = train_bs
         self.eval_bs = eval_bs
+        self.extra_args = extra_args
 
         self.model = getattr(models, model_name)().to(self.device)
         self.eval_model = getattr(models, model_name)().to(self.device)

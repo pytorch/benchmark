@@ -26,10 +26,12 @@ def nyi():
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
 
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test, device, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
         if device != 'cuda' or device != 'lazy':  # NYI implemented for things that aren't on the GPU
             self.get_module = self.train = self.eval = nyi
             return
@@ -65,22 +67,3 @@ class Model(BenchmarkModel):
         model, example_inputs = self.get_module()
         for i in range(niter):
             model(*example_inputs)
-
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    model, example_inputs = m.get_module()
-    model(*example_inputs)
-    m.train()
-    m.eval()
-
-    m2 = Model(device='cuda', jit=True)
-    m2.eval()
-
-    m3 = Model()
-    try:
-        m3.train()
-        finished = True
-    except NotImplementedError:
-        finished = False
-    assert not finished

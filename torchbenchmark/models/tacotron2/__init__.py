@@ -13,11 +13,12 @@ class Model(BenchmarkModel):
 
     # Training batch size comes from the source code:
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L84
-    def __init__(self, device=None, jit=False, train_bs=64, eval_bs=64):
+    def __init__(self, test, device, jit=False, train_bs=64, eval_bs=64, extra_args=[]):
         super().__init__()
-        """ Required """
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
         if device == 'cpu' or jit:
             # TODO - currently load_model assumes cuda
             return
@@ -157,11 +158,3 @@ class Model(BenchmarkModel):
         self.eval_model.eval()
         for _ in range(niter):
             self.eval_model(self.example_input)
-
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    model, example_inputs = m.get_module()
-    model(*example_inputs)
-    m.train()
-    m.eval()

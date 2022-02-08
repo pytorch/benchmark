@@ -30,10 +30,12 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
 
     # This model doesn't support setting batch size for inference
-    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=2):
+    def __init__(self, test, device, jit=False, train_bs=1, eval_bs=2, extra_args=[]):
        super().__init__()
        self.device = device
        self.jit = jit
+       self.test = test
+       self.extra_args = extra_args
 
        model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
        self.model = instantiate(model_cfg).to(self.device)

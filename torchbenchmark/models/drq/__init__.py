@@ -83,10 +83,13 @@ def make_env(cfg):
 
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
-    def __init__(self, device=None, jit=False):
-        super(Model, self).__init__()
+    def __init__(self, test, device, jit=False, extra_args=[]):
+        super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
+
         self.cfg = DRQConfig()
         set_seed_everywhere(self.cfg.seed)
         self.env = make_env(self.cfg)

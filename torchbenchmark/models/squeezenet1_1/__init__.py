@@ -7,8 +7,8 @@ class Model(TorchVisionModel):
     # Original train batch size: 512, out of memory on V100 GPU
     # Use hierarchical batching to scale down: 512 = batch_size (32) * epoch_size (16)
     # Source: https://github.com/forresti/SqueezeNet
-    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=16, extra_args=[]):
-        super().__init__(model_name="squeezenet1_1", device=device, jit=jit,
+    def __init__(self, test, device, jit=False, train_bs=32, eval_bs=16, extra_args=[]):
+        super().__init__(model_name="squeezenet1_1", test=test, device=device, jit=jit,
                          train_bs=train_bs, eval_bs=eval_bs, extra_args=extra_args)
         self.epoch_size = 16
     

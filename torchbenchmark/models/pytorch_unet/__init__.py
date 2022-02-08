@@ -24,10 +24,12 @@ class Model(BenchmarkModel):
 
     task = COMPUTER_VISION.SEGMENTATION
 
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test, device, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
 
         self.args = self._get_args()
         # The sample inputs shape used here mimic the setting of the original repo
@@ -82,10 +84,3 @@ class Model(BenchmarkModel):
                             help='Learning rate', dest='lr')
         parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
         return parser.parse_args([])
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    module, sample_inputs = m.get_module()
-    module(sample_inputs)
-    m.train()
-    m.eval()

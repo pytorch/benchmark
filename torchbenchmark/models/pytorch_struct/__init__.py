@@ -57,10 +57,12 @@ class Model(BenchmarkModel):
 
   # Original train batch size: 200
   # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
-  def __init__(self, device=None, jit=False, train_bs=200):
+  def __init__(self, test, device, jit=False, train_bs=200, extra_args=[]):
     super().__init__()
     self.device = device
     self.jit = jit
+    self.test = test
+    self.extra_args = extra_args
 
     WORD = Field(include_lengths=True)
     UD_TAG = Field(init_token="<bos>", eos_token="<eos>", include_lengths=True)
@@ -117,12 +119,3 @@ class TestBench():
   def test_train(self, benchmark, device, jit):
     m = Model(device=device, jit=jit)
     benchmark(cuda_sync, m.train, device=='cuda')
-
-if __name__ == '__main__':
-  for device in ['cpu', 'cuda']:
-    for jit in [True, False]:
-      print("Testing device {}, JIT {}".format(device, jit))
-      m = Model(device=device, jit=jit)
-      model, example_inputs = m.get_module()
-      model(*example_inputs)
-      m.train()

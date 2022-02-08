@@ -15,10 +15,12 @@ BATCH_SIZE = 64
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
-    def __init__(self, device=None, jit=False):
+    def __init__(self, test, device, jit=False, extra_args=[]):
         super().__init__()
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
 
         self.model = models.resnet18(num_classes=10)
         self.model = ModuleValidator.fix(self.model)
@@ -79,11 +81,3 @@ class Model(BenchmarkModel):
         targets = self.example_target
         with torch.no_grad():
             model(images)
-
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train()
-    m.eval()

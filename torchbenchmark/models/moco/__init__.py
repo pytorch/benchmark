@@ -30,11 +30,13 @@ class Model(BenchmarkModel):
     # Original train batch size: 32
     # Paper and code uses batch size of 256 for 8 GPUs.
     # Source: https://arxiv.org/pdf/1911.05722.pdf
-    def __init__(self, device=None, jit=False, train_bs=32, eval_bs=32):
+    def __init__(self, test, device, jit=False, train_bs=32, eval_bs=32, extra_args=[]):
         super().__init__()
         """ Required """
         self.device = device
         self.jit = jit
+        self.test = test
+        self.extra_args = extra_args
         self.opt = Namespace(**{
             'arch': 'resnet50',
             'epochs': 2,
@@ -178,12 +180,3 @@ class Model(BenchmarkModel):
         for i in range(niter):
             for i, (images, _) in enumerate(self.eval_loader):
                 self.eval_model(im_q=images[0], im_k=images[1])
-
-
-if __name__ == '__main__':
-
-    m = Model(device='cuda', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(2)
-    m.eval()
