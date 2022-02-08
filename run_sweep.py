@@ -45,6 +45,7 @@ class ModelTestResult:
     device: str
     extra_args: List[str]
     status: str
+    batch_size: Optional[int]
     latency_ms: Optional[float]
     error_message: Optional[str]
 
@@ -79,11 +80,12 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
     # Run the benchmark test in a separate process
     print(f"Running model {model_path.name} ... ", end='', flush=True)
     status: str = "OK"
+    bs_name = "train_bs" if test == "train" else "eval_bs"
     error_message: Optional[str] = None
     try:
         task = ModelTask(os.path.basename(model_path))
         if not task.model_details.exists:
-            result.latency = None
+            result.latency_ms = None
             result.status = f"NotExist"
             return
         if batch_size:
@@ -93,12 +95,16 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
                 task.make_model_instance(test=test, device=device, jit=jit, eval_bs=batch_size, extra_args=extra_args)
         else:
             task.make_model_instance(test=test, device=device, jit=jit, extra_args=extra_args)
+        # Check the batch size in the model matches the specified value
+        result.batch_size = task.get_model_attribute(bs_name)
+        if batch_size and (not result.batch_size == batch_size):
+            raise ValueError(f"User specify batch size {batch_size}, but model {result.name} runs with batch size {result.batch_size}. Please report a bug.")
         func = getattr(task, test)
         result.latency_ms = run_one_step(func, device)
     except NotImplementedError as e:
         status = "NotImplemented"
         error_message = str(e)
-    except TypeError as e:
+    except TypeError as e: # TypeError is raised when the model doesn't support variable batch sizes
         status = "TypeError"
         error_message = str(e)
     except Exception as e:

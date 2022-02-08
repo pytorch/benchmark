@@ -281,6 +281,16 @@ class ModelTask(base_task.TaskBase):
             "maybe_sync": maybe_sync,
         })
 
+    # =========================================================================
+    # == Get Model attribute in the child process =============================
+    # =========================================================================
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def get_model_attribute(attr: str) -> Any:
+        model = globals()["model"]
+        attr_value = getattr(model, attr)
+        return attr_value
+
     def gc_collect(self) -> None:
         self.worker.run("""
             import gc
