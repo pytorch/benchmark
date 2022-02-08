@@ -21,25 +21,29 @@ class TorchVisionModel(BenchmarkModel):
             self.model = getattr(models, model_name)().to(self.device)
             self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
             self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
+            # setup optimizer and loss_fn
+            self.optimizer = optim.Adam(self.model.parameters())
+            self.loss_fn = torch.nn.CrossEntropyLoss()
         elif test == "eval":
             self.eval_model = getattr(models, model_name)().to(self.device)
             self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
 
-        # setup optimizer and loss_fn
-        self.optimizer = optim.Adam(self.model.parameters())
-        self.loss_fn = torch.nn.CrossEntropyLoss()
-
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-                self.eval_model = torch.jit._script_pdt(self.eval_model)
+                if test == "train":
+                    self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
+                elif test == "eval":
+                    self.eval_model = torch.jit._script_pdt(self.eval_model)
             else:
-                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
-                self.eval_model = torch.jit.script(self.eval_model)
-            # model needs to in `eval`
-            # in order to be optimized for inference
-            self.eval_model.eval()
-            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
+                if test == "train":
+                    self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
+                elif test == "eval":
+                    self.eval_model = torch.jit.script(self.eval_model)
+            if test == "eval":
+                # model needs to in `eval`
+                # in order to be optimized for inference
+                self.eval_model.eval()
+                self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
     # By default, FlopCountAnalysis count one fused-mult-add (FMA) as one flop.
     # However, in our context, we count 1 FMA as 2 flops instead of 1.

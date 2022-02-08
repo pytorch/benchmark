@@ -1,7 +1,7 @@
 import torch
 import argparse
 from contextlib import suppress
-from torchbenchmark.util.model import BenchmarkModel
+from torchbenchmark.util.model.BenchmarkModel
 from typing import List, Tuple
 
 def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespace:

@@ -2,6 +2,11 @@ import torch
 from fx2trt_oss.fx import LowerSetting
 from fx2trt_oss.fx.lower import Lowerer
 
+def enable_fx2trt(max_batch_size: int, fp16: bool, model: torch.nn.Module, example_inputs: Tuple[torch.tensor]) -> torch.nn.Module:
+    from torchbenchmark.util.fx2trt import lower_to_trt
+    return lower_to_trt(module=model, input=example_inputs, \
+                        max_batch_size=max_batch_size, fp16_mode=fp16)
+
 """
 The purpose of this example is to demostrate the onverall flow of lowering a PyTorch model
 to TensorRT conveniently with lower.py.
