@@ -26,6 +26,7 @@ class TorchVisionModel(BenchmarkModel):
             self.loss_fn = torch.nn.CrossEntropyLoss()
         elif test == "eval":
             self.eval_model = getattr(models, model_name)().to(self.device)
+            self.eval_model.eval()
             self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
 
         if self.jit:
@@ -42,7 +43,6 @@ class TorchVisionModel(BenchmarkModel):
             if test == "eval":
                 # model needs to in `eval`
                 # in order to be optimized for inference
-                self.eval_model.eval()
                 self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
     # By default, FlopCountAnalysis count one fused-mult-add (FMA) as one flop.
@@ -58,7 +58,7 @@ class TorchVisionModel(BenchmarkModel):
         assert False, "get_flops() only support eval or train mode."
 
     def get_module(self):
-        return self.model, self.example_inputs
+        return self.eval_model, self.eval_example_inputs
 
     def train(self, niter=3):
         real_input = [ torch.rand_like(self.example_inputs[0]) ]
