@@ -52,17 +52,9 @@ class Model(BenchmarkModel):
         self.parser = get_parser()
         self.args = self.parser.parse_args([])
         args = self.args
-        self.model = Demucs(channels=64)
-        self.dmodel = self.model
-        self.model.to(device)
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
-
-        if 1:
-            samples = 80000
-            # TODO: enable GPU training after it is supported by infra
-            #       see GH issue https://github.com/pytorch/benchmark/issues/652
-            # self.example_inputs = (torch.rand([train_bs, 5, 2, 426888], device=device),)
-            self.eval_example_inputs = (torch.rand([eval_bs, 5, 2, 426888], device=device),)
+        model = Demucs(channels=64)
+        model.to(device)
+        samples = 80000
 
         self.duration = Fraction(samples + args.data_stride, args.samplerate)
         self.stride = Fraction(args.data_stride, args.samplerate)
@@ -78,24 +70,41 @@ class Model(BenchmarkModel):
         else:
             self.augment = Shift(args.data_stride)
 
-        self.model = DemucsWrapper(self.model, self.augment)
+        model = DemucsWrapper(self.model, self.augment)
+
+        if test == "train":
+            self.model = model
+            self.model.train()
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
+            # TODO: enable GPU training after it is supported by infra
+            #       see GH issue https://github.com/pytorch/benchmark/issues/652
+            # self.example_inputs = (torch.rand([train_bs, 5, 2, 426888], device=device),)
+        elif test == "eval":
+            self.eval_model.eval()
+            self.eval_model = model
+            self.eval_example_inputs = (torch.rand([eval_bs, 5, 2, 426888], device=device),)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs = [self.eval_example_inputs, ])
+                if test == "train":
+                    # self.model = torch.jit._script_pdt(self.model, example_inputs = [self.example_inputs, ])
+                    pass
+                elif test == "eval":
+                    self.eval_model = torch.jit._script_pdt(self.model, example_inputs = [self.eval_example_inputs, ])
             else:
-                self.model = torch.jit.script(self.model, example_inputs = [self.eval_example_inputs, ])
-
-    def _set_mode(self, train):
-        self.model.train(train)
+                if test == "train":
+                    # self.model = torch.jit.script(self.model, example_inputs = [self.example_inputs, ])
+                    pass
+                elif test == "eval":
+                    self.eval_model = torch.jit.script(self.model, example_inputs = [self.eval_example_inputs, ])
 
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
-        self.model.eval()
-        return self.model, self.eval_example_inputs
+        self.eval_model.eval()
+        return self.eval_model, self.eval_example_inputs
 
     def eval(self, niter=1):
         for _ in range(niter):
-            sources, estimates = self.model(*self.eval_example_inputs)
+            sources, estimates = self.eval_model(*self.eval_example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
 
@@ -105,7 +114,7 @@ class Model(BenchmarkModel):
         if self.device == "cuda":
             raise NotImplementedError("Disable GPU training because it causes CUDA OOM on T4")
         for _ in range(niter):
-            sources, estimates = self.model(*self.eval_example_inputs)
+            sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
             loss.backward()
