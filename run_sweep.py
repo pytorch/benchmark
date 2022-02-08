@@ -8,7 +8,7 @@ import os
 import torch
 import time
 import pathlib
-from dataclasses import dataclass
+import dataclasses
 import itertools
 from typing import List, Optional
 from torchbenchmark import ModelTask
@@ -17,7 +17,7 @@ WARMUP_ROUNDS = 3
 MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
-def run_one_step(func, device, nwarmup=WARMUP_ROUNDS) -> float:
+def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS) -> float:
     "Run one step of the model, and return the latency in milliseconds."
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
@@ -37,7 +37,7 @@ def run_one_step(func, device, nwarmup=WARMUP_ROUNDS) -> float:
     wall_latency = (t1 - t0) / NANOSECONDS_PER_MILLISECONDS
     return wall_latency
 
-@dataclass
+@dataclasses.dataclass
 class ModelTestResult:
     name: str
     test: str
@@ -45,8 +45,7 @@ class ModelTestResult:
     extra_args: List[str]
     batch_size: Optional[int]
     latency: Optional[float]
-    stdout: Optional[str]
-    stderr: Optional[str]
+    status: str
 
 def _list_model_paths(models: List[str]) -> List[str]:
     p = pathlib.Path(__file__).parent.joinpath(*MODEL_DIR)
@@ -72,25 +71,37 @@ def _validate_devices(devices: str) -> List[str]:
             raise ValueError(f'Invalid device {d} passed into --devices. Expected devices: {valid_devices}.')
     return devices_list
 
-def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool, batch_size: int, extra_args: List[str]) -> ModelTestResult:
+def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool, batch_size: Optional[int], extra_args: List[str]) -> ModelTestResult:
+    assert test == "train" or test == "eval", f"Test must be either 'train' or 'eval', but get {test}."
     result = ModelTestResult(name=model_path.name, test=test, device=device, extra_args=extra_args,
-                             latency=None, stdout=None, stderr=None)
+                             batch_size=None,
+                             latency=None, status=None)
     # Run the benchmark test in a separate process
     print(f"Running model {model_path.name} ... ", end='', flush=True)
+    status: str = "OK"
+    bs_vname = "train_bs" if test == "train" else "eval_bs"
     try:
         task = ModelTask(os.path.basename(model_path))
         if not task.model_details.exists:
             result.latency = None
-            result.stdout = None
-            result.stderr = f"Model {model_path.name} does not exist."
+            result.status = f"NotExist"
             return
-        # TODO: Handle batch size
-        task.make_model_instance(test=test, device=device, jit=jit, extra_args=extra_args)
+        if batch_size:
+            if test == "train":
+                task.make_model_instance(test=test, device=device, jit=jit, train_bs=batch_size, extra_args=extra_args)
+            elif test == "eval":
+                task.make_model_instance(test=test, device=device, jit=jit, eval_bs=batch_size, extra_args=extra_args)
+        else:
+            task.make_model_instance(test=test, device=device, jit=jit, extra_args=extra_args)
+        result.batch_size = getattr(task, bs_vname)
         func = getattr(task, test)
         result.latency = run_one_step(func, device)
-        print("[ OK ]")
     except NotImplementedError:
-        result.stderr = "Not Implemented"
+        status = "NotImplemented"
+    finally:
+        print(f"[ {status} ]")
+        result.status = status
+        return result
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -100,12 +111,14 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--devices", required=True, type=_validate_devices, help="Specify devices, choice of cpu, or cuda.")
     parser.add_argument("-b", "--bs", type=int, help="Specify batch size.")
     parser.add_argument("--jit", action='store_true', help="Turn on torchscript.")
-    parser.add_argument("-o", "--output", type=str, help="The default output json file.")
+    parser.add_argument("-o", "--output", type=str, default="tb-output.json", help="The default output json file.")
     args, extra_args = parser.parse_known_args()
     args.models = _list_model_paths(args.models)
     results = []
     for element in itertools.product(*[args.models, args.tests, args.devices]):
         model_path, test, device = element
-
         r = _run_model_test(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
         results.append(r)
+    results = list(map(lambda x: dataclasses.asdict(x), results))
+    with open(args.output, "w") as outfile:
+        json.dump(results, outfile)
