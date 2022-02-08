@@ -151,7 +151,7 @@ class Model(BenchmarkModel):
 
         bert = BERT(len(vocab), hidden=args.hidden, n_layers=args.layers, attn_heads=args.attn_heads)
 
-        self.trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
+        trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                                    with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
@@ -160,35 +160,43 @@ class Model(BenchmarkModel):
             self.example_inputs = example_batch['bert_input'].to(self.device)[:train_bs], example_batch['segment_label'].to(self.device)[:train_bs]
             self.is_next = example_batch['is_next'].to(self.device)[:train_bs]
             self.bert_label = example_batch['bert_label'].to(self.device)[:train_bs]
+            self.model = trainer
         elif test == "eval":
-            self.example_inputs = example_batch['bert_input'].to(self.device)[:eval_bs], example_batch['segment_label'].to(self.device)[:eval_bs]
+            self.eval_example_inputs = example_batch['bert_input'].to(self.device)[:eval_bs], example_batch['segment_label'].to(self.device)[:eval_bs]
             self.is_next = example_batch['is_next'].to(self.device)[:eval_bs]
             self.bert_label = example_batch['bert_label'].to(self.device)[:eval_bs]
+            self.eval_model = trainer
         
         if args.script:
             if hasattr(torch.jit, '_script_pdt'):
-                bert = torch.jit._script_pdt(bert, example_inputs=[self.example_inputs, ])
+                if test == "train":
+                    self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
+                elif test == "eval":
+                    self.eval_model = torch.jit._script_pdt(self.model, example_inputs=[self.eval_example_inputs, ])
             else:
-                bert = torch.jit.script(bert, example_inputs=[self.example_inputs, ])
+                if test == "train":
+                    self.model = torch.jit.script(bert, example_inputs=[self.example_inputs, ])
+                elif test == "eval":
+                    self.eval_model = torch.jit.script(bert, example_inputs=[self.eval_example_inputs, ])
 
     def get_module(self):
-        return self.trainer.model, self.example_inputs
+        return self.eval_model.model, self.eval_example_inputs
 
     def eval(self, niter=1):
-        trainer = self.trainer
+        eval_model = self.eval_model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
-            next_sent_output, mask_lm_output = trainer.model.forward(*self.example_inputs)
+            next_sent_output, mask_lm_output = eval_model.model.forward(*self.eval_example_inputs)
 
             # 2-1. NLL(negative log likelihood) loss of is_next classification result
             # 2-2. NLLLoss of predicting masked token word
             # 2-3. Adding next_loss and mask_loss : 3.4 Pre-training Procedure
-            next_loss = trainer.criterion(next_sent_output, self.is_next)
-            mask_loss = trainer.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
+            next_loss = eval_model.criterion(next_sent_output, self.is_next)
+            mask_loss = eval_model.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
             loss = next_loss + mask_loss
 
     def train(self, niter=1):
-        trainer = self.trainer
+        trainer = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
             next_sent_output, mask_lm_output = trainer.model.forward(*self.example_inputs)
