@@ -36,7 +36,6 @@ def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS) -> float:
         func()
         t1 = time.time_ns()
     wall_latency = (t1 - t0) / NANOSECONDS_PER_MILLISECONDS
-    print(f"wall latency: {wall_latency}")
     return wall_latency
 
 @dataclasses.dataclass
@@ -45,8 +44,8 @@ class ModelTestResult:
     test: str
     device: str
     extra_args: List[str]
-    latency: Optional[float]
     status: str
+    latency_ms: Optional[float]
     error_message: Optional[str]
 
 def _list_model_paths(models: List[str]) -> List[str]:
@@ -76,7 +75,7 @@ def _validate_devices(devices: str) -> List[str]:
 def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool, batch_size: Optional[int], extra_args: List[str]) -> ModelTestResult:
     assert test == "train" or test == "eval", f"Test must be either 'train' or 'eval', but get {test}."
     result = ModelTestResult(name=model_path.name, test=test, device=device, extra_args=extra_args,
-                             latency=None, status="OK", error_message=None)
+                             status="OK", latency_ms=None, error_message=None)
     # Run the benchmark test in a separate process
     print(f"Running model {model_path.name} ... ", end='', flush=True)
     status: str = "OK"
@@ -95,7 +94,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         else:
             task.make_model_instance(test=test, device=device, jit=jit, extra_args=extra_args)
         func = getattr(task, test)
-        result.latency = run_one_step(func, device)
+        result.latency_ms = run_one_step(func, device)
     except NotImplementedError as e:
         status = "NotImplemented"
         error_message = str(e)
