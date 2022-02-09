@@ -20,19 +20,15 @@ class ArgsToKwargsWrapper(torch.nn.Module):
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
-
     # Original train batch size per device: 8
     # Source: https://github.com/huggingface/transformers/blob/master/examples/flax/language-modeling/run_t5_mlm_flax.py#L83
+    DEFAULT_TRAIN_BSIZE = 8
     # Original eval batch size per device: 8
     # Downscale to 1 to fit in Nvidia T4 of the infra
-    def __init__(self, test, device, jit=False, train_bs=8, eval_bs=1, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.extra_args = extra_args
+    DEFAULT_EVAL_BSIZE = 1
+    
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         config = AutoConfig.from_pretrained("t5-small")
         self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
@@ -40,12 +36,12 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Disable T5 model train because of limited infra capacity")
             self.model.train()
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-            input_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
-            decoder_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
+            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
         elif test == "eval":
             self.model.eval()
-            eval_context = torch.randint(0, config.vocab_size, (eval_bs, 512)).to(device)
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
             self.example_inputs = {'input_ids': eval_context, }
 
     def get_module(self):
