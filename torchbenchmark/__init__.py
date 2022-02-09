@@ -258,14 +258,9 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def make_model_instance(test: str, device: str, jit: bool, train_bs: Optional[int]=None, eval_bs: Optional[int]=None, extra_args: List[str]=[]) -> None:
+    def make_model_instance(test: str, device: str, jit: bool, batch_size: Optional[int]=None, extra_args: List[str]=[]) -> None:
         Model = globals()["Model"]
-        if train_bs:
-            model = Model(test=test, device=device, jit=jit, train_bs=train_bs, extra_args=extra_args)
-        elif eval_bs:
-            model = Model(test=test, device=device, jit=jit, eval_bs=eval_bs, extra_args=extra_args)
-        else:
-            model = Model(test=test, device=device, jit=jit, extra_args=extra_args)
+        model = Model(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         import gc
         gc.collect()

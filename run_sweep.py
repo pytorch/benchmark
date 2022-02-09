@@ -80,7 +80,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
     # Run the benchmark test in a separate process
     print(f"Running model {model_path.name} ... ", end='', flush=True)
     status: str = "OK"
-    bs_name = "train_bs" if test == "train" else "eval_bs"
+    bs_name = "batch_size"
     error_message: Optional[str] = None
     try:
         task = ModelTask(os.path.basename(model_path))
@@ -88,13 +88,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
             result.latency_ms = None
             result.status = f"NotExist"
             return
-        if batch_size:
-            if test == "train":
-                task.make_model_instance(test=test, device=device, jit=jit, train_bs=batch_size, extra_args=extra_args)
-            elif test == "eval":
-                task.make_model_instance(test=test, device=device, jit=jit, eval_bs=batch_size, extra_args=extra_args)
-        else:
-            task.make_model_instance(test=test, device=device, jit=jit, extra_args=extra_args)
+        task.make_model_instance(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         # Check the batch size in the model matches the specified value
         result.batch_size = task.get_model_attribute(bs_name)
         if batch_size and (not result.batch_size == batch_size):

@@ -9,9 +9,7 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     args = parser.parse_args(extra_args)
     args.device = model.device
     args.jit = model.jit
-    # some models don't support train or eval tests, therefore they don't have these attributes
-    args.train_bs = model.train_bs if hasattr(model, 'train_bs') else None
-    args.eval_bs = model.eval_bs if hasattr(model, 'eval_bs') else None
+    args.batch_size = model.batch_size
     # CUDA Graph is only supported for torchvision models
     args.cudagraph = None
     return args
