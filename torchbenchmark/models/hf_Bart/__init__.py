@@ -18,28 +18,24 @@ class ArgsToKwargsWrapper(torch.nn.Module):
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    DEFAULT_TRAIN_BSIZE = 4
+    DEFAULT_EVAL_BSIZE = 1
 
-    def __init__(self, test, device, jit=False, train_bs=4, eval_bs=1, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.extra_args = extra_args
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         torch.manual_seed(42)
         config = AutoConfig.from_pretrained("facebook/bart-base")
+        self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
 
         if test =="train":
-            input_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
-            decoder_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
-            self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
+            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
             self.model.train()
         elif test == "eval":
-            eval_context = torch.randint(0, config.vocab_size, (eval_bs, 512)).to(device)
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
             self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
             self.example_inputs = {'input_ids': eval_context, }
             self.model.eval()
