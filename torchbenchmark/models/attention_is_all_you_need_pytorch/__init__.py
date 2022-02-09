@@ -105,42 +105,36 @@ class Model(BenchmarkModel):
         if test == "train":
             self.model = self._create_transformer()
             self.model.train()
-            self.train_example_inputs = self._preprocess(train_data)
-            src_seq, trg_seq, gold = self.train_example_inputs[0]
+            self.example_inputs = self._preprocess(train_data)
+            src_seq, trg_seq, gold = self.example_inputs[0]
             self.optimizer = ScheduledOptim(
                 optim.Adam(self.module.parameters(), betas=(0.9, 0.98), eps=1e-09),
                 2.0, self.opt.d_model, self.opt.n_warmup_steps)
         elif test == "eval":
-            self.eval_model = self._create_transformer()
-            self.eval_model.eval()
-            self.eval_example_inputs = self._preprocess(test_data)
-            src_seq, trg_seq, gold = self.eval_example_inputs[0]
+            self.model = self._create_transformer()
+            self.model.eval()
+            self.example_inputs = self._preprocess(test_data)
+            src_seq, trg_seq, gold = self.example_inputs[0]
 
         example_inputs = (src_seq, trg_seq)
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                if test == "train":
-                    self.model = torch.jit._script_pdt(self.model, example_inputs = [example_inputs, ])
-                elif test == "eval":
-                    self.eval_model = torch.jit._script_pdt(self.eval_model, example_inputs = [example_inputs, ])
+                self.model = torch.jit._script_pdt(self.model, example_inputs = [example_inputs, ])
             else:
-                if test == "train":
-                    self.model = torch.jit.script(self.model, example_inputs = [example_inputs, ])
-                elif test == "eval":
-                    self.eval_model = torch.jit.script(self.eval_model, example_inputs = [example_inputs, ])
+                self.model = torch.jit.script(self.model, example_inputs = [example_inputs, ])
             if test == "eval":
-                self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
+                self.model = torch.jit.optimize_for_inference(self.model)
 
     def get_module(self):
-        for (src_seq, trg_seq, gold) in self.eval_example_inputs:
+        for (src_seq, trg_seq, gold) in self.example_inputs:
             return self.model, (*(src_seq, trg_seq), )
 
     def eval(self, niter=1):
-        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.eval_example_inputs):
-            self.eval_model(*(src_seq, trg_seq))
+        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
+            self.model(*(src_seq, trg_seq))
 
     def train(self, niter=1):
-        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.train_example_inputs):
+        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
             self.optimizer.zero_grad()
             example_inputs = (src_seq, trg_seq)
             pred = self.model(*example_inputs)
