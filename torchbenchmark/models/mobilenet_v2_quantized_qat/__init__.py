@@ -21,9 +21,12 @@ class Model(BenchmarkModel):
         self.train_bs = train_bs
         self.eval_bs = eval_bs
         self.model = models.mobilenet_v2().to(self.device)
-        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
-        if test == "eval":
-            self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+        if test == "train":
+            self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
+            self.model.train()
+        elif test == "eval":
+            self.example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+            self.model.eval()
         self.prep_qat_train()  # config+prepare steps are required for both train and eval
 
     def prep_qat_train(self):
@@ -55,7 +58,7 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.device != 'cpu':
             raise NotImplementedError()
-        example_inputs = self.eval_example_inputs[0][0].unsqueeze(0)
+        example_inputs = self.example_inputs[0][0].unsqueeze(0)
         for _i in range(niter):
             self.model(example_inputs)
 
