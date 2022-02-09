@@ -21,27 +21,28 @@ class Model(BenchmarkModel):
         torch.manual_seed(42)
         config = AutoConfig.from_pretrained("allenai/longformer-base-4096")
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-
-        input_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
-        decoder_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
-
-        eval_context = torch.randint(0, config.vocab_size, (eval_bs, 512)).to(device)
-
-        self.train_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
-        self.eval_inputs = {'input_ids': eval_context, }
+        if test == "train":
+            self.model.train()
+            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+            input_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
+            self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
+        elif test == "eval":
+            self.model.eval()
+            eval_context = torch.randint(0, config.vocab_size, (eval_bs, 512)).to(device)
+            self.example_inputs = {'input_ids': eval_context, }
 
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        return self.model, (self.eval_inputs["input_ids"], )
+        return self.model, (self.example_inputs["input_ids"], )
 
     def train(self, niter=3):
         if self.jit:
             raise NotImplementedError()
         self.model.train()
         for _ in range(niter):
-            outputs = self.model(**self.train_inputs)
+            outputs = self.model(**self.example_inputs)
             loss = outputs.loss
             loss.backward()
             self.optimizer.step()
@@ -52,4 +53,4 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
-                out = self.model(**self.eval_inputs)
+                out = self.model(**self.example_inputs)

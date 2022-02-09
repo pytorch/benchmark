@@ -36,7 +36,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        return self.model, (self.eval_inputs["input_ids"], )
+        return self.model, (self.example_inputs["input_ids"], )
 
     def train(self, niter=3):
         if self.jit:
