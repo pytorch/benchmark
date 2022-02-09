@@ -22,17 +22,13 @@ from .nvinfer import DeepRecommenderInferenceBenchmark
 class Model(BenchmarkModel):
 
   task = RECOMMENDATION.RECOMMENDATION
+  DEFAULT_TRAIN_BSIZE = 256
+  DEFAULT_EVAL_BSIZE = 256
 
-  def __init__(self, test, device, train_bs=256, eval_bs=256, jit=False, extra_args=[]):
-    super().__init__()
-    self.device = device
-    self.jit = jit
-    self.train_bs = train_bs
-    self.eval_bs = eval_bs
-    self.test = test
-    self.extra_args = extra_args
+  def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+    super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
     self.not_implemented_reason = "Implemented"
-    self.eval_mode = True #default to inference
+    self.eval_mode = True if self.test == "eval" else False
 
     if jit:
       self.not_implemented_reason = "Jit Not Supported"
@@ -45,15 +41,14 @@ class Model(BenchmarkModel):
 
     else:
       if test == "train":
-        self.train_obj = DeepRecommenderTrainBenchmark(device = self.device, jit = jit, batch_size=train_bs)
+        self.model = DeepRecommenderTrainBenchmark(device = self.device, jit = jit, batch_size=self.batch_size)
       elif test == "eval":
-        self.infer_obj = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit, batch_size=eval_bs)
+        self.model = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit, batch_size=self.batch_size)
 
   def get_module(self):
     if self.eval_mode:
-       return self.infer_obj.rencoder, (self.infer_obj.toyinputs,)
-
-    return self.train_obj.rencoder, (self.train_obj.toyinputs,)
+       return self.model.rencoder, (self.model.toyinputs,)
+    return self.model.rencoder, (self.model.toyinputs,)
 
   def set_eval(self):
     self.eval_mode = True
@@ -79,8 +74,8 @@ class Model(BenchmarkModel):
 
   def timed_infer(self):
     self.check_implemented()
-    self.infer_obj.TimedInferenceRun()
+    self.model.TimedInferenceRun()
 
   def timed_train(self):
     self.check_implemented()
-    self.train_obj.TimedTrainingRun()
+    self.model.TimedTrainingRun()
