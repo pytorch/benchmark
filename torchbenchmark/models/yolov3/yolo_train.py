@@ -87,7 +87,8 @@ def prepare_training_loop(args):
         img_size = imgsz_max  # initialize with max size
 
         # Configure run
-        init_seeds(0)
+        # do not init seeds because it is already initialized in __init__.py
+        # init_seeds(0)
         data_dict = parse_data_cfg(data)
         train_path = os.path.dirname(__file__) + '/' + data_dict['train']
         test_path = os.path.dirname(__file__) + '/' + data_dict['valid']
