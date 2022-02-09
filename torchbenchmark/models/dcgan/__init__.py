@@ -223,21 +223,18 @@ class Model(BenchmarkModel):
             self.inference_just_descriminator = True
             # eval batch size
             self.eval_bs = eval_bs
-            self.eval_exmaple_inputs = torch.randn(self.eval_bs, 3, 64, 64, device=self.device)
-            self.eval_model = netD
+            self.exmaple_inputs = torch.randn(self.eval_bs, 3, 64, 64, device=self.device)
+            self.model = netD
             if False == self.inference_just_descriminator:
                 self.eval_noise = torch.randn(self.eval_bs, nz, 1, 1, device=self.device)
 
         if self.jit:
-            if test == "train":
-                self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
-            elif test == "eval":
-                self.eval_model = torch.jit.trace(self.eval_model, (self.eval_exmaple_inputs,))
-                if False == self.inference_just_descriminator:
-                    self.netG = torch.jit.trace(self.netG,(self.eval_noise,))
+            self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
+            if test == "eval" and False == self.inference_just_descriminator:
+                self.netG = torch.jit.trace(self.netG,(self.eval_noise,))
 
     def get_module(self):
-        return self.eval_model, (self.eval_exmaple_inputs,)
+        return self.model, (self.exmaple_inputs,)
 
     def eval(self, niter=1):
         for _ in range(niter):
@@ -247,7 +244,7 @@ class Model(BenchmarkModel):
               self.eval_fake = self.netG(self.eval_noise)
 
             # Since we just updated D, perform another forward pass of all-fake batch through D
-            output = self.eval_model(self.eval_exmaple_inputs).view(-1)
+            output = self.model(self.exmaple_inputs).view(-1)
 
     def train(self, niter=1):
 

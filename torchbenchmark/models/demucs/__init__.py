@@ -79,32 +79,25 @@ class Model(BenchmarkModel):
             # TODO: enable GPU training after it is supported by infra
             #       see GH issue https://github.com/pytorch/benchmark/issues/652
             # self.example_inputs = (torch.rand([train_bs, 5, 2, 426888], device=device),)
+            raise NotImplementedError("Disabled train test because of insuffcient GPU memory on T4.")
         elif test == "eval":
-            self.eval_model.eval()
-            self.eval_model = model
-            self.eval_example_inputs = (torch.rand([eval_bs, 5, 2, 426888], device=device),)
+            self.model = model
+            self.model.eval()
+            self.example_inputs = (torch.rand([eval_bs, 5, 2, 426888], device=device),)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                if test == "train":
-                    # self.model = torch.jit._script_pdt(self.model, example_inputs = [self.example_inputs, ])
-                    pass
-                elif test == "eval":
-                    self.eval_model = torch.jit._script_pdt(self.model, example_inputs = [self.eval_example_inputs, ])
+                self.model = torch.jit._script_pdt(self.model, example_inputs = [self.example_inputs, ])
             else:
-                if test == "train":
-                    # self.model = torch.jit.script(self.model, example_inputs = [self.example_inputs, ])
-                    pass
-                elif test == "eval":
-                    self.eval_model = torch.jit.script(self.model, example_inputs = [self.eval_example_inputs, ])
+                self.model = torch.jit.script(self.model, example_inputs = [self.example_inputs, ])
 
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
-        self.eval_model.eval()
-        return self.eval_model, self.eval_example_inputs
+        self.model.eval()
+        return self.model, self.example_inputs
 
     def eval(self, niter=1):
         for _ in range(niter):
-            sources, estimates = self.eval_model(*self.eval_example_inputs)
+            sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
 

@@ -53,15 +53,15 @@ class Model(BenchmarkModel):
         elif test == "eval":
             data_cfg.test.dataset.names = "coco_2017_val_100"
             data_cfg.test.batch_size = eval_bs
-            self.eval_model = instantiate(model_cfg).to(self.device)
-            self.eval_model.eval()
+            self.model = instantiate(model_cfg).to(self.device)
+            self.model.eval()
             test_loader = instantiate(data_cfg.test)
-            self.eval_example_inputs = itertools.cycle(itertools.islice(test_loader, 100))
+            self.example_inputs = itertools.cycle(itertools.islice(test_loader, 100))
 
     def get_module(self):
-        self.eval_model.eval()
-        for data in self.eval_example_inputs:
-            return self.eval_model, (data, )
+        self.model.eval()
+        for data in self.example_inputs:
+            return self.model, (data, )
 
     def train(self, niter=1):
         if not self.device == "cuda":
@@ -82,8 +82,8 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
-        self.eval_model.eval()
+        self.model.eval()
         with torch.no_grad():
-            for idx, data in zip(range(niter), self.eval_example_inputs):
-                self.eval_model(data)
+            for idx, data in zip(range(niter), self.example_inputs):
+                self.model(data)
 
