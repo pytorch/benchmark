@@ -185,30 +185,36 @@ class Model(BenchmarkModel):
         else:
             sys.exit("ERROR: --loss-function=" + self.opt.loss_function + " is not supported")
 
-        self.module = dlrm.to(self.device)
-        self.example_inputs = (X, lS_o, lS_i)
-        self.loss_fn = torch.nn.MSELoss(reduction="mean")
-        self.optimizer = torch.optim.SGD(dlrm.parameters(), lr=self.opt.learning_rate)
-        self.lr_scheduler = LRPolicyScheduler(self.optimizer,
-                                              self.opt.lr_num_warmup_steps,
-                                              self.opt.lr_decay_start_step,
-                                              self.opt.lr_num_decay_steps)
+        if test == "train":
+            self.model = dlrm.to(self.device)
+            self.model.train()
+            self.example_inputs = (X, lS_o, lS_i)
+            self.loss_fn = torch.nn.MSELoss(reduction="mean")
+            self.optimizer = torch.optim.SGD(dlrm.parameters(), lr=self.opt.learning_rate)
+            self.lr_scheduler = LRPolicyScheduler(self.optimizer,
+                                                self.opt.lr_num_warmup_steps,
+                                                self.opt.lr_decay_start_step,
+                                                self.opt.lr_num_decay_steps)
+        elif test == "eval":
+            self.eval_model = dlrm.to(self.device)
+            self.eval_model.eval()
+            self.eval_example_inputs = (X, lS_o, lS_i)
 
     def get_module(self):
-        return self.module, self.example_inputs
+        return self.eval_model, self.eval_example_inputs
 
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT not supported")
 
         for _ in range(niter):
-            self.module(*self.example_inputs)
+            self.eval_model(*self.eval_example_inputs)
 
     def train(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT not supported")
 
-        gen = self.module(*self.example_inputs)
+        gen = self.model(*self.example_inputs)
         for _ in range(niter):
             self.optimizer.zero_grad()
             loss = self.loss_fn(gen, self.targets)
