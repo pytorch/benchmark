@@ -21,21 +21,23 @@ class Model(BenchmarkModel):
     # Original batch size: 32
     # Source: https://github.com/kaituoxu/Speech-Transformer/blob/e6847772d6a786336e117a03c48c62ecbf3016f6/src/bin/train.py#L68
     # This model does not support adjusting eval bs
-    def __init__(self, test, device, jit=False, train_bs=32, extra_args=[]):
-        self.jit = jit
-        self.device = device
-        self.train_bs = train_bs
-        self.eval_bs = 1 # not adjustable
-        self.extra_args = extra_args
-        self.test = test
+    DEFAULT_TRAIN_BSIZE = 32
+    DEFAULT_EVAL_BSIZE = 1
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         if jit:
-            return
+            raise NotImplementedError("This model doesn't support jit.")
         if device == "cpu":
-            return
-        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs, num_train_batch=NUM_TRAIN_BATCH)
-        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_batch=NUM_EVAL_BATCH)
-        self.traincfg.model.to(self.device)
-        self.evalcfg.model.to(self.device)
+            raise NotImplementedError("This model doesn't support CPU.")
+        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=self.batch_size, num_train_batch=NUM_TRAIN_BATCH)
+        if test == "train":
+            self.traincfg.model.to(self.device)
+        elif test == "eval":
+            if batch_size != self.DEFAULT_EVAL_BSIZE:
+                raise NotImplementedError("This model doesn't support customizing eval batch size.")
+            self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_batch=NUM_EVAL_BATCH)
+            self.evalcfg.model.to(self.device)
 
     def get_module(self):
         if self.device == "cpu":
