@@ -85,5 +85,5 @@ class Model(BenchmarkModel):
         self.eval_model.eval()
         with torch.no_grad():
             for idx, data in zip(range(niter), self.eval_example_inputs):
-                self.model(data)
+                self.eval_model(data)
 
