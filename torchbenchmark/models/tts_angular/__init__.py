@@ -2,30 +2,26 @@
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 
-from .angular_tts_main import TTSModel, EVAL_SYNTHETIC_DATA
+from .angular_tts_main import TTSModel, SYNTHETIC_DATA
 
 class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
     # Original train batch size: 64
     # Source: https://github.com/mozilla/TTS/blob/master/TTS/speaker_encoder/config.json#L38
-    def __init__(self, test, device, jit=False, train_bs=64, eval_bs=256, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.extra_args = extra_args
-        self.model = TTSModel(device=self.device, train_bs=train_bs, eval_bs=eval_bs)
+    DEFAULT_TRAIN_BSIZE = 64
+    DEFAULT_EVAL_BSIZE = 64
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
+        self.model = TTSModel(device=self.device, batch_size=self.batch_size)
         self.model.model.to(self.device)
 
     def get_module(self):
-        return self.model.model, [EVAL_SYNTHETIC_DATA[0], ]
+        return self.model.model, [SYNTHETIC_DATA[0], ]
 
     def set_train(self):
-        # another model instance is used for training
-        # and the train mode is on by default
-        pass
+        self.model.model.train()
 
     def train(self, niter=1):
         if self.jit:
