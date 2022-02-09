@@ -171,7 +171,7 @@ class SpeechTransformerEvalConfig:
         # Read json data
         with open(self.recog_json, "rb") as f:
             self.js = json.load(f)['utts']
-        self.eval_example_input = []
+        self.example_inputs = []
         for idx, name in enumerate(list(self.js.keys())[:self.recog_word], 1):
             feat_path = os.path.join(self.base_path, self.js[name]['input'][0]['feat'])
             input = kaldi_io.read_mat(feat_path)
@@ -180,10 +180,10 @@ class SpeechTransformerEvalConfig:
             input_length = torch.tensor([input.size(0)], dtype=torch.int)
             input = input.cuda()
             input_length = input_length.cuda()
-            self.eval_example_input.append((input, input_length))
-            if len(self.eval_example_input) == num_eval_batch:
+            self.example_inputs.append((input, input_length))
+            if len(self.example_inputs) == num_eval_batch:
                 break
     def eval(self):
         with torch.no_grad():
-            for input, input_length in self.eval_example_input:
+            for input, input_length in self.example_inputs:
                 nbest_hyps = self.model.recognize(input, input_length, self.char_list, self)

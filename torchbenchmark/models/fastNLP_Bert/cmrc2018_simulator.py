@@ -96,13 +96,13 @@ def _dump_data(data, path):
     with open(path, "w") as dp:
         json.dump(data, dp, indent=4, ensure_ascii=False)
 
-def _generate_dev(eval_bs):
-    CMRC2018_DEV_SPEC["data_size"] = eval_bs * EVAL_NUM_BATCH
+def _generate_dev(batch_size):
+    CMRC2018_DEV_SPEC["data_size"] = batch_size * EVAL_NUM_BATCH
     dev_data = _generate_cmrc2018(CMRC2018_DEV_SPEC)
     _dump_data(dev_data, CMRC2018_DEV_SIM)
 
-def _generate_train(train_bs):
-    CMRC2018_TRAIN_SPEC["data_size"] = train_bs * TRAIN_NUM_BATCH
+def _generate_train(batch_size):
+    CMRC2018_TRAIN_SPEC["data_size"] = batch_size * TRAIN_NUM_BATCH
     dev_data = _generate_cmrc2018(CMRC2018_TRAIN_SPEC)
     _dump_data(dev_data, CMRC2018_TRAIN_SIM)
 

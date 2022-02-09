@@ -47,7 +47,7 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError()
 
-        return self.model, self.eval_example_inputs
+        return self.model, self.example_inputs
 
     def train(self, niter=1):
         if niter != 1:
