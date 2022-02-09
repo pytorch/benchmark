@@ -21,29 +21,24 @@ class TorchVisionModel(BenchmarkModel):
             self.model = getattr(models, model_name)().to(self.device)
             self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
             self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
+            self.model.train()
             # setup optimizer and loss_fn
             self.optimizer = optim.Adam(self.model.parameters())
             self.loss_fn = torch.nn.CrossEntropyLoss()
         elif test == "eval":
-            self.eval_model = getattr(models, model_name)().to(self.device)
-            self.eval_model.eval()
-            self.eval_example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
+            self.model = getattr(models, model_name)().to(self.device)
+            self.model.eval()
+            self.example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                if test == "train":
-                    self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-                elif test == "eval":
-                    self.eval_model = torch.jit._script_pdt(self.eval_model)
+                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
             else:
-                if test == "train":
-                    self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
-                elif test == "eval":
-                    self.eval_model = torch.jit.script(self.eval_model)
+                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
             if test == "eval":
                 # model needs to in `eval`
                 # in order to be optimized for inference
-                self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
+                self.model = torch.jit.optimize_for_inference(self.model)
 
     # By default, FlopCountAnalysis count one fused-mult-add (FMA) as one flop.
     # However, in our context, we count 1 FMA as 2 flops instead of 1.
@@ -58,7 +53,7 @@ class TorchVisionModel(BenchmarkModel):
         assert False, "get_flops() only support eval or train mode."
 
     def get_module(self):
-        return self.eval_model, self.eval_example_inputs
+        return self.model, self.example_inputs
 
     def train(self, niter=3):
         real_input = [ torch.rand_like(self.example_inputs[0]) ]
@@ -78,7 +73,7 @@ class TorchVisionModel(BenchmarkModel):
     def eval(self, niter=1):
         if self.extra_args.cudagraph:
             return NotImplementedError("CUDA Graph is not yet implemented for inference.")
-        model = self.eval_model
-        example_inputs = self.eval_example_inputs
+        model = self.model
+        example_inputs = self.example_inputs
         for _i in range(niter):
             model(*example_inputs)
