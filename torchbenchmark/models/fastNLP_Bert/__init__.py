@@ -42,18 +42,15 @@ class Model(BenchmarkModel):
     task = NLP.OTHER_NLP
     # Use the train batch size from the original CMRC2018 Q&A task
     # Source: https://fastnlp.readthedocs.io/zh/latest/tutorials/extend_1_bert_embedding.html
-    def __init__(self, test, device, train_bs=6, eval_bs=1, jit=False, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.test = test
-        self.extra_args = extra_args
+    DEFAULT_TRAIN_BSIZE = 6
+    DEFAULT_EVAL_BSIZE = 1
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.input_dir = CMRC2018_DIR
         # Generate input data files
-        generate_inputs(train_bs, eval_bs)
+        generate_inputs(self.test, self.batch_size)
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
         self.embed = BertEmbedding(data_bundle.get_vocab('words'),
@@ -62,34 +59,33 @@ class Model(BenchmarkModel):
                                    include_cls_sep=False, auto_truncate=True,
                                    dropout=0.5, word_dropout=0.01)
         self.model = self._move_model_to_device(BertForQuestionAnswering(self.embed), device=device)
+
         if self._model_contains_inner_module(self.model):
             self._forward_func = self.model.module.forward
         else:
             self._forward_func = self.model.forward
-        self.losser = CMRC2018Loss()
-        self.metrics = CMRC2018Metric()
-        self.update_every = 10
-        # Do not spawn new processes on small scale of data
-        self.num_workers = 0
-        wm_callback = WarmupCallback(schedule='linear')
-        gc_callback = GradientClipCallback(clip_value=1, clip_type='norm')
-        callbacks = [wm_callback, gc_callback]
-        self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
-        self.callback_manager = CallbackManager(env={"trainer":self}, callbacks=callbacks)
-        self.train_data = data_bundle.get_dataset('train')
-        self.eval_data = data_bundle.get_dataset('dev')
+
         if self.test == "train":
             self.model.train()
-            self.example_inputs = DataSetIter(dataset=self.train_data,
-                                                batch_size=train_bs,
-                                                sampler=None,
-                                                num_workers=self.num_workers, drop_last=False)
+            self.data = data_bundle.get_dataset('train')
+            self.losser = CMRC2018Loss()
+            self.metrics = CMRC2018Metric()
+            self.update_every = 10
+            # Do not spawn new processes on small scale of data
+            self.num_workers = 0
+            wm_callback = WarmupCallback(schedule='linear')
+            gc_callback = GradientClipCallback(clip_value=1, clip_type='norm')
+            callbacks = [wm_callback, gc_callback]
+            self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
+            self.callback_manager = CallbackManager(env={"trainer":self}, callbacks=callbacks)
         elif self.test == "eval":
             self.model.eval()
-            self.example_inputs = DataSetIter(dataset=self.eval_data,
-                                                batch_size=eval_bs,
-                                                sampler=None,
-                                                num_workers=self.num_workers, drop_last=False)
+            self.data = data_bundle.get_dataset('dev')
+
+        self.example_inputs = DataSetIter(dataset=self.data,
+                                          batch_size=self.batch_size,
+                                          sampler=None,
+                                          num_workers=self.num_workers, drop_last=False)
 
     def get_module(self):
         batch_x, batch_y = list(self.example_inputs)[0]

@@ -40,14 +40,11 @@ torch.manual_seed(123)
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
+    DEFAULT_TRAIN_BSIZE = 1000
+    DEFAULT_EVAL_BSIZE = 1000
 
-    def __init__(self, test, device, jit=False, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.train_bs = 1000
-        self.extra_args = extra_args
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         # Train architecture: use the configuration in the paper.
         # Source: https://arxiv.org/pdf/1906.00091.pdf
@@ -57,7 +54,7 @@ class Model(BenchmarkModel):
         arch_mlp_top = "1024-1024-1024-1"
         data_generation = "random"
         mini_batch_size = 2048
-        num_batches = self.train_bs
+        num_batches = self.batch_size
         num_indicies_per_lookup = 100
 
         self.opt = Namespace(**{
@@ -185,10 +182,10 @@ class Model(BenchmarkModel):
         else:
             sys.exit("ERROR: --loss-function=" + self.opt.loss_function + " is not supported")
 
+        self.model = dlrm.to(self.device)
+        self.example_inputs = (X, lS_o, lS_i)
         if test == "train":
-            self.model = dlrm.to(self.device)
             self.model.train()
-            self.example_inputs = (X, lS_o, lS_i)
             self.loss_fn = torch.nn.MSELoss(reduction="mean")
             self.optimizer = torch.optim.SGD(dlrm.parameters(), lr=self.opt.learning_rate)
             self.lr_scheduler = LRPolicyScheduler(self.optimizer,
@@ -196,9 +193,7 @@ class Model(BenchmarkModel):
                                                 self.opt.lr_decay_start_step,
                                                 self.opt.lr_num_decay_steps)
         elif test == "eval":
-            self.model = dlrm.to(self.device)
             self.model.eval()
-            self.example_inputs = (X, lS_o, lS_i)
 
     def get_module(self):
         return self.model, self.example_inputs

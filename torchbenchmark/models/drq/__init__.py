@@ -83,15 +83,12 @@ def make_env(cfg):
 
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
+    # Batch size is not adjustable in this model
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
+
     def __init__(self, test, device, jit=False, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        # train and eval bs are unadjustable, therefore they are not used as parameters
-        self.train_bs = 1
-        self.eval_bs = 1
-        self.extra_args = extra_args
+        super().__init__(test=test, device=device, jit=jit, batch_size=None, extra_args=extra_args)
 
         self.cfg = DRQConfig()
         set_seed_everywhere(self.cfg.seed)
