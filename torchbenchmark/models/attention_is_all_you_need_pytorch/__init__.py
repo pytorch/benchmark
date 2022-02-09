@@ -33,6 +33,10 @@ torch.backends.cudnn.benchmark = False
 class Model(BenchmarkModel):
     task = NLP.TRANSLATION
     optimized_for_inference = True
+    # Original batch size 256, hardware platform unknown
+    # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
+    DEFAULT_TRAIN_BSIZE = 256
+    DEFAULT_EVAL_BSIZE = 32
 
     def _create_transformer(self):
         transformer = Transformer(
@@ -61,21 +65,12 @@ class Model(BenchmarkModel):
             preloaded_data.append((src_seq, trg_seq, gold))
         return preloaded_data
 
-    # Original batch size 256, hardware platform unknown
-    # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
-    def __init__(self, test, device, jit=False, train_bs=256, eval_bs=32, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.extra_args = extra_args
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         root = os.path.join(str(Path(__file__).parent), ".data")
         self.opt = Namespace(**{
-            'batch_size': train_bs,
-            'eval_batch_size': eval_bs,
+            'batch_size': self.batch_size,
             'd_inner_hid': 2048,
             'd_k': 64,
             'd_model': 512,
@@ -101,21 +96,19 @@ class Model(BenchmarkModel):
         })
 
         train_data, test_data = prepare_dataloaders(self.opt, self.device)
+        self.model = self._create_transformer()
 
         if test == "train":
-            self.model = self._create_transformer()
             self.model.train()
             self.example_inputs = self._preprocess(train_data)
-            src_seq, trg_seq, gold = self.example_inputs[0]
             self.optimizer = ScheduledOptim(
                 optim.Adam(self.module.parameters(), betas=(0.9, 0.98), eps=1e-09),
                 2.0, self.opt.d_model, self.opt.n_warmup_steps)
         elif test == "eval":
-            self.model = self._create_transformer()
             self.model.eval()
             self.example_inputs = self._preprocess(test_data)
-            src_seq, trg_seq, gold = self.example_inputs[0]
 
+        src_seq, trg_seq, gold = self.example_inputs[0]
         example_inputs = (src_seq, trg_seq)
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):

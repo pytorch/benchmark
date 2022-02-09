@@ -29,12 +29,23 @@ def no_grad(val):
         torch.set_grad_enabled(old_state)
 
 class BenchmarkModel(metaclass=PostInitProcessor):
+    DEFAULT_TRAIN_BSIZE = None
+    DEFAULT_EVAL_BSIZE = None
+
     """
     A base class for adding models to torch benchmark.
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
-    def __init__(self, *args, **kwargs): 
-        pass
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        self.test = test
+        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
+        self.device = device
+        self.jit = jit
+        self.batch_size = batch_size
+        if not self.batch_size:
+            self.batch_size = self.DEFAULT_TRAIN_BSIZE if test == "train" else self.DEFAULT_EVAL_BSIZE
+            assert self.batch_size, f"Test model batch size can't be {self.batch_size}. Please submit a bug report."
+        self.extra_args = extra_args
 
     # Run the post processing for model acceleration
     def __post__init__(self):

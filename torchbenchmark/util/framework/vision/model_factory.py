@@ -7,28 +7,23 @@ from torchbenchmark.util.framework.vision.args import parse_args, apply_args
 
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
+    # These two variables should be defined by subclasses
+    DEFAULT_TRAIN_BSIZE = None
+    DEFAULT_EVAL_BSIZE = None
 
-    def __init__(self, model_name, test, device, jit=False, train_bs=1, eval_bs=1, extra_args=[]):
-        super().__init__()
-        self.test = test
-        self.device = device
-        self.jit = jit
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.extra_args = extra_args
+    def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
+        self.model = getattr(models, model_name)().to(self.device)
+        self.example_inputs = (torch.randn((batch_size, 3, 224, 224)).to(self.device),)
+        self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
         if test == "train":
-            self.model = getattr(models, model_name)().to(self.device)
-            self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
-            self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
             self.model.train()
             # setup optimizer and loss_fn
             self.optimizer = optim.Adam(self.model.parameters())
             self.loss_fn = torch.nn.CrossEntropyLoss()
         elif test == "eval":
-            self.model = getattr(models, model_name)().to(self.device)
             self.model.eval()
-            self.example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
@@ -43,14 +38,14 @@ class TorchVisionModel(BenchmarkModel):
     # By default, FlopCountAnalysis count one fused-mult-add (FMA) as one flop.
     # However, in our context, we count 1 FMA as 2 flops instead of 1.
     # https://github.com/facebookresearch/fvcore/blob/7a0ef0c0839fa0f5e24d2ef7f5d48712f36e7cd7/fvcore/nn/flop_count.py
-    def get_flops(self, test='eval', flops_fma=2.0):
-        if test == 'eval':
-            flops = self.eval_flops / self.eval_bs * flops_fma
-            return flops, self.eval_bs
-        elif test == 'train':
-            flops = self.train_flops / self.train_bs * flops_fma
-            return flops, self.train_bs
-        assert False, "get_flops() only support eval or train mode."
+    def get_flops(self, flops_fma=2.0):
+        if self.test == 'eval':
+            flops = self.flops / self.batch_size * flops_fma
+            return flops, self.batch_size
+        elif self.test == 'train':
+            flops = self.flops / self.batch_size * flops_fma
+            return flops, self.batch_size
+        assert False, f"get_flops() only support eval or train mode, but get {self.test}. Please submit a bug report."
 
     def get_module(self):
         return self.model, self.example_inputs
