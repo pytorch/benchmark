@@ -30,22 +30,25 @@ class Model(BenchmarkModel):
 
         torch.manual_seed(42)
         config = AutoConfig.from_pretrained("facebook/bart-base")
-        self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 
-        input_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
-        decoder_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
-
-        eval_context = torch.randint(0, config.vocab_size, (eval_bs, 512)).to(device)
-
-        self.train_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
-        self.eval_inputs = {'input_ids': eval_context, 'decoder_input_ids': eval_context}
+        if test =="train":
+            input_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (train_bs, 512)).to(device)
+            self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
+            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+            self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
+            self.model.train()
+        elif test == "eval":
+            eval_context = torch.randint(0, config.vocab_size, (eval_bs, 512)).to(device)
+            self.eval_model = AutoModelForSeq2SeqLM.from_config(config).to(device)
+            self.eval_example_inputs = {'input_ids': eval_context, }
+            self.eval_model.eval()
 
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
         return ArgsToKwargsWrapper(self.model), (
-            self.eval_inputs["input_ids"], self.eval_inputs["decoder_input_ids"])
+            self.eval_example_inputs["input_ids"], self.eval_example_inputs["decoder_input_ids"])
 
     def train(self, niter=3):
         if self.jit:
@@ -60,7 +63,7 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError()
-        self.model.eval()
+        self.eval_model.eval()
         with torch.no_grad():
             for _ in range(niter):
-                out = self.model(**self.eval_inputs)
+                out = self.eval_model(**self.eval_example_inputs)
