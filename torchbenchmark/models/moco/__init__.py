@@ -31,15 +31,11 @@ class Model(BenchmarkModel):
     # Original train batch size: 32
     # Paper and code uses batch size of 256 for 8 GPUs.
     # Source: https://arxiv.org/pdf/1911.05722.pdf
-    def __init__(self, test, device, jit=False, train_bs=32, eval_bs=32, extra_args=[]):
-        super().__init__()
-        """ Required """
-        self.device = device
-        self.jit = jit
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.test = test
-        self.extra_args = extra_args
+    DEFAULT_TRAIN_BSIZE = 32
+    DEFAULT_EVAL_BSIZE = 32
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         self.opt = Namespace(**{
             'arch': 'resnet50',
             'epochs': 2,
@@ -81,17 +77,13 @@ class Model(BenchmarkModel):
         self.optimizer = torch.optim.SGD(self.model.parameters(), self.opt.lr,
                                          momentum=self.opt.momentum,
                                          weight_decay=self.opt.weight_decay)
-        if test == "train":
-            bs = self.train_bs
-        elif test == "eval":
-            bs = self.eval_bs
         def collate_train_fn(data):
             ind = data[0]
             return [batches[2 * ind], batches[2 * ind + 1]], 0
         batches = []
         for i in range(4):
-            batches.append(torch.randn(bs, 3, 224, 224).to(self.device))
-        self.loader = torch.utils.data.DataLoader(
+            batches.append(torch.randn(self.batch_size, 3, 224, 224).to(self.device))
+        self.example_inputs = torch.utils.data.DataLoader(
             range(2), collate_fn=collate_train_fn)
         for i, (images, _) in enumerate(self.loader):
             images[0] = images[0].cuda(device=0, non_blocking=True)
@@ -108,7 +100,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("CPU is not supported by this model")
 
         images = []
-        for (i, _) in self.loader:
+        for (i, _) in self.example_inputs:
             images = (i[0], i[1])
         return (self.model, images)
 
@@ -129,7 +121,7 @@ class Model(BenchmarkModel):
         self.model.train()
         for e in range(niter):
             adjust_learning_rate(self.optimizer, e, self.opt)
-            for i, (images, _) in enumerate(self.loader):
+            for i, (images, _) in enumerate(self.example_inputs):
                 # compute output
                 output, target = self.model(im_q=images[0], im_k=images[1])
                 loss = self.criterion(output, target)
@@ -155,5 +147,5 @@ class Model(BenchmarkModel):
             raise NotImplementedError("CPU is not supported by this model")
 
         for i in range(niter):
-            for i, (images, _) in enumerate(self.loader):
+            for i, (images, _) in enumerate(self.example_inputs):
                 self.model(im_q=images[0], im_k=images[1])

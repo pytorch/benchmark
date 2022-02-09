@@ -12,20 +12,17 @@ class Model(BenchmarkModel):
 
     # Train batch size: 96
     # Source: https://arxiv.org/pdf/1801.04381.pdf
-    def __init__(self, test, device, jit=False, train_bs=96, eval_bs=96, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.extra_args = extra_args
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
+    DEFAULT_TRAIN_BSIZE = 96
+    DEFAULT_EVAL_BSIZE = 96
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.model = models.mobilenet_v2().to(self.device)
+        self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
         if test == "train":
-            self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
             self.model.train()
         elif test == "eval":
-            self.example_inputs = (torch.randn((eval_bs, 3, 224, 224)).to(self.device),)
             self.model.eval()
         self.prep_qat_train()  # config+prepare steps are required for both train and eval
 
