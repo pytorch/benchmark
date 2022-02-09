@@ -144,19 +144,12 @@ class Discriminator(nn.Module):
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
+    DEFAULT_TRAIN_BSIZE = 32
+    DEFAULT_EVAL_BSIZE = 256
 
-    def __init__(self, test, device, jit=False, train_bs=32, eval_bs=256, extra_args=[]):
-        super().__init__()
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         self.debug_print = False
-
-        self.test = test
-        self.device = device
-        self.jit = jit
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.extra_args = extra_args
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
 
         self.root = str(Path(__file__).parent)
         self.dcgan = DCGAN(self)
@@ -211,22 +204,18 @@ class Model(BenchmarkModel):
         self.real_label = 1.
         self.fake_label = 0.
 
+        # Random values as surrogate for batch of photos
+        self.exmaple_inputs = torch.randn(self.batch_size, 3, 64, 64, device=self.device)
+        self.model = netD
         if test == "train":
-            # Random values as surrogate for batch of photos
-            self.exmaple_inputs = torch.randn(self.train_b_size, 3, 64, 64, device=self.device)
-            self.model = netD
             # Setup Adam optimizers for both G and D
             self.optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.999))
             self.optimizerG = optim.Adam(self.netG.parameters(), lr=lr, betas=(beta1, 0.999))
         elif test == "eval":
             # inference would just run descriminator so thats what we'll do too.
             self.inference_just_descriminator = True
-            # eval batch size
-            self.eval_bs = eval_bs
-            self.exmaple_inputs = torch.randn(self.eval_bs, 3, 64, 64, device=self.device)
-            self.model = netD
             if False == self.inference_just_descriminator:
-                self.eval_noise = torch.randn(self.eval_bs, nz, 1, 1, device=self.device)
+                self.eval_noise = torch.randn(self.batch_size, nz, 1, 1, device=self.device)
 
         if self.jit:
             self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
