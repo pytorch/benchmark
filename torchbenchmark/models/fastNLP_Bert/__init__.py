@@ -79,30 +79,31 @@ class Model(BenchmarkModel):
         self.train_data = data_bundle.get_dataset('train')
         self.eval_data = data_bundle.get_dataset('dev')
         if self.test == "train":
-            self.train_data_iterator = DataSetIter(dataset=self.train_data,
+            self.example_inputs = DataSetIter(dataset=self.train_data,
                                                 batch_size=train_bs,
                                                 sampler=None,
                                                 num_workers=self.num_workers, drop_last=False)
         elif self.test == "eval":
-            self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
+            self.eval_model = self.model
+            self.eval_example_inputs = DataSetIter(dataset=self.eval_data,
                                                 batch_size=eval_bs,
                                                 sampler=None,
                                                 num_workers=self.num_workers, drop_last=False)
 
     def get_module(self):
-        batch_x, batch_y = list(self.train_data_iterator)[0]
+        batch_x, batch_y = list(self.eval_example_inputs)[0]
         self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
-        return self.model, (batch_x["words"], )
+        return self.eval_model, (batch_x["words"], )
 
     # Sliced version of fastNLP.Tester._test()
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
-        self._mode(self.model, is_test=True)
-        self._predict_func = self.model.forward
+        self._mode(self.eval_model, is_test=True)
+        self._predict_func = self.eval_model.forward
         with torch.no_grad():
             for epoch in range(niter):
-                for batch_x, batch_y in self.eval_data_iterator:
+                for batch_x, batch_y in self.eval_example_inputs:
                     self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                     pred_dict = self._data_forward(self._predict_func, batch_x)
 
@@ -115,11 +116,11 @@ class Model(BenchmarkModel):
         self._mode(self.model, is_test=False)
         self.callback_manager.on_train_begin()
         # Move the data to GPU before the train loop
-        for batch_x, batch_y in self.train_data_iterator:
+        for batch_x, batch_y in self.example_inputs:
             self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         for epoch in range(niter):
             self.callback_manager.on_epoch_begin()
-            for batch_x, batch_y in self.train_data_iterator:
+            for batch_x, batch_y in self.example_inputs:
                 self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                 self.step += 1
                 prediction = self._data_forward(self.model, batch_x)
