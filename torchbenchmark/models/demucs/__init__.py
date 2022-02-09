@@ -15,13 +15,11 @@ from torch.nn.modules.container import Sequential
 from torchbenchmark.models.demucs.demucs.model import Demucs
 from typing import Optional, Tuple
 
-
 torch.manual_seed(1337)
 random.seed(1337)
 np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
-
 
 class DemucsWrapper(torch.nn.Module):
     def __init__(self, model: Demucs, augment: Sequential) -> None:
@@ -40,14 +38,11 @@ class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
     # Original train batch size: 64
     # Source: https://github.com/facebookresearch/demucs/blob/3e5ea549ba921316c587e5f03c0afc0be47a0ced/conf/config.yaml#L37
-    def __init__(self, test, device, jit=False, train_bs=64, eval_bs=8, extra_args=[]) -> None:
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.test = test
-        self.extra_args = extra_args
+    DEFAULT_TRAIN_BSIZE = 64
+    DEFAULT_EVAL_BSIZE = 8
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]) -> None:
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.parser = get_parser()
         self.args = self.parser.parse_args([])
@@ -70,20 +65,18 @@ class Model(BenchmarkModel):
         else:
             self.augment = Shift(args.data_stride)
 
-        model = DemucsWrapper(self.model, self.augment)
-
+        self.model = DemucsWrapper(self.model, self.augment)
+        
         if test == "train":
-            self.model = model
             self.model.train()
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
             # TODO: enable GPU training after it is supported by infra
             #       see GH issue https://github.com/pytorch/benchmark/issues/652
-            # self.example_inputs = (torch.rand([train_bs, 5, 2, 426888], device=device),)
             raise NotImplementedError("Disabled train test because of insuffcient GPU memory on T4.")
         elif test == "eval":
-            self.model = model
             self.model.eval()
-            self.example_inputs = (torch.rand([eval_bs, 5, 2, 426888], device=device),)
+
+        self.example_inputs = (torch.rand([self.batch_size, 5, 2, 426888], device=device),)
 
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
