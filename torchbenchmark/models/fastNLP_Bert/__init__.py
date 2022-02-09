@@ -79,31 +79,32 @@ class Model(BenchmarkModel):
         self.train_data = data_bundle.get_dataset('train')
         self.eval_data = data_bundle.get_dataset('dev')
         if self.test == "train":
+            self.model.train()
             self.example_inputs = DataSetIter(dataset=self.train_data,
                                                 batch_size=train_bs,
                                                 sampler=None,
                                                 num_workers=self.num_workers, drop_last=False)
         elif self.test == "eval":
-            self.eval_model = self.model
-            self.eval_example_inputs = DataSetIter(dataset=self.eval_data,
+            self.model.eval()
+            self.example_inputs = DataSetIter(dataset=self.eval_data,
                                                 batch_size=eval_bs,
                                                 sampler=None,
                                                 num_workers=self.num_workers, drop_last=False)
 
     def get_module(self):
-        batch_x, batch_y = list(self.eval_example_inputs)[0]
+        batch_x, batch_y = list(self.example_inputs)[0]
         self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
-        return self.eval_model, (batch_x["words"], )
+        return self.model, (batch_x["words"], )
 
     # Sliced version of fastNLP.Tester._test()
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
-        self._mode(self.eval_model, is_test=True)
-        self._predict_func = self.eval_model.forward
+        self._mode(self.model, is_test=True)
+        self._predict_func = self.model.forward
         with torch.no_grad():
             for epoch in range(niter):
-                for batch_x, batch_y in self.eval_example_inputs:
+                for batch_x, batch_y in self.example_inputs:
                     self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                     pred_dict = self._data_forward(self._predict_func, batch_x)
 

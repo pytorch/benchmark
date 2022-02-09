@@ -196,19 +196,19 @@ class Model(BenchmarkModel):
                                                 self.opt.lr_decay_start_step,
                                                 self.opt.lr_num_decay_steps)
         elif test == "eval":
-            self.eval_model = dlrm.to(self.device)
-            self.eval_model.eval()
-            self.eval_example_inputs = (X, lS_o, lS_i)
+            self.model = dlrm.to(self.device)
+            self.model.eval()
+            self.example_inputs = (X, lS_o, lS_i)
 
     def get_module(self):
-        return self.eval_model, self.eval_example_inputs
+        return self.model, self.example_inputs
 
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT not supported")
 
         for _ in range(niter):
-            self.eval_model(*self.eval_example_inputs)
+            self.model(*self.example_inputs)
 
     def train(self, niter=1):
         if self.jit:

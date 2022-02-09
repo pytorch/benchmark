@@ -29,14 +29,14 @@ class Model(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             eval_context = torch.randint(0, config.vocab_size, (eval_bs, 512)).to(device)
-            self.eval_model = AutoModelForMaskedLM.from_config(config).to(device)
-            self.eval_example_inputs = {'input_ids': eval_context, }
-            self.eval_model.eval()
+            self.model = AutoModelForMaskedLM.from_config(config).to(device)
+            self.example_inputs = {'input_ids': eval_context, }
+            self.model.eval()
 
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        return self.eval_model, (self.eval_example_inputs["input_ids"], )
+        return self.model, (self.example_inputs["input_ids"], )
 
     def train(self, niter=3):
         if self.jit:
@@ -52,4 +52,4 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         with torch.no_grad():
             for _ in range(niter):
-                out = self.eval_model(**self.eval_example_inputs)
+                out = self.model(**self.example_inputs)

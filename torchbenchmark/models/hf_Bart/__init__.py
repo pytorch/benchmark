@@ -40,15 +40,15 @@ class Model(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             eval_context = torch.randint(0, config.vocab_size, (eval_bs, 512)).to(device)
-            self.eval_model = AutoModelForSeq2SeqLM.from_config(config).to(device)
-            self.eval_example_inputs = {'input_ids': eval_context, }
-            self.eval_model.eval()
+            self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
+            self.example_inputs = {'input_ids': eval_context, }
+            self.model.eval()
 
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
         return ArgsToKwargsWrapper(self.model), (
-            self.eval_example_inputs["input_ids"], self.eval_example_inputs["decoder_input_ids"])
+            self.example_inputs["input_ids"], self.example_inputs["decoder_input_ids"])
 
     def train(self, niter=3):
         if self.jit:
@@ -63,7 +63,7 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError()
-        self.eval_model.eval()
+        self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
-                out = self.eval_model(**self.eval_example_inputs)
+                out = self.model(**self.example_inputs)
