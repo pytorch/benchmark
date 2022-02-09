@@ -48,9 +48,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.device = device
         self.jit = jit
         self.batch_size = batch_size
-        if not self.batch_size:
-            self.batch_size = self.DEFAULT_TRAIN_BSIZE if test == "train" else self.DEFAULT_EVAL_BSIZE
-            assert self.batch_size, f"Test model batch size can't be {self.batch_size}. Please submit a bug report."
+        try:
+            if not self.batch_size:
+                self.batch_size = self.DEFAULT_TRAIN_BSIZE if test == "train" else self.DEFAULT_EVAL_BSIZE
+                assert self.batch_size, f"Test model batch size can't be {self.batch_size}. Please submit a bug report."
+        except AttributeError as e:
+            # If the test is not implemented, the attribute DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE could be missing
+            # Forward the exception to child class
+            raise NotImplementedError(str(e))
         self.extra_args = extra_args
 
     # Run the post processing for model acceleration

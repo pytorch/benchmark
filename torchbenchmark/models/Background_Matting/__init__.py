@@ -32,18 +32,15 @@ class Model(BenchmarkModel):
     # Original btach size: 4
     # Original hardware: unknown
     # Source: https://arxiv.org/pdf/2004.00626.pdf
-    def __init__(self, test, device, jit=False, train_bs=4, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.train_bs = train_bs
-        self.extra_args = extra_args
+    DEFAULT_TRAIN_BSIZE = 4
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.opt = Namespace(**{
             'n_blocks1': 7,
             'n_blocks2': 3,
-            'batch_size': train_bs,
+            'batch_size': self.batch_size,
             'resolution': 512,
             'name': 'Real_fixed'
         })
