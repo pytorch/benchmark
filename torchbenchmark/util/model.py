@@ -1,13 +1,13 @@
 import json
 import os
 import pandas as pd
-import typing
 from  collections.abc import Iterable
 import torch
 from contextlib import contextmanager
 import warnings
 import inspect
 import os
+from typing import Optional, List
 from torchbenchmark.util.env_check import post_processing
 
 class PostInitProcessor(type):
@@ -29,14 +29,20 @@ def no_grad(val):
         torch.set_grad_enabled(old_state)
 
 class BenchmarkModel(metaclass=PostInitProcessor):
-    DEFAULT_TRAIN_BSIZE = None
-    DEFAULT_EVAL_BSIZE = None
+    DEFAULT_TRAIN_BSIZE: Optional[int] = None
+    DEFAULT_EVAL_BSIZE: Optional[int] = None
+
+    test: str
+    device: str
+    jit: bool
+    batch_size: int
+    extra_args: List[str]
 
     """
     A base class for adding models to torch benchmark.
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+    def __init__(self, test: str, device: str, jit: bool=False, batch_size: Optional[int]=None, extra_args: List[str]=[]):
         self.test = test
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device

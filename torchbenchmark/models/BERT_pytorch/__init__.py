@@ -4,6 +4,8 @@ import torch
 
 import numpy as np
 
+from torchbenchmark.util.torchtext_legacy.iterator import batch
+
 from .bert_pytorch import parse_args
 from .bert_pytorch.trainer import BERTTrainer
 from .bert_pytorch.dataset import BERTDataset, WordVocab
@@ -68,23 +70,17 @@ class CorpusGenerator(io.TextIOBase):
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    DEFAULT_TRAIN_BSIZE = 16
+    DEFAULT_EVAL_BSIZE = 16
 
     def reset_seeds(self, seed):
         torch.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
 
-    def __init__(self, test, device, train_bs=16, eval_bs=16, jit=False, extra_args=[]):
-        super().__init__()
+    def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         debug_print = False
-
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
-        self.extra_args = extra_args
-
         root = str(Path(__file__).parent)
         args = parse_args(args=[
             '--train_dataset', f'{root}/data/corpus.small',
@@ -110,7 +106,7 @@ class Model(BenchmarkModel):
 
         # parameters for work size, these were chosen to provide a profile
         # that matches processing of an original trained en-de corpus.
-        args.batch_size = train_bs
+        args.batch_size = self.batch_size
         vocab_size = 20000
         args.corpus_lines = 50000
 
@@ -156,16 +152,10 @@ class Model(BenchmarkModel):
                                    with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
         example_batch = next(iter(train_data_loader))
-        if test == "train":
-            self.example_inputs = example_batch['bert_input'].to(self.device)[:train_bs], example_batch['segment_label'].to(self.device)[:train_bs]
-            self.is_next = example_batch['is_next'].to(self.device)[:train_bs]
-            self.bert_label = example_batch['bert_label'].to(self.device)[:train_bs]
-            self.model = trainer
-        elif test == "eval":
-            self.example_inputs = example_batch['bert_input'].to(self.device)[:eval_bs], example_batch['segment_label'].to(self.device)[:eval_bs]
-            self.is_next = example_batch['is_next'].to(self.device)[:eval_bs]
-            self.bert_label = example_batch['bert_label'].to(self.device)[:eval_bs]
-            self.model = trainer
+        self.example_inputs = example_batch['bert_input'].to(self.device)[:self.batch_size], example_batch['segment_label'].to(self.device)[:self.batch_size]
+        self.is_next = example_batch['is_next'].to(self.device)[:self.batch_size]
+        self.bert_label = example_batch['bert_label'].to(self.device)[:self.batch_size]
+        self.model = trainer
         
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
