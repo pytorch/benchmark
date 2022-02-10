@@ -4,8 +4,6 @@ import torch
 
 import numpy as np
 
-from torchbenchmark.util.torchtext_legacy.iterator import batch
-
 from .bert_pytorch import parse_args
 from .bert_pytorch.trainer import BERTTrainer
 from .bert_pytorch.dataset import BERTDataset, WordVocab
