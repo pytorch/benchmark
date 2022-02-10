@@ -44,12 +44,12 @@ class Model(BenchmarkModel):
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
-        if self.test == "train":
-            for data in self.traincfg.tr_loader:
-                padded_input, input_lengths, padded_target = data
+        for data in self.traincfg.tr_loader:
+            padded_input, input_lengths, padded_target = data
+            if self.test == "train":
                 return self.traincfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
-        elif self.test == "eval":
-            return self.evalcfg.model, self.evalcfg.example_inputs
+            elif self.test == "eval":
+                return self.evalcfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
 
     def set_module(self, new_model):
         if self.test == "train":
