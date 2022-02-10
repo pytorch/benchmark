@@ -1,7 +1,7 @@
 import torch
 import argparse
 from contextlib import suppress
-from torchbenchmark.util.model import BenchmarkModel
+from torchbenchmark.util.model.BenchmarkModel
 from typing import List, Tuple
 
 def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespace:
@@ -13,8 +13,7 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     args = parser.parse_args(extra_args)
     args.device = model.device
     args.jit = model.jit
-    args.train_bs = model.train_bs
-    args.eval_bs = model.eval_bs
+    args.batch_size = model.batch_size
     # only enable fp16 in GPU inference
     if args.device == "cpu":
         args.eval_fp16 = False
@@ -25,28 +24,28 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
 def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     # apply eval_fp16
     if args.eval_fp16:
-        model.eval_model, model.eval_example_inputs = enable_fp16(model.eval_model, model.eval_example_inputs)
+        model.model, model.example_inputs = enable_fp16(model.model, model.example_inputs)
     # apply fx2trt for eval
     if args.fx2trt:
         assert args.device == 'cuda', "fx2trt is only available with CUDA."
         assert not args.jit, "fx2trt with JIT is not available."
-        model.eval_model = enable_fx2trt(args.eval_bs, args.eval_fp16, model.eval_model, model.eval_example_inputs)
+        model.model = enable_fx2trt(args.batch_size, args.eval_fp16, model.model, model.example_inputs)
     # apply torch_tensorrt for eval
     if args.torch_tensorrt:
         assert args.device == 'cuda', "torch_tensorrt is only available with CUDA."
-        model.eval_model = enable_torchtrt(model.eval_example_inputs, args.eval_fp16, model.eval_model)
+        model.model = enable_torchtrt(model.example_inputs, args.eval_fp16, model.model)
 
 def enable_fp16(model: torch.nn.Module, example_input: torch.tensor) -> Tuple[torch.nn.Module, torch.tensor]:
     return model.half(), example_input.half()
 
-def enable_torchtrt(eval_input: torch.tensor, eval_fp16: bool, eval_model: torch.nn.Module) -> torch.nn.Module:
+def enable_torchtrt(eval_input: torch.tensor, eval_fp16: bool, model: torch.nn.Module) -> torch.nn.Module:
     import torch_tensorrt
     trt_input = [torch_tensorrt.Input(eval_input.shape)]
     if eval_fp16:
         enabled_precisions = torch_tensorrt.dtype.half
     else:
         enabled_precisions = torch_tensorrt.dtype.float
-    return torch_tensorrt.compile(eval_model, inputs=trt_input, enabled_precisions=enabled_precisions)
+    return torch_tensorrt.compile(model, inputs=trt_input, enabled_precisions=enabled_precisions)
 
 def enable_fx2trt(max_batch_size: int, fp16: bool, model: torch.nn.Module, example_inputs: torch.tensor) -> torch.nn.Module:
     from torchbenchmark.util.fx2trt import lower_to_trt

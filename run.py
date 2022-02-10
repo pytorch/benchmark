@@ -172,26 +172,8 @@ if __name__ == "__main__":
     # build the model and get the chosen test method
     if args.flops:
         extra_args.append("--flops")
-    if args.bs:
-        try:
-            if args.test == "eval":
-                if support_extra_args:
-                    m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), eval_bs=args.bs, extra_args=extra_args)
-                else:
-                    m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), eval_bs=args.bs)
-            elif args.test == "train":
-                if support_extra_args:
-                    m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), train_bs=args.bs, extra_args=extra_args)
-                else:
-                    m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), train_bs=args.bs)
-        except:
-            print(f"The model {args.model} doesn't support specifying batch size, please remove --bs argument in the commandline.")
-            exit(1)
-    else:
-        if support_extra_args:
-            m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), extra_args=extra_args)
-        else:
-            m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"))
+
+    m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
 
     test = getattr(m, args.test)
     model_flops = None

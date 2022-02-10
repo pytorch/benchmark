@@ -28,38 +28,34 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 2
 
-    # This model doesn't support setting batch size for inference
-    def __init__(self, test, device, jit=False, train_bs=1, eval_bs=2, extra_args=[]):
-       super().__init__()
-       self.device = device
-       self.jit = jit
-       self.test = test
-       self.extra_args = extra_args
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-       model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
-       self.model = instantiate(model_cfg).to(self.device)
-       self.train_bs = train_bs
-       self.eval_bs = eval_bs
+        model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
+        data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
 
-       data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
-
-       # use a mini dataset
-       data_cfg.train.dataset.names = "coco_2017_val_100"
-       data_cfg.train.total_batch_size = train_bs
-       data_cfg.test.dataset.names = "coco_2017_val_100"
-       data_cfg.test.batch_size = eval_bs
-
-       train_loader = instantiate(data_cfg.train)
-       self.train_iterator = itertools.cycle(itertools.islice(train_loader, 100))
-       test_loader = instantiate(data_cfg.test)
-       self.test_iterator = itertools.cycle(itertools.islice(test_loader, 100))
-
-       self.optimizer = torch.optim.SGD(self.model.parameters(), 0.)
+        if test == "train":
+            # use a mini dataset
+            data_cfg.train.dataset.names = "coco_2017_val_100"
+            data_cfg.train.total_batch_size = self.batch_size
+            self.model = instantiate(model_cfg).to(self.device)
+            train_loader = instantiate(data_cfg.train)
+            self.example_inputs = itertools.cycle(itertools.islice(train_loader, 100))
+            self.optimizer = torch.optim.SGD(self.model.parameters(), 0.)
+        elif test == "eval":
+            data_cfg.test.dataset.names = "coco_2017_val_100"
+            data_cfg.test.batch_size = self.batch_size
+            self.model = instantiate(model_cfg).to(self.device)
+            self.model.eval()
+            test_loader = instantiate(data_cfg.test)
+            self.example_inputs = itertools.cycle(itertools.islice(test_loader, 100))
 
     def get_module(self):
         self.model.eval()
-        for data in self.test_iterator:
+        for data in self.example_inputs:
             return self.model, (data, )
 
     def train(self, niter=1):
@@ -69,7 +65,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         self.model.train()
         with EventStorage():
-            for idx, data in zip(range(niter), self.train_iterator):
+            for idx, data in zip(range(niter), self.example_inputs):
                 losses = self.model(data)
                 loss = sum(losses.values())
                 loss.backward()
@@ -83,6 +79,6 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         self.model.eval()
         with torch.no_grad():
-            for idx, data in zip(range(niter), self.test_iterator):
+            for idx, data in zip(range(niter), self.example_inputs):
                 self.model(data)
 

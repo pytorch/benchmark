@@ -84,9 +84,6 @@ def _load_test(path, device):
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="eval", device=device, jit=False)
-                assert (
-                    not task.model_details.optimized_for_inference or
-                    task.worker.load_stmt("hasattr(model, 'eval_model')"))
 
                 task.set_eval()
                 task.eval()

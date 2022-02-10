@@ -48,21 +48,13 @@ def _prefetch(loader, device):
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
     optimized_for_inference = True
+    DEFAULT_TRAIN_BSIZE = 4
+    DEFAULT_EVAL_BSIZE = 4
 
-    def __init__(self, test, device, jit=False, train_bs=4, eval_bs=4, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.extra_args = extra_args
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True).to(self.device)
-        self.eval_model = self.model
-        if self.jit:
-            self.model = torch.jit.script(self.model)
-            self.eval_model = torch.jit.script(self.model)
-            self.eval_model.eval()
-            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
-
         # setup optimizer
         # optimizer parameters copied from
         # https://github.com/pytorch/vision/blob/30f4d108319b0cd28ae5662947e300aad98c32e9/references/detection/train.py#L77
@@ -72,32 +64,32 @@ class Model(BenchmarkModel):
         params = [p for p in self.model.parameters() if p.requires_grad]
         self.optimizer = torch.optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
 
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
         transforms = ConvertCocoPolysToMask()
         dataset = CocoDetection(root=os.path.join(DATA_DIR, COCO_DATA[COCO_DATA_KEY][0]),
                                 annFile=os.path.join(DATA_DIR, COCO_DATA[COCO_DATA_KEY][1]),
                                 transforms=transforms)
         sampler = torch.utils.data.SequentialSampler(dataset)
 
-        self.eval_data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=eval_bs,
+        self.data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                                       sampler=sampler,
                                                                       collate_fn=_collate_fn), self.device)
-        self.train_data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=train_bs,
-                                                                       sampler=sampler,
-                                                                       collate_fn=_collate_fn), self.device)
+
+        if self.jit:
+            self.model = torch.jit.script(self.model)
+            if test == "eval":
+                self.model = torch.jit.optimize_for_inference(self.model)
 
 
     def get_module(self):
         self.model.eval()
-        for (example_inputs, _example_targets) in self.eval_data_loader:
+        for (example_inputs, _example_targets) in self.data_loader:
             return self.model, (example_inputs, )
 
     def train(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         self.model.train()
-        for _, (images, targets) in zip(range(niter), self.train_data_loader):
+        for _, (images, targets) in zip(range(niter), self.data_loader):
             # images = list(image.to(self.device) for image in images)
             # targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
             loss_dict = self.model(images, targets)
@@ -109,7 +101,7 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
-        self.eval_model.eval()
+        self.model.eval()
         with torch.no_grad():
-            for _, (images, _targets) in zip(range(niter), self.eval_data_loader):
-                self.eval_model(images)
+            for _, (images, _targets) in zip(range(niter), self.data_loader):
+                self.model(images)

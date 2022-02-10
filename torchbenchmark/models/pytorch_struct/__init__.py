@@ -57,12 +57,10 @@ class Model(BenchmarkModel):
 
   # Original train batch size: 200
   # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
-  def __init__(self, test, device, jit=False, train_bs=200, extra_args=[]):
-    super().__init__()
-    self.device = device
-    self.jit = jit
-    self.test = test
-    self.extra_args = extra_args
+  DEFAULT_TRAIN_BSIZE = 200
+
+  def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+    super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
     WORD = Field(include_lengths=True)
     UD_TAG = Field(init_token="<bos>", eos_token="<eos>", include_lengths=True)
@@ -74,9 +72,8 @@ class Model(BenchmarkModel):
 
     WORD.build_vocab(train.word, min_freq=3)
     UD_TAG.build_vocab(train.udtag)
-    self.train_iter = TokenBucket(train, 
-                                  batch_size=train_bs,
-                                  device=self.device)
+    self.iter = TokenBucket(train, batch_size=self.batch_size,
+                            device=self.device)
 
     # Build model
     H = 256
@@ -85,16 +82,16 @@ class Model(BenchmarkModel):
     self.model = NeuralCFG(len(WORD.vocab), T, NT, H)
     self.model.to(device=device)
     self.opt = torch.optim.Adam(self.model.parameters(), lr=0.001, betas=[0.75, 0.999])
-    self.train_data = _prefetch(self.train_iter, self.device)
+    self.example_inputs = _prefetch(self.iter, self.device)
 
   def get_module(self):
-    for words, _ in self.train_data:
+    for words, _ in self.example_inputs:
       return self.model, (words, )
 
   def train(self, niter=1):
     if self.jit:
         raise NotImplementedError("JIT is not supported by this model")
-    for _, (words, lengths) in zip(range(niter), self.train_data):
+    for _, (words, lengths) in zip(range(niter), self.example_inputs):
       losses = []
       self.opt.zero_grad()
       params = self.model(words)

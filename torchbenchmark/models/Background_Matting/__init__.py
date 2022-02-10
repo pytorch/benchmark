@@ -32,17 +32,15 @@ class Model(BenchmarkModel):
     # Original btach size: 4
     # Original hardware: unknown
     # Source: https://arxiv.org/pdf/2004.00626.pdf
-    def __init__(self, test, device, jit=False, train_bs=4, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.extra_args = extra_args
+    DEFAULT_TRAIN_BSIZE = 4
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.opt = Namespace(**{
             'n_blocks1': 7,
             'n_blocks2': 3,
-            'batch_size': train_bs,
+            'batch_size': self.batch_size,
             'resolution': 512,
             'name': 'Real_fixed'
         })
@@ -58,7 +56,7 @@ class Model(BenchmarkModel):
         traindata = VideoData(csv_file=csv_file,
                               data_config=data_config_train, transform=None)
         train_loader = torch.utils.data.DataLoader(
-            traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=self.opt.batch_size, collate_fn=_collate_filter_none)
+            traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=0, collate_fn=_collate_filter_none)
         self.train_data = []
         for data in train_loader:
             self.train_data.append(data)

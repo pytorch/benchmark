@@ -68,21 +68,17 @@ class CorpusGenerator(io.TextIOBase):
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    DEFAULT_TRAIN_BSIZE = 16
+    DEFAULT_EVAL_BSIZE = 16
 
     def reset_seeds(self, seed):
         torch.manual_seed(seed)
         random.seed(seed)
         np.random.seed(seed)
 
-    def __init__(self, test, device, jit=False, extra_args=[]):
-        super().__init__()
+    def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         debug_print = False
-
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.extra_args = extra_args
-
         root = str(Path(__file__).parent)
         args = parse_args(args=[
             '--train_dataset', f'{root}/data/corpus.small',
@@ -108,7 +104,7 @@ class Model(BenchmarkModel):
 
         # parameters for work size, these were chosen to provide a profile
         # that matches processing of an original trained en-de corpus.
-        args.batch_size = 16
+        args.batch_size = self.batch_size
         vocab_size = 20000
         args.corpus_lines = 50000
 
@@ -149,39 +145,40 @@ class Model(BenchmarkModel):
 
         bert = BERT(len(vocab), hidden=args.hidden, n_layers=args.layers, attn_heads=args.attn_heads)
 
-        self.trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
+        trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                                    with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
-        INFERENCE_BATCH_SIZE = args.batch_size
         example_batch = next(iter(train_data_loader))
-        self.example_inputs = example_batch['bert_input'].to(self.device)[:INFERENCE_BATCH_SIZE], example_batch['segment_label'].to(self.device)[:INFERENCE_BATCH_SIZE]
-        self.is_next = example_batch['is_next'].to(self.device)[:INFERENCE_BATCH_SIZE]
-        self.bert_label = example_batch['bert_label'].to(self.device)[:INFERENCE_BATCH_SIZE]
-        if args.script:
+        self.example_inputs = example_batch['bert_input'].to(self.device)[:self.batch_size], example_batch['segment_label'].to(self.device)[:self.batch_size]
+        self.is_next = example_batch['is_next'].to(self.device)[:self.batch_size]
+        self.bert_label = example_batch['bert_label'].to(self.device)[:self.batch_size]
+        self.model = trainer
+        
+        if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                bert = torch.jit._script_pdt(bert, example_inputs=[self.example_inputs, ])
+                self.model.bert = torch.jit._script_pdt(self.model.bert, example_inputs=[self.example_inputs, ])
             else:
-                bert = torch.jit.script(bert, example_inputs=[self.example_inputs, ])
+                self.model.bert = torch.jit.script(self.model.bert, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
-        return self.trainer.model, self.example_inputs
+        return self.model.bert, self.example_inputs
 
     def eval(self, niter=1):
-        trainer = self.trainer
+        model = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
-            next_sent_output, mask_lm_output = trainer.model.forward(*self.example_inputs)
+            next_sent_output, mask_lm_output = model.model.forward(*self.example_inputs)
 
             # 2-1. NLL(negative log likelihood) loss of is_next classification result
             # 2-2. NLLLoss of predicting masked token word
             # 2-3. Adding next_loss and mask_loss : 3.4 Pre-training Procedure
-            next_loss = trainer.criterion(next_sent_output, self.is_next)
-            mask_loss = trainer.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
+            next_loss = model.criterion(next_sent_output, self.is_next)
+            mask_loss = model.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
             loss = next_loss + mask_loss
 
     def train(self, niter=1):
-        trainer = self.trainer
+        trainer = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
             next_sent_output, mask_lm_output = trainer.model.forward(*self.example_inputs)

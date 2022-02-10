@@ -8,31 +8,30 @@ from datasets import load_dataset
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    DEFAULT_TRAIN_BSIZE = 8
+    DEFAULT_EVAL_BSIZE = 1
 
-    def __init__(self, test, device, jit=False, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.extra_args = extra_args
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         torch.manual_seed(42)
         config = AutoConfig.from_pretrained("distilbert-base-uncased")
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-
-        input_ids = torch.randint(0, config.vocab_size, (8, 512)).to(device)
-        decoder_ids = torch.randint(0, config.vocab_size, (8, 512)).to(device)
-
-        eval_context = torch.randint(0, config.vocab_size, (1, 512)).to(device)
-
-        self.train_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
-        self.eval_inputs = {'input_ids': eval_context, }
+        if test == "train":
+            self.model.train()
+            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
+        else:
+            self.model.eval()
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            self.example_inputs = {'input_ids': eval_context, }
 
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
-        return self.model, (self.eval_inputs["input_ids"], )
+        return self.model, (self.example_inputs["input_ids"], )
 
     def train(self, niter=3):
         if self.jit:
@@ -44,7 +43,7 @@ class Model(BenchmarkModel):
 
         self.model.train()
         for _ in range(niter):
-            outputs = self.model(**self.train_inputs)
+            outputs = self.model(**self.example_inputs)
             loss = outputs.loss
             loss.backward()
             self.optimizer.step()
@@ -55,4 +54,4 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
-                out = self.model(**self.eval_inputs)
+                out = self.model(**self.example_inputs)

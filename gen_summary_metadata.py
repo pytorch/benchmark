@@ -66,9 +66,6 @@ def _extract_detail(path: str) -> Dict[str, Any]:
     task_e = ModelTask(path, timeout=TIMEOUT)
     try:
         task_e.make_model_instance(device=device, jit=False)
-        assert (
-            not task_e.model_details.optimized_for_inference or
-            task_e.worker.load_stmt("hasattr(model, 'eval_model')"))
         task_e.set_eval()
         task_e.eval()
         task_e.extract_details_eval()

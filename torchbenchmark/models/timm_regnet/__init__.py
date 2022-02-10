@@ -4,48 +4,32 @@ import timm.models.regnet
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 from .config import TimmConfig
-from torchbenchmark.util.framework.timm.extra_args import parse_args, apply_args
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     optimized_for_inference = True
+    DEFAULT_TRAIN_BSIZE = 32
+    DEFAULT_EVAL_BSIZE = 32
 
     def __init__(self, test, device, jit=False,
                  variant='regnety_016',
-                 eval_bs=32, train_bs=32, extra_args=[]):
-        super().__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.extra_args = extra_args
-        self.train_bs = train_bs
-        self.eval_bs = eval_bs
+                 batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device)
-        self.example_inputs = self._gen_input(train_bs)
-        self.eval_example_inputs = self._gen_input(eval_bs)
+        self.example_inputs = self._gen_input(self.batch_size)
         self.model.to(
             device=self.device
         )
         if device == 'cuda':
             torch.cuda.empty_cache()
 
-        # instantiate another model for inference
-        self.eval_model = timm.create_model(variant, pretrained=False, scriptable=True)
-        self.eval_model.eval()
-        self.eval_model.to(
-            device=self.device
-        )
-
-        # process extra args
-        self.args = parse_args(self, extra_args)
-        apply_args(self, self.args)
-
         if jit:
             self.model = torch.jit.script(self.model)
-            self.eval_model = torch.jit.script(self.eval_model)
-            assert isinstance(self.eval_model, torch.jit.ScriptModule)
-            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
+            assert isinstance(self.model, torch.jit.ScriptModule)
+            if test == "eval":
+                self.model = torch.jit.optimize_for_inference(self.model)
     
     def _gen_input(self, batch_size):
         return torch.randn((batch_size,) + self.cfg.input_size, device=self.device)
@@ -71,7 +55,7 @@ class Model(BenchmarkModel):
         pass
 
     def _step_eval(self):
-        output = self.eval_model(self.eval_example_inputs)
+        output = self.model(self.example_inputs)
 
     def get_module(self):
         return self.model, (self.example_inputs,)
@@ -82,7 +66,7 @@ class Model(BenchmarkModel):
             self._step_train()
 
     def eval(self, niter=1):
-        self.eval_model.eval()
+        self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
                 self._step_eval()

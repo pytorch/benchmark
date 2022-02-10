@@ -115,16 +115,16 @@ class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
     # Original train batch size: 256
     # Source: https://github.com/pranz24/pytorch-soft-actor-critic/blob/398595e0d9dca98b7db78c7f2f939c969431871a/main.py#L31
-    # Eval bs can only be 1 because of the nature of RL model
-    # This model doesn't support prefetching either
-    def __init__(self, test, device, jit=False, train_bs=256, extra_args=[]):
-        super(Model, self).__init__()
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.extra_args = extra_args
+    # This model doesn't support customizing batch size, or data prefetching
+    DEFAULT_TRAIN_BSIZE = 256
+    DEFAULT_EVAL_BSIZE = 256
+    ALLOW_CUSTOMIZE_BSIZE = False
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.args = SACConfig()
-        self.args.batch_size = train_bs
+        self.args.batch_size = self.batch_size
         # Construct agent
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.train_env = load_gym(self.args.env_id, self.args.seed)
