@@ -85,7 +85,7 @@ class Model(BenchmarkModel):
             batches.append(torch.randn(self.batch_size, 3, 224, 224).to(self.device))
         self.example_inputs = torch.utils.data.DataLoader(
             range(2), collate_fn=collate_train_fn)
-        for i, (images, _) in enumerate(self.loader):
+        for i, (images, _) in enumerate(self.example_inputs):
             images[0] = images[0].cuda(device=0, non_blocking=True)
             images[1] = images[1].cuda(device=0, non_blocking=True)
 
