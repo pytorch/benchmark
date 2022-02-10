@@ -20,6 +20,9 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model.model, [SYNTHETIC_DATA[0], ]
 
+    def set_module(self, new_model):
+        self.model.model = new_model
+
     def set_train(self):
         self.model.model.train()
 

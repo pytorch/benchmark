@@ -54,7 +54,6 @@ class Model(BenchmarkModel):
             self.example_inputs = itertools.cycle(itertools.islice(test_loader, 100))
 
     def get_module(self):
-        self.model.eval()
         for data in self.example_inputs:
             return self.model, (data, )
 

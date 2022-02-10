@@ -164,6 +164,9 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model.bert, self.example_inputs
 
+    def set_module(self, new_model):
+        self.model.bert = new_model
+
     def eval(self, niter=1):
         model = self.model
         for _ in range(niter):

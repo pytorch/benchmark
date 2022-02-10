@@ -101,7 +101,7 @@ class Model(BenchmarkModel):
         images = []
         for (i, _) in self.example_inputs:
             images = (i[0], i[1])
-        return (self.model, images)
+        return self.model, images
 
     def train(self, niter=1):
         """ Recommended

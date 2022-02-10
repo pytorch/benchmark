@@ -50,6 +50,9 @@ class Model(BenchmarkModel):
        return self.model.rencoder, (self.model.toyinputs,)
     return self.model.rencoder, (self.model.toyinputs,)
 
+  def set_module(self, new_model):
+    self.model.rencoder = new_model
+
   def set_eval(self):
     self.eval_mode = True
 

@@ -85,7 +85,6 @@ class Model(BenchmarkModel):
                 self.model = torch.jit.script(self.model, example_inputs = [self.example_inputs, ])
 
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
-        self.model.eval()
         return self.model, self.example_inputs
 
     def eval(self, niter=1):
