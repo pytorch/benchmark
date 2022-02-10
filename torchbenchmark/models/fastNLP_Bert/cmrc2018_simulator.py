@@ -129,13 +129,11 @@ def _create_empty_bin():
     with open(bin_file, "w") as bf:
         bf.write("")
 
-def generate_inputs(test, batch_size):
+def generate_inputs(train_batch_size, eval_batch_size):
     _create_dir_if_nonexist(CMRC2018_DIR)
     _create_dir_if_nonexist(os.path.join(CMRC2018_DIR, "config"))
-    if test == "eval":
-        _generate_dev(batch_size)
-    elif test == "train":
-        _generate_train(batch_size)
+    _generate_dev(eval_batch_size)
+    _generate_train(train_batch_size)
     _generate_vocab()
     _create_empty_bin()
     _copy_bert_config()

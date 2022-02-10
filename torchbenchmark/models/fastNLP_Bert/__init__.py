@@ -49,7 +49,11 @@ class Model(BenchmarkModel):
 
         self.input_dir = CMRC2018_DIR
         # Generate input data files
-        generate_inputs(self.test, self.batch_size)
+        # FastNLP loader requires both train and eval files, so we need to generate both of them
+        if test == "train":
+            generate_inputs(train_batch_size=self.batch_size, eval_batch_size=self.DEFAULT_EVAL_BSIZE)
+        elif test == "eval":
+            generate_inputs(train_batch_size=self.DEFAULT_TRAIN_BSIZE, eval_batch_size=self.batch_size)
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
         self.embed = BertEmbedding(data_bundle.get_vocab('words'),
