@@ -18,9 +18,9 @@ import time
 import torch
 import importlib
 from torchbenchmark import _list_model_paths
+import lazy_tensor_core
 import datetime
 
-import lazy_tensor_core
 lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
 # The following models are skipped:
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument("--json_to_csv", type=str, help="Convert partial json file (named via this arg) into csv file (--output_file).")
     parser.add_argument("--check_model", type=str, help="Check this particular model.")
     parser.add_argument("--output_file", required=True,  type=str, help="Write model output to this file (stdout by default)")
-    parser.add_argument("--device", choices=["lazy", "xla"], default="lazy", help="Which mode to run.")
+    parser.add_argument("--device", choices=["lazy"], default="lazy", help="Which mode to run.")
     parser.add_argument("--test", choices=["eval",  "train"], default="eval", help="Which test to run.")
     parser.add_argument("--list_models", action="store_true", help="List the available models and exit.")
     args = parser.parse_args()
