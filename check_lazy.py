@@ -20,7 +20,6 @@ import importlib
 from torchbenchmark import _list_model_paths
 import lazy_tensor_core
 import datetime
-
 lazy_tensor_core._LAZYC._ltc_init_ts_backend()
 
 # The following models are skipped:
