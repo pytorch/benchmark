@@ -3,7 +3,7 @@ import argparse
 from torchbenchmark.util.model import BenchmarkModel
 from typing import List, Tuple
 
-from torchbenchmark.util.nvfuser import enable_nvfuser
+from torchbenchmark.util.nvfuser import enable_fuser
 
 def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -13,7 +13,7 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     parser.add_argument("--torch_tensorrt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--flops", action='store_true', help="enable flops counting")
     parser.add_argument("--cudagraph", action='store_true', help="enable CUDA Graph. Currently only implemented for train.")
-    parser.add_argument("--nvfuser", type=str, default="", help="enable nvfuser")
+    parser.add_argument("--fuser", type=str, default="", help="enable nvfuser")
     args = parser.parse_args(extra_args)
     args.device = model.device
     args.jit = model.jit
@@ -21,7 +21,7 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     # only enable fp16 in GPU inference
     if args.device == "cpu":
         args.eval_fp16 = False
-        args.nvfuser = None
+        args.fuser = None
     # sanity checks
     assert not (args.fx2trt and args.torch_tensorrt), "User cannot enable torch_tensorrt and fx2trt at the same time."
     return args
@@ -46,8 +46,8 @@ def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     if args.cudagraph:
         enable_cudagraph(model, model.example_inputs)
     # apply nvfuser
-    if args.nvfuser:
-        enable_nvfuser(args.nvfuser)
+    if args.fuser:
+        enable_fuser(args.fuser)
 
 def enable_torchtrt(eval_input: Tuple[torch.tensor], eval_fp16: bool, model: torch.nn.Module) -> torch.nn.Module:
     import torch_tensorrt

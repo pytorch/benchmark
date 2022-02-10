@@ -1,7 +1,7 @@
 import torch
 
-def enable_nvfuser(name: str):
-    '''Enable nvfuser. Do not need to restore the fuser state after the test,
+def enable_fuser(name: str):
+    '''Enable fuser. Do not need to restore the fuser state after the test,
        because the assumption is to run each test in a separate process.'''
     if name == 'fuser0':  # legacy fuser
         torch._C._jit_override_can_fuse_on_cpu(True)
