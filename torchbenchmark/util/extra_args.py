@@ -1,6 +1,7 @@
 import argparse
 from typing import List
 from torchbenchmark.util.backends.fx2trt import enable_fx2trt
+from torchbenchmark.util.framework.vision.model_factory import TorchVisionModel
 
 # Dispatch arguments based on model type
 def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> argparse.Namespace:
@@ -12,6 +13,8 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     args.batch_size = model.batch_size
     if not (model.device == "cuda" and model.test == "eval"):
         args.fx2trt = False
+    if isinstance(model, TorchVisionModel):
+        args.cudagraph = False
     return args
 
 def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
