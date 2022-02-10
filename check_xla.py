@@ -1,5 +1,5 @@
 """
-A 2-layer util for getting stats about lazy tensor models in torchbench.
+A 2-layer util for getting stats about xla tensor models in torchbench.
 (1) by default with no arguments, this triggers a sweep where one subprocess per model checks the model behavior
 (2) with arguments specifying the model and mode, runs just that model in the current process and collects stats.
 
@@ -18,16 +18,18 @@ import time
 import torch
 import importlib
 from torchbenchmark import _list_model_paths
-import datetime
 
-import lazy_tensor_core
-lazy_tensor_core._LAZYC._ltc_init_ts_backend()
+import torch_xla
+import torch_xla.core.xla_model as xm
+import torch_xla.debug.metrics as metrics
+
+import datetime
 
 # The following models are skipped:
 # pytorch_struct/eval: Don't exist.
 # pyhpc_equation_of_state/train: Don't exist.
 # pyhpc_isoneutral_mixing/train: Don't exist.
-# dlrm/train: Sparse layout doesn't support lazy devices.
+# dlrm/train: Sparse layout doesn't support xla devices.
 # timm_nfnet/train: OOM on CUDA eager.
 skip_tests = {'eval': {'pytorch_struct'},
               'train': {'pyhpc_equation_of_state', 'pyhpc_isoneutral_mixing', 'dlrm', 'timm_nfnet'}}
@@ -66,7 +68,6 @@ def sweep_models(output_filename, tests=['eval', 'train']):
 
                 with tempfile.NamedTemporaryFile(mode='r') as model_output_file:
                     env = os.environ
-                    env["LTC_TS_CUDA"] = "1"
                     launch_command = run_model_command(name, test, model_output_file.name)
                     # python stdlib didn't include tzones until 3.9
                     PST_OFFSET = datetime.timedelta(hours=8)
@@ -126,25 +127,22 @@ def get_model_class(model_name):
         raise RuntimeError(f"Could not find dependent module {e.name} for Model {model_name}, skip it")
 
 def _check_model(model_name, test, output_file, niter):
-    import lazy_tensor_core.core.lazy_model as ltm
-    import lazy_tensor_core.debug.metrics as metrics
     torch.manual_seed(42)
     times = []
     for i in range(niter):
         t0 = time.time()
         test()
-        ltm.mark_step()
-        ltm.wait_device_ops()
+        xm.mark_step()
         times.append(time.time() - t0)
-    raw_counters = ["CachedCompile", "CreateLtcTensor", "DestroyLtcTensor", "DeviceDataCacheMiss", "MarkStep", "UncachedCompile"]
+    raw_counters = ["CachedCompile", "DeviceDataCacheMiss", "MarkStep", "UncachedCompile", "CreateXlaTensor", "DestroyXlaTensor", "CreateXlaTensor", "DestroyXlaTensor"]
     aten_ops = [n[5:] for n in metrics.counter_names() if 'aten::' in n]
-    lazy_ops = [n[5:] for n in metrics.counter_names() if 'lazy::' in n]
+    xla_ops  = [n[5:] for n in metrics.counter_names() if 'xla::'  in n]
     stats = {
         "model":  model_name,
         "times": times,
         **{n: metrics.counter_value(n) for n in metrics.counter_names() if n in raw_counters},
         "aten_ops": aten_ops,
-        "lazy_ops": lazy_ops,
+        "xla_ops": xla_ops,
     }
 
     return stats
@@ -162,7 +160,7 @@ if __name__ == "__main__":
     parser.add_argument("--json_to_csv", type=str, help="Convert partial json file (named via this arg) into csv file (--output_file).")
     parser.add_argument("--check_model", type=str, help="Check this particular model.")
     parser.add_argument("--output_file", required=True,  type=str, help="Write model output to this file (stdout by default)")
-    parser.add_argument("--device", choices=["lazy", "xla"], default="lazy", help="Which mode to run.")
+    parser.add_argument("--device", choices=["xla"], default="xla", help="Which mode to run.")
     parser.add_argument("--test", choices=["eval",  "train"], default="eval", help="Which test to run.")
     parser.add_argument("--list_models", action="store_true", help="List the available models and exit.")
     args = parser.parse_args()
@@ -173,6 +171,9 @@ if __name__ == "__main__":
         json_to_csv(args.json_to_csv, args.output_file)
         exit(0)
 
+    if args.device == 'xla':
+        args.device = xm.xla_device()
+
     if args.check_model:
         Model = get_model_class(args.check_model)
         model = Model(device=args.device, jit=False)
@@ -180,4 +181,3 @@ if __name__ == "__main__":
         exit(check_model(args.check_model, test, args.output_file))
 
     exit(sweep_models(args.output_file))
-
