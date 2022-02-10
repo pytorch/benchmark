@@ -10,7 +10,6 @@ Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
 import time
-import inspect
 import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
@@ -161,11 +160,6 @@ if __name__ == "__main__":
     Model = load_model_by_name(args.model)
     if not Model:
         print(f"Unable to find model matching {args.model}.")
-        exit(-1)
-    model_args = inspect.signature(Model)
-    support_extra_args = 'extra_args' in model_args.parameters
-    if extra_args and not support_extra_args:
-        print(f"The model {args.model} doesn't accept extra args: {extra_args}")
         exit(-1)
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
 
