@@ -134,7 +134,7 @@ tests:
     stable: true
   test_eval[mobilenet_v2-cpu-jit]:
     norm: 0.017389205982908607
-    stable: true
+    stable: false
   test_eval[mobilenet_v2-cuda-eager]:
     norm: 0.014513510977849364
     stable: true
@@ -170,7 +170,7 @@ tests:
     stable: true
   test_eval[pyhpc_equation_of_state-cpu-eager]:
     norm: 0.0762754495954141
-    stable: true
+    stable: false
   test_eval[pyhpc_equation_of_state-cpu-jit]:
     norm: 0.003364439937286079
     stable: true
@@ -227,7 +227,7 @@ tests:
     stable: true
   test_eval[resnet18-cpu-eager]:
     norm: 0.03338945400901139
-    stable: true
+    stable: false
   test_eval[resnet18-cpu-jit]:
     norm: 0.013716061948798597
     stable: true
@@ -392,10 +392,10 @@ tests:
     stable: true
   test_train[dcgan-cpu-eager]:
     norm: 1.2124564830446616
-    stable: true
+    stable: false
   test_train[dcgan-cpu-jit]:
     norm: 1.1788515970110893
-    stable: true
+    stable: false
   test_train[dcgan-cuda-eager]:
     norm: 0.34197683655656874
     stable: true
@@ -404,7 +404,7 @@ tests:
     stable: true
   test_train[dlrm-cpu-eager]:
     norm: 3.1003996550571173
-    stable: true
+    stable: false
   test_train[dlrm-cuda-eager]:
     norm: 0.02726724895182997
     stable: true
@@ -443,7 +443,7 @@ tests:
     stable: true
   test_train[hf_Reformer-cpu-eager]:
     norm: 47.348063210607506
-    stable: true
+    stable: false
   test_train[hf_Reformer-cuda-eager]:
     norm: 3.459243025514297
     stable: true
