@@ -33,11 +33,11 @@ class Model(BenchmarkModel):
         self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=self.batch_size, num_train_batch=NUM_TRAIN_BATCH)
         if test == "train":
             self.traincfg.model.to(self.device)
+            self.traincfg.model.train()
         elif test == "eval":
-            if batch_size != self.DEFAULT_EVAL_BSIZE:
-                raise NotImplementedError("This model doesn't support customizing eval batch size.")
             self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_batch=NUM_EVAL_BATCH)
             self.evalcfg.model.to(self.device)
+            self.evalcfg.model.eval()
 
     def get_module(self):
         if self.device == "cpu":

@@ -7,8 +7,6 @@ import pathlib
 import json
 import random
 
-from bert_pytorch.__main__ import train
-
 TRAIN_NUM_BATCH = 1
 EVAL_NUM_BATCH = 1
 

@@ -37,7 +37,7 @@ class Model(BenchmarkModel):
         self.example_inputs = torch.rand((self.batch_size, 3, 640, 959), dtype=torch.float32).to(self.device)
         self.model = UNet(n_channels=3, n_classes=2, bilinear=True).to(self.device)
         if test == "train":
-            self.sample_masks = torch.randint(0, 1, (1, 640, 959), dtype=torch.int64).to(self.device)
+            self.sample_masks = torch.randint(0, 1, (self.batch_size, 640, 959), dtype=torch.int64).to(self.device)
             self.model.train()
         elif test == "eval":
             self.model.eval()

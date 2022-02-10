@@ -2,7 +2,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 from argparse import Namespace
 import random
-from re import L
 
 import torch
 import torch.nn as nn

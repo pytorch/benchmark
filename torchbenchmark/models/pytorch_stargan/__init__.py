@@ -9,8 +9,6 @@ from .main import parse_config, makedirs
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-
-# Make all randomness deterministic
 random.seed(1337)
 torch.manual_seed(1337)
 np.random.seed(1337)
@@ -58,8 +56,10 @@ class Model(BenchmarkModel):
                              should_script=config.should_script)
         self.model = self.solver.G
 
-        if self.jit and test == "eval":
-            self.model = torch.jit.optimize_for_inference(self.model)
+        if self.jit:
+            self.model = torch.jit.script(self.model)
+            if test == "eval":
+                self.model = torch.jit.optimize_for_inference(self.model)
 
         self.example_inputs = self.generate_example_inputs()
 
