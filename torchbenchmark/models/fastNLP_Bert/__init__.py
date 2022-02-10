@@ -24,7 +24,6 @@ from fastNLP.core import logger
 # Import CMRC2018 data generator
 from .cmrc2018_simulator import generate_inputs
 from .cmrc2018_simulator import CMRC2018_DIR, CMRC2018_CONFIG_DIR
-from .cmrc2018_simulator import CMRC2018_TRAIN_SPEC, CMRC2018_DEV_SPEC
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -65,14 +64,17 @@ class Model(BenchmarkModel):
         else:
             self._forward_func = self.model.forward
 
+        # Do not spawn new processes on small scale of data
+        self.num_workers = 0
+
         if self.test == "train":
             self.model.train()
-            self.data = data_bundle.get_dataset('train')
+            self.trainer = self.model
+            self.train_data = data_bundle.get_dataset('train')
+            self.data = self.train_data
             self.losser = CMRC2018Loss()
             self.metrics = CMRC2018Metric()
             self.update_every = 10
-            # Do not spawn new processes on small scale of data
-            self.num_workers = 0
             wm_callback = WarmupCallback(schedule='linear')
             gc_callback = GradientClipCallback(clip_value=1, clip_type='norm')
             callbacks = [wm_callback, gc_callback]

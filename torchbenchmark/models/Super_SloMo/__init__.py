@@ -46,7 +46,7 @@ class Model(BenchmarkModel):
             'init_learning_rate': 0.0001,
         })
 
-        self.optimizer = optim.Adam(self.module.parameters(),
+        self.optimizer = optim.Adam(self.model.parameters(),
                                     lr=args.init_learning_rate)
 
         mean = [0.429, 0.431, 0.397]

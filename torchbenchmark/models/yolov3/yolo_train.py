@@ -411,7 +411,7 @@ def prepare_training_loop(args):
             # dist.destroy_process_group() if torch.cuda.device_count() > 1 else None
             torch.cuda.empty_cache()
             return results
-        return train_loop
+        return train_loop, model, dataloader
 
     root = str(Path(__file__).parent.resolve())
     parser = argparse.ArgumentParser()

@@ -65,7 +65,7 @@ class Model(BenchmarkModel):
         else:
             self.augment = Shift(args.data_stride)
 
-        self.model = DemucsWrapper(self.model, self.augment)
+        self.model = DemucsWrapper(model, self.augment)
         
         if test == "train":
             self.model.train()

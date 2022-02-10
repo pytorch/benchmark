@@ -45,7 +45,7 @@ class Model(BenchmarkModel):
                                 --epochs {self.num_epochs} --device {self.device_str} --weights '' \
                                 --train-num-batch {self.train_num_batch} \
                                 --prefetch")
-            self.training_loop = prepare_training_loop(train_args)
+            self.training_loop, self.model, self.example_inputs = prepare_training_loop(train_args)
         elif test == "eval":
             self.model, self.example_inputs = self.prep_eval()
 

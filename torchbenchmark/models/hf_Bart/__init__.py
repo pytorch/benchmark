@@ -37,21 +37,22 @@ class Model(BenchmarkModel):
         elif test == "eval":
             eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
             self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
-            self.example_inputs = {'input_ids': eval_context, }
+            self.example_inputs = {'input_ids': eval_context, 'decoder_input_ids': eval_context }
             self.model.eval()
 
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
+        k = 'labels' if self.test == 'train' else 'decoder_input_ids'
         return ArgsToKwargsWrapper(self.model), (
-            self.example_inputs["input_ids"], self.example_inputs["decoder_input_ids"])
+                self.example_inputs['input_ids'], self.example_inputs[k])
 
     def train(self, niter=3):
         if self.jit:
             raise NotImplementedError()
         self.model.train()
         for _ in range(niter):
-            outputs = self.model(**self.train_inputs)
+            outputs = self.model(**self.example_inputs)
             loss = outputs.loss
             loss.backward()
             self.optimizer.step()

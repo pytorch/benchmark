@@ -102,7 +102,7 @@ class Model(BenchmarkModel):
             self.model.train()
             self.example_inputs = self._preprocess(train_data)
             self.optimizer = ScheduledOptim(
-                optim.Adam(self.module.parameters(), betas=(0.9, 0.98), eps=1e-09),
+                optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-09),
                 2.0, self.opt.d_model, self.opt.n_warmup_steps)
         elif test == "eval":
             self.model.eval()

@@ -42,13 +42,14 @@ class Model(BenchmarkModel):
         elif test == "eval":
             self.model.eval()
             eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
-            self.example_inputs = {'input_ids': eval_context, }
+            self.example_inputs = {'input_ids': eval_context, 'decoder_input_ids': eval_context }
 
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
+        k = 'labels' if self.test == 'train' else 'decoder_input_ids'
         return ArgsToKwargsWrapper(self.model), (
-            self.example_inputs["input_ids"], self.example_inputs["decoder_input_ids"])
+                self.example_inputs['input_ids'], self.example_inputs[k])
 
     # TODO: re-enable train test when infra has capacity
     def train(self, niter=3):

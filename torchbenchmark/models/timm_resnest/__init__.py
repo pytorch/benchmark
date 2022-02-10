@@ -4,7 +4,6 @@ import timm.models.resnest
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 from .config import TimmConfig
-from torchbenchmark.util.framework.timm.extra_args import parse_args, apply_args
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
@@ -25,10 +24,6 @@ class Model(BenchmarkModel):
         )
         if device == 'cuda':
             torch.cuda.empty_cache()
-
-        # process extra args
-        self.args = parse_args(self, extra_args)
-        apply_args(self, self.args)
 
         if jit:
             self.model = torch.jit.script(self.model)
