@@ -157,9 +157,9 @@ class Model(BenchmarkModel):
         
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
+                self.model.model = torch.jit._script_pdt(self.model.model, example_inputs=[self.example_inputs, ])
             else:
-                self.model = torch.jit.script(bert, example_inputs=[self.example_inputs, ])
+                self.model.model = torch.jit.script(self.model.model, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.model.model, self.example_inputs
