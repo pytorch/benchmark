@@ -18,7 +18,7 @@ class Model(BenchmarkModel):
 
         self.model = timm.create_model(variant, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device)
-        self.example_inputs = self._gen_input(batch_size)
+        self.example_inputs = self._gen_input(self.batch_size)
         self.model.to(
             device=self.device
         )

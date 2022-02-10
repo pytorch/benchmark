@@ -36,12 +36,12 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Disable T5 model train because of limited infra capacity")
             self.model.train()
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
-            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, 1024)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, 1024)).to(device)
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
         elif test == "eval":
             self.model.eval()
-            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 2048)).to(device)
             self.example_inputs = {'input_ids': eval_context, 'decoder_input_ids': eval_context }
 
     def get_module(self):

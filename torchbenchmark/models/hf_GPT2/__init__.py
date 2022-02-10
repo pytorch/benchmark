@@ -25,7 +25,7 @@ class Model(BenchmarkModel):
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
         elif test == "eval":
             self.model.eval()
-            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 1024)).to(device)
             self.example_inputs = {'input_ids': eval_context, }
 
     def get_module(self):
