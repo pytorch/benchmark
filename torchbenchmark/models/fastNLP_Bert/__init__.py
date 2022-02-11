@@ -24,7 +24,6 @@ from fastNLP.core import logger
 # Import CMRC2018 data generator
 from .cmrc2018_simulator import generate_inputs
 from .cmrc2018_simulator import CMRC2018_DIR, CMRC2018_CONFIG_DIR
-from .cmrc2018_simulator import CMRC2018_TRAIN_SPEC, CMRC2018_DEV_SPEC
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -40,13 +39,21 @@ logger.setLevel(logging.WARNING)
 
 class Model(BenchmarkModel):
     task = NLP.OTHER_NLP
-    def __init__(self, device=None, jit=False):
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    # Use the train batch size from the original CMRC2018 Q&A task
+    # Source: https://fastnlp.readthedocs.io/zh/latest/tutorials/extend_1_bert_embedding.html
+    DEFAULT_TRAIN_BSIZE = 6
+    DEFAULT_EVAL_BSIZE = 1
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.input_dir = CMRC2018_DIR
         # Generate input data files
-        generate_inputs()
+        # FastNLP loader requires both train and eval files, so we need to generate both of them
+        if test == "train":
+            generate_inputs(train_batch_size=self.batch_size, eval_batch_size=self.DEFAULT_EVAL_BSIZE)
+        elif test == "eval":
+            generate_inputs(train_batch_size=self.DEFAULT_TRAIN_BSIZE, eval_batch_size=self.batch_size)
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
         data_bundle.rename_field('chars', 'words')
         self.embed = BertEmbedding(data_bundle.get_vocab('words'),
@@ -55,35 +62,39 @@ class Model(BenchmarkModel):
                                    include_cls_sep=False, auto_truncate=True,
                                    dropout=0.5, word_dropout=0.01)
         self.model = self._move_model_to_device(BertForQuestionAnswering(self.embed), device=device)
+
         if self._model_contains_inner_module(self.model):
             self._forward_func = self.model.module.forward
         else:
             self._forward_func = self.model.forward
-        self.losser = CMRC2018Loss()
-        self.metrics = CMRC2018Metric()
-        # Use Train batch for batch size
-        self.batch_size = CMRC2018_TRAIN_SPEC["data_size"]
-        self.update_every = 10
+
         # Do not spawn new processes on small scale of data
         self.num_workers = 0
-        wm_callback = WarmupCallback(schedule='linear')
-        gc_callback = GradientClipCallback(clip_value=1, clip_type='norm')
-        callbacks = [wm_callback, gc_callback]
-        self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
-        self.callback_manager = CallbackManager(env={"trainer":self}, callbacks=callbacks)
-        self.train_data = data_bundle.get_dataset('train')
-        self.eval_data = data_bundle.get_dataset('dev')
-        self.train_data_iterator = DataSetIter(dataset=self.train_data,
-                                               batch_size=CMRC2018_TRAIN_SPEC["data_size"],
-                                               sampler=None,
-                                               num_workers=self.num_workers, drop_last=False)
-        self.eval_data_iterator = DataSetIter(dataset=self.eval_data,
-                                              batch_size=CMRC2018_DEV_SPEC["data_size"],
-                                              sampler=None,
-                                              num_workers=self.num_workers, drop_last=False)
+
+        if self.test == "train":
+            self.model.train()
+            self.trainer = self.model
+            self.train_data = data_bundle.get_dataset('train')
+            self.data = self.train_data
+            self.losser = CMRC2018Loss()
+            self.metrics = CMRC2018Metric()
+            self.update_every = 10
+            wm_callback = WarmupCallback(schedule='linear')
+            gc_callback = GradientClipCallback(clip_value=1, clip_type='norm')
+            callbacks = [wm_callback, gc_callback]
+            self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
+            self.callback_manager = CallbackManager(env={"trainer":self}, callbacks=callbacks)
+        elif self.test == "eval":
+            self.model.eval()
+            self.data = data_bundle.get_dataset('dev')
+
+        self.example_inputs = DataSetIter(dataset=self.data,
+                                          batch_size=self.batch_size,
+                                          sampler=None,
+                                          num_workers=self.num_workers, drop_last=False)
 
     def get_module(self):
-        batch_x, batch_y = list(self.train_data_iterator)[0]
+        batch_x, batch_y = list(self.example_inputs)[0]
         self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         return self.model, (batch_x["words"], )
 
@@ -95,7 +106,7 @@ class Model(BenchmarkModel):
         self._predict_func = self.model.forward
         with torch.no_grad():
             for epoch in range(niter):
-                for batch_x, batch_y in self.eval_data_iterator:
+                for batch_x, batch_y in self.example_inputs:
                     self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                     pred_dict = self._data_forward(self._predict_func, batch_x)
 
@@ -108,11 +119,11 @@ class Model(BenchmarkModel):
         self._mode(self.model, is_test=False)
         self.callback_manager.on_train_begin()
         # Move the data to GPU before the train loop
-        for batch_x, batch_y in self.train_data_iterator:
+        for batch_x, batch_y in self.example_inputs:
             self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
         for epoch in range(niter):
             self.callback_manager.on_epoch_begin()
-            for batch_x, batch_y in self.train_data_iterator:
+            for batch_x, batch_y in self.example_inputs:
                 self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                 self.step += 1
                 prediction = self._data_forward(self.model, batch_x)
@@ -207,11 +218,3 @@ class Model(BenchmarkModel):
         :return: a scalar
         """
         return self.losser(predict, truth)
-
-if __name__ == "__main__":
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    m = Model(device=device, jit=False)
-    model, example_inputs = m.get_module()
-    model(*example_inputs)
-    m.train()
-    m.eval()

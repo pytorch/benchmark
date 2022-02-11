@@ -19,10 +19,11 @@ SPEC_FILE_DEFAULT = Path(__file__).parent.joinpath("score.yml")
 
 from .compute_score_v0 import TorchBenchScoreV0
 from .compute_score_v1 import TorchBenchScoreV1
+from .compute_score_v2 import TorchBenchScoreV2
 
 class TorchBenchScore:
     def __init__(self, ref_data=None, spec=SPEC_FILE_DEFAULT, target=TARGET_SCORE_DEFAULT, version="v1"):
-        active_versions = {"v0": TorchBenchScoreV0, "v1": TorchBenchScoreV1 }
+        active_versions = {"v0": TorchBenchScoreV0, "v1": TorchBenchScoreV1, "v2": TorchBenchScoreV2 }
         if version not in active_versions:
             print(f"We only support TorchBench score versions: {active_versions.keys()}")
         self.score = active_versions[version](ref_data, spec, target)

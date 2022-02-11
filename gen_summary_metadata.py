@@ -3,13 +3,12 @@ A Benchmark Summary Metadata tool to extract and generate metadata from models a
 """
 import argparse
 from copy import deepcopy
-from distutils.util import strtobool
 import os
 import yaml
 from typing import Any, Dict, List, Tuple
 
 import torch
-from torchbenchmark import list_models, load_model_by_name, _list_model_paths, ModelTask, ModelDetails
+from torchbenchmark import list_models, load_model_by_name, _list_model_paths, ModelTask, ModelDetails, str_to_bool
 
 TIMEOUT = 300  # seconds
 torchbench_dir = 'torchbenchmark'
@@ -29,7 +28,7 @@ _DEFAULT_METADATA_ = {
 
 
 def _parser_helper(input):
-    return None if input is None else bool(strtobool(str(input)))
+    return None if input is None else str_to_bool(str(input))
 
 
 def _process_model_details_to_metadata(train_detail: ModelDetails, eval_detail: ModelDetails) -> Dict[str, Any]:
@@ -67,9 +66,6 @@ def _extract_detail(path: str) -> Dict[str, Any]:
     task_e = ModelTask(path, timeout=TIMEOUT)
     try:
         task_e.make_model_instance(device=device, jit=False)
-        assert (
-            not task_e.model_details.optimized_for_inference or
-            task_e.worker.load_stmt("hasattr(model, 'eval_model')"))
         task_e.set_eval()
         task_e.eval()
         task_e.extract_details_eval()

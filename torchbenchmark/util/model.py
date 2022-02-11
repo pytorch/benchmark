@@ -1,13 +1,20 @@
 import json
 import os
 import pandas as pd
-import typing
 from  collections.abc import Iterable
 import torch
 from contextlib import contextmanager
 import warnings
 import inspect
 import os
+from typing import Optional, List
+from torchbenchmark.util.env_check import post_processing
+
+class PostInitProcessor(type):
+    def __call__(cls, *args, **kwargs):
+        obj = type.__call__(cls, *args, **kwargs)
+        obj.__post__init__()
+        return obj
 
 @contextmanager
 def no_grad(val):
@@ -21,13 +28,43 @@ def no_grad(val):
     finally:
         torch.set_grad_enabled(old_state)
 
-class BenchmarkModel():
+class BenchmarkModel(metaclass=PostInitProcessor):
+    DEFAULT_TRAIN_BSIZE: Optional[int] = None
+    DEFAULT_EVAL_BSIZE: Optional[int] = None
+
+    test: str
+    device: str
+    jit: bool
+    batch_size: int
+    extra_args: List[str]
+
     """
     A base class for adding models to torch benchmark.
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
-    def __init__(self, *args, **kwargs): 
-        pass
+    def __init__(self, test: str, device: str, jit: bool=False, batch_size: Optional[int]=None, extra_args: List[str]=[]):
+        self.test = test
+        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
+        self.device = device
+        self.jit = jit
+        self.batch_size = batch_size
+        if not self.batch_size:
+            self.batch_size = self.DEFAULT_TRAIN_BSIZE if test == "train" else self.DEFAULT_EVAL_BSIZE
+            # If the model doesn't implement test or eval test
+            # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
+            if not self.batch_size:
+                raise NotImplementedError(f"Test {test} is not implemented.")
+        # Check if customizing batch size is supported
+        if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
+            if test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
+                raise NotImplementedError("Model doesn't support customizing batch size.")
+            elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
+                raise NotImplementedError("Model doesn't support customizing batch size.")
+        self.extra_args = extra_args
+
+    # Run the post processing for model acceleration
+    def __post__init__(self):
+        post_processing(self)
 
     def train(self):
         raise NotImplementedError()

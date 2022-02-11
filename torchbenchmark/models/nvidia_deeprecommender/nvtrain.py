@@ -179,15 +179,15 @@ def DoTrainEval(encoder, evaluation_data_layer, use_cuda):
 
 class DeepRecommenderTrainBenchmark:
 
-  def __init__(self, device="cpu", jit=False, processCommandLine = False):
-    self.TrainInit(device, jit, processCommandLine)
+  def __init__(self, device="cpu", jit=False, batch_size=256, processCommandLine = False):
+    self.TrainInit(device, jit, batch_size, processCommandLine)
 
 
-  def TrainInit(self, device="cpu", jit=False, processCommandLine = False):
+  def TrainInit(self, device="cpu", jit=False, batch_size=256, processCommandLine = False):
 
     # Force test to run in toy mode. Single call of fake data to model.
     self.toytest = True
-    self.toybatch = 256
+    self.toybatch = batch_size
 
     # number of movies in netflix training set.
     self.toyvocab = 197951

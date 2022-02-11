@@ -14,7 +14,7 @@ jobs:
           name: Install Conda
           command: ./scripts/install_basics.sh
       - run:
-          name: Install CUDA 11.1
+          name: Install CUDA 11.3
           command: sudo ./scripts/install_cuda.sh
       - run:
           name: Install PyTorch nightly
@@ -33,11 +33,11 @@ jobs:
       - run:
           name: Validate training benchmark suite
           command: . ~/miniconda3/etc/profile.d/conda.sh; conda activate base; python test.py
-          no_output_timeout: "30m"
+          no_output_timeout: "60m"
       - run:
           name: Validate pytest-benchmark invocation of training suite
           command: ./scripts/run_bench_and_upload.sh
-          no_output_timeout: "30m"
+          no_output_timeout: "60m"
 
 workflows:
   version: 2

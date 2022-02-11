@@ -33,6 +33,10 @@ torch.backends.cudnn.benchmark = False
 class Model(BenchmarkModel):
     task = NLP.TRANSLATION
     optimized_for_inference = True
+    # Original batch size 256, hardware platform unknown
+    # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
+    DEFAULT_TRAIN_BSIZE = 256
+    DEFAULT_EVAL_BSIZE = 32
 
     def _create_transformer(self):
         transformer = Transformer(
@@ -61,16 +65,12 @@ class Model(BenchmarkModel):
             preloaded_data.append((src_seq, trg_seq, gold))
         return preloaded_data
 
-    # Original batch size 256, hardware platform unknown
-    # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
-    def __init__(self, device=None, jit=False, train_bs=256, eval_bs=32):
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         root = os.path.join(str(Path(__file__).parent), ".data")
         self.opt = Namespace(**{
-            'batch_size': train_bs,
-            'eval_batch_size': eval_bs,
+            'batch_size': self.batch_size,
             'd_inner_hid': 2048,
             'd_k': 64,
             'd_model': 512,
@@ -96,52 +96,42 @@ class Model(BenchmarkModel):
         })
 
         train_data, test_data = prepare_dataloaders(self.opt, self.device)
+        self.model = self._create_transformer()
 
-        transformer = self._create_transformer()
-        self.eval_model = self._create_transformer()
-        self.eval_model.eval()
+        if test == "train":
+            self.model.train()
+            self.example_inputs = self._preprocess(train_data)
+            self.optimizer = ScheduledOptim(
+                optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-09),
+                2.0, self.opt.d_model, self.opt.n_warmup_steps)
+        elif test == "eval":
+            self.model.eval()
+            self.example_inputs = self._preprocess(test_data)
 
-        self.train_data_loader = self._preprocess(train_data)
-        self.eval_data_loader = self._preprocess(test_data)
-        src_seq, trg_seq, gold = self.train_data_loader[0]
+        src_seq, trg_seq, gold = self.example_inputs[0]
         example_inputs = (src_seq, trg_seq)
         if self.jit:
             if hasattr(torch.jit, '_script_pdt'):
-                transformer = torch.jit._script_pdt(transformer, example_inputs = [example_inputs, ])
-                self.eval_model = torch.jit._script_pdt(self.eval_model, example_inputs = [example_inputs, ])
+                self.model = torch.jit._script_pdt(self.model, example_inputs = [example_inputs, ])
             else:
-                transformer = torch.jit.script(transformer, example_inputs = [example_inputs, ])
-                self.eval_model = torch.jit.script(self.eval_model, example_inputs = [example_inputs, ])
-            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
-        self.module = transformer
-        self.optimizer = ScheduledOptim(
-            optim.Adam(self.module.parameters(), betas=(0.9, 0.98), eps=1e-09),
-            2.0, self.opt.d_model, self.opt.n_warmup_steps)
+                self.model = torch.jit.script(self.model, example_inputs = [example_inputs, ])
+            if test == "eval":
+                self.model = torch.jit.optimize_for_inference(self.model)
 
     def get_module(self):
-        for (src_seq, trg_seq, gold) in self.train_data_loader:
-            return self.module, (*(src_seq, trg_seq), )
+        for (src_seq, trg_seq, gold) in self.example_inputs:
+            return self.model, (*(src_seq, trg_seq), )
 
     def eval(self, niter=1):
-        self.module.eval()
-        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.eval_data_loader):
-            self.eval_model(*(src_seq, trg_seq))
+        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
+            self.model(*(src_seq, trg_seq))
 
     def train(self, niter=1):
-        self.module.train()
-        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.train_data_loader):
+        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
             self.optimizer.zero_grad()
             example_inputs = (src_seq, trg_seq)
-            pred = self.module(*example_inputs)
+            pred = self.model(*example_inputs)
             loss, n_correct, n_word = cal_performance(
                 pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
             self.optimizer.step_and_update_lr()
-
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)

@@ -32,7 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: v1.0
+          ref: v2.0
       - name: Run sweep job
         run: |
           SWEEP_JOB=${{ github.event.inputs.sweep_name }}
@@ -42,7 +42,7 @@ jobs:
             echo "Running config $CONFIG ..."
             # Create a new conda env
             CONFIG_BASE=$(basename ${CONFIG})
-            CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/.*-\(.*\)\.txt/\1/')
+            CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/[^-]*-\(.*\)\.txt/\1/')
             conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
             . activate ${CONDA_ENV_NAME}
             conda install -y git-lfs
@@ -72,16 +72,16 @@ jobs:
           . activate ${CONDA_ENV_NAME}
           pip install -r requirements.txt
           pip install boto3
+          mkdir -p "${SWEEP_JOB_OUTPUT}/scores"
           for RESULT in ${SWEEP_JOB_OUTPUT}/*.json; do
             # Upload when the file is non-empty
-            if [ ! -s $RESULT ]; then
+            if [ -s $RESULT ]; then
               # Generate score file
-              SCORE_FILE="${RESULT}.score.json"
+              RESULT_BASENAME=$(basename "${RESULT}")
+              SCORE_FILE="${SWEEP_JOB_OUTPUT}/scores/${RESULT_BASENAME}.score.json"
               python compute_score.py --score_version "${CONFIG_VER}" --benchmark_data_file "${RESULT}" > "${SCORE_FILE}"
-              # Enable OSS stat uploads
-              wget -O scripts/scribe.py https://github.com/pytorch/pytorch/raw/master/tools/stats/scribe.py || echo "failed to copy oss stat utils"
               # Upload score
-              python scripts/upload_scribe.py --pytest_bench_json "${RESULT}" --torchbench_score_file "${SCORE_FILE}"
+              python scripts/upload_scribe_${CONFIG_VER}.py --pytest_bench_json "${RESULT}" --torchbench_score_file "${SCORE_FILE}"
             fi
           done
           conda deactivate

@@ -12,13 +12,14 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
     # Train batch size: 32
     # Source: https://openreview.net/pdf?id=B1Yy1BxCZ
-    def __init__(self, device=None, jit=False, train_bs=32):
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    DEFAULT_TRAIN_BSIZE = 32
+    DEFAULT_EVAL_BSIZE = 32
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.model = models.resnet50().to(self.device)
-        self.eval_model = models.resnet50().to(self.device)
-        self.example_inputs = (torch.randn((train_bs, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
         self.prep_qat_train()
 
     def prep_qat_train(self):
@@ -37,10 +38,10 @@ class Model(BenchmarkModel):
         self.prep_qat_eval()
 
     def prep_qat_eval(self):
-        self.eval_model = quantize_fx.convert_fx(self.model)
+        self.model = quantize_fx.convert_fx(self.model)
         if self.jit:
-            self.eval_model = torch.jit.script(self.eval_model)
-        self.eval_model.eval()
+            self.model = torch.jit.script(self.model)
+        self.model.eval()
 
     def train(self, niter=3):
         if self.jit is True:  # torchscript operations should only be applied after quantization operations
@@ -57,16 +58,8 @@ class Model(BenchmarkModel):
     def eval(self, niter=1):
         if self.device != 'cpu':
             raise NotImplementedError()
-        model = self.eval_model
+        model = self.model
         example_inputs = self.example_inputs
         example_inputs = example_inputs[0][0].unsqueeze(0)
         for i in range(niter):
             model(example_inputs)
-
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=True)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)

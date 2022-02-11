@@ -13,8 +13,8 @@ from torchbenchmark.score.compute_score import TorchBenchScore
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--score_version", choices=['v0', 'v1'], default="v1",
-        help="which version of score to use - choose from v0 or v1")
+    parser.add_argument("--score_version", choices=['v1', 'v2'], default="v1",
+        help="which version of score to use - choose from v1 or v2")
     parser.add_argument("--benchmark_data_file",
         help="pytest-benchmark json file with current benchmark data")
     parser.add_argument("--benchmark_data_dir",
@@ -58,11 +58,14 @@ if __name__ == "__main__":
 
     results = []
     for fname, data in zip(files, benchmark_data):
-        result = {}
-        score = score_config.compute_score(data)
-        result["file"] = fname
-        result["pytorch_version"] = data['machine_info']['pytorch_version']
-        result["score"] = score
-        results.append(result)
+        try:
+            result = {}
+            score = score_config.compute_score(data)
+            result["file"] = fname
+            result["pytorch_version"] = data['machine_info']['pytorch_version']
+            result["score"] = score
+            results.append(result)
+        except ValueError as e:
+            print(f"Error when analyzing file {fname}: {e}")
 
     print(json.dumps(results, indent=4))

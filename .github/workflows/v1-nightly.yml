@@ -2,7 +2,7 @@ name: TorchBench V1 nightly
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 14 * * *' # run at 2 PM UTC
+    - cron: '0 19 * * *' # run at 7 PM UTC
 
 jobs:
   run-benchmark:
@@ -110,12 +110,9 @@ jobs:
           CONFIG_ENV=${CONFIG_DIR}/config-${CONFIG_VER}.env
           # Load environment variables
           set -a; source "${CONFIG_ENV}"; set +a
-          CONFIG_NORM_FILE="${CONFIG_DIR}/${CONFIG_FILE}"
           SCORE_FILE="./benchmark-result-v1-score-${TODAY}.json"
           # Generate score file
           python compute_score.py --score_version v1 --benchmark_data_file "${LATEST_RESULT}" > "${SCORE_FILE}"
-          # Enable OSS stat uploads
-          wget -O scripts/scribe.py https://github.com/pytorch/pytorch/raw/master/tools/stats/scribe.py || echo "failed to copy oss stat utils"
           # Upload result to Scribe
           python scripts/upload_scribe.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
           mkdir -p benchmark-output

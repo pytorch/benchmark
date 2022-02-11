@@ -21,17 +21,23 @@ class Model(BenchmarkModel):
     # Original batch size: 32
     # Source: https://github.com/kaituoxu/Speech-Transformer/blob/e6847772d6a786336e117a03c48c62ecbf3016f6/src/bin/train.py#L68
     # This model does not support adjusting eval bs
-    def __init__(self, device=None, jit=False, train_bs=32):
-        self.jit = jit
-        self.device = device
+    DEFAULT_TRAIN_BSIZE = 32
+    DEFAULT_EVAL_BSIZE = 1
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         if jit:
-            return
+            raise NotImplementedError("This model doesn't support jit.")
         if device == "cpu":
-            return
-        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=train_bs, num_train_batch=NUM_TRAIN_BATCH)
-        self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_batch=NUM_EVAL_BATCH)
-        self.traincfg.model.cuda()
-        self.evalcfg.model.cuda()
+            raise NotImplementedError("This model doesn't support CPU.")
+        self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=self.batch_size, num_train_batch=NUM_TRAIN_BATCH)
+        if test == "train":
+            self.traincfg.model.to(self.device)
+            self.traincfg.model.train()
+        elif test == "eval":
+            self.evalcfg = SpeechTransformerEvalConfig(self.traincfg, num_eval_batch=NUM_EVAL_BATCH)
+            self.evalcfg.model.to(self.device)
+            self.evalcfg.model.eval()
 
     def get_module(self):
         if self.device == "cpu":
@@ -40,7 +46,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         for data in self.traincfg.tr_loader:
             padded_input, input_lengths, padded_target = data
-            return self.traincfg.model, (padded_input.cuda(), input_lengths.cuda(), padded_target.cuda())
+            return self.traincfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
 
     def train(self, niter=1):
         if self.device == "cpu":
@@ -57,12 +63,3 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         for _ in range(niter):
             self.evalcfg.eval()
-
-if __name__ == '__main__':
-    for device in ['cuda']:
-        for jit in [False]:
-            m = Model(device=device, jit=jit)
-            model, example_inputs = m.get_module()
-            model(*example_inputs)
-            m.train()
-            m.eval()

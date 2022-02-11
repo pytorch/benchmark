@@ -258,9 +258,9 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def make_model_instance(device: str, jit: bool) -> None:
+    def make_model_instance(test: str, device: str, jit: bool, batch_size: Optional[int]=None, extra_args: List[str]=[]) -> None:
         Model = globals()["Model"]
-        model = Model(device=device, jit=jit)
+        model = Model(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         import gc
         gc.collect()
@@ -275,6 +275,16 @@ class ModelTask(base_task.TaskBase):
             "model": model,
             "maybe_sync": maybe_sync,
         })
+
+    # =========================================================================
+    # == Get Model attribute in the child process =============================
+    # =========================================================================
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def get_model_attribute(attr: str) -> Any:
+        model = globals()["model"]
+        attr_value = getattr(model, attr)
+        return attr_value
 
     def gc_collect(self) -> None:
         self.worker.run("""
@@ -504,3 +514,8 @@ def get_metadata_from_yaml(path):
         with open(metadata_path, 'r') as f:
             md = yaml.load(f, Loader=yaml.FullLoader)
     return md
+
+def str_to_bool(input: Any) -> bool:
+    if not input:
+        return False
+    return str(input).lower() in ("1", "yes", "y", "true", "t", "on")

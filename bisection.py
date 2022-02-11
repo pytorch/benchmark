@@ -91,7 +91,7 @@ def analyze_abtest_result_dir(result_dir: str):
     delta = False
     json_files = list(filter(len, map(find_latest_json_file, dirs)))
     out = [['Benchmark']]
-    assert(len(json_files), f"Don't find benchmark result files in {result_dir}.")
+    assert json_files, f"Don't find benchmark result files in {result_dir}."
     # If there are only two json files, we believe it is an abtest, so print delta of the mean
     if len(json_files) == 2:
         delta = True
@@ -271,22 +271,19 @@ class TorchBench:
     branch: str
     timelimit: int # timeout limit in minutes
     workdir: str
-    devbig: str
     models: List[str]
+    first_time: bool
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
                  timelimit: int,
-                 workdir: str,
-                 devbig: str,
-                 branch: str = "main"):
+                 workdir: str):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
         self.workdir = workdir
-        self.devbig = devbig
-        self.branch = branch
+        self.first_time = True
         self.models = list()
 
     def prep(self) -> bool:
@@ -294,11 +291,18 @@ class TorchBench:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCHBENCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCHBENCH_GITREPO}")
+        # get the name of current branch
+        self.branch = gitutils.get_current_branch(self.srcpath)
         # get list of models
         self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
                         if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
         return True
- 
+
+    def _install_benchmark(self):
+        "Install and build TorchBench dependencies"
+        command = ["python", "install.py"]
+        subprocess.check_call(command, cwd=self.srcpath, shell=False)
+
     def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
         # Return the result json file path
         output_dir = os.path.join(self.workdir, commit.sha)
@@ -311,11 +315,12 @@ class TorchBench:
         else:
             os.mkdir(output_dir)
         bmfilter = targets_to_bmfilter(targets, self.models)
+        # If the first time to run benchmark, install the dependencies first
+        if self.first_time:
+            self._install_benchmark()
+            self.first_time = False
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
-        if not self.devbig:
-            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
-        else:
-            command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" 2>&1 | tee {output_dir}/benchmark.log"""
+        command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
@@ -405,7 +410,6 @@ class TorchBenchBisection:
                  timeout: int,
                  targets: List[str],
                  output_json: str,
-                 devbig: str,
                  build_lazy: bool = False,
                  debug: bool = False):
         self.workdir = workdir
@@ -420,7 +424,6 @@ class TorchBenchBisection:
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
-                                devbig = devbig,
                                 workdir = self.workdir)
         self.output_json = output_json
         self.debug = debug
@@ -528,11 +531,7 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         help="the output json file")
     parser.add_argument("--analyze-result",
-                        help="specify the the output result directory to analyze")
-    # running on devbig
-    parser.add_argument("--devbig",
-                        type=str,
-                        help="if running on devbig, specify the devbig conda env")
+                        help="specify the output result directory to analyze")
     # by default, do not build lazy tensor
     parser.add_argument("--build-lazy",
                         action='store_true',
@@ -572,7 +571,6 @@ if __name__ == "__main__":
                                     timeout=bisect_config["timeout"],
                                     targets=targets,
                                     output_json=args.output,
-                                    devbig=args.devbig,
                                     build_lazy=args.build_lazy,
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
