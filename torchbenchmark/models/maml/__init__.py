@@ -19,7 +19,7 @@ class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
     def __init__(self, test, device, jit=False, extra_args=[]):
-        super().__init__()
+        super().__init__(test=test, device=device, jit=jit, batch_size=1)
 
         # load from disk or synthesize data
         use_data_file = False
