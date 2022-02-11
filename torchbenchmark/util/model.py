@@ -50,15 +50,13 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.batch_size = batch_size
         if not self.batch_size:
             self.batch_size = self.DEFAULT_TRAIN_BSIZE if test == "train" else self.DEFAULT_EVAL_BSIZE
-            # If the model doesn't implement test or eval test
-            # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
             if not self.batch_size:
-                raise NotImplementedError(f"Test {test} is not implemented.")
+                self.batch_size = (self.DEFAULT_TRAIN_BSIZE or self.DEFAULT_EVAL_BSIZE)
         # Check if customizing batch size is supported
         if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
-            if test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
+            if test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE) and self.DEFAULT_TRAIN_BSIZE:
                 raise NotImplementedError("Model doesn't support customizing batch size.")
-            elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
+            elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE) and self.DEFAULT_EVAL_BSIZE:
                 raise NotImplementedError("Model doesn't support customizing batch size.")
         self.extra_args = extra_args
 
