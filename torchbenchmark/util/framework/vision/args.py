@@ -3,7 +3,7 @@ import argparse
 from torchbenchmark.util.model import BenchmarkModel
 from typing import List, Tuple
 
-from torchbenchmark.util.nvfuser import enable_fuser
+from torchbenchmark.util.backends.fuser import enable_fuser
 
 def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
