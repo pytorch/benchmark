@@ -72,6 +72,9 @@ class Model(BenchmarkModel):
                            self.agent.coord.expand(state.shape[0], 2, 128, 128)), 1)
         return self.agent.actor, (state, )
 
+    def set_module(self, new_model):
+        self.agent.actor = new_model
+
     def train(self, niter=1):
         if self.jit:
             raise NotImplementedError()

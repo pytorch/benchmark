@@ -3,10 +3,10 @@ import torch.optim as optim
 import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
 
-from torchbenchmark.util.framework.vision.args import parse_args, apply_args
-
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
+    # To recognize this is a torchvision model
+    TORCHVISION_MODEL = True
     # These two variables should be defined by subclasses
     DEFAULT_TRAIN_BSIZE = None
     DEFAULT_EVAL_BSIZE = None

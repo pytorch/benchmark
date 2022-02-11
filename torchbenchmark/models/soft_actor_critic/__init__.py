@@ -191,6 +191,9 @@ class Model(BenchmarkModel):
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = batch
         state_batch = state_batch.to(self.device)
         return model, (state_batch, )
+
+    def set_module(self, new_model):
+        self.agent.actor = new_model
         
     def train(self, niter=1):
         if self.jit:

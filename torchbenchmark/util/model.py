@@ -8,7 +8,7 @@ import warnings
 import inspect
 import os
 from typing import Optional, List
-from torchbenchmark.util.env_check import post_processing
+from torchbenchmark.util.extra_args import parse_args, apply_args
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -64,7 +64,17 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     # Run the post processing for model acceleration
     def __post__init__(self):
-        post_processing(self)
+        # sanity checks of the options
+        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
+        self.extra_args = parse_args(self, self.extra_args)
+        apply_args(self, self.extra_args)
+
+    # Default implementation for replacing the model
+    def set_module(self, new_model):
+        if hasattr(self, 'model') and isinstance(self.model, torch.nn.Module):
+            self.model = new_model
+        else:
+            raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
     def train(self):
         raise NotImplementedError()

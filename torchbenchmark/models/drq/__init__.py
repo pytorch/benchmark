@@ -113,6 +113,9 @@ class Model(BenchmarkModel):
         obs = obs.unsqueeze(0)
         return self.agent.actor, (obs, )
 
+    def set_module(self, new_model):
+        self.agent.actor = new_model
+
     def train(self, niter=2):
         if self.jit:
             raise NotImplementedError()

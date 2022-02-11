@@ -201,9 +201,6 @@ class ModelTask(base_task.TaskBase):
             )
         )
 
-        if self._details._diagnostic_msg:
-            print(self._details._diagnostic_msg)
-
     def __del__(self) -> None:
         self._lock.release()
 

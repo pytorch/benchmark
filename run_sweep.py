@@ -86,7 +86,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         task = ModelTask(os.path.basename(model_path))
         if not task.model_details.exists:
             result.latency_ms = None
-            result.status = f"NotExist"
+            status = "NotExist"
             return
         task.make_model_instance(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         # Check the batch size in the model matches the specified value

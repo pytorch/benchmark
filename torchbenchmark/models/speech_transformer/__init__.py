@@ -46,7 +46,16 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         for data in self.traincfg.tr_loader:
             padded_input, input_lengths, padded_target = data
-            return self.traincfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
+            if self.test == "train":
+                return self.traincfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
+            elif self.test == "eval":
+                return self.evalcfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
+
+    def set_module(self, new_model):
+        if self.test == "train":
+            self.traincfg.model = new_model
+        elif self.test == "eval":
+            self.evalcfg.model = new_model
 
     def train(self, niter=1):
         if self.device == "cpu":
