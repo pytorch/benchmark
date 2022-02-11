@@ -33,5 +33,5 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         enable_fuser(args.fuser)
     if args.torch_trt:
         module, exmaple_inputs = model.get_module()
-        model.set_module(enable_torchtrt(args.batch_size, fp16=False, model=module, example_inputs=exmaple_inputs))
+        model.set_module(enable_torchtrt(args.batch_size, precision='fp32', model=module, example_inputs=exmaple_inputs))
 
