@@ -61,8 +61,9 @@ def get_nightly_wheel_urls(packages:list, date:date,
     rc = {}
     for pkg in packages:
         pkg_versions = data[pkg]
-        keys = [key for key in pkg_versions if date_str in key]
-        assert len(keys) <= 1, "Did not expect multiple versions matching a date"
+        keys = sorted([key for key in pkg_versions if date_str in key], reverse=True)
+        if len(keys) > 1:
+            print(f"Warning: multiple versions matching a single date: {keys}, using {keys[0]}")
         if len(keys) == 0:
             return None
         full_url = pkg_versions[keys[0]]
