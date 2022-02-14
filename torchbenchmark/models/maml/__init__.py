@@ -17,16 +17,16 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
 
-    def __init__(self, device=None, jit=False):
-        super().__init__()
+    def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         # load from disk or synthesize data
         use_data_file = False
         debug_print = False
-
-        self.device = device
-        self.jit = jit
         root = str(Path(__file__).parent)
         args = Namespace(**{
             'n_way': 5,
@@ -94,14 +94,3 @@ class Model(BenchmarkModel):
 
     def eval_in_nograd(self):
         return False
-
-if __name__ == '__main__':
-    m = Model(device='cpu', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    begin = time.time()
-    m.train(niter=1)
-    print(time.time() - begin)
-    begin = time.time()
-    m.eval(niter=1)
-    print(time.time() - begin)

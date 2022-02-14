@@ -29,10 +29,12 @@ from torchbenchmark.tasks import OTHER
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False):
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
+
+    def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         n_way = 5
         net = nn.Sequential(
@@ -105,11 +107,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for i in range(niter):
                 model(example_input)
-
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)
