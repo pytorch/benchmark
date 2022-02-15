@@ -152,7 +152,7 @@ class _TimeoutPIPE:
         w_fd = pipe.write_fd
         assert w_fd is not None, "Cannot timeout without write file descriptor."
         assert pipe.get_writer_pid() is not None, "Cannot check process livenss without pid."
-        singleton = cls.singleton(pipe.get_pid())
+        singleton = cls.singleton()
         with singleton._loop_lock:
             # This will only occur in the case of concurrent reads on different
             # threads (not supported) or a leaked case.
