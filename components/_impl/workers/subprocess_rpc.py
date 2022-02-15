@@ -139,6 +139,10 @@ class _TimeoutPIPE:
                         if not psutil.pid_exists(self._proc_id):
                             os.write(w_fd, _DEAD)
                             self.pop(w_fd)
+                        # if the process still exists but in zombie state
+                        elif psutil.Process(self._proc_id).status == psutil.STATUS_ZOMBIE:
+                            os.write(w_fd, _DEAD)
+                            self.pop(w_fd)
 
     def pop(self, w_fd: int) -> None:
         self._active_reads.pop(w_fd, None)
