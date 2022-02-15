@@ -102,21 +102,19 @@ class _TimeoutPIPE:
     _singleton: typing.Optional["_TimeoutPIPE"] = None
 
     _loop_lock = threading.Lock()
-    _active_reads: typing.Dict[int, typing.Tuple[float, float]]
+    _active_reads: typing.Dict[int, typing.Tuple[float, float, int]]
     _loop_cadence = 1  # second
-    _proc_id: typing.Optional[int] = None
 
     @classmethod
-    def singleton(cls, proc_id) -> "_TimeoutPIPE":
+    def singleton(cls) -> "_TimeoutPIPE":
         # This class will spawn a thread, so we only want one active at a time.
         with cls._singleton_lock:
             if cls._singleton is None:
-                cls._singleton = cls(proc_id)
+                cls._singleton = cls()
             return cls._singleton
 
-    def __init__(self, proc_id: int) -> None:
+    def __init__(self) -> None:
         self._active_reads = {}
-        self._proc_id = proc_id
         self._thread = threading.Thread(target=self._loop)
         self._thread.daemon = True
         self._thread.start()
@@ -129,17 +127,17 @@ class _TimeoutPIPE:
             time.sleep(self._loop_cadence)
             now = time.time()
             with self._loop_lock:
-                for w_fd, (timeout, start_time) in tuple(self._active_reads.items()):
+                for w_fd, (timeout, start_time, writer_pid) in tuple(self._active_reads.items()):
+                    # check if the process is still alive
+                    # it could be in zombie status, or has already been reaped
+                    if not psutil.pid_exists(writer_pid) or \
+                        psutil.Process(writer_pid).status() == psutil.STATUS_ZOMBIE:
+                        os.write(w_fd, _DEAD)
+                        self.pop(w_fd)
+                    # check if process timeout
                     if timeout:
                         if now - start_time >= timeout and w_fd in self._active_reads:
                             os.write(w_fd, _TIMEOUT)
-                            self.pop(w_fd)
-                    else:
-                        # if timeout is None, only check if the process is still alive
-                        # it could be in zombie status, or has already been reaped
-                        if not psutil.pid_exists(self._proc_id) or \
-                            psutil.Process(self._proc_id).status() == psutil.STATUS_ZOMBIE:
-                            os.write(w_fd, _DEAD)
                             self.pop(w_fd)
 
     def pop(self, w_fd: int) -> None:
@@ -152,14 +150,15 @@ class _TimeoutPIPE:
 
         # Spawn a loop thread to periodically check the liveness of subprocess
         w_fd = pipe.write_fd
-        # assert w_fd is not None, "Cannot timeout without write file descriptor."
+        assert w_fd is not None, "Cannot timeout without write file descriptor."
+        assert pipe.get_writer_pid() is not None, "Cannot check process livenss without pid."
         singleton = cls.singleton(pipe.get_pid())
         with singleton._loop_lock:
             # This will only occur in the case of concurrent reads on different
             # threads (not supported) or a leaked case.
             assert w_fd not in singleton._active_reads, f"{w_fd} is already being watched."
             # If timeout is None, check the liveness of the process
-            singleton._active_reads[w_fd] = (timeout, time.time())
+            singleton._active_reads[w_fd] = (timeout, time.time(), pipe.get_writer_pid())
 
         try:
             yield
@@ -172,22 +171,27 @@ class Pipe:
     """Helper class to move data in a robust fashion.
 
     This class handles:
-        1) Process liveness checks
+        1) Child process liveness checks if pipe is read by parent
         2) File descriptor lifetimes
         3) File descriptor inheritance
         4) Message packing and unpacking
         5) (Optional) timeouts for reads
+
+    NOTE: we don't check liveness of parent since the parent process
+          shouldn't regularly fail without proper clean up.
     """
 
     def __init__(
         self,
-        proc_id: int = 0,
+        # writer_pid only exists when `self` is a pipe read by parent
+        # in which case, write_pid is the pid of the child process
+        writer_pid: typing.Optional[int] = None,
         read_handle: typing.Optional[int] = None,
         write_handle: typing.Optional[int] = None,
         timeout: typing.Optional[float] = None,
         timeout_callback: typing.Callable[[], typing.NoReturn] = (lambda: None),
     ) -> None:
-        self._proc_id = proc_id
+        self._writer_pid = writer_pid
         self._owns_pipe = read_handle is None and write_handle is None
         if self._owns_pipe:
             self.read_fd, self.write_fd = os.pipe()
@@ -204,8 +208,12 @@ class Pipe:
         """Handle the low level details of reading from the PIPE."""
         if self.read_fd is None:
             raise IOError("Cannot read from PIPE, we do not have the read handle")
-
-        with _TimeoutPIPE.maybe_timeout_read(self):
+        # `self._write_pid` is not None iff `self` is the read pipe from parent process
+        # only support timeout and child process liveness check in this case
+        if self._writer_pid:
+            with _TimeoutPIPE.maybe_timeout_read(self):
+                raw_msg = os.read(self.read_fd, len(_CHECK) + size)
+        else:
             raw_msg = os.read(self.read_fd, len(_CHECK) + size)
 
         check_bytes, msg = raw_msg[:len(_CHECK)], raw_msg[len(_CHECK):]
@@ -242,11 +250,13 @@ class Pipe:
 
         os.write(self.write_fd, packed_msg)
 
-    def get_pid(self) -> int:
-        return self._proc_id
+    def get_writer_pid(self) -> int:
+        assert self._writer_pid, "Writer pid is not specified. Maybe calling from child process or input pipe.\
+                                  Please report a bug."
+        return self._writer_pid
 
-    def set_pid(self, pid: int) -> None:
-        self._proc_id = pid
+    def set_writer_pid(self, writer_pid: int) -> None:
+        self._writer_pid = writer_pid
 
     def _close_fds(self):
         """Factor cleanup to a helper so we can test when it runs."""
@@ -483,8 +493,7 @@ def run_loop(
     output_pipe: Pipe,
     load_handle: int,
 ) -> None:
-    parent_pid = output_pipe.get_pid()
-    input_pipe = Pipe(proc_id=parent_pid, read_handle=input_handle)
+    input_pipe = Pipe(read_handle=input_handle)
 
     # In general, we want a clean separation between user code and framework
     # code. However, certain methods in SubprocessWorker (store and load)
@@ -495,7 +504,7 @@ def run_loop(
         WORKER_IMPL_NAMESPACE: {
             "subprocess_rpc": sys.modules[__name__],
             "marshal": marshal,
-            "load_pipe": Pipe(proc_id=parent_pid, write_handle=load_handle)
+            "load_pipe": Pipe(write_handle=load_handle)
         }
     }
 

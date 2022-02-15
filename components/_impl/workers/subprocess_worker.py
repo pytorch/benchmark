@@ -117,10 +117,8 @@ class SubprocessWorker(base.WorkerBase):
             **popen_kwargs,
         )
 
-        # setup the pid of child process for the pipes
-        self._input_pipe.set_pid(self._proc.pid)
-        self._output_pipe.set_pid(self._proc.pid)
-        self._load_pipe.set_pid(self._proc.pid)
+        # setup the pid of child process in the output pipe
+        self._output_pipe.set_writer_pid(self._proc.pid)
 
         self._worker_bootstrap_finished: bool = False
         self._bootstrap_worker()
@@ -197,7 +195,6 @@ class SubprocessWorker(base.WorkerBase):
                 sys.path.extend([i for i in sys_path_old if i and i not in sys.path])
                 from components._impl.workers import subprocess_rpc
                 output_pipe = subprocess_rpc.Pipe(
-                    proc_id={os.getpid()},
                     write_handle={self._output_pipe.write_handle})
                 output_pipe.write(subprocess_rpc.BOOTSTRAP_IMPORT_SUCCESS)
                 subprocess_rpc.run_loop(
@@ -229,7 +226,6 @@ class SubprocessWorker(base.WorkerBase):
                 # worker died or the bootstrap failed. (E.g. failed to resolve
                 # import path.) This simply allows us to raise a good error.
                 bootstrap_pipe = subprocess_rpc.Pipe(
-                    proc_id=self._proc.pid,
                     read_handle=self._output_pipe.read_handle,
                     write_handle=self._output_pipe.write_handle,
                     timeout=self._bootstrap_timeout,
