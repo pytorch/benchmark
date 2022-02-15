@@ -19,6 +19,7 @@ import threading
 import time
 import traceback
 import types
+import psutil
 import typing
 
 
@@ -30,7 +31,8 @@ WORKER_IMPL_NAMESPACE = "__worker_impl_namespace"
 # Constants for passing to and from pipes
 _CHECK = b"\x00\x00"
 _TIMEOUT = b"\x01\x01"
-assert len(_CHECK) == len(_TIMEOUT)
+_DEAD = b"\x02\x02"
+assert len(_CHECK) == len(_TIMEOUT) == len(_DEAD)
 
 _ULL = "Q"  # Unsigned long long
 _ULL_SIZE = len(struct.pack(_ULL, 0))
@@ -102,17 +104,19 @@ class _TimeoutPIPE:
     _loop_lock = threading.Lock()
     _active_reads: typing.Dict[int, typing.Tuple[float, float]]
     _loop_cadence = 1  # second
+    _proc_id: typing.Optional[int] = None
 
     @classmethod
-    def singleton(cls) -> "_TimeoutPIPE":
+    def singleton(cls, proc_id) -> "_TimeoutPIPE":
         # This class will spawn a thread, so we only want one active at a time.
         with cls._singleton_lock:
             if cls._singleton is None:
-                cls._singleton = cls()
+                cls._singleton = cls(proc_id)
             return cls._singleton
 
-    def __init__(self) -> None:
+    def __init__(self, proc_id: int) -> None:
         self._active_reads = {}
+        self._proc_id = proc_id
         self._thread = threading.Thread(target=self._loop)
         self._thread.daemon = True
         self._thread.start()
@@ -126,9 +130,15 @@ class _TimeoutPIPE:
             now = time.time()
             with self._loop_lock:
                 for w_fd, (timeout, start_time) in tuple(self._active_reads.items()):
-                    if now - start_time >= timeout and w_fd in self._active_reads:
-                        os.write(w_fd, _TIMEOUT)
-                        self.pop(w_fd)
+                    if timeout:
+                        if now - start_time >= timeout and w_fd in self._active_reads:
+                            os.write(w_fd, _TIMEOUT)
+                            self.pop(w_fd)
+                    else:
+                        # if timeout is None, only check if the process is still alive
+                        if not psutil.pid_exists(self._proc_id):
+                            os.write(w_fd, _DEAD)
+                            self.pop(w_fd)
 
     def pop(self, w_fd: int) -> None:
         self._active_reads.pop(w_fd, None)
@@ -138,20 +148,15 @@ class _TimeoutPIPE:
     def maybe_timeout_read(cls, pipe: "Pipe") -> None:
         timeout = pipe.timeout
 
-        # Workers should never set a timeout, so in that case we want to exit
-        # without calling `cls.singleton()` so we don't spawn an unnecessary
-        # loop thread.
-        if timeout is None:
-            yield
-            return
-
+        # Spawn a loop thread to periodically check the liveness of subprocess
         w_fd = pipe.write_fd
-        assert w_fd is not None, "Cannot timeout without write file descriptor."
-        singleton = cls.singleton()
+        # assert w_fd is not None, "Cannot timeout without write file descriptor."
+        singleton = cls.singleton(pipe.get_pid())
         with singleton._loop_lock:
             # This will only occur in the case of concurrent reads on different
             # threads (not supported) or a leaked case.
             assert w_fd not in singleton._active_reads, f"{w_fd} is already being watched."
+            # If timeout is None, check the liveness of the process
             singleton._active_reads[w_fd] = (timeout, time.time())
 
         try:
@@ -162,22 +167,25 @@ class _TimeoutPIPE:
 
 
 class Pipe:
-    """Helper class to move data in a robust fashon.
+    """Helper class to move data in a robust fashion.
 
     This class handles:
-        1) File descriptor lifetimes
-        2) File descriptor inheritance
-        3) Message packing and unpacking
-        4) (Optional) timeouts for reads
+        1) Process liveness checks
+        2) File descriptor lifetimes
+        3) File descriptor inheritance
+        4) Message packing and unpacking
+        5) (Optional) timeouts for reads
     """
 
     def __init__(
         self,
+        proc_id: int = 0,
         read_handle: typing.Optional[int] = None,
         write_handle: typing.Optional[int] = None,
         timeout: typing.Optional[float] = None,
         timeout_callback: typing.Callable[[], typing.NoReturn] = (lambda: None),
     ) -> None:
+        self._proc_id = proc_id
         self._owns_pipe = read_handle is None and write_handle is None
         if self._owns_pipe:
             self.read_fd, self.write_fd = os.pipe()
@@ -202,6 +210,9 @@ class Pipe:
         if check_bytes == _TIMEOUT:
             self.timeout_callback()  # Give caller the chance to cleanup.
             raise IOError(f"Exceeded timeout: {self.timeout}")
+
+        if check_bytes == _DEAD:
+            raise IOError(f"Subprocess terminated unexpectedly (such as SIGSEGV).")
 
         if check_bytes != _CHECK:
             raise IOError(f"{check} != {_CHECK}, {msg}")
@@ -228,6 +239,12 @@ class Pipe:
         )
 
         os.write(self.write_fd, packed_msg)
+
+    def get_pid(self) -> int:
+        return self._proc_id
+
+    def set_pid(self, pid: int) -> None:
+        self._proc_id = pid
 
     def _close_fds(self):
         """Factor cleanup to a helper so we can test when it runs."""
@@ -464,7 +481,8 @@ def run_loop(
     output_pipe: Pipe,
     load_handle: int,
 ) -> None:
-    input_pipe = Pipe(read_handle=input_handle)
+    parent_pid = output_pipe.get_pid()
+    input_pipe = Pipe(proc_id=parent_pid, read_handle=input_handle)
 
     # In general, we want a clean separation between user code and framework
     # code. However, certain methods in SubprocessWorker (store and load)
@@ -475,7 +493,7 @@ def run_loop(
         WORKER_IMPL_NAMESPACE: {
             "subprocess_rpc": sys.modules[__name__],
             "marshal": marshal,
-            "load_pipe": Pipe(write_handle=load_handle)
+            "load_pipe": Pipe(proc_id=parent_pid, write_handle=load_handle)
         }
     }
 
