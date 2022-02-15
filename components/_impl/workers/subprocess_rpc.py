@@ -136,11 +136,9 @@ class _TimeoutPIPE:
                             self.pop(w_fd)
                     else:
                         # if timeout is None, only check if the process is still alive
-                        if not psutil.pid_exists(self._proc_id):
-                            os.write(w_fd, _DEAD)
-                            self.pop(w_fd)
-                        # if the process still exists but in zombie state
-                        elif psutil.Process(self._proc_id).status == psutil.STATUS_ZOMBIE:
+                        # it could be in zombie status, or has already been reaped
+                        if not psutil.pid_exists(self._proc_id) or \
+                            psutil.Process(self._proc_id).status() == psutil.STATUS_ZOMBIE:
                             os.write(w_fd, _DEAD)
                             self.pop(w_fd)
 
