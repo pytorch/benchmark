@@ -11,7 +11,7 @@ from torchbenchmark.util.env_check import get_pkg_versions
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
     try:
-        subprocess.check_call(['git', 'lfs', 'install'], stdout=subprocess.PIPE,
+        subprocess.check_call(['git', 'lfs', 'install', '--force'], stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, cwd=tb_dir)
         subprocess.check_call(['git', 'lfs', 'fetch'], stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, cwd=tb_dir)
