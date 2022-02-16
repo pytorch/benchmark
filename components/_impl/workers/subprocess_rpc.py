@@ -128,12 +128,15 @@ class _TimeoutPIPE:
             now = time.time()
             with self._loop_lock:
                 for w_fd, (timeout, start_time, writer_pid) in tuple(self._active_reads.items()):
-                    # check if the process is still alive
-                    # it could be in zombie status, or has already been reaped
-                    if not psutil.pid_exists(writer_pid) or \
-                        psutil.Process(writer_pid).status() == psutil.STATUS_ZOMBIE:
-                        os.write(w_fd, _DEAD)
-                        self.pop(w_fd)
+                    # if child process is in zombie status, check its exit code
+                    if psutil.pid_exists(writer_pid):
+                        p = psutil.Process(writer_pid)
+                        if p.status() == psutil.STATUS_ZOMBIE:
+                            # wait 1 second for the exit code
+                            exit_code = p.wait(timeout=self._loop_cadence)
+                            if exit_code:
+                                os.write(w_fd, _DEAD + struct.pack(_ULL, abs(int(exit_code))))
+                                self.pop(w_fd)
                     # check if process timeout
                     if timeout:
                         if now - start_time >= timeout and w_fd in self._active_reads:
@@ -191,6 +194,13 @@ class Pipe:
         timeout_callback: typing.Callable[[], typing.NoReturn] = (lambda: None),
     ) -> None:
         self._writer_pid = writer_pid
+        # if _writer_pid is set, check the writer process is the child of current process
+        if self._writer_pid:
+            assert psutil.pid_exists(self._writer_pid), "Writer process must exist. Please report a bug."
+            cur_p = psutil.Process()
+            writer_p = psutil.Process(self._writer_pid)
+            assert writer_p in cur_p.children(), "Writer process must be the child of current process.\
+                                                  Please report a bug."
         self._owns_pipe = read_handle is None and write_handle is None
         if self._owns_pipe:
             self.read_fd, self.write_fd = os.pipe()
@@ -221,7 +231,7 @@ class Pipe:
             raise IOError(f"Exceeded timeout: {self.timeout}")
 
         if check_bytes == _DEAD:
-            raise IOError(f"Subprocess terminated unexpectedly (such as SIGSEGV).")
+            raise IOError(f"Subprocess terminates with code {int.from_bytes(msg, sys.byteorder)}")
 
         if check_bytes != _CHECK:
             raise IOError(f"{check} != {_CHECK}, {msg}")
