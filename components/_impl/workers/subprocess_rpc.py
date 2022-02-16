@@ -194,13 +194,6 @@ class Pipe:
         timeout_callback: typing.Callable[[], typing.NoReturn] = (lambda: None),
     ) -> None:
         self._writer_pid = writer_pid
-        # if _writer_pid is set, check the writer process is the child of current process
-        if self._writer_pid:
-            assert psutil.pid_exists(self._writer_pid), "Writer process must exist. Please report a bug."
-            cur_p = psutil.Process()
-            writer_p = psutil.Process(self._writer_pid)
-            assert writer_p in cur_p.children(), "Writer process must be the child of current process.\
-                                                  Please report a bug."
         self._owns_pipe = read_handle is None and write_handle is None
         if self._owns_pipe:
             self.read_fd, self.write_fd = os.pipe()
