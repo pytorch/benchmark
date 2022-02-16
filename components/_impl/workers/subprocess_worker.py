@@ -117,6 +117,9 @@ class SubprocessWorker(base.WorkerBase):
             **popen_kwargs,
         )
 
+        # setup the pid of child process in the output pipe
+        self._output_pipe.set_writer_pid(self._proc.pid)
+
         self._worker_bootstrap_finished: bool = False
         self._bootstrap_worker()
         self._alive = True

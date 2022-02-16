@@ -2,11 +2,8 @@ import argparse
 import subprocess
 import os
 import sys
-import importlib
 import tarfile
-from torchbenchmark import setup, _test_https, proxy_suggestion, TORCH_DEPS
-from torchbenchmark.util.env_check import get_pkg_versions
-
+from install_utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
 
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
@@ -92,6 +89,7 @@ if __name__ == '__main__':
         print(f"The torch packages are re-installed after installing the benchmark deps. \
                 Before: {versions}, after: {new_versions}")
         sys.exit(-1)
+    from torchbenchmark import setup
     success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail)
     if not success:
         if args.continue_on_fail:
