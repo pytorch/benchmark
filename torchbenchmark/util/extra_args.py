@@ -23,6 +23,7 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", help="enable fuser")
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
+    # TODO: Enable fp16 for all model inference tests
     # fp16 is only True for torchvision models running CUDA inference tests
     # otherwise, it is False
     fp16_default_value = False
