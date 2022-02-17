@@ -1,8 +1,7 @@
 import torch
-from torchbenchmark.util.model import BenchmarkModel
 from typing import Tuple
 
-def enable_cudagraph(model: BenchmarkModel, example_inputs: Tuple[torch.tensor]):
+def enable_cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', example_inputs: Tuple[torch.tensor]):
     optimizer = model.optimizer
     loss_fn = model.loss_fn
     # warmup
