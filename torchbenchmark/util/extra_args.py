@@ -14,8 +14,8 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool
 def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
 
-def allow_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace) -> bool:
-    return is_torchvision_model(model) and args.test == 'eval' and args.device == 'cuda'
+def allow_fp16(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda'
 
 # Dispatch arguments based on model type
 def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> argparse.Namespace:
@@ -26,7 +26,7 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     # fp16 is only True for torchvision models running CUDA inference tests
     # otherwise, it is False
     fp16_default_value = False
-    if allow_fp16(model, args):
+    if allow_fp16(model):
         fp16_default_value = True
     add_bool_arg(parser, "fp16", fp16_default_value)
     args = parser.parse_args(extra_args)
@@ -36,7 +36,7 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     args.batch_size = model.batch_size
     if args.device == "cpu":
         args.fuser = None
-    if not allow_fp16(model, args) and args.fp16:
+    if not allow_fp16(model) and args.fp16:
         raise NotImplementedError("fp16 is only implemented for torchvision models inference tests on CUDA.")
     if not (model.device == "cuda" and model.test == "eval"):
         if args.fx2trt or args.torch_trt:
@@ -49,7 +49,7 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
     if args.fuser:
         enable_fuser(args.fuser)
     if args.fp16:
-        assert allow_fp16(model, args), "Eval fp16 is only available on CUDA for torchvison models."
+        assert allow_fp16(model), "Eval fp16 is only available on CUDA for torchvison models."
         model.model, model.example_inputs = enable_fp16(model.model, model.example_inputs)
     if args.fx2trt:
         if args.jit:
