@@ -103,7 +103,6 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
     elif not dargs.precision == "fp32":
         assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
 
-
 # Dispatch arguments based on model type
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
