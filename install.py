@@ -8,7 +8,8 @@ from install_utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
     try:
-        subprocess.check_call(['git', 'lfs', 'install'], stdout=subprocess.PIPE,
+        # forcefully install git-lfs to the repo
+        subprocess.check_call(['git', 'lfs', 'install', '--force'], stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, cwd=tb_dir)
         subprocess.check_call(['git', 'lfs', 'fetch'], stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, cwd=tb_dir)
