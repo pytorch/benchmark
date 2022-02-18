@@ -9,6 +9,7 @@ from .bert_pytorch.trainer import BERTTrainer
 from .bert_pytorch.dataset import BERTDataset, WordVocab
 from .bert_pytorch.model import BERT
 from torch.utils.data import DataLoader
+import typing
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
@@ -161,7 +162,7 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.model.bert = new_model
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         model = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model

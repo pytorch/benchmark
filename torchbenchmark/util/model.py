@@ -7,7 +7,7 @@ from contextlib import contextmanager
 import warnings
 import inspect
 import os
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from torchbenchmark.util.extra_args import parse_args, apply_args
 
 class PostInitProcessor(type):
@@ -77,10 +77,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
     def train(self):
-        raise NotImplementedError()
+        raise NotImplementedError("Base type doesn't have train implementation.")
 
-    def eval(self):
-        raise NotImplementedError()
+    def eval(self) -> Tuple[torch.Tensor]:
+        raise NotImplementedError("Base type doesn't have eval implementation.")
 
     def set_eval(self):
         self._set_mode(False)

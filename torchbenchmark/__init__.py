@@ -280,8 +280,10 @@ class ModelTask(base_task.TaskBase):
     @staticmethod
     def get_model_attribute(attr: str) -> Any:
         model = globals()["model"]
-        attr_value = getattr(model, attr)
-        return attr_value
+        if hasattr(model, attr):
+            return getattr(model, attr)
+        else:
+            return None
 
     def gc_collect(self) -> None:
         self.worker.run("""
