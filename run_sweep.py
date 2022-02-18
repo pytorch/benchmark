@@ -3,9 +3,9 @@ Run a config of benchmarking with a list of models.
 If unspecified, run a sweep of all models.
 """
 import argparse
-from distutils.log import error
 import json
 import os
+import numpy
 import torch
 import time
 import pathlib
@@ -18,24 +18,27 @@ WARMUP_ROUNDS = 3
 MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
-def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS) -> float:
+def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10) -> float:
     "Run one step of the model, and return the latency in milliseconds."
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
-    if device == "cuda":
-        torch.cuda.synchronize()
-        # Collect time_ns() instead of time() which does not provide better precision than 1
-        # second according to https://docs.python.org/3/library/time.html#time.time.
-        t0 = time.time_ns()
-        func()
-        torch.cuda.synchronize()  # Wait for the events to be recorded!
-        t1 = time.time_ns()
-    else:
-        t0 = time.time_ns()
-        func()
-        t1 = time.time_ns()
-    wall_latency = (t1 - t0) / NANOSECONDS_PER_MILLISECONDS
+    result_summary = []
+    for _i in range(num_iter):
+        if device == "cuda":
+            torch.cuda.synchronize()
+            # Collect time_ns() instead of time() which does not provide better precision than 1
+            # second according to https://docs.python.org/3/library/time.html#time.time.
+            t0 = time.time_ns()
+            func()
+            torch.cuda.synchronize()  # Wait for the events to be recorded!
+            t1 = time.time_ns()
+        else:
+            t0 = time.time_ns()
+            func()
+            t1 = time.time_ns()
+        result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
+    wall_latency = numpy.median(result_summary)
     return wall_latency
 
 @dataclasses.dataclass
