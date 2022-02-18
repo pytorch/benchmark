@@ -3,9 +3,9 @@ Run a config of benchmarking with a list of models.
 If unspecified, run a sweep of all models.
 """
 import argparse
-from distutils.log import error
 import json
 import os
+import sys
 import torch
 import time
 import pathlib
@@ -101,6 +101,9 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
     except TypeError as e: # TypeError is raised when the model doesn't support variable batch sizes
         status = "TypeError"
         error_message = str(e)
+    except KeyboardInterrupt as e:
+        status = "UserInterrupted"
+        error_message = str(e)
     except Exception as e:
         status = f"{type(e).__name__}"
         error_message = str(e)
@@ -108,6 +111,8 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         print(f"[ {status} ]")
         result.status = status
         result.error_message = error_message
+        if status == "UserInterrupted":
+            sys.exit(1)
         return result
 
 if __name__ == "__main__":
