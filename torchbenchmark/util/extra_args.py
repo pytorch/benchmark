@@ -2,6 +2,7 @@ import argparse
 from typing import List
 from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.fuser import enable_fuser
+from torchbenchmark.util.backends.jit import enable_jit
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
 from torchbenchmark.util.framework.vision.args import enable_fp16
 
@@ -52,6 +53,9 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
     if args.fp16:
         assert allow_fp16(model), "Eval fp16 is only available on CUDA for torchvison models."
         model.model, model.example_inputs = enable_fp16(model.model, model.example_inputs)
+    if args.jit:
+        module, exmaple_inputs = model.get_module()
+        model.set_module(enable_jit(model=model, example_inputs=exmaple_inputs))
     if args.fx2trt:
         if args.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")

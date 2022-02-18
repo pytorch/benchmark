@@ -217,8 +217,8 @@ class Model(BenchmarkModel):
             if False == self.inference_just_descriminator:
                 self.eval_noise = torch.randn(self.batch_size, nz, 1, 1, device=self.device)
 
+        # only process netG because netD is handled by __post_init__ of BenchmarkModel
         if self.jit:
-            self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
             if test == "eval" and False == self.inference_just_descriminator:
                 self.netG = torch.jit.trace(self.netG,(self.eval_noise,))
 

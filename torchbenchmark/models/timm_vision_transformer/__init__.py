@@ -27,12 +27,6 @@ class Model(BenchmarkModel):
         if device == 'cuda':
             torch.cuda.empty_cache()
 
-        if jit:
-            self.model = torch.jit.script(self.model)
-            assert isinstance(self.model, torch.jit.ScriptModule)
-            if test == "eval":
-                self.model = torch.jit.optimize_for_inference(self.model)
-
     def _gen_input(self, batch_size):
         return torch.randn((batch_size,) + self.cfg.input_size, device=self.device)
 

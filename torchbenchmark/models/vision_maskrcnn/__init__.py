@@ -74,12 +74,6 @@ class Model(BenchmarkModel):
                                                                       sampler=sampler,
                                                                       collate_fn=_collate_fn), self.device)
 
-        if self.jit:
-            self.model = torch.jit.script(self.model)
-            if test == "eval":
-                self.model = torch.jit.optimize_for_inference(self.model)
-
-
     def get_module(self):
         self.model.eval()
         for (example_inputs, _example_targets) in self.data_loader:

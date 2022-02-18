@@ -197,8 +197,6 @@ class DeepRecommenderInferenceBenchmark:
 
     self.rencoder.eval()
 
-    if self.args.jit:
-      self.rencoder = torch.jit.trace(self.rencoder, (self.toyinputs, ))
   
     if self.args.use_cuda: self.rencoder = self.rencoder.cuda()
 

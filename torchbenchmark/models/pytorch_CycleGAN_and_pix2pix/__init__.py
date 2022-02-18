@@ -38,7 +38,7 @@ class Model(BenchmarkModel):
 
         train_args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 --n_epochs_decay 3"
         self.training_loop = prepare_training_loop(train_args.split(' '))
-        self.model, self.input = get_model(jit)
+        self.model, self.input = get_model()
 
     def get_module(self):
         return self.model, self.input

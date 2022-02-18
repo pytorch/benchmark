@@ -78,12 +78,6 @@ class Model(BenchmarkModel):
 
         self.example_inputs = (torch.rand([self.batch_size, 5, 2, 426888], device=device),)
 
-        if self.jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs = [self.example_inputs, ])
-            else:
-                self.model = torch.jit.script(self.model, example_inputs = [self.example_inputs, ])
-
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
         return self.model, self.example_inputs
 

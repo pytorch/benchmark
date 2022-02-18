@@ -35,7 +35,7 @@ from .util import html
 import torch
 from pathlib import Path
 
-def get_model(script):
+def get_model():
     args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test --no_dropout"
     opt = TestOptions().parse(args.split(' '))
     opt.num_threads = 0   # test code only supports num_threads = 1
@@ -48,10 +48,7 @@ def get_model(script):
     root = str(Path(__file__).parent)
     data = torch.load(f'{root}/example_input.pt')    
     input = data['A'].cuda()
-        
-    if script:
-        model = torch.jit.script(model)
-    
+
     return model, (input,)
 
 if __name__ == '__main__':

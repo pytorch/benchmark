@@ -21,26 +21,19 @@ class Model(BenchmarkModel):
         self.model = models.resnet50().to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
         self.prep_qat_train()
+        if self.test == "eval":
+            self.prep_qat_eval()
 
     def prep_qat_train(self):
         qconfig_dict = {"": torch.quantization.get_default_qat_qconfig('fbgemm')}
         self.model.train()
         self.model = quantize_fx.prepare_qat_fx(self.model, qconfig_dict)
 
-
     def get_module(self):
         return self.model, self.example_inputs
 
-    # vision models have another model
-    # instance for inference that has
-    # already been optimized for inference
-    def set_eval(self):
-        self.prep_qat_eval()
-
     def prep_qat_eval(self):
         self.model = quantize_fx.convert_fx(self.model)
-        if self.jit:
-            self.model = torch.jit.script(self.model)
         self.model.eval()
 
     def train(self, niter=3):

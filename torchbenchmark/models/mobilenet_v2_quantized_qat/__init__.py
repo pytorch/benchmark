@@ -20,11 +20,9 @@ class Model(BenchmarkModel):
 
         self.model = models.mobilenet_v2().to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
-        if test == "train":
-            self.model.train()
-        elif test == "eval":
-            self.model.eval()
         self.prep_qat_train()  # config+prepare steps are required for both train and eval
+        if self.test == "eval":
+            self.prep_qat_eval()
 
     def prep_qat_train(self):
         qconfig_dict = {"": torch.quantization.get_default_qat_qconfig('fbgemm')}
@@ -43,13 +41,8 @@ class Model(BenchmarkModel):
             loss(pred, y).backward()
             optimizer.step()
 
-    def set_eval(self):
-        self.prep_qat_eval()
-
     def prep_qat_eval(self):
         self.model = quantize_fx.convert_fx(self.model)
-        if self.jit:
-            self.model = torch.jit.script(self.model)
         self.model.eval()
 
     def eval(self, niter=1):

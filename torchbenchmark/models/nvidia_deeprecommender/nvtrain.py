@@ -269,8 +269,6 @@ class DeepRecommenderTrainBenchmark:
       print('######################################################')
       print('######################################################')
 
-    if jit:
-      self.rencoder = torch.jit.trace(self.rencoder, (self.toyinputs,))
   
     if self.args.use_cuda:
       gpu_ids = [int(g) for g in self.args.gpu_ids.split(',')]
