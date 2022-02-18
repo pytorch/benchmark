@@ -10,6 +10,7 @@ Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
 import time
+import numpy as np
 import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
@@ -51,41 +52,49 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
 
+    result_summary = []
+    for _i in num_iter:
+        if args.device == "cuda":
+            torch.cuda.synchronize()
+            start_event = torch.cuda.Event(enable_timing=True)
+            end_event = torch.cuda.Event(enable_timing=True)
+
+            # Collect time_ns() instead of time() which does not provide better precision than 1
+            # second according to https://docs.python.org/3/library/time.html#time.time.
+            t0 = time.time_ns()
+            start_event.record()
+            func()
+            t1 = time.time_ns()
+
+            end_event.record()
+            torch.cuda.synchronize()
+            t2 = time.time_ns()
+
+            # CPU Dispatch time include only the time it took to dispatch all the work to the GPU.
+            # CPU Total Wall Time will include the CPU Dispatch, GPU time and device latencies.
+            result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000, (t2 - t0) / 1_000_000))
+        else:
+            t0 = time.time_ns()
+            func()
+            t1 = time.time_ns()
+            wall_latency = t1 - t0
+            result_summary.append([(t1 - t0) / 1_000_000])
+
     if args.device == "cuda":
-        torch.cuda.synchronize()
-        start_event = torch.cuda.Event(enable_timing=True)
-        end_event = torch.cuda.Event(enable_timing=True)
-
-        # Collect time_ns() instead of time() which does not provide better precision than 1
-        # second according to https://docs.python.org/3/library/time.html#time.time.
-        t0 = time.time_ns()
-        start_event.record()
-        func()
-        t1 = time.time_ns()
-
-        end_event.record()
-        torch.cuda.synchronize()
-        t2 = time.time_ns()
-
-        wall_latency = t2 - t0
-
-        # CPU Dispatch time include only the time it took to dispatch all the work to the GPU.
-        # CPU Total Wall Time will include the CPU Dispatch, GPU time and device latencies.
-        print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
-        print('{:<20} {:>20}'.format("CPU Dispatch Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
-        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % ((t2 - t0) / 1_000_000)), sep='')
-
+        gpu_time = np.median(map(lambda x: x[0], result_summary))
+        cpu_dispatch_time = np.median(map(lambda x: x[1], result_summary))
+        cpu_walltime = np.median(map(lambda x: x[2], result_summary))
+        print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
+        print('{:<20} {:>20}'.format("CPU Dispatch Time:", "%.3f milliseconds" % cpu_dispatch_time, sep=''))
+        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
     else:
-        t0 = time.time_ns()
-        func()
-        t1 = time.time_ns()
-        wall_latency = t1 - t0
-        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
+        cpu_walltime = np.median(map(lambda x: x[0], result_summary))
+        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
 
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
