@@ -58,7 +58,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
         func()
 
     result_summary = []
-    for _i in num_iter:
+    for _i in range(num_iter):
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
@@ -86,14 +86,14 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
             result_summary.append([(t1 - t0) / 1_000_000])
 
     if args.device == "cuda":
-        gpu_time = np.median(map(lambda x: x[0], result_summary))
-        cpu_dispatch_time = np.median(map(lambda x: x[1], result_summary))
-        cpu_walltime = np.median(map(lambda x: x[2], result_summary))
+        gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
+        cpu_dispatch_time = np.median(list(map(lambda x: x[1], result_summary)))
+        cpu_walltime = np.median(list(map(lambda x: x[2], result_summary)))
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
         print('{:<20} {:>20}'.format("CPU Dispatch Time:", "%.3f milliseconds" % cpu_dispatch_time, sep=''))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
     else:
-        cpu_walltime = np.median(map(lambda x: x[0], result_summary))
+        cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
 
     # if model_flops is not None, output the TFLOPs per sec
