@@ -16,6 +16,10 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 32
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if test == "eval" and device != "cpu":
+            raise NotImplementedError("The eval test only supports CPU.")
+        if jit and test == "train":
+            raise NotImplementedError("torchscript operations should only be applied after quantization operations")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.model = models.resnet50().to(self.device)
@@ -37,8 +41,6 @@ class Model(BenchmarkModel):
         self.model.eval()
 
     def train(self, niter=3):
-        if self.jit is True:  # torchscript operations should only be applied after quantization operations
-            raise NotImplementedError()
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
@@ -49,8 +51,6 @@ class Model(BenchmarkModel):
             optimizer.step()
 
     def eval(self, niter=1):
-        if self.device != 'cpu':
-            raise NotImplementedError()
         model = self.model
         example_inputs = self.example_inputs
         example_inputs = example_inputs[0][0].unsqueeze(0)
