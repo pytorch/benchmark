@@ -21,7 +21,7 @@ WARMUP_ROUNDS = 3
 MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
-def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10) -> float:
+def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10) -> Tuple[float, Optional[Tuple[torch.Tensor]]]:
     "Run one step of the model, and return the latency in milliseconds."
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
