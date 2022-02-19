@@ -2,6 +2,7 @@ import torch
 import os
 import itertools
 import random
+import itertools
 from pathlib import Path
 from typing import Tuple
 
@@ -83,5 +84,11 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for idx, data in zip(range(niter), self.example_inputs):
                 out = self.model(data)
-        return (out, )
-
+        # retrieve output tensors
+        outputs = []
+        for item in out:
+            fields = list(map(lambda x: list(x.get_fields().values()), item.values()))
+            for boxes in fields:
+                tensor_box = list(filter(lambda x: isinstance(x, torch.Tensor), boxes))
+                outputs.extend(tensor_box)
+        return tuple(outputs)

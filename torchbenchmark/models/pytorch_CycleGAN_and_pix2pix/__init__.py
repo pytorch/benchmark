@@ -27,13 +27,13 @@ def nyi():
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
     DEFAULT_TRAIN_BSIZE = 1
-    DEFAILT_EVAL_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        if device != 'cuda' or device != 'lazy':  # NYI implemented for things that aren't on the GPU
+        if device != 'cuda' and device != 'lazy':  # NYI implemented for things that aren't on the GPU
             self.get_module = self.train = self.eval = nyi
             return
 

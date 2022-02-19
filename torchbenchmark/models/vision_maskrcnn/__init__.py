@@ -4,6 +4,7 @@ Maskrcnn model from torchvision
 
 import torch
 import os
+import itertools
 import random
 import numpy as np
 from ...util.model import BenchmarkModel
@@ -100,4 +101,5 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _, (images, _targets) in zip(range(niter), self.data_loader):
                 out = self.model(images)
-        return (out, )
+        out = list(map(lambda x: x.values(), out))
+        return tuple(itertools.chain(*out))

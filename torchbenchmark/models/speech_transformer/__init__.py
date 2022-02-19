@@ -7,6 +7,7 @@
 # S0002.tar.gz, S0757.tar.gz, S0915.tar.gz
 #
 import os
+import itertools
 import torch
 
 from .config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
@@ -73,4 +74,6 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         for _ in range(niter):
             out = self.evalcfg.eval()
-        return (out, )
+        # only the first element of model output is a tensor
+        out = tuple(itertools.chain(*list(map(lambda x: x.values(), out))))
+        return (out[0], )
