@@ -45,6 +45,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if jit:
+            raise NotImplementedError("FastNLP-Bert model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.input_dir = CMRC2018_DIR
