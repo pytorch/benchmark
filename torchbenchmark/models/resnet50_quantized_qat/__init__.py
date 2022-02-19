@@ -6,6 +6,7 @@ import torchvision.models as models
 from torch.quantization import quantize_fx
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
+from typing import Tuple
 
 
 class Model(BenchmarkModel):
@@ -50,9 +51,10 @@ class Model(BenchmarkModel):
             loss(pred, y).backward()
             optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model = self.model
         example_inputs = self.example_inputs
         example_inputs = example_inputs[0][0].unsqueeze(0)
         for i in range(niter):
-            model(example_inputs)
+            out = model(example_inputs)
+        return (out, )

@@ -9,6 +9,7 @@ from .baseline.DRL.ddpg import DDPG
 from .baseline.DRL.multi import fastenv
 
 from ...util.model import BenchmarkModel
+from typing import Tuple
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from argparse import Namespace
@@ -105,11 +106,12 @@ class Model(BenchmarkModel):
                 episode += 1
             self.step += 1
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
             reward, dist = self.evaluate(self.env, self.agent.select_action)
+        return (reward, dist)
 
     def _set_mode(self, train):
         if train:

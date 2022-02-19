@@ -12,6 +12,7 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.models as models
+from typing import Tuple
 
 from .moco.builder import MoCo
 from .main_moco import adjust_learning_rate
@@ -132,7 +133,7 @@ class Model(BenchmarkModel):
                 loss.backward()
                 self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         """ Recommended
         Run evaluation on model for `niter` inputs. One iteration should be sufficient
         to warm up the model for the purpose of profiling.
@@ -149,4 +150,5 @@ class Model(BenchmarkModel):
 
         for i in range(niter):
             for i, (images, _) in enumerate(self.example_inputs):
-                self.model(im_q=images[0], im_k=images[1])
+                out = self.model(im_q=images[0], im_k=images[1])
+        return (out, )

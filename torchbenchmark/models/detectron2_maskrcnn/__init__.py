@@ -3,6 +3,7 @@ import os
 import itertools
 import random
 from pathlib import Path
+from typing import Tuple
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -73,7 +74,7 @@ class Model(BenchmarkModel):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
-    def eval(self, niter=2):
+    def eval(self, niter=2) -> Tuple[torch.Tensor]:
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
@@ -81,5 +82,6 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for idx, data in zip(range(niter), self.example_inputs):
-                self.model(data)
+                out = self.model(data)
+        return (out, )
 

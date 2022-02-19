@@ -7,6 +7,7 @@ import functools
 # import shutil
 import time
 import json
+from typing import Tuple
 import sys
 
 # data generation
@@ -200,12 +201,12 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError("JIT not supported")
-
         for _ in range(niter):
-            self.model(*self.example_inputs)
+            out = self.model(*self.example_inputs)
+        return out
 
     def train(self, niter=1):
         if self.jit:

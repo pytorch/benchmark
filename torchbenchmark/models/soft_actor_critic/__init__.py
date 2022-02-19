@@ -7,6 +7,7 @@ from itertools import chain
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
+from typing import Tuple
 
 from .config import SACConfig
 from .envs import load_gym
@@ -238,7 +239,7 @@ class Model(BenchmarkModel):
                 soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         with torch.no_grad():
@@ -256,4 +257,4 @@ class Model(BenchmarkModel):
                     episode_return += reward * (discount ** step_num)
                 episode_return_history.append(episode_return)
             retval = torch.tensor(episode_return_history)
-
+        return action

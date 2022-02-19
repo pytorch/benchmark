@@ -14,6 +14,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
+from typing import Tuple
 
 from .train_cyclegan import prepare_training_loop
 from .test_cyclegan import get_model
@@ -63,7 +64,8 @@ class Model(BenchmarkModel):
             # step rather than 7 epochs, but changing it now would potentially cause discontinuity with existing/historical measurement
             self.training_loop(None)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
         for i in range(niter):
-            model(*example_inputs)
+            out = model(*example_inputs)
+        return (out, )

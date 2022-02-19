@@ -16,6 +16,7 @@ torch.backends.cudnn.benchmark = True
 from shlex import split
 from .yolo_train import prepare_training_loop
 from . import yolo_train
+from typing import Tuple
 
 from .yolo_models import *  # set ONNX_EXPORT in models.py
 from .yolo_utils.datasets import *
@@ -89,13 +90,15 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
         return self.training_loop(niter)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
         for i in range(niter):
-            pred = model(*example_inputs, augment=False)[0]
+            out = model(*example_inputs, augment=False)
+            pred = out[0]
             # Apply NMS
             pred = non_max_suppression(pred, 0.3, 0.6,
                                     multi_label=False, classes=None, agnostic=False)
+        return out
 
     @property
     def device_str(self):

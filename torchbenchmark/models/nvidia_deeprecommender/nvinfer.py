@@ -228,6 +228,7 @@ class DeepRecommenderInferenceBenchmark:
                 outf.write("{}\t{}\t{}\t{}\n".format(major_key, self.inv_itemIdMap[ind], self.outputs[ind], targets_np[ind]))
               if i % 10000 == 0:
                 print("Done: {}".format(i))
+    return out
 
   def TimedInferenceRun(self) :
   

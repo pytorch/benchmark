@@ -1,10 +1,9 @@
 import torch
 import torch.optim as optim
-import torchvision.models as models
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
+from typing import Tuple
 from transformers import *
-from datasets import load_dataset
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
@@ -44,12 +43,13 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.example_inputs)
+        return (out, )
 
     

@@ -6,6 +6,7 @@ import torch
 import os
 import sys
 import torch.nn as nn
+from typing import Tuple
 import torch.nn.functional as F
 from gym import spaces
 
@@ -149,11 +150,11 @@ class Model(BenchmarkModel):
             episode_step += 1
             self.step += 1
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         average_episode_reward = 0
-        for episode in range(niter):
+        for _episode in range(niter):
             obs = self.env.reset()
             episode_reward = 0
             episode_step = 0
@@ -164,3 +165,4 @@ class Model(BenchmarkModel):
             episode_step += 1
             average_episode_reward += episode_reward
         average_episode_reward /= float(niter)
+        return action

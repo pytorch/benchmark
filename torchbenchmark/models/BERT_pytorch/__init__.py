@@ -174,6 +174,7 @@ class Model(BenchmarkModel):
             next_loss = model.criterion(next_sent_output, self.is_next)
             mask_loss = model.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
             loss = next_loss + mask_loss
+        return (next_sent_output, mask_lm_output)
 
     def train(self, niter=1):
         trainer = self.model
