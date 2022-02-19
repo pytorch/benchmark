@@ -144,4 +144,4 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for i in range(niter):
                 out = model(*example_inputs)
-        return (out, )
+        return out

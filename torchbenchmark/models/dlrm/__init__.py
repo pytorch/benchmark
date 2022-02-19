@@ -206,7 +206,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT not supported")
         for _ in range(niter):
             out = self.model(*self.example_inputs)
-        return out
+        return (out, )
 
     def train(self, niter=1):
         if self.jit:

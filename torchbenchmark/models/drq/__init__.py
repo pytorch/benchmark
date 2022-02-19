@@ -165,4 +165,4 @@ class Model(BenchmarkModel):
             episode_step += 1
             average_episode_reward += episode_reward
         average_episode_reward /= float(niter)
-        return action
+        return (torch.Tensor(action), )

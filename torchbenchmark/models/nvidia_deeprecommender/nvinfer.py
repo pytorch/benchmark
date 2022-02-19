@@ -210,7 +210,7 @@ class DeepRecommenderInferenceBenchmark:
     for iteration in range(niter):
 
       if self.toytest:
-        self.rencoder(self.toyinputs)
+        out = self.rencoder(self.toyinputs)
         continue
 
       for i, ((out, src), majorInd) in enumerate(self.eval_data_layer.iterate_one_epoch_eval(for_inf=True)):

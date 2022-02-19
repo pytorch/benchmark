@@ -116,7 +116,7 @@ class Model(BenchmarkModel):
         result = None
         for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
             result = self.model(*(src_seq, trg_seq))
-        return result
+        return (result, )
 
     def train(self, niter=1):
         for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):

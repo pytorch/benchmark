@@ -48,4 +48,6 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.example_inputs)
-        return (out, )
+        # logits: prediction scores of language modeling head
+        # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
+        return (out.logits, )

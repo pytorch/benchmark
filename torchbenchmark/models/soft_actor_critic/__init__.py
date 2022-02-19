@@ -257,4 +257,4 @@ class Model(BenchmarkModel):
                     episode_return += reward * (discount ** step_num)
                 episode_return_history.append(episode_return)
             retval = torch.tensor(episode_return_history)
-        return action
+        return (torch.tensor(action), )

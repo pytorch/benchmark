@@ -112,7 +112,8 @@ class Model(BenchmarkModel):
                 for batch_x, batch_y in self.example_inputs:
                     self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                     pred_dict = self._data_forward(self._predict_func, batch_x)
-        return (pred_dict, )
+        # return a tuple of Tensors
+        return (pred_dict['pred_start'], pred_dict['pred_end'] )
 
     # Sliced version of fastNLP.Trainer._train()
     def train(self, niter=1):

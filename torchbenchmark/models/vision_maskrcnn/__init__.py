@@ -100,4 +100,4 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _, (images, _targets) in zip(range(niter), self.data_loader):
                 out = self.model(images)
-        return out
+        return (out, )
