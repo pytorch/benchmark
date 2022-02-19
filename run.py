@@ -65,7 +65,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
         # second according to https://docs.python.org/3/library/time.html#time.time.
         t0 = time.time_ns()
         start_event.record()
-        out = func()
+        func()
         t1 = time.time_ns()
 
         end_event.record()
@@ -82,7 +82,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
 
     else:
         t0 = time.time_ns()
-        out = func()
+        func()
         t1 = time.time_ns()
         wall_latency = t1 - t0
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
