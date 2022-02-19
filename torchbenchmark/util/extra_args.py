@@ -55,7 +55,7 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         model.model, model.example_inputs = enable_fp16(model.model, model.example_inputs)
     if args.jit:
         module, exmaple_inputs = model.get_module()
-        model.set_module(enable_jit(model=model, example_inputs=exmaple_inputs))
+        model.set_module(enable_jit(model=model, example_inputs=exmaple_inputs, test=args.test))
     if args.fx2trt:
         if args.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")
