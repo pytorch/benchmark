@@ -8,5 +8,5 @@ def enable_jit(model: torch.nn.Module, example_inputs: Tuple[torch.Tensor], test
         model = torch.jit.script(model, example_inputs=[example_inputs, ])
     if test == "eval" and optimize_for_inference:
         model = torch.jit.optimize_for_inference(model)
-    assert isinstance(model, torch.ScriptModule)
+    assert isinstance(model, torch.jit.ScriptModule)
     return model
