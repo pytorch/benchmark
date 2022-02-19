@@ -82,7 +82,6 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
             t0 = time.time_ns()
             func()
             t1 = time.time_ns()
-            wall_latency = t1 - t0
             result_summary.append([(t1 - t0) / 1_000_000])
 
     if args.device == "cuda":
@@ -99,7 +98,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
         flops, batch_size = model_flops
-        tflops = flops * batch_size / (wall_latency / 1.0e9) / 1.0e12
+        tflops = flops * batch_size / (cpu_walltime / 1.0e9) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
