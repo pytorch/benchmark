@@ -98,7 +98,7 @@ class Model(BenchmarkModel):
             # Apply NMS
             pred = non_max_suppression(pred, 0.3, 0.6,
                                     multi_label=False, classes=None, agnostic=False)
-        return out
+        return (out[0],) + out[1]
 
     @property
     def device_str(self):
