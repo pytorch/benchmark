@@ -25,6 +25,6 @@ def correctness_check(eager_output: Tuple[torch.Tensor], output: Tuple[torch.Ten
     for i in range(len(eager_output)):
         t1 = eager_output[i]
         t2 = output[i]
-        cos = torch.nn.CosineSimilarity()
-        result *= cos(t1, t2)
+        cos = torch.nn.CosineSimilarity(dim=0, eps=1e-4)
+        result *= cos(t1.flatten(), t2.flatten())
     return result

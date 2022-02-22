@@ -86,7 +86,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
     print(f"Running model {model_path.name} ... ", end='', flush=True)
     status: str = "OK"
     bs_name = "batch_size"
-    eager_eval_result_name = "eager_eval_result"
+    correctness_name = "correctness"
     error_message: Optional[str] = None
     try:
         task = ModelTask(os.path.basename(model_path))
@@ -101,9 +101,9 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         func = getattr(task, test)
         (result.results["latency_ms"], test_result) = run_one_step(func, device)
         # if the model provides eager eval result, save it for cosine similarity
-        eager_eval_result = task.get_model_attribute(eager_eval_result_name)
-        if eager_eval_result:
-            result.results["cos_sim"] = get_cosine_similarity(eager_eval_result, test_result)
+        correctness = task.get_model_attribute(correctness_name)
+        if correctness:
+            result.results[correctness_name] = correctness
     except NotImplementedError as e:
         status = "NotImplemented"
         error_message = str(e)
