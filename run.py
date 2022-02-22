@@ -188,4 +188,4 @@ if __name__ == "__main__":
     else:
         run_one_step(test, model_flops=model_flops)
     if hasattr(m, 'correctness'):
-        print('{:<20} {:>20}'.format("Corrnectness:", "%.15f" % m.correctness), sep='')
+        print('{:<20} {:>20}'.format("Correctness:", "%.15f" % m.correctness), sep='')
