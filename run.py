@@ -187,3 +187,5 @@ if __name__ == "__main__":
         run_one_step_with_cudastreams(test, 10)
     else:
         run_one_step(test, model_flops=model_flops)
+    if hasattr(m, 'correctness'):
+        print('{:<20} {:>20}'.format("Corrnectness:", "%.15f" % m.correctness), sep='')
