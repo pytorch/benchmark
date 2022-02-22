@@ -15,7 +15,7 @@ class TorchVisionModel(BenchmarkModel):
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        self.model = getattr(models, model_name)().to(self.device)
+        self.model = getattr(models, model_name)(pretrained=True).to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
         self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
         if test == "train":
