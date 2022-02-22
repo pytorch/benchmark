@@ -1,4 +1,6 @@
 import torch
+import random
+import numpy as np
 import typing
 import torch.optim as optim
 import torchvision.models as models
@@ -14,6 +16,12 @@ class TorchVisionModel(BenchmarkModel):
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
+        torch.manual_seed(1337)
+        random.seed(1337)
+        np.random.seed(1337)
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = False
 
         self.model = getattr(models, model_name)(pretrained=True).to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
