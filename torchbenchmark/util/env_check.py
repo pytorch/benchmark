@@ -28,4 +28,5 @@ def correctness_check(eager_output: Tuple[torch.Tensor], output: Tuple[torch.Ten
         cos = torch.nn.CosineSimilarity(dim=0, eps=1e-4)
         # need to call float() because fp16 tensor may overflow when calculating cosine similarity
         result *= cos(t1.flatten().float(), t2.flatten().float())
-    return result
+    assert list(result.size())==[], "The result of cosine similarity must be a scalar."
+    return float(result)
