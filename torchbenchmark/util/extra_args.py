@@ -54,8 +54,13 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         assert allow_fp16(model), "Eval fp16 is only available on CUDA for torchvison models."
         model.model, model.example_inputs = enable_fp16(model.model, model.example_inputs)
     if args.jit:
-        module, exmaple_inputs = model.get_module()
-        model.set_module(enable_jit(model=module, example_inputs=exmaple_inputs, test=args.test))
+        # model can handle jit code themselves through 'jit_callback' function
+        if hasattr(model, 'jit_callback'):
+            model.jit_callback()
+        else:
+            # if model doesn't have customized jit code, use the default jit script code
+            module, exmaple_inputs = model.get_module()
+            model.set_module(enable_jit(model=module, example_inputs=exmaple_inputs, test=args.test))
     if args.fx2trt:
         if args.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")

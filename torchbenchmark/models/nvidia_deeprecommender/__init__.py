@@ -47,6 +47,10 @@ class Model(BenchmarkModel):
       elif test == "eval":
         self.model = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit, batch_size=self.batch_size)
 
+  def jit_callback(self):
+    assert self.jit, "Calling JIT callback without specifying the JIT option."
+    self.model.rencoder = torch.jit.trace(self.model.rencoder, (self.model.toyinputs, ))
+
   def get_module(self):
     if self.eval_mode:
        return self.model.rencoder, (self.model.toyinputs,)
