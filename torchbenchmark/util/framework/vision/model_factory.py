@@ -25,16 +25,6 @@ class TorchVisionModel(BenchmarkModel):
         elif test == "eval":
             self.model.eval()
 
-        if self.jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-            else:
-                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
-            if test == "eval":
-                # model needs to in `eval`
-                # in order to be optimized for inference
-                self.model = torch.jit.optimize_for_inference(self.model)
-
     # By default, FlopCountAnalysis count one fused-mult-add (FMA) as one flop.
     # However, in our context, we count 1 FMA as 2 flops instead of 1.
     # https://github.com/facebookresearch/fvcore/blob/7a0ef0c0839fa0f5e24d2ef7f5d48712f36e7cd7/fvcore/nn/flop_count.py

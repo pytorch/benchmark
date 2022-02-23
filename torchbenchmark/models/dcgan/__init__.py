@@ -217,10 +217,11 @@ class Model(BenchmarkModel):
             if False == self.inference_just_descriminator:
                 self.eval_noise = torch.randn(self.batch_size, nz, 1, 1, device=self.device)
 
-        if self.jit:
-            self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
-            if test == "eval" and False == self.inference_just_descriminator:
-                self.netG = torch.jit.trace(self.netG,(self.eval_noise,))
+    def jit_callback(self):
+        assert self.jit, "Calling JIT callback without specifying the JIT option."
+        self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
+        if self.test == "eval" and False == self.inference_just_descriminator:
+            self.netG = torch.jit.trace(self.netG,(self.eval_noise,))
 
     def get_module(self):
         return self.model, (self.exmaple_inputs,)

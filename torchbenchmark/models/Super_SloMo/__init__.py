@@ -66,12 +66,6 @@ class Model(BenchmarkModel):
         data = _prefetch(data, self.device)
         self.example_inputs = frameIndex.to(self.device), *data
 
-        if jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-            else:
-                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
-
     def get_module(self):
         return self.model, self.example_inputs
 

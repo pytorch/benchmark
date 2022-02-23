@@ -56,11 +56,6 @@ class Model(BenchmarkModel):
                              should_script=config.should_script)
         self.model = self.solver.G
 
-        if self.jit:
-            self.model = torch.jit.script(self.model)
-            if test == "eval":
-                self.model = torch.jit.optimize_for_inference(self.model)
-
         self.example_inputs = self.generate_example_inputs()
 
     def get_data_loader(self, config):

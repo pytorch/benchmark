@@ -27,6 +27,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+        if jit and test == "eval":
+            raise NotImplementedError("pytorch unet model does not support JIT for inference.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.args = self._get_args()
@@ -41,8 +43,6 @@ class Model(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             self.model.eval()
-        if self.jit:
-            self.model = torch.jit.script(self.model)
 
     def get_module(self):
         return self.model, (self.example_inputs,)

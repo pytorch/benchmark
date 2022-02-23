@@ -26,6 +26,8 @@ class Model(BenchmarkModel):
   DEFAULT_EVAL_BSIZE = 256
 
   def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+    if jit:
+      raise NotImplementedError("Nvidia DeepRecommender model does not support JIT.")
     super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
     self.not_implemented_reason = "Implemented"
     self.eval_mode = True if self.test == "eval" else False
@@ -44,6 +46,10 @@ class Model(BenchmarkModel):
         self.model = DeepRecommenderTrainBenchmark(device = self.device, jit = jit, batch_size=self.batch_size)
       elif test == "eval":
         self.model = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit, batch_size=self.batch_size)
+
+  def jit_callback(self):
+    assert self.jit, "Calling JIT callback without specifying the JIT option."
+    self.model.rencoder = torch.jit.trace(self.model.rencoder, (self.model.toyinputs, ))
 
   def get_module(self):
     if self.eval_mode:

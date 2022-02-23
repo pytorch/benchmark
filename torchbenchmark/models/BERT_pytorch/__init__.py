@@ -154,12 +154,6 @@ class Model(BenchmarkModel):
         self.is_next = example_batch['is_next'].to(self.device)[:self.batch_size]
         self.bert_label = example_batch['bert_label'].to(self.device)[:self.batch_size]
         self.model = trainer
-        
-        if self.jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model.bert = torch.jit._script_pdt(self.model.bert, example_inputs=[self.example_inputs, ])
-            else:
-                self.model.bert = torch.jit.script(self.model.bert, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.model.bert, self.example_inputs
