@@ -101,7 +101,11 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
         predict_dataset = raw_datasets["test_matched" if data_args.task_name == "mnli" else "test"]
         if data_args.max_predict_samples is not None:
             predict_dataset = predict_dataset.select(range(data_args.max_predict_samples))
-    return train_dataset, eval_dataset, predict_dataset
+    if data_args.task_name == "mnli":
+        mnli_eval_dataset = raw_datasets["validation_mismatched"]
+    else:
+        mnli_eval_dataset = None
+    return train_dataset, eval_dataset, predict_dataset, mnli_eval_dataset
 
 def prep_dataset(data_args, training_args):
     # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)

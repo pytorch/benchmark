@@ -2,7 +2,7 @@ import os
 import pathlib
 import importlib
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import List, Dict, Any
 
 E2E_MODEL_DIR = 'e2e_models'
 
@@ -14,16 +14,10 @@ def _list_model_paths() -> List[str]:
 class E2EBenchmarkResult:
     device: str
     device_num: int
-    # train or eval
     test: str
-    # number of examples
     examples: int
     batch_size: int
-    # latency in seconds
-    latency: float
-    qps: float
-    flops: Optional[float]
-    # TODO: add correctness metrics such as accuracy
+    result: Dict[str, Any]
 
 def load_e2e_model_by_name(model):
     models = filter(lambda x: model.lower() == x.lower(),
@@ -34,9 +28,9 @@ def load_e2e_model_by_name(model):
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
     try:
-        module = importlib.import_module(f'.e2e_models.{model_name}', package=__name__)
+        module = importlib.import_module(f'torchbenchmark.e2e_models.{model_name}', package=__name__)
     except ModuleNotFoundError as e:
-        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it")
+        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it: {e}")
         return None
     Model = getattr(module, 'Model', None)
     if Model is None:

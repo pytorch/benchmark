@@ -3,6 +3,7 @@ Hacked from https://github.com/huggingface/transformers/blob/6fc38adff272ea3148e
 It runs HuggingFace transformer models on the GLUE benchmark
 """
 from dataclasses import dataclass, field
+import argparse
 from typing import Optional
 from transformers import HfArgumentParser, TrainingArguments
 
@@ -17,6 +18,12 @@ task_to_keys = {
     "stsb": ("sentence1", "sentence2"),
     "wnli": ("sentence1", "sentence2"),
 }
+
+def parse_torchbench_args(extra_args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--task_name", default="cola", choices=task_to_keys.keys(), help="Name of task to run")
+    tb_args = parser.parse_args(extra_args)
+    return tb_args
 
 def parse_args(in_args):
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
