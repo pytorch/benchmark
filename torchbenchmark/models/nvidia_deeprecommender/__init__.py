@@ -8,12 +8,11 @@
 # been removed.
 
 import torch
-import torch.optim as optim
-import torchvision.models as models
 
 from torchbenchmark.models.attention_is_all_you_need_pytorch.train import train
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
+from typing import Tuple
 
 import gc
 from .nvtrain import DeepRecommenderTrainBenchmark
@@ -71,11 +70,12 @@ class Model(BenchmarkModel):
     for i in range(niter):
       self.model.train(niter)
 
-  def eval(self, niter=1):
+  def eval(self, niter=1) -> Tuple[torch.Tensor]:
     self.check_implemented()
-
+    print("here... ")
     for i in range(niter):
-      self.model.eval(niter)
+      out = self.model.eval(niter)
+    return (out, )
 
   def check_implemented(self):
     if self.not_implemented_reason != "Implemented":

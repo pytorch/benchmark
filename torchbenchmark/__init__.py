@@ -280,8 +280,10 @@ class ModelTask(base_task.TaskBase):
     @staticmethod
     def get_model_attribute(attr: str) -> Any:
         model = globals()["model"]
-        attr_value = getattr(model, attr)
-        return attr_value
+        if hasattr(model, attr):
+            return getattr(model, attr)
+        else:
+            return None
 
     def gc_collect(self) -> None:
         self.worker.run("""
@@ -361,6 +363,20 @@ class ModelTask(base_task.TaskBase):
             module(**example_inputs)
         else:
             module(*example_inputs)
+
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def check_eval_output() -> None:
+        instance = globals()["model"]
+        import torch
+        out = instance.eval()
+        model_name = getattr(instance, 'name', None)
+        if not isinstance(out, tuple):
+            raise RuntimeError(f'Model {model_name} eval() output is not a tuple')
+        for ind, element in enumerate(out):
+            if not isinstance(element, torch.Tensor):
+                raise RuntimeError(f'Model {model_name} eval() output is tuple, but'
+                                   f' its {ind}-th element is not a Tensor.')
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod

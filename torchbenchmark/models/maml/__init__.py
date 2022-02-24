@@ -5,6 +5,7 @@ import torch
 from argparse import Namespace
 from .meta import Meta
 from pathlib import Path
+from typing import Tuple
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
@@ -80,11 +81,12 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         return self.module, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
-            self.module(*self.example_inputs)
+            out = self.module(*self.example_inputs)
+        return (out, )
 
     def train(self, niter=1):
         if self.jit:

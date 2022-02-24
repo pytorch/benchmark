@@ -21,6 +21,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 from pathlib import Path
+from typing import Tuple
 import higher
 
 from ...util.model import BenchmarkModel
@@ -98,7 +99,7 @@ class Model(BenchmarkModel):
 
             meta_opt.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
 
@@ -106,4 +107,5 @@ class Model(BenchmarkModel):
         model.eval()
         with torch.no_grad():
             for i in range(niter):
-                model(example_input)
+                out = model(example_input)
+        return (out, )

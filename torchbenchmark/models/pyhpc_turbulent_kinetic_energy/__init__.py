@@ -1,5 +1,6 @@
 import torch
 from . import tke_pytorch
+from typing import Tuple
 from torchbenchmark.tasks import OTHER
 from ...util.model import BenchmarkModel
 
@@ -138,8 +139,9 @@ class Model(BenchmarkModel):
     def train(self, niter=1):
         raise NotImplementedError("Training not supported")
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
         with torch.no_grad():
             for i in range(niter):
-                model(*example_inputs)
+                out = model(*example_inputs)
+        return out

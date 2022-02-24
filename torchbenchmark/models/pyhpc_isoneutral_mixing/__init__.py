@@ -2,6 +2,7 @@ import torch
 from . import isoneutral_pytorch
 from torchbenchmark.tasks import OTHER
 from ...util.model import BenchmarkModel
+from typing import Tuple
 
 def _generate_inputs(size):
     import math
@@ -142,8 +143,9 @@ class Model(BenchmarkModel):
     def train(self, niter=1):
         raise NotImplementedError("Training not supported")
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
         with torch.no_grad():
             for i in range(niter):
-                model(*example_inputs)
+                out = model(*example_inputs)
+        return out

@@ -4,11 +4,13 @@ Maskrcnn model from torchvision
 
 import torch
 import os
+import itertools
 import random
 import numpy as np
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 from pathlib import Path
+from typing import Tuple
 
 # Model specific imports
 import torchvision
@@ -92,10 +94,12 @@ class Model(BenchmarkModel):
             losses.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         self.model.eval()
         with torch.no_grad():
             for _, (images, _targets) in zip(range(niter), self.data_loader):
-                self.model(images)
+                out = self.model(images)
+        out = list(map(lambda x: x.values(), out))
+        return tuple(itertools.chain(*out))

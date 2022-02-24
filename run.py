@@ -93,7 +93,6 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None):
         tflops = flops * batch_size / (wall_latency / 1.0e9) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
-
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     activity_groups = []
     if ((not args.profile_devices and args.device == 'cuda') or

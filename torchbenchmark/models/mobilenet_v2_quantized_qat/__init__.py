@@ -5,6 +5,7 @@ import torchvision.models as models
 from torch.quantization import quantize_fx
 from torchbenchmark.tasks import COMPUTER_VISION
 from ...util.model import BenchmarkModel
+from typing import Tuple
 
 
 class Model(BenchmarkModel):
@@ -47,10 +48,11 @@ class Model(BenchmarkModel):
         self.model = quantize_fx.convert_fx(self.model)
         self.model.eval()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         example_inputs = self.example_inputs[0][0].unsqueeze(0)
         for _i in range(niter):
-            self.model(example_inputs)
+            out = self.model(example_inputs)
+        return (out, )
 
     def get_module(self):
         return self.model, self.example_inputs

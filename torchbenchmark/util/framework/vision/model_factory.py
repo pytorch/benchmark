@@ -1,4 +1,5 @@
 import torch
+import typing
 import torch.optim as optim
 import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
@@ -55,10 +56,12 @@ class TorchVisionModel(BenchmarkModel):
                     self.loss_fn(pred, target).backward()
                     self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         if self.extra_args.cudagraph:
             return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.model
         example_inputs = self.example_inputs
+        result = None
         for _i in range(niter):
-            model(*example_inputs)
+            result = model(*example_inputs)
+        return (result, )

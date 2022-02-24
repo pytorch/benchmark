@@ -81,11 +81,12 @@ class Model(BenchmarkModel):
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
         return self.model, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         for _ in range(niter):
             sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
+        return (sources, estimates)
 
     def train(self, niter=1):
         if self.device == "cpu":

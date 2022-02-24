@@ -235,6 +235,7 @@ class Model(BenchmarkModel):
 
             # Since we just updated D, perform another forward pass of all-fake batch through D
             output = self.model(self.exmaple_inputs).view(-1)
+        return (output, )
 
     def train(self, niter=1):
 

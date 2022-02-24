@@ -7,11 +7,13 @@
 # S0002.tar.gz, S0757.tar.gz, S0915.tar.gz
 #
 import os
+import itertools
 import torch
 
 from .config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
+from typing import Tuple
 
 NUM_TRAIN_BATCH = 1
 NUM_EVAL_BATCH = 1
@@ -65,10 +67,13 @@ class Model(BenchmarkModel):
         for i in range(niter):
             self.traincfg.train(epoch = i)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         for _ in range(niter):
-            self.evalcfg.eval()
+            out = self.evalcfg.eval()
+        # only the first element of model output is a tensor
+        out = tuple(itertools.chain(*list(map(lambda x: x.values(), out))))
+        return (out[0], )

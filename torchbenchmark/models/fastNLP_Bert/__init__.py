@@ -6,6 +6,7 @@ Input data simulates [CMRC2018 dataset](https://ymcui.com/cmrc2018/).
 The program runs only for benchmark purposes and doesn't provide correctness results.
 """
 import logging
+from typing import Tuple
 import torch
 import random
 import inspect
@@ -101,7 +102,7 @@ class Model(BenchmarkModel):
         return self.model, (batch_x["words"], )
 
     # Sliced version of fastNLP.Tester._test()
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self._mode(self.model, is_test=True)
@@ -111,6 +112,8 @@ class Model(BenchmarkModel):
                 for batch_x, batch_y in self.example_inputs:
                     self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                     pred_dict = self._data_forward(self._predict_func, batch_x)
+        # return a tuple of Tensors
+        return (pred_dict['pred_start'], pred_dict['pred_end'] )
 
     # Sliced version of fastNLP.Trainer._train()
     def train(self, niter=1):

@@ -1,7 +1,8 @@
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
-
+import torch
+from typing import Tuple
 from .angular_tts_main import TTSModel, SYNTHETIC_DATA
 
 class Model(BenchmarkModel):
@@ -34,8 +35,9 @@ class Model(BenchmarkModel):
         # the training process is not patched to use scripted models
         self.model.train(niter)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
-            self.model.eval()
+            out = self.model.eval()
+        return (out, )

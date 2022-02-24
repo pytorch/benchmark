@@ -6,6 +6,7 @@ import numpy as np
 from .solver import Solver
 from .data_loader import get_loader
 from .main import parse_config, makedirs
+from typing import Tuple
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
@@ -81,8 +82,9 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             self.solver.train()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model = self.model
         example_inputs = self.example_inputs
         for _ in range(niter):
-            model(*example_inputs)
+            out = model(*example_inputs)
+        return (out, )

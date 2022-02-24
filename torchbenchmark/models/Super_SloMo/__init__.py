@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 import random
+from typing import Tuple
 import numpy as np
 
 from argparse import Namespace
@@ -69,12 +70,13 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
         for _ in range(niter):
-            self.model(*self.example_inputs)
+            out = self.model(*self.example_inputs)
+        return out
 
     def train(self, niter=1):
         if self.device == 'cpu':
