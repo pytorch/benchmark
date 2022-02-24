@@ -372,11 +372,11 @@ class ModelTask(base_task.TaskBase):
         out = instance.eval()
         model_name = getattr(instance, 'name', None)
         if not isinstance(out, tuple):
-            raise RuntimeError('Model {model_name} eval() output is not a tuple')
+            raise RuntimeError(f'Model {model_name} eval() output is not a tuple')
         for ind, element in enumerate(out):
             if not isinstance(element, torch.Tensor):
-                raise RuntimeError('Model {model_name} eval() output is tuple, but'
-                                   ' its {ind}-th element is not a Tensor.')
+                raise RuntimeError(f'Model {model_name} eval() output is tuple, but'
+                                   f' its {ind}-th element is not a Tensor.')
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod

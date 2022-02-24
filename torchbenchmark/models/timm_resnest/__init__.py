@@ -64,4 +64,4 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self._step_eval()
-        return out
+        return (out, )
