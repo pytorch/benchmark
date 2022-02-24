@@ -47,7 +47,7 @@ class Model(BenchmarkModel):
         return ArgsToKwargsWrapper(self.model), (
                 self.example_inputs['input_ids'], self.example_inputs[k])
 
-    def train(self, niter=3):
+    def _train(self, niter=3):
         if self.jit:
             raise NotImplementedError()
         self.model.train()
@@ -57,7 +57,7 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         self.model.eval()

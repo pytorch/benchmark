@@ -75,7 +75,7 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.agent.actor = new_model
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         episode = episode_steps = 0
@@ -105,7 +105,7 @@ class Model(BenchmarkModel):
                 episode += 1
             self.step += 1
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):

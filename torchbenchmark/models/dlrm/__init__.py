@@ -200,14 +200,14 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT not supported")
 
         for _ in range(niter):
             self.model(*self.example_inputs)
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT not supported")
 

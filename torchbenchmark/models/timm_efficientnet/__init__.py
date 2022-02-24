@@ -56,13 +56,13 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.example_inputs,)
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         self.model.train()
         for _ in range(niter):
             self._step_train()
 
     # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):

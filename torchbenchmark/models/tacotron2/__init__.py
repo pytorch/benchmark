@@ -127,7 +127,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError('JIT not supported')
         return self.model, (self.example_inputs,)
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.device == 'cuda':
             raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         if self.device == 'cpu':
@@ -143,7 +143,7 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         if self.device == 'cuda':
             raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         if self.device == 'cpu':

@@ -161,7 +161,7 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.model.bert = new_model
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         model = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
@@ -174,7 +174,7 @@ class Model(BenchmarkModel):
             mask_loss = model.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
             loss = next_loss + mask_loss
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         trainer = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model

@@ -101,7 +101,7 @@ class Model(BenchmarkModel):
         return self.model, (batch_x["words"], )
 
     # Sliced version of fastNLP.Tester._test()
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self._mode(self.model, is_test=True)
@@ -113,7 +113,7 @@ class Model(BenchmarkModel):
                     pred_dict = self._data_forward(self._predict_func, batch_x)
 
     # Sliced version of fastNLP.Trainer._train()
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self.step = 0

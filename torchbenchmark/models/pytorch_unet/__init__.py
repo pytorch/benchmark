@@ -47,7 +47,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.example_inputs,)
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         optimizer = optim.RMSprop(self.model.parameters(), lr=self.args.lr, weight_decay=1e-8, momentum=0.9)
         grad_scaler = torch.cuda.amp.GradScaler(enabled=self.args.amp)
         criterion = nn.CrossEntropyLoss()
@@ -69,7 +69,7 @@ class Model(BenchmarkModel):
                 grad_scaler.step(optimizer)
                 grad_scaler.update()
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):

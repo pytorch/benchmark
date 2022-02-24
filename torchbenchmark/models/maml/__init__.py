@@ -80,13 +80,13 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         return self.module, self.example_inputs
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
             self.module(*self.example_inputs)
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):

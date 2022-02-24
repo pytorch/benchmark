@@ -57,14 +57,14 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.example_inputs,)
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.device == "cuda":
             raise NotImplementedError("Disable the train test because it causes CUDA OOM on Nvidia T4")
         self.model.train()
         for _ in range(niter):
             self._step_train()
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):

@@ -76,11 +76,19 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
+    def __post_train__(self):
+        pass
+
+    def __post_eval__(self):
+        pass
+
     def train(self):
-        raise NotImplementedError()
+        self._train()
+        self.__post_train__()
 
     def eval(self):
-        raise NotImplementedError()
+        self._eval()
+        self.__post_eval__()
 
     def set_eval(self):
         self._set_mode(False)

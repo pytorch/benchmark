@@ -131,7 +131,7 @@ class Model(BenchmarkModel):
     def _set_mode(self, train):
         pass
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
@@ -299,5 +299,5 @@ class Model(BenchmarkModel):
             # Change weight every 2 epoch to put more stress on discriminator weight and less on pseudo-supervision
             wt = wt/2
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         raise NotImplementedError()

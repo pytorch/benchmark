@@ -226,7 +226,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.exmaple_inputs,)
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         for _ in range(niter):
 
             if False == self.inference_just_descriminator:
@@ -236,7 +236,7 @@ class Model(BenchmarkModel):
             # Since we just updated D, perform another forward pass of all-fake batch through D
             output = self.model(self.exmaple_inputs).view(-1)
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
 
         # Training Loop
 

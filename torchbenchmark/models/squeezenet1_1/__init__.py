@@ -21,7 +21,7 @@ class Model(TorchVisionModel):
     
     # Temporarily disable training because this will cause CUDA OOM in CI
     # TODO: re-enable this test when better hardware is available
-    def train(self, niter=1):
+    def _train(self, niter=1):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):

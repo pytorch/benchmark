@@ -48,7 +48,7 @@ class Model(BenchmarkModel):
         # and the train mode is on by default
         pass
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
@@ -63,7 +63,7 @@ class Model(BenchmarkModel):
             # step rather than 7 epochs, but changing it now would potentially cause discontinuity with existing/historical measurement
             self.training_loop(None)
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         model, example_inputs = self.get_module()
         for i in range(niter):
             model(*example_inputs)

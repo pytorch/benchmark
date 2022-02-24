@@ -59,7 +59,7 @@ class Model(BenchmarkModel):
         for data in self.example_inputs:
             return self.model, (data, )
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
@@ -73,7 +73,7 @@ class Model(BenchmarkModel):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
-    def eval(self, niter=2):
+    def _eval(self, niter=2):
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:

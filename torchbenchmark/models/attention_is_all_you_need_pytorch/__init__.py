@@ -112,11 +112,11 @@ class Model(BenchmarkModel):
         for (src_seq, trg_seq, gold) in self.example_inputs:
             return self.model, (*(src_seq, trg_seq), )
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
             self.model(*(src_seq, trg_seq))
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
             self.optimizer.zero_grad()
             example_inputs = (src_seq, trg_seq)

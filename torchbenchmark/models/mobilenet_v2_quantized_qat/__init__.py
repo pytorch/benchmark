@@ -33,7 +33,7 @@ class Model(BenchmarkModel):
         self.model.train()
         self.model = quantize_fx.prepare_qat_fx(self.model, qconfig_dict)
 
-    def train(self, niter=3):
+    def _train(self, niter=3):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
         for _ in range(niter):
@@ -47,7 +47,7 @@ class Model(BenchmarkModel):
         self.model = quantize_fx.convert_fx(self.model)
         self.model.eval()
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         example_inputs = self.example_inputs[0][0].unsqueeze(0)
         for _i in range(niter):
             self.model(example_inputs)

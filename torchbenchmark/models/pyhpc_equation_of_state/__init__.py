@@ -46,10 +46,10 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         raise NotImplementedError("Training not supported")
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         model, example_inputs = self.get_module()
         with torch.no_grad():
             for i in range(niter):

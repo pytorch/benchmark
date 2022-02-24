@@ -197,7 +197,7 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.agent.actor = new_model
         
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         # Setup
@@ -238,7 +238,7 @@ class Model(BenchmarkModel):
                 soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
 
-    def eval(self, niter=1):
+    def _eval(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         with torch.no_grad():
