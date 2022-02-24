@@ -151,4 +151,4 @@ class Model(BenchmarkModel):
         for i in range(niter):
             for i, (images, _) in enumerate(self.example_inputs):
                 out = self.model(im_q=images[0], im_k=images[1])
-        return (out, )
+        return out

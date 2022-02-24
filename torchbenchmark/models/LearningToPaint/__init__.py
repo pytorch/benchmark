@@ -111,7 +111,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         for _ in range(niter):
             reward, dist = self.evaluate(self.env, self.agent.select_action)
-        return (reward, dist)
+        return (torch.tensor(reward), torch.tensor(dist))
 
     def _set_mode(self, train):
         if train:
