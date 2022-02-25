@@ -68,7 +68,6 @@ def preprocess_dataset(hf_args, config, model, tokenizer, raw_datasets, num_labe
             preprocess_function,
             batched=True,
             remove_columns=raw_datasets["train"].column_names,
-            desc="Running tokenizer on dataset",
         )
     train_dataset = processed_datasets["train"]
     eval_dataset = processed_datasets["validation_matched" if hf_args.task_name == "mnli" else "validation"]
