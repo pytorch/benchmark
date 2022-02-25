@@ -17,13 +17,13 @@ def run(func) -> Dict[str, float]:
     func()
     torch.cuda.synchronize()
     t2 = time.time_ns()
-    result["latency_ms"] = (t2 - t0) / 1_000_000_000.0
+    result["latency_ms"] = (t2 - t0) / 1_000_000.0
     return result
 
 def gen_result(m, run_result):
     r = E2EBenchmarkResult(device=m.device, device_num=m.device_num, test=m.test, examples=m.examples, batch_size=m.batch_size, result=dict())
     r.result["latency"] = run_result["latency_ms"] / 1000.0
-    r.result["qps"] = r.examples / (r.result["latency"] / 1000.0)
+    r.result["qps"] = r.examples / r.result["latency"]
     return r
 
 if __name__ == "__main__":
