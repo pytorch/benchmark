@@ -15,7 +15,7 @@ class E2EBenchmarkResult:
     device: str
     device_num: int
     test: str
-    examples: int
+    num_examples: int
     batch_size: int
     result: Dict[str, Any]
 

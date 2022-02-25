@@ -33,8 +33,6 @@ class Model(E2EBenchmarkModel):
         # TODO: currently only support 1 GPU device
         self.device = "cuda"
         self.device_num = 1
-        # TODO: get number of examples
-        self.examples = 1
         # Parse the extra arguments
         self.tb_args = parse_torchbench_args(extra_args)
         torch.manual_seed(1337)
@@ -53,12 +51,17 @@ class Model(E2EBenchmarkModel):
         in_arg = ["--model_name_or_path", model_name, "--task_name", self.tb_args.task_name,
                   "--max_length", max_seq_length,
                   "--per_device_train_batch_size", str(self.batch_size), 
+                  "--per_device_eval_batch_size", str(self.batch_size),
                   "--learning_rate", learning_rate,
                   "--num_train_epochs", num_train_epochs,
                   "--output_dir", output_dir]
         hf_args = parse_args(in_arg)
         # setup other members
         self.prep(hf_args)
+        if test == "train":
+            self.num_examples = len(self.train_dataloader) * self.batch_size
+        elif test == "eval":
+            self.num_examples = len(self.eval_dataloader) * self.batch_size
     
     def prep(self, hf_args):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
@@ -147,6 +150,7 @@ class Model(E2EBenchmarkModel):
 
     def train(self) -> Optional[dict]:
         completed_steps = 0
+        eval_metric = None
         for _epoch in range(self.hf_args.num_train_epochs):
             self.model.train()
             for step, batch in enumerate(self.train_dataloader):
@@ -162,35 +166,35 @@ class Model(E2EBenchmarkModel):
 
                 if completed_steps >= self.hf_args.max_train_steps:
                     break
-
-            self.model.eval()
-            for step, batch in enumerate(self.eval_dataloader):
-                outputs = self.model(**batch)
-                predictions = outputs.logits.argmax(dim=-1) if not self.is_regression else outputs.logits.squeeze()
-                self.metric.add_batch(
-                    predictions=self.accelerator.gather(predictions),
-                    references=self.accelerator.gather(batch["labels"]),
+            if self.tb_args.validate_in_train:
+                self.model.eval()
+                for step, batch in enumerate(self.eval_dataloader):
+                    outputs = self.model(**batch)
+                    predictions = outputs.logits.argmax(dim=-1) if not self.is_regression else outputs.logits.squeeze()
+                    self.metric.add_batch(
+                        predictions=self.accelerator.gather(predictions),
+                        references=self.accelerator.gather(batch["labels"]),
+                    )
+                eval_metric = self.metric.compute()
+        if self.tb_args.validate_in_train:
+            if self.hf_args.task_name == "mnli":
+                # Final evaluation on mismatched validation set
+                eval_dataset = self.mnli_eval_dataset
+                eval_dataloader = DataLoader(
+                    eval_dataset, collate_fn=self.data_collator, batch_size=self.hf_args.per_device_eval_batch_size
                 )
-            eval_metric = self.metric.compute()
+                eval_dataloader = self.accelerator.prepare(eval_dataloader)
 
-        if self.hf_args.task_name == "mnli":
-            # Final evaluation on mismatched validation set
-            eval_dataset = self.mnli_eval_dataset
-            eval_dataloader = DataLoader(
-                eval_dataset, collate_fn=self.data_collator, batch_size=self.hf_args.per_device_eval_batch_size
-            )
-            eval_dataloader = self.accelerator.prepare(eval_dataloader)
+                self.model.eval()
+                for step, batch in enumerate(eval_dataloader):
+                    outputs = self.model(**batch)
+                    predictions = outputs.logits.argmax(dim=-1)
+                    self.metric.add_batch(
+                        predictions=self.accelerator.gather(predictions),
+                        references=self.accelerator.gather(batch["labels"]),
+                    )
 
-            self.model.eval()
-            for step, batch in enumerate(eval_dataloader):
-                outputs = self.model(**batch)
-                predictions = outputs.logits.argmax(dim=-1)
-                self.metric.add_batch(
-                    predictions=self.accelerator.gather(predictions),
-                    references=self.accelerator.gather(batch["labels"]),
-                )
-
-            eval_metric = self.metric.compute()
+                eval_metric = self.metric.compute()
         return eval_metric
 
     def eval(self) -> Optional[dict]:
