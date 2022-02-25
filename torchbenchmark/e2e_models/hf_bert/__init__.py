@@ -28,9 +28,10 @@ class Model(E2EBenchmarkModel):
     DEFAULT_TRAIN_BSIZE: int = 32
     DEFAULT_EVAL_BSIZE: int = 1
 
-    def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, batch_size=None, extra_args=[]):
+        super().__init__(test=test, batch_size=batch_size, extra_args=extra_args)
         # TODO: currently only support 1 GPU device
+        self.device = "cuda"
         self.device_num = 1
         # TODO: get number of examples
         self.examples = 1

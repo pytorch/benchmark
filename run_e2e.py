@@ -29,7 +29,6 @@ def gen_result(m, run_result):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("model", help="Full name of the end-to-end model.")
-    parser.add_argument("-d", "--device", choices=SUPPORT_DEVICE_LIST, default="cpu", help="Which device to use.")
     parser.add_argument("-t", "--test", choices=["eval", "train"], default="eval", help="Which test to run.")
     parser.add_argument("--bs", type=int, help="Specify batch size.")
     args, extra_args = parser.parse_known_args()
@@ -39,7 +38,7 @@ if __name__ == "__main__":
     if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
-    m = Model(device=args.device, test=args.test, batch_size=args.bs, extra_args=extra_args)
+    m = Model(test=args.test, batch_size=args.bs, extra_args=extra_args)
     test = getattr(m, args.test)
     result = gen_result(m, run(test))
     result_json = json.dumps(asdict(result))
