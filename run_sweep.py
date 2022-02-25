@@ -6,6 +6,8 @@ import argparse
 import json
 import os
 import sys
+import numpy
+import sys
 import torch
 import time
 import pathlib
@@ -19,28 +21,28 @@ WARMUP_ROUNDS = 3
 MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
-def get_cosine_similarity(ra: Tuple[torch.Tensor], rb: Tuple[torch.Tensor]) -> float:
-    return 1.0
-
-def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS) -> Tuple[float, Optional[Tuple[torch.Tensor]]]:
+def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10) -> Tuple[float, Optional[Tuple[torch.Tensor]]]:
     "Run one step of the model, and return the latency in milliseconds."
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
-    if device == "cuda":
-        torch.cuda.synchronize()
-        # Collect time_ns() instead of time() which does not provide better precision than 1
-        # second according to https://docs.python.org/3/library/time.html#time.time.
-        t0 = time.time_ns()
-        result = func()
-        torch.cuda.synchronize()  # Wait for the events to be recorded!
-        t1 = time.time_ns()
-    else:
-        t0 = time.time_ns()
-        result = func()
-        t1 = time.time_ns()
-    wall_latency = (t1 - t0) / NANOSECONDS_PER_MILLISECONDS
-    return (wall_latency, result)
+    result_summary = []
+    for _i in range(num_iter):
+        if device == "cuda":
+            torch.cuda.synchronize()
+            # Collect time_ns() instead of time() which does not provide better precision than 1
+            # second according to https://docs.python.org/3/library/time.html#time.time.
+            t0 = time.time_ns()
+            func()
+            torch.cuda.synchronize()  # Wait for the events to be recorded!
+            t1 = time.time_ns()
+        else:
+            t0 = time.time_ns()
+            func()
+            t1 = time.time_ns()
+        result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
+    wall_latency = numpy.median(result_summary)
+    return wall_latency
 
 @dataclasses.dataclass
 class ModelTestResult:
@@ -84,7 +86,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
     print(f"Running model {model_path.name} ... ", end='', flush=True)
     status: str = "OK"
     bs_name = "batch_size"
-    eager_eval_result_name = "eager_eval_result"
+    correctness_name = "correctness"
     error_message: Optional[str] = None
     try:
         task = ModelTask(os.path.basename(model_path))
@@ -97,11 +99,11 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         if batch_size and (not result.batch_size == batch_size):
             raise ValueError(f"User specify batch size {batch_size}, but model {result.name} runs with batch size {result.batch_size}. Please report a bug.")
         func = getattr(task, test)
-        (result.results["latency_ms"], test_result) = run_one_step(func, device)
+        result.results["latency_ms"] = run_one_step(func, device)
         # if the model provides eager eval result, save it for cosine similarity
-        eager_eval_result = task.get_model_attribute(eager_eval_result_name)
-        if eager_eval_result:
-            result.results["cos_sim"] = get_cosine_similarity(eager_eval_result, test_result)
+        correctness = task.get_model_attribute(correctness_name)
+        if correctness:
+            result.results[correctness_name] = correctness
     except NotImplementedError as e:
         status = "NotImplemented"
         error_message = str(e)
