@@ -3,7 +3,7 @@ import math
 import os
 from pathlib import Path
 from torch.utils.data import DataLoader
-from ...util.model import BenchmarkModel
+from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import NLP
 from datasets import load_metric
 from accelerate import Accelerator
@@ -17,17 +17,14 @@ from transformers import (
     get_scheduler,
 )
 from typing import Optional
-
 from torchbenchmark.util.framework.transformers.text_classification.dataset import prep_dataset, preprocess_dataset, prep_labels
 from torchbenchmark.util.framework.transformers.text_classification.args import parse_args, parse_torchbench_args
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 
-class Model(BenchmarkModel):
+class Model(E2EBenchmarkModel):
     task = NLP.LANGUAGE_MODELING
-    # Declare this is an E2E Model
-    E2E_MODEL: bool = True
     DEFAULT_TRAIN_BSIZE: int = 32
     DEFAULT_EVAL_BSIZE: int = 1
 
