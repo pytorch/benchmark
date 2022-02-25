@@ -3,10 +3,10 @@ from transformers import PretrainedConfig
 
 from .args import task_to_keys
 
-def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_datasets, num_labels, label_list, is_regression):
+def preprocess_dataset(hf_args, config, model, tokenizer, raw_datasets, num_labels, label_list, is_regression, accelerator):
     # Preprocessing the raw_datasets
-    if data_args.task_name is not None:
-        sentence1_key, sentence2_key = task_to_keys[data_args.task_name]
+    if hf_args.task_name is not None:
+        sentence1_key, sentence2_key = task_to_keys[hf_args.task_name]
     else:
         # Again, we try to have some nice defaults but don't hesitate to tweak to your use case.
         non_label_column_names = [name for name in raw_datasets["train"].column_names if name != "label"]
@@ -22,7 +22,7 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
     label_to_id = None
     if (
         model.config.label2id != PretrainedConfig(num_labels=num_labels).label2id
-        and data_args.task_name is not None
+        and hf_args.task_name is not None
         and not is_regression
     ):
         # Some have all caps in their config, some don't.
@@ -36,33 +36,24 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
             #     "\nIgnoring the model labels as a result.",
             # )
             pass
-    elif data_args.task_name is None and not is_regression:
+    elif hf_args.task_name is None and not is_regression:
         label_to_id = {v: i for i, v in enumerate(label_list)}
 
     if label_to_id is not None:
         model.config.label2id = label_to_id
         model.config.id2label = {id: label for label, id in config.label2id.items()}
-    elif data_args.task_name is not None and not is_regression:
+    elif hf_args.task_name is not None and not is_regression:
         model.config.label2id = {l: i for i, l in enumerate(label_list)}
         model.config.id2label = {id: label for label, id in config.label2id.items()}
 
-    padding = "max_length" if data_args.pad_to_max_length else False
-
-    # if data_args.max_seq_length > tokenizer.model_max_length:
-        # logger.warning(
-        #    f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
-        #     f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
-        # )
-    #     pass
-    # max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
-    max_seq_length = data_args.max_seq_length
+    padding = "max_length" if hf_args.pad_to_max_length else False
 
     def preprocess_function(examples):
         # Tokenize the texts
         texts = (
             (examples[sentence1_key],) if sentence2_key is None else (examples[sentence1_key], examples[sentence2_key])
         )
-        result = tokenizer(*texts, padding=padding, max_length=max_seq_length, truncation=True)
+        result = tokenizer(*texts, padding=padding, max_length=hf_args.max_length, truncation=True)
         if "label" in examples:
             if label_to_id is not None:
                 # Map labels to IDs (not necessary for GLUE tasks)
@@ -72,42 +63,23 @@ def preprocess_dataset(data_args, training_args, config, model, tokenizer, raw_d
                 result["labels"] = examples["label"]
         return result
 
-    with training_args.main_process_first(desc="dataset map pre-processing"):
-        raw_datasets = raw_datasets.map(
+    with accelerator.main_process_first():
+        processed_datasets = raw_datasets.map(
             preprocess_function,
             batched=True,
             remove_columns=raw_datasets["train"].column_names,
-            load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset",
         )
-    train_dataset, eval_dataset, predict_dataset = None, None, None
-    if training_args.do_train:
-        if "train" not in raw_datasets:
-            raise ValueError("--do_train requires a train dataset")
-        train_dataset = raw_datasets["train"]
-        if data_args.max_train_samples is not None:
-            train_dataset = train_dataset.select(range(data_args.max_train_samples))
+    train_dataset = processed_datasets["train"]
+    eval_dataset = processed_datasets["validation_matched" if hf_args.task_name == "mnli" else "validation"]
 
-    if training_args.do_eval:
-        if "validation" not in raw_datasets and "validation_matched" not in raw_datasets:
-            raise ValueError("--do_eval requires a validation dataset")
-        eval_dataset = raw_datasets["validation_matched" if data_args.task_name == "mnli" else "validation"]
-        if data_args.max_eval_samples is not None:
-            eval_dataset = eval_dataset.select(range(data_args.max_eval_samples))
-
-    if training_args.do_predict or data_args.task_name is not None or data_args.test_file is not None:
-        if "test" not in raw_datasets and "test_matched" not in raw_datasets:
-            raise ValueError("--do_predict requires a test dataset")
-        predict_dataset = raw_datasets["test_matched" if data_args.task_name == "mnli" else "test"]
-        if data_args.max_predict_samples is not None:
-            predict_dataset = predict_dataset.select(range(data_args.max_predict_samples))
-    if data_args.task_name == "mnli":
+    if hf_args.task_name == "mnli":
         mnli_eval_dataset = raw_datasets["validation_mismatched"]
     else:
         mnli_eval_dataset = None
-    return train_dataset, eval_dataset, predict_dataset, mnli_eval_dataset
+    return train_dataset, eval_dataset, mnli_eval_dataset
 
-def prep_dataset(data_args, training_args):
+def prep_dataset(hf_args):
     # Get the datasets: you can either provide your own CSV/JSON training and evaluation files (see below)
     # or specify a GLUE benchmark task (the dataset will be downloaded automatically from the datasets Hub).
 
@@ -120,44 +92,44 @@ def prep_dataset(data_args, training_args):
 
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    if data_args.task_name is not None:
+    if hf_args.task_name is not None:
         # Downloading and loading a dataset from the hub.
-        raw_datasets = load_dataset("glue", data_args.task_name)
+        raw_datasets = load_dataset("glue", hf_args.task_name)
     else:
         # Loading a dataset from your local files.
         # CSV/JSON training and evaluation files are needed.
-        data_files = {"train": data_args.train_file, "validation": data_args.validation_file}
+        data_files = {"train": hf_args.train_file, "validation": hf_args.validation_file}
 
         # Get the test dataset: you can provide your own CSV/JSON test file (see below)
         # when you use `do_predict` without specifying a GLUE benchmark task.
-        if training_args.do_predict:
-            if data_args.test_file is not None:
-                train_extension = data_args.train_file.split(".")[-1]
-                test_extension = data_args.test_file.split(".")[-1]
+        if hf_args.do_predict:
+            if hf_args.test_file is not None:
+                train_extension = hf_args.train_file.split(".")[-1]
+                test_extension = hf_args.test_file.split(".")[-1]
                 assert (
                     test_extension == train_extension
                 ), "`test_file` should have the same extension (csv or json) as `train_file`."
-                data_files["test"] = data_args.test_file
+                data_files["test"] = hf_args.test_file
             else:
                 raise ValueError("Need either a GLUE task or a test file for `do_predict`.")
 
         # for key in data_files.keys():
         #     logger.info(f"load a local file for {key}: {data_files[key]}")
 
-        if data_args.train_file.endswith(".csv"):
+        if hf_args.train_file.endswith(".csv"):
             # Loading a dataset from local csv files
-            raw_datasets = load_dataset("csv", data_files=data_files, cache_dir=model_args.cache_dir)
+            raw_datasets = load_dataset("csv", data_files=data_files, cache_dir=hf_args.cache_dir)
         else:
             # Loading a dataset from local json files
-            raw_datasets = load_dataset("json", data_files=data_files, cache_dir=model_args.cache_dir)
+            raw_datasets = load_dataset("json", data_files=data_files, cache_dir=hf_args.cache_dir)
     # See more about loading any type of standard or custom dataset at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
     return raw_datasets
 
-def prep_labels(data_args, raw_datasets):
+def prep_labels(hf_args, raw_datasets):
     # Labels
-    if data_args.task_name is not None:
-        is_regression = data_args.task_name == "stsb"
+    if hf_args.task_name is not None:
+        is_regression = hf_args.task_name == "stsb"
         if not is_regression:
             label_list = raw_datasets["train"].features["label"].names
             num_labels = len(label_list)
