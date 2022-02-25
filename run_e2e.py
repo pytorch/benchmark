@@ -1,6 +1,7 @@
 import time
 import torch
 import argparse
+import json
 from torchbenchmark.e2e import E2EBenchmarkResult, load_e2e_model_by_name
 from typing import Dict
 
@@ -19,12 +20,7 @@ def run(func) -> Dict[str, float]:
     return result
 
 def gen_result(m, run_result):
-    r = E2EBenchmarkResult()
-    r.device = m.device
-    r.device_num = m.device_num
-    r.test = m.test
-    r.examples = m.examples
-    r.batch_size = m.bs
+    r = E2EBenchmarkResult(device=m.device, device_num=m.device_num, test=m.test, examples=m.examples, batch_size=m.bs, result=dict())
     r.result["latency"] = run_result["latency_ms"] / 1000.0
     r.result["qps"] = r.examples / (r.result["latency"] / 1000.0)
 
@@ -44,3 +40,5 @@ if __name__ == "__main__":
     m = Model(device=args.device, test=args.test, batch_size=args.bs, extra_args=extra_args)
     test = getattr(m, args.test)
     result = gen_result(m, run(test))
+    result_json = json.dumps(result)
+    print(result_json)
