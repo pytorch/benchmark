@@ -1,5 +1,8 @@
+"""
+PyTorch benchmark env check utils.
+This file may be loaded without torch packages installed, e.g., in OnDemand CI.
+"""
 import importlib
-import torch
 from typing import List, Dict, Tuple
 
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
@@ -18,7 +21,8 @@ def has_native_amp() -> bool:
         pass
     return False
 
-def correctness_check(eager_output: Tuple[torch.Tensor], output: Tuple[torch.Tensor]) -> float:
+def correctness_check(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor']) -> float:
+    import torch
     # sanity checks
     assert len(eager_output) == len(output), "Correctness check requires two inputs have the same length"
     result = 1.0
