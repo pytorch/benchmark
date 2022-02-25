@@ -21,7 +21,7 @@ def parse_torchbench_args(extra_args):
     parser = argparse.ArgumentParser()
     parser.add_argument("--task_name", default="cola", choices=task_to_keys.keys(), help="Name of task to run")
     # use fp16 mixed precision by default
-    parser.add_argument("--fp16", action="store_false", help="Enable mixed precision")
+    parser.add_argument("--fp16", type=bool, default=True, help="Enable mixed precision")
     tb_args = parser.parse_args(extra_args)
     return tb_args
 
