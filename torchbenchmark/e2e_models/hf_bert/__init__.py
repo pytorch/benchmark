@@ -65,7 +65,7 @@ class Model(BenchmarkModel):
     
     def prep(self, hf_args):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
-        accelerator = Accelerator(mixed_precision=self.tb_args.mixed_precision)
+        accelerator = Accelerator(fp16=self.tb_args.fp16)
         accelerator.wait_for_everyone()
         raw_datasets = prep_dataset(hf_args)
         num_labels, label_list, is_regression = prep_labels(hf_args, raw_datasets)
