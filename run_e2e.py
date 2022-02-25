@@ -20,7 +20,7 @@ def run(func) -> Dict[str, float]:
     return result
 
 def gen_result(m, run_result):
-    r = E2EBenchmarkResult(device=m.device, device_num=m.device_num, test=m.test, examples=m.examples, batch_size=m.bs, result=dict())
+    r = E2EBenchmarkResult(device=m.device, device_num=m.device_num, test=m.test, examples=m.examples, batch_size=m.batch_size, result=dict())
     r.result["latency"] = run_result["latency_ms"] / 1000.0
     r.result["qps"] = r.examples / (r.result["latency"] / 1000.0)
 
