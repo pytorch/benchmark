@@ -29,7 +29,6 @@ class Model(E2EBenchmarkModel):
     DEFAULT_EVAL_BSIZE: int = 1
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        # NOTE: E2E model doesn't use `jit` arg, and jit is managed through `extra_args`
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         # TODO: currently only support 1 GPU device
         self.device_num = 1
@@ -145,15 +144,7 @@ class Model(E2EBenchmarkModel):
         self.lr_scheduler = lr_scheduler
         self.accelerator = accelerator
 
-    def get_module(self):
-        raise NotImplementedError("get_module is not supported by E2E model")
-
-    def train(self, niter=1) -> Optional[dict]:
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
-        if not self.device == "cuda":
-            raise NotImplementedError("Only CUDA is supported by this model")
-        assert self.hf_args.do_train, "Must train with `do_train` arg being set"
+    def train(self) -> Optional[dict]:
         completed_steps = 0
         for _epoch in range(self.hf_args.num_train_epochs):
             self.model.train()
@@ -201,7 +192,7 @@ class Model(E2EBenchmarkModel):
             eval_metric = self.metric.compute()
         return eval_metric
 
-    def eval(self, niter=1) -> Optional[dict]:
+    def eval(self) -> Optional[dict]:
         self.model.eval()
         for _step, batch in enumerate(self.eval_dataloader):
             outputs = self.model(**batch)
