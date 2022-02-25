@@ -32,7 +32,7 @@ def parse_torchbench_args(extra_args):
     # do not validate in train by default
     parser.add_argument("--validate_in_train", action="store_true", help="Validate result in train")
     # use fp16 mixed precision by default
-    parser.add_argument("--fp16", type=str2bool, const=True, default=True, help="Enable mixed precision")
+    parser.add_argument("--fp16", type=str2bool, default=True, help="Enable mixed precision")
     tb_args = parser.parse_args(extra_args)
     return tb_args
 
