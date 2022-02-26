@@ -9,6 +9,7 @@ import inspect
 import os
 from typing import Optional, List, Tuple
 from torchbenchmark.util.extra_args import parse_args, apply_args
+from torchbenchmark.util.env_check import set_random_seed
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -61,6 +62,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
         self.extra_args = extra_args
+        set_random_seed()
 
     # Run the post processing for model acceleration
     def __post__init__(self):

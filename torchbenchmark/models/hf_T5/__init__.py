@@ -5,7 +5,6 @@ from torchbenchmark.tasks import NLP
 from transformers import *
 from typing import Tuple
 
-torch.manual_seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 

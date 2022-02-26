@@ -23,8 +23,6 @@ from detectron2.utils.collect_env import collect_env_info
 from detectron2.utils.logger import setup_logger
 from detectron2.utils.events import EventStorage
 
-torch.manual_seed(1337)
-random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 

@@ -2,6 +2,16 @@ import importlib
 import torch
 from typing import List, Dict, Tuple
 
+MAIN_RANDOM_SEED = 1337
+
+def set_random_seed():
+    import torch
+    import random
+    import numpy
+    torch.manual_seed(1337)
+    random.seed(1337)
+    numpy.random.seed(1337)
+
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
     for module in packages:

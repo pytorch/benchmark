@@ -13,7 +13,6 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        torch.manual_seed(42)
         config = AutoConfig.from_pretrained("gpt2")
         self.model = AutoModelForCausalLM.from_config(config).to(device)
         if test == "train":

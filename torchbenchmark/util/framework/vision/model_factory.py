@@ -6,6 +6,7 @@ import torch.optim as optim
 import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
 
+
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
     # To recognize this is a torchvision model
@@ -16,10 +17,6 @@ class TorchVisionModel(BenchmarkModel):
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-
-        torch.manual_seed(1337)
-        random.seed(1337)
-        np.random.seed(1337)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = False
 

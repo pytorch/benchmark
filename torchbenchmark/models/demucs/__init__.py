@@ -15,9 +15,6 @@ from torch.nn.modules.container import Sequential
 from torchbenchmark.models.demucs.demucs.model import Demucs
 from typing import Optional, Tuple
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
