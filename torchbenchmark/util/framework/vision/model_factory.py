@@ -6,7 +6,6 @@ import torch.optim as optim
 import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
 
-
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
     # To recognize this is a torchvision model

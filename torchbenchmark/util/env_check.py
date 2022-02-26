@@ -8,9 +8,9 @@ def set_random_seed():
     import torch
     import random
     import numpy
-    torch.manual_seed(1337)
-    random.seed(1337)
-    numpy.random.seed(1337)
+    torch.manual_seed(MAIN_RANDOM_SEED)
+    random.seed(MAIN_RANDOM_SEED)
+    numpy.random.seed(MAIN_RANDOM_SEED)
 
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}

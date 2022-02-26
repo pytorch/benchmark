@@ -61,7 +61,6 @@ class TimmModel(BenchmarkModel):
         for _ in range(niter):
             self._step_train()
 
-    # TODO: use pretrained model weights, assuming the pretrained model is in .data/ dir
     def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         self.model.eval()
         with torch.no_grad():
