@@ -65,7 +65,7 @@ class Model(E2EBenchmarkModel):
     
     def prep(self, hf_args):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
-        accelerator = Accelerator(fp16=self.tb_args.fp16)
+        accelerator = Accelerator(fp16=(self.tb_args.fp16 == "amp"))
         accelerator.wait_for_everyone()
         raw_datasets = prep_dataset(hf_args)
         num_labels, label_list, is_regression = prep_labels(hf_args, raw_datasets)

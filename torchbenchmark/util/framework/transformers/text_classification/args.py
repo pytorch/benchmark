@@ -18,21 +18,12 @@ task_to_keys = {
 }
 
 def parse_torchbench_args(extra_args):
-    def str2bool(v):
-        if isinstance(v, bool):
-            return v
-        if v.lower() in ('yes', 'true', 't', 'y', '1'):
-            return True
-        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-            return False
-        else:
-            raise argparse.ArgumentTypeError('Boolean value expected.')
     parser = argparse.ArgumentParser()
     parser.add_argument("--task_name", default="cola", choices=task_to_keys.keys(), help="Name of task to run")
     # do not validate in train by default
     parser.add_argument("--validate_in_train", action="store_true", help="Validate result in train")
     # use fp16 mixed precision by default
-    parser.add_argument("--fp16", type=str2bool, default=True, help="Enable mixed precision")
+    parser.add_argument("--fp16", default="amp", choices=["amp", "no"], help="Enable mixed precision")
     tb_args = parser.parse_args(extra_args)
     return tb_args
 
