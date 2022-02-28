@@ -21,10 +21,6 @@ from torchvision.datasets.coco import CocoDetection
 from pycocotools import coco
 coco.print = lambda *args: None
 
-MASTER_SEED = 1337
-torch.manual_seed(MASTER_SEED)
-random.seed(MASTER_SEED)
-np.random.seed(MASTER_SEED)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 

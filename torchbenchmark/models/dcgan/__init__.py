@@ -25,12 +25,6 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class DCGAN:
  def __init__(self, bench):
 
-  # Set random seed for reproducibility
-  self.manualSeed = 999
-
-  random.seed(self.manualSeed)
-  torch.manual_seed(self.manualSeed)
-
   # Spatial size of training images. All images will be resized to this
   #   size using a transformer.
   self.image_size = 64

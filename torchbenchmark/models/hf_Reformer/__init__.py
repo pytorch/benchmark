@@ -13,7 +13,6 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        torch.manual_seed(42)
         config = ReformerConfig()
         if not config.num_buckets:
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"

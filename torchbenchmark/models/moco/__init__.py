@@ -19,11 +19,8 @@ from .main_moco import adjust_learning_rate
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-torch.manual_seed(1058467)
-random.seed(1058467)
 cudnn.deterministic = False
 cudnn.benchmark = True
-
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS

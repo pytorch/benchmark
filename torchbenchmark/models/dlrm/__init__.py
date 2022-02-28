@@ -35,9 +35,6 @@ from argparse import Namespace
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
 
-np.random.seed(123)
-torch.manual_seed(123)
-
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION

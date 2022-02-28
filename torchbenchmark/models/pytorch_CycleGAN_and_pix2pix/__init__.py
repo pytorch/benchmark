@@ -1,15 +1,7 @@
 #!/usr/bin/env python
-
-# Make all randomness deterministic
-import random
-import argparse
 import torch
 import os
-import numpy as np
 
-random.seed(1337)
-torch.manual_seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 from ...util.model import BenchmarkModel

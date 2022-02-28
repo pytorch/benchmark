@@ -44,7 +44,6 @@ class Model(BenchmarkModel):
             ################################
             'epochs': 2,  # Reduced in TorchBench to shorten number of train iterations.
             'iters_per_checkpoint': 1000,
-            'seed': 1234,
             'dynamic_loss_scaling': True,
             'fp16_run': False,
             'distributed_run': False,

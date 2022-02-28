@@ -8,9 +8,6 @@ import torch.nn.functional as F
 from torch import optim
 from typing import Tuple
 
-random.seed(1337)
-torch.manual_seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 

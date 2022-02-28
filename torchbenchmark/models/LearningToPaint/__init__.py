@@ -14,11 +14,8 @@ from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from argparse import Namespace
 
-torch.manual_seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
-
 
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL

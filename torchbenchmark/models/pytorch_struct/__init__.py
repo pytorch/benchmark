@@ -18,9 +18,6 @@ from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
