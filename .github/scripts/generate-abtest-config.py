@@ -115,6 +115,10 @@ def generate_bisection_tests(base, tip, flaky_tests):
     return (signals, signal_details)
 
 def generate_bisection_config(pytorch_src, base_file, tip_file, flaky_tests):
+    """
+    Generate the config fot the bisection job.
+    If the start and end commits are the same, this should be a noise and will return empty dict.
+    """
     result = {}
     with open(base_file, "r") as bf:
         base = json.load(bf)
@@ -128,7 +132,15 @@ def generate_bisection_config(pytorch_src, base_file, tip_file, flaky_tests):
     result["direction"] = "both"
     result["timeout"] = PERF_TEST_TIMEOUT_THRESHOLD
     (result["tests"], result["details"]) = generate_bisection_tests(base, tip, flaky_tests)
+    # If start and end are the same commit, return empty dict
+    # This means we don't bisect regressions caused by domain packages
+    # such as torchvision and torchtext
+    if result["start"] == result["end"]:
+        return {}
     return result
+
+def is_regression(result):
+    return result and "tests" in result and len(result["tests"])
 
 def generate_gh_issue(ghi_fpath, result):
     ghi_config = result
@@ -197,9 +209,10 @@ if __name__ == "__main__":
             if base_version.commit != tip_version.commit:
                 result = generate_bisection_config(args.pytorch_dir, json_file, tip_json_file, flaky_tests)
                 break
-    with open(args.out, "w") as fo:
-        yaml.dump(result, fo)
+    if is_regression(result):
+        with open(args.out, "w") as fo:
+            yaml.dump(result, fo)
     # If there is at least one regressing test, setup the Bisection GitHub Action workflow
-    if args.github_issue and "tests" in result and len(result["tests"]):
+    if args.github_issue and is_regression(result):
         setup_gh_env(result["end_version"])
         generate_gh_issue(args.github_issue, result)
