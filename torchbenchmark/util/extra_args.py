@@ -4,8 +4,9 @@ from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.fuser import enable_fuser
 from torchbenchmark.util.backends.jit import enable_jit
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
+from torchbenchmark.util.backends.fp16 import enable_fp16_amp
 from torchbenchmark.util.env_check import correctness_check
-from torchbenchmark.util.framework.vision.args import enable_fp16
+from torchbenchmark.util.framework.vision.args import enable_fp16_half
 
 def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool=True):
     group = parser.add_mutually_exclusive_group(required=False)
@@ -16,8 +17,17 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool
 def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
 
-def allow_fp16(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda'
+def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> bool:
+    if fp16 == "half":
+        return is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda'
+    if fp16 == "amp":
+        return model.test == 'eval' and model.device == 'cuda'
+    return True
+
+def get_fp16_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
+    if model.test == 'eval' and model.device == 'cuda':
+        return "amp"
+    return "no"
 
 # Dispatch arguments based on model type
 def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> argparse.Namespace:
@@ -25,13 +35,9 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", help="enable fuser")
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
-    # TODO: Enable fp16 for all model inference tests
-    # fp16 is only True for torchvision models running CUDA inference tests
-    # otherwise, it is False
-    fp16_default_value = False
-    if allow_fp16(model):
-        fp16_default_value = True
-    add_bool_arg(parser, "fp16", fp16_default_value)
+    # fp16 amp is enabled for all cuda inference tests
+    # torchvision models support fp16 half mode
+    parser.add_argument("--fp16", choices=["no", "half", "amp"], default=get_fp16_default(model), help="enable fp16 modes from: no fp16, half, or amp")
     args = parser.parse_args(extra_args)
     args.device = model.device
     args.jit = model.jit
@@ -39,8 +45,9 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     args.batch_size = model.batch_size
     if args.device == "cpu":
         args.fuser = None
-    if not allow_fp16(model) and args.fp16:
-        raise NotImplementedError("fp16 is only implemented for torchvision models inference tests on CUDA.")
+    if not check_fp16(model, args.fp16):
+        raise NotImplementedError(f"fp16 value: {args.fp16}, fp16 (amp mode) is only supported by CUDA inference tests, "
+                                  f"fp16 (half mode) is only supported by torchvision CUDA inference tests.")
     if not (model.device == "cuda" and model.test == "eval"):
         if args.fx2trt or args.torch_trt:
             raise NotImplementedError("TensorRT only works for CUDA inference tests.")
@@ -51,9 +58,14 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
 def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
     if args.fuser:
         enable_fuser(args.fuser)
-    if args.fp16:
-        assert allow_fp16(model), "Eval fp16 is only available on CUDA for torchvison models."
-        model.model, model.example_inputs = enable_fp16(model.model, model.example_inputs)
+    if args.fp16 and not args.fp16 == "no":
+        if args.fp16 == "half":
+            model.model, model.example_inputs = enable_fp16_half(model.model, model.example_inputs)
+        elif args.fp16 == "amp":
+            import torch
+            model.add_context(torch.amp.autocast(dtype=torch.float16))
+        else:
+            assert False, f"Get invalid fp16 value: {args.fp16}. Please report a bug."
     if args.jit:
         # model can handle jit code themselves through 'jit_callback' function
         if hasattr(model, 'jit_callback'):

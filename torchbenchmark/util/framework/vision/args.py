@@ -25,5 +25,5 @@ def enable_cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', example_
         optimizer.step()
     model.g = g
 
-def enable_fp16(model: torch.nn.Module, example_input: Tuple[torch.tensor]) -> Tuple[torch.nn.Module, Tuple[torch.tensor]]:
+def enable_fp16_half(model: torch.nn.Module, example_input: Tuple[torch.tensor]) -> Tuple[torch.nn.Module, Tuple[torch.tensor]]:
     return model.half(), (example_input[0].half(),)

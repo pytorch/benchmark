@@ -62,6 +62,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
         self.extra_args = extra_args
+        # context to run in the test function
+        self.run_contexts = []
         set_random_seed()
 
     # Run the post processing for model acceleration
@@ -70,6 +72,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         self.extra_args = parse_args(self, self.extra_args)
         apply_args(self, self.extra_args)
+
+    def add_context(self, context):
+        self.run_contexts.append(context)
 
     # Default implementation for replacing the model
     def set_module(self, new_model):
@@ -92,6 +97,21 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     def eval_in_nograd(self):
         return True
+
+    @contextmanager
+    def autocontext(self):
+        """
+        Will apply a list of contexts inside the block inside this context manager.
+        """
+        if self.run_contexts:
+            for ctx in self.run_contexts:
+                ctx.__enter__()
+            yield
+            # exit in the reverse order
+            for ctx in self.run_contexts[::-1]:
+                ctx.__exit__()
+        else:
+            yield
 
     def _set_mode(self, train):
         (model, _) = self.get_module()
