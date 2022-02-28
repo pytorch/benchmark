@@ -67,7 +67,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
@@ -75,7 +75,7 @@ class Model(BenchmarkModel):
             out = self.model(*self.example_inputs)
         return out
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 

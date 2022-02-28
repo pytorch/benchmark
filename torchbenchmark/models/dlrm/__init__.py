@@ -198,14 +198,14 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError("JIT not supported")
         for _ in range(niter):
             out = self.model(*self.example_inputs)
         return (out, )
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT not supported")
 

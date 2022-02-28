@@ -103,7 +103,7 @@ class Model(BenchmarkModel):
             images = (i[0], i[1])
         return self.model, images
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         """ Recommended
         Runs training on model for `niter` times. When `niter` is left
         to its default value, it should run for at most two minutes, and be representative
@@ -130,7 +130,7 @@ class Model(BenchmarkModel):
                 loss.backward()
                 self.optimizer.step()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
         """ Recommended
         Run evaluation on model for `niter` inputs. One iteration should be sufficient
         to warm up the model for the purpose of profiling.

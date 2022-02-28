@@ -87,7 +87,7 @@ class Model(BenchmarkModel):
     for words, _ in self.example_inputs:
       return self.model, (words, )
 
-  def train(self, niter=1):
+  def _train(self, niter=1):
     if self.jit:
         raise NotImplementedError("JIT is not supported by this model")
     for _, (words, lengths) in zip(range(niter), self.example_inputs):
@@ -101,7 +101,7 @@ class Model(BenchmarkModel):
       torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3.0)
       self.opt.step()
 
-  def eval(self, niter=1):
+  def _eval(self, niter=1):
     raise NotImplementedError("Eval is not supported by this model")
 
 def cuda_sync(func, sync=False):

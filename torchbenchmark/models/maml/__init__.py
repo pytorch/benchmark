@@ -78,14 +78,14 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         return self.module, self.example_inputs
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
             out = self.module(*self.example_inputs)
         return (out, )
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):

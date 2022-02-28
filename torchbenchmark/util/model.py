@@ -1,12 +1,8 @@
-import json
 import os
-import pandas as pd
-from  collections.abc import Iterable
 import torch
 from contextlib import contextmanager
 import warnings
 import inspect
-import os
 from typing import Optional, List, Tuple
 from torchbenchmark.util.extra_args import parse_args, apply_args
 from torchbenchmark.util.env_check import set_random_seed
@@ -84,10 +80,19 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
     def train(self):
-        raise NotImplementedError("Base type doesn't have train implementation.")
+        for ctx in self.run_contexts:
+            ctx.__enter__()
+        self._train()
+        for ctx in self.run_contexts[::-1]:
+            ctx.__exit__()
 
     def eval(self) -> Tuple[torch.Tensor]:
-        raise NotImplementedError("Base type doesn't have eval implementation.")
+        for ctx in self.run_contexts:
+            ctx.__enter__()
+        out = self._eval()
+        for ctx in self.run_contexts[::-1]:
+            ctx.__exit__()
+        return out
 
     def set_eval(self):
         self._set_mode(False)
@@ -97,21 +102,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     def eval_in_nograd(self):
         return True
-
-    @contextmanager
-    def autocontext(self):
-        """
-        Will apply a list of contexts inside the block inside this context manager.
-        """
-        if self.run_contexts:
-            for ctx in self.run_contexts:
-                ctx.__enter__()
-            yield
-            # exit in the reverse order
-            for ctx in self.run_contexts[::-1]:
-                ctx.__exit__()
-        else:
-            yield
 
     def _set_mode(self, train):
         (model, _) = self.get_module()

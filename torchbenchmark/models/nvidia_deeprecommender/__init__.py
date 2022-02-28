@@ -64,15 +64,14 @@ class Model(BenchmarkModel):
   def set_train(self):
     self.eval_mode = False
 
-  def train(self, niter=1):
+  def _train(self, niter=1):
     self.check_implemented()
 
     for i in range(niter):
       self.model.train(niter)
 
-  def eval(self, niter=1) -> Tuple[torch.Tensor]:
+  def _eval(self, niter=1) -> Tuple[torch.Tensor]:
     self.check_implemented()
-    print("here... ")
     for i in range(niter):
       out = self.model.eval(niter)
     return (out, )

@@ -59,7 +59,7 @@ class Model(BenchmarkModel):
         elif self.test == "eval":
             self.evalcfg.model = new_model
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
@@ -67,7 +67,7 @@ class Model(BenchmarkModel):
         for i in range(niter):
             self.traincfg.train(epoch = i)
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:

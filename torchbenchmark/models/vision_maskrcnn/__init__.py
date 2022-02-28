@@ -77,7 +77,7 @@ class Model(BenchmarkModel):
         for (example_inputs, _example_targets) in self.data_loader:
             return self.model, (example_inputs, )
 
-    def train(self, niter=1):
+    def _train(self, niter=1):
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         self.model.train()
@@ -90,7 +90,7 @@ class Model(BenchmarkModel):
             losses.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         self.model.eval()
