@@ -14,7 +14,6 @@ from urllib import request
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
-from .util.env_check import get_pkg_versions
 
 TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
 proxy_suggestion = "Unable to verify https connectivity, " \
@@ -35,6 +34,7 @@ def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> b
 
 
 def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
+    from .util.env_check import get_pkg_versions
     run_args = [
         [sys.executable, install_file],
     ]
@@ -45,6 +45,7 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
 
     output_buffer = None
     _, stdout_fpath = tempfile.mkstemp()
+
     try:
         output_buffer = io.FileIO(stdout_fpath, mode="w")
         if os.path.exists(os.path.join(model_path, install_file)):
