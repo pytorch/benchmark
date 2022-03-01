@@ -1,9 +1,9 @@
 import os
 import torch
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
-from typing import Optional, List, Tuple
+from typing import ContextManager, Optional, List, Tuple
 from torchbenchmark.util.extra_args import parse_args, apply_args
 from torchbenchmark.util.env_check import set_random_seed
 
@@ -25,6 +25,16 @@ def no_grad(val):
     finally:
         torch.set_grad_enabled(old_state)
 
+@contextmanager
+def nested(*contexts):
+    """
+    Reimplementation of nested in python 3.
+    """
+    with ExitStack() as stack:
+        for ctx in contexts:
+            stack.enter_context(ctx)
+        yield contexts
+
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
     DEFAULT_EVAL_BSIZE: Optional[int] = None
@@ -34,6 +44,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     jit: bool
     batch_size: int
     extra_args: List[str]
+    run_contexts: List[ContextManager]
 
     """
     A base class for adding models to torch benchmark.
@@ -58,7 +69,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
         self.extra_args = extra_args
-        # context to run in the test function
+        # contexts to run in the test function
         self.run_contexts = []
         set_random_seed()
 
@@ -70,6 +81,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         apply_args(self, self.extra_args)
 
     def add_context(self, context):
+        assert isinstance(context, ContextManager), f"Expected adding a ContextManager, get {type(context)}. Please report a bug."
         self.run_contexts.append(context)
 
     # Default implementation for replacing the model
@@ -80,18 +92,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
     def train(self):
-        for ctx in self.run_contexts:
-            ctx.__enter__()
-        self._train()
-        for ctx in self.run_contexts[::-1]:
-            ctx.__exit__()
+        with nested(self.run_contexts):
+            self._train()
 
     def eval(self) -> Tuple[torch.Tensor]:
-        for ctx in self.run_contexts:
-            ctx.__enter__()
-        out = self._eval()
-        for ctx in self.run_contexts[::-1]:
-            ctx.__exit__()
+        with nested(self.run_contexts):
+            out = self._eval()
         return out
 
     def set_eval(self):
