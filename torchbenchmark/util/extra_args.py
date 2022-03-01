@@ -24,9 +24,11 @@ def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> 
         return model.test == 'eval' and model.device == 'cuda'
     return True
 
+# TODO: enable fp16 amp by default for all cuda inference tests
+# torchvision models uses fp16 half mode by default
 def get_fp16_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
-    if model.test == 'eval' and model.device == 'cuda':
-        return "amp"
+    if is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda':
+        return "half"
     return "no"
 
 # Dispatch arguments based on model type
@@ -35,8 +37,6 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", help="enable fuser")
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
-    # fp16 amp is enabled for all cuda inference tests
-    # torchvision models support fp16 half mode
     parser.add_argument("--fp16", choices=["no", "half", "amp"], default=get_fp16_default(model), help="enable fp16 modes from: no fp16, half, or amp")
     args = parser.parse_args(extra_args)
     args.device = model.device
