@@ -92,11 +92,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
     def train(self):
-        with nested(self.run_contexts):
+        with nested(*self.run_contexts):
             self._train()
 
     def eval(self) -> Tuple[torch.Tensor]:
-        with nested(self.run_contexts):
+        with nested(*self.run_contexts):
             out = self._eval()
         return out
 
