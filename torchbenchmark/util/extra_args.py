@@ -63,7 +63,7 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
             model.model, model.example_inputs = enable_fp16_half(model.model, model.example_inputs)
         elif args.fp16 == "amp":
             import torch
-            model.add_context(torch.amp.autocast(dtype=torch.float16))
+            model.add_context(torch.cuda.amp.autocast(dtype=torch.float16))
         else:
             assert False, f"Get invalid fp16 value: {args.fp16}. Please report a bug."
     if args.jit:
