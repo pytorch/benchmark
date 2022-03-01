@@ -102,7 +102,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         result.results["latency_ms"] = run_one_step(func, device)
         # if the model provides eager eval result, save it for cosine similarity
         correctness = task.get_model_attribute(correctness_name)
-        if correctness:
+        if not correctness == None:
             result.results[correctness_name] = correctness
     except NotImplementedError as e:
         status = "NotImplemented"
