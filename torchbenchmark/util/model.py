@@ -28,7 +28,7 @@ def no_grad(val):
 @contextmanager
 def nested(*contexts):
     """
-    Reimplementation of nested in python 3.
+    Chain and apply a list of contexts
     """
     with ExitStack() as stack:
         for ctx in contexts:

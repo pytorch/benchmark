@@ -59,6 +59,9 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
     if args.fuser:
         enable_fuser(args.fuser)
     if args.fp16 and not args.fp16 == "no":
+        # get the output tensor of eval eager mode
+        if args.test == "eval":
+            model.eager_output = model.eval()
         if args.fp16 == "half":
             model.model, model.example_inputs = enable_fp16_half(model.model, model.example_inputs)
         elif args.fp16 == "amp":
@@ -66,6 +69,9 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
             model.add_context(torch.cuda.amp.autocast(dtype=torch.float16))
         else:
             assert False, f"Get invalid fp16 value: {args.fp16}. Please report a bug."
+        if args.test == "eval":
+            model.output = model.eval()
+            model.correctness = correctness_check(model.eager_output, model.output)
     if args.jit:
         # model can handle jit code themselves through 'jit_callback' function
         if hasattr(model, 'jit_callback'):
