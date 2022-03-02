@@ -54,6 +54,7 @@ def lower_to_trt(
         verbose_log=verbose_log,
         timing_cache_prefix=timing_cache_prefix,
         save_timing_cache=save_timing_cache,
+        cuda_graph_batch_size=cuda_graph_batch_size,
     )
     lowerer = Lowerer.create(lower_setting=lower_setting)
     return lowerer(module, input)
