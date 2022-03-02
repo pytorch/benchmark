@@ -4,7 +4,6 @@ from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.fuser import enable_fuser
 from torchbenchmark.util.backends.jit import enable_jit
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
-from torchbenchmark.util.backends.fp16 import enable_fp16_amp
 from torchbenchmark.util.env_check import correctness_check
 from torchbenchmark.util.framework.vision.args import enable_fp16_half
 
