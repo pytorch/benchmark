@@ -58,7 +58,8 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
     if args.fuser:
         enable_fuser(args.fuser)
     if args.fp16 and not args.fp16 == "no":
-        model.eager_output = model.eval()
+        if args.test == "eval":
+            model.eager_output = model.eval()
         if args.fp16 == "half":
             model.model, model.example_inputs = enable_fp16_half(model.model, model.example_inputs)
         elif args.fp16 == "amp":
@@ -69,10 +70,11 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         if args.test == "eval":
             model.output = model.eval()
             model.correctness = correctness_check(model.eager_output, model.output)
-        del model.eager_output
-        del model.output
+            del model.eager_output
+            del model.output
     if args.jit:
-        model.eager_output = model.eval()
+        if args.test == "eval":
+            model.eager_output = model.eval()
         # model can handle jit code themselves through 'jit_callback' function
         if hasattr(model, 'jit_callback'):
             model.jit_callback()
@@ -80,10 +82,11 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
             # if model doesn't have customized jit code, use the default jit script code
             module, exmaple_inputs = model.get_module()
             model.set_module(enable_jit(model=module, example_inputs=exmaple_inputs, test=args.test))
-        model.output = model.eval()
-        model.correctness = correctness_check(model.eager_output, model.output)
-        del model.eager_output
-        del model.output
+        if args.test == "eval":
+            model.output = model.eval()
+            model.correctness = correctness_check(model.eager_output, model.output)
+            del model.eager_output
+            del model.output
     if args.fx2trt:
         model.eager_output = model.eval()
         if args.jit:
