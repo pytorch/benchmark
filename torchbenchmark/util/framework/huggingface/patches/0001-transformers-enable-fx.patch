@@ -1,0 +1,13 @@
+diff --git a/transformers/file_utils.py b/transformers/file_utils.py
+index 8a19d298e..0d3ebf4fa 100644
+--- a/src/transformers/file_utils.py
++++ b/src/transformers/file_utils.py
+@@ -412,7 +412,7 @@ def is_torch_tf32_available():
+ _torch_fx_available = _torch_onnx_dict_inputs_support_available = False
+ if _torch_available:
+     torch_version = version.parse(importlib_metadata.version("torch"))
+-    _torch_fx_available = (torch_version.major, torch_version.minor) == (
++    _torch_fx_available = (torch_version.major, torch_version.minor) >= (
+         TORCH_FX_REQUIRED_VERSION.major,
+         TORCH_FX_REQUIRED_VERSION.minor,
+     )
