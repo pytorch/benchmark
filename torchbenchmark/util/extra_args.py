@@ -59,7 +59,7 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         enable_fuser(args.fuser)
     if args.fp16 and not args.fp16 == "no":
         if args.test == "eval":
-            model.eager_output = model.eval()
+            model.eager_output = model.invoke()
         if args.fp16 == "half":
             model.model, model.example_inputs = enable_fp16_half(model.model, model.example_inputs)
         elif args.fp16 == "amp":
@@ -68,13 +68,13 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         else:
             assert False, f"Get invalid fp16 value: {args.fp16}. Please report a bug."
         if args.test == "eval":
-            model.output = model.eval()
+            model.output = model.invoke()
             model.correctness = correctness_check(model.eager_output, model.output)
             del model.eager_output
             del model.output
     if args.jit:
         if args.test == "eval":
-            model.eager_output = model.eval()
+            model.eager_output = model.invoke()
         # model can handle jit code themselves through 'jit_callback' function
         if hasattr(model, 'jit_callback'):
             model.jit_callback()
@@ -83,26 +83,26 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
             module, exmaple_inputs = model.get_module()
             model.set_module(enable_jit(model=module, example_inputs=exmaple_inputs, test=args.test))
         if args.test == "eval":
-            model.output = model.eval()
+            model.output = model.invoke()
             model.correctness = correctness_check(model.eager_output, model.output)
             del model.eager_output
             del model.output
     if args.fx2trt:
-        model.eager_output = model.eval()
+        model.eager_output = model.invoke()
         if args.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")
         module, exmaple_inputs = model.get_module()
         model.set_module(enable_fx2trt(args.batch_size, fp16=args.fp16, model=module, example_inputs=exmaple_inputs))
-        model.output = model.eval()
+        model.output = model.invoke()
         model.correctness = correctness_check(model.eager_output, model.output)
         del model.eager_output
         del model.output
     if args.torch_trt:
-        model.eager_output = model.eval()
+        model.eager_output = model.invoke()
         module, exmaple_inputs = model.get_module()
         precision = 'fp16' if args.fp16 else 'fp32'
         model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
-        model.output = model.eval()
+        model.output = model.invoke()
         model.correctness = correctness_check(model.eager_output, model.output)
         del model.eager_output
         del model.output

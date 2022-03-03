@@ -364,7 +364,6 @@ class ModelTask(base_task.TaskBase):
     def check_eval_output() -> None:
         instance = globals()["model"]
         import torch
-        from torchbenchmark.util.env_check import TEST_FUNCTION_ENTRY
         assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."
         out = instance.invoke()
         model_name = getattr(instance, 'name', None)
