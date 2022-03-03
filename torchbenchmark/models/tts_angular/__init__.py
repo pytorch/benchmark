@@ -29,13 +29,13 @@ class Model(BenchmarkModel):
     def set_train(self):
         self.model.model.train()
 
-    def _train(self, niter=1):
+    def train(self, niter=1):
         if self.jit:
             raise NotImplementedError()
         # the training process is not patched to use scripted models
         self.model.train(niter)
 
-    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):

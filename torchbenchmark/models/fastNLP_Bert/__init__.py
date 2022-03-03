@@ -99,7 +99,7 @@ class Model(BenchmarkModel):
         return self.model, (batch_x["words"], )
 
     # Sliced version of fastNLP.Tester._test()
-    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self._mode(self.model, is_test=True)
@@ -113,7 +113,7 @@ class Model(BenchmarkModel):
         return (pred_dict['pred_start'], pred_dict['pred_end'] )
 
     # Sliced version of fastNLP.Trainer._train()
-    def _train(self, niter=1):
+    def train(self, niter=1):
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self.step = 0

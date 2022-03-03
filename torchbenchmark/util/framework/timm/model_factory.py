@@ -56,12 +56,12 @@ class TimmModel(BenchmarkModel):
     def get_module(self):
         return self.model, (self.example_inputs,)
 
-    def _train(self, niter=1):
+    def train(self, niter=1):
         self.model.train()
         for _ in range(niter):
             self._step_train()
 
-    def _eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):

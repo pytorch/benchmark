@@ -72,7 +72,7 @@ def _load_test(path, device):
             try:
                 task.make_model_instance(test="train", device=device, jit=False)
                 task.set_train()
-                task.train()
+                task.invoke()
                 task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
             except NotImplementedError:
@@ -86,7 +86,7 @@ def _load_test(path, device):
                 task.make_model_instance(test="eval", device=device, jit=False)
 
                 task.set_eval()
-                task.eval()
+                task.invoke()
                 task.check_details_eval(device=device, md=metadata)
                 task.check_eval_output()
                 task.del_model_instance()

@@ -67,7 +67,7 @@ class Model(BenchmarkModel):
 
         return self.model, self.example_inputs
 
-    def _train(self, niter=3):
+    def train(self, niter=3):
         if self.jit:
             raise NotImplementedError()
 
@@ -99,7 +99,7 @@ class Model(BenchmarkModel):
 
             meta_opt.step()
 
-    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
 

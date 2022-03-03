@@ -75,11 +75,11 @@ class Model(BenchmarkModel):
     def set_eval(self):
         self.model.eval()
 
-    def _train(self, niter=1):
+    def train(self, niter=1):
         for _ in range(niter):
             self.solver.train()
 
-    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model = self.model
         example_inputs = self.example_inputs
         for _ in range(niter):

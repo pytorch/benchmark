@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
 
-    test = getattr(m, args.test)
+    test = getattr(m, "invoke")
     model_flops = None
     if args.flops:
         assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."

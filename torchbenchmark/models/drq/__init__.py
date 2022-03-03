@@ -119,7 +119,7 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.agent.actor = new_model
 
-    def _train(self, niter=2):
+    def train(self, niter=2):
         if self.jit:
             raise NotImplementedError()
         episode, episode_reward, episode_step, done = 0, 0, 1, True
@@ -150,7 +150,7 @@ class Model(BenchmarkModel):
             episode_step += 1
             self.step += 1
 
-    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         average_episode_reward = 0

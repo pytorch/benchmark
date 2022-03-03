@@ -159,7 +159,7 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.model.bert = new_model
 
-    def _eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         model = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
@@ -173,7 +173,7 @@ class Model(BenchmarkModel):
             loss = next_loss + mask_loss
         return (next_sent_output, mask_lm_output)
 
-    def _train(self, niter=1):
+    def train(self, niter=1):
         trainer = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model

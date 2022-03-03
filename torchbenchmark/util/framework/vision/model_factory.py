@@ -45,7 +45,7 @@ class TorchVisionModel(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def _train(self, niter=3):
+    def train(self, niter=3):
         real_input = [ torch.rand_like(self.example_inputs[0]) ]
         real_output = [ torch.rand_like(self.example_outputs) ]
         for _ in range(niter):
@@ -60,7 +60,7 @@ class TorchVisionModel(BenchmarkModel):
                     self.loss_fn(pred, target).backward()
                     self.optimizer.step()
 
-    def _eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         if self.extra_args.cudagraph:
             return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.model

@@ -79,7 +79,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         return self.model, self.example_inputs
 
-    def _train(self, niter=1):
+    def train(self, niter=1):
         # the training process is not patched to use scripted models
         if self.jit:
             raise NotImplementedError()
@@ -87,7 +87,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
         return self.training_loop(niter)
 
-    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
         for i in range(niter):
             out = model(*example_inputs, augment=False)

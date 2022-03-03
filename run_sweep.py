@@ -98,7 +98,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         result.batch_size = task.get_model_attribute(bs_name)
         if batch_size and (not result.batch_size == batch_size):
             raise ValueError(f"User specify batch size {batch_size}, but model {result.name} runs with batch size {result.batch_size}. Please report a bug.")
-        func = getattr(task, test)
+        func = getattr(task, "invoke")
         result.results["latency_ms"] = run_one_step(func, device)
         # if the model provides eager eval result, save it for cosine similarity
         correctness = task.get_model_attribute(correctness_name)

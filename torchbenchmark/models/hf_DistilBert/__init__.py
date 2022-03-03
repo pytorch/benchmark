@@ -31,7 +31,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         return self.model, (self.example_inputs["input_ids"], )
 
-    def _train(self, niter=3):
+    def train(self, niter=3):
         if self.jit:
             raise NotImplementedError()
 
@@ -46,7 +46,7 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
 
-    def _eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         self.model.eval()
