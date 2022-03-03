@@ -18,6 +18,7 @@ class ArgsToKwargsWrapper(torch.nn.Module):
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    HF_MODEL = True
     # Original train batch size per device: 8
     # Source: https://github.com/huggingface/transformers/blob/master/examples/flax/language-modeling/run_t5_mlm_flax.py#L83
     DEFAULT_TRAIN_BSIZE = 8

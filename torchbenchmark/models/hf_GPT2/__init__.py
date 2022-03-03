@@ -7,6 +7,7 @@ from typing import Tuple
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    HF_MODEL = True
     DEFAULT_TRAIN_BSIZE = 4
     DEFAULT_EVAL_BSIZE = 1
 

@@ -1,5 +1,5 @@
 import argparse
-from typing import List
+from typing import List, Optional
 from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.fuser import enable_fuser
 from torchbenchmark.util.backends.jit import enable_jit
@@ -31,6 +31,12 @@ def get_fp16_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda':
         return "half"
     return "no"
+
+def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
+
+def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[int]:
+    return model.max_length if is_hf_model(model) else None
 
 # Dispatch arguments based on model type
 def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> argparse.Namespace:
@@ -98,8 +104,11 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         if args.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")
         module, exmaple_inputs = model.get_module()
-        model.set_module(enable_fx2trt(args.batch_size, fp16=args.fp16, model=module, example_inputs=exmaple_inputs))
-        model.output = model.invoke()
+        # get the output tensor of eval
+        model.eager_output = model.eval()
+        model.set_module(enable_fx2trt(args.batch_size, fp16=args.fp16, model=module, example_inputs=exmaple_inputs,
+                                       is_hf_model=is_hf_model(model), hf_max_length=get_hf_maxlength(model)))
+        model.output = model.eval()
         model.correctness = correctness_check(model.eager_output, model.output)
         del model.eager_output
         del model.output
