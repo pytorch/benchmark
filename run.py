@@ -176,11 +176,11 @@ if __name__ == "__main__":
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
 
-    test = getattr(m, "invoke")
+    test = m.invoke
     model_flops = None
     if args.flops:
         assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
-        model_flops = m.get_flops(test=args.test)
+        model_flops = m.get_flops(test=test)
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:
