@@ -16,16 +16,17 @@ class Model(BenchmarkModel):
 
         config = BertConfig()
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
+        self.max_length = 512
 
         if test == "train":
             self.model.train()
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
-            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
         elif test == "eval":
             self.model.eval()
-            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': eval_context, }
 
     def get_module(self):
