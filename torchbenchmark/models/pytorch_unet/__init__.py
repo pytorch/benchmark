@@ -45,6 +45,9 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.example_inputs,)
 
+    def enable_amp(self):
+        self.args.amp = True
+
     def train(self, niter=1):
         optimizer = optim.RMSprop(self.model.parameters(), lr=self.args.lr, weight_decay=1e-8, momentum=0.9)
         grad_scaler = torch.cuda.amp.GradScaler(enabled=self.args.amp)

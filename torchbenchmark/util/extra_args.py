@@ -20,7 +20,9 @@ def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> 
     if fp16 == "half":
         return is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda'
     if fp16 == "amp":
-        return model.test == 'eval' and model.device == 'cuda'
+        is_cuda_eval_test = (model.test == 'eval' and model.device == 'cuda')
+        support_amp = hasattr(model, "enable_amp")
+        return is_cuda_eval_test or support_amp
     return True
 
 # TODO: enable fp16 amp by default for all cuda inference tests
@@ -63,8 +65,12 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         if args.fp16 == "half":
             model.model, model.example_inputs = enable_fp16_half(model.model, model.example_inputs)
         elif args.fp16 == "amp":
-            import torch
-            model.add_context(torch.cuda.amp.autocast(dtype=torch.float16))
+            # check if the model has native amp support
+            if hasattr(model, "enable_amp"):
+                model.enable_amp()
+            else:
+                import torch
+                model.add_context(torch.cuda.amp.autocast(dtype=torch.float16))
         else:
             assert False, f"Get invalid fp16 value: {args.fp16}. Please report a bug."
         if args.test == "eval":
