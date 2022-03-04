@@ -8,6 +8,7 @@ pytest-benchmark
 requests
 tabulate
 timm == 0.4.12
+transformers == 4.17.0
 MonkeyType
 psutil
 pyyaml
