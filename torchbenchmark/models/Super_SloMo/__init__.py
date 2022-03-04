@@ -34,7 +34,7 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 10
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if self.jit and self.test == "eval" and self.devcie == "cuda":
+        if jit and test == "eval" and device == "cuda":
             raise NotImplementedError("Disabled eval jit test due to insufficient GPU memory size")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
