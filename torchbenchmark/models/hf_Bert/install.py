@@ -1,7 +1,7 @@
 
 import subprocess
 import sys
-from torchbenchmark.util.framework.huggingface.patch import patch_transformers
+from torchbenchmark.util.framework.huggingface.patch_hf import patch_transformers
 
 def pip_install_requirements():
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
