@@ -1,7 +1,7 @@
-diff --git a/transformers/file_utils.py b/transformers/file_utils.py
+diff --git a/file_utils.py b/file_utils.py
 index 8a19d298e..0d3ebf4fa 100644
---- a/src/transformers/file_utils.py
-+++ b/src/transformers/file_utils.py
+--- a/file_utils.py
++++ b/file_utils.py
 @@ -412,7 +412,7 @@ def is_torch_tf32_available():
  _torch_fx_available = _torch_onnx_dict_inputs_support_available = False
  if _torch_available:
