@@ -8,12 +8,11 @@
 # been removed.
 
 import torch
-import torch.optim as optim
-import torchvision.models as models
 
 from torchbenchmark.models.attention_is_all_you_need_pytorch.train import train
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
+from typing import Tuple
 
 import gc
 from .nvtrain import DeepRecommenderTrainBenchmark
@@ -26,6 +25,8 @@ class Model(BenchmarkModel):
   DEFAULT_EVAL_BSIZE = 256
 
   def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+    if jit:
+      raise NotImplementedError("Nvidia DeepRecommender model does not support JIT.")
     super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
     self.not_implemented_reason = "Implemented"
     self.eval_mode = True if self.test == "eval" else False
@@ -45,10 +46,17 @@ class Model(BenchmarkModel):
       elif test == "eval":
         self.model = DeepRecommenderInferenceBenchmark(device = self.device, jit = jit, batch_size=self.batch_size)
 
+  def jit_callback(self):
+    assert self.jit, "Calling JIT callback without specifying the JIT option."
+    self.model.rencoder = torch.jit.trace(self.model.rencoder, (self.model.toyinputs, ))
+
   def get_module(self):
     if self.eval_mode:
        return self.model.rencoder, (self.model.toyinputs,)
     return self.model.rencoder, (self.model.toyinputs,)
+
+  def set_module(self, new_model):
+    self.model.rencoder = new_model
 
   def set_eval(self):
     self.eval_mode = True
@@ -62,11 +70,12 @@ class Model(BenchmarkModel):
     for i in range(niter):
       self.model.train(niter)
 
-  def eval(self, niter=1):
+  def eval(self, niter=1) -> Tuple[torch.Tensor]:
     self.check_implemented()
-
+    print("here... ")
     for i in range(niter):
-      self.model.eval(niter)
+      out = self.model.eval(niter)
+    return (out, )
 
   def check_implemented(self):
     if self.not_implemented_reason != "Implemented":

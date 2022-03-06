@@ -7,8 +7,9 @@ from contextlib import contextmanager
 import warnings
 import inspect
 import os
-from typing import Optional, List
-from torchbenchmark.util.env_check import post_processing
+from typing import Optional, List, Tuple
+from torchbenchmark.util.extra_args import parse_args, apply_args
+from torchbenchmark.util.env_check import set_random_seed
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -59,16 +60,27 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE) and self.DEFAULT_EVAL_BSIZE:
                 raise NotImplementedError("Model doesn't support customizing batch size.")
         self.extra_args = extra_args
+        set_random_seed()
 
     # Run the post processing for model acceleration
     def __post__init__(self):
-        post_processing(self)
+        # sanity checks of the options
+        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
+        self.extra_args = parse_args(self, self.extra_args)
+        apply_args(self, self.extra_args)
+
+    # Default implementation for replacing the model
+    def set_module(self, new_model):
+        if hasattr(self, 'model') and isinstance(self.model, torch.nn.Module):
+            self.model = new_model
+        else:
+            raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
     def train(self):
-        raise NotImplementedError()
+        raise NotImplementedError("Base type doesn't have train implementation.")
 
-    def eval(self):
-        raise NotImplementedError()
+    def eval(self) -> Tuple[torch.Tensor]:
+        raise NotImplementedError("Base type doesn't have eval implementation.")
 
     def set_eval(self):
         self._set_mode(False)

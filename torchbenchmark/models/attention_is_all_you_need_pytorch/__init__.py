@@ -24,9 +24,6 @@ from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
@@ -108,23 +105,15 @@ class Model(BenchmarkModel):
             self.model.eval()
             self.example_inputs = self._preprocess(test_data)
 
-        src_seq, trg_seq, gold = self.example_inputs[0]
-        example_inputs = (src_seq, trg_seq)
-        if self.jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs = [example_inputs, ])
-            else:
-                self.model = torch.jit.script(self.model, example_inputs = [example_inputs, ])
-            if test == "eval":
-                self.model = torch.jit.optimize_for_inference(self.model)
-
     def get_module(self):
         for (src_seq, trg_seq, gold) in self.example_inputs:
             return self.model, (*(src_seq, trg_seq), )
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> torch.Tensor:
+        result = None
         for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
-            self.model(*(src_seq, trg_seq))
+            result = self.model(*(src_seq, trg_seq))
+        return (result, )
 
     def train(self, niter=1):
         for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):

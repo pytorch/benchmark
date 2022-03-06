@@ -14,7 +14,6 @@ from urllib import request
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
-from .util.env_check import get_pkg_versions
 
 TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
 proxy_suggestion = "Unable to verify https connectivity, " \
@@ -35,6 +34,7 @@ def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> b
 
 
 def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
+    from .util.env_check import get_pkg_versions
     run_args = [
         [sys.executable, install_file],
     ]
@@ -45,6 +45,7 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
 
     output_buffer = None
     _, stdout_fpath = tempfile.mkstemp()
+
     try:
         output_buffer = io.FileIO(stdout_fpath, mode="w")
         if os.path.exists(os.path.join(model_path, install_file)):
@@ -201,9 +202,6 @@ class ModelTask(base_task.TaskBase):
             )
         )
 
-        if self._details._diagnostic_msg:
-            print(self._details._diagnostic_msg)
-
     def __del__(self) -> None:
         self._lock.release()
 
@@ -283,8 +281,10 @@ class ModelTask(base_task.TaskBase):
     @staticmethod
     def get_model_attribute(attr: str) -> Any:
         model = globals()["model"]
-        attr_value = getattr(model, attr)
-        return attr_value
+        if hasattr(model, attr):
+            return getattr(model, attr)
+        else:
+            return None
 
     def gc_collect(self) -> None:
         self.worker.run("""
@@ -364,6 +364,20 @@ class ModelTask(base_task.TaskBase):
             module(**example_inputs)
         else:
             module(*example_inputs)
+
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def check_eval_output() -> None:
+        instance = globals()["model"]
+        import torch
+        out = instance.eval()
+        model_name = getattr(instance, 'name', None)
+        if not isinstance(out, tuple):
+            raise RuntimeError(f'Model {model_name} eval() output is not a tuple')
+        for ind, element in enumerate(out):
+            if not isinstance(element, torch.Tensor):
+                raise RuntimeError(f'Model {model_name} eval() output is tuple, but'
+                                   f' its {ind}-th element is not a Tensor.')
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod

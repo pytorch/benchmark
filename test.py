@@ -88,6 +88,7 @@ def _load_test(path, device):
                 task.set_eval()
                 task.eval()
                 task.check_details_eval(device=device, md=metadata)
+                task.check_eval_output()
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest(f'Method eval on {device} is not implemented, skipping...')

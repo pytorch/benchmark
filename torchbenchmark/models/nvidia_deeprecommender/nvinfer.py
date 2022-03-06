@@ -197,8 +197,6 @@ class DeepRecommenderInferenceBenchmark:
 
     self.rencoder.eval()
 
-    if self.args.jit:
-      self.rencoder = torch.jit.trace(self.rencoder, (self.toyinputs, ))
   
     if self.args.use_cuda: self.rencoder = self.rencoder.cuda()
 
@@ -212,7 +210,7 @@ class DeepRecommenderInferenceBenchmark:
     for iteration in range(niter):
 
       if self.toytest:
-        self.rencoder(self.toyinputs)
+        out = self.rencoder(self.toyinputs)
         continue
 
       for i, ((out, src), majorInd) in enumerate(self.eval_data_layer.iterate_one_epoch_eval(for_inf=True)):
@@ -230,6 +228,7 @@ class DeepRecommenderInferenceBenchmark:
                 outf.write("{}\t{}\t{}\t{}\n".format(major_key, self.inv_itemIdMap[ind], self.outputs[ind], targets_np[ind]))
               if i % 10000 == 0:
                 print("Done: {}".format(i))
+    return out
 
   def TimedInferenceRun(self) :
   

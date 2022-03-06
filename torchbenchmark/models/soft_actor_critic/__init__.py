@@ -7,6 +7,7 @@ from itertools import chain
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
+from typing import Tuple
 
 from .config import SACConfig
 from .envs import load_gym
@@ -121,6 +122,8 @@ class Model(BenchmarkModel):
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if jit:
+            raise NotImplementedError("soft actor critic model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.args = SACConfig()
@@ -191,6 +194,9 @@ class Model(BenchmarkModel):
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = batch
         state_batch = state_batch.to(self.device)
         return model, (state_batch, )
+
+    def set_module(self, new_model):
+        self.agent.actor = new_model
         
     def train(self, niter=1):
         if self.jit:
@@ -233,7 +239,7 @@ class Model(BenchmarkModel):
                 soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         with torch.no_grad():
@@ -251,4 +257,4 @@ class Model(BenchmarkModel):
                     episode_return += reward * (discount ** step_num)
                 episode_return_history.append(episode_return)
             retval = torch.tensor(episode_return_history)
-
+        return (torch.tensor(action), )

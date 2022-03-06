@@ -256,11 +256,8 @@ class TTSModel:
                                      self.global_step, self.c, niter)
 
     def eval(self):
-        start = time.time()
         result = self.model(SYNTHETIC_DATA[0])
-        end = time.time()
-        # print('eval: ', end - start)
-        return end - start
+        return result
 
     def __call__(self, *things):
         return self

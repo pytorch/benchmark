@@ -12,17 +12,15 @@ import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.models as models
+from typing import Tuple
 
 from .moco.builder import MoCo
 from .main_moco import adjust_learning_rate
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-torch.manual_seed(1058467)
-random.seed(1058467)
 cudnn.deterministic = False
 cudnn.benchmark = True
-
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
@@ -34,6 +32,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 32
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if jit:
+            raise NotImplementedError("MOCO model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         self.opt = Namespace(**{
             'arch': 'resnet50',
@@ -101,7 +101,7 @@ class Model(BenchmarkModel):
         images = []
         for (i, _) in self.example_inputs:
             images = (i[0], i[1])
-        return (self.model, images)
+        return self.model, images
 
     def train(self, niter=1):
         """ Recommended
@@ -130,7 +130,7 @@ class Model(BenchmarkModel):
                 loss.backward()
                 self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         """ Recommended
         Run evaluation on model for `niter` inputs. One iteration should be sufficient
         to warm up the model for the purpose of profiling.
@@ -147,4 +147,5 @@ class Model(BenchmarkModel):
 
         for i in range(niter):
             for i, (images, _) in enumerate(self.example_inputs):
-                self.model(im_q=images[0], im_k=images[1])
+                out = self.model(im_q=images[0], im_k=images[1])
+        return out

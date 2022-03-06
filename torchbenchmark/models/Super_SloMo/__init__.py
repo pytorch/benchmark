@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
 import random
+from typing import Tuple
 import numpy as np
 
 from argparse import Namespace
@@ -12,9 +13,6 @@ from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
@@ -66,21 +64,16 @@ class Model(BenchmarkModel):
         data = _prefetch(data, self.device)
         self.example_inputs = frameIndex.to(self.device), *data
 
-        if jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-            else:
-                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
-
     def get_module(self):
         return self.model, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.device == 'cpu':
             raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
 
         for _ in range(niter):
-            self.model(*self.example_inputs)
+            out = self.model(*self.example_inputs)
+        return out
 
     def train(self, niter=1):
         if self.device == 'cpu':

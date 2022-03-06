@@ -5,6 +5,7 @@ from argparse import Namespace
 from .text import symbols
 from pathlib import Path
 from ...util.model import BenchmarkModel
+from typing import Tuple
 from torchbenchmark.tasks import SPEECH
 
 
@@ -43,7 +44,6 @@ class Model(BenchmarkModel):
             ################################
             'epochs': 2,  # Reduced in TorchBench to shorten number of train iterations.
             'iters_per_checkpoint': 1000,
-            'seed': 1234,
             'dynamic_loss_scaling': True,
             'fp16_run': False,
             'distributed_run': False,
@@ -143,7 +143,7 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.device == 'cuda':
             raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
         if self.device == 'cpu':
@@ -152,4 +152,5 @@ class Model(BenchmarkModel):
             raise NotImplementedError('JIT not supported')
         self.model.eval()
         for _ in range(niter):
-            self.model(self.example_inputs)
+            out = self.model(self.example_inputs)
+        return out

@@ -6,12 +6,10 @@ import numpy as np
 from .solver import Solver
 from .data_loader import get_loader
 from .main import parse_config, makedirs
+from typing import Tuple
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-random.seed(1337)
-torch.manual_seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
@@ -56,11 +54,6 @@ class Model(BenchmarkModel):
                              should_script=config.should_script)
         self.model = self.solver.G
 
-        if self.jit:
-            self.model = torch.jit.script(self.model)
-            if test == "eval":
-                self.model = torch.jit.optimize_for_inference(self.model)
-
         self.example_inputs = self.generate_example_inputs()
 
     def get_data_loader(self, config):
@@ -86,8 +79,9 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             self.solver.train()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model = self.model
         example_inputs = self.example_inputs
         for _ in range(niter):
-            model(*example_inputs)
+            out = model(*example_inputs)
+        return (out, )

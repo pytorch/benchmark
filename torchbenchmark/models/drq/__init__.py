@@ -6,6 +6,7 @@ import torch
 import os
 import sys
 import torch.nn as nn
+from typing import Tuple
 import torch.nn.functional as F
 from gym import spaces
 
@@ -89,6 +90,8 @@ class Model(BenchmarkModel):
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if jit:
+            raise NotImplementedError("DrQ model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.cfg = DRQConfig()
@@ -112,6 +115,9 @@ class Model(BenchmarkModel):
         obs = torch.FloatTensor(obs).to(self.device)
         obs = obs.unsqueeze(0)
         return self.agent.actor, (obs, )
+
+    def set_module(self, new_model):
+        self.agent.actor = new_model
 
     def train(self, niter=2):
         if self.jit:
@@ -144,11 +150,11 @@ class Model(BenchmarkModel):
             episode_step += 1
             self.step += 1
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         average_episode_reward = 0
-        for episode in range(niter):
+        for _episode in range(niter):
             obs = self.env.reset()
             episode_reward = 0
             episode_step = 0
@@ -159,3 +165,4 @@ class Model(BenchmarkModel):
             episode_step += 1
             average_episode_reward += episode_reward
         average_episode_reward /= float(niter)
+        return (torch.Tensor(action), )

@@ -7,6 +7,7 @@ import functools
 # import shutil
 import time
 import json
+from typing import Tuple
 import sys
 
 # data generation
@@ -34,9 +35,6 @@ from argparse import Namespace
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
 
-np.random.seed(123)
-torch.manual_seed(123)
-
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
@@ -44,6 +42,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1000
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if jit:
+            raise NotImplementedError("DLRM model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         # Train architecture: use the configuration in the paper.
@@ -198,12 +198,12 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError("JIT not supported")
-
         for _ in range(niter):
-            self.model(*self.example_inputs)
+            out = self.model(*self.example_inputs)
+        return (out, )
 
     def train(self, niter=1):
         if self.jit:

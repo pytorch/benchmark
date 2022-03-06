@@ -1,9 +1,7 @@
 import torch
-from fx2trt_oss.fx import LowerSetting
-from fx2trt_oss.fx.lower import Lowerer
+from typing import Tuple
 
 def enable_fx2trt(max_batch_size: int, fp16: bool, model: torch.nn.Module, example_inputs: Tuple[torch.tensor]) -> torch.nn.Module:
-    from torchbenchmark.util.fx2trt import lower_to_trt
     return lower_to_trt(module=model, input=example_inputs, \
                         max_batch_size=max_batch_size, fp16_mode=fp16)
 
@@ -45,6 +43,8 @@ def lower_to_trt(
     Returns:
     A torch.nn.Module lowered by TensorRT.
     """
+    from fx2trt_oss.fx import LowerSetting
+    from fx2trt_oss.fx.lower import Lowerer
     lower_setting = LowerSetting(
         max_batch_size=max_batch_size,
         max_workspace_size=max_workspace_size,
@@ -54,6 +54,7 @@ def lower_to_trt(
         verbose_log=verbose_log,
         timing_cache_prefix=timing_cache_prefix,
         save_timing_cache=save_timing_cache,
+        cuda_graph_batch_size=cuda_graph_batch_size,
     )
     lowerer = Lowerer.create(lower_setting=lower_setting)
     return lowerer(module, input)

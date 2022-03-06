@@ -4,11 +4,14 @@ import torch
 
 import numpy as np
 
+from torchbenchmark.util.env_check import set_random_seed
+
 from .bert_pytorch import parse_args
 from .bert_pytorch.trainer import BERTTrainer
 from .bert_pytorch.dataset import BERTDataset, WordVocab
 from .bert_pytorch.model import BERT
 from torch.utils.data import DataLoader
+import typing
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
@@ -71,11 +74,6 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 16
     DEFAULT_EVAL_BSIZE = 16
 
-    def reset_seeds(self, seed):
-        torch.manual_seed(seed)
-        random.seed(seed)
-        np.random.seed(seed)
-
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         debug_print = False
@@ -109,7 +107,7 @@ class Model(BenchmarkModel):
         args.corpus_lines = 50000
 
         # generate random corpus from parameters
-        self.reset_seeds(1337)
+        set_random_seed()
         vocab = WordVocab(CorpusGenerator(vocab_size, args.corpus_lines))
 
         #with open(args.train_dataset, "r", encoding="utf-8") as f:
@@ -129,15 +127,15 @@ class Model(BenchmarkModel):
             print(len(vocab))
             print(type(vocab))
 
-        self.reset_seeds(1337)
+        set_random_seed()
         train_dataset = BERTDataset(args.train_dataset, vocab, seq_len=args.seq_len,
                                     corpus_lines=args.corpus_lines, on_memory=args.on_memory, generator = CorpusGenerator(vocab_size, args.corpus_lines))
 
-        self.reset_seeds(1337)
+        set_random_seed()
         test_dataset = BERTDataset(args.test_dataset, vocab, seq_len=args.seq_len, on_memory=args.on_memory, generator = CorpusGenerator(vocab_size, args.corpus_lines)) \
             if args.test_dataset is not None else None
 
-        self.reset_seeds(1337)
+        set_random_seed()
 
         train_data_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
         test_data_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers) \
@@ -154,17 +152,14 @@ class Model(BenchmarkModel):
         self.is_next = example_batch['is_next'].to(self.device)[:self.batch_size]
         self.bert_label = example_batch['bert_label'].to(self.device)[:self.batch_size]
         self.model = trainer
-        
-        if self.jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model.bert = torch.jit._script_pdt(self.model.bert, example_inputs=[self.example_inputs, ])
-            else:
-                self.model.bert = torch.jit.script(self.model.bert, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.model.bert, self.example_inputs
 
-    def eval(self, niter=1):
+    def set_module(self, new_model):
+        self.model.bert = new_model
+
+    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         model = self.model
         for _ in range(niter):
             # 1. forward the next_sentence_prediction and masked_lm model
@@ -176,6 +171,7 @@ class Model(BenchmarkModel):
             next_loss = model.criterion(next_sent_output, self.is_next)
             mask_loss = model.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
             loss = next_loss + mask_loss
+        return (next_sent_output, mask_lm_output)
 
     def train(self, niter=1):
         trainer = self.model

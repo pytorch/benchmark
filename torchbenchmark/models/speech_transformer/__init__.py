@@ -7,11 +7,13 @@
 # S0002.tar.gz, S0757.tar.gz, S0915.tar.gz
 #
 import os
+import itertools
 import torch
 
 from .config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
+from typing import Tuple
 
 NUM_TRAIN_BATCH = 1
 NUM_EVAL_BATCH = 1
@@ -46,7 +48,16 @@ class Model(BenchmarkModel):
             raise NotImplementedError("JIT is not supported by this model")
         for data in self.traincfg.tr_loader:
             padded_input, input_lengths, padded_target = data
-            return self.traincfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
+            if self.test == "train":
+                return self.traincfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
+            elif self.test == "eval":
+                return self.evalcfg.model, (padded_input.to(self.device), input_lengths.to(self.device), padded_target.to(self.device))
+
+    def set_module(self, new_model):
+        if self.test == "train":
+            self.traincfg.model = new_model
+        elif self.test == "eval":
+            self.evalcfg.model = new_model
 
     def train(self, niter=1):
         if self.device == "cpu":
@@ -56,10 +67,13 @@ class Model(BenchmarkModel):
         for i in range(niter):
             self.traincfg.train(epoch = i)
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.device == "cpu":
             raise NotImplementedError("CPU is not supported by this model")
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         for _ in range(niter):
-            self.evalcfg.eval()
+            out = self.evalcfg.eval()
+        # only the first element of model output is a tensor
+        out = tuple(itertools.chain(*list(map(lambda x: x.values(), out))))
+        return (out[0], )

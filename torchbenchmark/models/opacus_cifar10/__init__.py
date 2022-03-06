@@ -5,6 +5,7 @@ import torch.utils.data as data
 import torchvision.models as models
 from opacus import PrivacyEngine
 from opacus.validators.module_validator import ModuleValidator
+from typing import Tuple
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
@@ -65,7 +66,7 @@ class Model(BenchmarkModel):
         self.optimizer.step()
         self.optimizer.zero_grad()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if niter != 1:
             raise NotImplementedError("niter not implemented")
         if self.jit:
@@ -75,4 +76,5 @@ class Model(BenchmarkModel):
         model.eval()
         targets = self.example_target
         with torch.no_grad():
-            model(images)
+            out = model(images)
+        return (out, )

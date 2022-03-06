@@ -9,15 +9,13 @@ from .baseline.DRL.ddpg import DDPG
 from .baseline.DRL.multi import fastenv
 
 from ...util.model import BenchmarkModel
+from typing import Tuple
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from argparse import Namespace
 
-torch.manual_seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
-
 
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
@@ -72,6 +70,9 @@ class Model(BenchmarkModel):
                            self.agent.coord.expand(state.shape[0], 2, 128, 128)), 1)
         return self.agent.actor, (state, )
 
+    def set_module(self, new_model):
+        self.agent.actor = new_model
+
     def train(self, niter=1):
         if self.jit:
             raise NotImplementedError()
@@ -102,11 +103,12 @@ class Model(BenchmarkModel):
                 episode += 1
             self.step += 1
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
             reward, dist = self.evaluate(self.env, self.agent.select_action)
+        return (torch.tensor(reward), torch.tensor(dist))
 
     def _set_mode(self, train):
         if train:

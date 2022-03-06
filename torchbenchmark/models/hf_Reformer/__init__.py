@@ -1,10 +1,9 @@
 import torch
 import torch.optim as optim
-import torchvision.models as models
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 from transformers import *
-from datasets import load_dataset
+from typing import Tuple
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
@@ -14,7 +13,6 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        torch.manual_seed(42)
         config = ReformerConfig()
         if not config.num_buckets:
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
@@ -46,10 +44,11 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.example_inputs)
+        return (out.logits, )

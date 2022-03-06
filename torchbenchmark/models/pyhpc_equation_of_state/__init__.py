@@ -2,6 +2,7 @@ import torch
 from . import eos_pytorch
 from torchbenchmark.tasks import OTHER
 from ...util.model import BenchmarkModel
+from typing import Tuple
 
 def _generate_inputs(size):
     import math
@@ -42,11 +43,6 @@ class Model(BenchmarkModel):
         if hasattr(eos_pytorch, "prepare_inputs"):
             inputs = eos_pytorch.prepare_inputs(*raw_inputs, device=device)
         self.example_inputs = inputs
-        if self.jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-            else:
-                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
 
     def get_module(self):
         return self.model, self.example_inputs
@@ -54,8 +50,9 @@ class Model(BenchmarkModel):
     def train(self, niter=1):
         raise NotImplementedError("Training not supported")
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
         with torch.no_grad():
             for i in range(niter):
-                model(*example_inputs)
+                out = model(*example_inputs)
+        return (out, )

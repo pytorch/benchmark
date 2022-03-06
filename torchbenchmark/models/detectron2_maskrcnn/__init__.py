@@ -2,7 +2,9 @@ import torch
 import os
 import itertools
 import random
+import itertools
 from pathlib import Path
+from typing import Tuple
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -21,8 +23,6 @@ from detectron2.utils.collect_env import collect_env_info
 from detectron2.utils.logger import setup_logger
 from detectron2.utils.events import EventStorage
 
-torch.manual_seed(1337)
-random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
@@ -32,6 +32,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 2
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if jit:
+            raise NotImplementedError("Detection Maskrcnn does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
@@ -54,7 +56,6 @@ class Model(BenchmarkModel):
             self.example_inputs = itertools.cycle(itertools.islice(test_loader, 100))
 
     def get_module(self):
-        self.model.eval()
         for data in self.example_inputs:
             return self.model, (data, )
 
@@ -72,7 +73,7 @@ class Model(BenchmarkModel):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
-    def eval(self, niter=2):
+    def eval(self, niter=2) -> Tuple[torch.Tensor]:
         if not self.device == "cuda":
             raise NotImplementedError("Only CUDA is supported by this model")
         if self.jit:
@@ -80,5 +81,12 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for idx, data in zip(range(niter), self.example_inputs):
-                self.model(data)
-
+                out = self.model(data)
+        # retrieve output tensors
+        outputs = []
+        for item in out:
+            fields = list(map(lambda x: list(x.get_fields().values()), item.values()))
+            for boxes in fields:
+                tensor_box = list(filter(lambda x: isinstance(x, torch.Tensor), boxes))
+                outputs.extend(tensor_box)
+        return tuple(outputs)

@@ -18,9 +18,6 @@ from torchbenchmark.util.torchtext_legacy.iterator import BucketIterator
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
@@ -60,6 +57,8 @@ class Model(BenchmarkModel):
   DEFAULT_TRAIN_BSIZE = 200
 
   def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+    if jit:
+      raise NotImplementedError("pytorch_struct model does not support JIT.")
     super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
     WORD = Field(include_lengths=True)

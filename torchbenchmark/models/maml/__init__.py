@@ -5,30 +5,26 @@ import torch
 from argparse import Namespace
 from .meta import Meta
 from pathlib import Path
+from typing import Tuple
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
 
-    def __init__(self, test, device, jit=False, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=1)
+    def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         # load from disk or synthesize data
         use_data_file = False
         debug_print = False
-
-        self.device = device
-        self.jit = jit
-        self.test = test
-        self.extra_args = extra_args
         root = str(Path(__file__).parent)
         args = Namespace(**{
             'n_way': 5,
@@ -82,11 +78,12 @@ class Model(BenchmarkModel):
             raise NotImplementedError()
         return self.module, self.example_inputs
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         for _ in range(niter):
-            self.module(*self.example_inputs)
+            out = self.module(*self.example_inputs)
+        return (out, )
 
     def train(self, niter=1):
         if self.jit:

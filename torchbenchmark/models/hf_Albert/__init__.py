@@ -1,6 +1,6 @@
 import torch
 import torch.optim as optim
-import torchvision.models as models
+from typing import Tuple
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 from transformers import *
@@ -13,7 +13,6 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        torch.manual_seed(42)
         config = AutoConfig.from_pretrained("albert-base-v2")
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
 
@@ -42,9 +41,12 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError()
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.example_inputs)
+        # logits: prediction scores of language modeling head
+        # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
+        return (out.logits, )

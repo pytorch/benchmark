@@ -1,20 +1,25 @@
 import torch
+import random
+import numpy as np
+import typing
 import torch.optim as optim
 import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
 
-from torchbenchmark.util.framework.vision.args import parse_args, apply_args
-
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
+    # To recognize this is a torchvision model
+    TORCHVISION_MODEL = True
     # These two variables should be defined by subclasses
     DEFAULT_TRAIN_BSIZE = None
     DEFAULT_EVAL_BSIZE = None
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = False
 
-        self.model = getattr(models, model_name)().to(self.device)
+        self.model = getattr(models, model_name)(pretrained=True).to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
         self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
         if test == "train":
@@ -24,16 +29,6 @@ class TorchVisionModel(BenchmarkModel):
             self.loss_fn = torch.nn.CrossEntropyLoss()
         elif test == "eval":
             self.model.eval()
-
-        if self.jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs=[self.example_inputs, ])
-            else:
-                self.model = torch.jit.script(self.model, example_inputs=[self.example_inputs, ])
-            if test == "eval":
-                # model needs to in `eval`
-                # in order to be optimized for inference
-                self.model = torch.jit.optimize_for_inference(self.model)
 
     # By default, FlopCountAnalysis count one fused-mult-add (FMA) as one flop.
     # However, in our context, we count 1 FMA as 2 flops instead of 1.
@@ -65,10 +60,12 @@ class TorchVisionModel(BenchmarkModel):
                     self.loss_fn(pred, target).backward()
                     self.optimizer.step()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         if self.extra_args.cudagraph:
             return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.model
         example_inputs = self.example_inputs
+        result = None
         for _i in range(niter):
-            model(*example_inputs)
+            result = model(*example_inputs)
+        return (result, )

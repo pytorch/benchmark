@@ -25,12 +25,6 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class DCGAN:
  def __init__(self, bench):
 
-  # Set random seed for reproducibility
-  self.manualSeed = 999
-
-  random.seed(self.manualSeed)
-  torch.manual_seed(self.manualSeed)
-
   # Spatial size of training images. All images will be resized to this
   #   size using a transformer.
   self.image_size = 64
@@ -217,10 +211,11 @@ class Model(BenchmarkModel):
             if False == self.inference_just_descriminator:
                 self.eval_noise = torch.randn(self.batch_size, nz, 1, 1, device=self.device)
 
-        if self.jit:
-            self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
-            if test == "eval" and False == self.inference_just_descriminator:
-                self.netG = torch.jit.trace(self.netG,(self.eval_noise,))
+    def jit_callback(self):
+        assert self.jit, "Calling JIT callback without specifying the JIT option."
+        self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
+        if self.test == "eval" and False == self.inference_just_descriminator:
+            self.netG = torch.jit.trace(self.netG,(self.eval_noise,))
 
     def get_module(self):
         return self.model, (self.exmaple_inputs,)
@@ -234,6 +229,7 @@ class Model(BenchmarkModel):
 
             # Since we just updated D, perform another forward pass of all-fake batch through D
             output = self.model(self.exmaple_inputs).view(-1)
+        return (output, )
 
     def train(self, niter=1):
 

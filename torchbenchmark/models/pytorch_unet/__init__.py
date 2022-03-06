@@ -6,10 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
+from typing import Tuple
 
-random.seed(1337)
-torch.manual_seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
@@ -27,6 +25,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+        if jit and test == "eval":
+            raise NotImplementedError("pytorch unet model does not support JIT for inference.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.args = self._get_args()
@@ -41,8 +41,6 @@ class Model(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             self.model.eval()
-        if self.jit:
-            self.model = torch.jit.script(self.model)
 
     def get_module(self):
         return self.model, (self.example_inputs,)
@@ -69,7 +67,7 @@ class Model(BenchmarkModel):
                 grad_scaler.step(optimizer)
                 grad_scaler.update()
 
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
@@ -79,6 +77,7 @@ class Model(BenchmarkModel):
                     mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
                 else:
                     mask_pred = F.one_hot(mask_pred.argmax(dim=1), self.model.n_classes).permute(0, 3, 1, 2).float()
+        return (mask_pred, )
 
     def _get_args(self):
         parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')

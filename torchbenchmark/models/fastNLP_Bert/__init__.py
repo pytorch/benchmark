@@ -6,6 +6,7 @@ Input data simulates [CMRC2018 dataset](https://ymcui.com/cmrc2018/).
 The program runs only for benchmark purposes and doesn't provide correctness results.
 """
 import logging
+from typing import Tuple
 import torch
 import random
 import inspect
@@ -29,9 +30,6 @@ from .cmrc2018_simulator import CMRC2018_DIR, CMRC2018_CONFIG_DIR
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 logger.setLevel(logging.WARNING)
@@ -45,6 +43,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if jit:
+            raise NotImplementedError("FastNLP-Bert model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.input_dir = CMRC2018_DIR
@@ -99,7 +99,7 @@ class Model(BenchmarkModel):
         return self.model, (batch_x["words"], )
 
     # Sliced version of fastNLP.Tester._test()
-    def eval(self, niter=1):
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if self.jit:
             raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self._mode(self.model, is_test=True)
@@ -109,6 +109,8 @@ class Model(BenchmarkModel):
                 for batch_x, batch_y in self.example_inputs:
                     self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                     pred_dict = self._data_forward(self._predict_func, batch_x)
+        # return a tuple of Tensors
+        return (pred_dict['pred_start'], pred_dict['pred_end'] )
 
     # Sliced version of fastNLP.Trainer._train()
     def train(self, niter=1):
