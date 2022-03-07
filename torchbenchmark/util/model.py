@@ -1,13 +1,9 @@
-import json
 import os
-import pandas as pd
-from  collections.abc import Iterable
 import torch
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
-import os
-from typing import Optional, List, Tuple
+from typing import ContextManager, Optional, List, Tuple
 from torchbenchmark.util.extra_args import parse_args, apply_args
 from torchbenchmark.util.env_check import set_random_seed
 
@@ -29,6 +25,16 @@ def no_grad(val):
     finally:
         torch.set_grad_enabled(old_state)
 
+@contextmanager
+def nested(*contexts):
+    """
+    Chain and apply a list of contexts
+    """
+    with ExitStack() as stack:
+        for ctx in contexts:
+            stack.enter_context(ctx)
+        yield contexts
+
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
     DEFAULT_EVAL_BSIZE: Optional[int] = None
@@ -38,6 +44,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     jit: bool
     batch_size: int
     extra_args: List[str]
+    run_contexts: List[ContextManager]
 
     """
     A base class for adding models to torch benchmark.
@@ -62,6 +69,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
         self.extra_args = extra_args
+        # contexts to run in the test function
+        self.run_contexts = []
         set_random_seed()
 
     # Run the post processing for model acceleration
@@ -71,6 +80,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.extra_args = parse_args(self, self.extra_args)
         apply_args(self, self.extra_args)
 
+    def add_context(self, context):
+        assert isinstance(context, ContextManager), f"Expected adding a ContextManager, get {type(context)}. Please report a bug."
+        self.run_contexts.append(context)
+
     # Default implementation for replacing the model
     def set_module(self, new_model):
         if hasattr(self, 'model') and isinstance(self.model, torch.nn.Module):
@@ -78,11 +91,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
-    def train(self):
-        raise NotImplementedError("Base type doesn't have train implementation.")
-
-    def eval(self) -> Tuple[torch.Tensor]:
-        raise NotImplementedError("Base type doesn't have eval implementation.")
+    def invoke(self) -> Optional[Tuple[torch.Tensor]]:
+        out = None
+        with nested(*self.run_contexts):
+            if self.test == "train":
+                self.train()
+            elif self.test == "eval":
+                out = self.eval()
+        return out
 
     def set_eval(self):
         self._set_mode(False)

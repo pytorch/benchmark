@@ -54,11 +54,11 @@ class TestBenchNetwork:
 
             task.make_model_instance(test="train", device=device, jit=(compiler == 'jit'))
             task.set_train()
-            benchmark(task.train)
+            benchmark(task.invoke)
             benchmark.extra_info['machine_state'] = get_machine_state()
 
         except NotImplementedError:
-            print(f'Method train on {device} is not implemented, skipping...')
+            print(f'Test train on {device} is not implemented, skipping...')
 
     def test_eval(self, model_path, device, compiler, benchmark, pytestconfig):
         try:
@@ -70,13 +70,13 @@ class TestBenchNetwork:
 
             with task.no_grad(disable_nograd=pytestconfig.getoption("disable_nograd")):
                 task.set_eval()
-                benchmark(task.eval)
+                benchmark(task.invoke)
                 benchmark.extra_info['machine_state'] = get_machine_state()
                 if pytestconfig.getoption("check_opt_vs_noopt_jit"):
                     task.check_opt_vs_noopt_jit()
 
         except NotImplementedError:
-            print(f'Method eval on {device} is not implemented, skipping...')
+            print(f'Test eval on {device} is not implemented, skipping...')
 
 
 @pytest.mark.benchmark(

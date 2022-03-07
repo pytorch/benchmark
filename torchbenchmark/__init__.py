@@ -306,20 +306,14 @@ class ModelTask(base_task.TaskBase):
     def set_train(self) -> None:
         self.worker.run("model.set_train()")
 
-    def train(self) -> None:
+    def invoke(self) -> None:
         self.worker.run("""
-            model.train()
+            model.invoke()
             maybe_sync()
         """)
 
     def set_eval(self) -> None:
         self.worker.run("model.set_eval()")
-
-    def eval(self) -> None:
-        self.worker.run("""
-            model.eval()
-            maybe_sync()
-        """)
 
     def extract_details_train(self) -> None:
         self._details.metadata["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
@@ -370,13 +364,14 @@ class ModelTask(base_task.TaskBase):
     def check_eval_output() -> None:
         instance = globals()["model"]
         import torch
-        out = instance.eval()
+        assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."
+        out = instance.invoke()
         model_name = getattr(instance, 'name', None)
         if not isinstance(out, tuple):
-            raise RuntimeError(f'Model {model_name} eval() output is not a tuple')
+            raise RuntimeError(f'Model {model_name} eval test output is not a tuple')
         for ind, element in enumerate(out):
             if not isinstance(element, torch.Tensor):
-                raise RuntimeError(f'Model {model_name} eval() output is tuple, but'
+                raise RuntimeError(f'Model {model_name} eval test output is tuple, but'
                                    f' its {ind}-th element is not a Tensor.')
 
     @base_task.run_in_worker(scoped=True)

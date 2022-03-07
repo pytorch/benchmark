@@ -72,7 +72,6 @@ class Model(BenchmarkModel):
 
   def eval(self, niter=1) -> Tuple[torch.Tensor]:
     self.check_implemented()
-    print("here... ")
     for i in range(niter):
       out = self.model.eval(niter)
     return (out, )
