@@ -34,7 +34,7 @@ runner_types:
     disk_size: 150
     is_ephemeral: false
   # 8xV100 (32GB) GPU instance, 96 vCPU, 768 GB RAM
-  linux.p32xlarge.nvidia.gpu:
+  linux.p324xlarge.nvidia.gpu:
     instance_type: p3dn.24xlarge
     os: linux
     max_available: 1
