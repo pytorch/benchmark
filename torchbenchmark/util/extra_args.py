@@ -105,7 +105,8 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         module, exmaple_inputs = model.get_module()
         # get the output tensor of eval
         model.eager_output = model.eval()
-        model.set_module(enable_fx2trt(args.batch_size, fp16=args.fp16, model=module, example_inputs=exmaple_inputs,
+        fp16 = not (args.fp16 == "no")
+        model.set_module(enable_fx2trt(args.batch_size, fp16=fp16, model=module, example_inputs=exmaple_inputs,
                                        is_hf_model=is_hf_model(model), hf_max_length=get_hf_maxlength(model)))
         model.output = model.eval()
         model.correctness = correctness_check(model.eager_output, model.output)
