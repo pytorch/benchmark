@@ -24,7 +24,7 @@ def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
 
 def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> bool:
     if fp16 == "half":
-        return is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda'
+        return (is_torchvision_model(model) or is_hf_model(model)) and model.test == 'eval' and model.device == 'cuda'
     if fp16 == "amp":
         is_cuda_eval_test = (model.test == 'eval' and model.device == 'cuda')
         support_amp = hasattr(model, "enable_amp")
@@ -68,7 +68,8 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
         if args.test == "eval":
             model.eager_output = model.invoke()
         if args.fp16 == "half":
-            model.model, model.example_inputs = enable_fp16_half(model.model, model.example_inputs)
+            assert hasattr(model, "enable_fp16_half"), "Model doesn't have method 'enable_fp16_half'. Please report a bug. "
+            model.enable_fp16_half()
         elif args.fp16 == "amp":
             # check if the model has native amp support
             if hasattr(model, "enable_amp"):

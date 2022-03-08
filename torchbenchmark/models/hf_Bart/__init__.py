@@ -45,6 +45,13 @@ class Model(BenchmarkModel):
         return ArgsToKwargsWrapper(self.model), (
                 self.example_inputs['input_ids'], self.example_inputs[k])
 
+    def enable_fp16_half(self):
+        self.model = self.model.half()
+        example_inputs_half = {}
+        for k in self.example_inputs:
+            example_inputs_half[k] = self.example_inputs[k].half()
+        self.example_inputs = example_inputs_half
+
     def train(self, niter=3):
         if self.jit:
             raise NotImplementedError()
