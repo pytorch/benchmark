@@ -114,7 +114,7 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
     if args.torch_trt:
         model.eager_output = model.invoke()
         module, exmaple_inputs = model.get_module()
-        precision = 'fp16' if args.fp16 is not "no" else 'fp32'
+        precision = 'fp16' if not args.fp16 == "no" else 'fp32'
         model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
         model.output = model.invoke()
         model.correctness = correctness_check(model.eager_output, model.output)

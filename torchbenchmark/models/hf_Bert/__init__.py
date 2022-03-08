@@ -51,6 +51,9 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.example_inputs)
-        return (out.logits, )
+        if hasattr(out, 'logits'):
+            return (out.logits, )
+        else:
+            return (out["logits"], )
 
     

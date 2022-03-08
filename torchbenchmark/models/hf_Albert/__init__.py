@@ -51,4 +51,7 @@ class Model(BenchmarkModel):
                 out = self.model(**self.example_inputs)
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
-        return (out.logits, )
+        if hasattr(out, 'logits'):
+            return (out.logits, )
+        else:
+            return (out["logits"], )
