@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: pytorch/fx2trt
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
           path: fx2trt
       - name: Checkout Torch-TensorRT
         uses: actions/checkout@v2
