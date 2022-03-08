@@ -37,10 +37,6 @@ class Model(BenchmarkModel):
 
     def enable_fp16_half(self):
         self.model = self.model.half()
-        example_inputs_half = {}
-        for k in self.example_inputs:
-            example_inputs_half[k] = self.example_inputs[k].half()
-        self.example_inputs = example_inputs_half
 
     def train(self, niter=3):
         if self.jit:
