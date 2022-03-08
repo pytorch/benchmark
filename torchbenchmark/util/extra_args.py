@@ -16,6 +16,12 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool
 def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
 
+def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
+
+def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[int]:
+    return model.max_length if is_hf_model(model) else None
+
 def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> bool:
     if fp16 == "half":
         return is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda'
@@ -25,18 +31,11 @@ def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> 
         return is_cuda_eval_test or support_amp
     return True
 
-# TODO: enable fp16 amp by default for all cuda inference tests
-# torchvision models uses fp16 half mode by default
+# torchvision models uses fp16 half mode by default, others use fp32
 def get_fp16_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if is_torchvision_model(model) and model.test == 'eval' and model.device == 'cuda':
         return "half"
     return "no"
-
-def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
-
-def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[int]:
-    return model.max_length if is_hf_model(model) else None
 
 # Dispatch arguments based on model type
 def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> argparse.Namespace:
