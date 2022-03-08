@@ -13,7 +13,6 @@ class ArgsToKwargsWrapper(torch.nn.Module):
     def forward(self, input_ids, decoder_input_ids):
         return self.model(input_ids=input_ids, decoder_input_ids=decoder_input_ids)
 
-
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     HF_MODEL = True
