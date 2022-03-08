@@ -49,8 +49,7 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError()
         k = 'labels' if self.test == 'train' else 'decoder_input_ids'
-        return ArgsToKwargsWrapper(self.model), (
-                self.example_inputs['input_ids'], self.example_inputs[k])
+        return self.model, self.example_inputs
 
     # TODO: re-enable train test when infra has capacity
     def train(self, niter=3):
