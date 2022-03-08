@@ -6,9 +6,10 @@ from transformers import *
 from typing import Tuple
 
 class ArgsToKwargsWrapper(torch.nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, example_inputs):
         super(ArgsToKwargsWrapper, self).__init__()
         self.model = model
+        self.dummy_inputs = example_inputs
 
     def forward(self, input_ids, decoder_input_ids):
         return self.model(input_ids=input_ids, decoder_input_ids=decoder_input_ids)
@@ -43,7 +44,7 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError()
         k = 'labels' if self.test == 'train' else 'decoder_input_ids'
-        return ArgsToKwargsWrapper(self.model), (
+        return ArgsToKwargsWrapper(self.model, self.example_inputs), (
                 self.example_inputs['input_ids'], self.example_inputs[k])
 
     def train(self, niter=3):
