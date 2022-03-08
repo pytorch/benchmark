@@ -44,7 +44,8 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError()
         k = 'labels' if self.test == 'train' else 'decoder_input_ids'
-        return self.model, self.example_inputs
+        return ArgsToKwargsWrapper(self.model, self.example_inputs), (
+                self.example_inputs['input_ids'], self.example_inputs[k])
 
     def train(self, niter=3):
         if self.jit:

@@ -49,7 +49,7 @@ class Model(BenchmarkModel):
         if self.jit:
             raise NotImplementedError()
         k = 'labels' if self.test == 'train' else 'decoder_input_ids'
-        return self.model, self.example_inputs
+        return self.model, (self.example_inputs['input_ids'], self.example_inputs[k])
 
     # TODO: re-enable train test when infra has capacity
     def train(self, niter=3):
