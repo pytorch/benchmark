@@ -90,8 +90,6 @@ class Model(BenchmarkModel):
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if jit:
-            raise NotImplementedError("DrQ model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.cfg = DRQConfig()
@@ -120,8 +118,6 @@ class Model(BenchmarkModel):
         self.agent.actor = new_model
 
     def train(self, niter=2):
-        if self.jit:
-            raise NotImplementedError()
         episode, episode_reward, episode_step, done = 0, 0, 1, True
         for step in range(niter):
             obs = self.env.reset()
@@ -151,8 +147,6 @@ class Model(BenchmarkModel):
             self.step += 1
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError()
         average_episode_reward = 0
         for _episode in range(niter):
             obs = self.env.reset()

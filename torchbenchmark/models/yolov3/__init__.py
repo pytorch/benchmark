@@ -75,16 +75,10 @@ class Model(BenchmarkModel):
         return model, example_inputs
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         return self.model, self.example_inputs
 
     def train(self, niter=1):
         # the training process is not patched to use scripted models
-        if self.jit:
-            raise NotImplementedError()
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
         return self.training_loop(niter)
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:

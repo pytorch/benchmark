@@ -78,8 +78,6 @@ class Model(BenchmarkModel):
             return self.model, (example_inputs, )
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
         self.model.train()
         for _, (images, targets) in zip(range(niter), self.data_loader):
             # images = list(image.to(self.device) for image in images)
@@ -91,8 +89,6 @@ class Model(BenchmarkModel):
             self.optimizer.step()
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
         self.model.eval()
         with torch.no_grad():
             for _, (images, _targets) in zip(range(niter), self.data_loader):

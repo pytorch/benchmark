@@ -4,3 +4,7 @@ eval_nograd: true
 optimized_for_inference: false
 train_benchmark: true
 train_deterministic: false
+not_implemented:
+  # Disabled due to excessively slow runtime - see GH Issue #100
+  - test: train
+    device: cpu

@@ -11,11 +11,6 @@ from typing import Tuple
 from .train_cyclegan import prepare_training_loop
 from .test_cyclegan import get_model
 
-
-def nyi():
-    raise NotImplementedError()
-
-
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
     DEFAULT_TRAIN_BSIZE = 1
@@ -24,11 +19,6 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-
-        if device != 'cuda' and device != 'lazy':  # NYI implemented for things that aren't on the GPU
-            self.get_module = self.train = self.eval = nyi
-            return
-
         train_args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 --n_epochs_decay 3"
         self.training_loop = prepare_training_loop(train_args.split(' '))
         self.model, self.input = get_model()
@@ -43,12 +33,6 @@ class Model(BenchmarkModel):
 
     def train(self, niter=1):
         # the training process is not patched to use scripted models
-        if self.jit:
-            raise NotImplementedError()
-
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         for i in range(niter):
             # training_loop has its own count logic inside.  It actually runs 7 epochs per niter=1 (with each 'epoch'
             # being limited to a small set of data)

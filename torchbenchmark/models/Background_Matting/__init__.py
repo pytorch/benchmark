@@ -129,9 +129,6 @@ class Model(BenchmarkModel):
         pass
 
     def train(self, niter=1):
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         self.netG.train()
         self.netD.train()
         lG, lD, GenL, DisL_r, DisL_f, alL, fgL, compL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0

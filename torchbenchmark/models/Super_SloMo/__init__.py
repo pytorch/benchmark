@@ -34,8 +34,6 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 10
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if jit and test == "eval" and device == "cuda":
-            raise NotImplementedError("Disabled eval jit test due to insufficient GPU memory size")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.model = ModelWrapper(device)
@@ -70,17 +68,11 @@ class Model(BenchmarkModel):
         return self.model, self.example_inputs
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         for _ in range(niter):
             out = self.model(*self.example_inputs)
         return out
 
     def train(self, niter=1):
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         for _ in range(niter):
             self.optimizer.zero_grad()
 

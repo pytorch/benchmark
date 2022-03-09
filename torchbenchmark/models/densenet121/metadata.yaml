@@ -4,3 +4,8 @@ eval_nograd: true
 optimized_for_inference: true
 train_benchmark: false
 train_deterministic: false
+not_implemented:
+  # CUDA disabled due to CUDA out of memory on CI GPU
+  - device: cuda
+  # CPU disabled due to out of memory on CI CPU
+  - device: cpu
