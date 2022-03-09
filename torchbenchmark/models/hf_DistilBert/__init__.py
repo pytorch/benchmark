@@ -7,6 +7,7 @@ from typing import Tuple
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    HF_MODEL = True
     DEFAULT_TRAIN_BSIZE = 8
     DEFAULT_EVAL_BSIZE = 1
 
@@ -15,21 +16,26 @@ class Model(BenchmarkModel):
 
         config = AutoConfig.from_pretrained("distilbert-base-uncased")
         self.model = AutoModelForMaskedLM.from_config(config).to(device)
+        self.max_length = 512
+
         if test == "train":
             self.model.train()
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
-            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
         else:
             self.model.eval()
-            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 512)).to(device)
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': eval_context, }
 
     def get_module(self):
         if self.jit:
             raise NotImplementedError()
         return self.model, (self.example_inputs["input_ids"], )
+
+    def enable_fp16_half(self):
+        self.model = self.model.half()
 
     def train(self, niter=3):
         if self.jit:
@@ -53,4 +59,7 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.example_inputs)
-        return (out.logits, )
+        if hasattr(out, 'logits'):
+            return (out.logits, )
+        else:
+            return (out["logits"], )

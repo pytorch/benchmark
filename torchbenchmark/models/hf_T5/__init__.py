@@ -18,6 +18,7 @@ class ArgsToKwargsWrapper(torch.nn.Module):
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    HF_MODEL = True
     # Original train batch size per device: 8
     # Source: https://github.com/huggingface/transformers/blob/master/examples/flax/language-modeling/run_t5_mlm_flax.py#L83
     DEFAULT_TRAIN_BSIZE = 8
@@ -32,14 +33,16 @@ class Model(BenchmarkModel):
         self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
         if test == "train":
             raise NotImplementedError("Disable T5 model train because of limited infra capacity")
+            self.max_length = 1024
             self.model.train()
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, 1024)).to(device)
-            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, 1024)).to(device)
+            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
+            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
         elif test == "eval":
             self.model.eval()
-            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, 2048)).to(device)
+            self.max_length = 2048
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': eval_context, 'decoder_input_ids': eval_context }
 
     def get_module(self):
@@ -48,6 +51,9 @@ class Model(BenchmarkModel):
         k = 'labels' if self.test == 'train' else 'decoder_input_ids'
         return ArgsToKwargsWrapper(self.model), (
                 self.example_inputs['input_ids'], self.example_inputs[k])
+
+    def enable_fp16_half(self):
+        self.model = self.model.half()
 
     # TODO: re-enable train test when infra has capacity
     def train(self, niter=3):
@@ -67,4 +73,7 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.example_inputs)
-        return (out.logits, )
+        if hasattr(out, 'logits'):
+            return (out.logits, )
+        else:
+            return (out["logits"], )
