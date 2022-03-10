@@ -50,13 +50,9 @@ def _load_test(path, device):
     def example_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
-            try:
-                task.make_model_instance(test="eval", device=device, jit=False)
-                task.check_example()
-                task.del_model_instance()
-
-            except NotImplementedError:
-                self.skipTest('Method get_module is not implemented, skipping...')
+            task.make_model_instance(test="eval", device=device, jit=False)
+            task.check_example()
+            task.del_model_instance()
 
     def train_fn(self):
         metadata = get_metadata_from_yaml(path)
