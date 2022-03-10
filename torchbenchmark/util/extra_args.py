@@ -39,7 +39,7 @@ def get_fp16_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
 def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
-    parser.add_argument("--fuser", type=str, default="", choises=["fuser0", "fuser1", "fuser2"], help="enable fuser")
+    parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--fp16", choices=["no", "half", "amp"], default=get_fp16_default(model), help="enable fp16 modes from: no fp16, half, or amp")
     args = parser.parse_args(extra_args)
