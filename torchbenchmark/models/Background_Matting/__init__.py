@@ -124,7 +124,7 @@ class Model(BenchmarkModel):
         for _i, data in enumerate(self.train_data):
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
-            return self.netD, ((image, bg, seg, multi_fr), )
+            return self.netG, (image.to(self.device), bg.to(self.device), seg.to(self.device), multi_fr.to(self.device))
 
     # eval() isn't implemented
     # train() is on by default
