@@ -60,9 +60,6 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
     return args
 
 def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
-    if args.fuser:
-        import torch
-        model.add_context(torch.jit.fuser(args.fuser))
     if args.fp16 and not args.fp16 == "no":
         if args.test == "eval":
             model.eager_output = model.invoke()
@@ -83,6 +80,9 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
             model.correctness = correctness_check(model.eager_output, model.output)
             del model.eager_output
             del model.output
+    if args.fuser:
+        import torch
+        model.add_context(torch.jit.fuser(args.fuser))
     if args.jit:
         if args.test == "eval":
             model.eager_output = model.invoke()
