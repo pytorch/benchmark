@@ -32,7 +32,6 @@ class Model(BenchmarkModel):
         config = AutoConfig.from_pretrained("t5-small")
         self.model = AutoModelForSeq2SeqLM.from_config(config).to(device)
         if test == "train":
-            raise NotImplementedError("Disable T5 model train because of limited infra capacity")
             self.max_length = 1024
             self.model.train()
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
@@ -46,8 +45,6 @@ class Model(BenchmarkModel):
             self.example_inputs = {'input_ids': eval_context, 'decoder_input_ids': eval_context }
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         k = 'labels' if self.test == 'train' else 'decoder_input_ids'
         return ArgsToKwargsWrapper(self.model), (
                 self.example_inputs['input_ids'], self.example_inputs[k])
@@ -55,10 +52,7 @@ class Model(BenchmarkModel):
     def enable_fp16_half(self):
         self.model = self.model.half()
 
-    # TODO: re-enable train test when infra has capacity
     def train(self, niter=3):
-        if self.jit:
-            raise NotImplementedError()
         self.model.train()
         for _ in range(niter):
             outputs = self.model(**self.example_inputs)
@@ -67,8 +61,6 @@ class Model(BenchmarkModel):
             self.optimizer.step()
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError()
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):

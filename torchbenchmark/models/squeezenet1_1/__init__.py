@@ -16,11 +16,7 @@ class Model(TorchVisionModel):
         super().__init__(model_name="squeezenet1_1", test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
         self.epoch_size = 16
-        if test == "train":
-            raise NotImplementedError("Temporarily disable training test because it causes CUDA OOM on T4")
-    
-    # Temporarily disable training because this will cause CUDA OOM in CI
-    # TODO: re-enable this test when better hardware is available
+
     def train(self, niter=1):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()

@@ -28,10 +28,6 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-        if jit:
-            raise NotImplementedError("This model doesn't support jit.")
-        if device == "cpu":
-            raise NotImplementedError("This model doesn't support CPU.")
         self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=self.batch_size, num_train_batch=NUM_TRAIN_BATCH)
         if test == "train":
             self.traincfg.model.to(self.device)
@@ -42,10 +38,6 @@ class Model(BenchmarkModel):
             self.evalcfg.model.eval()
 
     def get_module(self):
-        if self.device == "cpu":
-            raise NotImplementedError("CPU is not supported by this model")
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
         for data in self.traincfg.tr_loader:
             padded_input, input_lengths, padded_target = data
             if self.test == "train":
@@ -60,18 +52,10 @@ class Model(BenchmarkModel):
             self.evalcfg.model = new_model
 
     def train(self, niter=1):
-        if self.device == "cpu":
-            raise NotImplementedError("CPU is not supported by this model")
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
         for i in range(niter):
             self.traincfg.train(epoch = i)
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.device == "cpu":
-            raise NotImplementedError("CPU is not supported by this model")
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
         for _ in range(niter):
             out = self.evalcfg.eval()
         # only the first element of model output is a tensor

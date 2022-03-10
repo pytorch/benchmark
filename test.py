@@ -14,6 +14,7 @@ import yaml
 
 import torch
 from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
+from torchbenchmark.util.metadata_utils import skip_by_metadata
 
 
 # Some of the models have very heavyweight setup, so we have to set a very
@@ -23,14 +24,6 @@ from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
 # test case completes in 5 minutes. It requires that if the worker is
 # unresponsive for 5 minutes the parent will presume it dead / incapacitated.)
 TIMEOUT = 300  # Seconds
-
-# Skip this list of unit tests. One reason may be that the original batch size
-# used in the paper is too large to fit on the CI's GPU.
-EXCLUDELIST = {("densenet121", "train", "cuda"),  # GPU train runs out of memory on CI.
-               ("densenet121", "train", "cpu"),  # CPU train runs for too long on CI.
-               ("densenet121", "example", "cuda"),  # GPU train runs out of memory on CI.
-               ("densenet121", "example", "cpu")}  # CPU train runs for too long on CI.
-
 
 class TestBenchmark(unittest.TestCase):
 
@@ -104,10 +97,13 @@ def _load_test(path, device):
                 self.skipTest(f'Method check_device on {device} is not implemented, skipping...')
 
     name = os.path.basename(path)
+    metadata = get_metadata_from_yaml(path)
     for fn, fn_name in zip([example_fn, train_fn, eval_fn, check_device_fn],
                            ["example", "train", "eval", "check_device"]):
+        # set exclude list based on metadata
         setattr(TestBenchmark, f'test_{name}_{fn_name}_{device}',
-                (unittest.skipIf((name, fn_name, device) in EXCLUDELIST, "This test is on the EXCLUDELIST")(fn)))
+                (unittest.skipIf(skip_by_metadata(test=fn_name, device=device,\
+                                                  jit=False, extra_args=[], metadata=metadata), "This test is skipped by its metadata")(fn)))
 
 
 def _load_tests():

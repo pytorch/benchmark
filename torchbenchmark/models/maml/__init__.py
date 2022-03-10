@@ -74,20 +74,14 @@ class Model(BenchmarkModel):
                 print(self.example_inputs[i].shape)
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         return self.module, self.example_inputs
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError()
         for _ in range(niter):
             out = self.module(*self.example_inputs)
         return (out, )
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         for _ in range(niter):
             self.module(*self.example_inputs)
 
