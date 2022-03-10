@@ -61,6 +61,7 @@ def parse_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: Li
 
 def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
     if args.fuser:
+        import torch
         model.add_context(torch.jit.fuser(args.fuser))
     if args.fp16 and not args.fp16 == "no":
         if args.test == "eval":
