@@ -7,7 +7,7 @@ from typing import Any, List, Dict
 def match_item(item_name: str, item_val: str, skip_item: Dict[str, Any]) -> bool:
     if item_name not in skip_item:
         return True
-    return item_name == skip_item and skip_item[item_name] == item_val
+    return skip_item[item_name] == item_val
 
 def skip_by_metadata(test: str, device:str, jit: bool, extra_args: List[str], metadata: Dict[str, Any]) -> bool:
     "Check if the test should be skipped based on model metadata."
