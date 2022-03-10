@@ -32,7 +32,7 @@ def nested(*contexts):
     """
     with ExitStack() as stack:
         for ctx in contexts:
-            stack.enter_context(ctx)
+            stack.enter_context(ctx())
         yield contexts
 
 class BenchmarkModel(metaclass=PostInitProcessor):
@@ -80,9 +80,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.extra_args = parse_args(self, self.extra_args)
         apply_args(self, self.extra_args)
 
-    def add_context(self, context):
-        assert isinstance(context, ContextManager), f"Expected adding a ContextManager, get {type(context)}. Please report a bug."
-        self.run_contexts.append(context)
+    def add_context(self, context_fn):
+        ctx = context_fn()
+        assert isinstance(ctx, ContextManager), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
+        self.run_contexts.append(context_fn)
 
     # Default implementation for replacing the model
     def set_module(self, new_model):
