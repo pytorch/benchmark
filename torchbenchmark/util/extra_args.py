@@ -72,7 +72,7 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
                 model.enable_amp()
             else:
                 import torch
-                model.add_context(lambda x: torch.cuda.amp.autocast(dtype=torch.float16))
+                model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
         else:
             assert False, f"Get invalid fp16 value: {args.fp16}. Please report a bug."
         if args.test == "eval":
@@ -82,7 +82,7 @@ def apply_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse
             del model.output
     if args.fuser:
         import torch
-        model.add_context(lambda x: torch.jit.fuser(args.fuser))
+        model.add_context(lambda: torch.jit.fuser(args.fuser))
     if args.jit:
         if args.test == "eval":
             model.eager_output = model.invoke()
