@@ -35,8 +35,7 @@ from .util import html
 import torch
 from pathlib import Path
 
-def get_model():
-    args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test --no_dropout"
+def get_model(args, device):
     opt = TestOptions().parse(args.split(' '))
     opt.num_threads = 0   # test code only supports num_threads = 1
     opt.batch_size = 1    # test code only supports batch_size = 1
@@ -46,8 +45,8 @@ def get_model():
     model = create_model(opt)      # create a model given opt.model and other options
     model = model.netG.module
     root = str(Path(__file__).parent)
-    data = torch.load(f'{root}/example_input.pt')    
-    input = data['A'].cuda()
+    data = torch.load(f'{root}/example_input.pt')
+    input = data['A'].to(device)
 
     return model, (input,)
 
