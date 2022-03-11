@@ -123,6 +123,7 @@ class Model(BenchmarkModel):
             break
 
     def get_module(self):
+        # use netG (generation) for the return module
         for _i, data in enumerate(self.train_data):
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
