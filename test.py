@@ -50,9 +50,14 @@ def _load_test(path, device):
     def example_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
-            task.make_model_instance(test="eval", device=device, jit=False)
-            task.check_example()
-            task.del_model_instance()
+            try:
+                task.make_model_instance(test="eval", device=device, jit=False)
+            except NotImplementedError:
+                # some models don't implement eval, so we use train to check examples
+                task.make_model_instance(test="train", device=device, jit=False)
+            finally:
+                task.check_example()
+                task.del_model_instance()
 
     def train_fn(self):
         metadata = get_metadata_from_yaml(path)
