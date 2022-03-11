@@ -4,6 +4,7 @@ from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
 from typing import ContextManager, Optional, List, Tuple
+from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args, apply_torchdynamo_args
 from torchbenchmark.util.extra_args import parse_args, apply_args
 from torchbenchmark.util.env_check import set_random_seed
 
@@ -77,8 +78,13 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def __post__init__(self):
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
-        self.extra_args = parse_args(self, self.extra_args)
-        apply_args(self, self.extra_args)
+        # if the args contain "--torchdynamo", parse torchdynamo args instead
+        if "--torchdynamo" in self.extra_args:
+            self.extra_args = parse_torchdynamo_args(self, self.extra_args)
+            apply_torchdynamo_args(self, self.extra_args)
+        else:
+            self.extra_args = parse_args(self, self.extra_args)
+            apply_args(self, self.extra_args)
 
     def add_context(self, context_fn):
         ctx = context_fn()
