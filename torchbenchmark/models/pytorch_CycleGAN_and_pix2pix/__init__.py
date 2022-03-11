@@ -19,9 +19,16 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-        train_args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 --n_epochs_decay 3"
-        self.training_loop = prepare_training_loop(train_args.split(' '))
-        self.model, self.input = get_model()
+        device_arg = ""
+        if self.device == "cpu":
+            device_arg = "--gpu_ids -1"
+        elif self.device == "cuda":
+            device_arg = "--gpu_ids 0"
+        if self.test == "train":
+            train_args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 --n_epochs_decay 3 {device_arg}"
+            self.training_loop = prepare_training_loop(train_args.split(' '))
+        args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test --no_dropout {device_arg}"
+        self.model, self.input = get_model(args, self.device)
 
     def get_module(self):
         return self.model, self.input
