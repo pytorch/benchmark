@@ -110,7 +110,7 @@ class NVFuserBenchmark():
             return run_test(self.ir, inputs, warmup_runs=self.warmup_runs, test_runs=self.test_runs)
 
     def get_inputs(self) -> List[Any]:
-        _, inputs = load_graph_and_inputs(ir)
+        _, inputs = load_graph_and_inputs(self.ir)
         return inputs
 
 
