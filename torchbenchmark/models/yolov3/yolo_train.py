@@ -146,9 +146,9 @@ def prepare_training_loop(args):
                 best_fitness = ckpt['best_fitness']
 
             # load results
-            if ckpt.get('training_results') is not None:
-                with open(results_file, 'w') as file:
-                    file.write(ckpt['training_results'])  # write results.txt
+            # if ckpt.get('training_results') is not None:
+            #     with open(results_file, 'w') as file:
+            #         file.write(ckpt['training_results'])  # write results.txt
 
             # epochs
             start_epoch = ckpt['epoch'] + 1
@@ -332,9 +332,10 @@ def prepare_training_loop(args):
                     # Plot
                     if ni < 1:
                         f = 'train_batch%g.jpg' % i  # filename
-                        res = plot_images(images=imgs, targets=targets, paths=paths, fname=f)
-                        if tb_writer:
-                            tb_writer.add_image(f, res, dataformats='HWC', global_step=epoch)
+                        # TorchBench: do not write result jpg
+                        # res = plot_images(images=imgs, targets=targets, paths=paths, fname=f)
+                        # if tb_writer:
+                            # tb_writer.add_image(f, res, dataformats='HWC', global_step=epoch)
                             # tb_writer.add_graph(model, imgs)  # add model to tensorboard
 
                     # end batch ------------------------------------------------------------------------------------------------
@@ -357,8 +358,8 @@ def prepare_training_loop(args):
                 #                             multi_label=ni > n_burn)
 
                 # Write
-                with open(results_file, 'a') as f:
-                    f.write(s + '%10.3g' * 7 % results + '\n')  # P, R, mAP, F1, test_losses=(GIoU, obj, cls)
+                # with open(results_file, 'a') as f:
+                #     f.write(s + '%10.3g' * 7 % results + '\n')  # P, R, mAP, F1, test_losses=(GIoU, obj, cls)
                 if len(opt.name) and opt.bucket:
                     os.system('gsutil cp results.txt gs://%s/results/results%s.txt' % (opt.bucket, opt.name))
 
@@ -377,6 +378,8 @@ def prepare_training_loop(args):
 
                 # Save model
                 save = (not opt.nosave) or (final_epoch and not opt.evolve)
+                # TorchBench: do not save the result
+                save = False
                 if save:
                     with open(results_file, 'r') as f:  # create checkpoint
                         ckpt = {'epoch': epoch,
