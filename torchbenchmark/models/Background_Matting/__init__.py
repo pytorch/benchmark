@@ -51,7 +51,6 @@ class Model(BenchmarkModel):
 
         scriptdir = os.path.dirname(os.path.realpath(__file__))
         csv_file_path = _create_data_dir().joinpath("Video_data_train_processed.csv")
-        print(csv_file_path)
         root = str(Path(__file__).parent)
         with open(f"{root}/Video_data_train.csv", "r") as r:
             with open(csv_file_path, "w") as w:

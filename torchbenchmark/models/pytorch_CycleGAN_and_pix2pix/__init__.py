@@ -35,11 +35,11 @@ class Model(BenchmarkModel):
         elif self.device == "cuda":
             device_arg = "--gpu_ids 0"
         if self.test == "train":
-            train_args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 \
-                           --n_epochs_decay 3 {device_arg} {checkpoints_arg}"
+            train_args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 " + \
+                         f"--n_epochs_decay 3 {device_arg} {checkpoints_arg}"
             self.training_loop = prepare_training_loop(train_args.split(' '))
-        args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test \
-                 --no_dropout {device_arg} {checkpoints_arg} {results_arg}"
+        args = f"--dataroot {os.path.dirname(__file__)}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test " + \
+               f"--no_dropout {device_arg} {checkpoints_arg} {results_arg}"
         self.model, self.input = get_model(args, self.device)
 
     def get_module(self):
