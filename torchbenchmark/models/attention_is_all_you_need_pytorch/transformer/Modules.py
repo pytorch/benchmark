@@ -18,7 +18,11 @@ class ScaledDotProductAttention(nn.Module):
         attn = torch.matmul(q / self.temperature, k.transpose(2, 3))
 
         if mask is not None:
-            attn = attn.masked_fill(mask == 0, -1e9)
+            if attn.dtype == torch.float16:
+                min_mask = -65504
+            else:
+                min_mask = -1e9
+            attn = attn.masked_fill(mask == 0, min_mask)
 
         attn = self.dropout(F.softmax(attn, dim=-1))
         output = torch.matmul(attn, v)
