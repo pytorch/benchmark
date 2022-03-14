@@ -115,6 +115,6 @@ class NVFuserBenchmark():
 
 
 def get_nvfuser_microbenchmarks():
-    from torchbenchmark.microbenchmarks.nvfuser_ir import ir_list
+    from torchbenchmark.microbenchmarks.nvfuser.ir import ir_list
     benchmarks = [NVFuserBenchmark(name, ir) for name, ir in ir_list]
     return benchmarks
