@@ -4,3 +4,8 @@ eval_nograd: true
 optimized_for_inference: false
 train_benchmark: false
 train_deterministic: false
+not_implemented:
+  # disable CPU tests because it is too slow
+  - device: cpu
+  # detectron2_maskrcnn doesn't support torchscript (JIT)
+  - jit: true

@@ -61,8 +61,9 @@ class SpeechTransformerTrainConfig:
     train_json = "input_data/train/data.json"
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
-    def __init__(self, prefetch=True, train_bs=32, num_train_batch=1):
+    def __init__(self, prefetch=True, train_bs=32, num_train_batch=1, device='cuda'):
         dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.device = device
         self.train_json = os.path.join(dir_path, self.train_json)
         self.valid_json = os.path.join(dir_path, self.valid_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
@@ -107,9 +108,9 @@ class SpeechTransformerTrainConfig:
             result = []
             for _batch_num, data in zip(range(num_train_batch), self.data_loader):
                 padded_input, input_lengths, padded_target = data
-                padded_input = padded_input.cuda()
-                input_lengths = input_lengths.cuda()
-                padded_target = padded_target.cuda()
+                padded_input = padded_input.to(self.device)
+                input_lengths = input_lengths.to(self.device)
+                padded_target = padded_target.to(self.device)
                 result.append((padded_input, input_lengths, padded_target))
             self.data_loader = result
 
@@ -123,9 +124,9 @@ class SpeechTransformerTrainConfig:
         data_loader = self.data_loader
         for i, (data) in enumerate(data_loader):
             padded_input, input_lengths, padded_target = data
-            padded_input = padded_input.cuda()
-            input_lengths = input_lengths.cuda()
-            padded_target = padded_target.cuda()
+            padded_input = padded_input.to(self.device)
+            input_lengths = input_lengths.to(self.device)
+            padded_target = padded_target.to(self.device)
             pred, gold = self.model(padded_input, input_lengths, padded_target)
             loss, n_correct = cal_performance(pred, gold,
                                               smoothing=self.label_smoothing)
@@ -159,8 +160,9 @@ class SpeechTransformerEvalConfig:
     # The input files. Their paths are relative to the directory of __file__
     recog_json = "input_data/test/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
-    def __init__(self, traincfg, num_eval_batch=1):
+    def __init__(self, traincfg, num_eval_batch=1, device='cuda'):
         dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.device = device
         self.base_path = dir_path
         self.recog_json = os.path.join(dir_path, self.recog_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
@@ -171,19 +173,20 @@ class SpeechTransformerEvalConfig:
         # Read json data
         with open(self.recog_json, "rb") as f:
             self.js = json.load(f)['utts']
-        self.eval_example_input = []
+        self.example_inputs = []
         for idx, name in enumerate(list(self.js.keys())[:self.recog_word], 1):
             feat_path = os.path.join(self.base_path, self.js[name]['input'][0]['feat'])
             input = kaldi_io.read_mat(feat_path)
             input = build_LFR_features(input, self.LFR_m, self.LFR_n)
             input = torch.from_numpy(input).float()
             input_length = torch.tensor([input.size(0)], dtype=torch.int)
-            input = input.cuda()
-            input_length = input_length.cuda()
-            self.eval_example_input.append((input, input_length))
-            if len(self.eval_example_input) == num_eval_batch:
+            input = input.to(self.device)
+            input_length = input_length.to(self.device)
+            self.example_inputs.append((input, input_length))
+            if len(self.example_inputs) == num_eval_batch:
                 break
     def eval(self):
         with torch.no_grad():
-            for input, input_length in self.eval_example_input:
+            for input, input_length in self.example_inputs:
                 nbest_hyps = self.model.recognize(input, input_length, self.char_list, self)
+        return nbest_hyps

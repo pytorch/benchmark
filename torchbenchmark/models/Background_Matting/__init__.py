@@ -17,9 +17,6 @@ from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
@@ -32,14 +29,17 @@ class Model(BenchmarkModel):
     # Original btach size: 4
     # Original hardware: unknown
     # Source: https://arxiv.org/pdf/2004.00626.pdf
-    def __init__(self, device=None, jit=False, train_bs=4):
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    DEFAULT_TRAIN_BSIZE = 4
+    DEFAULT_EVAL_BSIZE = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.opt = Namespace(**{
             'n_blocks1': 7,
             'n_blocks2': 3,
-            'batch_size': train_bs,
+            'batch_size': self.batch_size,
             'resolution': 512,
             'name': 'Real_fixed'
         })
@@ -55,7 +55,7 @@ class Model(BenchmarkModel):
         traindata = VideoData(csv_file=csv_file,
                               data_config=data_config_train, transform=None)
         train_loader = torch.utils.data.DataLoader(
-            traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=self.opt.batch_size, collate_fn=_collate_filter_none)
+            traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=0, collate_fn=_collate_filter_none)
         self.train_data = []
         for data in train_loader:
             self.train_data.append(data)
@@ -117,7 +117,11 @@ class Model(BenchmarkModel):
             break
 
     def get_module(self):
-        raise NotImplementedError()
+        # use netG (generation) for the return module
+        for _i, data in enumerate(self.train_data):
+            bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
+                'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
+            return self.netG, (image.to(self.device), bg.to(self.device), seg.to(self.device), multi_fr.to(self.device))
 
     # eval() isn't implemented
     # train() is on by default
@@ -125,9 +129,6 @@ class Model(BenchmarkModel):
         pass
 
     def train(self, niter=1):
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         self.netG.train()
         self.netD.train()
         lG, lD, GenL, DisL_r, DisL_f, alL, fgL, compL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0

@@ -24,7 +24,7 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
 def apply_args(model: BenchmarkModel, args: argparse.Namespace):
     # apply eval_fp16
     if args.eval_fp16:
-        model.eval_model, model.eval_inputs = enable_eval_fp16(model.eval_model, model.eval_inputs)
+        model.model, model.example_inputs = enable_eval_fp16(model.model, model.example_inputs)
 
 def enable_eval_fp16(model: torch.nn.Module, example_input: Dict[str, torch.tensor]) -> Tuple[torch.nn.Module, Dict[str, torch.tensor]]:
     return model.half(), {'input_ids': example_input['input_ids'].half()}

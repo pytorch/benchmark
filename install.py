@@ -2,16 +2,14 @@ import argparse
 import subprocess
 import os
 import sys
-import importlib
 import tarfile
-from torchbenchmark import setup, _test_https, proxy_suggestion, TORCH_DEPS
-from torchbenchmark.util.env_check import get_pkg_versions
-
+from install_utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
 
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
     try:
-        subprocess.check_call(['git', 'lfs', 'install'], stdout=subprocess.PIPE,
+        # forcefully install git-lfs to the repo
+        subprocess.check_call(['git', 'lfs', 'install', '--force'], stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, cwd=tb_dir)
         subprocess.check_call(['git', 'lfs', 'fetch'], stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, cwd=tb_dir)
@@ -59,6 +57,8 @@ if __name__ == '__main__':
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
+    os.chdir(os.path.realpath(os.path.dirname(__file__)))
+
     print(f"checking packages {', '.join(TORCH_DEPS)} are installed...", end="", flush=True)
     try:
         versions = get_pkg_versions(TORCH_DEPS)
@@ -90,6 +90,7 @@ if __name__ == '__main__':
         print(f"The torch packages are re-installed after installing the benchmark deps. \
                 Before: {versions}, after: {new_versions}")
         sys.exit(-1)
+    from torchbenchmark import setup
     success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail)
     if not success:
         if args.continue_on_fail:
