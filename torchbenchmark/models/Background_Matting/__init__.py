@@ -24,6 +24,11 @@ def _collate_filter_none(batch):
     batch = list(filter(lambda x: x is not None, batch))
     return torch.utils.data.dataloader.default_collate(batch)
 
+def _create_data_dir():
+    data_dir = Path(__file__).parent.joinpath(".data")
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.OTHER_COMPUTER_VISION
     # Original btach size: 4
@@ -45,14 +50,14 @@ class Model(BenchmarkModel):
         })
 
         scriptdir = os.path.dirname(os.path.realpath(__file__))
-        csv_file = "Video_data_train_processed.csv"
+        csv_file_path = _create_data_dir().joinpath("Video_data_train_processed.csv")
         root = str(Path(__file__).parent)
         with open(f"{root}/Video_data_train.csv", "r") as r:
-            with open(csv_file, "w") as w:
+            with open(csv_file_path, "w") as w:
                 w.write(r.read().format(scriptdir=scriptdir))
         data_config_train = {
             'reso': (self.opt.resolution, self.opt.resolution)}
-        traindata = VideoData(csv_file=csv_file,
+        traindata = VideoData(csv_file=csv_file_path,
                               data_config=data_config_train, transform=None)
         train_loader = torch.utils.data.DataLoader(
             traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=0, collate_fn=_collate_filter_none)
