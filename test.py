@@ -44,28 +44,30 @@ class TestBenchmark(unittest.TestCase):
             main(["--repeat=1", "--filter=pytorch_struct", "--device=cpu"])
             self.assertGreaterEqual(mock_save.call_count, 1)
 
+def _create_example_model_instance(task: ModelTask, device: str):
+    skip = False
+    try:
+        task.make_model_instance(test="eval", device=device, jit=False)
+    except NotImplementedError:
+        try:
+            task.make_model_instance(test="train", device=device, jit=False)
+        except NotImplementedError:
+            skip = True
+    finally:
+        if skip:
+            raise NotImplementedError("Model is not implemented on this device")
 
 def _load_test(path, device):
 
     def example_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
-            skip = False
             try:
-                task.make_model_instance(test="eval", device=device, jit=False)
+                _create_example_model_instance(task, device)
+                task.check_example()
+                task.del_model_instance()
             except NotImplementedError:
-                try:
-                    # some models don't implement eval, so we use train to check examples
-                    task.make_model_instance(test="train", device=device, jit=False)
-                except NotImplementedError:
-                    # if train also fails, the model doesn't implement any test on this device
-                    skip = True
-            finally:
-                if not skip:
-                    task.check_example()
-                    task.del_model_instance()
-                else:
-                    self.skipTest(f'Method `get_module()` on {device} is not implemented, skipping...')
+                self.skipTest(f'Method `get_module()` on {device} is not implemented, skipping...')
 
     def train_fn(self):
         metadata = get_metadata_from_yaml(path)

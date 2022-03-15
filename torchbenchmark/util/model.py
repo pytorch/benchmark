@@ -15,6 +15,14 @@ class PostInitProcessor(type):
         obj.__post__init__()
         return obj
 
+def _is_tuple_tensor(var: Any) -> bool:
+    if not isinstance(var, tuple):
+        return False
+    for x in var:
+        if not isinstance(x, torch.Tensor):
+            return False
+    return True
+
 @contextmanager
 def no_grad(val):
     """Some meta-learning models (e.g. maml) may need to train a target(another) model
@@ -116,6 +124,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.model = new_model
         else:
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
+
+    def gen_inputs(self):
+        _model, example_input = self.get_module()
+        if not _is_tuple_tensor(example_input):
+            raise NotImplementedError("The model doesn't support generating random input.")
+        while True:
+            new_input = tuple(map(lambda x: torch.rand_like(x), example_input))
+            yield new_input
 
     def invoke(self) -> Optional[Tuple[torch.Tensor]]:
         out = None
