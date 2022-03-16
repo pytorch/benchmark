@@ -6,14 +6,10 @@ import numpy as np
 from .solver import Solver
 from .data_loader import get_loader
 from .main import parse_config, makedirs
+from typing import Tuple
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-
-# Make all randomness deterministic
-random.seed(1337)
-torch.manual_seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
@@ -29,45 +25,34 @@ class Model(BenchmarkModel):
 
     # Original train batch size: 16
     # Source: https://github.com/yunjey/stargan/blob/94dd002e93a2863d9b987a937b85925b80f7a19f/main.py#L73
-    # This model doesn't support setting eval batch size and will use the same bs as train
-    def __init__(self, device=None, jit=False, train_bs=16, eval_bs=16, prefetch=True):
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    # This model doesn't support customizing eval batch size and will use the same bs as train
+    DEFAULT_TRAIN_BSIZE = 16
+    DEFAULT_EVAL_BSIZE = 16
+    ALLOW_CUSTOMIZE_BSIZE = False
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         # init config
         config = parse_config()
         config.celeba_image_dir = os.path.join(os.path.dirname(__file__), 'data/celeba/images')
         config.attr_path = os.path.join(os.path.dirname(__file__), 'data/celeba/list_attr_celeba.txt')
         config.num_iters = 1
-        config.batch_size = train_bs
+        config.batch_size = self.batch_size
         config.use_tensorboard = False
         config.device = device
         config.should_script = jit
+        config.prefetch = True
 
         makedirs(config)
-
         self.data_loader = self.get_data_loader(config)
-        eval_config = config
-        eval_config.batch_size =eval_bs
-        self.eval_data_loader = self.get_data_loader(eval_config)
-        if prefetch:
+        if config.prefetch:
             self.data_loader = _prefetch(self.data_loader, size=config.num_iters, collate_fn=lambda item: tuple([m.to(self.device) for m in item]))
-            self.eval_data_loader = _prefetch(self.eval_data_loader, size=config.num_iters, collate_fn=lambda item: tuple([m.to(self.device) for m in item]))
         self.solver = Solver(celeba_loader=self.data_loader,
                              rafd_loader=None,
                              config=config,
                              should_script=config.should_script)
         self.model = self.solver.G
-
-        self.eval_solver = Solver(celeba_loader=self.eval_data_loader,
-                             rafd_loader=None,
-                             config=eval_config,
-                             should_script=eval_config.should_script)
-        self.eval_model = self.eval_solver.G
-        self.eval_model.eval()
-
-        if self.jit:
-            self.eval_model = torch.jit.optimize_for_inference(self.eval_model)
 
         self.example_inputs = self.generate_example_inputs()
 
@@ -78,40 +63,25 @@ class Model(BenchmarkModel):
         return celeba_loader
 
     def generate_example_inputs(self):
-        for x_real, c_trg_list in self.eval_solver.get_test_inputs():
+        for x_real, c_trg_list in self.solver.get_test_inputs():
             return x_real, c_trg_list[0] # batch > #images
 
     def get_module(self):
         return self.model, self.example_inputs
 
     def set_train(self):
-        # another model instance is used for training
-        # and the train mode is on by default
-        pass
+        self.model.train()
 
     def set_eval(self):
-        # eval_model is already set to `eval()`
-        pass
+        self.model.eval()
 
     def train(self, niter=1):
         for _ in range(niter):
             self.solver.train()
 
-    def eval(self, niter=1):
-        model = self.eval_model
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+        model = self.model
         example_inputs = self.example_inputs
         for _ in range(niter):
-            model(*example_inputs)
-
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    m.eval()
-    model, example_inputs = m.get_module()
-    model(*example_inputs)
-
-    m.train(1)
-    m.eval()
-
-    m2 = Model(device='cpu', jit=True)
-    m2.eval()
+            out = model(*example_inputs)
+        return (out, )

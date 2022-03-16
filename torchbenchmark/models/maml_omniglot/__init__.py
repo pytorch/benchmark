@@ -21,6 +21,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 from pathlib import Path
+from typing import Tuple
 import higher
 
 from ...util.model import BenchmarkModel
@@ -29,10 +30,12 @@ from torchbenchmark.tasks import OTHER
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device=None, jit=False):
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
+
+    def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         n_way = 5
         net = nn.Sequential(
@@ -59,15 +62,9 @@ class Model(BenchmarkModel):
         self.example_inputs = (self.meta_inputs[0][0],)
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
-
         return self.model, self.example_inputs
 
     def train(self, niter=3):
-        if self.jit:
-            raise NotImplementedError()
-
         net, _ = self.get_module()
         net.train()
         x_spt, y_spt, x_qry, y_qry = self.meta_inputs
@@ -96,20 +93,10 @@ class Model(BenchmarkModel):
 
             meta_opt.step()
 
-    def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
-
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, (example_input,) = self.get_module()
         model.eval()
         with torch.no_grad():
             for i in range(niter):
-                model(example_input)
-
-
-if __name__ == "__main__":
-    m = Model(device="cuda", jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train(niter=1)
-    m.eval(niter=1)
+                out = model(example_input)
+        return (out, )

@@ -4,3 +4,10 @@ eval_nograd: true
 optimized_for_inference: false
 train_benchmark: false
 train_deterministic: false
+not_implemented:
+  # Disable CUDA test because of insufficient GPU memory on CI machine
+  - device: cuda
+  # CPU is not supported
+  - device: cpu
+  # JIT is not supported
+  - jit: true

@@ -7,6 +7,7 @@ from itertools import chain
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
+from typing import Tuple
 
 from .config import SACConfig
 from .envs import load_gym
@@ -115,14 +116,16 @@ class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
     # Original train batch size: 256
     # Source: https://github.com/pranz24/pytorch-soft-actor-critic/blob/398595e0d9dca98b7db78c7f2f939c969431871a/main.py#L31
-    # Eval bs can only be 1 because of the nature of RL model
-    # This model doesn't support prefetching either
-    def __init__(self, device=None, jit=False, train_bs=256):
-        super(Model, self).__init__()
-        self.device = device
-        self.jit = jit
+    # This model doesn't support customizing batch size, or data prefetching
+    DEFAULT_TRAIN_BSIZE = 256
+    DEFAULT_EVAL_BSIZE = 256
+    ALLOW_CUSTOMIZE_BSIZE = False
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.args = SACConfig()
-        self.args.batch_size = train_bs
+        self.args.batch_size = self.batch_size
         # Construct agent
         current_dir = os.path.dirname(os.path.abspath(__file__))
         self.train_env = load_gym(self.args.env_id, self.args.seed)
@@ -189,10 +192,11 @@ class Model(BenchmarkModel):
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = batch
         state_batch = state_batch.to(self.device)
         return model, (state_batch, )
+
+    def set_module(self, new_model):
+        self.agent.actor = new_model
         
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         # Setup
         self.target_agent.train()
         done = True
@@ -231,9 +235,7 @@ class Model(BenchmarkModel):
                 soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
 
-    def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         with torch.no_grad():
             discount= 1.0
             episode_return_history = []
@@ -249,4 +251,4 @@ class Model(BenchmarkModel):
                     episode_return += reward * (discount ** step_num)
                 episode_return_history.append(episode_return)
             retval = torch.tensor(episode_return_history)
-
+        return (torch.tensor(action), )

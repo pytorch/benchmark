@@ -119,8 +119,6 @@ jobs:
           SCORE_FILE="./benchmark-result-${CONFIG_VER}-score-${TODAY}.json"
           # Generate score file
           python compute_score.py --score_version "${CONFIG_VER}" --benchmark_data_file "${LATEST_RESULT}" > "${SCORE_FILE}"
-          # Enable OSS stat uploads
-          wget -O scripts/scribe.py https://github.com/pytorch/pytorch/raw/master/tools/stats/scribe.py || echo "failed to copy oss stat utils"
           # Upload result to Scribe
           python scripts/upload_scribe_${CONFIG_VER}.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
       - name: Upload artifact

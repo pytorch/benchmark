@@ -174,7 +174,7 @@ if __name__ == "__main__":
 
     if args.check_model:
         Model = get_model_class(args.check_model)
-        model = Model(device=args.device, jit=False)
+        model = Model(device=args.device, test=args.test, jit=False)
         test = getattr(model, args.test)
         exit(check_model(args.check_model, test, args.output_file))
 

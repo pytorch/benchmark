@@ -1,6 +1,26 @@
 import torch
-from torch.fx.experimental.fx2trt import LowerSetting
-from torch.fx.experimental.fx2trt.lower import Lowerer
+from typing import Tuple, Optional
+
+def enable_fx2trt(max_batch_size: int, fp16: bool, model: torch.nn.Module, example_inputs: Tuple[torch.tensor],
+                  is_hf_model: bool=False, hf_max_length: Optional[int]=None) -> torch.nn.Module:
+    # special enablement for huggingface models
+    if is_hf_model:
+        from transformers.utils.fx import symbolic_trace as hf_symbolic_trace
+        traced_model = hf_symbolic_trace(
+            model,
+            batch_size=max_batch_size,
+            sequence_length=hf_max_length,
+        )
+        return lower_to_trt(
+            traced_model,
+            example_inputs,
+            max_batch_size=max_batch_size,
+            fp16_mode=fp16,
+            explicit_batch_dimension=True,
+            max_workspace_size=20 << 30,
+        )
+    return lower_to_trt(module=model, input=example_inputs, \
+                        max_batch_size=max_batch_size, fp16_mode=fp16)
 
 """
 The purpose of this example is to demostrate the onverall flow of lowering a PyTorch model
@@ -31,7 +51,7 @@ def lower_to_trt(
     explicit_batch_dimension: Use explicit batch dimension in TensorRT if set True, otherwise use implicit batch dimension.
     fp16_mode: fp16 config given to TRTModule.
     enable_fuse: Enable pass fusion during lowering if set to true. l=Lowering will try to find pattern defined
-    in torch.fx.experimental.fx2trt.passes from original module, and replace with optimized pass before apply lowering.
+    in fx2trt_oss.fx.passes from original module, and replace with optimized pass before apply lowering.
     verbose_log: Enable verbose log for TensorRT if set True.
     timing_cache_prefix: Timing cache file name for timing cache used by fx2trt.
     save_timing_cache: Update timing cache with current timing cache data if set to True.
@@ -40,6 +60,8 @@ def lower_to_trt(
     Returns:
     A torch.nn.Module lowered by TensorRT.
     """
+    from fx2trt_oss.fx import LowerSetting
+    from fx2trt_oss.fx.lower import Lowerer
     lower_setting = LowerSetting(
         max_batch_size=max_batch_size,
         max_workspace_size=max_workspace_size,
@@ -49,7 +71,7 @@ def lower_to_trt(
         verbose_log=verbose_log,
         timing_cache_prefix=timing_cache_prefix,
         save_timing_cache=save_timing_cache,
+        cuda_graph_batch_size=cuda_graph_batch_size,
     )
     lowerer = Lowerer.create(lower_setting=lower_setting)
     return lowerer(module, input)
-

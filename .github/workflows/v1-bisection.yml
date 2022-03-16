@@ -12,6 +12,7 @@ jobs:
     env:
       BISECT_CONDA_ENV: "bisection-ci-v1"
       BISECT_DIR: ".torchbench/v1-bisection-ci"
+      BISECT_BRANCH: "v1.0"
       PYTHON_VERSION: "3.8"
       MAGMA_VERSION: "magma-cuda113"
       CUDA_VERSION: "11.3"
@@ -34,6 +35,7 @@ jobs:
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
           export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          export TORCHBENCH_SRC_DIR="${PWD}"
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"

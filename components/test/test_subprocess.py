@@ -309,7 +309,7 @@ class TestSubprocessRPC(TestCase):
 
         # We have to run this in a thread, because if the timeout mechanism
         # fails we don't want the entire unit test suite to hang.
-        pipe = subprocess_rpc.Pipe(timeout=0.5, timeout_callback=callback)
+        pipe = subprocess_rpc.Pipe(writer_pid=os.getpid(), timeout=0.5, timeout_callback=callback)
         def target():
             try:
                 pipe.read()
@@ -334,7 +334,7 @@ class TestSubprocessRPC(TestCase):
 
         timeouts = [0.5, 1.0, 1.5]
         pipes = [
-            subprocess_rpc.Pipe(timeout=timeout, timeout_callback=callback)
+            subprocess_rpc.Pipe(writer_pid=os.getpid(), timeout=timeout, timeout_callback=callback)
             for timeout in timeouts
         ]
 

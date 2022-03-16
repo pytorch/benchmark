@@ -1,0 +1,22 @@
+diff --git a/models/big_bird/modeling_big_bird.py b/models/big_bird/modeling_big_bird.py
+index fa55c58..af5d82d 100644
+--- a/models/big_bird/modeling_big_bird.py
++++ b/models/big_bird/modeling_big_bird.py
+@@ -22,6 +22,7 @@ from typing import Optional, Tuple
+
+ import numpy as np
+ import torch
++from torch.utils._pytree import tree_map
+ import torch.utils.checkpoint
+ from packaging import version
+ from torch import nn
+@@ -1397,6 +1398,9 @@ class BigBirdAttention(nn.Module):
+                 hidden_states, band_mask, from_mask, to_mask, from_blocked_mask, to_blocked_mask, output_attentions
+             )
+
++        self_outputs = tuple(
++            tree_map(lambda x: x.to(hidden_states.dtype) if isinstance(x, torch.Tensor) else x, self_outputs)
++        )  # fp16 compatibility
+         attention_output = self.output(self_outputs[0], hidden_states)
+         outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
+         return outputs
