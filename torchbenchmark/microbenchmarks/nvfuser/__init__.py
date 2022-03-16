@@ -103,14 +103,14 @@ def parse_fusers(extra_args: List[str]):
         "--fusers",
         nargs="*",
         default=[],
-        help='List of fusers to run tests on (options include "no_fuser", "fuser0", "fuser1", "fuser2")')
+        choices=["no_fuser", "fuser0", "fuser1", "fuser2"],
+        help="List of fusers to run tests on")
     args = parser.parse_args(extra_args)
     return args.fusers
 
 
 class NVFuserBenchmark():
     def __init__(self, name, ir, warmup_runs=10, test_runs=20):
-        # TODO - random seed?
         self.name = name
         self.ir = ir
         self.warmup_runs = warmup_runs
