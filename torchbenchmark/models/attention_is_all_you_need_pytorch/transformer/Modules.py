@@ -19,7 +19,7 @@ class ScaledDotProductAttention(nn.Module):
 
         if mask is not None:
             if attn.dtype == torch.float16:
-                min_mask = -65504.0
+                min_mask = torch.finfo(torch.float16).min
             else:
                 min_mask = -1e9
             attn = attn.masked_fill(mask == 0, min_mask)
