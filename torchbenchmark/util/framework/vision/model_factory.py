@@ -22,8 +22,8 @@ class TorchVisionModel(BenchmarkModel):
 
         self.model = getattr(models, model_name)(pretrained=True).to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
-        self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
         if test == "train":
+            self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
             self.model.train()
             # setup optimizer and loss_fn
             self.optimizer = optim.Adam(self.model.parameters())
