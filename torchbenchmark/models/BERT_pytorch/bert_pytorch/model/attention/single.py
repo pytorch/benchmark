@@ -17,7 +17,7 @@ class Attention(nn.Module):
 
         if mask is not None:
             if scores.dtype == torch.float16:
-                min_mask = -65504
+                min_mask = -65504.0
             else:
                 min_mask = -1e9
             scores = scores.masked_fill(mask == 0, min_mask)
