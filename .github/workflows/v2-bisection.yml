@@ -10,11 +10,12 @@ on:
 jobs:
   bisection:
     env:
-      CUDA_VER: "11.3"
-      PYTHON_VER: "3.8"
-      MAGMA_VERSION: "magma-cuda113"
-      BISECT_CONDA_ENV: "torchbench-v2-bisection-ci"
+      BISECT_CONDA_ENV: "bisection-ci-v2"
       BISECT_DIR: ".torchbench/v2-bisection-ci"
+      BISECT_BRANCH: "v2.0"
+      PYTHON_VER: "3.8"
+      CUDA_VER: "11.3"
+      MAGMA_VERSION: "magma-cuda113"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
@@ -25,16 +26,17 @@ jobs:
           ref: v2.0
       - name: Create conda environment
         run: |
-          conda create -y -n "$BISECT_CONDA_ENV" python=${{ }}
-          . activate "$BISECT_CONDA_ENV"
+          conda create -y -n "${BISECT_CONDA_ENV}" python="${PYTHON_VER}"
+          . activate "${BISECT_CONDA_ENV}"
           conda install -y numpy requests ninja pyyaml mkl mkl-include setuptools cmake cffi \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm
           # Install magma
           conda install -y -c pytorch "${MAGMA_VERSION}"
       - name: Bisection
         run: |
-          BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
-          BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
+          export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          export TORCHBENCH_SRC_DIR="${PWD}"
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"

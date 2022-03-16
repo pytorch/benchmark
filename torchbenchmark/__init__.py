@@ -14,7 +14,6 @@ from urllib import request
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
-from .util.env_check import get_pkg_versions
 
 TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
 proxy_suggestion = "Unable to verify https connectivity, " \
@@ -35,16 +34,21 @@ def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> b
 
 
 def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
+    from .util.env_check import get_pkg_versions
     run_args = [
         [sys.executable, install_file],
     ]
+    run_env = os.environ.copy()
+    run_env["PYTHONPATH"] = this_dir.parent
     run_kwargs = {
         'cwd': model_path,
         'check': True,
+        'env': run_env,
     }
 
     output_buffer = None
     _, stdout_fpath = tempfile.mkstemp()
+
     try:
         output_buffer = io.FileIO(stdout_fpath, mode="w")
         if os.path.exists(os.path.join(model_path, install_file)):
@@ -201,9 +205,6 @@ class ModelTask(base_task.TaskBase):
             )
         )
 
-        if self._details._diagnostic_msg:
-            print(self._details._diagnostic_msg)
-
     def __del__(self) -> None:
         self._lock.release()
 
@@ -258,9 +259,9 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def make_model_instance(device: str, jit: bool) -> None:
+    def make_model_instance(test: str, device: str, jit: bool, batch_size: Optional[int]=None, extra_args: List[str]=[]) -> None:
         Model = globals()["Model"]
-        model = Model(device=device, jit=jit)
+        model = Model(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         import gc
         gc.collect()
@@ -275,6 +276,18 @@ class ModelTask(base_task.TaskBase):
             "model": model,
             "maybe_sync": maybe_sync,
         })
+
+    # =========================================================================
+    # == Get Model attribute in the child process =============================
+    # =========================================================================
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def get_model_attribute(attr: str) -> Any:
+        model = globals()["model"]
+        if hasattr(model, attr):
+            return getattr(model, attr)
+        else:
+            return None
 
     def gc_collect(self) -> None:
         self.worker.run("""
@@ -296,20 +309,14 @@ class ModelTask(base_task.TaskBase):
     def set_train(self) -> None:
         self.worker.run("model.set_train()")
 
-    def train(self) -> None:
+    def invoke(self) -> None:
         self.worker.run("""
-            model.train()
+            model.invoke()
             maybe_sync()
         """)
 
     def set_eval(self) -> None:
         self.worker.run("model.set_eval()")
-
-    def eval(self) -> None:
-        self.worker.run("""
-            model.eval()
-            maybe_sync()
-        """)
 
     def extract_details_train(self) -> None:
         self._details.metadata["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
@@ -354,6 +361,21 @@ class ModelTask(base_task.TaskBase):
             module(**example_inputs)
         else:
             module(*example_inputs)
+
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def check_eval_output() -> None:
+        instance = globals()["model"]
+        import torch
+        assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."
+        out = instance.invoke()
+        model_name = getattr(instance, 'name', None)
+        if not isinstance(out, tuple):
+            raise RuntimeError(f'Model {model_name} eval test output is not a tuple')
+        for ind, element in enumerate(out):
+            if not isinstance(element, torch.Tensor):
+                raise RuntimeError(f'Model {model_name} eval test output is tuple, but'
+                                   f' its {ind}-th element is not a Tensor.')
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod

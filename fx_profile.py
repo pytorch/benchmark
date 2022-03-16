@@ -174,7 +174,7 @@ def iter_models(args):
                 benchmark_cls.name in SKIP):
             continue
         try:
-            benchmark = benchmark_cls(device=args.device, jit=False)
+            benchmark = benchmark_cls(test="eval", device=args.device, jit=False)
             model, example_inputs = benchmark.get_module()
             model.eval()
             gc.collect()

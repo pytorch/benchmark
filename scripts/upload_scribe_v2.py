@@ -47,19 +47,6 @@ TORCHBENCH_V2_SCORE_SCHEMA = [
 def decorate_torchbench_score_schema(schema):
     return f"torchbench_score_{schema}"
 
-def rds_submit(data):
-    i, n, table, chunk = data
-    try:
-        from scribe import rds_write
-    except ImportError:
-        # If the utils haven't been grabbed from pytorch/pytorch/tools/stats/scribe.py,
-        # give up
-        print("Unable to import rds utilities, download them from https://github.com/pytorch/pytorch/raw/master/tools/stats/scribe.py")
-        return
-    rds_write(table, chunk)
-    print(f"[rds] Wrote chunk {i} / {n}")
-
-
 class ScribeUploader:
     def __init__(self, category):
         self.category = category
@@ -86,55 +73,7 @@ class ScribeUploader:
             cmd = ['scribe_cat', self.category, json_str]
             subprocess.run(cmd)
 
-    def upload_rds(self, messages: list):
-        """
-        Upload Scribe messages to the DB behind https://metrics.pytorch.org.
-        """
-        try:
-            from scribe import register_rds_schema
-        except ImportError:
-            # If the utils haven't been grabbed from pytorch/pytorch/tools/stats/scribe.py,
-            # give up
-            print("Unable to import rds utilities, download them from https://github.com/pytorch/pytorch/raw/master/tools/stats/scribe.py")
-            return
-
-        # Flatten schema and re-name the types into what RDS can handle
-        flat_schema = {}
-        scuba_name_remap = {
-            "int": "int",
-            "float": "float",
-            "normal": "string",
-        }
-        for type, field_names in self.schema.items():
-            for field_name in field_names:
-                flat_schema[field_name] = scuba_name_remap[type]
-        register_rds_schema(self.category, flat_schema)
-
-        # Flatten each message into a key-value map and upload them
-        def flatten_message(message):
-            flat = {}
-            for type_values in message.values():
-                for field, value in type_values.items():
-                    flat[field] = value
-            return flat
-        messages = [flatten_message(m) for m in messages]
-
-        def chunks(lst, n):
-            """Yield successive n-sized chunks from lst."""
-            for i in range(0, len(lst), n):
-                yield lst[i:i + n]
-
-        # messages is too large to send in one batch due to AWS lambda
-        # limitations on payload size, so break it up and send it in parallel
-        args = []
-        for i, chunk in enumerate(chunks(messages, 100)):
-            args.append((i, len(messages) / 100, self.category, chunk))
-
-        with multiprocessing.Pool(20) as p:
-            p.map(rds_submit, args)
-
     def upload(self, messages: list):
-        self.upload_rds(messages)
         if os.environ.get('SCRIBE_INTERN'):
             return self._upload_intern(messages)
         access_token = os.environ.get("SCRIBE_GRAPHQL_ACCESS_TOKEN")

@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import signal
 import textwrap
 import typing
 
@@ -216,6 +217,15 @@ class TestBenchmarkWorker(TestCase):
         worker = subprocess_worker.SubprocessWorker()
         self._generic_worker_tests(worker)
         self._test_child_trace_exception(worker)
+
+    def test_subprocess_worker_segv_handling(self):
+        worker = subprocess_worker.SubprocessWorker(timeout=1)
+        with self.assertRaisesRegex(OSError, f"Subprocess terminates with code {int(signal.SIGSEGV)}"):
+            worker.run("""
+                import os
+                import signal
+                os.kill(os.getpid(), signal.SIGSEGV)
+            """)
 
     def test_subprocess_worker_fault_handling(self):
         worker = subprocess_worker.SubprocessWorker(timeout=1)

@@ -1,13 +1,17 @@
-import json
 import os
-import pandas as pd
-import typing
-from  collections.abc import Iterable
 import torch
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
-import os
+from typing import ContextManager, Optional, List, Tuple
+from torchbenchmark.util.extra_args import parse_args, apply_args
+from torchbenchmark.util.env_check import set_random_seed
+
+class PostInitProcessor(type):
+    def __call__(cls, *args, **kwargs):
+        obj = type.__call__(cls, *args, **kwargs)
+        obj.__post__init__()
+        return obj
 
 @contextmanager
 def no_grad(val):
@@ -21,19 +25,81 @@ def no_grad(val):
     finally:
         torch.set_grad_enabled(old_state)
 
-class BenchmarkModel():
+@contextmanager
+def nested(*contexts):
+    """
+    Chain and apply a list of contexts
+    """
+    with ExitStack() as stack:
+        for ctx in contexts:
+            stack.enter_context(ctx())
+        yield contexts
+
+class BenchmarkModel(metaclass=PostInitProcessor):
+    DEFAULT_TRAIN_BSIZE: Optional[int] = None
+    DEFAULT_EVAL_BSIZE: Optional[int] = None
+
+    test: str
+    device: str
+    jit: bool
+    batch_size: int
+    extra_args: List[str]
+    run_contexts: List[ContextManager]
+
     """
     A base class for adding models to torch benchmark.
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
-    def __init__(self, *args, **kwargs): 
-        pass
+    def __init__(self, test: str, device: str, jit: bool=False, batch_size: Optional[int]=None, extra_args: List[str]=[]):
+        self.test = test
+        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
+        self.device = device
+        self.jit = jit
+        self.batch_size = batch_size
+        if not self.batch_size:
+            self.batch_size = self.DEFAULT_TRAIN_BSIZE if test == "train" else self.DEFAULT_EVAL_BSIZE
+            # If the model doesn't implement test or eval test
+            # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
+            if not self.batch_size:
+                raise NotImplementedError(f"Test {test} is not implemented.")
+        # Check if customizing batch size is supported
+        if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
+            if test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
+                raise NotImplementedError("Model doesn't support customizing batch size.")
+            elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
+                raise NotImplementedError("Model doesn't support customizing batch size.")
+        self.extra_args = extra_args
+        # contexts to run in the test function
+        self.run_contexts = []
+        set_random_seed()
 
-    def train(self):
-        raise NotImplementedError()
+    # Run the post processing for model acceleration
+    def __post__init__(self):
+        # sanity checks of the options
+        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
+        self.extra_args = parse_args(self, self.extra_args)
+        apply_args(self, self.extra_args)
 
-    def eval(self):
-        raise NotImplementedError()
+    def add_context(self, context_fn):
+        ctx = context_fn()
+        assert isinstance(ctx, ContextManager), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
+        self.run_contexts.append(context_fn)
+
+    # Default implementation for replacing the model
+    def set_module(self, new_model):
+        if hasattr(self, 'model') and isinstance(self.model, torch.nn.Module):
+            self.model = new_model
+        else:
+            raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
+
+    def invoke(self) -> Optional[Tuple[torch.Tensor]]:
+        out = None
+        with nested(*self.run_contexts):
+            if self.test == "train":
+                self.train()
+            elif self.test == "eval":
+                out = self.eval()
+        return out
 
     def set_eval(self):
         self._set_mode(False)
