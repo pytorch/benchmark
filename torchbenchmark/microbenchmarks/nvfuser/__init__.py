@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from typing import Any, List, Tuple
 from torch.testing import make_tensor
+import argparse
 import random
 import torch
 import time
@@ -94,6 +95,13 @@ def run_test(ir, inputs, *, warmup_runs=10, test_runs=20) -> float:
     return out
 
 
+def parse_fusers(extra_args: List[str]):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--fusers", nargs="*", default=[], help='List of fusers to run tests on (options include "no_fuser", "fuser0", "fuser1", "fuser2")')
+    args = parser.parse_args(extra_args)
+    return args.fusers
+
+
 class NVFuserBenchmark():
     def __init__(self, name, ir, warmup_runs = 10, test_runs = 20):
         # TODO - random seed?
@@ -114,7 +122,19 @@ class NVFuserBenchmark():
         return inputs
 
 
-def get_nvfuser_microbenchmarks():
+def run_nvfuser_microbenchmarks(filters: List[str], extra_args: List[str]):
     from torchbenchmark.microbenchmarks.nvfuser.ir import ir_list
     benchmarks = [NVFuserBenchmark(name, ir) for name, ir in ir_list]
-    return benchmarks
+    if len(filters) > 0:
+        benchmarks = [x for x in benchmarks if x.name in filters]
+
+    fusers = parse_fusers(extra_args)
+    if len(fusers) == 0:
+        fusers = ["no_fuser", "fuser1", "fuser2"]
+
+    for b in benchmarks:
+        outputs = []
+        for fuser in fusers:
+            inputs = b.get_inputs()
+            outputs.append((fuser, b.run_test(inputs, fuser)))
+        print(f"{b.name}:", "; ".join(f"{name} = {time:.3f} ms" for name, time in outputs))
