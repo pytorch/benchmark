@@ -27,8 +27,8 @@ from torchbenchmark.util import gitutils
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 TORCHBENCH_DEPS = {
-    "torchtext": os.path.expandvars("${HOME}/text"),
-    "torchvision": os.path.expandvars("${HOME}/vision"),
+    "torchtext": (os.path.expandvars("${HOME}/text"), "main"),
+    "torchvision": (os.path.expandvars("${HOME}/vision"), "main"),
 }
 
 def exist_dir_path(string):
@@ -152,8 +152,7 @@ class TorchSource:
     # Update pytorch, torchtext, and torchvision repo
     def update_repos(self):
         repos = [(self.srcpath, "master")]
-        for value in TORCHBENCH_DEPS.values():
-            repos.append((value, "main"))
+        repos.extend(TORCHBENCH_DEPS.values())
         for (repo, branch) in repos:
             gitutils.clean_git_repo(repo)
             assert gitutils.update_git_repo(repo, branch), f"Failed to update {branch} branch of repository {repo}."
@@ -195,10 +194,12 @@ class TorchSource:
     # Checkout the last commit of dependencies on date
     def checkout_deps(self, cdate: datetime):
         for pkg in TORCHBENCH_DEPS:
-            dep_commit = gitutils.get_git_commit_on_date(TORCHBENCH_DEPS[pkg], cdate)
+            pkg_path, branch = TORCHBENCH_DEPS[pkg]
+            gitutils.checkout_git_branch(pkg_path, branch)
+            dep_commit = gitutils.get_git_commit_on_date(pkg_path, cdate)
             print(f"Checking out {pkg} commit {dep_commit} ...", end="", flush=True)
             assert dep_commit, "Failed to find the commit on {cdate} of {pkg}"
-            assert gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], dep_commit), "Failed to checkout commit {commit} of {pkg}"
+            assert gitutils.checkout_git_commit(pkg_path, dep_commit), "Failed to checkout commit {commit} of {pkg}"
             print("done.")
     
     # Install dependencies such as torchtext and torchvision
@@ -206,12 +207,12 @@ class TorchSource:
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
         command = "python setup.py install"
-        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"], env=build_env, shell=True)
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"][0], env=build_env, shell=True)
         print("done")
         # Build torchtext
         print(f"Building torchtext ...", end="", flush=True)
         command = "python setup.py clean install"
-        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"], env=build_env, shell=True)
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"][0], env=build_env, shell=True)
         print("done")
 
     def _build_lazy_tensor(self, commit: Commit, build_env: Dict[str, str]):
