@@ -7,7 +7,8 @@ import torch
 import time
 
 
-# TODO - a lot of this was copied from pytorch/jit/scripts/log_extract.py, should we put it somewhere in torch? (and where?)
+# TODO - a lot of this was copied from pytorch/jit/scripts/log_extract.py,
+# should we put it somewhere in torch? (and where?)
 
 @contextmanager
 def no_fuser(*args, **kwargs):
@@ -71,6 +72,7 @@ def time_cuda(fn, inputs, test_runs):
     torch.cuda.synchronize()
     return start_event.elapsed_time(end_event) / test_runs
 
+
 def time_cpu(fn, inputs, test_runs):
     s = time.perf_counter()
     for _ in range(test_runs):
@@ -89,7 +91,7 @@ def run_test(ir, inputs, *, warmup_runs=10, test_runs=20) -> float:
         if isinstance(input, torch.Tensor):
             is_cpu = input.device.type == "cpu"
             break
-    assert is_cpu != None
+    assert is_cpu is not None
 
     out = time_cpu(graph, inputs, test_runs) if is_cpu else time_cuda(graph, inputs, test_runs)
     return out
@@ -97,13 +99,17 @@ def run_test(ir, inputs, *, warmup_runs=10, test_runs=20) -> float:
 
 def parse_fusers(extra_args: List[str]):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fusers", nargs="*", default=[], help='List of fusers to run tests on (options include "no_fuser", "fuser0", "fuser1", "fuser2")')
+    parser.add_argument(
+        "--fusers",
+        nargs="*",
+        default=[],
+        help='List of fusers to run tests on (options include "no_fuser", "fuser0", "fuser1", "fuser2")')
     args = parser.parse_args(extra_args)
     return args.fusers
 
 
 class NVFuserBenchmark():
-    def __init__(self, name, ir, warmup_runs = 10, test_runs = 20):
+    def __init__(self, name, ir, warmup_runs=10, test_runs=20):
         # TODO - random seed?
         self.name = name
         self.ir = ir
