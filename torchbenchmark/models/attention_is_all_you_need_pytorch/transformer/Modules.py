@@ -19,6 +19,8 @@ class ScaledDotProductAttention(nn.Module):
 
         if mask is not None:
             if attn.dtype == torch.float16:
+                # -1e9 is overflow in fp16. It needs to be set a min.
+                # Theoretically, the mask for empty token needs to be set as -inf. Check https://arxiv.org/pdf/1706.03762.pdf
                 min_mask = torch.finfo(torch.float16).min
             else:
                 min_mask = -1e9
