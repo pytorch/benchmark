@@ -32,8 +32,6 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 2
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if jit:
-            raise NotImplementedError("Detection Maskrcnn does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
@@ -60,10 +58,6 @@ class Model(BenchmarkModel):
             return self.model, (data, )
 
     def train(self, niter=1):
-        if not self.device == "cuda":
-            raise NotImplementedError("Only CUDA is supported by this model")
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
         self.model.train()
         with EventStorage():
             for idx, data in zip(range(niter), self.example_inputs):
@@ -74,10 +68,6 @@ class Model(BenchmarkModel):
                 self.optimizer.zero_grad()
 
     def eval(self, niter=2) -> Tuple[torch.Tensor]:
-        if not self.device == "cuda":
-            raise NotImplementedError("Only CUDA is supported by this model")
-        if self.jit:
-            raise NotImplementedError("JIT is not supported by this model")
         self.model.eval()
         with torch.no_grad():
             for idx, data in zip(range(niter), self.example_inputs):

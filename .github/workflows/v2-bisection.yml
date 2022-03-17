@@ -32,6 +32,8 @@ jobs:
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm
           # Install magma
           conda install -y -c pytorch "${MAGMA_VERSION}"
+          # Pin ffmpeg version to 4.4.1. See: https://github.com/pytorch/vision/issues/5616
+          conda install -y ffmpeg=4.4.1
       - name: Bisection
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"

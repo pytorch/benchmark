@@ -15,9 +15,9 @@ import os
 import pytest
 import time
 from components._impl.workers import subprocess_worker
-from torchbenchmark import _list_model_paths, ModelTask
+from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
 from torchbenchmark.util.machine_config import get_machine_state
-
+from torchbenchmark.util.metadata_utils import skip_by_metadata
 
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
@@ -48,6 +48,9 @@ class TestBenchNetwork:
 
     def test_train(self, model_path, device, compiler, benchmark):
         try:
+            if skip_by_metadata(test="train", device=device, jit=(compiler == 'jit'), \
+                                extra_args=[], metadata=get_metadata_from_yaml(model_path)):
+                raise NotImplementedError("Test skipped by its metadata.")
             task = ModelTask(model_path)
             if not task.model_details.exists:
                 return  # Model is not supported.
@@ -62,6 +65,9 @@ class TestBenchNetwork:
 
     def test_eval(self, model_path, device, compiler, benchmark, pytestconfig):
         try:
+            if skip_by_metadata(test="eval", device=device, jit=(compiler == 'jit'), \
+                                extra_args=[], metadata=get_metadata_from_yaml(model_path)):
+                raise NotImplementedError("Test skipped by its metadata.")
             task = ModelTask(model_path)
             if not task.model_details.exists:
                 return  # Model is not supported.

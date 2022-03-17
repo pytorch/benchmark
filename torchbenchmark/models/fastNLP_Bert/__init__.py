@@ -43,8 +43,6 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if jit:
-            raise NotImplementedError("FastNLP-Bert model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.input_dir = CMRC2018_DIR
@@ -100,8 +98,6 @@ class Model(BenchmarkModel):
 
     # Sliced version of fastNLP.Tester._test()
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self._mode(self.model, is_test=True)
         self._predict_func = self.model.forward
         with torch.no_grad():
@@ -114,8 +110,6 @@ class Model(BenchmarkModel):
 
     # Sliced version of fastNLP.Trainer._train()
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("PyTorch JIT compiler is not able to compile this model.")
         self.step = 0
         self.n_epochs = niter
         self._mode(self.model, is_test=False)

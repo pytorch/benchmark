@@ -4,3 +4,6 @@ eval_nograd: true
 optimized_for_inference: false
 train_benchmark: false
 train_deterministic: false
+not_implemented:
+  # DrQ model does not support JIT
+  - jit: true

@@ -67,9 +67,6 @@ class Model(BenchmarkModel):
         if test == "train":
             self.model.train()
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
-            # TODO: enable GPU training after it is supported by infra
-            #       see GH issue https://github.com/pytorch/benchmark/issues/652
-            raise NotImplementedError("Disabled train test because of insuffcient GPU memory on T4.")
         elif test == "eval":
             self.model.eval()
 
@@ -86,10 +83,6 @@ class Model(BenchmarkModel):
         return (sources, estimates)
 
     def train(self, niter=1):
-        if self.device == "cpu":
-            raise NotImplementedError("Disable CPU training because it is too slow (> 1min)")
-        if self.device == "cuda":
-            raise NotImplementedError("Disable GPU training because it causes CUDA OOM on T4")
         for _ in range(niter):
             sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)

@@ -74,8 +74,6 @@ class Model(BenchmarkModel):
         self.agent.actor = new_model
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         episode = episode_steps = 0
         for _ in range(niter):
             episode_steps += 1
@@ -104,8 +102,6 @@ class Model(BenchmarkModel):
             self.step += 1
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError()
         for _ in range(niter):
             reward, dist = self.evaluate(self.env, self.agent.select_action)
         return (torch.tensor(reward), torch.tensor(dist))

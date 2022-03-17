@@ -3,6 +3,8 @@ import os
 import zipfile
 import tarfile
 import gzip
+import sys
+import csv
 import shutil
 from functools import partial
 
@@ -10,8 +12,35 @@ import torch.utils.data
 
 from torchtext.data.utils import RandomShuffler
 from .example import Example
-from torchtext.utils import download_from_url, unicode_csv_reader
+from torchtext.utils import download_from_url
 
+def unicode_csv_reader(unicode_csv_data, **kwargs):
+    r"""Since the standard csv library does not handle unicode in Python 2, we need a wrapper.
+    Borrowed and slightly modified from the Python docs:
+    https://docs.python.org/2/library/csv.html#csv-examples
+    Args:
+        unicode_csv_data: unicode csv data (see example below)
+    Examples:
+        >>> from torchtext.utils import unicode_csv_reader
+        >>> import io
+        >>> with io.open(data_path, encoding="utf8") as f:
+        >>>     reader = unicode_csv_reader(f)
+    """
+
+    # Fix field larger than field limit error
+    maxInt = sys.maxsize
+    while True:
+        # decrease the maxInt value by factor 10
+        # as long as the OverflowError occurs.
+        try:
+            csv.field_size_limit(maxInt)
+            break
+        except OverflowError:
+            maxInt = int(maxInt / 10)
+    csv.field_size_limit(maxInt)
+
+    for line in csv.reader(unicode_csv_data, **kwargs):
+        yield line
 
 class Dataset(torch.utils.data.Dataset):
     """Defines a dataset composed of Examples along with its Fields.
