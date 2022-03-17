@@ -22,7 +22,7 @@ class Model(BenchmarkModel):
 
         if device == 'cpu' or jit:
             # TODO - currently load_model assumes cuda
-            return
+            raise NotImplementedError("Tacotron2 doesn't support CPU or JIT because load_model assumes CUDA")
 
         self.hparams = self.create_hparams(batch_size=self.batch_size)
         self.model = load_model(self.hparams).to(device=device)
@@ -119,21 +119,9 @@ class Model(BenchmarkModel):
         return hparams
 
     def get_module(self):
-        if self.device == 'cuda':
-            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
-        if self.device == 'cpu':
-            raise NotImplementedError('CPU not supported')
-        if self.jit:
-            raise NotImplementedError('JIT not supported')
         return self.model, (self.example_inputs,)
 
     def train(self, niter=1):
-        if self.device == 'cuda':
-            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-        if self.jit:
-            raise NotImplementedError('JIT not supported')
         self.model.train()
         for _ in range(niter):
             self.model.zero_grad()
@@ -144,12 +132,6 @@ class Model(BenchmarkModel):
             self.optimizer.step()
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.device == 'cuda':
-            raise NotImplementedError('CUDA disabled due to CUDA out of memory on CI GPU')
-        if self.device == 'cpu':
-            raise NotImplementedError('CPU not supported')
-        if self.jit:
-            raise NotImplementedError('JIT not supported')
         self.model.eval()
         for _ in range(niter):
             out = self.model(self.example_inputs)

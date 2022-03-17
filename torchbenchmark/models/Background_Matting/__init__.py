@@ -24,12 +24,19 @@ def _collate_filter_none(batch):
     batch = list(filter(lambda x: x is not None, batch))
     return torch.utils.data.dataloader.default_collate(batch)
 
+def _create_data_dir():
+    data_dir = Path(__file__).parent.joinpath(".data")
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.OTHER_COMPUTER_VISION
     # Original btach size: 4
     # Original hardware: unknown
     # Source: https://arxiv.org/pdf/2004.00626.pdf
     DEFAULT_TRAIN_BSIZE = 4
+    DEFAULT_EVAL_BSIZE = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -43,14 +50,14 @@ class Model(BenchmarkModel):
         })
 
         scriptdir = os.path.dirname(os.path.realpath(__file__))
-        csv_file = "Video_data_train_processed.csv"
+        csv_file_path = _create_data_dir().joinpath("Video_data_train_processed.csv")
         root = str(Path(__file__).parent)
         with open(f"{root}/Video_data_train.csv", "r") as r:
-            with open(csv_file, "w") as w:
+            with open(csv_file_path, "w") as w:
                 w.write(r.read().format(scriptdir=scriptdir))
         data_config_train = {
             'reso': (self.opt.resolution, self.opt.resolution)}
-        traindata = VideoData(csv_file=csv_file,
+        traindata = VideoData(csv_file=csv_file_path,
                               data_config=data_config_train, transform=None)
         train_loader = torch.utils.data.DataLoader(
             traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=0, collate_fn=_collate_filter_none)
@@ -121,7 +128,11 @@ class Model(BenchmarkModel):
             break
 
     def get_module(self):
-        raise NotImplementedError()
+        # use netG (generation) for the return module
+        for _i, data in enumerate(self.train_data):
+            bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
+                'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
+            return self.netG, (image.to(self.device), bg.to(self.device), seg.to(self.device), multi_fr.to(self.device))
 
     # eval() isn't implemented
     # train() is on by default
@@ -129,9 +140,6 @@ class Model(BenchmarkModel):
         pass
 
     def train(self, niter=1):
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         self.netG.train()
         self.netD.train()
         lG, lD, GenL, DisL_r, DisL_f, alL, fgL, compL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0

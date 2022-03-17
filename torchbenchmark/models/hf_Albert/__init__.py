@@ -30,16 +30,12 @@ class Model(BenchmarkModel):
             self.model.eval()
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         return self.model, (self.example_inputs["input_ids"], )
 
     def enable_fp16_half(self):
         self.model = self.model.half()
 
     def train(self, niter=3):
-        if self.jit:
-            raise NotImplementedError()
         for _ in range(niter):
             outputs = self.model(**self.example_inputs)
             loss = outputs.loss
@@ -47,8 +43,6 @@ class Model(BenchmarkModel):
             self.optimizer.step()
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError()
         with torch.no_grad():
             for _ in range(niter):
                 out = self.model(**self.example_inputs)
