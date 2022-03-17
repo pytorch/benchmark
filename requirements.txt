@@ -13,5 +13,4 @@ transformers == 4.12.1
 MonkeyType
 psutil
 pyyaml
-numpy
 scipy  # for lazy_bench.py
