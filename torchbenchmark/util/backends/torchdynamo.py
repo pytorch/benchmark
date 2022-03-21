@@ -46,5 +46,5 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         optimize_ctx = torchdynamo.eval_frame._optimize_catch_errors(
             torchdynamo.testing.debug_insert_nops, nopython=args.nopython
         )
-    model.add_context(optimize_ctx)
+    model.add_context(lambda: optimize_ctx)
     torchdynamo.reset()
