@@ -60,7 +60,7 @@ def lower_to_trt(
     Returns:
     A torch.nn.Module lowered by TensorRT.
     """
-    from fx2trt_oss.fx import LowerSetting
+    from fx2trt_oss.fx.lower import LowerSetting
     from fx2trt_oss.fx.lower import Lowerer
     lower_setting = LowerSetting(
         max_batch_size=max_batch_size,
