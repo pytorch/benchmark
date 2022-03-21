@@ -80,6 +80,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # if the args contain "--torchdynamo", parse torchdynamo args instead
         if "--torchdynamo" in self.extra_args:
+            self.dynamo = True
             self.extra_args.remove("--torchdynamo")
             self.extra_args = parse_torchdynamo_args(self, self.extra_args)
             apply_torchdynamo_args(self, self.extra_args)
