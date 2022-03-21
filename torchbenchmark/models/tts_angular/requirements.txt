@@ -1,7 +1,5 @@
 numpy
 scipy
-numba
-librosa
 phonemizer
 unidecode
 Pillow
@@ -16,5 +14,4 @@ nose
 cardboardlint
 pylint
 gdown
-umap-learn
 pyyaml

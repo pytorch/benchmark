@@ -1,6 +1,6 @@
 name: TorchBench Correctness Testing
 on:
-  pull_request:
+  workflow_dispatch:
 env:
   PYTHON_VERSION: "3.8"
   CUDA_VERSION: "11.3"

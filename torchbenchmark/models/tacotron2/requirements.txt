@@ -1,7 +1,5 @@
 numpy
 inflect
-librosa
-numba
 scipy
 Unidecode
 pillow

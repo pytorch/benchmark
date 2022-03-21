@@ -1071,4 +1071,4 @@ def plot_results(start=0, stop=0, bucket='', id=()):  # from utils.utils import 
             print('Warning: Plotting error for %s, skipping file' % f)
 
     ax[1].legend()
-    fig.savefig('results.png', dpi=200)
+    # fig.savefig('results.png', dpi=200)

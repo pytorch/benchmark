@@ -11,6 +11,9 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool
     group.add_argument('--no-' + name, dest=name, action='store_false')
     parser.set_defaults(**{name: default_value})
 
+def is_timm_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'TIMM_MODEL') and model.TIMM_MODEL
+
 def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
 
@@ -22,7 +25,7 @@ def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
 
 def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> bool:
     if fp16 == "half":
-        return (is_torchvision_model(model) or is_hf_model(model)) and model.test == 'eval' and model.device == 'cuda'
+        return (is_torchvision_model(model) or is_hf_model(model) or is_timm_model(model)) and model.test == 'eval' and model.device == 'cuda'
     if fp16 == "amp":
         is_cuda_eval_test = (model.test == 'eval' and model.device == 'cuda')
         support_amp = hasattr(model, "enable_amp")
@@ -31,7 +34,7 @@ def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> 
 
 # torchvision models uses fp16 half mode by default, others use fp32
 def get_fp16_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
-    if (is_torchvision_model(model) or is_hf_model(model)) and model.test == 'eval' and model.device == 'cuda':
+    if (is_torchvision_model(model) or is_hf_model(model) or is_timm_model(model)) and model.test == 'eval' and model.device == 'cuda':
         return "half"
     return "no"
 
