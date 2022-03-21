@@ -78,20 +78,23 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def __post__init__(self):
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
-        # if test is eval, check correctness
-        if self.test == "eval":
-            self.eager_output = self.invoke()
         self.dargs, opt_args = parse_decoration_args(self.extra_args)
-        apply_decoration_args(self, self.dargs)
         # if the args contain "--torchdynamo", parse torchdynamo args
         if "--torchdynamo" in opt_args:
             self.dynamo = True
             opt_args.remove("--torchdynamo")
             self.opt_args = parse_torchdynamo_args(self, opt_args)
-            apply_torchdynamo_args(self, self.opt_args)
         else:
             self.dynamo = False
             self.opt_args = parse_opt_args(self, opt_args)
+        # if test is eval, check correctness
+        if self.test == "eval":
+            self.eager_output = self.invoke()
+        # apply decoration and optimization args
+        apply_decoration_args(self, self.dargs)
+        if self.dynamo:
+            apply_torchdynamo_args(self, self.opt_args)
+        else:
             apply_opt_args(self, self.opt_args)
         # if test is eval, check correctness
         if self.test == "eval":
