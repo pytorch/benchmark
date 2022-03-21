@@ -11,6 +11,9 @@ class NullContext:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
+def help(fn):
+    return fn.__doc__
+
 def null_experiment(args, model_iter_fn, model, example_inputs):
     """
     A no-op experiment useful for making sure TorchBenchmark alone works properly.
@@ -23,15 +26,15 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ex
     args = parser.parse_args(extra_args)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--nothing", action="store_true", help=help(null_experiment))
-    parser.add_argument(
-        "--nopython", action="store_true", help="Turn graph breaks into errors"
-    )
     group.add_argument(
         "--nops",
         action="store_true",
         help="Test that bytecode rewriting works properly.",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--nopython", action="store_true", help="Turn graph breaks into errors"
+    )
+    args = parser.parse_args(extra_args)
     return args
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):

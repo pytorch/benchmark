@@ -81,6 +81,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         # if the args contain "--torchdynamo", parse torchdynamo args instead
         if "--torchdynamo" in self.extra_args:
             self.extra_args.remove("--torchdynamo")
+            print(self.extra_args)
             self.extra_args = parse_torchdynamo_args(self, self.extra_args)
             apply_torchdynamo_args(self, self.extra_args)
         else:
