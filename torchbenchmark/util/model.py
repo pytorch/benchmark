@@ -85,6 +85,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.extra_args = parse_torchdynamo_args(self, self.extra_args)
             apply_torchdynamo_args(self, self.extra_args)
         else:
+            self.dynamo = False
             self.extra_args = parse_args(self, self.extra_args)
             apply_args(self, self.extra_args)
 
