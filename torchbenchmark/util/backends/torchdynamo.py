@@ -21,9 +21,8 @@ def null_experiment(args, model_iter_fn, model, example_inputs):
 
     return []
 
-def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> argparse.Namespace:
+def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dyamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    args = parser.parse_args(extra_args)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--nothing", action="store_true", help=help(null_experiment))
     group.add_argument(
@@ -34,7 +33,7 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ex
     parser.add_argument(
         "--nopython", action="store_true", help="Turn graph breaks into errors"
     )
-    args = parser.parse_args(extra_args)
+    args = parser.parse_args(dyamo_args)
     return args
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
