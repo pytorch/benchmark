@@ -87,7 +87,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.dynamo = False
             self.opt_args = parse_opt_args(self, opt_args)
         # if test is eval and opt_args is not empty, check correctness
-        if self.test == "eval" and vars(self.opt_args):
+        if self.device == "cuda" and self.test == "eval" and vars(self.opt_args):
             self.eager_output = self.invoke()
         # apply decoration and optimization args
         apply_decoration_args(self, self.dargs)
@@ -96,7 +96,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             apply_opt_args(self, self.opt_args)
         # if test is eval, check correctness
-        if self.test == "eval" and vars(self.opt_args):
+        if self.device == "cuda" and self.test == "eval" and vars(self.opt_args):
             self.output = self.invoke()
             self.correctness = correctness_check(self.eager_output, self.output)
             del self.eager_output
