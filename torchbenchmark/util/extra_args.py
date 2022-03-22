@@ -83,8 +83,6 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
         import torch
         model.add_context(lambda: torch.jit.fuser(args.fuser))
     if args.jit:
-        if model.test == "eval":
-            model.eager_output = model.invoke()
         # model can handle jit code themselves through the 'jit_callback' callback function
         if hasattr(model, 'jit_callback'):
             model.jit_callback()
@@ -93,17 +91,13 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
             module, exmaple_inputs = model.get_module()
             model.set_module(enable_jit(model=module, example_inputs=exmaple_inputs, test=model.test))
     if args.fx2trt:
-        model.eager_output = model.invoke()
         if args.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")
         module, exmaple_inputs = model.get_module()
-        # get the output tensor of eval
-        model.eager_output = model.eval()
         fp16 = not (model.dargs.fp16 == "no")
         model.set_module(enable_fx2trt(model.batch_size, fp16=fp16, model=module, example_inputs=exmaple_inputs,
                                        is_hf_model=is_hf_model(model), hf_max_length=get_hf_maxlength(model)))
     if args.torch_trt:
-        model.eager_output = model.invoke()
         module, exmaple_inputs = model.get_module()
         precision = 'fp16' if not model.dargs.fp16 == "no" else 'fp32'
         model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
