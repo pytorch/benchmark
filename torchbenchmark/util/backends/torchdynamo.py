@@ -2,6 +2,7 @@
 Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 """
 import argparse
+import functools
 from typing import List
 
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dyamo_args: List[str]) -> argparse.Namespace:
@@ -15,7 +16,5 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
     import torchdynamo
-    backend = args.torchdynamo
-    optimize_ctx = torchdynamo.optimize(backend)
-    model.add_context(lambda: optimize_ctx)
+    model.add_context(functools.partial(torchdynamo.optimize, args.torchdynamo))
     torchdynamo.reset()
