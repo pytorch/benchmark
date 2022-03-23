@@ -4,6 +4,14 @@ from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.jit import enable_jit
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
 
+def enable_opt_args(opt_args: argparse.Namespace) -> bool:
+    "Check if any of the optimizations is enabled."
+    opt_args_dict = vars(opt_args)
+    for k in opt_args_dict:
+        if opt_args_dict[k]:
+            return True
+    return False
+
 def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool=True):
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--' + name, dest=name, action='store_true')
