@@ -105,8 +105,9 @@ def parse_fusers(extra_args: List[str]):
         default=[],
         choices=["no_fuser", "fuser0", "fuser1", "fuser2"],
         help="List of fusers to run tests on")
+    parser.add_argument("--filter", nargs="*", default=[], help='List of fuser microbenchmarks to test')
     args = parser.parse_args(extra_args)
-    return args.fusers
+    return args
 
 
 class NVFuserBenchmark():
@@ -131,10 +132,10 @@ class NVFuserBenchmark():
 def run_nvfuser_microbenchmarks(filters: List[str], extra_args: List[str]):
     from torchbenchmark.microbenchmarks.nvfuser.ir import ir_list
     benchmarks = [NVFuserBenchmark(name, ir) for name, ir in ir_list]
+    args = parse_fusers(extra_args)
+    filters, fusers = args.filters, args.fusers
     if len(filters) > 0:
         benchmarks = [x for x in benchmarks if x.name in filters]
-
-    fusers = parse_fusers(extra_args)
     if len(fusers) == 0:
         fusers = ["no_fuser", "fuser1", "fuser2"]
 
@@ -144,3 +145,6 @@ def run_nvfuser_microbenchmarks(filters: List[str], extra_args: List[str]):
             inputs = b.get_inputs()
             outputs.append((fuser, b.run_test(inputs, fuser)))
         print(f"{b.name}:", "; ".join(f"{name} = {time:.3f} ms" for name, time in outputs))
+
+def run(args: List[str]):
+    run_nvfuser_microbenchmarks(extra_args=args)
