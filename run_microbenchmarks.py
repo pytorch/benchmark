@@ -15,10 +15,10 @@ def run():
     args, bm_args = parser.parse_known_args()
 
     try:
-        microbenchmark = importlib.import_module(f"torchbenchmark.microbenchmarks.{args}")
+        microbenchmark = importlib.import_module(f"torchbenchmark.microbenchmarks.{args.bm_name}")
+        microbenchmark.run(bm_args)
     except ImportError as e:
         print(f"Failed to import microbenchmark module {args.bm_name}, error: {str(e)}")
-    microbenchmark.run(bm_args)
 
 if __name__ == "__main__":
     run()
