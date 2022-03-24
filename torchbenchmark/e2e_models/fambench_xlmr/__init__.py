@@ -37,7 +37,7 @@ class FAMBenchXLMREvalConfig:
     log_dir = os.path.join(CURRENT_DIR, ".data", "logs")
     config_flags=["--inference-only", f"--num-batches={nbatches}", f"--batch-size={batchsize}", \
                  f"--sequence-length={seqlength}", f"--vocab-size={vocabsize}", \
-                 f"--famconfig={config_name}", "--half-model", f"--warmup-batches={warmupbatches}" \
+                 f"--famconfig={config_name}", "--half-model", f"--warmup-batches={warmupbatches}", \
                  f"--logdir={log_dir}"]
 
 class Model(E2EBenchmarkModel):
@@ -48,13 +48,14 @@ class Model(E2EBenchmarkModel):
         self.implementation = "ootb"
         self.code_root = _get_fambench_test_root(self.name)
         if test == "eval":
-            self.config = FAMBenchXLMREvalConfig(batchsize=self.batch_size)
+            self.config = FAMBenchXLMREvalConfig()
+            self.config.batchsize = self.batch_size
             _create_data_dir(self.config.log_dir)
 
     def train(self):
         raise NotImplementedError("FAMBench XLMR train is not implemented yet.")
 
     def eval(self):
-        prog_args = [sys.executable, f"{self.name}/{self.sys.implementation}/{self.name}.py"]
+        prog_args = [sys.executable, f"{self.name}/{self.implementation}/{self.name}.py"]
         prog_args.extend(self.config.config_flags)
         subprocess.check_call(prog_args, cwd=self.code_root)
