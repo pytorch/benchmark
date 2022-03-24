@@ -42,6 +42,10 @@ class TorchVisionModel(BenchmarkModel):
             return flops, self.batch_size
         assert False, f"get_flops() only support eval or train mode, but get {self.test}. Please submit a bug report."
 
+    def gen_inputs(self):
+        while True:
+            yield (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
+
     def enable_fp16_half(self):
         self.model = self.model.half()
         self.example_inputs = (self.example_inputs[0].half(), )

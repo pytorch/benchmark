@@ -32,6 +32,10 @@ class TimmModel(BenchmarkModel):
         if device == 'cuda':
             torch.cuda.empty_cache()
 
+    def gen_inputs(self):
+        while True:
+            yield self._gen_input(self.batch_size)
+
     def _gen_input(self, batch_size):
         return torch.randn((batch_size,) + self.cfg.input_size, device=self.device)
 
