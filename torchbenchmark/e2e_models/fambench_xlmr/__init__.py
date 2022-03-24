@@ -1,5 +1,6 @@
 import os
 import sys
+import torch
 import subprocess
 from pathlib import Path
 from dataclasses import dataclass
@@ -44,12 +45,17 @@ class Model(E2EBenchmarkModel):
     DEFAULT_EVAL_BSIZE = FAMBenchXLMREvalConfig.batchsize
     def __init__(self, test: str, batch_size: Optional[int]=None, extra_args: List[str]=[]):
         super().__init__(test=test, batch_size=batch_size, extra_args=extra_args)
+        if not torch.cuda.available():
+            raise NotImplementedError("FAMBench only support running on Nvidia GPU.")
+        self.device = "cuda"
+        self.device_num = torch.cuda.device_count()
         self.name = "xlmr"
         self.implementation = "ootb"
         self.code_root = _get_fambench_test_root(self.name)
         if test == "eval":
             self.config = FAMBenchXLMREvalConfig()
             self.config.batchsize = self.batch_size
+            self.num_examples = self.config.nbatches * self.batch_size
             _create_data_dir(self.config.log_dir)
 
     def train(self):
