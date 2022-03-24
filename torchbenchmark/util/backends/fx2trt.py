@@ -1,9 +1,9 @@
 import torch
 from typing import Tuple, Optional
-from fx2trt_oss.fx.lower import lower_to_trt
 
 def enable_fx2trt(max_batch_size: int, fp16: bool, model: torch.nn.Module, example_inputs: Tuple[torch.tensor],
                   is_hf_model: bool=False, hf_max_length: Optional[int]=None) -> torch.nn.Module:
+    from fx2trt_oss.fx.lower import lower_to_trt
     # special enablement for huggingface models
     if is_hf_model:
         from transformers.utils.fx import symbolic_trace as hf_symbolic_trace
