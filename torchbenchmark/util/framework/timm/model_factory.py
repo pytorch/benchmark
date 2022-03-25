@@ -3,6 +3,7 @@ import typing
 import timm
 from torchbenchmark.util.model import BenchmarkModel
 from .timm_config import TimmConfig
+from typing import Generator, Tuple, Optional
 
 class TimmModel(BenchmarkModel):
     optimized_for_inference = True
@@ -32,9 +33,11 @@ class TimmModel(BenchmarkModel):
         if device == 'cuda':
             torch.cuda.empty_cache()
 
-    def gen_inputs(self):
-        while True:
-            yield self._gen_input(self.batch_size)
+    def gen_inputs(self) -> Tuple[Generator, Optional[int]]:
+        def _gen_inputs():
+            while True:
+                yield self._gen_input(self.batch_size)
+        return (_gen_inputs(), None)
 
     def _gen_input(self, batch_size):
         return torch.randn((batch_size,) + self.cfg.input_size, device=self.device)

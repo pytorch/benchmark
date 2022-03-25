@@ -1,10 +1,9 @@
 import torch
-import random
-import numpy as np
 import typing
 import torch.optim as optim
 import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
+from typing import Tuple, Generator, Optional
 
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
@@ -42,9 +41,11 @@ class TorchVisionModel(BenchmarkModel):
             return flops, self.batch_size
         assert False, f"get_flops() only support eval or train mode, but get {self.test}. Please submit a bug report."
 
-    def gen_inputs(self):
-        while True:
-            yield (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
+    def gen_inputs(self) -> Tuple[Generator, Optional[int]]:
+        def _gen_inputs():
+            while True:
+                yield (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
+        return (_gen_inputs(), None)
 
     def enable_fp16_half(self):
         self.model = self.model.half()
