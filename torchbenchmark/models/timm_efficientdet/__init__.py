@@ -84,6 +84,7 @@ class Model(BenchmarkModel):
         self.model = model.to(device)
         if args.channels_last:
             self.model = self.model.to(memory_format=torch.channels_last)
+        self.loader_train, self.loader_eval, self.evaluator, _, dataset_eval = create_datasets_and_loaders(args, model_config)
 
         if test == "train":
             self.optimizer = create_optimizer(args, model)
@@ -92,8 +93,6 @@ class Model(BenchmarkModel):
                 # Important to create EMA model after cuda(), DP wrapper, and AMP but before SyncBN and DDP wrapper
                 self.model_ema = ModelEmaV2(model, decay=args.model_ema_decay)
             self.lr_scheduler, self.num_epochs = create_scheduler(args, self.optimizer)
-
-            self.loader_train, self.loader_eval, self.evaluator, _, dataset_eval = create_datasets_and_loaders(args, model_config)
             if model_config.num_classes < self.loader_train.dataset.parser.max_label:
                 logging.error(
                     f'Model {model_config.num_classes} has fewer classes than dataset {self.loader_train.dataset.parser.max_label}.')
