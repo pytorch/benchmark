@@ -106,7 +106,7 @@ class Model(BenchmarkModel):
             self.loader = create_loader(
                     dataset_eval,
                     input_size=input_config['input_size'],
-                    batch_size=args.eval_batch_size,
+                    batch_size=args.batch_size,
                     use_prefetcher=args.prefetcher,
                     interpolation=args.eval_interpolation,
                     fill_color=input_config['fill_color'],
