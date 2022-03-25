@@ -55,7 +55,7 @@ def _create_example_model_instance(task: ModelTask, device: str):
             skip = True
     finally:
         if skip:
-            raise NotImplementedError("Model is not implemented on this device")
+            raise NotImplementedError(f"Model is not implemented on the device {device}")
 
 def _load_test(path, device):
 
