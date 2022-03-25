@@ -365,15 +365,6 @@ class ModelTask(base_task.TaskBase):
             module(**example_inputs)
         else:
             module(*example_inputs)
-        from torch.utils._pytree import tree_flatten
-        flat_args, _spec = tree_flatten(example_inputs)
-        new_inputs = next(model.gen_inputs())
-        new_flat_args, _spec = tree_flatten(new_inputs)
-        assert len(flat_args) == len(new_flat_args), \
-            f"Example inputs has length {len(flat_args)}, but gen_inputs() returns {len(new_flat_args)}"
-        for ind in range(len(flat_args)):
-            assert flat_args[ind].size() == new_flat_args[ind].size(), \
-                f"Example inputs has size {flat_args[ind].size()}, but gen_inputs() returns {new_flat_args[ind].size()}"
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
