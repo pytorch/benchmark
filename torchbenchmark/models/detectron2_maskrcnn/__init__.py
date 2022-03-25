@@ -31,22 +31,8 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 2
 
-<<<<<<< HEAD
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-=======
-    def __init__(self, device=None, jit=False, train_bs=1, eval_bs=2):
-       super().__init__()
-       self.device = device
-       self.jit = jit
-
-       model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
-       self.model = instantiate(model_cfg).to(self.device)
-       self.train_bs = train_bs
-       self.eval_bs = eval_bs
-
-       data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
->>>>>>> 03f3720 (Downscale to single GPU with batch size == 16.)
 
         model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
