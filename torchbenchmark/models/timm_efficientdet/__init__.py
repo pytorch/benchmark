@@ -129,9 +129,9 @@ class Model(BenchmarkModel):
             train_metrics = train_epoch(
                 epoch, self.model, self.loader_train,
                 self.optimizer, self.args,
-                lr_scheduler=self.lr_scheduler, amp_autocast=self.amp_autocast,
+                lr_scheduler=self.lr_scheduler,
                 loss_scaler=self.loss_scaler, model_ema=self.model_ema,
-                num_batch=self.train_num_batch,
+                num_batch=self.num_batches,
             )
             # the overhead of evaluating with coco style datasets is fairly high, so just ema or non, not both
             if self.model_ema is not None:
