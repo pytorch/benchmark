@@ -3,7 +3,7 @@ import torch
 from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
-from typing import ContextManager, Optional, List, Tuple
+from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args, apply_torchdynamo_args
 from torchbenchmark.util.extra_args import enable_opt_args, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
@@ -119,7 +119,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     def gen_inputs(self) -> Tuple[Generator, Optional[int]]:
         """Generate a tuple of (iterator of model input, the size of the iterator).
-           If size is None, the input is randomly generated and has infinite size. """
+           If size is None, the input is randomly generated and has infinite size."""
         raise NotImplementedError("Default input generation function is not implemented. "
                                   "Please submit an issue if you need input iterator implementation for the model.")
 
