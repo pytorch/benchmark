@@ -14,7 +14,7 @@ from effdet.data import resolve_input_config
 # timm imports
 from timm.models.layers import set_layer_config
 from timm.optim import create_optimizer
-from timm.utils import ModelEmaV2
+from timm.utils import ModelEmaV2, NativeScaler
 from timm.scheduler import create_scheduler
 
 # local imports
@@ -88,6 +88,8 @@ class Model(BenchmarkModel):
 
         if test == "train":
             self.optimizer = create_optimizer(args, model)
+            # TODO: loss_scaler should set to timm.utils.NativeScaler() if amp is enabled
+            self.loss_scaler = None
             self.model_ema = None
             if args.model_ema:
                 # Important to create EMA model after cuda(), DP wrapper, and AMP but before SyncBN and DDP wrapper
