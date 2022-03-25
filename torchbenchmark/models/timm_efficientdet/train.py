@@ -5,7 +5,7 @@ from timm.utils import AverageMeter, reduce_tensor
 
 def train_epoch(
         epoch, model, loader, optimizer, args,
-        lr_scheduler=None, saver=None, output_dir='', loss_scaler=None, model_ema=None,
+        lr_scheduler=None, saver=None, output_dir='', amp_autocast=suppress, loss_scaler=None, model_ema=None,
         num_batch=1):
 
     # batch_time_m = AverageMeter()
@@ -24,7 +24,8 @@ def train_epoch(
         if args.channels_last:
             input = input.contiguous(memory_format=torch.channels_last)
 
-        output = model(input, target)
+        with amp_autocast():
+            output = model(input, target)
         loss = output['loss']
 
         if not args.distributed:

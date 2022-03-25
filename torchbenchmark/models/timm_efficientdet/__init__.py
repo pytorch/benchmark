@@ -2,6 +2,7 @@ import os
 import logging
 import torch
 from pathlib import Path
+from contextlib import suppress
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
@@ -85,10 +86,10 @@ class Model(BenchmarkModel):
         if args.channels_last:
             self.model = self.model.to(memory_format=torch.channels_last)
         self.loader_train, self.loader_eval, self.evaluator, _, dataset_eval = create_datasets_and_loaders(args, model_config)
+        self.amp_autocast = suppress
 
         if test == "train":
             self.optimizer = create_optimizer(args, model)
-            # TODO: loss_scaler should set to timm.utils.NativeScaler() if amp is enabled
             self.loss_scaler = None
             self.model_ema = None
             if args.model_ema:
@@ -125,13 +126,17 @@ class Model(BenchmarkModel):
         for _, (input, target) in zip(range(self.num_batches), self.loader_eval):
             return (self.model, (input, target))
 
+    def enable_amp(self):
+        self.amp_autocast = torch.cuda.amp.autocast
+        self.loss_scaler = NativeScaler()
+
     def train(self, niter=1):
         eval_metric = self.args.eval_metric
         for epoch in range(self.num_epochs):
             train_metrics = train_epoch(
                 epoch, self.model, self.loader_train,
                 self.optimizer, self.args,
-                lr_scheduler=self.lr_scheduler,
+                lr_scheduler=self.lr_scheduler, amp_autocast = self.amp_autocast,
                 loss_scaler=self.loss_scaler, model_ema=self.model_ema,
                 num_batch=self.num_batches,
             )
@@ -148,5 +153,6 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             with torch.no_grad():
                 for _, (input, target) in zip(range(self.num_batches), self.loader):
-                    output = self.model(input, img_info=target)
+                    with self.amp_autocast():
+                        output = self.model(input, img_info=target)
                     self.evaluator.add_predictions(output, target)
