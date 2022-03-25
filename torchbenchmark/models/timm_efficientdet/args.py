@@ -170,8 +170,6 @@ def get_args(config_file=None):
     parser.add_argument("--local_rank", default=0, type=int)
 
     # Evaluation parameters
-    parser.add_argument('--eval-batch-size', default=128, type=int,
-                metavar='N', help='eval mini-batch size (default: 128)')
     parser.add_argument('--eval-interpolation', default='bilinear', type=str, metavar='NAME',
                 help='Image resize interpolation type (overrides model)')
     parser.add_argument('--img-size', default=None, type=int,
