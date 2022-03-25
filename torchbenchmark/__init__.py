@@ -76,8 +76,12 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
 
 
 def _list_model_paths() -> List[str]:
+    def dir_contains_file(dir, file_name) -> bool:
+        names = map(lambda x: x.name, filter(lambda x: x.is_file(), dir.iterdir()))
+        return file_name in names
     p = pathlib.Path(__file__).parent.joinpath(model_dir)
-    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
+    # Only load the model directories that contain a "__init.py__" file
+    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and dir_contains_file(child, "__init__.py"))
 
 
 def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False) -> bool:
