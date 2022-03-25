@@ -137,9 +137,9 @@ class Model(BenchmarkModel):
             )
             # the overhead of evaluating with coco style datasets is fairly high, so just ema or non, not both
             if self.model_ema is not None:
-                eval_metrics = validate(self.model_ema.module, self.loader_eval, self.args, self.evaluator, log_suffix=' (EMA)', num_batch=self.train_num_batch)
+                eval_metrics = validate(self.model_ema.module, self.loader_eval, self.args, self.evaluator, log_suffix=' (EMA)', num_batch=self.num_batches)
             else:
-                eval_metrics = validate(self.model, self.loader_eval, self.args, self.evaluator, num_batch=self.train_num_batch)
+                eval_metrics = validate(self.model, self.loader_eval, self.args, self.evaluator, num_batch=self.num_batches)
             if self.lr_scheduler is not None:
                 # step LR for next epoch
                 self.lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])
