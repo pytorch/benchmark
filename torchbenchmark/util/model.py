@@ -117,7 +117,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
-    def gen_inputs(self) -> Tuple[Generator, Optional[int]]:
+    def gen_inputs(self, num_batches: int=1) -> Tuple[Generator, Optional[int]]:
         """Generate a tuple of (iterator of model input, the size of the iterator).
            If size is None, the input is randomly generated and has infinite size."""
         raise NotImplementedError("Default input generation function is not implemented. "
