@@ -103,6 +103,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.correctness = correctness_check(self.eager_output, self.output)
             del self.eager_output
             del self.output
+            torch.cuda.empty_cache()
 
     def add_context(self, context_fn):
         ctx = context_fn()
