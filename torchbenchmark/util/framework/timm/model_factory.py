@@ -38,7 +38,9 @@ class TimmModel(BenchmarkModel):
             while True:
                 result = []
                 for _i in range(num_batches):
-                    result.append(self._gen_input(self.batch_size))
+                    result.append((self._gen_input(self.batch_size), ))
+                if self.dargs.fp16 == "half":
+                    result = list(map(lambda x: x.half(), result))
                 yield result
         return (_gen_inputs(), None)
 
