@@ -1,0 +1,40 @@
+diff --git a/effdet/data/dataset_factory.py b/effdet/data/dataset_factory.py
+index d47e183..1b6d487 100644
+--- a/effdet/data/dataset_factory.py
++++ b/effdet/data/dataset_factory.py
+@@ -12,7 +12,7 @@ from .dataset import DetectionDatset
+ from .parsers import create_parser
+ 
+ 
+-def create_dataset(name, root, splits=('train', 'val')):
++def create_dataset(name, root, custom_dataset_cfg=None, splits=('train', 'val')):
+     if isinstance(splits, str):
+         splits = (splits,)
+     name = name.lower()
+@@ -24,6 +24,8 @@ def create_dataset(name, root, splits=('train', 'val')):
+             dataset_cfg = Coco2014Cfg()
+         else:
+             dataset_cfg = Coco2017Cfg()
++        if custom_dataset_cfg:
++            dataset_cfg = custom_dataset_cfg
+         for s in splits:
+             if s not in dataset_cfg.splits:
+                 raise RuntimeError(f'{s} split not found in config')
+@@ -44,6 +46,8 @@ def create_dataset(name, root, splits=('train', 'val')):
+             dataset_cfg = Voc2007Cfg()
+         else:
+             dataset_cfg = Voc2012Cfg()
++        if custom_dataset_cfg:
++            dataset_cfg = custom_dataset_cfg
+         for s in splits:
+             if s not in dataset_cfg.splits:
+                 raise RuntimeError(f'{s} split not found in config')
+@@ -75,6 +79,8 @@ def create_dataset(name, root, splits=('train', 'val')):
+             dataset_cfg = OpenImagesObjChallenge2019Cfg()
+         else:
+             dataset_cfg = OpenImagesObjV5Cfg()
++        if custom_dataset_cfg:
++            dataset_cfg = custom_dataset_cfg
+         for s in splits:
+             if s not in dataset_cfg.splits:
+                 raise RuntimeError(f'{s} split not found in config')
