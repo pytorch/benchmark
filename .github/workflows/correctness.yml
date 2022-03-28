@@ -7,8 +7,7 @@ env:
 jobs:
   run_test:
     if: ${{ github.repository_owner == 'pytorch' }}  && contains(github.event.pull_request.body, 'RUN_CORRECTNESS:') }}
-    # Run on AWS A100 instance
-    runs-on: linux.p4d24xlarge.nvidia.gpu
+    runs-on: [self-hosted, bm-runner-v100]
     timeout-minutes: 120 # 2 hours
     steps:
       - name: Checkout TorchBench
@@ -20,6 +19,7 @@ jobs:
         with:
           repository: pytorch/fx2trt
           path: fx2trt
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
       - name: Checkout Torch-TensorRT
         uses: actions/checkout@v2
         with:
@@ -30,25 +30,3 @@ jobs:
         with:
           repository: facebookresearch/torchdynamo
           path: torchdynamo
-      - name: Setup CI environment
-        run:
-          bash benchmark/scripts/setup_ci.sh
-      - name: Install CUDA
-        run:
-          bash benchmark/scripts/install_cuda.sh
-      - name: Install Conda
-        run:
-          bash benchmark/scripts/install_basics.sh
-      - name: Install PyTorch Nightly
-        run:
-          . ~/miniconda3/etc/profile.d/conda.sh; conda activate base
-          bash benchmark/scripts/install_nightly.sh
-      - name: Install optional components
-        run:
-          . ~/miniconda3/etc/profile.d/conda.sh; conda activate base
-          pushd fx2trt; python setup.py install
-      - name: Install TorchBench
-        run:
-          . ~/miniconda3/etc/profile.d/conda.sh; conda activate base
-          pushd benchmark; python install.py
-      
