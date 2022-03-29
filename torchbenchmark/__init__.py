@@ -365,6 +365,19 @@ class ModelTask(base_task.TaskBase):
             module(**example_inputs)
         else:
             module(*example_inputs)
+        # If model implements `gen_inputs()` interface, test the first example input it generates
+        try:
+            input_iter, _size = model.gen_inputs()
+            next_inputs = next(input_iter)
+            for input in next_inputs:
+                if isinstance(input, dict):
+                    # Huggingface models pass **kwargs as arguments, not *args
+                    module(**input)
+                else:
+                    module(*input)
+        except NotImplementedError:
+            # We allow models that don't implement this interface
+            pass
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
