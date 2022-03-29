@@ -13,7 +13,7 @@ env:
   CONDA_ENV_NAME: "backends-ci"
   MAGMA_VERSION: "magma-cuda113"
 jobs:
-  run_backend_test:
+  run_test:
     runs-on: [self-hosted, bm-runner-v100]
     timeout-minutes: 120 # 2 hours
     steps:
