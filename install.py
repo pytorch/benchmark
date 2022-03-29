@@ -51,7 +51,7 @@ def pip_install_requirements():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("models", nargs='+', default=[],
+    parser.add_argument("models", nargs='*', default=[],
                         help="Specify one or more models to install. If not set, install all models.")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
