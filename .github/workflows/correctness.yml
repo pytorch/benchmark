@@ -13,7 +13,7 @@ env:
   CONDA_ENV_NAME: "backends-ci"
   MAGMA_VERSION: "magma-cuda113"
 jobs:
-  run_test:
+  run-test:
     runs-on: [self-hosted, bm-runner-v100]
     timeout-minutes: 120 # 2 hours
     steps:
@@ -57,17 +57,17 @@ jobs:
           # Install PyTorch nightly from pip
           pip install --pre torch torchtext torchvision \
             -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
-    - name: Install TensorRT
-      run: |
-        conda activate "${CONDA_ENV_NAME}"
-        pushd "${HOME}/TensorRT"
-        pip install graphsurgeon/graphsurgeon-0.4.5-py2.py3-none-any.whl
-        pip install onnx_graphsurgeon/onnx_graphsurgeon-0.3.12-py2.py3-none-any.whl
-        pip install uff/uff-0.6.9-py2.py3-none-any.whl
-        pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
-    - name: Run benchmark
-      run: |
-        set -x
-    - name: Remove conda environment
-      run: |
-        conda env remove --name "${CONDA_ENV_NAME}"
+      - name: Install TensorRT
+        run: |
+          conda activate "${CONDA_ENV_NAME}"
+          pushd "${HOME}/TensorRT"
+          pip install graphsurgeon/graphsurgeon-0.4.5-py2.py3-none-any.whl
+          pip install onnx_graphsurgeon/onnx_graphsurgeon-0.3.12-py2.py3-none-any.whl
+          pip install uff/uff-0.6.9-py2.py3-none-any.whl
+          pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
+      - name: Run benchmark
+        run: |
+          set -x
+      - name: Remove conda environment
+        run: |
+          conda env remove --name "${CONDA_ENV_NAME}"
