@@ -48,7 +48,7 @@ class TorchVisionModel(BenchmarkModel):
                 for _i in range(num_batches):
                     result.append((torch.randn((self.batch_size, 3, 224, 224)).to(self.device),))
                 if self.dargs.fp16 == "half":
-                    result = list(map(lambda x: x.half(), result))
+                    result = list(map(lambda x: (x[0].half(), ), result))
                 yield result
         return (_gen_inputs(), None)
 
