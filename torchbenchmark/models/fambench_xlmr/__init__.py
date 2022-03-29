@@ -27,6 +27,7 @@ import torch.nn.functional as F
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    FAMBENCH_MODEL = True
     # original parameters: FAMBench/benchmarks/run_xlmr_ootb.sh
     DEFAULT_TRAIN_BSIZE = 16
     DEFAULT_EVAL_BSIZE = 16
@@ -58,7 +59,12 @@ class Model(BenchmarkModel):
         self.y_true_l = list(map(lambda x: x.to(self.device), self.y_true_l))
 
     def get_module(self):
-        return self.xlmr, (self.x_l[0], )
+        return self.xlmr.extract_features, self.x_l
+
+    def enable_fp16_half(self):
+        self.xmlr = self.xlmr.half()
+        self.x_l = list(map(lambda x: x.half(), self.x_l))
+        self.y_true_l = list(map(lambda x: x.half(), self.y_true_l))
 
     def train(self):
         for i, (x, y_true) in enumerate(zip(self.x_l, self.y_true_l)):
