@@ -1,12 +1,19 @@
 name: TorchBench Correctness Testing
 on:
   workflow_dispatch:
+    inputs:
+      backend_options:
+        description: "Backend options"
+        required: true
+        default: "\"--torchdynamo eager\""
 env:
   PYTHON_VERSION: "3.8"
-  CUDA_VERSION: "11.3"
+  TENSORRT_PYTHON_VERSION: "cp38"
+  CUDA_VERSION: "cu113"
+  CONDA_ENV_NAME: "backends-ci"
+  MAGMA_VERSION: "magma-cuda113"
 jobs:
-  run_test:
-    if: ${{ github.repository_owner == 'pytorch' }}  && contains(github.event.pull_request.body, 'RUN_CORRECTNESS:') }}
+  run_backend_test:
     runs-on: [self-hosted, bm-runner-v100]
     timeout-minutes: 120 # 2 hours
     steps:
@@ -30,3 +37,37 @@ jobs:
         with:
           repository: facebookresearch/torchdynamo
           path: torchdynamo
+      - name: Create conda environment
+        run: |
+          conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+      - name: Install PyTorch nightly
+        run: |
+          conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          # Install dependencies
+          conda install -y -c pytorch "${MAGMA_VERSION}"
+          pip install requests bs4 argparse gitpython boto3
+          # Check if nightly builds are available
+          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+          # If failed, the script will generate empty result
+          if [ -z $NIGHTLIES ]; then
+              echo "Torch nightly build failed. Cancel the workflow."
+              exit 1
+          fi
+          # Install PyTorch nightly from pip
+          pip install --pre torch torchtext torchvision \
+            -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
+    - name: Install TensorRT
+      run: |
+        conda activate "${CONDA_ENV_NAME}"
+        pushd "${HOME}/TensorRT"
+        pip install graphsurgeon/graphsurgeon-0.4.5-py2.py3-none-any.whl
+        pip install onnx_graphsurgeon/onnx_graphsurgeon-0.3.12-py2.py3-none-any.whl
+        pip install uff/uff-0.6.9-py2.py3-none-any.whl
+        pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
+    - name: Run benchmark
+      run: |
+        set -x
+    - name: Remove conda environment
+      run: |
+        conda env remove --name "${CONDA_ENV_NAME}"
