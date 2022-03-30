@@ -105,9 +105,3 @@ class Model(BenchmarkModel):
         for _ in range(niter):
             reward, dist = self.evaluate(self.env, self.agent.select_action)
         return (torch.tensor(reward), torch.tensor(dist))
-
-    def _set_mode(self, train):
-        if train:
-            self.agent.train()
-        else:
-            self.agent.eval()

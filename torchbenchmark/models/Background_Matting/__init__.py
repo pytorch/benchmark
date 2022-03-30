@@ -134,11 +134,6 @@ class Model(BenchmarkModel):
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
             return self.netG, (image.to(self.device), bg.to(self.device), seg.to(self.device), multi_fr.to(self.device))
 
-    # eval() isn't implemented
-    # train() is on by default
-    def _set_mode(self, train):
-        pass
-
     def train(self, niter=1):
         self.netG.train()
         self.netD.train()
