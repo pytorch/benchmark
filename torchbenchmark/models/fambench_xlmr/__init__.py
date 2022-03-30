@@ -75,7 +75,9 @@ class Model(BenchmarkModel):
             self.optimizer.zero_grad() 
 
     def eval(self) -> Tuple[torch.Tensor]:
+        result = None
         with torch.no_grad():
             for i, x in enumerate(self.x_l):
                 y_pred = self.xlmr.extract_features(x)
-                return (y_pred, )
+                result = y_pred
+        return (result, )
