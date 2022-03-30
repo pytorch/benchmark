@@ -64,8 +64,6 @@ class Model(BenchmarkModel):
 
     def enable_fp16_half(self):
         self.xmlr = self.xlmr.half()
-        self.x_l = list(map(lambda x: x.half(), self.x_l))
-        self.y_true_l = list(map(lambda x: x.half(), self.y_true_l))
 
     def train(self):
         for i, (x, y_true) in enumerate(zip(self.x_l, self.y_true_l)):
