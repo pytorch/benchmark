@@ -2,6 +2,7 @@ import torch
 import sys
 import os
 from torchbenchmark import REPO_PATH
+from typing import Tuple
 
 # Import FAMBench model path
 class add_path():
@@ -60,7 +61,7 @@ class Model(BenchmarkModel):
         self.y_true_l = list(map(lambda x: x.to(self.device), self.y_true_l))
 
     def get_module(self):
-        return self.xlmr.extract_features, self.x_l
+        return self.xlmr, self.x_l
 
     def enable_fp16_half(self):
         self.xmlr = self.xlmr.half()
@@ -73,7 +74,8 @@ class Model(BenchmarkModel):
             self.optimizer.step()
             self.optimizer.zero_grad() 
 
-    def eval(self):
+    def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
             for i, x in enumerate(self.x_l):
-                y_pred = self.xlmr.extract_features(x) 
+                y_pred = self.xlmr.extract_features(x)
+                return (y_pred, )
