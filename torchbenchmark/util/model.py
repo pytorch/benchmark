@@ -132,6 +132,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 out = self.eval()
         return out
 
+    def eval_in_nograd(self):
+        return True
+
     def check_opt_vs_noopt_jit(self):
         if not self.jit:
             return
