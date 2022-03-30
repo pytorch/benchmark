@@ -54,7 +54,8 @@ class Model(BenchmarkModel):
         self.x_l, self.y_true_l = generate_dataset(args.num_batches, args.batch_size,
             args.vocab_size, args.inference_only, uniform_seqlen=args.sequence_length,
             seqlen_dist=args.seqlen_dist, seq_len_dist_max=args.seqlen_dist_max)
-        # Prefetch the data to device
+        # Prefetch the model and data to device
+        self.xlmr = self.xlmr.to(self.device)
         self.x_l = list(map(lambda x: x.to(self.device), self.x_l))
         self.y_true_l = list(map(lambda x: x.to(self.device), self.y_true_l))
 
