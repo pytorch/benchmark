@@ -31,6 +31,8 @@ class Model(BenchmarkModel):
     # Source: https://github.com/ultralytics/yolov3/blob/master/train.py#L447
     DEFAULT_TRAIN_BSIZE = 16
     DEFAULT_EVAL_BSIZE = 16
+    # yolov3 CUDA inference test uses amp precision
+    DEFAULT_EVAL_CUDA_PRECISION = "amp"
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)

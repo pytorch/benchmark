@@ -12,6 +12,8 @@ class TorchVisionModel(BenchmarkModel):
     # These two variables should be defined by subclasses
     DEFAULT_TRAIN_BSIZE = None
     DEFAULT_EVAL_BSIZE = None
+    # Default eval precision on CUDA device is fp16(half mode)
+    DEFAULT_EVAL_CUDA_PRECISION = "half"
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)

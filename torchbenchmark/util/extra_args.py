@@ -32,17 +32,15 @@ def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
 
 def check_fp16(model: 'torchbenchmark.util.model.BenchmarkModel', fp16: str) -> bool:
     if fp16 == "half":
-        return (is_torchvision_model(model) or is_hf_model(model) or is_timm_model(model)) and model.test == 'eval' and model.device == 'cuda'
+        return model.test == 'eval' and model.device == 'cuda' and hasattr(model, "enable_fp16_half")
     if fp16 == "amp":
-        is_cuda_eval_test = (model.test == 'eval' and model.device == 'cuda')
-        support_amp = hasattr(model, "enable_amp")
-        return is_cuda_eval_test or support_amp
+        return model.test == 'eval' and model.device == 'cuda'
     return True
 
 # torchvision models uses fp16 half mode by default, others use fp32
 def get_fp16_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
-    if (is_torchvision_model(model) or is_hf_model(model) or is_timm_model(model)) and model.test == 'eval' and model.device == 'cuda':
-        return "half"
+    if hasattr(model, "DEFAULT_EVAL_CUDA_PRECISION") and model.test == 'eval' and model.device == 'cuda':
+        return model.DEFAULT_EVAL_CUDA_PRECISION
     return "no"
 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
@@ -50,24 +48,22 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     parser.add_argument("--fp16", choices=["no", "half", "amp"], default=get_fp16_default(model), help="enable fp16 modes from: no fp16, half, or amp")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_fp16(model, dargs.fp16):
-        raise NotImplementedError(f"fp16 value: {dargs.fp16}, fp16 (amp mode) is only supported by CUDA inference tests, "
-                                  f"fp16 (half mode) is only supported by torchvision CUDA inference tests.")
+        raise NotImplementedError(f"fp16 value: {dargs.fp16}, fp16 is only supported on CUDA inference tests, "
+                                  f"fp16 (half mode) is only supported if the model implements `enable_fp16_half()` callback function.")
     return (dargs, opt_args)
 
 def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dargs: argparse.Namespace):
-    if dargs.fp16 and not dargs.fp16 == "no":
-        if dargs.fp16 == "half":
-            assert hasattr(model, "enable_fp16_half"), "Model doesn't have method 'enable_fp16_half'. Please report a bug. "
-            model.enable_fp16_half()
-        elif dargs.fp16 == "amp":
-            # model can handle amp if it has 'enable_amp' callback function
-            if hasattr(model, "enable_amp"):
-                model.enable_amp()
-            else:
-                import torch
-                model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
+    if dargs.fp16 == "half":
+        model.enable_fp16_half()
+    elif dargs.fp16 == "amp":
+        # model handles amp itself if it has 'enable_amp' callback function
+        if hasattr(model, "enable_amp"):
+            model.enable_amp()
         else:
-            assert False, f"Get invalid fp16 value: {dargs.fp16}. Please report a bug."
+            import torch
+            model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
+    elif not dargs.fp16 == "no":
+        assert False, f"Get an invalid fp16 value: {dargs.fp16}. Please report a bug."
 
 # Dispatch arguments based on model type
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
@@ -82,7 +78,7 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     if not (model.device == "cuda" and model.test == "eval"):
         if args.fx2trt or args.torch_trt:
             raise NotImplementedError("TensorRT only works for CUDA inference tests.")
-    if hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL:
+    if is_torchvision_model(model):
         args.cudagraph = False
     return args
 
