@@ -123,6 +123,7 @@ class Model(BenchmarkModel):
         self.num_epochs = 1
 
     def get_module(self):
+        raise NotImplementedError("https://github.com/pytorch/benchmark/issues/839")
         for _, (input, target) in zip(range(self.num_batches), self.loader_eval):
             return (self.model, (input, target))
 
