@@ -29,7 +29,7 @@ class ArgsToKwargsWrapper(torch.nn.Module):
 class HuggingFaceModel(BenchmarkModel):
     HF_MODEL = True
     # Default eval precision on CUDA device is fp16(half mode)
-    DEFAULT_EVAL_CUDA_PRECISION = "half"
+    DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
     def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)

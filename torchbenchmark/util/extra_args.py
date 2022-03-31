@@ -103,5 +103,5 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
                                        is_hf_model=is_hf_model(model), hf_max_length=get_hf_maxlength(model)))
     if args.torch_trt:
         module, exmaple_inputs = model.get_module()
-        precision = 'fp16' if not model.dargs.precision == "fp16" else 'fp32'
+        precision = 'fp16' if not model.dargs.precision == "fp32" else 'fp32'
         model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
