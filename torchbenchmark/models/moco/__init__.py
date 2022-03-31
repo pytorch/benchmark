@@ -57,6 +57,9 @@ class Model(BenchmarkModel):
                                     world_size=1, rank=0)
         except RuntimeError:
             pass  # already initialized?
+
+        if device == "cpu":
+            raise NotImplementedError("DistributedDataParallel/allgather requires cuda")
         
         self.model = MoCo(
             models.__dict__[self.opt.arch],
