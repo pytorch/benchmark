@@ -1,0 +1,35 @@
+diff --git a/pycocotools/coco.py b/pycocotools/coco.py
+index 48176bf..9292469 100644
+--- a/pycocotools/coco.py
++++ b/pycocotools/coco.py
+@@ -76,18 +76,18 @@ class COCO:
+         self.dataset,self.anns,self.cats,self.imgs = dict(),dict(),dict(),dict()
+         self.imgToAnns, self.catToImgs = defaultdict(list), defaultdict(list)
+         if not annotation_file == None:
+-            print('loading annotations into memory...')
++            # print('loading annotations into memory...')
+             tic = time.time()
+             with open(annotation_file, 'r') as f:
+                 dataset = json.load(f)
+             assert type(dataset)==dict, 'annotation file format {} not supported'.format(type(dataset))
+-            print('Done (t={:0.2f}s)'.format(time.time()- tic))
++            # print('Done (t={:0.2f}s)'.format(time.time()- tic))
+             self.dataset = dataset
+             self.createIndex()
+ 
+     def createIndex(self):
+         # create index
+-        print('creating index...')
++        # print('creating index...')
+         anns, cats, imgs = {}, {}, {}
+         imgToAnns,catToImgs = defaultdict(list),defaultdict(list)
+         if 'annotations' in self.dataset:
+@@ -107,7 +107,7 @@ class COCO:
+             for ann in self.dataset['annotations']:
+                 catToImgs[ann['category_id']].append(ann['image_id'])
+ 
+-        print('index created!')
++        # print('index created!')
+ 
+         # create class members
+         self.anns = anns
