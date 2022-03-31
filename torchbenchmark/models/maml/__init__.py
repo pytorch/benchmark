@@ -5,28 +5,26 @@ import torch
 from argparse import Namespace
 from .meta import Meta
 from pathlib import Path
+from typing import Tuple
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
 
-    def __init__(self, device=None, jit=False):
-        super().__init__()
+    def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         # load from disk or synthesize data
         use_data_file = False
         debug_print = False
-
-        self.device = device
-        self.jit = jit
         root = str(Path(__file__).parent)
         args = Namespace(**{
             'n_way': 5,
@@ -76,32 +74,16 @@ class Model(BenchmarkModel):
                 print(self.example_inputs[i].shape)
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         return self.module, self.example_inputs
 
-    def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         for _ in range(niter):
-            self.module(*self.example_inputs)
+            out = self.module(*self.example_inputs)
+        return (out, )
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         for _ in range(niter):
             self.module(*self.example_inputs)
 
     def eval_in_nograd(self):
         return False
-
-if __name__ == '__main__':
-    m = Model(device='cpu', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    begin = time.time()
-    m.train(niter=1)
-    print(time.time() - begin)
-    begin = time.time()
-    m.eval(niter=1)
-    print(time.time() - begin)

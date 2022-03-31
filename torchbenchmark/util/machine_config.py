@@ -149,8 +149,7 @@ def get_machine_type():
     # initially, just intend to identify a known environment and for any other 
     # environment revert to no-op.  Expand functionality over time as needed.
     if platform.system() == 'Linux':
-        name = distro.linux_distribution()[0]
-        if name == "Amazon Linux":
+        if distro.name() == "Amazon Linux":
             return MACHINE.AMAZON_LINUX
 
     return MACHINE.UNKNOWN
@@ -159,7 +158,7 @@ def get_cpu_temp():
     temps = {}
     if MACHINE.AMAZON_LINUX == get_machine_type():
         thermal_path = Path('/sys/class/thermal/')
-        for zone in os.listdir(thermal_path):
+        for zone in filter(lambda x: "thermal_zone" in x, os.listdir(thermal_path)):
             temps[zone] = int(read_sys_file(thermal_path / zone / "temp")) / 1000.
     return temps
 

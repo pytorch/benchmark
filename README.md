@@ -11,24 +11,32 @@ except for the torch products which are intended to be installed separately so
 different torch versions can be benchmarked.
 
 ### Using Pre-built Packages
-Use python 3.7 as currently there are compatibility issues with 3.8+.  Conda is optional but suggested.  To switch to python 3.7 in conda:
+We support python 3.7+, and 3.8 is recommended. Conda is optional but suggested. To start with python 3.8 in conda:
 ```
 # using your current conda environment:
-conda install -y python=3.7
+conda install -y python=3.8
 
 # or, using a new conda environment
-conda create -n torchbenchmark python=3.7
+conda create -n torchbenchmark python=3.8
 conda activate torchbenchmark
+# we depend on git lfs tool to store minimal input dataset such as images and annotations
+# the total size of input dataset is ~20 MB
+conda install -y git-lfs
 ```
 
-Install pytorch, torchtext, and torchvision using conda:
+If you are running Nvidia GPU tests, we support CUDA 10.2+, and CUDA 11.3 is recommended:
 ```
-conda install -y pytorch torchtext torchvision -c pytorch-nightly
+conda install -y -c pytorch magma-cuda113
+```
+
+Then install pytorch, torchtext, and torchvision using conda:
+```
+conda install -y pytorch torchtext torchvision cudatoolkit=11.3 -c pytorch-nightly
 ```
 Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
 ```
-pip install --pre torch torchvision torchtext -f https://download.pytorch.org/whl/nightly/cu102/torch_nightly.html
+pip install --pre torch torchvision torchtext -f https://download.pytorch.org/whl/nightly/cu113/torch_nightly.html
 ```
 
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.
@@ -129,6 +137,3 @@ See [Unidash](https://www.internalfb.com/intern/unidash/dashboard/pytorch_benchm
 ## Adding new models
 
 See [Adding Models](torchbenchmark/models/ADDING_MODELS.md).
-
-## Legacy
-See `legacy` for rnn benchmarks and related scripts that were previously at the top level of this repo.

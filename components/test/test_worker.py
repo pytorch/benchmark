@@ -1,5 +1,7 @@
 import os
+import subprocess
 import sys
+import signal
 import textwrap
 import typing
 
@@ -216,6 +218,15 @@ class TestBenchmarkWorker(TestCase):
         self._generic_worker_tests(worker)
         self._test_child_trace_exception(worker)
 
+    def test_subprocess_worker_segv_handling(self):
+        worker = subprocess_worker.SubprocessWorker(timeout=1)
+        with self.assertRaisesRegex(OSError, f"Subprocess terminates with code {int(signal.SIGSEGV)}"):
+            worker.run("""
+                import os
+                import signal
+                os.kill(os.getpid(), signal.SIGSEGV)
+            """)
+
     def test_subprocess_worker_fault_handling(self):
         worker = subprocess_worker.SubprocessWorker(timeout=1)
         with self.assertRaisesRegex(OSError, "Exceeded timeout"):
@@ -246,6 +257,12 @@ class TestBenchmarkWorker(TestCase):
         # Make sure `_kill_proc` is idempotent.
         worker._kill_proc()
         worker._kill_proc()
+
+    def test_subprocess_worker_sys_exit(self):
+        worker = subprocess_worker.SubprocessWorker(timeout=1)
+        with self.assertRaisesRegex(subprocess_rpc.UnserializableException, "SystemExit"):
+            worker.run("import sys")
+            worker.run("sys.exit()")
 
 
 if __name__ == '__main__':

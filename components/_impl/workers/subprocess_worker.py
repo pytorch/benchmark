@@ -117,6 +117,9 @@ class SubprocessWorker(base.WorkerBase):
             **popen_kwargs,
         )
 
+        # setup the pid of child process in the output pipe
+        self._output_pipe.set_writer_pid(self._proc.pid)
+
         self._worker_bootstrap_finished: bool = False
         self._bootstrap_worker()
         self._alive = True
@@ -286,6 +289,14 @@ class SubprocessWorker(base.WorkerBase):
                 return
 
             assert isinstance(result, dict)
+            if not result:
+                stdout, stderr = get_output()
+                raise subprocess.SubprocessError(
+                    "Uncaught Exception in worker:"
+                    f"    working_dir: {self.working_dir}\n"
+                    f"    stdout:\n{textwrap.indent(stdout, ' ' * 8)}\n\n"
+                    f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}")
+
             serialized_e = subprocess_rpc.SerializedException(**result)
             stdout, stderr = get_output()
             subprocess_rpc.SerializedException.raise_from(

@@ -16,7 +16,15 @@ class Attention(nn.Module):
                  / math.sqrt(query.size(-1))
 
         if mask is not None:
-            scores = scores.masked_fill(mask == 0, -1e9)
+            if scores.dtype == torch.float16:
+                """
+                -1e9 is overflow in fp16. It needs to be set a min.
+                Theoretically, the mask for empty token needs to be set as -inf. Check https://arxiv.org/pdf/1706.03762.pdf
+                """
+                min_mask = -65504.0 #torch.finfo(torch.float16).min == -65504.0. jit scripting could handle finfo
+            else:
+                min_mask = -1e9
+            scores = scores.masked_fill(mask == 0, min_mask)
 
         p_attn = F.softmax(scores, dim=-1)
 

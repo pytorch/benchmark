@@ -7,6 +7,8 @@ import functools
 # import shutil
 import time
 import json
+from typing import Tuple
+import sys
 
 # data generation
 from . import dlrm_data_pytorch as dp
@@ -28,21 +30,31 @@ from .tricks.md_embedding_bag import PrEmbeddingBag, md_solver
 
 from torch.optim.lr_scheduler import _LRScheduler
 
-from .dlrm_s_pytorch import DLRM_Net,LRPolicyScheduler
+from .dlrm_s_pytorch import DLRM_Net, LRPolicyScheduler
 from argparse import Namespace
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
 
-### some basic setup ###
-np.random.seed(123)
-torch.manual_seed(123)
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
-    def __init__(self, device=None, jit=False):
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    DEFAULT_TRAIN_BSIZE = 1000
+    DEFAULT_EVAL_BSIZE = 1000
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
+        # Train architecture: use the configuration in the paper.
+        # Source: https://arxiv.org/pdf/1906.00091.pdf
+        arch_embedding_size = "1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000"
+        arch_sparse_feature_size = 64
+        arch_mlp_bot = "512-512-64"
+        arch_mlp_top = "1024-1024-1024-1"
+        data_generation = "random"
+        mini_batch_size = 2048
+        num_batches = self.batch_size
+        num_indicies_per_lookup = 100
+
         self.opt = Namespace(**{
             'm_spa' : None,
             'ln_emb': None,
@@ -68,7 +80,7 @@ class Model(BenchmarkModel):
             'loss_threshold': 0.0,
             'round_targets': False,
             'data_size': 6,
-            'data_generation': "random",
+            'data_generation': data_generation,
             'data_trace_file': "./input/dist_emb_j.log",
             'raw_data_file': "",
             'processed_data_file': "",
@@ -82,13 +94,13 @@ class Model(BenchmarkModel):
             'lr_num_warmup_steps': 0,
             'lr_decay_start_step': 0,
             'lr_num_decay_steps': 0,
-            'arch_embedding_size': "1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000",
-            'arch_sparse_feature_size': 128,
-            'arch_mlp_bot': "1024-1024-1024-1024-128",
-            'arch_mlp_top': "2048-2048-2048-2048-2048-2048-2048-1",
-            'mini_batch_size': 2048,
-            'num_batches': 1000,
-            'num_indices_per_lookup': 100,
+            'arch_embedding_size': arch_embedding_size,
+            'arch_sparse_feature_size': arch_sparse_feature_size,
+            'arch_mlp_bot': arch_mlp_bot,
+            'arch_mlp_top': arch_mlp_top,
+            'mini_batch_size': mini_batch_size,
+            'num_batches': num_batches,
+            'num_indices_per_lookup': num_indicies_per_lookup,
             'num_indices_per_lookup_fixed': True,
             'numpy_rand_seed': 123,
         })
@@ -97,10 +109,10 @@ class Model(BenchmarkModel):
             torch.cuda.manual_seed_all(self.opt.numpy_rand_seed)
             torch.backends.cudnn.deterministic = True
 
-        ### prepare training data ###
+        # Prepare training data
         self.opt.ln_bot = np.fromstring(self.opt.arch_mlp_bot, dtype=int, sep="-")
 
-        # input and target at random
+        # Input and target at random
         self.opt.ln_emb = np.fromstring(self.opt.arch_embedding_size, dtype=int, sep="-")
         self.opt.m_den = self.opt.ln_bot[0]
         train_data, self.train_ld = dp.make_random_data_and_loader(self.opt, self.opt.ln_emb, self.opt.m_den)
@@ -149,14 +161,13 @@ class Model(BenchmarkModel):
         )
 
         # Preparing data
-        X,lS_o,lS_i,self.targets = next(iter(self.train_ld))
-        if self.device == "cuda":
-            X = X.to(self.device)
-            lS_i = [S_i.to(self.device) for S_i in lS_i] if isinstance(lS_i, list) \
-                    else lS_i.to(self.device)
-            lS_o = [S_o.to(self.device) for S_o in lS_o] if isinstance(lS_o, list) \
-                    else lS_o.to(self.device)
-            self.targets = self.targets.to(self.device)
+        X, lS_o, lS_i, self.targets = next(iter(self.train_ld))
+        X = X.to(self.device)
+        lS_i = [S_i.to(self.device) for S_i in lS_i] if isinstance(lS_i, list) \
+            else lS_i.to(self.device)
+        lS_o = [S_o.to(self.device) for S_o in lS_o] if isinstance(lS_o, list) \
+            else lS_o.to(self.device)
+        self.targets = self.targets.to(self.device)
 
         # Setting Loss Function
         if self.opt.loss_function == "mse":
@@ -169,28 +180,29 @@ class Model(BenchmarkModel):
         else:
             sys.exit("ERROR: --loss-function=" + self.opt.loss_function + " is not supported")
 
-        self.module = dlrm.to(self.device)
+        self.model = dlrm.to(self.device)
         self.example_inputs = (X, lS_o, lS_i)
-        self.loss_fn = torch.nn.MSELoss(reduction="mean")
-        self.optimizer = torch.optim.SGD(dlrm.parameters(), lr=self.opt.learning_rate)
-        self.lr_scheduler = LRPolicyScheduler(self.optimizer, self.opt.lr_num_warmup_steps, self.opt.lr_decay_start_step,
-                                            self.opt.lr_num_decay_steps)
+        if test == "train":
+            self.model.train()
+            self.loss_fn = torch.nn.MSELoss(reduction="mean")
+            self.optimizer = torch.optim.SGD(dlrm.parameters(), lr=self.opt.learning_rate)
+            self.lr_scheduler = LRPolicyScheduler(self.optimizer,
+                                                self.opt.lr_num_warmup_steps,
+                                                self.opt.lr_decay_start_step,
+                                                self.opt.lr_num_decay_steps)
+        elif test == "eval":
+            self.model.eval()
 
     def get_module(self):
-        return self.module, self.example_inputs
+        return self.model, self.example_inputs
 
-    def eval(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT not supported")
-
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         for _ in range(niter):
-            self.module(*self.example_inputs)
+            out = self.model(*self.example_inputs)
+        return (out, )
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT not supported")
-
-        gen = self.module(*self.example_inputs)
+        gen = self.model(*self.example_inputs)
         for _ in range(niter):
             self.optimizer.zero_grad()
             loss = self.loss_fn(gen, self.targets)
@@ -201,10 +213,3 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
             self.lr_scheduler.step()
-
-if __name__ == '__main__':
-    m = Model(device='cuda', jit=False)
-    module, example_inputs = m.get_module()
-    module(*example_inputs)
-    m.train()
-    m.eval()

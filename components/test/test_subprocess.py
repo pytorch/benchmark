@@ -72,7 +72,7 @@ class TestParseFunction(TestCase):
         ) -> typing.Any:  # Comment on return line.
             """Docstring
 
-            Note: This will be dropped. See `parse_f` for details.
+            Note: This will be dropped in Python 3.7. See `parse_f` for details.
             """
 
             x += 1
@@ -85,8 +85,14 @@ class TestParseFunction(TestCase):
             return y
 
         _, body = task_base.parse_f(f)
+        # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
+        docstring = """\
+            \"\"\"Docstring
+
+            Note: This will be dropped in Python 3.7. See `parse_f` for details.
+            \"\"\"\n\n""" if sys.version_info[:2] > (3,7) else ""
         self.assertExpectedInline(
-            self._indent(body), """\
+            self._indent(body), f"""{docstring}\
             x += 1
 
             y = \"\"\"
@@ -95,7 +101,7 @@ class TestParseFunction(TestCase):
 
             # Comment in src.
             return y""",
-        )
+            )
 
     def test_parse_method(self) -> None:
         class MyClass:
@@ -121,8 +127,14 @@ class TestParseFunction(TestCase):
         )
 
         _, body = task_base.parse_f(MyClass.g)
+        # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
+        docstring = """\
+            \"\"\"Identity, but with more steps
+
+            Culled, as this is a multi-line docstring
+            \"\"\"\n""" if sys.version_info[:2] > (3,7) else ""
         self.assertExpectedInline(
-            self._indent(body), """\
+            self._indent(body), f"""{docstring}\
             return x""",
         )
 
@@ -156,12 +168,16 @@ class TestParseFunction(TestCase):
                 raise ValueError
 
             q = 1
-            # Trailing comment isn't part of the execution, so it is actually
-            # dropped by `inspect`. (Surprisingly.)
 
         _, body = task_base.parse_f(f)
+        # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
+        docstring = """\
+            \"\"\"Begin the actual body.
+
+            (For better or worse...)
+            \"\"\"\n""" if sys.version_info[:2] > (3,7) else ""
         self.assertExpectedInline(
-            self._indent(body), """\
+            self._indent(body), f"""{docstring}\
             del x
             q = y.get(
                 z,
@@ -293,7 +309,7 @@ class TestSubprocessRPC(TestCase):
 
         # We have to run this in a thread, because if the timeout mechanism
         # fails we don't want the entire unit test suite to hang.
-        pipe = subprocess_rpc.Pipe(timeout=0.5, timeout_callback=callback)
+        pipe = subprocess_rpc.Pipe(writer_pid=os.getpid(), timeout=0.5, timeout_callback=callback)
         def target():
             try:
                 pipe.read()
@@ -318,7 +334,7 @@ class TestSubprocessRPC(TestCase):
 
         timeouts = [0.5, 1.0, 1.5]
         pipes = [
-            subprocess_rpc.Pipe(timeout=timeout, timeout_callback=callback)
+            subprocess_rpc.Pipe(writer_pid=os.getpid(), timeout=timeout, timeout_callback=callback)
             for timeout in timeouts
         ]
 

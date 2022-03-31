@@ -34,11 +34,14 @@ class SpeechTransformerTrainConfig:
     label_smoothing = 0.1
     # minibatch
     shuffle = 1
-    batch_size = 16
     batch_frames = 15000
     maxlen_in = 800
     maxlen_out = 150
-    num_workers = 4
+    # don't use subprocess in dataloader
+    # because TorchBench is only running 1 batch
+    num_workers = 0
+    # original value
+    # num_workers = 4
     # optimizer
     k = 0.2
     warmup_steps = 1
@@ -53,29 +56,31 @@ class SpeechTransformerTrainConfig:
     visdom_lr = 0
     visdom_epoch = 0
     visdom_id = 0
+    cross_valid = False
     # The input files. Their paths are relative to the directory of __file__
     train_json = "input_data/train/data.json"
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
-    def __init__(self):
+    def __init__(self, prefetch=True, train_bs=32, num_train_batch=1, device='cuda'):
         dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.device = device
         self.train_json = os.path.join(dir_path, self.train_json)
         self.valid_json = os.path.join(dir_path, self.valid_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
         self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
         self.vocab_size = len(self.char_list)
-        self.tr_dataset = AudioDataset(self.train_json, self.batch_size,
+        self.tr_dataset = AudioDataset(self.train_json, train_bs,
                                        self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
-        self.cv_dataset = AudioDataset(self.valid_json, self.batch_size,
+        self.cv_dataset = AudioDataset(self.valid_json, train_bs,
                                        self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
-        self.tr_loader = AudioDataLoader(self.tr_dataset, batch_size=1,
+        self.tr_loader = AudioDataLoader(self.tr_dataset, batch_size=train_bs,
                                          num_workers=self.num_workers,
                                          shuffle=self.shuffle,
                                          LFR_m=self.LFR_m,
                                          LFR_n=self.LFR_n)
-        self.cv_loader = AudioDataLoader(self.cv_dataset, batch_size=1,
+        self.cv_loader = AudioDataLoader(self.cv_dataset, batch_size=train_bs,
                                          num_workers=self.num_workers,
                                          LFR_m=self.LFR_m,
                                          LFR_n=self.LFR_n)
@@ -98,6 +103,16 @@ class SpeechTransformerTrainConfig:
         self.optimizer = TransformerOptimizer(torch.optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-09),
                                               self.k, self.d_model, self.warmup_steps)
         self._reset()
+        self.data_loader = self.tr_loader if not SpeechTransformerTrainConfig.cross_valid else self.cv_loader
+        if prefetch:
+            result = []
+            for _batch_num, data in zip(range(num_train_batch), self.data_loader):
+                padded_input, input_lengths, padded_target = data
+                padded_input = padded_input.to(self.device)
+                input_lengths = input_lengths.to(self.device)
+                padded_target = padded_target.to(self.device)
+                result.append((padded_input, input_lengths, padded_target))
+            self.data_loader = result
 
     def _reset(self):
         self.prev_val_loss = float("inf")
@@ -106,12 +121,12 @@ class SpeechTransformerTrainConfig:
 
     def _run_one_epoch(self, cross_valid=False):
         total_loss = 0
-        data_loader = self.tr_loader if not cross_valid else self.cv_loader
+        data_loader = self.data_loader
         for i, (data) in enumerate(data_loader):
             padded_input, input_lengths, padded_target = data
-            padded_input = padded_input.cuda()
-            input_lengths = input_lengths.cuda()
-            padded_target = padded_target.cuda()
+            padded_input = padded_input.to(self.device)
+            input_lengths = input_lengths.to(self.device)
+            padded_target = padded_target.to(self.device)
             pred, gold = self.model(padded_input, input_lengths, padded_target)
             loss, n_correct = cal_performance(pred, gold,
                                               smoothing=self.label_smoothing)
@@ -130,7 +145,7 @@ class SpeechTransformerTrainConfig:
         tr_avg_loss = self._run_one_epoch()
         # Cross validation
         self.model.eval()
-        val_loss = self._run_one_epoch(cross_valid=True)
+        val_loss = self._run_one_epoch(cross_valid=SpeechTransformerTrainConfig.cross_valid)
         self.tr_loss[epoch] = tr_avg_loss
         self.cv_loss[epoch] = val_loss
         if val_loss < self.best_val_loss:
@@ -145,8 +160,9 @@ class SpeechTransformerEvalConfig:
     # The input files. Their paths are relative to the directory of __file__
     recog_json = "input_data/test/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
-    def __init__(self, traincfg):
+    def __init__(self, traincfg, num_eval_batch=1, device='cuda'):
         dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.device = device
         self.base_path = dir_path
         self.recog_json = os.path.join(dir_path, self.recog_json)
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
@@ -157,14 +173,20 @@ class SpeechTransformerEvalConfig:
         # Read json data
         with open(self.recog_json, "rb") as f:
             self.js = json.load(f)['utts']
+        self.example_inputs = []
+        for idx, name in enumerate(list(self.js.keys())[:self.recog_word], 1):
+            feat_path = os.path.join(self.base_path, self.js[name]['input'][0]['feat'])
+            input = kaldi_io.read_mat(feat_path)
+            input = build_LFR_features(input, self.LFR_m, self.LFR_n)
+            input = torch.from_numpy(input).float()
+            input_length = torch.tensor([input.size(0)], dtype=torch.int)
+            input = input.to(self.device)
+            input_length = input_length.to(self.device)
+            self.example_inputs.append((input, input_length))
+            if len(self.example_inputs) == num_eval_batch:
+                break
     def eval(self):
         with torch.no_grad():
-            for idx, name in enumerate(list(self.js.keys())[:self.recog_word], 1):
-                feat_path = os.path.join(self.base_path, self.js[name]['input'][0]['feat'])
-                input = kaldi_io.read_mat(feat_path)
-                input = build_LFR_features(input, self.LFR_m, self.LFR_n)
-                input = torch.from_numpy(input).float()
-                input_length = torch.tensor([input.size(0)], dtype=torch.int)
-                input = input.cuda()
-                input_length = input_length.cuda()
+            for input, input_length in self.example_inputs:
                 nbest_hyps = self.model.recognize(input, input_length, self.char_list, self)
+        return nbest_hyps

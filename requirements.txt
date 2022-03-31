@@ -7,7 +7,10 @@ pytest
 pytest-benchmark
 requests
 tabulate
-timm == 0.4.5
+timm == 0.4.12
+# huggingface fx2trt support requires transformers == 4.12.1
+transformers == 4.12.1
 MonkeyType
 psutil
 pyyaml
+numpy

@@ -221,12 +221,11 @@ CONFIG = {
         ]
 }
 
-
 SYNTHETIC_DATA = []
 
 
 class TTSModel:
-    def __init__(self, device):
+    def __init__(self, device, batch_size):
         self.device = device
         self.use_cuda = True if self.device == 'cuda' else False
 
@@ -239,7 +238,7 @@ class TTSModel:
                                     num_lstm_layers=c.model['num_lstm_layers'])
         self.optimizer = RAdam(self.model.parameters(), lr=c.lr)
         self.criterion = AngleProtoLoss()
-        SYNTHETIC_DATA.append(T.rand(64, 50, 40).to(device=self.device))
+        SYNTHETIC_DATA.append(T.rand(batch_size, 50, 40).to(device=self.device))
 
         if self.use_cuda:
             self.model = self.model.cuda()
@@ -257,11 +256,8 @@ class TTSModel:
                                      self.global_step, self.c, niter)
 
     def eval(self):
-        start = time.time()
         result = self.model(SYNTHETIC_DATA[0])
-        end = time.time()
-        # print('eval: ', end - start)
-        return end - start
+        return result
 
     def __call__(self, *things):
         return self

@@ -1,6 +1,7 @@
 .benchmarks
 .vscode/
 .data
+._*
 */**/__pycache__
 */**/*.pyc
 *.out*
@@ -13,9 +14,5 @@ build/
 .idea
 old.json
 te.json
-Video_data_train_processed.csv
-labels.json
-results.txt
-checkpoints
 logs/
 scripts/scribe.py

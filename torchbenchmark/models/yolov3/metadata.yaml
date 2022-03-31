@@ -1,6 +1,12 @@
-eval_benchmark: false
-eval_deterministic: true
+eval_benchmark: true
+eval_deterministic: false
 eval_nograd: true
 optimized_for_inference: false
-train_benchmark: false
-train_deterministic: true
+train_benchmark: true
+train_deterministic: false
+not_implemented:
+  # Disabled due to excessively slow runtime - see GH Issue #100
+  - test: train
+    device: cpu
+  # yolov3 model doesn't support scripting
+  - jit: True

@@ -12,6 +12,7 @@ Usage:
 
 import os
 import json
+import shutil
 import yaml
 import argparse
 import typing
@@ -26,8 +27,8 @@ from torchbenchmark.util import gitutils
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 TORCHBENCH_DEPS = {
-    "torchtext": os.path.expandvars("${HOME}/text"),
-    "torchvision": os.path.expandvars("${HOME}/vision"),
+    "torchtext": (os.path.expandvars("${HOME}/text"), "main"),
+    "torchvision": (os.path.expandvars("${HOME}/vision"), "main"),
 }
 
 def exist_dir_path(string):
@@ -90,7 +91,7 @@ def analyze_abtest_result_dir(result_dir: str):
     delta = False
     json_files = list(filter(len, map(find_latest_json_file, dirs)))
     out = [['Benchmark']]
-    assert(len(json_files), f"Don't find benchmark result files in {result_dir}.")
+    assert json_files, f"Don't find benchmark result files in {result_dir}."
     # If there are only two json files, we believe it is an abtest, so print delta of the mean
     if len(json_files) == 2:
         delta = True
@@ -129,11 +130,13 @@ class Commit:
 
 class TorchSource:
     srcpath: str
+    build_lazy: bool
     commits: List[Commit]
     # Map from commit SHA to index in commits
     commit_dict: Dict[str, int]
-    def __init__(self, srcpath: str):
+    def __init__(self, srcpath: str, build_lazy: bool):
         self.srcpath = srcpath
+        self.build_lazy = build_lazy
         self.commits = []
         self.commit_dict = dict()
 
@@ -142,16 +145,17 @@ class TorchSource:
         if not repo_origin_url == TORCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
         self.update_repos()
+        # Clean up the existing packages
+        self.cleanup()
         return True
 
     # Update pytorch, torchtext, and torchvision repo
     def update_repos(self):
         repos = [(self.srcpath, "master")]
-        for value in TORCHBENCH_DEPS.values():
-            repos.append((value, "main"))
+        repos.extend(TORCHBENCH_DEPS.values())
         for (repo, branch) in repos:
             gitutils.clean_git_repo(repo)
-            assert gitutils.update_git_repo(repo, branch), f"Failed to update {branch} branch of {repo}."
+            assert gitutils.update_git_repo(repo, branch), f"Failed to update {branch} branch of repository {repo}."
 
     # Get all commits between start and end, save them in self.commits
     def init_commits(self, start: str, end: str, abtest: bool) -> bool:
@@ -176,10 +180,11 @@ class TorchSource:
         else:
             return self.commits[int((left_index + right_index) / 2)]
 
-    def setup_build_env(self, env):
+    def setup_build_env(self, env) -> Dict[str, str]:
         env["USE_CUDA"] = "1"
         env["BUILD_CAFFE2_OPS"] = "0"
-        env["USE_XNNPACK"] = "0"
+        # Do not build the test
+        env["BUILD_TEST"] = "0"
         env["USE_MKLDNN"] = "1"
         env["USE_MKL"] = "1"
         env["USE_CUDNN"] = "1"
@@ -189,10 +194,12 @@ class TorchSource:
     # Checkout the last commit of dependencies on date
     def checkout_deps(self, cdate: datetime):
         for pkg in TORCHBENCH_DEPS:
-            dep_commit = gitutils.get_git_commit_on_date(TORCHBENCH_DEPS[pkg], cdate)
+            pkg_path, branch = TORCHBENCH_DEPS[pkg]
+            gitutils.checkout_git_branch(pkg_path, branch)
+            dep_commit = gitutils.get_git_commit_on_date(pkg_path, cdate)
             print(f"Checking out {pkg} commit {dep_commit} ...", end="", flush=True)
             assert dep_commit, "Failed to find the commit on {cdate} of {pkg}"
-            assert gitutils.checkout_git_commit(TORCHBENCH_DEPS[pkg], dep_commit), "Failed to checkout commit {commit} of {pkg}"
+            assert gitutils.checkout_git_commit(pkg_path, dep_commit), "Failed to checkout commit {commit} of {pkg}"
             print("done.")
     
     # Install dependencies such as torchtext and torchvision
@@ -200,13 +207,23 @@ class TorchSource:
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
         command = "python setup.py install"
-        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"], env=build_env, shell=True)
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"][0], env=build_env, shell=True)
         print("done")
         # Build torchtext
         print(f"Building torchtext ...", end="", flush=True)
         command = "python setup.py clean install"
-        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"], env=build_env, shell=True)
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"][0], env=build_env, shell=True)
         print("done")
+
+    def _build_lazy_tensor(self, commit: Commit, build_env: Dict[str, str]):
+        if self.build_lazy:
+            print(f"Building pytorch lazy tensor on {commit.sha} ...", end="", flush=True)
+            lazy_tensor_path = os.path.join(self.srcpath, "lazy_tensor_core")
+            command = "./scripts/apply_patches.sh"
+            subprocess.check_call(command, cwd=self.lazy_tensor_path, env=build_env, shell=True)
+            command = "python setup.py install"
+            subprocess.check_call(command, cwd=self.lazy_tensor_path, env=build_env, shell=True)
+            print("done")
  
     def build(self, commit: Commit):
         # checkout pytorch commit
@@ -225,36 +242,49 @@ class TorchSource:
         version_py_path = os.path.join(self.srcpath, "torch/version.py")
         if os.path.exists(version_py_path):
             os.remove(version_py_path)
-        command = "python setup.py install"
-        subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
+        try:
+            command = "python setup.py install"
+            subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
+            command_testbuild = "python -c 'import torch'"
+            subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env, shell=True)
+        except subprocess.CalledProcessError:
+            # Remove the build directory, then try build it again
+            build_path = os.path.join(self.srcpath, "build")
+            if os.path.exists(build_path):
+                shutil.rmtree(build_path)
+            subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
         print("done")
+        # build pytorch lazy tensor if needed
+        self._build_lazy_tensor(commit, build_env)
         self.build_install_deps(build_env)
 
-    def cleanup(self, commit: Commit):
-        print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
+    def cleanup(self):
         packages = ["torch", "torchtext", "torchvision"]
-        command = "pip uninstall -y " + " ".join(packages) + " &> /dev/null "
-        subprocess.check_call(command, shell=True)
+        CLEANUP_ROUND = 5
+        # Clean up multiple times to make sure the packages are all uninstalled
+        for _ in range(CLEANUP_ROUND):
+            command = "pip uninstall -y " + " ".join(packages) + " || true"
+            subprocess.check_call(command, shell=True)
         print("done")
 
 class TorchBench:
     srcpath: str # path to pytorch/benchmark source code
+    branch: str
     timelimit: int # timeout limit in minutes
     workdir: str
-    devbig: str
     models: List[str]
+    first_time: bool
     torch_src: TorchSource
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
                  timelimit: int,
-                 workdir: str,
-                 devbig: str):
+                 workdir: str):
         self.srcpath = srcpath
         self.torch_src = torch_src
         self.timelimit = timelimit
         self.workdir = workdir
-        self.devbig = devbig
+        self.first_time = True
         self.models = list()
 
     def prep(self) -> bool:
@@ -262,11 +292,18 @@ class TorchBench:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCHBENCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCHBENCH_GITREPO}")
+        # get the name of current branch
+        self.branch = gitutils.get_current_branch(self.srcpath)
         # get list of models
         self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
                         if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
         return True
- 
+
+    def _install_benchmark(self):
+        "Install and build TorchBench dependencies"
+        command = ["python", "install.py"]
+        subprocess.check_call(command, cwd=self.srcpath, shell=False)
+
     def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
         # Return the result json file path
         output_dir = os.path.join(self.workdir, commit.sha)
@@ -279,11 +316,12 @@ class TorchBench:
         else:
             os.mkdir(output_dir)
         bmfilter = targets_to_bmfilter(targets, self.models)
+        # If the first time to run benchmark, install the dependencies first
+        if self.first_time:
+            self._install_benchmark()
+            self.first_time = False
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
-        if not self.devbig:
-            command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
-        else:
-            command = f"""bash .github/scripts/run-devbig.sh  "{output_dir}" "{bmfilter}" "{self.devbig}" 2>&1 | tee {output_dir}/benchmark.log"""
+        command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
         try:
             subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
@@ -342,7 +380,8 @@ class TorchBench:
         # Run benchmark
         result_dir = self.run_benchmark(commit, targets)
         commit.digest = self.gen_digest(result_dir, targets)
-        self.torch_src.cleanup(commit)
+        print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
+        self.torch_src.cleanup()
         return commit.digest
         
 class TorchBenchBisection:
@@ -372,7 +411,7 @@ class TorchBenchBisection:
                  timeout: int,
                  targets: List[str],
                  output_json: str,
-                 devbig: str,
+                 build_lazy: bool = False,
                  debug: bool = False):
         self.workdir = workdir
         self.start = start
@@ -382,11 +421,10 @@ class TorchBenchBisection:
         self.targets = targets
         self.bisectq = list()
         self.result = list()
-        self.torch_src = TorchSource(srcpath = torch_src)
+        self.torch_src = TorchSource(srcpath = torch_src, build_lazy=build_lazy)
         self.bench = TorchBench(srcpath = bench_src,
                                 torch_src = self.torch_src,
                                 timelimit = timeout,
-                                devbig = devbig,
                                 workdir = self.workdir)
         self.output_json = output_json
         self.debug = debug
@@ -458,6 +496,7 @@ class TorchBenchBisection:
         json_obj["end"] = self.end
         json_obj["threshold"] = self.threshold
         json_obj["timeout"] = self.bench.timelimit
+        json_obj["torchbench_branch"] = self.bench.branch
         json_obj["result"] = []
         for res in self.result:
             r = dict()
@@ -493,11 +532,11 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         help="the output json file")
     parser.add_argument("--analyze-result",
-                        help="specify the the output result directory to analyze")
-    # running on devbig
-    parser.add_argument("--devbig",
-                        type=str,
-                        help="if running on devbig, specify the devbig conda env")
+                        help="specify the output result directory to analyze")
+    # by default, do not build lazy tensor
+    parser.add_argument("--build-lazy",
+                        action='store_true',
+                        help="build lazy tensor feature in PyTorch")
     # by default, debug mode is disabled
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
@@ -533,7 +572,7 @@ if __name__ == "__main__":
                                     timeout=bisect_config["timeout"],
                                     targets=targets,
                                     output_json=args.output,
-                                    devbig=args.devbig,
+                                    build_lazy=args.build_lazy,
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))

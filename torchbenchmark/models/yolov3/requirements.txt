@@ -1,10 +1,7 @@
 # pip install -U -r requirements.txt
-# pycocotools requires numpy 1.17 https://github.com/cocodataset/cocoapi/issues/356
-numpy == 1.17.5
+numpy
 # opencv-python 4.5 requires numpy 1.8
 opencv-python >= 4.1, < 4.5
-torch >= 1.5
-torchvision
 matplotlib
 pycocotools
 tqdm

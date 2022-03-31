@@ -6,8 +6,6 @@ from torch.utils.data import DataLoader
 from ..model import BERTLM, BERT
 from .optim_schedule import ScheduledOptim
 
-import tqdm
-
 
 class BERTTrainer:
     """
@@ -82,11 +80,7 @@ class BERTTrainer:
         """
         str_code = "train" if train else "test"
 
-        # Setting the tqdm progress bar
-        data_iter = tqdm.tqdm(enumerate(data_loader),
-                              desc="EP_%s:%d" % (str_code, epoch),
-                              total=len(data_loader),
-                              bar_format="{l_bar}{r_bar}")
+        data_iter = enumerate(data_loader)
 
         avg_loss = 0.0
         total_correct = 0

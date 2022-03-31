@@ -1,0 +1,9 @@
+eval_benchmark: false
+eval_deterministic: false
+eval_nograd: true
+optimized_for_inference: true
+train_benchmark: false
+train_deterministic: false
+not_implemented:
+  # JIT is not supported by this model
+  - jit: true

@@ -1,7 +1,5 @@
 numpy
-inflect==0.2.5
-librosa==0.6.0
-numba==0.48
+inflect
 scipy
-Unidecode==1.0.22
+Unidecode
 pillow

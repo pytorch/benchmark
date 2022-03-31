@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 NAME=torchbenchmark
-PYTHON_VERSION=${PYTHON_VERSION:-3.7}
+PYTHON_VERSION=${PYTHON_VERSION:-3.8}
 
 source $(conda info --base)/etc/profile.d/conda.sh
 

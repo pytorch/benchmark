@@ -15,13 +15,8 @@ from torch.nn.modules.container import Sequential
 from torchbenchmark.models.demucs.demucs.model import Demucs
 from typing import Optional, Tuple
 
-
-torch.manual_seed(1337)
-random.seed(1337)
-np.random.seed(1337)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = True
 
 class DemucsWrapper(torch.nn.Module):
     def __init__(self, model: Demucs, augment: Sequential) -> None:
@@ -38,22 +33,20 @@ class DemucsWrapper(torch.nn.Module):
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    def __init__(self, device: Optional[str]=None, jit: bool=False) -> None:
-        super().__init__()
-        self.device = device
-        self.jit = jit
+    # Original train batch size: 64
+    # Source: https://github.com/facebookresearch/demucs/blob/3e5ea549ba921316c587e5f03c0afc0be47a0ced/conf/config.yaml#L37
+    DEFAULT_TRAIN_BSIZE = 64
+    DEFAULT_EVAL_BSIZE = 8
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]) -> None:
+        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
         self.parser = get_parser()
         self.args = self.parser.parse_args([])
         args = self.args
-        self.model = Demucs(channels=32)  # Change the channel to 32 to fit 16-GB GPU
-        self.dmodel = self.model
-        self.model.to(device)
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
-
-        if 1:
-            samples = 80000
-            # TODO: calculate the right shape
-            self.example_inputs = (torch.rand([4, 5, 2, 135576], device=device),)
+        model = Demucs(channels=64)
+        model.to(device)
+        samples = 80000
 
         self.duration = Fraction(samples + args.data_stride, args.samplerate)
         self.stride = Fraction(args.data_stride, args.samplerate)
@@ -69,27 +62,25 @@ class Model(BenchmarkModel):
         else:
             self.augment = Shift(args.data_stride)
 
-        self.model = DemucsWrapper(self.model, self.augment)
+        self.model = DemucsWrapper(model, self.augment)
+        
+        if test == "train":
+            self.model.train()
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
+        elif test == "eval":
+            self.model.eval()
 
-        if self.jit:
-            if hasattr(torch.jit, '_script_pdt'):
-                self.model = torch.jit._script_pdt(self.model, example_inputs = [self.example_inputs, ])
-            else:
-                self.model = torch.jit.script(self.model, example_inputs = [self.example_inputs, ])
-
-    def _set_mode(self, train):
-        self.model.train(train)
+        self.example_inputs = (torch.rand([self.batch_size, 5, 2, 426888], device=device),)
 
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
-        self.model.eval()
         return self.model, self.example_inputs
 
-    def eval(self, niter=1):
-        # TODO: implement the eval version
+    def eval(self, niter=1) -> Tuple[torch.Tensor]:
         for _ in range(niter):
             sources, estimates = self.model(*self.example_inputs)
             sources = center_trim(sources, estimates)
             loss = self.criterion(estimates, sources)
+        return (sources, estimates)
 
     def train(self, niter=1):
         for _ in range(niter):
@@ -99,12 +90,3 @@ class Model(BenchmarkModel):
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
-
-
-if __name__ == '__main__':
-    for jit in [True, False]:
-        m = Model(device='cuda', jit=jit)
-        module, example_inputs = m.get_module()
-        module(*example_inputs)
-        m.train(niter=1)
-        m.eval(niter=1)

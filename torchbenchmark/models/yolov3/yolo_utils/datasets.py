@@ -12,13 +12,21 @@ import numpy as np
 import torch
 from PIL import Image, ExifTags
 from torch.utils.data import Dataset
-from tqdm import tqdm
 
 from .utils import xyxy2xywh, xywh2xyxy
 
 help_url = 'https://github.com/ultralytics/yolov3/wiki/Train-Custom-Data'
 img_formats = ['.bmp', '.jpg', '.jpeg', '.png', '.tif', '.dng']
 vid_formats = ['.mov', '.avi', '.mp4', '.mpg', '.mpeg', '.m4v', '.wmv', '.mkv']
+
+
+def print(*args):
+    pass
+
+
+def tqdm(it, **kwargs):
+    return it
+
 
 # Get orientation exif tag
 for orientation in ExifTags.TAGS.keys():
@@ -400,8 +408,6 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 ne += 1  # print('empty labels for image %s' % self.img_files[i])  # file empty
                 # os.system("rm '%s' '%s'" % (self.img_files[i], self.label_files[i]))  # remove
 
-            pbar.desc = 'Caching labels %s (%g found, %g missing, %g empty, %g duplicate, for %g images)' % (
-                s, nf, nm, ne, nd, n)
         assert nf > 0 or n == 20288, 'No labels found in %s. See %s' % (os.path.dirname(file) + os.sep, help_url)
         if not labels_loaded and n > 1000:
             print('Saving labels to %s for faster future loading' % np_labels_path)
@@ -415,7 +421,6 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             for i in pbar:  # max 10k images
                 self.imgs[i], self.img_hw0[i], self.img_hw[i] = load_image(self, i)  # img, hw_original, hw_resized
                 gb += self.imgs[i].nbytes
-                pbar.desc = 'Caching images (%.1fGB)' % (gb / 1E9)
 
         # Detect corrupted images https://medium.com/joelthchao/programmatically-detect-corrupted-image-8c1b2006c3d3
         detect_corrupted_images = False
