@@ -5,7 +5,7 @@ on:
       backend_options:
         description: "Backend options"
         required: true
-        default: "\"--torchdynamo eager\""
+        default: "--torchdynamo eager"
 env:
   PYTHON_VERSION: "3.8"
   TENSORRT_PYTHON_VERSION: "cp38"
@@ -66,9 +66,30 @@ jobs:
           pip install onnx_graphsurgeon/onnx_graphsurgeon-0.3.12-py2.py3-none-any.whl
           pip install uff/uff-0.6.9-py2.py3-none-any.whl
           pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
+      - name: Install fx2trt and TorchDynamo
+        run: |
+          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          pushd fx2trt
+          python setup.py install
+          popd
+          pushd torchdynamo
+          python setup.py develop
+          popd
       - name: Run benchmark
         run: |
           set -x
+          mkdir -p benchmark-output/
+          pushd benchmark
+          # run the backend options and store the result to the "benchmark-output" directory
+          python .github/scripts/run-backends.py --run-options "${{ github.event.inputs.backend_options }}" \
+                                                 --benchmark-repo "${PWD}" \
+                                                 --output-dir "${PWD}/../benchmark-output"
+          popd
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: TorchBench result
+          path: benchmark-output/
       - name: Remove conda environment
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"
