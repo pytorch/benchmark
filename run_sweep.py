@@ -97,7 +97,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         task.make_model_instance(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         # Check the batch size in the model matches the specified value
         result.batch_size = task.get_model_attribute(bs_name)
-        result.precision = task.get_model_attribute("dargs").fp16
+        result.precision = task.get_model_attribute("dargs", "fp16")
         if batch_size and (not result.batch_size == batch_size):
             raise ValueError(f"User specify batch size {batch_size}, but model {result.name} runs with batch size {result.batch_size}. Please report a bug.")
         result.results["latency_ms"] = run_one_step(task.invoke, device)
