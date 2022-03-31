@@ -32,15 +32,21 @@ def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
 
 def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision: str) -> bool:
     if precision == "fp16":
-        return model.test == 'eval' and model.device == 'cuda' and hasattr(model, "enable_fp16_half")
+        # we disable half precision train (non-amp) for now
+        return model.device == 'cuda' and model.test == 'eval' and hasattr(model, "enable_fp16_half")
     if precision == "amp":
-        return model.test == 'eval' and model.device == 'cuda'
+        if model.test == 'eval' and model.device == 'cuda':
+            return True
+        if model.test == 'train' and model.device == 'cuda':
+            return hasattr(model, 'enable_amp')
     assert precision == "fp32", f"Expected precision to be one of fp32, fp16, or amp, but get {precision}"
     return True
 
 def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if hasattr(model, "DEFAULT_EVAL_CUDA_PRECISION") and model.test == 'eval' and model.device == 'cuda':
         return model.DEFAULT_EVAL_CUDA_PRECISION
+    if hasattr(model, "DEFAULT_TRAIN_CUDA_PRECISION") and model.test == 'train' and model.device == 'cuda':
+        return model.DEFAULT_TRAIN_CUDA_PRECISION
     return "fp32"
 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
@@ -56,7 +62,7 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
     if dargs.precision == "fp16":
         model.enable_fp16_half()
     elif dargs.precision == "amp":
-        # model handles amp itself if it has 'enable_amp' callback function
+        # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
         if hasattr(model, "enable_amp"):
             model.enable_amp()
         else:
