@@ -14,6 +14,7 @@ import yaml
 
 import torch
 from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
+from torchbenchmark.util.metadata_utils import skip_by_metadata
 
 
 # Some of the models have very heavyweight setup, so we have to set a very
@@ -23,14 +24,6 @@ from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
 # test case completes in 5 minutes. It requires that if the worker is
 # unresponsive for 5 minutes the parent will presume it dead / incapacitated.)
 TIMEOUT = 300  # Seconds
-
-# Skip this list of unit tests. One reason may be that the original batch size
-# used in the paper is too large to fit on the CI's GPU.
-EXCLUDELIST = {("densenet121", "train", "cuda"),  # GPU train runs out of memory on CI.
-               ("densenet121", "train", "cpu"),  # CPU train runs for too long on CI.
-               ("densenet121", "example", "cuda"),  # GPU train runs out of memory on CI.
-               ("densenet121", "example", "cpu")}  # CPU train runs for too long on CI.
-
 
 class TestBenchmark(unittest.TestCase):
 
@@ -51,6 +44,18 @@ class TestBenchmark(unittest.TestCase):
             main(["--repeat=1", "--filter=pytorch_struct", "--device=cpu"])
             self.assertGreaterEqual(mock_save.call_count, 1)
 
+def _create_example_model_instance(task: ModelTask, device: str):
+    skip = False
+    try:
+        task.make_model_instance(test="eval", device=device, jit=False)
+    except NotImplementedError:
+        try:
+            task.make_model_instance(test="train", device=device, jit=False)
+        except NotImplementedError:
+            skip = True
+    finally:
+        if skip:
+            raise NotImplementedError(f"Model is not implemented on the device {device}")
 
 def _load_test(path, device):
 
@@ -58,12 +63,11 @@ def _load_test(path, device):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(test="eval", device=device, jit=False)
+                _create_example_model_instance(task, device)
                 task.check_example()
                 task.del_model_instance()
-
             except NotImplementedError:
-                self.skipTest('Method get_module is not implemented, skipping...')
+                self.skipTest(f'Method `get_module()` on {device} is not implemented, skipping...')
 
     def train_fn(self):
         metadata = get_metadata_from_yaml(path)
@@ -72,7 +76,7 @@ def _load_test(path, device):
             try:
                 task.make_model_instance(test="train", device=device, jit=False)
                 task.set_train()
-                task.train()
+                task.invoke()
                 task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
             except NotImplementedError:
@@ -86,7 +90,7 @@ def _load_test(path, device):
                 task.make_model_instance(test="eval", device=device, jit=False)
 
                 task.set_eval()
-                task.eval()
+                task.invoke()
                 task.check_details_eval(device=device, md=metadata)
                 task.check_eval_output()
                 task.del_model_instance()
@@ -104,10 +108,13 @@ def _load_test(path, device):
                 self.skipTest(f'Method check_device on {device} is not implemented, skipping...')
 
     name = os.path.basename(path)
+    metadata = get_metadata_from_yaml(path)
     for fn, fn_name in zip([example_fn, train_fn, eval_fn, check_device_fn],
                            ["example", "train", "eval", "check_device"]):
+        # set exclude list based on metadata
         setattr(TestBenchmark, f'test_{name}_{fn_name}_{device}',
-                (unittest.skipIf((name, fn_name, device) in EXCLUDELIST, "This test is on the EXCLUDELIST")(fn)))
+                (unittest.skipIf(skip_by_metadata(test=fn_name, device=device,\
+                                                  jit=False, extra_args=[], metadata=metadata), "This test is skipped by its metadata")(fn)))
 
 
 def _load_tests():

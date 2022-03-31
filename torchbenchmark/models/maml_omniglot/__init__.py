@@ -62,15 +62,9 @@ class Model(BenchmarkModel):
         self.example_inputs = (self.meta_inputs[0][0],)
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
-
         return self.model, self.example_inputs
 
     def train(self, niter=3):
-        if self.jit:
-            raise NotImplementedError()
-
         net, _ = self.get_module()
         net.train()
         x_spt, y_spt, x_qry, y_qry = self.meta_inputs
@@ -100,9 +94,6 @@ class Model(BenchmarkModel):
             meta_opt.step()
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError()
-
         model, (example_input,) = self.get_module()
         model.eval()
         with torch.no_grad():

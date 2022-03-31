@@ -9,13 +9,15 @@ from typing import Dict
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
 
 def run(func) -> Dict[str, float]:
-    torch.cuda.synchronize()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
     result = {}
     # Collect time_ns() instead of time() which does not provide better precision than 1
     # second according to https://docs.python.org/3/library/time.html#time.time.
     t0 = time.time_ns()
     func()
-    torch.cuda.synchronize()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
     t2 = time.time_ns()
     result["latency_ms"] = (t2 - t0) / 1_000_000.0
     return result

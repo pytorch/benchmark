@@ -1,15 +1,13 @@
-import json
 import os
-import pandas as pd
-from  collections.abc import Iterable
 import torch
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
-import os
-from typing import Optional, List, Tuple
-from torchbenchmark.util.extra_args import parse_args, apply_args
-from torchbenchmark.util.env_check import set_random_seed
+from typing import ContextManager, Optional, List, Tuple, Generator
+from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args, apply_torchdynamo_args
+from torchbenchmark.util.extra_args import enable_opt_args, parse_opt_args, apply_opt_args, \
+                                           parse_decoration_args, apply_decoration_args
+from torchbenchmark.util.env_check import set_random_seed, correctness_check
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -29,6 +27,16 @@ def no_grad(val):
     finally:
         torch.set_grad_enabled(old_state)
 
+@contextmanager
+def nested(*contexts):
+    """
+    Chain and apply a list of contexts
+    """
+    with ExitStack() as stack:
+        for ctx in contexts:
+            stack.enter_context(ctx())
+        yield contexts
+
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
     DEFAULT_EVAL_BSIZE: Optional[int] = None
@@ -38,6 +46,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     jit: bool
     batch_size: int
     extra_args: List[str]
+    run_contexts: List[ContextManager]
 
     """
     A base class for adding models to torch benchmark.
@@ -60,14 +69,44 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE) and self.DEFAULT_EVAL_BSIZE:
                 raise NotImplementedError("Model doesn't support customizing batch size.")
         self.extra_args = extra_args
+        # contexts to run in the test function
+        self.run_contexts = []
         set_random_seed()
 
     # Run the post processing for model acceleration
     def __post__init__(self):
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
-        self.extra_args = parse_args(self, self.extra_args)
-        apply_args(self, self.extra_args)
+        self.dargs, opt_args = parse_decoration_args(self, self.extra_args)
+        # if the args contain "--torchdynamo", parse torchdynamo args
+        if "--torchdynamo" in opt_args:
+            self.dynamo = True
+            self.opt_args = parse_torchdynamo_args(self, opt_args)
+        else:
+            self.dynamo = False
+            self.opt_args = parse_opt_args(self, opt_args)
+        self.need_correctness_check = True if self.dynamo else enable_opt_args(self.opt_args)
+        # currently, only check correctness under CUDA+inference, and `need_correctness_check` is True
+        if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
+            self.eager_output = self.invoke()
+        # apply decoration and optimization args
+        apply_decoration_args(self, self.dargs)
+        if self.dynamo:
+            apply_torchdynamo_args(self, self.opt_args)
+        else:
+            apply_opt_args(self, self.opt_args)
+        # if test is eval, check correctness
+        if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
+            self.output = self.invoke()
+            self.correctness = correctness_check(self.eager_output, self.output)
+            del self.eager_output
+            del self.output
+            torch.cuda.empty_cache()
+
+    def add_context(self, context_fn):
+        ctx = context_fn()
+        assert isinstance(ctx, ContextManager), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
+        self.run_contexts.append(context_fn)
 
     # Default implementation for replacing the model
     def set_module(self, new_model):
@@ -76,11 +115,20 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
-    def train(self):
-        raise NotImplementedError("Base type doesn't have train implementation.")
+    def gen_inputs(self, num_batches: int=1) -> Tuple[Generator, Optional[int]]:
+        """Generate a tuple of (iterator of model input, the size of the iterator).
+           If size is None, the input is randomly generated and has infinite size."""
+        raise NotImplementedError("Default input generation function is not implemented. "
+                                  "Please submit an issue if you need input iterator implementation for the model.")
 
-    def eval(self) -> Tuple[torch.Tensor]:
-        raise NotImplementedError("Base type doesn't have eval implementation.")
+    def invoke(self) -> Optional[Tuple[torch.Tensor]]:
+        out = None
+        with nested(*self.run_contexts):
+            if self.test == "train":
+                self.train()
+            elif self.test == "eval":
+                out = self.eval()
+        return out
 
     def set_eval(self):
         self._set_mode(False)

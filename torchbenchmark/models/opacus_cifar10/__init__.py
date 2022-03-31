@@ -45,16 +45,11 @@ class Model(BenchmarkModel):
         )
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
-
         return self.model, self.example_inputs
 
     def train(self, niter=1):
         if niter != 1:
             raise NotImplementedError("niter not implemented")
-        if self.jit:
-            raise NotImplementedError()
         model = self.model
         (images, ) = self.example_inputs
         model.train()
@@ -69,8 +64,6 @@ class Model(BenchmarkModel):
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
         if niter != 1:
             raise NotImplementedError("niter not implemented")
-        if self.jit:
-            raise NotImplementedError()
         model = self.model
         (images, ) = self.example_inputs
         model.eval()

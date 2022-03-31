@@ -25,8 +25,6 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
-        if jit and test == "eval":
-            raise NotImplementedError("pytorch unet model does not support JIT for inference.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.args = self._get_args()
@@ -44,6 +42,9 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         return self.model, (self.example_inputs,)
+
+    def enable_amp(self):
+        self.args.amp = True
 
     def train(self, niter=1):
         optimizer = optim.RMSprop(self.model.parameters(), lr=self.args.lr, weight_decay=1e-8, momentum=0.9)
@@ -71,12 +72,13 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
-                mask_pred = self.model(self.example_inputs)
+                with torch.cuda.amp.autocast(enabled=self.args.amp):
+                    mask_pred = self.model(self.example_inputs)
 
-                if self.model.n_classes == 1:
-                    mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
-                else:
-                    mask_pred = F.one_hot(mask_pred.argmax(dim=1), self.model.n_classes).permute(0, 3, 1, 2).float()
+                    if self.model.n_classes == 1:
+                        mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
+                    else:
+                        mask_pred = F.one_hot(mask_pred.argmax(dim=1), self.model.n_classes).permute(0, 3, 1, 2).float()
         return (mask_pred, )
 
     def _get_args(self):

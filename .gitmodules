@@ -16,3 +16,6 @@
 [submodule "third_party/tbb"]
 	path = legacy/third_party/tbb
 	url = https://github.com/01org/tbb
+[submodule "submodules/FAMBench"]
+	path = submodules/FAMBench
+	url = https://github.com/facebookresearch/FAMBench.git

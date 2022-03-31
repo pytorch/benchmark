@@ -68,17 +68,11 @@ class Model(BenchmarkModel):
         return self.model, self.example_inputs
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         for _ in range(niter):
             out = self.model(*self.example_inputs)
         return out
 
     def train(self, niter=1):
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
-
         for _ in range(niter):
             self.optimizer.zero_grad()
 

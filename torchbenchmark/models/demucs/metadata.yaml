@@ -4,3 +4,10 @@ eval_nograd: true
 optimized_for_inference: false
 train_benchmark: true
 train_deterministic: false
+not_implemented:
+  # Disable CPU training because it is too slow (> 1min)
+  - test: train
+    device: cpu
+  # Disable GPU training because it causes CUDA OOM on T4
+  - test: train
+    device: cuda

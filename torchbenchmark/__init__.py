@@ -38,9 +38,12 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
     run_args = [
         [sys.executable, install_file],
     ]
+    run_env = os.environ.copy()
+    run_env["PYTHONPATH"] = this_dir.parent
     run_kwargs = {
         'cwd': model_path,
         'check': True,
+        'env': run_env,
     }
 
     output_buffer = None
@@ -73,8 +76,12 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
 
 
 def _list_model_paths() -> List[str]:
+    def dir_contains_file(dir, file_name) -> bool:
+        names = map(lambda x: x.name, filter(lambda x: x.is_file(), dir.iterdir()))
+        return file_name in names
     p = pathlib.Path(__file__).parent.joinpath(model_dir)
-    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir())
+    # Only load the model directories that contain a "__init.py__" file
+    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and dir_contains_file(child, "__init__.py"))
 
 
 def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False) -> bool:
@@ -306,20 +313,14 @@ class ModelTask(base_task.TaskBase):
     def set_train(self) -> None:
         self.worker.run("model.set_train()")
 
-    def train(self) -> None:
+    def invoke(self) -> None:
         self.worker.run("""
-            model.train()
+            model.invoke()
             maybe_sync()
         """)
 
     def set_eval(self) -> None:
         self.worker.run("model.set_eval()")
-
-    def eval(self) -> None:
-        self.worker.run("""
-            model.eval()
-            maybe_sync()
-        """)
 
     def extract_details_train(self) -> None:
         self._details.metadata["train_benchmark"] = self.worker.load_stmt("torch.backends.cudnn.benchmark")
@@ -364,19 +365,33 @@ class ModelTask(base_task.TaskBase):
             module(**example_inputs)
         else:
             module(*example_inputs)
+        # If model implements `gen_inputs()` interface, test the first example input it generates
+        try:
+            input_iter, _size = model.gen_inputs()
+            next_inputs = next(input_iter)
+            for input in next_inputs:
+                if isinstance(input, dict):
+                    # Huggingface models pass **kwargs as arguments, not *args
+                    module(**input)
+                else:
+                    module(*input)
+        except NotImplementedError:
+            # We allow models that don't implement this interface
+            pass
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
     def check_eval_output() -> None:
         instance = globals()["model"]
         import torch
-        out = instance.eval()
+        assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."
+        out = instance.invoke()
         model_name = getattr(instance, 'name', None)
         if not isinstance(out, tuple):
-            raise RuntimeError(f'Model {model_name} eval() output is not a tuple')
+            raise RuntimeError(f'Model {model_name} eval test output is not a tuple')
         for ind, element in enumerate(out):
             if not isinstance(element, torch.Tensor):
-                raise RuntimeError(f'Model {model_name} eval() output is tuple, but'
+                raise RuntimeError(f'Model {model_name} eval test output is tuple, but'
                                    f' its {ind}-th element is not a Tensor.')
 
     @base_task.run_in_worker(scoped=True)
