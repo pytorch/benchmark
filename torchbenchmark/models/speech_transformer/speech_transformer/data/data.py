@@ -66,8 +66,6 @@ class AudioDataset(data.Dataset):
         # Method 2: Generate minibatch based on batch_frames
         # i.e. each batch contains approximately #batch_frames frames
         else:  # batch_frames > 0
-            print("NOTE: Generate minibatch based on batch_frames.")
-            print("i.e. each batch contains approximately #batch_frames frames")
             start = 0
             while True:
                 total_frames = 0
