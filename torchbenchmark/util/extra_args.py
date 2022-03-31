@@ -35,12 +35,13 @@ def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision
         return model.test == 'eval' and model.device == 'cuda' and hasattr(model, "enable_fp16_half")
     if precision == "amp":
         return model.test == 'eval' and model.device == 'cuda'
+    assert precision == "fp32", f"Expected precision to be one of fp32, fp16, or amp, but get {precision}"
     return True
 
 def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if hasattr(model, "DEFAULT_EVAL_CUDA_PRECISION") and model.test == 'eval' and model.device == 'cuda':
         return model.DEFAULT_EVAL_CUDA_PRECISION
-    return "no"
+    return "fp32"
 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
@@ -52,7 +53,7 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     return (dargs, opt_args)
 
 def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dargs: argparse.Namespace):
-    if dargs.precision == "half":
+    if dargs.precision == "fp16":
         model.enable_fp16_half()
     elif dargs.precision == "amp":
         # model handles amp itself if it has 'enable_amp' callback function
@@ -61,8 +62,8 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
         else:
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
-    elif not dargs.precision == "no":
-        assert False, f"Get an invalid fp16 value: {dargs.precision}. Please report a bug."
+    elif not dargs.precision == "fp32":
+        assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
 
 # Dispatch arguments based on model type
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
