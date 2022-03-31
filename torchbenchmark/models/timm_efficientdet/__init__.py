@@ -123,8 +123,8 @@ class Model(BenchmarkModel):
         self.num_epochs = 1
 
     def get_module(self):
-        for _, (input, target) in zip(range(self.num_batches), self.loader_eval):
-            return (self.model, (input, target))
+        for _, (input, target) in zip(range(self.num_batches), self.loader):
+            return self.model, (input, target)
 
     def enable_amp(self):
         self.amp_autocast = torch.cuda.amp.autocast
