@@ -29,20 +29,27 @@ import torch.nn.functional as F
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     FAMBENCH_MODEL = True
-    # original parameters: FAMBench/benchmarks/run_xlmr_ootb.sh
-    DEFAULT_TRAIN_BSIZE = 16
-    DEFAULT_EVAL_BSIZE = 16
-    DEFAULT_SEQ_LENGTH = 16
-    DEFAULT_VOCAB_SIZE = 250000
-    # TorchBench only runs 1 batch
+    # typical parameters for inference:
+    # ./run_xlmr_ootb.sh -c "--inference-only --famconfig=fb-1dev-A --num-batches=100 --batch-size=96 " \
+    # "--sequence-length=64 --vocab-size=250000 --half-model --use-gpu --warmup-batches=20"
+    # We use the same batch size for train and inference (96), ...
+    # ... but runs only 1 batch
+    DEFAULT_FAM_CONFIG = "fb-1dev-A"
     DEFAULT_NUM_BATCHES = 1
+    DEFAULT_TRAIN_BSIZE = 96
+    DEFAULT_EVAL_BSIZE = 96
+    DEFAULT_SEQ_LENGTH = 64
+    DEFAULT_VOCAB_SIZE = 250000
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         self.xlmr = torch.hub.load('pytorch/fairseq:main', 'xlmr.large')
         parser = init_argparse()
-        args = parser.parse_args([f"--num-batches={self.DEFAULT_NUM_BATCHES}", f"--batch-size={self.batch_size} ", \
-                                 f"--sequence-length={self.DEFAULT_SEQ_LENGTH}", f"--vocab-size={self.DEFAULT_VOCAB_SIZE}"])
+        args = parser.parse_args([f"--famconfig={self.DEFAULT_FAM_CONFIG}",
+                                  f"--num-batches={self.DEFAULT_NUM_BATCHES}", f"--batch-size={self.batch_size} ", \
+                                  f"--sequence-length={self.DEFAULT_SEQ_LENGTH}", f"--vocab-size={self.DEFAULT_VOCAB_SIZE}"])
+        if self.device == "cuda":
+            args.use_gpu = True
         if test == "train":
             self.learning_rate = 0.01
             self.optimizer = torch.optim.SGD(self.xlmr.parameters(), lr=self.learning_rate)
