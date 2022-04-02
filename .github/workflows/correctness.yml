@@ -78,6 +78,7 @@ jobs:
       - name: Run benchmark
         run: |
           set -x
+          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
           mkdir -p benchmark-output/
           pushd benchmark
           # run the backend options and store the result to the "benchmark-output" directory
