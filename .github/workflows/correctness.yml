@@ -5,7 +5,7 @@ on:
       backend_options:
         description: "Backend options"
         required: true
-        default: "--torchdynamo eager"
+        default: "-d cuda -t eval --torchdynamo eager"
 env:
   PYTHON_VERSION: "3.8"
   TENSORRT_PYTHON_VERSION: "cp38"

@@ -6,6 +6,8 @@ For example, if you are testing two backends, 1) torchdynamo fx2trt; 2) torchscr
 We use semicolon as separator because it won't normally be used in command line options
 as a special charactor in bash script.
 """
+import sys
+import os
 import argparse
 import subprocess
 from pathlib import Path
@@ -19,8 +21,19 @@ def create_dir_if_nonexist(dirpath: str) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+def rewrite_option(option: List[str]) -> str:
+    out = []
+    for x in option:
+        out.append(x.replace("--", ""))
+    return "-".join(out)
+
 def run_option(option: List[str], repo_path: Path, output_path: Path):
     print(f"Now running backend option {option}, saving result to directory {output_path}.")
+    cmd = [sys.executable, "run_sweep.py"]
+    cmd.extend(option)
+    cmd.extend(["-o", os.path.join(output_path.absolute(), f"{rewrite_option(option)}.json")])
+    print(f"Running TorchBench with command {cmd}.")
+    subprocess.check_call(cmd, cwd=repo_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
