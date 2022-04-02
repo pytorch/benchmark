@@ -75,6 +75,13 @@ jobs:
           pushd torchdynamo
           python setup.py develop
           popd
+      - name: Install benchmark deps
+        run: |
+          set -x
+          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python install.py
+          popd
       - name: Run benchmark
         run: |
           set -x
