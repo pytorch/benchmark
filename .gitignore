@@ -15,4 +15,6 @@ build/
 old.json
 te.json
 logs/
+tb/
+delay/
 scripts/scribe.py

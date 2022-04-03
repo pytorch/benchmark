@@ -1,5 +1,8 @@
 accelerate
 bs4
+datasets
+scipy
+sklearn
 patch
 py-cpuinfo
 distro
@@ -16,3 +19,4 @@ psutil
 pyyaml
 numpy
 scipy # for lazy_bench.py
+submitit
