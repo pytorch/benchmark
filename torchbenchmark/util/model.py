@@ -132,18 +132,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 out = self.eval()
         return out
 
-    def set_eval(self):
-        self._set_mode(False)
-
-    def set_train(self):
-        self._set_mode(True)
-
     def eval_in_nograd(self):
         return True
-
-    def _set_mode(self, train):
-        (model, _) = self.get_module()
-        model.train(train)
 
     def check_opt_vs_noopt_jit(self):
         if not self.jit:

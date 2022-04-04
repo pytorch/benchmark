@@ -9,12 +9,14 @@ import subprocess
 import sys
 import tempfile
 import threading
+from pathlib import Path
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 from urllib import request
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
+REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \

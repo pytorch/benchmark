@@ -27,6 +27,9 @@ def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> b
 def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'HF_MODEL') and model.HF_MODEL
 
+def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
+
 def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[int]:
     return model.max_length if is_hf_model(model) else None
 

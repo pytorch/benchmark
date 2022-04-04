@@ -56,7 +56,6 @@ class TestBenchNetwork:
                 return  # Model is not supported.
 
             task.make_model_instance(test="train", device=device, jit=(compiler == 'jit'))
-            task.set_train()
             benchmark(task.invoke)
             benchmark.extra_info['machine_state'] = get_machine_state()
 
@@ -75,7 +74,6 @@ class TestBenchNetwork:
             task.make_model_instance(test="eval", device=device, jit=(compiler == 'jit'))
 
             with task.no_grad(disable_nograd=pytestconfig.getoption("disable_nograd")):
-                task.set_eval()
                 benchmark(task.invoke)
                 benchmark.extra_info['machine_state'] = get_machine_state()
                 if pytestconfig.getoption("check_opt_vs_noopt_jit"):
