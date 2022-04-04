@@ -16,6 +16,8 @@ class Model(BenchmarkModel):
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L84
     DEFAULT_TRAIN_BSIZE = 64
     DEFAULT_EVAL_BSIZE = 64
+    # Tacotron2 CUDA inference test uses amp precision
+    DEFAULT_EVAL_CUDA_PRECISION = "amp"
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)

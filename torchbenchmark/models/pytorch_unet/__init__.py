@@ -23,6 +23,8 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
+    DEFAULT_TRAIN_CUDA_PRECISION = "amp"
+    DEFAULT_EVAL_CUDA_PRECISION = "amp"
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)

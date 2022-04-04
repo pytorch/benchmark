@@ -12,6 +12,8 @@ class TorchVisionModel(BenchmarkModel):
     # These two variables should be defined by subclasses
     DEFAULT_TRAIN_BSIZE = None
     DEFAULT_EVAL_BSIZE = None
+    # Default eval precision on CUDA device is fp16
+    DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -47,7 +49,7 @@ class TorchVisionModel(BenchmarkModel):
                 result = []
                 for _i in range(num_batches):
                     result.append((torch.randn((self.batch_size, 3, 224, 224)).to(self.device),))
-                if self.dargs.fp16 == "half":
+                if self.dargs.precision == "fp16":
                     result = list(map(lambda x: (x[0].half(), ), result))
                 yield result
         return (_gen_inputs(), None)
