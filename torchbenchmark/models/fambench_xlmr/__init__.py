@@ -40,6 +40,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 96
     DEFAULT_SEQ_LENGTH = 64
     DEFAULT_VOCAB_SIZE = 250000
+    # by default, use fp16 half precision for training
+    DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
