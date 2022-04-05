@@ -81,10 +81,6 @@ class Model(BenchmarkModel):
         self.netG = netG
 
         self.netG.to(self.device)
-        # if self.device == 'cuda':
-            # TODO(asuhan): is this needed?
-            # (whc) - i'm removing this so lazy/cuda have an even playing field
-            # torch.backends.cudnn.benchmark = True
 
         netD = MultiscaleDiscriminator(
             input_nc=3, num_D=1, norm_layer=nn.InstanceNorm2d, ndf=64)
