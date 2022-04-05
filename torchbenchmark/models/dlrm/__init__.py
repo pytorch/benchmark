@@ -42,8 +42,6 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1000
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if jit:
-            raise NotImplementedError("DLRM model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         # Train architecture: use the configuration in the paper.
@@ -199,16 +197,11 @@ class Model(BenchmarkModel):
         return self.model, self.example_inputs
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError("JIT not supported")
         for _ in range(niter):
             out = self.model(*self.example_inputs)
         return (out, )
 
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError("JIT not supported")
-
         gen = self.model(*self.example_inputs)
         for _ in range(niter):
             self.optimizer.zero_grad()

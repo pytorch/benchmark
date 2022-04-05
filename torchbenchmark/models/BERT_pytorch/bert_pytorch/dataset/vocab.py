@@ -117,7 +117,6 @@ class Vocab(TorchVocab):
 # Building Vocab with text files
 class WordVocab(Vocab):
     def __init__(self, texts, max_size=None, min_freq=1):
-        print("Building Vocab")
         counter = Counter()
         for line in texts:
             if isinstance(line, list):

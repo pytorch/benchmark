@@ -18,14 +18,14 @@ chmod +x "${CUDA_INSTALLER}"
 rm -f "${CUDA_INSTALLER}"
 rm -f /usr/local/cuda && ln -s /usr/local/cuda-11.3 /usr/local/cuda
 
-# install CUDA 11.3 CuDNN 8.2.0
+# install CUDA 11.3 CuDNN 8.3.2
 # cuDNN download archive: https://developer.nvidia.com/rdp/cudnn-archive
 # cuDNN license: https://developer.nvidia.com/cudnn/license_agreement
 mkdir tmp_cudnn && cd tmp_cudnn
-wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.2.0/cudnn-11.3-linux-x64-v8.2.0.53.tgz -O cudnn-8.2.tgz
-tar xf cudnn-8.2.tgz
-cp -a cuda/include/* /usr/local/cuda/include/
-cp -a cuda/lib64/* /usr/local/cuda/lib64/
+wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.3.2/local_installers/11.5/cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive.tar.xz -O cudnn-8.3.2.tar.xz
+tar xJf cudnn-8.3.2.tar.xz
+cp -a cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive/include/* /usr/local/cuda/include/
+cp -a cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive/lib/* /usr/local/cuda/lib64/
 cd ..
 rm -rf tmp_cudnn
 ldconfig
