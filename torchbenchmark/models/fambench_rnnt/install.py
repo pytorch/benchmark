@@ -1,6 +1,5 @@
 import os
 import sys
-import torch
 import subprocess
 from torchbenchmark import REPO_PATH
 
@@ -12,7 +11,6 @@ def update_fambench_submodule():
 
 def pip_install_requirements():
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
-
 
 if __name__ == "__main__":
     update_fambench_submodule()
