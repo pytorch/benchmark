@@ -122,8 +122,6 @@ class Model(BenchmarkModel):
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if jit:
-            raise NotImplementedError("soft actor critic model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.args = SACConfig()
@@ -199,8 +197,6 @@ class Model(BenchmarkModel):
         self.agent.actor = new_model
         
     def train(self, niter=1):
-        if self.jit:
-            raise NotImplementedError()
         # Setup
         self.target_agent.train()
         done = True
@@ -240,8 +236,6 @@ class Model(BenchmarkModel):
                 soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        if self.jit:
-            raise NotImplementedError()
         with torch.no_grad():
             discount= 1.0
             episode_return_history = []

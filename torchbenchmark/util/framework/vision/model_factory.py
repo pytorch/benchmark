@@ -1,10 +1,9 @@
 import torch
-import random
-import numpy as np
 import typing
 import torch.optim as optim
 import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
+from typing import Tuple, Generator, Optional
 
 class TorchVisionModel(BenchmarkModel):
     optimized_for_inference = True
@@ -13,6 +12,8 @@ class TorchVisionModel(BenchmarkModel):
     # These two variables should be defined by subclasses
     DEFAULT_TRAIN_BSIZE = None
     DEFAULT_EVAL_BSIZE = None
+    # Default eval precision on CUDA device is fp16
+    DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -42,6 +43,17 @@ class TorchVisionModel(BenchmarkModel):
             return flops, self.batch_size
         assert False, f"get_flops() only support eval or train mode, but get {self.test}. Please submit a bug report."
 
+    def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
+        def _gen_inputs():
+            while True:
+                result = []
+                for _i in range(num_batches):
+                    result.append((torch.randn((self.batch_size, 3, 224, 224)).to(self.device),))
+                if self.dargs.precision == "fp16":
+                    result = list(map(lambda x: (x[0].half(), ), result))
+                yield result
+        return (_gen_inputs(), None)
+
     def enable_fp16_half(self):
         self.model = self.model.half()
         self.example_inputs = (self.example_inputs[0].half(), )
@@ -55,7 +67,7 @@ class TorchVisionModel(BenchmarkModel):
         for _ in range(niter):
             self.optimizer.zero_grad()
             for data, target in zip(real_input, real_output):
-                if self.extra_args.cudagraph:
+                if not self.dynamo and self.opt_args.cudagraph:
                     self.example_inputs[0].copy_(data)
                     self.example_outputs.copy_(target)
                     self.g.replay()
@@ -65,7 +77,7 @@ class TorchVisionModel(BenchmarkModel):
                     self.optimizer.step()
 
     def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
-        if self.extra_args.cudagraph:
+        if not self.dynamo and self.opt_args.cudagraph:
             return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.model
         example_inputs = self.example_inputs

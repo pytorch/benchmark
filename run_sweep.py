@@ -52,6 +52,7 @@ class ModelTestResult:
     extra_args: List[str]
     status: str
     batch_size: Optional[int]
+    precision: str
     results: Dict[str, Any]
 
 def _list_model_paths(models: List[str]) -> List[str]:
@@ -80,7 +81,7 @@ def _validate_devices(devices: str) -> List[str]:
 
 def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool, batch_size: Optional[int], extra_args: List[str]) -> ModelTestResult:
     assert test == "train" or test == "eval", f"Test must be either 'train' or 'eval', but get {test}."
-    result = ModelTestResult(name=model_path.name, test=test, device=device, extra_args=extra_args, batch_size=None,
+    result = ModelTestResult(name=model_path.name, test=test, device=device, extra_args=extra_args, batch_size=None, precision="fp32",
                              status="OK", results={})
     # Run the benchmark test in a separate process
     print(f"Running model {model_path.name} ... ", end='', flush=True)
@@ -96,6 +97,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         task.make_model_instance(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         # Check the batch size in the model matches the specified value
         result.batch_size = task.get_model_attribute(bs_name)
+        result.precision = task.get_model_attribute("dargs", "precision")
         if batch_size and (not result.batch_size == batch_size):
             raise ValueError(f"User specify batch size {batch_size}, but model {result.name} runs with batch size {result.batch_size}. Please report a bug.")
         result.results["latency_ms"] = run_one_step(task.invoke, device)

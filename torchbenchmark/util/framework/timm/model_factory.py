@@ -3,6 +3,7 @@ import typing
 import timm
 from torchbenchmark.util.model import BenchmarkModel
 from .timm_config import TimmConfig
+from typing import Generator, Tuple, Optional
 
 class TimmModel(BenchmarkModel):
     optimized_for_inference = True
@@ -11,6 +12,8 @@ class TimmModel(BenchmarkModel):
     # These two variables should be defined by subclasses
     DEFAULT_TRAIN_BSIZE = None
     DEFAULT_EVAL_BSIZE = None
+    # Default eval precision on CUDA device is fp16
+    DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -31,6 +34,17 @@ class TimmModel(BenchmarkModel):
 
         if device == 'cuda':
             torch.cuda.empty_cache()
+
+    def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
+        def _gen_inputs():
+            while True:
+                result = []
+                for _i in range(num_batches):
+                    result.append((self._gen_input(self.batch_size), ))
+                if self.dargs.precision == "fp16":
+                    result = list(map(lambda x: (x[0].half(), ), result))
+                yield result
+        return (_gen_inputs(), None)
 
     def _gen_input(self, batch_size):
         return torch.randn((batch_size,) + self.cfg.input_size, device=self.device)
@@ -53,16 +67,18 @@ class TimmModel(BenchmarkModel):
         output = self.model(self.example_inputs)
         return output
 
+    def enable_fp16_half(self):
+        self.model = self.model.half()
+        self.example_inputs = self.example_inputs.half()
+
     def get_module(self):
         return self.model, (self.example_inputs,)
 
     def train(self, niter=1):
-        self.model.train()
         for _ in range(niter):
             self._step_train()
 
     def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
-        self.model.eval()
         with torch.no_grad():
             for _ in range(niter):
                 out = self._step_eval()

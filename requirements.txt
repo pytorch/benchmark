@@ -1,3 +1,4 @@
+accelerate
 bs4
 patch
 py-cpuinfo

@@ -32,8 +32,6 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 32
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if jit:
-            raise NotImplementedError("MOCO model does not support JIT.")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         self.opt = Namespace(**{
             'arch': 'resnet50',
@@ -54,15 +52,14 @@ class Model(BenchmarkModel):
             'fake_data': True,
             'distributed': True,
         })
-
-        if self.device == "cpu":
-            raise NotImplementedError("CPU is not supported by this model")
-
         try:
             dist.init_process_group(backend='nccl', init_method='tcp://localhost:10001',
                                     world_size=1, rank=0)
         except RuntimeError:
             pass  # already initialized?
+
+        if device == "cpu":
+            raise NotImplementedError("DistributedDataParallel/allgather requires cuda")
         
         self.model = MoCo(
             models.__dict__[self.opt.arch],
@@ -95,9 +92,6 @@ class Model(BenchmarkModel):
         Both model and example_inputs should be on self.device properly.
         `model(*example_inputs)` should execute one step of model forward.
         """
-        if self.device == "cpu":
-            raise NotImplementedError("CPU is not supported by this model")
-
         images = []
         for (i, _) in self.example_inputs:
             images = (i[0], i[1])
@@ -114,9 +108,6 @@ class Model(BenchmarkModel):
 
         Leave warmup to the caller (e.g. don't do it inside)
         """
-        if self.device == "cpu":
-            raise NotImplementedError("CPU is not supported by this model")
-
         self.model.train()
         for e in range(niter):
             adjust_learning_rate(self.optimizer, e, self.opt)
@@ -142,9 +133,6 @@ class Model(BenchmarkModel):
 
         Leave warmup to the caller (e.g. don't do it inside)
         """
-        if self.device == "cpu":
-            raise NotImplementedError("CPU is not supported by this model")
-
         for i in range(niter):
             for i, (images, _) in enumerate(self.example_inputs):
                 out = self.model(im_q=images[0], im_k=images[1])

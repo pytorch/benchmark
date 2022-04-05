@@ -31,6 +31,8 @@ class Model(BenchmarkModel):
     # Source: https://github.com/ultralytics/yolov3/blob/master/train.py#L447
     DEFAULT_TRAIN_BSIZE = 16
     DEFAULT_EVAL_BSIZE = 16
+    # yolov3 CUDA inference test uses amp precision
+    DEFAULT_EVAL_CUDA_PRECISION = "amp"
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -75,16 +77,10 @@ class Model(BenchmarkModel):
         return model, example_inputs
 
     def get_module(self):
-        if self.jit:
-            raise NotImplementedError()
         return self.model, self.example_inputs
 
     def train(self, niter=1):
         # the training process is not patched to use scripted models
-        if self.jit:
-            raise NotImplementedError()
-        if self.device == 'cpu':
-            raise NotImplementedError("Disabled due to excessively slow runtime - see GH Issue #100")
         return self.training_loop(niter)
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
