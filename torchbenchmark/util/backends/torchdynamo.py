@@ -17,8 +17,7 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
     import torchdynamo
     if args.torchdynamo == "fx2trt" and precision == "fp16":
-        dynamo_backend_args = {"fp16_mode": True}
-        model.add_context(functools.partial(torchdynamo.optimize, args.torchdynamo), dynamo_backend_args)
+        model.add_context(functools.partial(torchdynamo.optimize, "fx2trt_compiler_fp16"))
     else:
         model.add_context(functools.partial(torchdynamo.optimize, args.torchdynamo))
     torchdynamo.reset()
