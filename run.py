@@ -10,6 +10,7 @@ Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
 import time
+import gc
 import numpy as np
 import torch.profiler as profiler
 
@@ -59,6 +60,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
 
     result_summary = []
     for _i in range(num_iter):
+        gc.collect()
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
