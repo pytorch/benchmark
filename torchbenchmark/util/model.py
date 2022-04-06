@@ -105,8 +105,13 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             del self.output
             torch.cuda.empty_cache()
 
-    def add_context(self, context_fn):
-        ctx = context_fn()
+    def add_context(self, context_fn, kwargs=None):
+        if not kwargs:
+            ctx = context_fn()
+        elif isinstance(kwargs, dict):
+            ctx = context_fn(**kwargs)
+        else:
+            raise NotImplementedError("We currently only support context manager dict kwargs.")
         assert isinstance(ctx, ContextManager), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
         self.run_contexts.append(context_fn)
 
