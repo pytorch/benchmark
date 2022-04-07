@@ -1,101 +1,6 @@
-from contextlib import contextmanager
-from typing import Any, List, Tuple
-from torch.testing import make_tensor
 import argparse
-import random
-import torch
-import time
-
-
-# TODO - a lot of this was copied from pytorch/jit/scripts/log_extract.py,
-# should we put it somewhere in torch? (and where?)
-
-@contextmanager
-def no_fuser(*args, **kwargs):
-    old_cpu_fuse = torch._C._jit_can_fuse_on_cpu()
-    old_gpu_fuse = torch._C._jit_can_fuse_on_gpu()
-    old_texpr_fuser_state = torch._C._jit_texpr_fuser_enabled()
-    old_nvfuser_state = torch._C._jit_nvfuser_enabled()
-
-    torch._C._jit_override_can_fuse_on_cpu(False)
-    torch._C._jit_override_can_fuse_on_gpu(False)
-    torch._C._jit_set_texpr_fuser_enabled(False)
-    torch._C._jit_set_nvfuser_enabled(False)
-
-    try:
-        yield
-    finally:
-        torch._C._jit_override_can_fuse_on_cpu(old_cpu_fuse)
-        torch._C._jit_override_can_fuse_on_gpu(old_gpu_fuse)
-        torch._C._jit_set_texpr_fuser_enabled(old_texpr_fuser_state)
-        torch._C._jit_set_nvfuser_enabled(old_nvfuser_state)
-
-
-def make_tensor_from_type(inp_type: torch._C.TensorType):
-    if inp_type.requires_grad() is not False:
-        raise NotImplementedError("Tensors with requires_grad are not implemented")
-    return make_tensor(
-        inp_type.sizes(),
-        dtype=inp_type.dtype(),
-        device=inp_type.device())
-
-
-def load_graph_and_inputs(ir: str) -> Tuple[Any, List[Any]]:
-    graph = torch._C.parse_ir(ir)
-    graph.makeMultiOutputIntoTuple()
-    inputs = []
-    for inp in graph.inputs():
-        if isinstance(inp.type(), torch._C.FloatType):
-            inputs.append(random.uniform(.1, 100))
-        elif isinstance(inp.type(), torch._C.IntType):
-            inputs.append(random.randint(1, 100))
-        elif isinstance(inp.type(), torch._C.TensorType):
-            inputs.append(make_tensor_from_type(inp.type()))
-        else:
-            raise NotImplementedError(f"A default value is not implemented for type {inp.type()}")
-
-    func = torch._C._create_function_from_graph("forward", graph)
-    torch._C._jit_pass_erase_shape_information(func.graph)
-    return (func, inputs)
-
-
-def time_cuda(fn, inputs, test_runs):
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
-    torch.cuda.synchronize()
-    start_event.record()
-    torch.cuda.synchronize()
-    for i in range(test_runs):
-        fn(*inputs)
-        torch.cuda.synchronize()
-    end_event.record()
-    torch.cuda.synchronize()
-    return start_event.elapsed_time(end_event) / test_runs
-
-
-def time_cpu(fn, inputs, test_runs):
-    s = time.perf_counter()
-    for _ in range(test_runs):
-        fn(*inputs)
-    e = time.perf_counter()
-    return (e - s) / test_runs
-
-
-def run_test(ir, inputs, *, warmup_runs=10, test_runs=20) -> float:
-    graph, _ = load_graph_and_inputs(ir)
-    for _ in range(warmup_runs):
-        graph(*inputs)
-
-    is_cpu = None
-    for input in inputs:
-        if isinstance(input, torch.Tensor):
-            is_cpu = input.device.type == "cpu"
-            break
-    assert is_cpu is not None
-
-    out = time_cpu(graph, inputs, test_runs) if is_cpu else time_cuda(graph, inputs, test_runs)
-    return out
-
+import torch.utils.jit.log_extract as log_extract
+from typing import Any, List
 
 def parse_fusers(extra_args: List[str]):
     parser = argparse.ArgumentParser()
@@ -119,13 +24,17 @@ class NVFuserBenchmark():
 
     def run_test(self, inputs, fuser_name: str) -> float:
         if fuser_name == "no_fuser":
-            with no_fuser():
-                return run_test(self.ir, inputs, warmup_runs=self.warmup_runs, test_runs=self.test_runs)
-        with torch.jit.fuser(fuser_name):
-            return run_test(self.ir, inputs, warmup_runs=self.warmup_runs, test_runs=self.test_runs)
+            return log_extract.run_baseline_no_fusion(self.ir, inputs)
+        elif fuser_name == "nnc-static":
+            return log_extract.run_nnc(self.ir, inputs, dynamic=False)
+        elif fuser_name == "nnc-dynamic" or fuser_name == "fuser1":
+            return log_extract.run_nnc(self.ir, inputs, dynamic=True)
+        elif fuser_name == "fuser2" or fuser_name == "nvfuser":
+            return log_extract.run_nvfuser(self.ir, inputs)
+        assert False
 
     def get_inputs(self) -> List[Any]:
-        _, inputs = load_graph_and_inputs(self.ir)
+        _, inputs = log_extract.load_graph_and_inputs(self.ir)
         return inputs
 
 
@@ -137,7 +46,7 @@ def run_nvfuser_microbenchmarks(extra_args: List[str]):
     if len(filters) > 0:
         benchmarks = [x for x in benchmarks if x.name in filters]
     if len(fusers) == 0:
-        fusers = ["no_fuser", "fuser1", "fuser2"]
+        fusers = ["no_fuser", "nnc-static", "nnc-dynamic", "nvfuser"]
 
     for b in benchmarks:
         outputs = []
