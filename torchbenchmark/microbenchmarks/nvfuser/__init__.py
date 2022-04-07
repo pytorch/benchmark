@@ -32,6 +32,7 @@ def no_fuser(*args, **kwargs):
         torch._C._jit_set_nvfuser_enabled(old_nvfuser_state)
 
 
+'''
 def make_tensor_from_type(inp_type: torch._C.TensorType):
     if inp_type.requires_grad() is not False:
         raise NotImplementedError("Tensors with requires_grad are not implemented")
@@ -39,6 +40,14 @@ def make_tensor_from_type(inp_type: torch._C.TensorType):
         inp_type.sizes(),
         dtype=inp_type.dtype(),
         device=inp_type.device())
+'''
+
+def make_tensor_from_type(inp_type: torch._C.TensorType):
+    size = inp_type.sizes()
+    stride = inp_type.strides()
+    device = inp_type.device()
+    dtype = inp_type.dtype()
+    return torch.empty_strided(size=size, stride=stride, device=device, dtype=dtype)
 
 
 def load_graph_and_inputs(ir: str) -> Tuple[Any, List[Any]]:
