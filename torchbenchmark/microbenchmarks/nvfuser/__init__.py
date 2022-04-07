@@ -63,7 +63,7 @@ def load_graph_and_inputs(ir: str) -> Tuple[Any, List[Any]]:
 def time_cuda(fn, inputs, test_runs):
     t = Timer(stmt="fn(*inputs)", globals={"fn": fn, "inputs": inputs})
     times = t.blocked_autorange()
-    return times * 1000  # time in ms
+    return times.median * 1000  # time in ms
 
 
 def time_cpu(fn, inputs, test_runs):
