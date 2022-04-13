@@ -1,4 +1,4 @@
-name: TorchBench Correctness Testing
+name: TorchBench Benchmarking
 on:
   workflow_dispatch:
     inputs:
