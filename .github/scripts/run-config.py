@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
-from .utils.summarize import analyze_result
+from bmutils.summarize import analyze_result
 
 @dataclass
 class BenchmarkModelConfig:
