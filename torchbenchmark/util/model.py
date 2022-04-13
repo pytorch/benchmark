@@ -105,7 +105,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             del self.output
             torch.cuda.empty_cache()
 
-    def add_context(self, context_fn, kwargs=None):
+    def add_context(self, context_fn):
         ctx = context_fn()
         assert isinstance(ctx, ContextManager), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
         self.run_contexts.append(context_fn)
