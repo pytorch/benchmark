@@ -60,7 +60,7 @@ def generate_header(result, base_key):
     header.append(f"precision")
     header.append(f"batch size")
     header.extend(args)
-    return (header, base_arg)
+    return header
 
 def split_header(header):
     regex = "(.*) \(([a-z]+)\)"
@@ -92,13 +92,13 @@ def find_result_by_header(r, header, base_arg):
         assert False, f"Found unknown type {tp}"
 
 # Dump the result to csv, so that can be used in Google Sheets
-def dump_result(result, header, base_arg):
+def dump_result(result, header, base_key):
     s = [";".join(header) + "\n"]
     # sort models by their names in lowercase
     for k in sorted(result, key=lambda x: x[0].lower()):
         rt = [str(k[0]), str(result[k]["precision"]), str(result[k]["batch_size"])]
         for h in header[3:]:
-            rt.append(str(find_result_by_header(result[k], split_header(h), base_arg)))
+            rt.append(str(find_result_by_header(result[k], split_header(h), base_key)))
         s.append(";".join(rt) + "\n")
     return "".join(s)
 
@@ -110,8 +110,8 @@ def analyze_result(result_dir: str, base_key: str) -> str:
     result = {}
     for f in files:
         process_json(result, f)
-    header, base_arg = generate_header(result)
-    s = dump_result(result, header, base_arg)
+    header = generate_header(result, base_key)
+    s = dump_result(result, header, base_key)
     return s
 
 if __name__ == "__main__":
