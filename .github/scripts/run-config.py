@@ -56,7 +56,7 @@ def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Pat
     if config.args != ['']:
         cmd.extend(config.args)
     cmd.extend(["-o", os.path.join(output_path.absolute(), "json", f"{config.rewritten_option}.json")])
-    print(f"Now running benchmark command: {cmd}.")
+    print(f"Now running benchmark command: {cmd}.", flush=True)
     subprocess.check_call(cmd, cwd=repo_path)
 
 def gen_output_csv(output_path: Path, base_key: str):
