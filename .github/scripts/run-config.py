@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
+from .utils.summarize import analyze_result
+
 @dataclass
 class BenchmarkModelConfig:
     device: str
@@ -45,18 +47,22 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
 def create_dir_if_nonexist(dirpath: str) -> Path:
     path = Path(dirpath)
     path.mkdir(parents=True, exist_ok=True)
+    json_path = path.joinpath("json")
+    json_path.mkdir(parents=True, exist_ok=True)
     return path
 
 def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path):
     cmd = [sys.executable, "run_sweep.py", "-d", config.device, "-t", config.test]
     if config.args != ['']:
         cmd.extend(config.args.split(' '))
-    cmd.extend(["-o", os.path.join(output_path.absolute(), f"{config.rewritten_option}.json")])
+    cmd.extend(["-o", os.path.join(output_path.absolute(), "json", f"{config.rewritten_option}.json")])
     print(f"Now running benchmark command: {cmd}.")
     subprocess.check_call(cmd, cwd=repo_path)
 
-def gen_output_csv(output_path: Path):
-    pass
+def gen_output_csv(output_path: Path, base_key: str):
+    result = analyze_result(output_path.joinpath("json").absolute(), base_key=base_key)
+    with open(output_path.joinpath("summary.csv"), "w") as sw:
+        sw.write(result)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -68,7 +74,7 @@ if __name__ == "__main__":
     assert repo_path.exists(), f"Path {args.benchmark_repo} doesn't exist. Exit."
     output_path = create_dir_if_nonexist(args.output_dir)
     bmconfig_list = parse_bmconfigs(repo_path, args.config)
-    print(bmconfig_list)
+    assert len(bmconfig_list), "Size of the BenchmarkModel list must be larger than zero."
     for bmconfig in bmconfig_list:
         run_bmconfig(bmconfig, repo_path, output_path)
-    gen_output_csv(output_path)
+    gen_output_csv(output_path, base_key=bmconfig_list[0].rewritten_option)
