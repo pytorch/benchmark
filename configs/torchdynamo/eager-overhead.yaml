@@ -1,0 +1,10 @@
+# Sample benchmark config
+# Runs a test matrix of [device x test x test_args]
+device:
+  - "cuda"
+test:
+  - "eval"
+args:
+  # pytorch default eager mode
+  - ""
+  - "--torchdynamo eager"

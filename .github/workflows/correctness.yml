@@ -2,10 +2,10 @@ name: TorchBench Correctness Testing
 on:
   workflow_dispatch:
     inputs:
-      backend_options:
-        description: "Backend options"
+      benchmark_config:
+        description: "Benchmark config"
         required: true
-        default: "-d cuda -t eval --torchdynamo eager"
+        default: "torchdynamo/eager-overhead"
 env:
   PYTHON_VERSION: "3.8"
   TENSORRT_PYTHON_VERSION: "cp38"
@@ -89,9 +89,9 @@ jobs:
           mkdir -p benchmark-output/
           pushd benchmark
           # run the backend options and store the result to the "benchmark-output" directory
-          python .github/scripts/run-backends.py --run-options "${{ github.event.inputs.backend_options }}" \
-                                                 --benchmark-repo "${PWD}" \
-                                                 --output-dir "${PWD}/../benchmark-output"
+          python .github/scripts/run-config.py --config "${{ github.event.inputs.benchmark_config }}" \
+                                               --benchmark-repo "${PWD}" \
+                                               --output-dir "${PWD}/../benchmark-output"
           popd
       - name: Upload artifact
         uses: actions/upload-artifact@v2
