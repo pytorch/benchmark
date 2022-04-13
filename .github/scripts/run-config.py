@@ -41,7 +41,7 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
         config = yaml.safe_load(cf)
     out = []
     for device, test, args in itertools.product(*[config["device"], config["test"], config["args"]]):
-        out.append(BenchmarkModelConfig(device=device, test=test, args=args, rewritten_option=rewrite_option(args.split(" "))))
+        out.append(BenchmarkModelConfig(device=device, test=test, args=args.split(" "), rewritten_option=rewrite_option(args.split(" "))))
     return out
 
 def create_dir_if_nonexist(dirpath: str) -> Path:
@@ -54,7 +54,7 @@ def create_dir_if_nonexist(dirpath: str) -> Path:
 def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path):
     cmd = [sys.executable, "run_sweep.py", "-d", config.device, "-t", config.test]
     if config.args != ['']:
-        cmd.extend(config.args.split(' '))
+        cmd.extend(config.args)
     cmd.extend(["-o", os.path.join(output_path.absolute(), "json", f"{config.rewritten_option}.json")])
     print(f"Now running benchmark command: {cmd}.")
     subprocess.check_call(cmd, cwd=repo_path)
