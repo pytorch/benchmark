@@ -4,3 +4,4 @@ onnx
 pydot
 scikit-learn
 tqdm
+torchrec-nightly
