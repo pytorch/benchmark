@@ -3,7 +3,6 @@ import sys
 import os
 from torchbenchmark import REPO_PATH
 from typing import Tuple
-from torchbenchmark.models
 
 # Import FAMBench model path
 class add_path():
@@ -18,14 +17,24 @@ class add_path():
             sys.path.remove(self.path)
         except ValueError:
             pass
-DLRM_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "rnnt", "ootb")
-with add_path(DLRM_PATH):
-    pass
+RNNT_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "rnnt", "ootb", "train")
 
+with add_path(RNNT_PATH):
+    from common.data.dali.data_loader import DaliDataLoader
+
+from .config import FambenchRNNTConfig
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 
 class Model(BenchmarkModel):
+    RNNT_TRAIN_CONFIG = FambenchRNNTConfig()
+    # Default train batch size: 1024. Source:
+    # https://github.com/facebookresearch/FAMBench/blob/main/benchmarks/rnnt/ootb/train/scripts/train.sh#L28
+    DEFAULT_TRAIN_BATCH_SIZE = RNNT_TRAIN_CONFIG.train_batch_size
+    DEFAULT_EVAL_BATCH_SIZE
     DEFAULT_EVAL_BATCH_SIZE = 64
     # run only 1 batch
     DEFAULT_NUM_BATCHES = 1
+
+    def __init__(self, ):
+        self.config = FambenchRNNTConfig()
