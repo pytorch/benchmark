@@ -10,7 +10,6 @@ from pplbench.ppls.beanmachine import robust_regression
 from pplbench.models.robust_regression import RobustRegression
 from pplbench.ppls.beanmachine.inference import MCMC
 
-
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
     DEFAULT_EVAL_BSIZE = 1
@@ -51,4 +50,4 @@ class Model(BenchmarkModel):
         out = model.evaluate_posterior_predictive(
                 samples, self.test_data
             )
-        return (out, )
+        return (torch.Tensor(out), )
