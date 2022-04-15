@@ -28,7 +28,7 @@ class Pplbench(torch.nn.Module):
     def forward(self, train_data, test_data):
 
         # Run inference on given data
-        samples = self.infer_obj.infer(data=train_data, iterations=1, num_warmup=0, seed=random.randint(1, int(1e7)))
+        samples = self.infer_obj.infer(data=train_data, iterations=1500, num_warmup=0, seed=random.randint(1, int(1e7)))
 
         # Evaluate the model with test data
         out = self.model.evaluate_posterior_predictive(samples, test_data)
@@ -37,7 +37,10 @@ class Pplbench(torch.nn.Module):
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
+
+    # Batch size is not adjustable in the model
     DEFAULT_EVAL_BSIZE = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
