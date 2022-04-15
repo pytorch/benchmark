@@ -1346,6 +1346,259 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %5 : Float(32, 960, 1, 1, strides=[960, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::mean(%0, %4, %3, %2)
   %6 : Float(32, 960, strides=[960, 1], requires_grad=0, device=cuda:0) = aten::reshape(%5, %1)
   return (%6)
+"""), ("autogen-58", """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %1 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %2 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %3 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %4 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %5 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %6 : Double(requires_grad=0, device=cuda:0),
+      %7 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %8 : Double(requires_grad=0, device=cuda:0),
+      %9 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %10 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %11 : Double(requires_grad=0, device=cuda:0),
+      %12 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %13 : Double(1, 1, 26, strides=[26, 26, 1], requires_grad=0, device=cuda:0),
+      %14 : Double(requires_grad=0, device=cuda:0),
+      %15 : Double(requires_grad=0, device=cuda:0),
+      %16 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %17 : Double(requires_grad=0, device=cuda:0),
+      %18 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %19 : Double(requires_grad=0, device=cuda:0),
+      %20 : Double(requires_grad=0, device=cuda:0),
+      %21 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %22 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %23 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %24 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %25 : Double(requires_grad=0, device=cuda:0),
+      %26 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %27 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %28 : Double(requires_grad=0, device=cuda:0),
+      %29 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %30 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %31 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %32 : Double(requires_grad=0, device=cuda:0),
+      %33 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %34 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %35 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %36 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %37 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %38 : Double(requires_grad=0, device=cuda:0),
+      %39 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %40 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %41 : Double(requires_grad=0, device=cuda:0),
+      %42 : Double(requires_grad=0, device=cuda:0),
+      %43 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %44 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %45 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %46 : Double(requires_grad=0, device=cuda:0),
+      %47 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %48 : Double(requires_grad=0, device=cuda:0),
+      %49 : Double(requires_grad=0, device=cuda:0),
+      %50 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %51 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %52 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %53 : Double(requires_grad=0, device=cuda:0),
+      %54 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %55 : Double(requires_grad=0, device=cuda:0),
+      %56 : Double(requires_grad=0, device=cuda:0),
+      %57 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %58 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %59 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %60 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %61 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %62 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %63 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %64 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %65 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %66 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %67 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %68 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %69 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+      %70 : int,
+      %71 : int,
+      %72 : int,
+      %73 : int,
+      %74 : int,
+      %75 : int,
+      %76 : int,
+      %77 : int,
+      %78 : int,
+      %79 : int,
+      %80 : int,
+      %81 : int,
+      %82 : int,
+      %83 : int,
+      %84 : int,
+      %85 : int,
+      %86 : int,
+      %87 : int,
+      %88 : int,
+      %89 : int,
+      %90 : int,
+      %91 : int,
+      %92 : int,
+      %93 : int,
+      %94 : int,
+      %95 : int,
+      %96 : int,
+      %97 : int,
+      %98 : int,
+      %99 : int,
+      %100 : int,
+      %101 : int,
+      %102 : int,
+      %103 : int,
+      %104 : int,
+      %105 : int,
+      %106 : int,
+      %107 : int,
+      %108 : int,
+      %109 : int,
+      %110 : int,
+      %111 : int,
+      %112 : int,
+      %113 : int,
+      %114 : int,
+      %115 : int,
+      %116 : int,
+      %117 : int,
+      %118 : int,
+      %119 : int,
+      %120 : int,
+      %121 : int,
+      %122 : int,
+      %123 : int,
+      %124 : int):
+  %125 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%68, %69, %124)
+  %126 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%23, %9)
+  %127 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%67, %22)
+  %128 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%127, %21)
+  %129 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%125, %128, %123)
+  %130 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%129, %7)
+  %131 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%66, %21)
+  %132 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%65, %22)
+  %133 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%132, %21)
+  %134 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%64, %29)
+  %135 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%63, %30)
+  %136 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%61, %7)
+  %137 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%136, %22)
+  %138 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%137, %21)
+  %139 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%61, %62)
+  %140 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%60, %11)
+  %141 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%140, %58)
+  %142 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%59, %11)
+  %143 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%142, %58)
+  %144 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%143, %141, %122)
+  %145 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%144, %139, %121)
+  %146 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%145, %138, %120)
+  %147 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%146, %135, %119)
+  %148 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%147, %134, %118)
+  %149 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%148, %3)
+  %150 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%57, %11)
+  %151 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%150, %56, %117)
+  %152 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%39, %151)
+  %153 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%54, %55, %116)
+  %154 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%153, %152, %115)
+  %155 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%39, %154)
+  %156 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%52, %53, %114)
+  %157 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%156, %155, %113)
+  %158 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%51, %157)
+  %159 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%50, %11)
+  %160 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%159, %49, %112)
+  %161 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%39, %160)
+  %162 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%47, %48, %111)
+  %163 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%162, %161, %110)
+  %164 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%39, %163)
+  %165 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%45, %46, %109)
+  %166 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%165, %164, %108)
+  %167 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%166, %158, %107)
+  %168 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%44, %167)
+  %169 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%43, %11)
+  %170 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%169, %42, %106)
+  %171 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%39, %170)
+  %172 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%40, %41, %105)
+  %173 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%172, %171, %104)
+  %174 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%39, %173)
+  %175 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%37, %38, %103)
+  %176 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%175, %174, %102)
+  %177 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%176, %168, %101)
+  %178 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%177, %149, %100)
+  %179 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%178, %133, %99)
+  %180 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%179, %36)
+  %181 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%180, %131, %98)
+  %182 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%181, %130, %97)
+  %183 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%182, %126, %96)
+  %184 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%183, %20)
+  %185 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%184, %3)
+  %186 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%185, %35)
+  %187 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::reciprocal(%30)
+  %188 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%187, %28)
+  %189 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%34, %28)
+  %190 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%33, %28)
+  %191 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%190, %32, %95)
+  %192 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%191, %189, %94)
+  %193 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%192, %31, %93)
+  %194 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%13, %193)
+  %195 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%194, %188)
+  %196 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%195, %28, %92)
+  %197 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::pow(%30, %91)
+  %198 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::div(%194, %197)
+  %199 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%198, %29)
+  %200 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%27, %28)
+  %201 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%26, %11)
+  %202 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%201, %25, %90)
+  %203 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%202, %200, %89)
+  %204 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%203, %24, %88)
+  %205 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%13, %204)
+  %206 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%205, %188)
+  %207 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%206, %199, %87)
+  %208 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%23, %20)
+  %209 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%208, %3)
+  %210 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%209, %207)
+  %211 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::div(%210, %196)
+  %212 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::log(%196)
+  %213 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%208, %22)
+  %214 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%213, %212)
+  %215 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%214, %21)
+  %216 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%129, %20)
+  %217 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%216, %3)
+  %218 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%217, %212)
+  %219 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%10, %19)
+  %220 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%219, %13)
+  %221 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%18, %11)
+  %222 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%221, %3)
+  %223 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%16, %17, %86)
+  %224 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%223, %222, %85)
+  %225 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%224, %220, %84)
+  %226 : Double(1, 1, 26, strides=[26, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%13, %15)
+  %227 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%226, %225)
+  %228 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%227, %12)
+  %229 : Double(1, 1, 26, strides=[26, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%13, %14)
+  %230 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%221, %12)
+  %231 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%10, %11)
+  %232 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%231, %9)
+  %233 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%232, %3)
+  %234 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%7, %8)
+  %235 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%234, %3)
+  %236 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%5, %6, %83)
+  %237 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%236, %4, %82)
+  %238 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%237, %235, %81)
+  %239 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%238, %233, %80)
+  %240 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%239, %230, %79)
+  %241 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%240, %229, %78)
+  %242 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%226, %241)
+  %243 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%242, %3)
+  %244 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%243, %228, %77)
+  %245 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%244, %218, %76)
+  %246 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%245, %215, %75)
+  %247 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%246, %211, %74)
+  %248 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%247, %186, %73)
+  %249 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%248, %2, %72)
+  %250 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%249, %1, %71)
+  %251 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%250, %0, %70)
+  return (%251)
 """), ("autogen-59", """graph(%0 : Long(1, 12, 4096, strides=[49152, 4096, 1], requires_grad=0, device=cuda:0),
       %1 : Long(requires_grad=0, device=cuda:0),
       %2 : Long(1, 12, 1, 4096, strides=[49152, 4096, 4096, 1], requires_grad=0, device=cuda:0),
