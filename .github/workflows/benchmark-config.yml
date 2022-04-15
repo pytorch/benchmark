@@ -1,0 +1,103 @@
+name: TorchBench Benchmarking
+on:
+  workflow_dispatch:
+    inputs:
+      benchmark_config:
+        description: "Benchmark config"
+        required: true
+        default: "torchdynamo/eager-overhead"
+env:
+  PYTHON_VERSION: "3.8"
+  TENSORRT_PYTHON_VERSION: "cp38"
+  CUDA_VERSION: "cu113"
+  CONDA_ENV_NAME: "backends-ci"
+  MAGMA_VERSION: "magma-cuda113"
+  CONDA_PROFILE: "/home/ec2-user/data/miniconda3/etc/profile.d/conda.sh"
+jobs:
+  run-test:
+    runs-on: [self-hosted, bm-runner-v100]
+    timeout-minutes: 120 # 2 hours
+    steps:
+      - name: Checkout TorchBench
+        uses: actions/checkout@v2
+        with:
+          path: benchmark
+      - name: Checkout fx2trt
+        uses: actions/checkout@v2
+        with:
+          repository: pytorch/fx2trt
+          path: fx2trt
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+      - name: Checkout Torch-TensorRT
+        uses: actions/checkout@v2
+        with:
+          repository: NVIDIA/Torch-TensorRT
+          path: torch-trt
+      - name: Checkout TorchDynamo
+        uses: actions/checkout@v2
+        with:
+          repository: facebookresearch/torchdynamo
+          path: torchdynamo
+      - name: Create conda environment
+        run: |
+          conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+      - name: Install PyTorch nightly
+        run: |
+          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          # Install dependencies
+          conda install -y -c pytorch "${MAGMA_VERSION}"
+          pip install requests bs4 argparse gitpython boto3
+          # Check if nightly builds are available
+          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+          # If failed, the script will generate empty result
+          if [ -z $NIGHTLIES ]; then
+              echo "Torch nightly build failed. Cancel the workflow."
+              exit 1
+          fi
+          # Install PyTorch nightly from pip
+          pip install --pre torch torchtext torchvision \
+            -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
+      - name: Install TensorRT
+        run: |
+          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          pushd "${HOME}/TensorRT"
+          pip install graphsurgeon/graphsurgeon-0.4.5-py2.py3-none-any.whl
+          pip install onnx_graphsurgeon/onnx_graphsurgeon-0.3.12-py2.py3-none-any.whl
+          pip install uff/uff-0.6.9-py2.py3-none-any.whl
+          pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
+      - name: Install fx2trt and TorchDynamo
+        run: |
+          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          pushd fx2trt
+          python setup.py install
+          popd
+          pushd torchdynamo
+          python setup.py develop
+          popd
+      - name: Install benchmark deps
+        run: |
+          set -x
+          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python install.py
+          popd
+      - name: Run benchmark
+        run: |
+          set -x
+          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          mkdir -p benchmark-output/
+          pushd benchmark
+          # run the backend options and store the result to the "benchmark-output" directory
+          python .github/scripts/run-config.py --config "${{ github.event.inputs.benchmark_config }}" \
+                                               --benchmark-repo "${PWD}" \
+                                               --output-dir "${PWD}/../benchmark-output"
+          popd
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: TorchBench result
+          path: benchmark-output/
+      - name: Remove conda environment
+        run: |
+          conda env remove --name "${CONDA_ENV_NAME}"

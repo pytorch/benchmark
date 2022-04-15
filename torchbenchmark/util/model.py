@@ -94,7 +94,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         # apply decoration and optimization args
         apply_decoration_args(self, self.dargs)
         if self.dynamo:
-            apply_torchdynamo_args(self, self.opt_args)
+            apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
             apply_opt_args(self, self.opt_args)
         # if test is eval, check correctness
