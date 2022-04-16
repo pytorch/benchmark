@@ -25,28 +25,35 @@ class Pplbench(torch.nn.Module):
                               self.train_data.attrs)
         self.infer_obj.compile()
 
-    def forward(self, train_data, test_data):
+    def forward(self, train_data, test_data, training=False):
 
-        # Run inference on given data
-        samples = self.infer_obj.infer(data=train_data, iterations=1500, num_warmup=0, seed=random.randint(1, int(1e7)))
+        if training:
+            # Run bayesian inference (training) on given data
+            samples = self.infer_obj.infer(data=train_data, iterations=1500, num_warmup=0, seed=random.randint(1, int(1e7)))
 
-        # Evaluate the model with test data
-        out = self.model.evaluate_posterior_predictive(samples, test_data)
+        if not training:
+            # Run bayesian inference (training) on given data for 1 iteration
+            # We need the object of type MonteCarloSamples for the evaluation step
+            samples = self.infer_obj.infer(data=train_data, iterations=1, num_warmup=0, seed=random.randint(1, int(1e7)))
 
-        return torch.Tensor(out)
+            # Evaluate the model with test data and compute the posterior probabilities
+            out = self.model.evaluate_posterior_predictive(samples, test_data)
+            return torch.Tensor(out)
+
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
     # Batch size is not adjustable in the model
+    DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        if test == "eval" and device != "cpu":
-            raise NotImplementedError("The eval test only supports CPU.")
+        if device != "cpu":
+            raise NotImplementedError("The {} test only supports CPU.".format(test))
 
         # Instantiate model
         self.model = Pplbench()
@@ -57,7 +64,9 @@ class Model(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self, niter=1):
-        raise NotImplementedError("Training not supported")
+        model, example_inputs = self.get_module()
+
+        _ = model(*example_inputs, training=True)
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
