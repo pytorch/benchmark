@@ -11,34 +11,40 @@ from pplbench.models.robust_regression import RobustRegression
 from pplbench.ppls.beanmachine.inference import MCMC
 
 class Pplbench(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, test):
         super(Pplbench, self).__init__()
 
         # Instantiate model
         self.model = RobustRegression()
 
-        # Get data for evaluating model
-        self.train_data, self.test_data = self.model.generate_data(seed=int(time.time()))
+        # Get data for inference & evaluating model
+        if test == "eval":
+            # Increased number of samples (n) and number of features(k) to increase computation for eval
+            # Default values Reference: https://github.com/facebookresearch/pplbench/blob/main/examples/robust_regression.json
+            self.train_data, self.test_data = self.model.generate_data(seed=int(time.time()), n= 1000000, k=1000)
+        else:
+            self.train_data, self.test_data = self.model.generate_data(seed=int(time.time()))
 
         # Create inference object with training data
         self.infer_obj = MCMC(robust_regression.RobustRegression,
                               self.train_data.attrs)
         self.infer_obj.compile()
 
+        if test == "eval":
+            # Run bayesian inference (training) on given data for 1 iteration
+            # We need the object of type MonteCarloSamples for the evaluation step
+            # @Todo Can we create samples object without using infer function?
+            self.samples = self.infer_obj.infer(data=self.train_data, iterations=1, num_warmup=0, seed=random.randint(1, int(1e7)))
+
     def forward(self, train_data, test_data, training=False):
 
         if training:
             # Run bayesian inference (training) on given data
+            # Reference: https://github.com/facebookresearch/pplbench/blob/main/examples/robust_regression.json
             samples = self.infer_obj.infer(data=train_data, iterations=1500, num_warmup=0, seed=random.randint(1, int(1e7)))
-
-        if not training:
-            # Run bayesian inference (training) on given data for 1 iteration
-            # We need the object of type MonteCarloSamples for the evaluation step
-            # @Todo Can we create samples object without using infer function?
-            samples = self.infer_obj.infer(data=train_data, iterations=1, num_warmup=0, seed=random.randint(1, int(1e7)))
-
+        else:
             # Evaluate the model with test data and compute the posterior probabilities
-            out = self.model.evaluate_posterior_predictive(samples, test_data)
+            out = self.model.evaluate_posterior_predictive(self.samples, test_data)
             return torch.Tensor(out)
 
 
@@ -57,7 +63,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("The {} test only supports CPU.".format(test))
 
         # Instantiate model
-        self.model = Pplbench()
+        self.model = Pplbench(test)
 
         self.example_inputs = (self.model.train_data, self.model.test_data)
 
