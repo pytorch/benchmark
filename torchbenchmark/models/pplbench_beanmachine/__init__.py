@@ -21,7 +21,7 @@ class Pplbench(torch.nn.Module):
         if test == "eval":
             # Increased number of samples (n) and number of features(k) to increase computation for eval
             # Default values Reference: https://github.com/facebookresearch/pplbench/blob/main/examples/robust_regression.json
-            self.train_data, self.test_data = self.model.generate_data(seed=int(time.time()), n= 1000000, k=1000)
+            self.train_data, self.test_data = self.model.generate_data(seed=int(time.time()), n=500000, k=500)
         else:
             self.train_data, self.test_data = self.model.generate_data(seed=int(time.time()))
 
