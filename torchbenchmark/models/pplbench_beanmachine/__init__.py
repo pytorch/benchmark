@@ -34,6 +34,7 @@ class Pplbench(torch.nn.Module):
         if not training:
             # Run bayesian inference (training) on given data for 1 iteration
             # We need the object of type MonteCarloSamples for the evaluation step
+            # @Todo Can we create samples object without using infer function?
             samples = self.infer_obj.infer(data=train_data, iterations=1, num_warmup=0, seed=random.randint(1, int(1e7)))
 
             # Evaluate the model with test data and compute the posterior probabilities
