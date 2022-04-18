@@ -4,7 +4,7 @@ import torch
 
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
-from typing import Tuple
+from typing import Tuple, Generator, Optional
 
 from pplbench.ppls.beanmachine import robust_regression
 from pplbench.models.robust_regression import RobustRegression
@@ -69,6 +69,12 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         return self.model, self.example_inputs
+
+    def gen_inputs(self, num_batches=1) -> Tuple[Generator, Optional[int]]:
+        def _gen_inputs():
+            while True:
+                yield self.example_inputs
+        return (_gen_inputs(), None)
 
     def train(self, niter=1):
         model, example_inputs = self.get_module()
