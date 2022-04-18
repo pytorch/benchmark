@@ -27,7 +27,8 @@ with add_path(RNNT_TRAIN_PATH):
 with add_path(RNNT_EVAL_PATH):
     from pytorch.model_separable_rnnt import RNNT
 
-from .config import FambenchRNNTConfig, FambenchRNNTTrainConfig, FambenchRNNTEvalConfig
+from .config import FambenchRNNTTrainConfig, FambenchRNNTEvalConfig
+from .decoders import GreedyDecoder
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 
@@ -69,7 +70,7 @@ class Model(BenchmarkModel):
                      num_classes=len(rnnt_vocab))
         model.load_state_dict(load_and_migrate_checkpoint(checkpoint_path), strict=True)
         model.eval()
-        self.greedy_decoder = ScriptGreedyDecoder(len(rnn_vocab) - 1, model)
+        self.greedy_decoder = GreedyDecoder(len(rnn_vocab) - 1, model)
         waveform = self.qsl[0]
         assert waveform.ndim == 1
         waveform_length = np.array(waveform.shape[0], dtype=np.int64)
