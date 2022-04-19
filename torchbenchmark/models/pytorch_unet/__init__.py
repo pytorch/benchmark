@@ -55,8 +55,8 @@ class Model(BenchmarkModel):
 
         self.model.train()
 
-        with torch.cuda.amp.autocast(enabled=self.args.amp):
-            for _ in range(niter):
+        for _ in range(niter):
+            with torch.cuda.amp.autocast(enabled=self.args.amp):
                 masks_pred = self.model(self.example_inputs)
                 masks_true = self.sample_masks
                 loss = criterion(masks_pred, masks_true) + \
@@ -65,10 +65,10 @@ class Model(BenchmarkModel):
                         F.one_hot(masks_true, self.model.n_classes).permute(0, 3, 1, 2).float(),
                         multiclass=True)
 
-                optimizer.zero_grad(set_to_none=True)
-                grad_scaler.scale(loss).backward()
-                grad_scaler.step(optimizer)
-                grad_scaler.update()
+            optimizer.zero_grad(set_to_none=True)
+            grad_scaler.scale(loss).backward()
+            grad_scaler.step(optimizer)
+            grad_scaler.update()
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
         self.model.eval()
