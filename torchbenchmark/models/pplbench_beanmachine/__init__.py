@@ -72,8 +72,11 @@ class Model(BenchmarkModel):
 
     def gen_inputs(self, num_batches=1) -> Tuple[Generator, Optional[int]]:
         def _gen_inputs():
+            result = []
             while True:
-                yield self.example_inputs
+                for _i in range(num_batches):
+                    result.append(self.example_inputs)
+                yield result
         return (_gen_inputs(), None)
 
     def train(self, niter=1):

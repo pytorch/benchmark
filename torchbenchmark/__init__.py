@@ -376,11 +376,6 @@ class ModelTask(base_task.TaskBase):
             input_iter, _size = model.gen_inputs()
             next_inputs = next(input_iter)
 
-            # In case of pplbench, next_inputs is a tuple
-            if isinstance(next_inputs, tuple):
-                module(*next_inputs)
-                return
-
             for input in next_inputs:
                 if isinstance(input, dict):
                     # Huggingface models pass **kwargs as arguments, not *args
