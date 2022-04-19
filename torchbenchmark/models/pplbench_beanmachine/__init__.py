@@ -62,6 +62,8 @@ class Model(BenchmarkModel):
         if device != "cpu":
             raise NotImplementedError("The {} test only supports CPU.".format(test))
 
+        self.test = test
+
         # Instantiate model
         self.model = Pplbench(test)
 
@@ -75,7 +77,10 @@ class Model(BenchmarkModel):
             result = []
             while True:
                 for _i in range(num_batches):
-                    train_data, test_data = self.model.model.generate_data(seed=int(time.time()), n=500000, k=500)
+                    if self.test == "train":
+                        train_data, test_data = self.model.model.generate_data(seed=int(time.time()))
+                    else:
+                        train_data, test_data = self.model.model.generate_data(seed=int(time.time()), n=500000, k=500)
                     result.append((train_data, test_data))
                 yield result
         return (_gen_inputs(), None)
