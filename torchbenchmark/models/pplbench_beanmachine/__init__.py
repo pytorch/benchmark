@@ -75,7 +75,8 @@ class Model(BenchmarkModel):
             result = []
             while True:
                 for _i in range(num_batches):
-                    result.append(self.example_inputs)
+                    train_data, test_data = self.model.model.generate_data(seed=int(time.time()), n=500000, k=500)
+                    result.append((train_data, test_data))
                 yield result
         return (_gen_inputs(), None)
 
