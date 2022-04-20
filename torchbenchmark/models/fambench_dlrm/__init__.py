@@ -8,7 +8,7 @@ import os
 import numpy as np
 import torch.nn as nn
 from torchbenchmark import REPO_PATH
-from typing import Tuple
+from typing import Tuple, List
 
 # Import FAMBench model path
 class add_path():
@@ -26,7 +26,6 @@ class add_path():
 DLRM_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "dlrm", "ootb")
 with add_path(DLRM_PATH):
     from dlrm_s_pytorch import DLRM_Net
-    from dlrm_data_pytorch import make_random_data_and_loader
     import optim.rwsadagrad as RowWiseSparseAdagrad
 
 from torchbenchmark.util.model import BenchmarkModel
@@ -34,6 +33,7 @@ from torchbenchmark.tasks import RECOMMENDATION
 from .config import FAMBenchTrainConfig, FAMBenchEvalConfig, cfg_to_str
 from .args import parse_fambench_args, validate_fambench_args
 from .data import prep_data
+from .lrscheduler import LRPolicyScheduler
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
@@ -59,9 +59,7 @@ class Model(BenchmarkModel):
         args = self.fambench_args
         validate_fambench_args(args)
         self.prep(args)
-        prep_data(args)
-        # in TorchBench test, we only use 1 GPU
-        ndevices = 1
+        ln_bot, ln_emb, ln_top, m_spa = prep_data(args)
         dlrm = DLRM_Net(
             m_spa,
             ln_emb,
@@ -74,7 +72,7 @@ class Model(BenchmarkModel):
             sigmoid_top=ln_top.size - 2,
             sync_dense_params=args.sync_dense_params,
             loss_threshold=args.loss_threshold,
-            ndevices=ndevices,
+            ndevices=args.ndevices,
             qr_flag=args.qr_flag,
             qr_operation=args.qr_operation,
             qr_collisions=args.qr_collisions,
@@ -144,7 +142,21 @@ class Model(BenchmarkModel):
             # will run in single-gpu mode, resulting in 8 gpus total running distributed
             # training or distributed inference if --inference-only is enabled.
             if dlrm.ndevices_available <= 1:
-                assert not args.use_fbgemm_gpu, "fbgemm_gpu is not supported."
+                if args.use_fbgemm_gpu:
+                    from .fbgemm_embedding import fbgemm_gpu_emb_bag_wrapper
+                    dlrm.fbgemm_emb_l = nn.ModuleList(
+                        [
+                            fbgemm_gpu_emb_bag_wrapper(
+                                device,
+                                dlrm.emb_l if dlrm.emb_l else dlrm.emb_l_q,
+                                dlrm.m_spa,
+                                dlrm.quantize_bits,
+                                dlrm.learning_rate,
+                                dlrm.fbgemm_gpu_codegen_pref,
+                                dlrm.requires_grad,
+                            )
+                        ]
+                    )
                 if args.use_gpu:
                     dlrm = dlrm.to(device)
                     if dlrm.weighted_pooling == "fixed":
@@ -154,7 +166,7 @@ class Model(BenchmarkModel):
                 # Handing Multi-gpu mode
                 dlrm.bot_l = dlrm.bot_l.to(device)
                 dlrm.top_l = dlrm.top_l.to(device)
-                dlrm.prepare_parallel_model(ndevices)
+                dlrm.prepare_parallel_model(args.ndevices)
         assert not args.use_torch2trt_for_mlp, "torch2trt is not supported."
         if not args.inference_only:
             # specify the optimizer algorithm
@@ -163,41 +175,13 @@ class Model(BenchmarkModel):
                 "rwsadagrad": RowWiseSparseAdagrad.RWSAdagrad,
                 "adagrad": torch.optim.Adagrad,
             }
-            assert ext_dist.my_size == 1, "Distributed is not supported."
+            # removed distributed code here
             parameters = (
                 dlrm.parameters()
-                if ext_dist.my_size == 1
-                else [
-                    {
-                        "params": [
-                            p
-                            for emb in (
-                                [e.fbgemm_gpu_emb_bag for e in dlrm.fbgemm_emb_l]
-                                if use_fbgemm_gpu
-                                else dlrm.emb_l_q
-                                if dlrm.quantize_bits != 32
-                                else dlrm.emb_l
-                            )
-                            for p in emb.parameters()
-                        ],
-                        "lr": args.learning_rate,
-                    },
-                    # TODO check this lr setup
-                    # bottom mlp has no data parallelism
-                    # need to check how do we deal with top mlp
-                    {
-                        "params": dlrm.bot_l.parameters(),
-                        "lr": args.learning_rate,
-                    },
-                    {
-                        "params": dlrm.top_l.parameters(),
-                        "lr": args.learning_rate,
-                    },
-                ]
             )
             self.optimizer = opts[args.optimizer](parameters, lr=args.learning_rate)
             self.lr_scheduler = LRPolicyScheduler(
-                optimizer,
+                self.optimizer,
                 args.lr_num_warmup_steps,
                 args.lr_decay_start_step,
                 args.lr_num_decay_steps,
@@ -220,3 +204,55 @@ class Model(BenchmarkModel):
         if args.use_gpu:
             torch.cuda.manual_seed_all(args.numpy_rand_seed)
             torch.backends.cudnn.deterministic = True
+            # we only support 1 device
+            args.ndevices = 1
+
+    def get_module(self) -> Tuple[torch.nn.Module, List[torch.Tensor]]:
+        pass
+
+    def train(self):
+        args = self.args
+        for j, inputBatch in enumerate(self.trian_ld):
+            X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch)
+            mbs = T.shape[0]  # = args.mini_batch_size except maybe for last
+            # forward pass
+            Z = dlrm_wrap(
+                X,
+                lS_o,
+                lS_i,
+                args.use_gpu,
+                self.device,
+                ndevices=args.ndevices,
+            )
+            # loss
+            E = loss_fn_wrap(Z, T, use_gpu, device)
+
+            # compute loss and accuracy
+            L = E.detach().cpu().numpy()  # numpy array
+            self.optimizer.zero_grad()
+            E.backward()
+            self.optimizer.step()
+            self.lr_scheduler.step()
+
+    def eval(self):
+        result = []
+        args = self.args
+        for i, testBatch in enumerate(self.test_ld):
+            X_test, lS_o_test, lS_i_test, T_test, W_test, CBPP_test = unpack_batch(
+                testBatch
+            )
+            # forward pass
+            Z_test = dlrm_wrap(
+                X_test,
+                lS_o_test,
+                lS_i_test,
+                use_gpu,
+                self.device,
+                ndevices=args.ndevices,
+            )
+             # compute loss and accuracy
+            S_test = Z_test.detach().cpu().numpy()  # numpy array
+            T_test = T_test.detach().cpu().numpy()  # numpy array
+
+            mbs_test = T_test.shape[0]  # = mini_batch_size except last
+            A_test = np.sum((np.round(S_test, 0) == T_test).astype(np.uint8))

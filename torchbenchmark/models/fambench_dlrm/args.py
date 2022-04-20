@@ -76,11 +76,12 @@ def validate_fambench_args(args):
     ], "only support 4/8/16/32-bit but got {}".format(args.quantize_emb_with_bit)
     if args.use_gpu:
         assert torch.cuda.is_available(), "No cuda device is available."
-    # validations by torchbench
+    # validations by torchbench (distributed is not supported)
     # we don't support fbgemm_gpu
     assert not args.use_fbgemm_gpu, "fbgemm_gpu is not supported."
     # we don't support torch2trt for mlp
-    assert not args.use_torch2trt_for_mlp, "torch2tr for mlp is not supported."
+    assert not args.use_torch2trt_for_mlp, "torch2trt for mlp is not supported."
+    # we only support random dataset for now
     assert args.data_generation == "random", f"only random data generator is supported, but get {args.data_generation}."
 
 def parse_fambench_args(args):
