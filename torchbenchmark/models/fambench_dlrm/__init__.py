@@ -3,7 +3,6 @@ import sys
 import os
 from torchbenchmark import REPO_PATH
 from typing import Tuple
-from torchbenchmark.models
 
 # Import FAMBench model path
 class add_path():
@@ -20,18 +19,23 @@ class add_path():
             pass
 DLRM_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "dlrm", "ootb")
 with add_path(DLRM_PATH):
-    pass
+    from dlrm_s_pytorch import DLRM_Net
 
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
+from .config import FAMBenchTrainConfig, FAMBenchEvalConfig
 
 class Model(BenchmarkModel):
-    DEFAULT_EVAL_BATCH_SIZE = 64
-    DEFAULT_DATA_GENERATION = "random"
-    DEFAULT_ARCH_MLP_BOT = "512-512-64"
-    DEFAULT_ARCH_MLP_TOP = "1024-1024-1024-1"
-    DEFAULT_ARCH_SPARSE_FEATURE_SIZE = 64
-    DEFAULT_NUM_INDICES_PER_LOOKUP = 100
-    DEFAULT_ARCH_EMBEDDING_SIZE = "1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000"
+    task = RECOMMENDATION.RECOMMENDATION
+    FAMBENCH_MODEL = True
+    # config
+    DEFAULT_EVAL_ARGS = FAMBenchEvalConfig()
+    DEFAULT_TRAIN_ARGS = FAMBenchTrainConfig()
+    DEFAULT_EVAL_BATCH_SIZE = DEFAULT_EVAL_ARGS.mini_batch_size
+    DEFAULT_TRAIN_BATCH_SIZE = DEFAULT_TRAIN_ARGS.mini_batch_size
     # run only 1 batch
     DEFAULT_NUM_BATCHES = 1
+
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(self, test, device, batch_size, jit, extra_args)
+        self.dlrm = DLRM_Net()
