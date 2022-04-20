@@ -35,15 +35,16 @@ class Pplbench(torch.nn.Module):
             # Run bayesian inference (training) on given data for 1 iteration
             # We need the object of type MonteCarloSamples for the evaluation step
             # @Todo Can we create samples object without using infer function?
-            self.samples = self.infer_obj.infer(data=self.train_data, iterations=1, num_warmup=0, seed=random.randint(1, int(1e7)))
+            self.samples = self.infer_obj.infer(data=self.train_data, iterations=1, num_warmup=0, seed=random.randint(1, int(1e7)),
+                                                algorithm="GlobalNoUTurnSampler")
 
     def forward(self, train_data, test_data, training=False):
 
         if training:
             # Run bayesian inference (training) on given data
             # Reference: https://github.com/facebookresearch/pplbench/blob/main/examples/robust_regression.json
-            # num_warmp should be >= iterations/2 . Because of a bug, with the default algorithm, only 0 works.
-            self.samples = self.infer_obj.infer(data=train_data, iterations=1500, num_warmup=0, seed=random.randint(1, int(1e7)))
+            self.samples = self.infer_obj.infer(data=train_data, iterations=500, num_warmup=250, seed=random.randint(1, int(1e7)),
+                                                algorithm="GlobalNoUTurnSampler")
         else:
             # Evaluate the model with test data and compute the posterior probabilities
             out = self.model.evaluate_posterior_predictive(self.samples, test_data)
