@@ -9,6 +9,7 @@ from typing import Tuple, Generator, Optional
 from pplbench.ppls.beanmachine import robust_regression
 from pplbench.models.robust_regression import RobustRegression
 from pplbench.ppls.beanmachine.inference import MCMC
+import beanmachine.ppl as bm
 
 class Pplbench(torch.nn.Module):
     def __init__(self, test):
@@ -41,7 +42,8 @@ class Pplbench(torch.nn.Module):
         if training:
             # Run bayesian inference (training) on given data
             # Reference: https://github.com/facebookresearch/pplbench/blob/main/examples/robust_regression.json
-            samples = self.infer_obj.infer(data=train_data, iterations=1500, num_warmup=0, seed=random.randint(1, int(1e7)))
+            # num_warmp should be >= iterations/2 . Because of a bug, with the default algorithm, only 0 works.
+            self.samples = self.infer_obj.infer(data=train_data, iterations=1500, num_warmup=0, seed=random.randint(1, int(1e7)))
         else:
             # Evaluate the model with test data and compute the posterior probabilities
             out = self.model.evaluate_posterior_predictive(self.samples, test_data)
