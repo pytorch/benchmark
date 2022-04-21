@@ -20,22 +20,22 @@ class add_path():
         except ValueError:
             pass
 RNNT_TRAIN_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "rnnt", "ootb", "train")
-RNNT_EVAL_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "rnnt", "ootb", "inference")
+RNNT_EVAL_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "rnnt", "ootb", "inference", "pytorch")
 
 with add_path(RNNT_TRAIN_PATH):
     pass
 
 with add_path(RNNT_EVAL_PATH):
-    from QSL import AudioQSL, AudioQSLInMemory
     from helpers import add_blank_label
     from preprocessing import AudioPreprocessing
     from model_separable_rnnt import RNNT
 
-from .config import FambenchRNNTTrainConfig, FambenchRNNTEvalConfig, cfg_to_str
-from .decoders import ScriptGreedyDecoder
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
+from .qsl import AudioQSLInMemory
 from .args import get_eval_args
+from .config import FambenchRNNTTrainConfig, FambenchRNNTEvalConfig, cfg_to_str
+from .decoders import ScriptGreedyDecoder
 
 class Model(BenchmarkModel):
     task = SPEECH.RECOGNITION
@@ -57,8 +57,8 @@ class Model(BenchmarkModel):
 
     # reference: FAMBench/benchmarks/rnnt/ootb/inference/pytorch_SUT.py
     def eval(self) -> Tuple[torch.Tensor]:
-        for query_sample in self.query_samples:
-            waveform = self.qsl[query_sample.index]
+        for query_sample in self.qsl.sample_id_to_sample:
+            waveform = query_sample
             assert waveform.ndim == 1
             waveform_length = np.array(waveform.shape[0], dtype=np.int64)
             waveform = np.expand_dims(waveform, 0)
