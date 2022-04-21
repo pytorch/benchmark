@@ -18,7 +18,7 @@ from typing import List, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
-class GreedyDecoder(torch.nn.Module):
+class ScriptGreedyDecoder(torch.nn.Module):
     """A greedy transducer decoder.
     Args:
         blank_symbol: See `Decoder`.
@@ -39,6 +39,9 @@ class GreedyDecoder(torch.nn.Module):
         self._SOS = -1
         assert max_symbols_per_step > 0
         self._max_symbols_per_step = max_symbols_per_step
+    
+    def set_model(self, model):
+        self._model = model
 
     def forward(self, x: torch.Tensor, out_lens: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, List[List[int]]]:
         """Returns a list of sentences given an input batch.
