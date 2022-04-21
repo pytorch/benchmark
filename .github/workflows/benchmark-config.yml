@@ -67,6 +67,7 @@ jobs:
           pip install uff/uff-0.6.9-py2.py3-none-any.whl
           pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
           # make sure tensorrt works
+          echo $LD_LIBRARY_PATH
           python -c "import tensorrt"
       - name: Install fx2trt and TorchDynamo
         run: |
