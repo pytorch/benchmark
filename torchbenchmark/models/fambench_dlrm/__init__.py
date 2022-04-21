@@ -9,6 +9,8 @@ import numpy as np
 import torch.nn as nn
 from torchbenchmark import REPO_PATH
 from typing import Tuple, List
+from torchbenchmark.util.model import BenchmarkModel
+from torchbenchmark.tasks import RECOMMENDATION
 
 # Import FAMBench model path
 class add_path():
@@ -23,18 +25,51 @@ class add_path():
             sys.path.remove(self.path)
         except ValueError:
             pass
+
 DLRM_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "dlrm", "ootb")
 with add_path(DLRM_PATH):
-    from dlrm_s_pytorch import DLRM_Net
     import optim.rwsadagrad as RowWiseSparseAdagrad
+    from .dlrmnet import DLRM_Net
+    from .data import prep_data
 
-from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.tasks import RECOMMENDATION
 from .config import FAMBenchTrainConfig, FAMBenchEvalConfig, cfg_to_str
 from .args import parse_fambench_args, validate_fambench_args
-from .data import prep_data
 from .lrscheduler import LRPolicyScheduler
 
+# The following function is a wrapper to avoid checking this multiple times in th
+# loop below.
+def unpack_batch(b):
+    # Experiment with unweighted samples
+    return b[0], b[1], b[2], b[3], torch.ones(b[3].size()), None
+
+def dlrm_wrap(dlrm, X, lS_o, lS_i, use_gpu, device, ndevices=1):
+    if dlrm.quantize_mlp_input_with_half_call:
+        X = X.half()
+    if use_gpu:
+        # lS_i can be either a list of tensors or a stacked tensor.
+        # Handle each case below:
+        if ndevices == 1:
+            lS_i = (
+                [S_i.to(device) for S_i in lS_i]
+                if isinstance(lS_i, list)
+                else lS_i.to(device)
+            )
+            lS_o = (
+                [S_o.to(device) for S_o in lS_o]
+                if isinstance(lS_o, list)
+                else lS_o.to(device)
+            )
+    return dlrm(X.to(device), lS_o, lS_i)
+
+
+def loss_fn_wrap(dlrm, Z, T, use_gpu, device):
+    if args.loss_function == "mse" or args.loss_function == "bce":
+        return dlrm.loss_fn(Z, T.to(device))
+    elif args.loss_function == "wbce":
+        loss_ws_ = dlrm.loss_ws[T.data.view(-1).long()].view_as(T).to(device)
+        loss_fn_ = dlrm.loss_fn(Z, T.to(device))
+        loss_sc_ = loss_ws_ * loss_fn_
+        return loss_sc_.mean()
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
     FAMBENCH_MODEL = True
@@ -50,6 +85,7 @@ class Model(BenchmarkModel):
         super().__init__(self, test, device, batch_size, jit, extra_args)
         if test == "train":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_TRAIN_ARGS))
+            self.fambench_args.inference_only = False
         elif test == "eval":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_EVAL_ARGS))
             self.fambench_args.inference_only = True
@@ -61,6 +97,7 @@ class Model(BenchmarkModel):
         self.prep(args)
         ln_bot, ln_emb, ln_top, m_spa = prep_data(args)
         dlrm = DLRM_Net(
+            args,
             m_spa,
             ln_emb,
             ln_bot,
@@ -211,7 +248,7 @@ class Model(BenchmarkModel):
         pass
 
     def train(self):
-        args = self.args
+        args = self.fambench_args
         for j, inputBatch in enumerate(self.trian_ld):
             X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch)
             mbs = T.shape[0]  # = args.mini_batch_size except maybe for last
@@ -225,7 +262,7 @@ class Model(BenchmarkModel):
                 ndevices=args.ndevices,
             )
             # loss
-            E = loss_fn_wrap(Z, T, use_gpu, device)
+            E = loss_fn_wrap(Z, T, args.use_gpu, self.device)
 
             # compute loss and accuracy
             L = E.detach().cpu().numpy()  # numpy array
@@ -234,9 +271,9 @@ class Model(BenchmarkModel):
             self.optimizer.step()
             self.lr_scheduler.step()
 
-    def eval(self):
+    def eval(self) -> Tuple[torch.Tensor]:
         result = []
-        args = self.args
+        args = self.fambench_args
         for i, testBatch in enumerate(self.test_ld):
             X_test, lS_o_test, lS_i_test, T_test, W_test, CBPP_test = unpack_batch(
                 testBatch
@@ -246,7 +283,7 @@ class Model(BenchmarkModel):
                 X_test,
                 lS_o_test,
                 lS_i_test,
-                use_gpu,
+                args.use_gpu,
                 self.device,
                 ndevices=args.ndevices,
             )
@@ -256,3 +293,5 @@ class Model(BenchmarkModel):
 
             mbs_test = T_test.shape[0]  # = mini_batch_size except last
             A_test = np.sum((np.round(S_test, 0) == T_test).astype(np.uint8))
+            result = (S_test, T_test)
+        return result

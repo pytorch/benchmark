@@ -1,3 +1,5 @@
+# Currently, this file is not used, because torchbench doesn't support fbgemm embeddding yet;
+# Note that FAMBench does support it.
 import torch.nn as nn
 import torch
 import os
@@ -16,22 +18,8 @@ from fbgemm_gpu.split_table_batched_embeddings_ops import (
     IntNBitTableBatchedEmbeddingBagsCodegen,
 )
 
-class add_path():
-    def __init__(self, path):
-        self.path = path
-
-    def __enter__(self):
-        sys.path.insert(0, self.path)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        try:
-            sys.path.remove(self.path)
-        except ValueError:
-            pass
-DLRM_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "dlrm", "ootb")
-with add_path(DLRM_PATH):
-    # mixed-dimension trick
-    from tricks.md_embedding_bag import PrEmbeddingBag
+# mixed-dimension trick
+from tricks.md_embedding_bag import PrEmbeddingBag
 
 # quantize_fbgemm_gpu_embedding_bag is partially lifted from
 # fbgemm_gpu/test/split_embedding_inference_converter.py, def _quantize_split_embs.

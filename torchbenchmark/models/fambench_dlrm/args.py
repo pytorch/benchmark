@@ -82,7 +82,7 @@ def validate_fambench_args(args):
     # we don't support torch2trt for mlp
     assert not args.use_torch2trt_for_mlp, "torch2trt for mlp is not supported."
     # we only support random dataset for now
-    assert args.data_generation == "random", f"only random data generator is supported, but get {args.data_generation}."
+    assert args.data_generation == "random", f"only random data generator is supported right now, but get {args.data_generation}."
 
 def parse_fambench_args(args):
     ### parse arguments ###

@@ -1,25 +1,6 @@
-import os
 import torch
 import sys
 import numpy as np
-from torchbenchmark import REPO_PATH
-class add_path():
-    def __init__(self, path):
-        self.path = path
-
-    def __enter__(self):
-        sys.path.insert(0, self.path)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        try:
-            sys.path.remove(self.path)
-        except ValueError:
-            pass
-DLRM_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "dlrm", "ootb")
-with add_path(DLRM_PATH):
-    import dlrm_data_pytorch as dp
-    # mixed-dimension trick
-    from tricks.md_embedding_bag import md_solver
 
 def prep_data(args):
     ln_bot = np.fromstring(args.arch_mlp_bot, dtype=int, sep="-")
