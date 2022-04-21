@@ -50,5 +50,5 @@ def prefetch(dl, device):
             if isinstance(lS_o, list)
             else lS_o.to(device)
         )
-        out.append(tuple([X, lS_o, lS_i, T]))
+        out.append(tuple([X.to(device), lS_o, lS_i, T]))
     return out
