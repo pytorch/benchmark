@@ -196,8 +196,7 @@ class Model(BenchmarkModel):
         self.model = dlrm.to(self.device)
         # torchbench: prefetch the input to device
         if test == "train":
-            # self.ld = prefetch(train_ld, self.device)
-            self.ld = train_ld
+            self.ld = prefetch(train_ld, self.device)
         elif test == "eval":
             self.ld = prefetch(test_ld, self.device)
         # Guarantee GPU setup has completed before training or inference starts.
@@ -223,7 +222,7 @@ class Model(BenchmarkModel):
 
     def get_module(self) -> Tuple[torch.nn.Module, List[torch.Tensor]]:
         for inputBatch in self.ld:
-            X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch)
+            X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch, self.device)
             if self.model.quantize_mlp_input_with_half_call:
                 X = X.half()
             return (self.model, (X, lS_o, lS_i))
@@ -231,7 +230,7 @@ class Model(BenchmarkModel):
     def train(self):
         args = self.fambench_args
         for j, inputBatch in enumerate(self.ld):
-            X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch)
+            X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch, self.device)
             mbs = T.shape[0]  # = args.mini_batch_size except maybe for last
             # forward pass
             Z = dlrm_wrap(
@@ -258,7 +257,7 @@ class Model(BenchmarkModel):
         args = self.fambench_args
         for i, testBatch in enumerate(self.ld):
             X_test, lS_o_test, lS_i_test, T_test, W_test, CBPP_test = unpack_batch(
-                testBatch
+                testBatch, self.device
             )
             # forward pass
             Z_test = dlrm_wrap(

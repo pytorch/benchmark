@@ -2,9 +2,9 @@ import torch
 
 # The following function is a wrapper to avoid checking this multiple times in th
 # loop below.
-def unpack_batch(b):
+def unpack_batch(b, device):
     # Experiment with unweighted samples
-    return b[0], b[1], b[2], b[3], torch.ones(b[3].size()), None
+    return b[0], b[1], b[2], b[3], torch.ones(b[3].size()).to(device), None
 
 def dlrm_wrap(dlrm, X, lS_o, lS_i, use_gpu, device, ndevices=1):
     if dlrm.quantize_mlp_input_with_half_call:
