@@ -66,6 +66,8 @@ jobs:
           pip install onnx_graphsurgeon/onnx_graphsurgeon-0.3.12-py2.py3-none-any.whl
           pip install uff/uff-0.6.9-py2.py3-none-any.whl
           pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
+          # make sure tensorrt works
+          python -c "import tensorrt"
       - name: Install fx2trt and TorchDynamo
         run: |
           . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
