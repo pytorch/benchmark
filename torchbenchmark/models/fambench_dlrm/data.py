@@ -1,6 +1,8 @@
 import torch
 import sys
 import numpy as np
+# data generation
+import dlrm_data_pytorch as dp
 
 def prep_data(args):
     ln_bot = np.fromstring(args.arch_mlp_bot, dtype=int, sep="-")
@@ -128,4 +130,4 @@ def prep_data(args):
                     + f"{m} % 4 is not 0, but fbgemm_gpu requires the "
                     + "embedding dim to be evenly divisible by 4."
                 )
-    return ln_bot, ln_emb, ln_top, m_spa
+    return ln_bot, ln_emb, ln_top, m_spa, train_ld, test_ld

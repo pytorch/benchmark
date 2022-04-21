@@ -62,7 +62,7 @@ def dlrm_wrap(dlrm, X, lS_o, lS_i, use_gpu, device, ndevices=1):
     return dlrm(X.to(device), lS_o, lS_i)
 
 
-def loss_fn_wrap(dlrm, Z, T, use_gpu, device):
+def loss_fn_wrap(dlrm, args, Z, T, use_gpu, device):
     if args.loss_function == "mse" or args.loss_function == "bce":
         return dlrm.loss_fn(Z, T.to(device))
     elif args.loss_function == "wbce":
@@ -70,19 +70,20 @@ def loss_fn_wrap(dlrm, Z, T, use_gpu, device):
         loss_fn_ = dlrm.loss_fn(Z, T.to(device))
         loss_sc_ = loss_ws_ * loss_fn_
         return loss_sc_.mean()
+
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
     FAMBENCH_MODEL = True
     # config
     DEFAULT_EVAL_ARGS = FAMBenchEvalConfig()
     DEFAULT_TRAIN_ARGS = FAMBenchTrainConfig()
-    DEFAULT_EVAL_BATCH_SIZE = DEFAULT_EVAL_ARGS.mini_batch_size
-    DEFAULT_TRAIN_BATCH_SIZE = DEFAULT_TRAIN_ARGS.mini_batch_size
+    DEFAULT_EVAL_BSIZE = DEFAULT_EVAL_ARGS.mini_batch_size
+    DEFAULT_TRAIN_BSIZE = DEFAULT_TRAIN_ARGS.mini_batch_size
     # run only 1 batch
     DEFAULT_NUM_BATCHES = 1
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(self, test, device, batch_size, jit, extra_args)
+        super().__init__(test, device, batch_size, jit, extra_args)
         if test == "train":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_TRAIN_ARGS))
             self.fambench_args.inference_only = False
@@ -92,10 +93,11 @@ class Model(BenchmarkModel):
         if device == "cuda":
             self.fambench_args.use_gpu = True
         self.fambench_args.num_batches = self.DEFAULT_NUM_BATCHES
+        self.fambench_args.ndevices = 1
         args = self.fambench_args
         validate_fambench_args(args)
         self.prep(args)
-        ln_bot, ln_emb, ln_top, m_spa = prep_data(args)
+        ln_bot, ln_emb, ln_top, m_spa, self.train_ld, self.test_ld = prep_data(args)
         dlrm = DLRM_Net(
             args,
             m_spa,
@@ -120,7 +122,7 @@ class Model(BenchmarkModel):
             loss_function=args.loss_function,
             learning_rate=args.learning_rate,
             use_gpu=args.use_gpu,
-            use_fbgemm_gpu=args.se_fbgemm_gpu,
+            use_fbgemm_gpu=args.use_fbgemm_gpu,
             fbgemm_gpu_codegen_pref=args.fbgemm_gpu_codegen_pref,
             inference_only=args.inference_only,
             quantize_mlp_with_bit=args.quantize_mlp_with_bit,
@@ -223,6 +225,7 @@ class Model(BenchmarkModel):
                 args.lr_decay_start_step,
                 args.lr_num_decay_steps,
             )
+        self.model = dlrm
         # Guarantee GPU setup has completed before training or inference starts.
         if args.use_gpu:
             torch.cuda.synchronize()
@@ -249,11 +252,12 @@ class Model(BenchmarkModel):
 
     def train(self):
         args = self.fambench_args
-        for j, inputBatch in enumerate(self.trian_ld):
+        for j, inputBatch in enumerate(self.train_ld):
             X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch)
             mbs = T.shape[0]  # = args.mini_batch_size except maybe for last
             # forward pass
             Z = dlrm_wrap(
+                self.model,
                 X,
                 lS_o,
                 lS_i,
@@ -262,7 +266,7 @@ class Model(BenchmarkModel):
                 ndevices=args.ndevices,
             )
             # loss
-            E = loss_fn_wrap(Z, T, args.use_gpu, self.device)
+            E = loss_fn_wrap(self.model, self.fambench_args, Z, T, args.use_gpu, self.device)
 
             # compute loss and accuracy
             L = E.detach().cpu().numpy()  # numpy array
@@ -280,6 +284,7 @@ class Model(BenchmarkModel):
             )
             # forward pass
             Z_test = dlrm_wrap(
+                self.model,
                 X_test,
                 lS_o_test,
                 lS_i_test,
