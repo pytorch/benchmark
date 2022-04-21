@@ -35,41 +35,7 @@ with add_path(DLRM_PATH):
 from .config import FAMBenchTrainConfig, FAMBenchEvalConfig, cfg_to_str
 from .args import parse_fambench_args, validate_fambench_args
 from .lrscheduler import LRPolicyScheduler
-
-# The following function is a wrapper to avoid checking this multiple times in th
-# loop below.
-def unpack_batch(b):
-    # Experiment with unweighted samples
-    return b[0], b[1], b[2], b[3], torch.ones(b[3].size()), None
-
-def dlrm_wrap(dlrm, X, lS_o, lS_i, use_gpu, device, ndevices=1):
-    if dlrm.quantize_mlp_input_with_half_call:
-        X = X.half()
-    if use_gpu:
-        # lS_i can be either a list of tensors or a stacked tensor.
-        # Handle each case below:
-        if ndevices == 1:
-            lS_i = (
-                [S_i.to(device) for S_i in lS_i]
-                if isinstance(lS_i, list)
-                else lS_i.to(device)
-            )
-            lS_o = (
-                [S_o.to(device) for S_o in lS_o]
-                if isinstance(lS_o, list)
-                else lS_o.to(device)
-            )
-    return dlrm(X.to(device), lS_o, lS_i)
-
-
-def loss_fn_wrap(dlrm, args, Z, T, use_gpu, device):
-    if args.loss_function == "mse" or args.loss_function == "bce":
-        return dlrm.loss_fn(Z, T.to(device))
-    elif args.loss_function == "wbce":
-        loss_ws_ = dlrm.loss_ws[T.data.view(-1).long()].view_as(T).to(device)
-        loss_fn_ = dlrm.loss_fn(Z, T.to(device))
-        loss_sc_ = loss_ws_ * loss_fn_
-        return loss_sc_.mean()
+from .utils import unpack_batch, loss_fn_wrap, dlrm_wrap, prefetch
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
@@ -79,25 +45,27 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_ARGS = FAMBenchTrainConfig()
     DEFAULT_EVAL_BSIZE = DEFAULT_EVAL_ARGS.mini_batch_size
     DEFAULT_TRAIN_BSIZE = DEFAULT_TRAIN_ARGS.mini_batch_size
-    # run only 1 batch
-    DEFAULT_NUM_BATCHES = 1
+    DEFAULT_TRAIN_NUM_BATCHES = 5
+    DEFAULT_EVAL_NUM_BATCHES = 20
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test, device, batch_size, jit, extra_args)
         if test == "train":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_TRAIN_ARGS))
             self.fambench_args.inference_only = False
+            self.fambench_args.num_batches = self.DEFAULT_TRAIN_NUM_BATCHES
         elif test == "eval":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_EVAL_ARGS))
             self.fambench_args.inference_only = True
+            self.fambench_args.num_batches = self.DEFAULT_EVAL_NUM_BATCHES
         if device == "cuda":
             self.fambench_args.use_gpu = True
-        self.fambench_args.num_batches = self.DEFAULT_NUM_BATCHES
+
         self.fambench_args.ndevices = 1
         args = self.fambench_args
         validate_fambench_args(args)
         self.prep(args)
-        ln_bot, ln_emb, ln_top, m_spa, self.train_ld, self.test_ld = prep_data(args)
+        ln_bot, ln_emb, ln_top, m_spa, train_ld, test_ld = prep_data(args)
         dlrm = DLRM_Net(
             args,
             m_spa,
@@ -225,7 +193,13 @@ class Model(BenchmarkModel):
                 args.lr_decay_start_step,
                 args.lr_num_decay_steps,
             )
-        self.model = dlrm
+        self.model = dlrm.to(self.device)
+        # torchbench: prefetch the input to device
+        if test == "train":
+            # self.ld = prefetch(train_ld, self.device)
+            self.ld = train_ld
+        elif test == "eval":
+            self.ld = prefetch(test_ld, self.device)
         # Guarantee GPU setup has completed before training or inference starts.
         if args.use_gpu:
             torch.cuda.synchronize()
@@ -248,11 +222,15 @@ class Model(BenchmarkModel):
             args.ndevices = 1
 
     def get_module(self) -> Tuple[torch.nn.Module, List[torch.Tensor]]:
-        pass
+        for inputBatch in self.ld:
+            X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch)
+            if self.model.quantize_mlp_input_with_half_call:
+                X = X.half()
+            return (self.model, (X, lS_o, lS_i))
 
     def train(self):
         args = self.fambench_args
-        for j, inputBatch in enumerate(self.train_ld):
+        for j, inputBatch in enumerate(self.ld):
             X, lS_o, lS_i, T, W, CBPP = unpack_batch(inputBatch)
             mbs = T.shape[0]  # = args.mini_batch_size except maybe for last
             # forward pass
@@ -278,7 +256,7 @@ class Model(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         result = []
         args = self.fambench_args
-        for i, testBatch in enumerate(self.test_ld):
+        for i, testBatch in enumerate(self.ld):
             X_test, lS_o_test, lS_i_test, T_test, W_test, CBPP_test = unpack_batch(
                 testBatch
             )
@@ -292,11 +270,5 @@ class Model(BenchmarkModel):
                 self.device,
                 ndevices=args.ndevices,
             )
-             # compute loss and accuracy
-            S_test = Z_test.detach().cpu().numpy()  # numpy array
-            T_test = T_test.detach().cpu().numpy()  # numpy array
-
-            mbs_test = T_test.shape[0]  # = mini_batch_size except last
-            A_test = np.sum((np.round(S_test, 0) == T_test).astype(np.uint8))
-            result = (S_test, T_test)
+            result = (Z_test, T_test)
         return result
