@@ -16,7 +16,7 @@ env:
 jobs:
   run-test:
     runs-on: [self-hosted, bm-runner-v100]
-    timeout-minutes: 120 # 2 hours
+    timeout-minutes: 240 # 4 hours
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v2
