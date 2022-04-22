@@ -11,7 +11,6 @@ import numpy as np
 
 # import mlperf_loadgen as lg
 
-
 class AudioQSL:
     def __init__(self, dataset_dir, manifest_filepath, labels,
                  sample_rate=16000, perf_count=None):
