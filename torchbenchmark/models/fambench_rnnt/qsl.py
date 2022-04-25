@@ -21,6 +21,7 @@ class AudioQSL:
         self.count = len(self.manifest)
         perf_count = self.count if perf_count is None else perf_count
         self.sample_id_to_sample = {}
+        # torchbench: do not use mlperf
         # self.qsl = lg.ConstructQSL(self.count, perf_count,
         #                            self.load_query_samples,
         #                            self.unload_query_samples)

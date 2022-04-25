@@ -1,6 +1,7 @@
 import torch
 import sys
 import os
+import copy
 import random
 import toml
 from torchbenchmark import REPO_PATH
@@ -25,13 +26,13 @@ RNNT_EVAL_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks",
 
 with add_path(RNNT_TRAIN_PATH):
     from rnnt import config
-    from rnnt.decoder import RNNTGreedyDecoder
     from rnnt.loss import RNNTLoss
     from rnnt.model import RNNT as RNNTTrain
     from common.data.text import Tokenizer
     from common.data import features
     from common.data.dali import sampler as dali_sampler
     from common.data.dali.data_loader import DaliDataLoader
+    from common.optimizers import lr_policy
     from apex.optimizers import FusedLAMB
 
 with add_path(RNNT_EVAL_PATH):
@@ -45,6 +46,7 @@ from .qsl import AudioQSLInMemory
 from .args import get_eval_args, get_train_args
 from .config import FambenchRNNTTrainConfig, FambenchRNNTEvalConfig, cfg_to_str
 from .decoders import ScriptGreedyDecoder
+from .utils import apply_ema
 
 class Model(BenchmarkModel):
     task = SPEECH.RECOGNITION
@@ -73,8 +75,8 @@ class Model(BenchmarkModel):
 
             feats, feat_lens = train_feat_proc([audio, audio_lens])
             all_feat_lens += feat_lens
-            log_probs, log_prob_lens = model(feats, feat_lens, txt, txt_lens)
-            loss = loss_fn(log_probs[:, :log_prob_lens.max().item()],
+            log_probs, log_prob_lens = self.model(feats, feat_lens, txt, txt_lens)
+            loss = self.loss_fn(log_probs[:, :log_prob_lens.max().item()],
                            log_prob_lens, txt, txt_lens)
             loss /= self.fambench_args.grad_accumulation_steps
 
@@ -107,7 +109,7 @@ class Model(BenchmarkModel):
                     total_norm = 0.0
 
                 self.optimizer.step()
-                apply_ema(model, ema_model, self.fambench_args.ema)
+                apply_ema(self.model, self.ema_model, self.fambench_args.ema)
 
     # reference: FAMBench/benchmarks/rnnt/ootb/inference/pytorch_SUT.py
     def eval(self) -> Tuple[torch.Tensor]:
@@ -210,12 +212,13 @@ class Model(BenchmarkModel):
             rnnt_config['weights_init_scale'] = args.weights_init_scale
         if args.hidden_hidden_bias_scale is not None:
             rnnt_config['hidden_hidden_bias_scale'] = args.hidden_hidden_bias_scale
-        model = RNNT(n_classes=tokenizer.num_labels + 1, **rnnt_config)
+        model = RNNTTrain(n_classes=tokenizer.num_labels + 1, **rnnt_config)
         model = model.to(self.device)
         blank_idx = tokenizer.num_labels
         loss_fn = RNNTLoss(blank_idx=blank_idx)
-        greedy_decoder = RNNTGreedyDecoder(blank_idx=blank_idx,
-                                       max_symbol_per_sample=args.max_symbol_per_sample)
+        # torchbench: greedy_decode is only used in evaluation
+        # greedy_decoder = RNNTGreedyDecoder(blank_idx=blank_idx,
+        #                                max_symbol_per_sample=args.max_symbol_per_sample)
         opt_eps = 1e-9
         # optimization
         kw = {'params': model.param_groups(args.lr), 'lr': args.lr,
@@ -227,13 +230,19 @@ class Model(BenchmarkModel):
             step, epoch, initial_lrs, optimizer, steps_per_epoch=steps_per_epoch,
             warmup_epochs=args.warmup_epochs, hold_epochs=args.hold_epochs,
             min_lr=args.min_lr, exp_gamma=args.lr_exp_gamma)
-        # ema is not supported
-        assert args.ema == 0, "EMA is not supported in TorchBench"
-        ema_model = None
+        if args.ema > 0:
+            ema_model = copy.deepcopy(model).cuda()
+        else:
+            ema_model = None
         # checkpoint is not supported
         assert args.ckpt == None, "Checkpointing is not supported in TorchBench"
         model.train()
+        # members used in train loop
+        self.fambench_args = args
         self.model = model
+        self.ema_model = ema_model
+        self.loss_fn = loss_fn
+        self.train_feat_proc = train_feat_proc
 
     def enable_amp(self):
         if self.test == "train":
