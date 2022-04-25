@@ -1,6 +1,7 @@
 import torch
 import sys
 import os
+import random
 import toml
 from torchbenchmark import REPO_PATH
 import numpy as np
@@ -23,17 +24,25 @@ RNNT_TRAIN_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks"
 RNNT_EVAL_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "rnnt", "ootb", "inference", "pytorch")
 
 with add_path(RNNT_TRAIN_PATH):
-    pass
+    from rnnt import config
+    from rnnt.decoder import RNNTGreedyDecoder
+    from rnnt.loss import RNNTLoss
+    from rnnt.model import RNNT as RNNTTrain
+    from common.data.text import Tokenizer
+    from common.data import features
+    from common.data.dali import sampler as dali_sampler
+    from common.data.dali.data_loader import DaliDataLoader
+    from apex.optimizers import FusedLAMB
 
 with add_path(RNNT_EVAL_PATH):
     from helpers import add_blank_label
     from preprocessing import AudioPreprocessing
-    from model_separable_rnnt import RNNT
+    from model_separable_rnnt import RNNT as RNNTEval
 
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 from .qsl import AudioQSLInMemory
-from .args import get_eval_args
+from .args import get_eval_args, get_train_args
 from .config import FambenchRNNTTrainConfig, FambenchRNNTEvalConfig, cfg_to_str
 from .decoders import ScriptGreedyDecoder
 
@@ -54,6 +63,51 @@ class Model(BenchmarkModel):
             self._init_train()
         elif self.test == "eval":
             self._init_eval()
+
+
+    def train(self):
+        # torchbench: distributed training is not supported in core models
+        world_size = 1
+        for batch in self.dl:
+            audio, audio_lens, txt, txt_lens = batch
+
+            feats, feat_lens = train_feat_proc([audio, audio_lens])
+            all_feat_lens += feat_lens
+            log_probs, log_prob_lens = model(feats, feat_lens, txt, txt_lens)
+            loss = loss_fn(log_probs[:, :log_prob_lens.max().item()],
+                           log_prob_lens, txt, txt_lens)
+            loss /= self.fambench_args.grad_accumulation_steps
+
+            del log_probs, log_prob_lens
+            if torch.isnan(loss).any():
+                print('WARNING: loss is NaN; skipping update')
+            else:
+                if self.fambench_args.amp:
+                    from apex import amp
+                    with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    loss.backward()
+                loss_item = loss.item()
+                del loss
+                step_utts += batch[0].size(0) * world_size
+                epoch_utts += batch[0].size(0) * world_size
+                accumulated_batches += 1
+                total_batches += 1
+            if accumulated_batches % self.fambench_args.grad_accumulation_steps == 0:
+                total_norm = 0.0
+                try:
+                    if self.fambench_args.log_norm:
+                        for p in getattr(self.model, 'module', self.model).parameters():
+                            param_norm = p.grad.data.norm(2)
+                            total_norm += param_norm.item() ** 2
+                        total_norm = total_norm ** (1. / 2)
+                except AttributeError as e:
+                    print(f'Exception happened: {e}')
+                    total_norm = 0.0
+
+                self.optimizer.step()
+                apply_ema(model, ema_model, self.fambench_args.ema)
 
     # reference: FAMBench/benchmarks/rnnt/ootb/inference/pytorch_SUT.py
     def eval(self) -> Tuple[torch.Tensor]:
@@ -91,7 +145,105 @@ class Model(BenchmarkModel):
             self.greedy_decoder.set_model(self.inner_model)
 
     def _init_train(self):
-        pass
+        args = cfg_to_str(self.RNNT_TRAIN_CONFIG)
+        args = get_train_args(args)
+        torch.backends.cudnn.benchmark = args.cudnn_benchmark
+        world_size = 1
+        if args.seed is not None:
+            torch.manual_seed(args.seed + args.local_rank)
+            np.random.seed(args.seed + args.local_rank)
+            random.seed(args.seed + args.local_rank)
+            # np_rng is used for buckets generation, and needs the same seed on every worker
+            np_rng = np.random.default_rng(seed=args.seed)
+        cfg = config.load(args.model_config)
+        config.apply_duration_flags(cfg, args.max_duration)
+        assert args.grad_accumulation_steps >= 1
+        assert args.batch_size % args.grad_accumulation_steps == 0, \
+            f'{args.batch_size} % {args.grad_accumulation_steps} != 0'
+        batch_size = args.batch_size // args.grad_accumulation_steps
+        (
+            train_dataset_kw,
+            train_features_kw,
+            train_splicing_kw,
+            train_specaugm_kw,
+        ) = config.input(cfg, 'train')
+        tokenizer_kw = config.tokenizer(cfg)
+        tokenizer = Tokenizer(**tokenizer_kw)
+
+        class PermuteAudio(torch.nn.Module):
+            def forward(self, x):
+                return (x[0].permute(2, 0, 1), *x[1:])
+
+        train_augmentations = torch.nn.Sequential(
+            train_specaugm_kw and features.SpecAugment(optim_level=args.amp, **train_specaugm_kw) or torch.nn.Identity(),
+            features.FrameSplicing(optim_level=args.amp, **train_splicing_kw),
+            PermuteAudio(),
+        )
+        if args.num_buckets is not None:
+            sampler = dali_sampler.BucketingSampler(
+                args.num_buckets,
+                batch_size,
+                world_size,
+                args.epochs,
+                np_rng
+            )
+        else:
+            sampler = dali_sampler.SimpleSampler()
+        train_loader = DaliDataLoader(gpu_id=args.local_rank,
+                                dataset_path=args.dataset_dir,
+                                config_data=train_dataset_kw,
+                                config_features=train_features_kw,
+                                json_names=args.train_manifests,
+                                batch_size=batch_size,
+                                sampler=sampler,
+                                grad_accumulation_steps=args.grad_accumulation_steps,
+                                pipeline_type="train",
+                                device_type=args.dali_device,
+                                tokenizer=tokenizer)
+        train_feat_proc = train_augmentations
+        train_feat_proc.to(self.device)
+        steps_per_epoch = len(train_loader) // args.grad_accumulation_steps
+
+        # setup model
+        rnnt_config = config.rnnt(cfg)
+        if args.weights_init_scale is not None:
+            rnnt_config['weights_init_scale'] = args.weights_init_scale
+        if args.hidden_hidden_bias_scale is not None:
+            rnnt_config['hidden_hidden_bias_scale'] = args.hidden_hidden_bias_scale
+        model = RNNT(n_classes=tokenizer.num_labels + 1, **rnnt_config)
+        model = model.to(self.device)
+        blank_idx = tokenizer.num_labels
+        loss_fn = RNNTLoss(blank_idx=blank_idx)
+        greedy_decoder = RNNTGreedyDecoder(blank_idx=blank_idx,
+                                       max_symbol_per_sample=args.max_symbol_per_sample)
+        opt_eps = 1e-9
+        # optimization
+        kw = {'params': model.param_groups(args.lr), 'lr': args.lr,
+            'weight_decay': args.weight_decay}
+        initial_lrs = [group['lr'] for group in kw['params']]
+        optimizer = FusedLAMB(betas=(args.beta1, args.beta2), eps=opt_eps, max_grad_norm=args.clip_norm, **kw)
+
+        adjust_lr = lambda step, epoch: lr_policy(
+            step, epoch, initial_lrs, optimizer, steps_per_epoch=steps_per_epoch,
+            warmup_epochs=args.warmup_epochs, hold_epochs=args.hold_epochs,
+            min_lr=args.min_lr, exp_gamma=args.lr_exp_gamma)
+        # ema is not supported
+        assert args.ema == 0, "EMA is not supported in TorchBench"
+        ema_model = None
+        # checkpoint is not supported
+        assert args.ckpt == None, "Checkpointing is not supported in TorchBench"
+        model.train()
+        self.model = model
+
+    def enable_amp(self):
+        if self.test == "train":
+            from apex import amp
+            self.model, self.optimizer = amp.initialize(models=model,
+                                                        optimizers=optimizer,
+                                                        opt_level='01',
+                                                        max_loss_scale=512.0)
+        elif self.test == "eval":
+            assert False, "AMP doesn't support eval on this model."
 
     def _init_eval(self):
         args = cfg_to_str(self.RNNT_EVAL_CONFIG)
@@ -111,7 +263,7 @@ class Model(BenchmarkModel):
         self.audio_preprocessor = AudioPreprocessing(**featurizer_config)
         self.audio_preprocessor.eval()
 
-        model = RNNT(
+        model = RNNTEval(
             feature_config=featurizer_config,
             rnnt=config['rnnt'],
             num_classes=len(rnnt_vocab)
