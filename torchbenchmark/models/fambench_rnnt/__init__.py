@@ -25,7 +25,8 @@ class add_path():
             sys.path.remove(self.path)
         except ValueError:
             pass
-RNNT_TRAIN_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "rnnt", "ootb", "train")
+CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
+RNNT_TRAIN_PATH = os.path.join(CURRENT_DIR)
 RNNT_EVAL_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "rnnt", "ootb", "inference", "pytorch")
 
 with add_path(RNNT_TRAIN_PATH):
@@ -221,7 +222,7 @@ class Model(BenchmarkModel):
         model = RNNTTrain(n_classes=tokenizer.num_labels + 1, **rnnt_config)
         model = model.to(self.device)
         blank_idx = tokenizer.num_labels
-        loss_fn = RNNTLoss(blank_idx=blank_idx)
+        loss_fn = RNNTLoss(blank_idx=blank_idx, device=self.device)
         opt_eps = 1e-9
         # optimization
         kw = {'params': model.param_groups(args.lr), 'lr': args.lr,
