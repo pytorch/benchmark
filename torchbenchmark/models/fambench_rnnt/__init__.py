@@ -73,7 +73,7 @@ class Model(BenchmarkModel):
         for batch in self.dl:
             audio, audio_lens, txt, txt_lens = batch
 
-            feats, feat_lens = train_feat_proc([audio, audio_lens])
+            feats, feat_lens = self.train_feat_proc([audio, audio_lens])
             all_feat_lens += feat_lens
             log_probs, log_prob_lens = self.model(feats, feat_lens, txt, txt_lens)
             loss = self.loss_fn(log_probs[:, :log_prob_lens.max().item()],
@@ -145,6 +145,8 @@ class Model(BenchmarkModel):
                 torch._C._freeze_module(self.inner_model.joint._c))
             self.inner_model = torch.jit.script(self.inner_model)
             self.greedy_decoder.set_model(self.inner_model)
+        elif self.test == "train":
+            self.model = torch.jit.script(self.model)
 
     def _init_train(self):
         args = cfg_to_str(self.RNNT_TRAIN_CONFIG)
@@ -204,7 +206,7 @@ class Model(BenchmarkModel):
                                 tokenizer=tokenizer)
         train_feat_proc = train_augmentations
         train_feat_proc.to(self.device)
-        steps_per_epoch = len(train_loader) // args.grad_accumulation_steps
+        # steps_per_epoch = len(train_loader) // args.grad_accumulation_steps
 
         # setup model
         rnnt_config = config.rnnt(cfg)
@@ -216,20 +218,23 @@ class Model(BenchmarkModel):
         model = model.to(self.device)
         blank_idx = tokenizer.num_labels
         loss_fn = RNNTLoss(blank_idx=blank_idx)
-        # torchbench: greedy_decode is only used in evaluation
-        # greedy_decoder = RNNTGreedyDecoder(blank_idx=blank_idx,
-        #                                max_symbol_per_sample=args.max_symbol_per_sample)
         opt_eps = 1e-9
         # optimization
         kw = {'params': model.param_groups(args.lr), 'lr': args.lr,
             'weight_decay': args.weight_decay}
-        initial_lrs = [group['lr'] for group in kw['params']]
+        # initial_lrs = [group['lr'] for group in kw['params']]
         optimizer = FusedLAMB(betas=(args.beta1, args.beta2), eps=opt_eps, max_grad_norm=args.clip_norm, **kw)
 
-        adjust_lr = lambda step, epoch: lr_policy(
-            step, epoch, initial_lrs, optimizer, steps_per_epoch=steps_per_epoch,
-            warmup_epochs=args.warmup_epochs, hold_epochs=args.hold_epochs,
-            min_lr=args.min_lr, exp_gamma=args.lr_exp_gamma)
+        # adjust_lr = lambda step, epoch: lr_policy(
+        #     step, epoch, initial_lrs, optimizer, steps_per_epoch=steps_per_epoch,
+        #     warmup_epochs=args.warmup_epochs, hold_epochs=args.hold_epochs,
+        #     min_lr=args.min_lr, exp_gamma=args.lr_exp_gamma)
+        if args.amp:
+            from apex import amp
+            model, optimizer = amp.initialize(models=self.model,
+                                                optimizers=self.optimizer,
+                                                opt_level='01',
+                                                max_loss_scale=512.0)
         if args.ema > 0:
             ema_model = copy.deepcopy(model).cuda()
         else:
@@ -240,19 +245,17 @@ class Model(BenchmarkModel):
         # members used in train loop
         self.fambench_args = args
         self.model = model
+        self.optimizer = optimizer
         self.ema_model = ema_model
         self.loss_fn = loss_fn
         self.train_feat_proc = train_feat_proc
 
     def enable_amp(self):
         if self.test == "train":
-            from apex import amp
-            self.model, self.optimizer = amp.initialize(models=model,
-                                                        optimizers=optimizer,
-                                                        opt_level='01',
-                                                        max_loss_scale=512.0)
+            self.RNNT_TRAIN_CONFIG.amp = "true"
+            self._init_train()
         elif self.test == "eval":
-            assert False, "AMP doesn't support eval on this model."
+            raise NotImplementedError("FAMBench rnnt doesn't support AMP inference.")
 
     def _init_eval(self):
         args = cfg_to_str(self.RNNT_EVAL_CONFIG)
