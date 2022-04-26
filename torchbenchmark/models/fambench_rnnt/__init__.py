@@ -1,3 +1,7 @@
+"""
+TorchBench version of FAMBench RNNT model
+For train test, optimizer is only enabled when the amp is enabled and apex module is available.
+"""
 import torch
 import sys
 import os
@@ -32,8 +36,8 @@ with add_path(RNNT_TRAIN_PATH):
     from common.data import features
     from common.data.dali import sampler as dali_sampler
     from common.data.dali.data_loader import DaliDataLoader
-    from common.optimizers import lr_policy
-    from apex.optimizers import FusedLAMB
+    # lr policy is not supported
+    # from common.optimizers import lr_policy
 
 with add_path(RNNT_EVAL_PATH):
     from helpers import add_blank_label
@@ -107,8 +111,8 @@ class Model(BenchmarkModel):
                 except AttributeError as e:
                     print(f'Exception happened: {e}')
                     total_norm = 0.0
-
-                self.optimizer.step()
+                if self.fambench_args.amp:
+                    self.optimizer.step()
                 apply_ema(self.model, self.ema_model, self.fambench_args.ema)
 
     # reference: FAMBench/benchmarks/rnnt/ootb/inference/pytorch_SUT.py
@@ -223,7 +227,9 @@ class Model(BenchmarkModel):
         kw = {'params': model.param_groups(args.lr), 'lr': args.lr,
             'weight_decay': args.weight_decay}
         # initial_lrs = [group['lr'] for group in kw['params']]
-        optimizer = FusedLAMB(betas=(args.beta1, args.beta2), eps=opt_eps, max_grad_norm=args.clip_norm, **kw)
+        if args.amp:
+            from apex.optimizers import FusedLAMB
+            optimizer = FusedLAMB(betas=(args.beta1, args.beta2), eps=opt_eps, max_grad_norm=args.clip_norm, **kw)
 
         # adjust_lr = lambda step, epoch: lr_policy(
         #     step, epoch, initial_lrs, optimizer, steps_per_epoch=steps_per_epoch,
