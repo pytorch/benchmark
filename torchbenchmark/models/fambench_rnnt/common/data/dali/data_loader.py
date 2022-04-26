@@ -18,7 +18,6 @@ import numpy as np
 import torch.distributed as dist
 from .iterator import DaliRnntIterator
 from .pipeline import DaliPipeline
-from common.helpers import print_once
 
 
 def _parse_json(json_path: str, start_label=0, predicate=lambda json: True):
@@ -100,7 +99,7 @@ class DaliDataLoader:
             transcripts.update(tr)
         self.sampler.make_file_list(output_files, json_names)
         self.dataset_size = self.sampler.get_dataset_size()
-        print_once(f"Dataset read by DALI. Number of samples: {self.dataset_size}")
+        # print_once(f"Dataset read by DALI. Number of samples: {self.dataset_size}")
 
         pipeline = DaliPipeline.from_config(config_data=config_data, config_features=config_features, device_id=gpu_id,
                                             file_root=dataset_path, sampler=self.sampler,

@@ -17,7 +17,6 @@ import os
 import re
 from collections import OrderedDict
 
-from apex import amp
 
 import torch
 import torch.distributed as dist
@@ -168,6 +167,8 @@ class Checkpointer(object):
             return
 
         unwrap_ddp = lambda model: getattr(model, 'module', model)
+        if self.use_amp:
+            from apex import amp
         state = {
             'epoch': epoch,
             'step': step,
@@ -235,6 +236,7 @@ class Checkpointer(object):
         optimizer.load_state_dict(checkpoint['optimizer'])
 
         if self.use_amp:
+            from apex import amp
             amp.load_state_dict(checkpoint['amp'])
 
         meta['start_epoch'] = checkpoint.get('epoch')
