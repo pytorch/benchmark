@@ -17,7 +17,7 @@ import math
 
 import torch
 from torch.nn import Parameter
-from mlperf import logging
+# from mlperf import logging
 
 
 def rnn(input_size, hidden_size, num_layers,
@@ -77,9 +77,9 @@ class LSTM(torch.nn.Module):
             if 'weight' in name or 'bias' in name:
                 v.data *= float(weights_init_scale)
         tensor_name = kwargs['tensor_name']
-        if mlperf:
-            logging.log_event(logging.constants.WEIGHTS_INITIALIZATION,
-                              metadata=dict(tensor=tensor_name))
+        # if mlperf:
+        #     logging.log_event(logging.constants.WEIGHTS_INITIALIZATION,
+        #                       metadata=dict(tensor=tensor_name))
 
     def forward(self, x, h=None):
         x, h = self.lstm(x, h)
