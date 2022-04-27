@@ -34,7 +34,7 @@ def has_native_amp() -> bool:
         pass
     return False
 
-def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[Tuple['torch.Tensor']]:
+def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True) -> Optional[Tuple['torch.Tensor']]:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
        If the result is not stable, return None. """
     assert model.test=="eval", "We only support stableness check for inference."
@@ -43,24 +43,28 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
         if not previous_result:
             previous_result = model.invoke()
         else:
-            if not torch_allclose(model.invoke(), previous_result):
-                return None
-            # cos_sim = cos_similarity(model.invoke(), previous_result)
-            # if cos_sim < CORRECTNESS_THRESHOLD:
-            #     return None
+            if cos_sim:
+                cos_sim = cos_similarity(model.invoke(), previous_result)
+                if cos_sim < CORRECTNESS_THRESHOLD:
+                    return None
+            else:
+                if not torch_allclose(model.invoke(), previous_result):
+                    return None
     return previous_result
 
-def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
+def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True) -> str:
     assert model.test=="eval", "We only support correctness check for inference."
     assert hasattr(model, 'eager_output'), "Need stableness result to check correctness."
     if not model.eager_output:
         return "Unstable"
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
-        if not torch_allclose(model.eager_output, model.invoke()):
-            return "Incorrect (torch.allclose() returns False)"
-        # cos_sim = cos_similarity(model.eager_output, model.invoke())
-        # if cos_sim < CORRECTNESS_THRESHOLD:
-        #     return f"Incorrect (cos_sim: {cos_sim})"
+        if cos_sim:
+            cos_sim = cos_similarity(model.eager_output, model.invoke())
+            if cos_sim < CORRECTNESS_THRESHOLD:
+                return f"Incorrect (cos_sim: {cos_sim})"
+        else:
+            if not torch_allclose(model.eager_output, model.invoke()):
+                return "Incorrect (torch.allclose() returns False)"
     return "Correct"
 
 def torch_allclose(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor'], threshold=1e-4) -> bool:
