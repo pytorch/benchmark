@@ -45,19 +45,15 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_ARGS = FAMBenchTrainConfig()
     DEFAULT_EVAL_BSIZE = DEFAULT_EVAL_ARGS.mini_batch_size
     DEFAULT_TRAIN_BSIZE = DEFAULT_TRAIN_ARGS.mini_batch_size
-    DEFAULT_TRAIN_NUM_BATCHES = 5
-    DEFAULT_EVAL_NUM_BATCHES = 20
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test, device, batch_size, jit, extra_args)
         if test == "train":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_TRAIN_ARGS))
             self.fambench_args.inference_only = False
-            self.fambench_args.num_batches = self.DEFAULT_TRAIN_NUM_BATCHES
         elif test == "eval":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_EVAL_ARGS))
             self.fambench_args.inference_only = True
-            self.fambench_args.num_batches = self.DEFAULT_EVAL_NUM_BATCHES
         if device == "cuda":
             self.fambench_args.use_gpu = True
 

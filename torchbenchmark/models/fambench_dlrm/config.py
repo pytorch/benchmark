@@ -34,8 +34,10 @@ class FAMBenchTrainConfig:
     num_indices_per_lookup_fixed:int = 1
     numpy_rand_seed:int = 727
     weighted_pooling: str = "learned"
-    # not used, overridden by Model.DEFAULT_NUM_BATCHES
-    num_batches:int = 15
+    # torchbench: only run 1 batch
+    num_batches:int = 1
+    # original num batches: 15
+    # num_batches:int = 15
     # not used
     # warmup_step = 5
     # use_gpu: bool = True
@@ -58,8 +60,9 @@ class FAMBenchEvalConfig:
     num_indices_per_lookup_fixed:int = 1
     numpy_rand_seed:int = 727
     weighted_pooling: str = "fixed"
-    # not used, overridden by Model.DEFAULT_NUM_BATCHES
-    num_batches:int = 15
+    # torchbench: only run 1 batch
+    num_batches:int = 1
+    # num_batches:int = 15
     # disable warmup
     # warmup_step: int = 5
     # do not support quantize, torch2trt_for_mlp or fbgemm
