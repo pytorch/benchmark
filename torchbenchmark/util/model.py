@@ -90,7 +90,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.need_correctness_check = True if self.dynamo else enable_opt_args(self.opt_args)
         # currently, only check correctness under CUDA+inference, and `need_correctness_check` is True
         if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            self.stableness = stableness_check(self)
+            self.eager_output = stableness_check(self)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
