@@ -35,6 +35,10 @@ jobs:
           name: Validate pytest-benchmark invocation of training suite
           command: ./scripts/run_bench_and_upload.sh
           no_output_timeout: "60m"
+      - run:
+          name: Sanity check for lazy_bench.py training suite
+          command: python lazy_bench.py --just_run_once  --run_in_subprocess alexnet --test=eval
+          no_output_timeout: "60m"
 
 workflows:
   version: 2
