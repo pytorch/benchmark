@@ -50,7 +50,7 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
 
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     assert model.test=="eval", "We only support correctness check for inference."
-    assert hasattr(model, 'stableness'), "Need stableness result to check correctness."
+    assert hasattr(model, 'eager_output'), "Need stableness result to check correctness."
     if not model.eager_output:
         return "Unstable"
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
