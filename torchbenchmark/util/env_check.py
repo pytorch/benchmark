@@ -68,7 +68,7 @@ def torch_allclose(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Ten
     # sanity checks
     assert len(eager_output) == len(output), "Correctness check requires two inputs have the same length"
     for i in range(len(eager_output)):
-        if not torch.allclose(eager_output[i], output[i], atol=threshold, rtol=threshold):
+        if not torch.allclose(eager_output[i].float(), output[i].float(), atol=threshold, rtol=threshold):
             return False
     return True
 
