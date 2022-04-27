@@ -69,15 +69,12 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
             t0 = time.time_ns()
             start_event.record()
             func()
-            t1 = time.time_ns()
 
             end_event.record()
             torch.cuda.synchronize()
-            t2 = time.time_ns()
+            t1 = time.time_ns()
 
-            # CPU Dispatch time include only the time it took to dispatch all the work to the GPU.
-            # CPU Total Wall Time will include the CPU Dispatch, GPU time and device latencies.
-            result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000, (t2 - t0) / 1_000_000))
+            result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
         else:
             t0 = time.time_ns()
             func()
@@ -86,10 +83,8 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
 
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
-        cpu_dispatch_time = np.median(list(map(lambda x: x[1], result_summary)))
-        cpu_walltime = np.median(list(map(lambda x: x[2], result_summary)))
+        cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
-        print('{:<20} {:>20}'.format("CPU Dispatch Time:", "%.3f milliseconds" % cpu_dispatch_time, sep=''))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
     else:
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
