@@ -43,9 +43,11 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
         if not previous_result:
             previous_result = model.invoke()
         else:
-            cos_sim = cos_similarity(model.invoke(), previous_result)
-            if cos_sim < CORRECTNESS_THRESHOLD:
+            if not torch_allclose(model.invoke(), previous_result):
                 return None
+            # cos_sim = cos_similarity(model.invoke(), previous_result)
+            # if cos_sim < CORRECTNESS_THRESHOLD:
+            #     return None
     return previous_result
 
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
@@ -54,10 +56,21 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if not model.eager_output:
         return "Unstable"
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
-        cos_sim = cos_similarity(model.eager_output, model.invoke())
-        if cos_sim < CORRECTNESS_THRESHOLD:
-            return f"Incorrect (cos_sim: {cos_sim})"
+        if not torch_allclose(model.eager_output, model.invoke()):
+            return "Incorrect (torch.allclose() returns False)"
+        # cos_sim = cos_similarity(model.eager_output, model.invoke())
+        # if cos_sim < CORRECTNESS_THRESHOLD:
+        #     return f"Incorrect (cos_sim: {cos_sim})"
     return "Correct"
+
+def torch_allclose(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor'], threshold=1e-4) -> bool:
+    import torch
+    # sanity checks
+    assert len(eager_output) == len(output), "Correctness check requires two inputs have the same length"
+    for i in range(len(eager_output)):
+        if not torch.allclose(eager_output[i], output[i], atol=threshold, rtol=threshold):
+            return False
+    return True
 
 def cos_similarity(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor']) -> float:
     import torch
