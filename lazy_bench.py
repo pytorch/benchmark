@@ -606,7 +606,7 @@ if __name__ == "__main__" :
                         help="which model run in subprocess. This will ignore filter and exclude")
     parser.add_argument("--allclose_atol", type=float, default=1e-4,
                         help="Absolute tolerance to check lazy result again the correct result")
-    parser.add_argument("--fp16", choices=["no", "half", "amp"], default="no", help="enable fp16 modes from: no fp16, half, or amp")
+    parser.add_argument("--precision", choices=["fp32", "fp16", "amp"], default="fp32", help="enable fp16 modes from: fp32, fp16/half, or amp")
     args = parser.parse_args()
     results = []
 
@@ -642,9 +642,9 @@ if __name__ == "__main__" :
 
                     # no try since we should've already filtered out models we can't create
                     set_seeds()
-                    benchmark = benchmark_cls(test=args.test, device=args.device, jit=False, extra_args=["--fp16", args.fp16])
+                    benchmark = benchmark_cls(test=args.test, device=args.device, jit=False, extra_args=["--precision", args.precision])
                     set_seeds()
-                    lazy_benchmark = benchmark_cls(test=args.test, device='lazy', jit=False, extra_args=["--fp16", args.fp16])
+                    lazy_benchmark = benchmark_cls(test=args.test, device='lazy', jit=False, extra_args=["--precision", args.precision])
                     # TODO: might be redundant
                     gc.collect()
 
