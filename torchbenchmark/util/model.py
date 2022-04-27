@@ -7,7 +7,7 @@ from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args, apply_torchdynamo_args
 from torchbenchmark.util.extra_args import enable_opt_args, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
-from torchbenchmark.util.env_check import set_random_seed, correctness_check
+from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -90,19 +90,17 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.need_correctness_check = True if self.dynamo else enable_opt_args(self.opt_args)
         # currently, only check correctness under CUDA+inference, and `need_correctness_check` is True
         if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            self.eager_output = self.invoke()
-        # apply decoration and optimization args
+            self.stableness = stableness_check(self)
+        # apply decoration args
         apply_decoration_args(self, self.dargs)
+        # apply optimization args
         if self.dynamo:
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
             apply_opt_args(self, self.opt_args)
         # if test is eval, check correctness
         if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            self.output = self.invoke()
-            self.correctness = correctness_check(self.eager_output, self.output)
-            del self.eager_output
-            del self.output
+            self.correctness = correctness_check(self)
             torch.cuda.empty_cache()
 
     def add_context(self, context_fn):
