@@ -90,7 +90,7 @@ class Model(BenchmarkModel):
                                           batch_size=self.batch_size,
                                           sampler=None,
                                           num_workers=self.num_workers, drop_last=False)
-        self.example_inputs = self.prefetch(example_inputs)
+        self.example_inputs = self._prefetch(example_inputs)
 
     def get_module(self):
         batch_x, _batch_y = list(self.example_inputs)[0]
