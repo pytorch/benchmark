@@ -104,7 +104,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             # instead of torch.allclose, because fp16+TensorRT is loose on accuracy
             if self.dargs.precision == "fp16" and self.dynamo and self.opt_args.torchdynamo == "fx2trt":
                 self.correctness = correctness_check(self, cos_sim=True)
-            elif self.dargs.precision == "fp16" and self.opt_args.fx2trt:
+            elif self.dargs.precision == "fp16" and (not self.dynamo) and self.opt_args.fx2trt:
                 self.correctness = correctness_check(self, cos_sim=True)
             else:
                 self.correctness = correctness_check(self, cos_sim=False)
