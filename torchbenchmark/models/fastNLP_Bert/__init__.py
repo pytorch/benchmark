@@ -130,9 +130,11 @@ class Model(BenchmarkModel):
         self.callback_manager.on_train_end()
 
     def _prefetch(self, example_inputs):
+        prefetched_data = []
         for batch_x, batch_y in example_inputs:
             self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
-        return example_inputs
+            prefetched_data.append((batch_x, batch_y))
+        return prefetched_data
 
     # Helper functions
     def _build_args(self, func, **kwargs):
