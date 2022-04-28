@@ -86,14 +86,14 @@ class Model(BenchmarkModel):
             self.model.eval()
             self.data = data_bundle.get_dataset('dev')
 
-        self.example_inputs = DataSetIter(dataset=self.data,
+        example_inputs = DataSetIter(dataset=self.data,
                                           batch_size=self.batch_size,
                                           sampler=None,
                                           num_workers=self.num_workers, drop_last=False)
+        self.example_inputs = self.prefetch(example_inputs)
 
     def get_module(self):
-        batch_x, batch_y = list(self.example_inputs)[0]
-        self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+        batch_x, _batch_y = list(self.example_inputs)[0]
         return self.model, (batch_x["words"], )
 
     # Sliced version of fastNLP.Tester._test()
@@ -101,9 +101,8 @@ class Model(BenchmarkModel):
         self._mode(self.model, is_test=True)
         self._predict_func = self.model.forward
         with torch.no_grad():
-            for epoch in range(niter):
-                for batch_x, batch_y in self.example_inputs:
-                    self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+            for _epoch in range(niter):
+                for batch_x, _batch_y in self.example_inputs:
                     pred_dict = self._data_forward(self._predict_func, batch_x)
         # return a tuple of Tensors
         return (pred_dict['pred_start'], pred_dict['pred_end'] )
@@ -114,13 +113,9 @@ class Model(BenchmarkModel):
         self.n_epochs = niter
         self._mode(self.model, is_test=False)
         self.callback_manager.on_train_begin()
-        # Move the data to GPU before the train loop
-        for batch_x, batch_y in self.example_inputs:
-            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
-        for epoch in range(niter):
+        for _epoch in range(niter):
             self.callback_manager.on_epoch_begin()
             for batch_x, batch_y in self.example_inputs:
-                self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
                 self.step += 1
                 prediction = self._data_forward(self.model, batch_x)
                 self.callback_manager.on_loss_begin(batch_y, prediction)
@@ -133,6 +128,11 @@ class Model(BenchmarkModel):
                 self.callback_manager.on_batch_end()
             self.callback_manager.on_epoch_end()
         self.callback_manager.on_train_end()
+
+    def _prefetch(self, example_inputs):
+        for batch_x, batch_y in example_inputs:
+            self._move_dict_value_to_device(batch_x, batch_y, device=self.device)
+        return example_inputs
 
     # Helper functions
     def _build_args(self, func, **kwargs):
@@ -149,8 +149,6 @@ class Model(BenchmarkModel):
         return output
 
     def _move_dict_value_to_device(self, *args, device, non_blocking=False):
-        if not torch.cuda.is_available() or device is None:
-            return
         for arg in args:
             if isinstance(arg, dict):
                 for key, value in arg.items():
