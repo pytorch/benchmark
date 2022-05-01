@@ -3,6 +3,7 @@ PyTorch benchmark env check utils.
 This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 import importlib
+import copy
 from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
@@ -40,15 +41,18 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
     assert model.test=="eval", "We only support stableness check for inference."
     previous_result = None
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
+        # some models, (e.g., moco) is stateful and will give different outputs
+        # on the same input if called multiple times
+        copy_model = copy.deepcopy(model)
         if not previous_result:
-            previous_result = model.invoke()
+            previous_result = copy_model.invoke()
         else:
             if cos_sim:
-                cos_sim = cos_similarity(model.invoke(), previous_result)
+                cos_sim = cos_similarity(copy_model.invoke(), previous_result)
                 if cos_sim < CORRECTNESS_THRESHOLD:
                     return None
             else:
-                if not torch_allclose(model.invoke(), previous_result):
+                if not torch_allclose(copy_model.invoke(), previous_result):
                     return None
     return previous_result
 
@@ -58,12 +62,15 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
     if not model.eager_output:
         return "Unstable"
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
+        # some models, (e.g., moco) is stateful and will give different outputs
+        # on the same input if called multiple times
+        copy_model = copy.deepcopy(model)
         if cos_sim:
-            cos_sim = cos_similarity(model.eager_output, model.invoke())
+            cos_sim = cos_similarity(model.eager_output, copy_model.invoke())
             if cos_sim < CORRECTNESS_THRESHOLD:
                 return f"Incorrect (cos_sim: {cos_sim})"
         else:
-            if not torch_allclose(model.eager_output, model.invoke()):
+            if not torch_allclose(model.eager_output, copy_model.invoke()):
                 return "Incorrect (torch.allclose() returns False)"
     return "Correct"
 
