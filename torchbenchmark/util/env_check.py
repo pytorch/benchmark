@@ -43,7 +43,11 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
         # some models, (e.g., moco) is stateful and will give different outputs
         # on the same input if called multiple times
-        copy_model = copy.deepcopy(model)
+        try:
+            copy_model = copy.deepcopy(model)
+        except RuntimeError:
+            # if the model is not copy-able, don't copy it
+            copy_model = model
         if not previous_result:
             previous_result = copy_model.invoke()
         else:
@@ -64,7 +68,11 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
         # some models, (e.g., moco) is stateful and will give different outputs
         # on the same input if called multiple times
-        copy_model = copy.deepcopy(model)
+        try:
+            copy_model = copy.deepcopy(model)
+        except RuntimeError:
+            # if the model is not copy-able, don't copy it
+            copy_model = model
         if cos_sim:
             cos_sim = cos_similarity(model.eager_output, copy_model.invoke())
             if cos_sim < CORRECTNESS_THRESHOLD:
