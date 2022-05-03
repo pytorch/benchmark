@@ -75,7 +75,6 @@ def _load_test(path, device):
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="train", device=device, jit=False)
-                task.set_train()
                 task.invoke()
                 task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
@@ -88,8 +87,6 @@ def _load_test(path, device):
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="eval", device=device, jit=False)
-
-                task.set_eval()
                 task.invoke()
                 task.check_details_eval(device=device, md=metadata)
                 task.check_eval_output()

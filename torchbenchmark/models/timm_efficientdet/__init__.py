@@ -37,6 +37,10 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         raise NotImplementedError("https://github.com/pytorch/benchmark/issues/839")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        if not device == "cuda":
+            # Only implemented on CUDA because the original model code explicitly calls the `Tensor.cuda()` API
+            # https://github.com/rwightman/efficientdet-pytorch/blob/9cb43186711d28bd41f82f132818c65663b33c1f/effdet/data/loader.py#L114
+            raise NotImplementedError("The original model code forces the use of CUDA.")
         # generate arguments
         args = get_args()
         # setup train and eval batch size
@@ -124,9 +128,8 @@ class Model(BenchmarkModel):
         self.num_epochs = 1
 
     def get_module(self):
-        raise NotImplementedError("https://github.com/pytorch/benchmark/issues/839")
-        for _, (input, target) in zip(range(self.num_batches), self.loader_eval):
-            return (self.model, (input, target))
+        for _, (input, target) in zip(range(self.num_batches), self.loader):
+            return self.model, (input, target)
 
     def enable_amp(self):
         self.amp_autocast = torch.cuda.amp.autocast

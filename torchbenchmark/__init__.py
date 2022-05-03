@@ -9,12 +9,14 @@ import subprocess
 import sys
 import tempfile
 import threading
+from pathlib import Path
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 from urllib import request
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
+REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
@@ -286,10 +288,14 @@ class ModelTask(base_task.TaskBase):
     # =========================================================================
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def get_model_attribute(attr: str) -> Any:
+    def get_model_attribute(attr: str, field: str=None) -> Any:
         model = globals()["model"]
         if hasattr(model, attr):
-            return getattr(model, attr)
+            if field:
+                model_attr = getattr(model, attr)
+                return getattr(model_attr, field)
+            else:
+                return getattr(model, attr)
         else:
             return None
 
@@ -369,6 +375,7 @@ class ModelTask(base_task.TaskBase):
         try:
             input_iter, _size = model.gen_inputs()
             next_inputs = next(input_iter)
+
             for input in next_inputs:
                 if isinstance(input, dict):
                     # Huggingface models pass **kwargs as arguments, not *args
