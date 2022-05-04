@@ -47,6 +47,8 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = DEFAULT_TRAIN_ARGS.mini_batch_size
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if batch_size is None and device == "cpu":
+            batch_size = 16  # too slow on CPU
         super().__init__(test, device, batch_size, jit, extra_args)
         if test == "train":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_TRAIN_ARGS))

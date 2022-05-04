@@ -75,6 +75,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 16
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+        if batch_size is None and device == "cpu":
+            batch_size = 1  # larger batches take an unreasonable amount of time on CPU
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         debug_print = False
         root = str(Path(__file__).parent)

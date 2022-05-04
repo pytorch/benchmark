@@ -63,6 +63,8 @@ class Model(BenchmarkModel):
         return preloaded_data
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if batch_size is None and device == "cpu":
+            batch_size = 4  # too slow with bigger batch size
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         root = os.path.join(str(Path(__file__).parent), ".data")

@@ -13,5 +13,7 @@ class Model(TimmModel):
     DEFAULT_EVAL_BSIZE = 128
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if device == "cpu" and batch_size is None:
+            batch_size=8
         super().__init__(test=test, model_name='dm_nfnet_f0', device=device,
                          jit=jit, batch_size=batch_size, extra_args=extra_args)

@@ -35,7 +35,6 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 128
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        raise NotImplementedError("https://github.com/pytorch/benchmark/issues/839")
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         if not device == "cuda":
             # Only implemented on CUDA because the original model code explicitly calls the `Tensor.cuda()` API
