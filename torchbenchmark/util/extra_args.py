@@ -71,6 +71,8 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     return (dargs, opt_args)
 
 def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dargs: argparse.Namespace):
+    if dargs.channels_last:
+        model.enable_channels_last()
     if dargs.precision == "fp16":
         model.enable_fp16_half()
     elif dargs.precision == "amp":
@@ -82,8 +84,6 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
     elif not dargs.precision == "fp32":
         assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
-    if dargs.channels_last:
-        model.enable_channels_last()
 
 # Dispatch arguments based on model type
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
