@@ -3,3 +3,4 @@ bitarray
 omegaconf
 hydra-core
 sentencepiece
+xformers
