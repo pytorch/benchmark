@@ -9,7 +9,7 @@ from PIL import Image
 import numpy as np
 import slomo_model as model
 from torchvision import transforms
-from torch.functional import F
+import torch.nn.functional as F
 
 
 torch.set_grad_enabled(False)
@@ -173,5 +173,3 @@ def main(input, checkpoint, output, batch, scale, fps):
 
 if __name__ == '__main__':
     main()
-
-
