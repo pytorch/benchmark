@@ -90,6 +90,7 @@ class TimmModel(BenchmarkModel):
 
     def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         with torch.no_grad():
-            for _ in range(niter):
-                out = self._step_eval()
+            with self.amp_context():
+                for _ in range(niter):
+                    out = self._step_eval()
         return (out, )
