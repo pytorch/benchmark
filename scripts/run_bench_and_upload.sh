@@ -19,4 +19,4 @@ BENCHMARK_ABS_FILENAME=${BENCHMARK_DATA}/${BENCHMARK_FILENAME}
 # while still producing a json output to flush out bugs in compute_score.
 # this will disable warmup, and run each benchmark only once to verify correctness
 # this will NOT generate the result json file
-pytest test_bench.py --ignore_machine_config --setup-show --benchmark-disable --benchmark-sort=Name --benchmark-json=${BENCHMARK_ABS_FILENAME} -k "$PYTEST_FILTER"
+PYTORCH_JIT_ENABLE_NVFUSER=1 pytest test_bench.py --ignore_machine_config --setup-show --benchmark-disable --benchmark-sort=Name --benchmark-json=${BENCHMARK_ABS_FILENAME} -k "$PYTEST_FILTER"
