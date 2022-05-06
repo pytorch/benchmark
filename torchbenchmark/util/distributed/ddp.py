@@ -48,6 +48,7 @@ class DDPTrainer(Trainer):
             # Set gradient as bucket view to avoid unnecessary copies
             gradient_as_bucket_view=True,
             # TODO: tune bucket_cap_mb
+            static_graph=True,
         )
 
     def measure(self):
@@ -102,8 +103,9 @@ class DDPTrainer(Trainer):
         stdev_opt = stdev(delays_opt)
 
         # write results
-        Path("delay").mkdir(parents=True, exist_ok=True)
-        fout = open(f"delay/{name}.log", "w")
+        delay_dir = f"{self.args.job_dir}/delay"
+        Path(delay_dir).mkdir(parents=True, exist_ok=True)
+        fout = open(f"{delay_dir}/{name}.log", "w")
         fout.write(
             f"{mean_fwd:.2f}, {stdev_fwd:.2f}, "
             f"{mean_bwd:.2f}, {stdev_bwd:.2f}, "
@@ -123,7 +125,7 @@ class DDPTrainer(Trainer):
                 with_stack=True, # Causes seg fault with EFA
                 with_flops=True, # Causes seg fault in export_chrome_trace
                 on_trace_ready=tensorboard_trace_handler(
-                    f"tb/{name}",
+                    f"{self.args.job_dir}/tb/{name}",
                     self.rank,
                     use_gzip=True,
                 )

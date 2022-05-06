@@ -7,9 +7,10 @@ import torch
 import uuid
 
 from pathlib import Path
+from typing import List
 
 
-def parse_args():
+def parse_args(args: List[str]=None):
     parser = argparse.ArgumentParser(description='Submitit for PyTorch Distributed Benchmark', add_help=False)
 
     parser.add_argument(
@@ -69,7 +70,10 @@ def parse_args():
     )
 
     try:
-        return parser.parse_args()
+        if args:
+            return parser.parse_args(args)
+        else:
+            return parser.parse_args()
     except:
         parser.print_help()
         sys.exit(0)
