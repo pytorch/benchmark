@@ -5,9 +5,4 @@ optimized_for_inference: false
 train_benchmark: false
 train_deterministic: false
 not_implemented:
-  # START workaround: disable opacus test because of
-  # https://github.com/pytorch/opacus/pull/426
-  - device: cpu
-  - device: cuda
-  # END workaround
   - jit: true
