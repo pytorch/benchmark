@@ -1,1 +1,2 @@
-opacus
+# must include the fix https://github.com/pytorch/opacus/pull/426
+opacus>=1.1.2
