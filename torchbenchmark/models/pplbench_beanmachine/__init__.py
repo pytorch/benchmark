@@ -20,6 +20,9 @@ class Pplbench(torch.nn.Module):
 
         # Get data for inference & evaluating model
         if test == "eval":
+            # The evaluation step doesn't use PyTorch code because it needs to handle
+            # various probabilistic programming languages. See GitHub issue #898
+            raise NotImplementedError("PPLBench Beanmachine eval test doesn't use PyTorch and is disabled - see GH issue #898.")
             # Increased number of samples (n) and number of features(k) to increase computation for eval
             # Default values Reference: https://github.com/facebookresearch/pplbench/blob/main/examples/robust_regression.json
             self.train_data, self.test_data = self.model.generate_data(seed=int(time.time()), n=500000, k=500)
