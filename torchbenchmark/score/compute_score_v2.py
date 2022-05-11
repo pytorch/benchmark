@@ -137,7 +137,7 @@ class TorchBenchScoreV2:
             return None
         # Each test has equal weight
         weight = 1.0 / len(filtered_tests)
-        for test in tests:
+        for test in filtered_tests:
             norm = data_norm["tests"][test.name]["norm"]
             delta = (norm - test.norm) / test.norm
             if abs(delta) <= self.suite.threshold:
