@@ -41,6 +41,7 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
     assert model.test=="eval", "We only support stableness check for inference."
     previous_result = None
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
+        set_random_seed()
         # some models, (e.g., moco) is stateful and will give different outputs
         # on the same input if called multiple times
         try:
@@ -66,6 +67,7 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
     if not model.eager_output:
         return "Unstable"
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
+        set_random_seed()
         # some models, (e.g., moco) is stateful and will give different outputs
         # on the same input if called multiple times
         try:
