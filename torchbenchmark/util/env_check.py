@@ -102,7 +102,9 @@ def cos_similarity(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Ten
         t1 = eager_output[i]
         t2 = output[i]
         cos = torch.nn.CosineSimilarity(dim=0, eps=1e-4)
-        # need to call float() because fp16 tensor may overflow when calculating cosine similarity
-        result *= cos(t1.flatten().float(), t2.flatten().float())
+        # deal with special case: both t1 and t2 are zeros
+        if not (torch.count_nonzero(t1) == 0 and torch.count_nonzero(t2) == 0):
+            # need to call float() because fp16 tensor may overflow when calculating cosine similarity
+            result *= cos(t1.flatten().float(), t2.flatten().float())
     assert list(result.size())==[], "The result of cosine similarity must be a scalar."
     return float(result)
