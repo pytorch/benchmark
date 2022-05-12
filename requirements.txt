@@ -16,3 +16,4 @@ psutil
 pyyaml
 numpy
 scipy # for lazy_bench.py
+submitit
