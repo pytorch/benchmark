@@ -49,7 +49,7 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
         except RuntimeError:
             # if the model is not copy-able, don't copy it
             copy_model = model
-        if not previous_result:
+        if previous_result == None:
             previous_result = copy_model.invoke()
         else:
             if cos_sim:
@@ -64,7 +64,7 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True) -> str:
     assert model.test=="eval", "We only support correctness check for inference."
     assert hasattr(model, 'eager_output'), "Need stableness result to check correctness."
-    if not model.eager_output:
+    if model.eager_output == None:
         return "Unstable"
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
         set_random_seed()
