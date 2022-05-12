@@ -7,7 +7,7 @@ from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args, apply_torchdynamo_args
 from torchbenchmark.util.extra_args import enable_opt_args, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
-from torchbenchmark.util.env_check import set_random_seed, correctness_check
+from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -90,19 +90,24 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.need_correctness_check = True if self.dynamo else enable_opt_args(self.opt_args)
         # currently, only check correctness under CUDA+inference, and `need_correctness_check` is True
         if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            self.eager_output = self.invoke()
-        # apply decoration and optimization args
+            self.eager_output = stableness_check(self, cos_sim=False)
+        # apply decoration args
         apply_decoration_args(self, self.dargs)
+        # apply optimization args
         if self.dynamo:
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
             apply_opt_args(self, self.opt_args)
         # if test is eval, check correctness
         if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            self.output = self.invoke()
-            self.correctness = correctness_check(self.eager_output, self.output)
-            del self.eager_output
-            del self.output
+            # if fx2trt is used (either with or without dynamo), use cosine similarity
+            # instead of torch.allclose, because fp16+TensorRT is loose on accuracy
+            if self.dargs.precision == "fp16" and self.dynamo and self.opt_args.torchdynamo == "fx2trt":
+                self.correctness = correctness_check(self, cos_sim=True)
+            elif self.dargs.precision == "fp16" and (not self.dynamo) and self.opt_args.fx2trt:
+                self.correctness = correctness_check(self, cos_sim=True)
+            else:
+                self.correctness = correctness_check(self, cos_sim=False)
             torch.cuda.empty_cache()
 
     def add_context(self, context_fn):

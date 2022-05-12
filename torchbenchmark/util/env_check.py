@@ -3,9 +3,13 @@ PyTorch benchmark env check utils.
 This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 import importlib
-from typing import List, Dict, Tuple
+import copy
+from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
+# run 10 rounds for stableness and correctness tests
+CORRECTNESS_CHECK_ROUNDS: int = 10
+CORRECTNESS_THRESHOLD: float = 0.99
 
 def set_random_seed():
     import torch
@@ -31,7 +35,65 @@ def has_native_amp() -> bool:
         pass
     return False
 
-def correctness_check(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor']) -> float:
+def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True) -> Optional[Tuple['torch.Tensor']]:
+    """Get the eager output. Run eager mode a couple of times to guarantee stableness.
+       If the result is not stable, return None. """
+    assert model.test=="eval", "We only support stableness check for inference."
+    previous_result = None
+    for _i in range(CORRECTNESS_CHECK_ROUNDS):
+        set_random_seed()
+        # some models, (e.g., moco) is stateful and will give different outputs
+        # on the same input if called multiple times
+        try:
+            copy_model = copy.deepcopy(model)
+        except RuntimeError:
+            # if the model is not copy-able, don't copy it
+            copy_model = model
+        if previous_result == None:
+            previous_result = copy_model.invoke()
+        else:
+            if cos_sim:
+                cos_sim = cos_similarity(copy_model.invoke(), previous_result)
+                if cos_sim < CORRECTNESS_THRESHOLD:
+                    return None
+            else:
+                if not torch_allclose(copy_model.invoke(), previous_result):
+                    return None
+    return previous_result
+
+def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True) -> str:
+    assert model.test=="eval", "We only support correctness check for inference."
+    assert hasattr(model, 'eager_output'), "Need stableness result to check correctness."
+    if model.eager_output == None:
+        return "Unstable"
+    for _i in range(CORRECTNESS_CHECK_ROUNDS):
+        set_random_seed()
+        # some models, (e.g., moco) is stateful and will give different outputs
+        # on the same input if called multiple times
+        try:
+            copy_model = copy.deepcopy(model)
+        except RuntimeError:
+            # if the model is not copy-able, don't copy it
+            copy_model = model
+        if cos_sim:
+            cos_sim = cos_similarity(model.eager_output, copy_model.invoke())
+            if cos_sim < CORRECTNESS_THRESHOLD:
+                return f"Incorrect (cos_sim: {cos_sim})"
+        else:
+            if not torch_allclose(model.eager_output, copy_model.invoke()):
+                return "Incorrect (torch.allclose() returns False)"
+    return "Correct"
+
+def torch_allclose(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor'], threshold=1e-4) -> bool:
+    import torch
+    # sanity checks
+    assert len(eager_output) == len(output), "Correctness check requires two inputs have the same length"
+    for i in range(len(eager_output)):
+        if not torch.allclose(eager_output[i].float(), output[i].float(), atol=threshold, rtol=threshold):
+            return False
+    return True
+
+def cos_similarity(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor']) -> float:
     import torch
     # sanity checks
     assert len(eager_output) == len(output), "Correctness check requires two inputs have the same length"
