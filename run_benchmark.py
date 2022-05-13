@@ -4,14 +4,14 @@ import importlib
 from typing import List
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-BENCHMARKS_DIR = os.path.join(CURRENT_DIR, "benchmarks")
+BENCHMARKS_DIR = os.path.join(CURRENT_DIR, "userbenchmark")
 
 def list_benchmarks() -> List[str]:
     return os.listdir(BENCHMARKS_DIR)
 
 def run():
-    parser = argparse.ArgumentParser(description="Run TorchBench benchmarks")
-    parser.add_argument("bm_name", choices=list_benchmarks(), help='name of the benchmark')
+    parser = argparse.ArgumentParser(description="Run a TorchBench user benchmark")
+    parser.add_argument("bm_name", choices=list_benchmarks(), help='name of the user benchmark')
     args, bm_args = parser.parse_known_args()
 
     try:
