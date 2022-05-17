@@ -22,7 +22,7 @@ from torchbenchmark.util.metadata_utils import skip_by_metadata
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
     # e.g. by using info in metafunc.config
-    devices = ['cpu', 'cuda']
+    devices = ['cpu', 'cuda', 'mps']
     if metafunc.config.option.cpu_only:
         devices = ['cpu']
 
