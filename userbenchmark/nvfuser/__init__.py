@@ -39,7 +39,7 @@ class NVFuserBenchmark():
 
 
 def run_nvfuser_microbenchmarks(extra_args: List[str]):
-    from torchbenchmark.microbenchmarks.nvfuser.ir import ir_list
+    from userbenchmark.nvfuser.ir import ir_list
     benchmarks = [NVFuserBenchmark(name, ir) for name, ir in ir_list]
     args = parse_fusers(extra_args)
     filters, fusers = args.filters, args.fusers
