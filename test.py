@@ -120,6 +120,10 @@ def _load_tests():
         devices.append('cuda')
 
     for path in _list_model_paths():
+        # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
+        # api, enable after PyTorch 1.13 release
+        if "quantized" in path:
+            continue
         for device in devices:
             _load_test(path, device)
 
