@@ -21,7 +21,7 @@ class Model(BenchmarkModel):
     def prep_qat_train(self):
         qconfig_dict = {"": torch.quantization.get_default_qat_qconfig('fbgemm')}
         self.model.train()
-        self.model = quantize_fx.prepare_qat_fx(self.model, qconfig_dict)
+        self.model = quantize_fx.prepare_qat_fx(self.model, qconfig_dict, self.example_inputs)
 
     def train(self, niter=3):
         if self.jit is True:  # torchscript operations should only be applied after quantization operations
