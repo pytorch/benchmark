@@ -44,7 +44,11 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
     soup = BeautifulSoup(data, 'html.parser')
     data = defaultdict(dict)
     for link in soup.find_all('a'):
-        pkg, version, py, py_m, platform = re.search("([a-z]*)-(.*)-(.*)-(.*)-(.*)\.whl", link.text).groups()
+        group_match = re.search("([a-z]*)-(.*)-(.*)-(.*)-(.*)\.whl", link.text)
+        # some packages (e.g., torch-rec) doesn't follow this naming convention
+        if not group_match:
+            continue
+        pkg, version, py, py_m, platform = group_match.groups()
         version = urllib.parse.unquote(version)
         if py == py_version and platform == platform_version:
             full_url = os.path.join(torch_wheel_nightly_base, link.text)
