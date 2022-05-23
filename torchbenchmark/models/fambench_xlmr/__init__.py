@@ -18,6 +18,7 @@ class add_path():
         except ValueError:
             pass
 XLMR_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "xlmr", "ootb")
+import fairseq
 with add_path(XLMR_PATH):
     from xlmr import generate_dataset
     from xlmr_parser import init_argparse
@@ -45,7 +46,7 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-        self.xlmr = torch.hub.load('pytorch/fairseq:main', 'xlmr.large')
+        self.xlmr = fairseq.models.roberta.XLMRModel.from_pretrained("xlmr.large")
         parser = init_argparse()
         args = parser.parse_args([f"--famconfig={self.DEFAULT_FAM_CONFIG}",
                                   f"--num-batches={self.DEFAULT_NUM_BATCHES}", f"--batch-size={self.batch_size} ", \
