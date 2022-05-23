@@ -16,7 +16,7 @@ import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
 import torch
-from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
+from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer, test_dcgm_installation
 
 WARMUP_ROUNDS = 3
 
@@ -197,7 +197,9 @@ if __name__ == "__main__":
             assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
             model_flops = m.get_flops()
         else:
-            model_flops = 'dcgm'
+            if test_dcgm_installation():
+                model_flops = 'dcgm'
+            
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:

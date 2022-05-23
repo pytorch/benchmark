@@ -1,5 +1,4 @@
 
-from pyexpat import model
 from components.model_analyzer.dcgm.dcgm_monitor import DCGMMonitor
 from components.model_analyzer.tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 from components.model_analyzer.tb_dcgm_types.gpu_device_factory import GPUDeviceFactory
@@ -11,11 +10,9 @@ from components.model_analyzer.tb_dcgm_types.gpu_free_memory import GPUFreeMemor
 from components.model_analyzer.tb_dcgm_types.gpu_used_memory import GPUUsedMemory
 from components.model_analyzer.tb_dcgm_types.gpu_fp32active import GPUFP32Active
 from components.model_analyzer.tb_dcgm_types.record_aggregator import RecordAggregator
-import time
 from components.model_analyzer.tb_dcgm_types.tb_logger import set_logger, LOGGER_NAME
-from collections import defaultdict
 from components.model_analyzer.tb_dcgm_types.config import *
-
+from components.model_analyzer.tb_dcgm_types.config import DEFAULT_MONITORING_INTERVAL
 
 import logging
 logger = logging.getLogger(LOGGER_NAME)
@@ -24,10 +21,10 @@ class ModelAnalyzer:
     def __init__(self):
         self.gpu_factory = GPUDeviceFactory()
         self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
-        # print(self.gpus)
         # the metrics to be collected
-        self.gpu_metrics = [GPUUtilization, GPUPowerUsage,
-                            GPUFreeMemory, GPUUsedMemory, GPUFP32Active, GPUTensorActive]
+        # self.gpu_metrics = [GPUUtilization, GPUPowerUsage,
+        #                     GPUFreeMemory, GPUUsedMemory, GPUFP32Active, GPUTensorActive]
+        self.gpu_metrics = [GPUFP32Active]
         # the final metric results. Its format is {GPU_UUID: {GPUUtilization: }}
         self.gpu_metric_value = {}
         self.gpu_monitor = None
@@ -111,27 +108,11 @@ class ModelAnalyzer:
             gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
             return gpu._sm_count * gpu._fma_count * 2 * gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9
 
-
-def run_app(n):
-    import torch
-    from torch.utils.benchmark import Timer
-
-    x = torch.ones((n, n), device="cuda")
-    y = torch.ones((n, n), device="cuda")
-    torch.mm(x, y)
-
-    # for n in [128, 1024, 4096, 8192]:
-    # result = Timer(
-    #     "torch.mm(x, y)",
-    #     globals = {
-    #         "x": torch.ones((n, n), device="cuda"),
-    #         "y": torch.ones((n, n), device="cuda")}
-    # ).blocked_autorange()
-    # print(f"TFLOPs: {n**3 * 2 / result.median / 1e12:4>.1f}")
-    # print(result, "\n")
-
-    # import os
-    # print(os.system(
-    #     "/data/yhao/cuda-samples-master/Samples/0_Introduction/matrixMul.origin/matrixMul"))
-
-
+def test_dcgm_installation():
+    try: 
+        temp_model_analyzer = ModelAnalyzer()
+        temp_model_analyzer.start_monitor()
+        temp_model_analyzer.stop_monitor()
+    except TorchBenchAnalyzerException:
+        return False
+    return True
