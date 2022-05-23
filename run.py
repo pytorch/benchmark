@@ -13,8 +13,10 @@ import time
 import numpy as np
 import torch.profiler as profiler
 
+
 from torchbenchmark import load_model_by_name
 import torch
+from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
 
 WARMUP_ROUNDS = 3
 
@@ -58,6 +60,12 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
         func()
 
     result_summary = []
+    flops_records = []
+    dcgm_enabled = False
+    if type(model_flops) is str and model_flops == 'dcgm':
+        dcgm_enabled = True
+        model_analyzer = ModelAnalyzer()
+
     for _i in range(num_iter):
         if args.device == "cuda":
             torch.cuda.synchronize()
@@ -68,13 +76,19 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
             # second according to https://docs.python.org/3/library/time.html#time.time.
             t0 = time.time_ns()
             start_event.record()
+            if dcgm_enabled:
+                model_analyzer.start_monitor()
             func()
-
+            if dcgm_enabled:
+                model_analyzer.stop_monitor()
+        
             end_event.record()
             torch.cuda.synchronize()
             t1 = time.time_ns()
-
             result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
+            if dcgm_enabled:
+                model_analyzer.aggregate()
+                flops_records.append(model_analyzer.calculate_flops())
         else:
             t0 = time.time_ns()
             func()
@@ -92,9 +106,13 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
 
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
-        flops, batch_size = model_flops
-        tflops = flops * batch_size / (cpu_walltime / 1.0e9) / 1.0e12
+        if dcgm_enabled:
+            tflops = np.median(flops_records)
+        else:
+            flops, batch_size = model_flops
+            tflops = flops * batch_size / (cpu_walltime / 1.0e9) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
+
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     activity_groups = []
@@ -151,7 +169,7 @@ if __name__ == "__main__":
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
-    parser.add_argument("--flops", action="store_true", help="Return the flops result")
+    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -164,18 +182,22 @@ if __name__ == "__main__":
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
-
     # build the model and get the chosen test method
     if args.flops:
         extra_args.append("--flops")
+        extra_args.append(args.flops)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
 
     test = m.invoke
     model_flops = None
+
     if args.flops:
-        assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
-        model_flops = m.get_flops()
+        if args.flops == 'model':
+            assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
+            model_flops = m.get_flops()
+        else:
+            model_flops = 'dcgm'
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:
