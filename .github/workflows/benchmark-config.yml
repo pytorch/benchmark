@@ -9,6 +9,7 @@ on:
 env:
   PYTHON_VERSION: "3.8"
   TENSORRT_PYTHON_VERSION: "cp38"
+  TENSORRT_VERSION: "8.2.4.2"
   CUDA_VERSION: "cu113"
   CONDA_ENV_NAME: "backends-ci"
   MAGMA_VERSION: "magma-cuda113"
@@ -45,10 +46,10 @@ jobs:
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd "${TENSORRT_HOME}"
-          pip install graphsurgeon/graphsurgeon-0.4.5-py2.py3-none-any.whl
-          pip install onnx_graphsurgeon/onnx_graphsurgeon-0.3.12-py2.py3-none-any.whl
-          pip install uff/uff-0.6.9-py2.py3-none-any.whl
-          pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
+          pip install graphsurgeon/graphsurgeon-*.whl
+          pip install onnx_graphsurgeon/onnx_graphsurgeon-*.whl
+          pip install uff/uff-*.whl
+          pip install "python/tensorrt-${TENSORRT_VERSION}-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
           # make sure tensorrt works
           python -c "import tensorrt"
       - name: Install PyTorch nightly
