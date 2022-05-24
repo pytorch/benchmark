@@ -16,7 +16,7 @@ import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
 import torch
-from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer, test_dcgm_installation
+
 
 WARMUP_ROUNDS = 3
 
@@ -64,6 +64,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
     dcgm_enabled = False
     if type(model_flops) is str and model_flops == 'dcgm':
         dcgm_enabled = True
+        from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
 
     for _i in range(num_iter):
@@ -197,6 +198,7 @@ if __name__ == "__main__":
             assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
             model_flops = m.get_flops()
         else:
+            from components.model_analyzer.TorchBenchAnalyzer import test_dcgm_installation
             if test_dcgm_installation():
                 model_flops = 'dcgm'
             
