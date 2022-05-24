@@ -113,6 +113,8 @@ def test_dcgm_installation():
         temp_model_analyzer = ModelAnalyzer()
         temp_model_analyzer.start_monitor()
         temp_model_analyzer.stop_monitor()
-    except TorchBenchAnalyzerException:
+    except Exception as e:
+        print("ERROR:", e)
+        print("DCGM init failed. Disable flops caculation.")
         return False
     return True
