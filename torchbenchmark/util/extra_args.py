@@ -45,6 +45,11 @@ def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision
     assert precision == "fp32", f"Expected precision to be one of fp32, fp16, or amp, but get {precision}"
     return True
 
+def check_memory_layout(model: 'torchbenchmark.util.model.BenchmakModel', channels_last: bool) -> bool:
+    if channels_last:
+        return hasattr(model, 'enable_channels_last')
+    return True
+
 def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if hasattr(model, "DEFAULT_EVAL_CUDA_PRECISION") and model.test == 'eval' and model.device == 'cuda':
         return model.DEFAULT_EVAL_CUDA_PRECISION
@@ -55,13 +60,19 @@ def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
     parser.add_argument("--precision", choices=["fp32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, fp16, or amp")
+    parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
         raise NotImplementedError(f"precision value: {dargs.precision}, fp16 or amp precision is only supported on CUDA inference tests, "
                                   f"fp16 is only supported if the model implements the `enable_fp16_half()` callback function.")
+    if not check_memory_layout(model, dargs.channels_last):
+        raise NotImplementedError(f"Specified channels_last: {dargs.channels_last} ,"
+                                  f" but the model doesn't implement the enable_channels_last() interface.")
     return (dargs, opt_args)
 
 def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dargs: argparse.Namespace):
+    if dargs.channels_last:
+        model.enable_channels_last()
     if dargs.precision == "fp16":
         model.enable_fp16_half()
     elif dargs.precision == "amp":

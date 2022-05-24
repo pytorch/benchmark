@@ -1,3 +1,4 @@
+from contextlib import suppress
 import torch
 import typing
 import timm
@@ -34,6 +35,7 @@ class TimmModel(BenchmarkModel):
 
         if device == 'cuda':
             torch.cuda.empty_cache()
+        self.amp_context = suppress
 
     def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
         def _gen_inputs():
@@ -56,7 +58,8 @@ class TimmModel(BenchmarkModel):
 
     def _step_train(self):
         self.cfg.optimizer.zero_grad()
-        output = self.model(self.example_inputs)
+        with self.amp_context():
+            output = self.model(self.example_inputs)
         if isinstance(output, tuple):
             output = output[0]
         target = self._gen_target(output.shape[0])
@@ -71,6 +74,13 @@ class TimmModel(BenchmarkModel):
         self.model = self.model.half()
         self.example_inputs = self.example_inputs.half()
 
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
+        self.example_inputs = self.example_inputs.contiguous(memory_format=torch.channels_last)
+
+    def enable_amp(self):
+        self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
+
     def get_module(self):
         return self.model, (self.example_inputs,)
 
@@ -80,6 +90,7 @@ class TimmModel(BenchmarkModel):
 
     def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
         with torch.no_grad():
-            for _ in range(niter):
-                out = self._step_eval()
+            with self.amp_context():
+                for _ in range(niter):
+                    out = self._step_eval()
         return (out, )
