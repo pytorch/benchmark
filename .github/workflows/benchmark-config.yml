@@ -67,7 +67,8 @@ jobs:
               exit 1
           fi
           # Install PyTorch nightly from pip
-          pip install --pre torch torchtext torchvision \
+          # FIXME: update pytorch version
+          pip install --pre torch==1.12.0.dev20220501 torchtext==0.13.0.dev20220501 torchvision==0.13.0.dev20220501 \
             -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
           # make sure pytorch+cuda works
           python -c "import torch; torch.cuda.init()"
