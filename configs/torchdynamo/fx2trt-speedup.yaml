@@ -10,6 +10,6 @@ test:
 args:
   # empty argument means the default pytorch eager mode
   - ""
-  # - "--fx2trt"
+  - "--fx2trt"
   - "--torchdynamo eager"
-  # - "--torchdynamo fx2trt"
+  - "--torchdynamo fx2trt"
