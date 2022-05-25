@@ -16,6 +16,7 @@ from components.model_analyzer.tb_dcgm_types.config import DEFAULT_MONITORING_IN
 
 import logging
 logger = logging.getLogger(LOGGER_NAME)
+import json
 
 class ModelAnalyzer:
     def __init__(self):
@@ -69,13 +70,13 @@ class ModelAnalyzer:
     
     def set_monitoring_interval(self, attempted_interval):
         """
-        The default monitoring internval is 10ms.
+        The default monitoring internval is DEFAULT_MONITORING_INTERVAL * 1000 ms.
         """
-        if attempted_interval < 0.001:
+        if attempted_interval < 0.1:
             logger.warning("The attempted interval is too short, would cause untrusted profiling results.")
         self.config.monitoring_interval = attempted_interval
 
-    def print_flops(self, debug=True):
+    def print_flops(self):
         print("==========Summary==========")
         for gpu_uuid in self.gpu_metric_value:
             gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
@@ -84,11 +85,7 @@ class ModelAnalyzer:
             print("GPU : TFLOPs/Second %.4f" % (gpu._sm_count * gpu._fma_count * 2 *
                 gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9))
         # @Yueming Hao: print all collected gpu records, for debug only
-        if debug:
-            print(self.gpu_metrics)
-            for item in self.gpu_records:
-                print(item)
-                print(item.value())
+        logger.debug(json.dumps([_.to_dict() for _ in self.gpu_records], indent = 4))
     
     def calculate_flops(self, gpu_uuid=None):
         """
