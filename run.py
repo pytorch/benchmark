@@ -60,12 +60,12 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
         func()
 
     result_summary = []
-    flops_records = []
     dcgm_enabled = False
     if type(model_flops) is str and model_flops == 'dcgm':
         dcgm_enabled = True
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
+        model_analyzer.start_monitor()
 
     for _i in range(num_iter):
         if args.device == "cuda":
@@ -77,24 +77,18 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
             # second according to https://docs.python.org/3/library/time.html#time.time.
             t0 = time.time_ns()
             start_event.record()
-            if dcgm_enabled:
-                model_analyzer.start_monitor()
             func()
-            if dcgm_enabled:
-                model_analyzer.stop_monitor()
-        
             end_event.record()
             torch.cuda.synchronize()
             t1 = time.time_ns()
             result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
-            if dcgm_enabled:
-                model_analyzer.aggregate()
-                flops_records.append(model_analyzer.calculate_flops())
         else:
             t0 = time.time_ns()
             func()
             t1 = time.time_ns()
             result_summary.append([(t1 - t0) / 1_000_000])
+    if dcgm_enabled:
+            model_analyzer.stop_monitor()
 
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
@@ -108,7 +102,8 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
         if dcgm_enabled:
-            tflops = np.median(flops_records)
+            model_analyzer.aggregate()
+            tflops = model_analyzer.calculate_flops()
         else:
             flops, batch_size = model_flops
             tflops = flops * batch_size / (cpu_walltime / 1.0e9) / 1.0e12
@@ -198,8 +193,8 @@ if __name__ == "__main__":
             assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
             model_flops = m.get_flops()
         else:
-            from components.model_analyzer.TorchBenchAnalyzer import test_dcgm_installation
-            if test_dcgm_installation():
+            from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
+            if check_dcgm():
                 model_flops = 'dcgm'
             
     if args.profile:
