@@ -4,7 +4,6 @@ from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
 from typing import ContextManager, Optional, List, Tuple, Generator
-from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args, apply_torchdynamo_args
 from torchbenchmark.util.extra_args import enable_opt_args, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
@@ -83,6 +82,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         # if the args contain "--torchdynamo", parse torchdynamo args
         if "--torchdynamo" in opt_args:
             self.dynamo = True
+            from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
             self.opt_args = parse_torchdynamo_args(self, opt_args)
         else:
             self.dynamo = False
@@ -95,6 +95,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         apply_decoration_args(self, self.dargs)
         # apply optimization args
         if self.dynamo:
+            from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
             apply_opt_args(self, self.opt_args)
