@@ -66,17 +66,16 @@ class ModelAnalyzer:
         for metric_type, metric in records_groupby_gpu.items():
             for gpu_uuid, metric_value in metric.items():
                 self.gpu_metric_value[gpu_uuid][metric_type] = metric_value
-        # return self.gpu_metric_value
     
     def set_monitoring_interval(self, attempted_interval):
         """
         The default monitoring internval is 10ms.
         """
         if attempted_interval < 0.001:
-            logger.warning("The attempted interval is too short, would cause untruested profiling results.")
+            logger.warning("The attempted interval is too short, would cause untrusted profiling results.")
         self.config.monitoring_interval = attempted_interval
 
-    def print_flops(self):
+    def print_flops(self, debug=True):
         print("==========Summary==========")
         for gpu_uuid in self.gpu_metric_value:
             gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
@@ -85,10 +84,11 @@ class ModelAnalyzer:
             print("GPU : TFLOPs/Second %.4f" % (gpu._sm_count * gpu._fma_count * 2 *
                 gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9))
         # @Yueming Hao: print all collected gpu records, for debug only
-        # print(self.gpu_metrics)
-        # for item in self.gpu_records:
-        #     print(item)
-        #     print(item.value())
+        if debug:
+            print(self.gpu_metrics)
+            for item in self.gpu_records:
+                print(item)
+                print(item.value())
     
     def calculate_flops(self, gpu_uuid=None):
         """
@@ -108,7 +108,7 @@ class ModelAnalyzer:
             gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
             return gpu._sm_count * gpu._fma_count * 2 * gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9
 
-def test_dcgm_installation():
+def check_dcgm():
     try: 
         temp_model_analyzer = ModelAnalyzer()
         temp_model_analyzer.start_monitor()
