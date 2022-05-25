@@ -6,9 +6,10 @@ import argparse
 import functools
 from typing import List
 import torchdynamo
+from torchdynamo.optimizations.training import aot_autograd_speedup_strategy
 
 EXTRA_BACKENDS = {
-    "aot_autograd_speedup_strategy": torchdynamo.optimizations.training.aot_autograd_speedup_strategy,
+    "aot_autograd_speedup_strategy": aot_autograd_speedup_strategy,
 }
 
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dyamo_args: List[str]) -> argparse.Namespace:
