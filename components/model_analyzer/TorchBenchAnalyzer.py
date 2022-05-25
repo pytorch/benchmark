@@ -3,6 +3,7 @@ from components.model_analyzer.dcgm.dcgm_monitor import DCGMMonitor
 from components.model_analyzer.tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 from components.model_analyzer.tb_dcgm_types.gpu_device_factory import GPUDeviceFactory
 from components.model_analyzer.dcgm import dcgm_fields
+from components.model_analyzer.dcgm.dcgm_structs import DCGMError
 from components.model_analyzer.tb_dcgm_types.gpu_tensoractive import GPUTensorActive
 from components.model_analyzer.tb_dcgm_types.gpu_utilization import GPUUtilization
 from components.model_analyzer.tb_dcgm_types.gpu_power_usage import GPUPowerUsage
@@ -110,8 +111,7 @@ def check_dcgm():
         temp_model_analyzer = ModelAnalyzer()
         temp_model_analyzer.start_monitor()
         temp_model_analyzer.stop_monitor()
-    except Exception as e:
-        print("ERROR:", e)
-        print("DCGM init failed. Disable flops caculation.")
-        return False
+    except DCGMError as e:
+        logger.error("ERROR: DCGM init failed. ", e)
+        exit(-1)
     return True
