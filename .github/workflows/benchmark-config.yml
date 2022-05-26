@@ -86,6 +86,7 @@ jobs:
           python setup.py develop
           popd
           pushd functorch
+          git checkout d241eeb76
           python setup.py install
           popd
       - name: Install benchmark deps
