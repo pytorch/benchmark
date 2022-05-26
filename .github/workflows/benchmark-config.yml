@@ -44,6 +44,7 @@ jobs:
         with:
           repository: pytorch/functorch
           path: functorch
+          ref: d241eeb76
       - name: Create conda environment
         run: |
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
@@ -86,7 +87,6 @@ jobs:
           python setup.py develop
           popd
           pushd functorch
-          git checkout d241eeb76
           python setup.py install
           popd
       - name: Install benchmark deps
