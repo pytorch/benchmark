@@ -6,4 +6,5 @@ test:
 args:
   # empty argument means the default pytorch eager mode
   - ""
+  - "--torchdynamo nvfuser"
   - "--torchdynamo aot_autograd_speedup_strategy"
