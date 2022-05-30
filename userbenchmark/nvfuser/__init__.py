@@ -1,5 +1,11 @@
+import torch
+
 import argparse
+import json
+import os
+import time
 import torch.utils.jit.log_extract as log_extract
+from datetime import datetime
 from typing import Any, List
 
 def parse_fusers(extra_args: List[str]):
@@ -38,8 +44,23 @@ class NVFuserBenchmark():
         return inputs
 
 
+def dump_metrics(metrics):
+    output = {
+        "name": "nvfuser",
+        "environ": {"pytorch_git_version": torch.version.git_version},
+        "metrics": metrics,
+    }
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    target_dir = os.path.normpath(os.path.join(current_dir, "../../.userbenchmark/nvfuser/"))
+    os.makedirs(target_dir, exist_ok=True)
+    fname = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
+    full_fname = os.path.join(target_dir, fname)
+    with open(full_fname, 'w') as f:
+        json.dump(output, f, indent=4)
+
+
 def run_nvfuser_microbenchmarks(extra_args: List[str]):
-    from torchbenchmark.microbenchmarks.nvfuser.ir import ir_list
+    from userbenchmark.nvfuser.ir import ir_list
     benchmarks = [NVFuserBenchmark(name, ir) for name, ir in ir_list]
     args = parse_fusers(extra_args)
     filters, fusers = args.filters, args.fusers
@@ -48,12 +69,17 @@ def run_nvfuser_microbenchmarks(extra_args: List[str]):
     if len(fusers) == 0:
         fusers = ["no_fuser", "nnc-static", "nnc-dynamic", "nvfuser"]
 
+    metrics = {}
     for b in benchmarks:
         outputs = []
         for fuser in fusers:
             inputs = b.get_inputs()
-            outputs.append((fuser, b.run_test(inputs, fuser)))
+            runtime = b.run_test(inputs, fuser)
+            outputs.append((fuser, runtime))
+            metrics[f"{fuser}:{b.name}"] = runtime
         print(f"{b.name}:", "; ".join(f"{name} = {time:.3f} ms" for name, time in outputs))
+    dump_metrics(metrics)
+
 
 def run(args: List[str]):
     run_nvfuser_microbenchmarks(extra_args=args)
