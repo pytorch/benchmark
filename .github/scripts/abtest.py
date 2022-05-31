@@ -12,7 +12,7 @@ from bmutils import REPO_ROOT, add_path
 from typing import Dict, Optional
 
 with add_path(REPO_ROOT):
-    import torchbenchmark.util.gitutils
+    import torchbenchmark.util.gitutils as gitutils
     from userbenchmark import list_userbenchmarks
 
 USERBENCHMARK_OUTPUT_PATH = os.path.join(REPO_ROOT, ".userbenchmark")
@@ -35,16 +35,22 @@ def validate_benchmark_output(bm_output: Path, bm_name: str):
 
 def run_benchmark(bm_name: str) -> Path:
     def find_latest_output(p: str) -> Optional[Path]:
-        json_files = [ jf for jf in os.listdir(p) if p.endswith(".json") ]
+        if not os.path.exists(p) or not os.path.isdir(p):
+            return None
+        json_files = [ os.path.join(p, jf) for jf in os.listdir(p) if p.endswith(".json") ]
         if len(json_files) == 0:
             return None
         return json_files[-1]
-    command = ["python", "run_benchmark.py", bm_name]
-    subprocess.check_call(command, cwd=REPO_ROOT, shell=True)
+    command = [sys.executable, "run_benchmark.py", bm_name]
+    try:
+        subprocess.check_call(command, cwd=REPO_ROOT, shell=False)
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to call userbenchmark {command}. Error: {e}")
+        sys.exit(1)
     output_path = os.path.join(USERBENCHMARK_OUTPUT_PATH, bm_name)
     output_file = find_latest_output(output_path)
     if not output_file:
-        print(f"Benchmark {bm_name} didn't print any output.")
+        print(f"Benchmark {bm_name} didn't print any output. Exit.")
         sys.exit(1)
     validate_benchmark_output(output_file)
     return output_file
@@ -76,15 +82,15 @@ def build_pytorch_commit(repo_path: str, commit: str):
         command = ["python", "setup.py", "install"]
         # setup environment variables
         build_env = setup_build_env(os.environ.copy())
-        subprocess.check_call(command, cwd=repo_path, env=build_env, shell=True)
+        subprocess.check_call(command, cwd=repo_path, env=build_env, shell=False)
         command_testbuild = ["python" "-c" "'import torch'"]
-        subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env, shell=True)
+        subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env, shell=False)
     except subprocess.CalledProcessError:
         # If failed, remove the build directory, then try again
         build_path = os.path.join(repo_path, "build")
         if os.path.exists(build_path):
             shutil.rmtree(build_path)
-        subprocess.check_call(command, cwd=repo_path, env=build_env, shell=True)
+        subprocess.check_call(command, cwd=repo_path, env=build_env, shell=False)
     print("done")
 
 def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
@@ -111,7 +117,6 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
     return "\n".join([";".join(x) for x in out])
 
 if __name__ == "__main__":
-    print(list_userbenchmarks())
     parser = argparse.ArgumentParser()
     parser.add_argument("--pytorch-repo", required=True, type=str, help="PyTorch repo path")
     parser.add_argument("--base", required=True, type=str, help="PyTorch base commit")
@@ -127,7 +132,7 @@ if __name__ == "__main__":
         assert Path(args.pytorch_repo).is_dir(), f"Specified PyTorch repo dir {args.pytorch_repo} doesn't exist."
         commits = gitutils.get_git_commits(args.pytorch_repo, args.base, args.head)
         assert commits, f"Can't find git commit {args.base} or {args.head} in repo {args.pytorch_repo}"
-    result_a = run_commit(args.pytorch_repo, args.base, args.userbenchmark)
-    result_b = run_commit(args.pytorch_repo, args.head, args.userbenchmark)
+    result_a = run_commit(args.pytorch_repo, args.base, args.userbenchmark, args.skip_build)
+    result_b = run_commit(args.pytorch_repo, args.head, args.userbenchmark, args.skip_build)
     compare_result = process_test_result(result_a, result_b, args.output_dir)
     print(compare_result)
