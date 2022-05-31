@@ -29,10 +29,16 @@ def validate_benchmark_output(bm_output: Path, bm_name: str):
     with open(bm_output, "r") as bmobj:
         output = json.load(bmobj)
     assert output["name"] == bm_name, f"Expected benchmark name {bm_name}, getting {output['name']}."
+    assert "environ" in output and "pytorch_git_version" in output["environ"], \
+        f"Missing pytorch git version in {bm_output}."
+    assert "metrics" in output, f"Missing definition of metrics in {bm_output}."
 
 def run_benchmark(bm_name: str) -> Path:
-    def find_latest_output(p) -> Optional[Path]:
-        pass
+    def find_latest_output(p: str) -> Optional[Path]:
+        json_files = [ jf for jf in os.listdir(p) if p.endswith(".json") ]
+        if len(json_files) == 0:
+            return None
+        return json_files[-1]
     command = ["python", "run_benchmark.py", bm_name]
     subprocess.check_call(command, cwd=REPO_ROOT, shell=True)
     output_path = os.path.join(USERBENCHMARK_OUTPUT_PATH, bm_name)
@@ -82,9 +88,27 @@ def build_pytorch_commit(repo_path: str, commit: str):
     print("done")
 
 def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
+    def validate_results(a, b) -> bool:
+        metrics = a["metrics"].keys()
+        return metrics == b["metrics"]
     # check two results are different files
-    # validate result
-    pass
+    assert not result_a == result_b, "Path {result_a} and {result_b} are the same. Exit."
+    # validate results
+    with open(result_a, "r") as fa:
+        a = json.load(fa)
+    with open(result_b, "r") as fb:
+        b = json.load(fb)
+    assert validate_results(a, b), f"Result validation failed for {result_a} and {result_b}."
+    # print result in csv format
+    header = ["Metric", a["environ"]["python_git_version"], b["environ"]["python_git_version"]]
+    out = [header]
+    metrics = a["metrics"].keys()
+    for m in metrics:
+        val = [m]
+        val.append(a["metrics"][m])
+        val.append(b["metrics"][m])
+        out.append(val)
+    return "\n".join([";".join(x) for x in out])
 
 if __name__ == "__main__":
     print(list_userbenchmarks())
