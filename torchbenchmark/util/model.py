@@ -39,6 +39,9 @@ def nested(*contexts):
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
     DEFAULT_EVAL_BSIZE: Optional[int] = None
+    # by default, deepcopy the model when checking correctness
+    # because some models are stateful (such as moco)
+    DEEPCOPY: bool = True
 
     test: str
     device: str
@@ -90,7 +93,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.need_correctness_check = True if self.dynamo else enable_opt_args(self.opt_args)
         # currently, only check correctness under CUDA+inference, and `need_correctness_check` is True
         if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            self.eager_output = stableness_check(self, cos_sim=False)
+            self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
@@ -104,9 +107,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             # if fp16 is used, use cosine similarity instead of torch.allclose
             # because cosine similarity is more relaxed
             if self.dargs.precision == "fp16":
-                self.correctness = correctness_check(self, cos_sim=True)
+                self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
-                self.correctness = correctness_check(self, cos_sim=False)
+                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
             torch.cuda.empty_cache()
 
     def add_context(self, context_fn):
