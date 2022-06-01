@@ -37,7 +37,7 @@ def run_benchmark(bm_name: str) -> Path:
     def find_latest_output(p: str) -> Optional[Path]:
         if not os.path.exists(p) or not os.path.isdir(p):
             return None
-        json_files = [ os.path.join(p, jf) for jf in os.listdir(p) if p.endswith(".json") ]
+        json_files = [ os.path.join(p, jf) for jf in os.listdir(p) if jf.endswith(".json") ]
         if len(json_files) == 0:
             return None
         return json_files[-1]
@@ -52,7 +52,7 @@ def run_benchmark(bm_name: str) -> Path:
     if not output_file:
         print(f"Benchmark {bm_name} didn't print any output. Exit.")
         sys.exit(1)
-    validate_benchmark_output(output_file)
+    validate_benchmark_output(output_file, bm_name)
     return output_file
 
 def setup_build_env(self, env) -> Dict[str, str]:
