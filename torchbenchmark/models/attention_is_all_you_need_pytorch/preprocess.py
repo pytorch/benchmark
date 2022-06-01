@@ -279,6 +279,7 @@ def main_wo_bpe():
     parser.add_argument('-min_word_count', type=int, default=3)
     parser.add_argument('-keep_case', action='store_true')
     parser.add_argument('-share_vocab', action='store_true')
+    parser.add_argument('-data_path', type=str, required=True)
     #parser.add_argument('-ratio', '--train_valid_test_ratio', type=int, nargs=3, metavar=(8,1,1))
     #parser.add_argument('-vocab', default=None)
 
@@ -319,7 +320,8 @@ def main_wo_bpe():
     train, val, test = Multi30k.splits(
             exts = ('.' + opt.lang_src, '.' + opt.lang_trg),
             fields = (SRC, TRG),
-            filter_pred=filter_examples_with_length)
+            filter_pred=filter_examples_with_length,
+            path=opt.data_path)
 
     SRC.build_vocab(train.src, min_freq=MIN_FREQ)
     print('[Info] Get source language vocabulary size:', len(SRC.vocab))
