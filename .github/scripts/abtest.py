@@ -16,6 +16,8 @@ with add_path(REPO_ROOT):
     from userbenchmark import list_userbenchmarks
 
 USERBENCHMARK_OUTPUT_PATH = os.path.join(REPO_ROOT, ".userbenchmark")
+# only preserve the first 10 chars of the git hash
+GIT_HASH_LEN = 10
 
 def run_commit(repo_path: str, commit: str, bm_name: str, skip_build: bool=False) -> Path:
     "Run the userbenchmark on the commit. Return the metrics output file path."
@@ -107,7 +109,7 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
         b = json.load(fb)
     assert validate_results(a, b), f"Result validation failed for {result_a} and {result_b}."
     # print result in csv format
-    header = ["Metric", a["environ"]["pytorch_git_version"], b["environ"]["pytorch_git_version"]]
+    header = ["Metric", a["environ"]["pytorch_git_version"][:GIT_HASH_LEN], b["environ"]["pytorch_git_version"][:GIT_HASH_LEN]]
     out = [header]
     metrics = a["metrics"].keys()
     for m in sorted(metrics):
