@@ -115,7 +115,7 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
         val.append(a["metrics"][m])
         val.append(b["metrics"][m])
         out.append(val)
-    return "\n".join([";".join(x) for x in out])
+    return "\n".join([";".join(str(x)) for x in out])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
