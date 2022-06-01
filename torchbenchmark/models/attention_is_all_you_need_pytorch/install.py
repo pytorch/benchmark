@@ -13,6 +13,7 @@ def preprocess():
     current_dir = Path(os.path.dirname(os.path.realpath(__file__)))
     multi30k_data_dir = os.path.join(current_dir.parent.parent, "data", ".data", "multi30k")
     root = os.path.join(str(Path(__file__).parent), ".data")
+    os.mkdir(root)
     subprocess.check_call([sys.executable, 'preprocess.py', '-lang_src', 'de', '-lang_trg', 'en', '-share_vocab',
                            '-save_data', os.path.join(root, 'm30k_deen_shr.pkl'), '-data_path', multi30k_data_dir])
 
