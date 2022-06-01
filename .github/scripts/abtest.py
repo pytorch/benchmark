@@ -79,7 +79,8 @@ def build_pytorch_commit(repo_path: str, commit: str):
     if os.path.exists(version_py_path):
         os.remove(version_py_path)
     try:
-        command = ["python", "setup.py", "install"]
+        # some packages are not included in the wheel, so use `develop`, not `install`
+        command = ["python", "setup.py", "develop"]
         # setup environment variables
         build_env = setup_build_env(os.environ.copy())
         subprocess.check_call(command, cwd=repo_path, env=build_env, shell=False)
