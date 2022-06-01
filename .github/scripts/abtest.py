@@ -107,7 +107,7 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
         b = json.load(fb)
     assert validate_results(a, b), f"Result validation failed for {result_a} and {result_b}."
     # print result in csv format
-    header = ["Metric", a["environ"]["python_git_version"], b["environ"]["python_git_version"]]
+    header = ["Metric", a["environ"]["pytorch_git_version"], b["environ"]["pytorch_git_version"]]
     out = [header]
     metrics = a["metrics"].keys()
     for m in sorted(metrics):
