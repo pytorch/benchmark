@@ -216,3 +216,4 @@ torchbenchmark/data/tacotron2-minimal.tar.gz filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/data/coco128.tar.gz filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/maml/batch.pt filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/maml_omniglot/batch.pt filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/data/multi30k.tar.gz filter=lfs diff=lfs merge=lfs -text
