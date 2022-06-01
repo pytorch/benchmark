@@ -91,6 +91,7 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
+    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result")
     args = parser.parse_args(opt_args)
     args.jit = model.jit
     if model.device == "cpu" and args.fuser:
