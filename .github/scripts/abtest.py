@@ -97,7 +97,7 @@ def build_pytorch_commit(repo_path: str, commit: str):
 def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
     def validate_results(a, b) -> bool:
         metrics = a["metrics"].keys()
-        return metrics == b["metrics"]
+        return sorted(metrics) == sorted(b["metrics"])
     # check two results are different files
     assert not result_a == result_b, "Path {result_a} and {result_b} are the same. Exit."
     # validate results
@@ -110,7 +110,7 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
     header = ["Metric", a["environ"]["python_git_version"], b["environ"]["python_git_version"]]
     out = [header]
     metrics = a["metrics"].keys()
-    for m in metrics:
+    for m in sorted(metrics):
         val = [m]
         val.append(a["metrics"][m])
         val.append(b["metrics"][m])
