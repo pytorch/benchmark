@@ -37,7 +37,7 @@ def run_benchmark(bm_name: str) -> Path:
     def find_latest_output(p: str) -> Optional[Path]:
         if not os.path.exists(p) or not os.path.isdir(p):
             return None
-        json_files = [ os.path.join(p, jf) for jf in os.listdir(p) if jf.endswith(".json") ]
+        json_files = [ os.path.join(p, jf) for jf in sorted(os.listdir(p)) if jf.endswith(".json") ]
         if len(json_files) == 0:
             return None
         return json_files[-1]
