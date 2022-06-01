@@ -99,7 +99,7 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
         metrics = a["metrics"].keys()
         return sorted(metrics) == sorted(b["metrics"])
     # check two results are different files
-    assert not result_a == result_b, "Path {result_a} and {result_b} are the same. Exit."
+    assert not result_a == result_b, f"Path {result_a} and {result_b} are the same. Exit."
     # validate results
     with open(result_a, "r") as fa:
         a = json.load(fa)
