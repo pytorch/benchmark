@@ -57,7 +57,7 @@ def run_benchmark(bm_name: str) -> Path:
     validate_benchmark_output(output_file, bm_name)
     return output_file
 
-def setup_build_env(self, env) -> Dict[str, str]:
+def setup_build_env(env) -> Dict[str, str]:
     env["USE_CUDA"] = "1"
     env["BUILD_CAFFE2_OPS"] = "0"
     # Do not build the test
