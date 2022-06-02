@@ -117,7 +117,15 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
         val.append(a["metrics"][m])
         val.append(b["metrics"][m])
         out.append(val)
-    return "\n".join([";".join(map(lambda y: str(y), x)) for x in out])
+    out = "\n".join([";".join(map(lambda y: str(y), x)) for x in out])
+    os.makedirs(output_dir, exist_ok=True)
+    with open(os.path.join(output_dir, "control.json"), "w") as fcontrol:
+        json.dump(a, fcontrol, indent=4)
+    with open(os.path.join(output_dir, "treatment.json"), "w") as ftreatment:
+        json.dump(b, ftreatment, indent=4)
+    with open(os.path.join(output_dir, "result.csv"), "w") as fout:
+        fout.write(out + "\n")
+    return out
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
