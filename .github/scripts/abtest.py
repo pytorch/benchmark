@@ -20,12 +20,11 @@ USERBENCHMARK_OUTPUT_PATH = os.path.join(REPO_ROOT, ".userbenchmark")
 GIT_HASH_LEN = 10
 
 def cleanup():
-    packages = ["torch"]
     print("Cleaning up torch packages...", end="", flush=True)
     CLEANUP_ROUND = 5
     # Clean up multiple times to make sure the packages are all uninstalled
     for _ in range(CLEANUP_ROUND):
-        command = "pip uninstall -y " + " ".join(packages) + " || true"
+        command = ["pip", "uninstall", "-y", "torch", "||", "true"]
         subprocess.check_call(command, shell=False)
     print("done")
 
