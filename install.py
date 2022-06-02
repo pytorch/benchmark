@@ -3,7 +3,7 @@ import subprocess
 import os
 import sys
 import tarfile
-from install_utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
+from utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
 
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
