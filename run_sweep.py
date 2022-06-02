@@ -18,6 +18,7 @@ from typing import List, Optional, Dict, Any, Tuple
 from torchbenchmark import ModelTask
 
 WARMUP_ROUNDS = 3
+WORKER_TIMEOUT = 60 # seconds
 MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
@@ -90,7 +91,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
     correctness_name = "correctness"
     error_message: Optional[str] = None
     try:
-        task = ModelTask(os.path.basename(model_path))
+        task = ModelTask(os.path.basename(model_path), timeout=WORKER_TIMEOUT)
         if not task.model_details.exists:
             status = "NotExist"
             return
