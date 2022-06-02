@@ -74,7 +74,7 @@ def find_result_by_header(r, header, base_arg):
     # tp: correct, latency, or speedup
     args, tp = header
     if tp == "correctness":
-        if is_ok(r[args]):
+        if is_ok(r[args]) and "correctness" in r[args]["results"]:
             return r[args]["results"]["correctness"]
         else:
             return "N/A"
