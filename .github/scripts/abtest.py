@@ -19,10 +19,21 @@ USERBENCHMARK_OUTPUT_PATH = os.path.join(REPO_ROOT, ".userbenchmark")
 # only preserve the first 10 chars of the git hash
 GIT_HASH_LEN = 10
 
+def cleanup():
+    packages = ["torch"]
+    print("Cleaning up torch packages...", end="", flush=True)
+    CLEANUP_ROUND = 5
+    # Clean up multiple times to make sure the packages are all uninstalled
+    for _ in range(CLEANUP_ROUND):
+        command = "pip uninstall -y " + " ".join(packages) + " || true"
+        subprocess.check_call(command, shell=False)
+    print("done")
+
 def run_commit(repo_path: str, commit: str, bm_name: str, skip_build: bool=False) -> Path:
     "Run the userbenchmark on the commit. Return the metrics output file path."
     # build the pytorch commit if required
     if not skip_build:
+        cleanup()
         build_pytorch_commit(repo_path, commit)
     # run_benchmark
     return run_benchmark(bm_name)
