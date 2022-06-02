@@ -74,7 +74,7 @@ def build_pytorch_commit(repo_path: str, commit: str):
     gitutils.checkout_git_commit(repo_path, commit)
     print("done.")
     # build pytorch
-    print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
+    print(f"Building pytorch commit {commit} ...", end="", flush=True)
     # Check if version.py exists, if it does, remove it.
     # This is to force pytorch update the version.py file upon incremental compilation
     version_py_path = os.path.join(repo_path, "torch/version.py")
