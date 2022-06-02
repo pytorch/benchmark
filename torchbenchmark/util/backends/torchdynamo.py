@@ -1,7 +1,6 @@
 """
 Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 """
-import os
 import argparse
 import functools
 from typing import List
@@ -23,21 +22,7 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
     return args
 
 
-def patch_torchdynamo():
-    """Patch TorchDynamo to workaround a performance issue:
-       https://github.com/facebookresearch/torchdynamo/issues/159"""
-    import patch
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    patch_file = os.path.join(current_dir, "torchdynamo.patch")
-    torchdynamo_dir = os.path.dirname(torchdynamo.__file__)
-    p = patch.fromfile(patch_file)
-    if not p.apply(strip=1, root=torchdynamo_dir):
-        print("Failed to patch torchdynamo. Exit.")
-        exit(1)
-
-
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
-    patch_torchdynamo()
     if args.torchdynamo in EXTRA_BACKENDS:
         model.add_context(functools.partial(torchdynamo.optimize, EXTRA_BACKENDS[args.torchdynamo]))
     elif args.torchdynamo == "fx2trt" and precision == "fp16":
