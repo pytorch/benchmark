@@ -86,7 +86,7 @@ def build_pytorch_commit(repo_path: str, commit: str):
         # setup environment variables
         build_env = setup_build_env(os.environ.copy())
         subprocess.check_call(command, cwd=repo_path, env=build_env, shell=False)
-        command_testbuild = ["python" "-c" "'import torch'"]
+        command_testbuild = ["python", "-c", "'import torch'"]
         subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env, shell=False)
     except subprocess.CalledProcessError:
         # If failed, remove the build directory, then try again
