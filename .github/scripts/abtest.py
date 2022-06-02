@@ -24,7 +24,7 @@ def cleanup():
     CLEANUP_ROUND = 5
     # Clean up multiple times to make sure the packages are all uninstalled
     for _ in range(CLEANUP_ROUND):
-        command = ["pip", "uninstall", "-y", "torch", "||", "true"]
+        command = ["pip", "uninstall", "-y", "torch"]
         subprocess.check_call(command, shell=False)
     print("done")
 
