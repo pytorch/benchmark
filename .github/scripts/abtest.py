@@ -79,9 +79,15 @@ def setup_build_env(env) -> Dict[str, str]:
     return env
 
 def build_pytorch_commit(repo_path: str, commit: str):
+    # update repo
+    print(f"Updating pytorch repo...", end="", flush=True)
+    if not gitutils.update_git_repo(repo_path, branch="master"):
+        sys.exit(1)
+    print("done.")
     # checkout pytorch commit
     print(f"Checking out pytorch commit {commit} ...", end="", flush=True)
-    gitutils.checkout_git_commit(repo_path, commit)
+    if not gitutils.checkout_git_commit(repo_path, commit):
+        sys.exit(1)
     print("done.")
     # build pytorch
     print(f"Building pytorch commit {commit} ...", end="", flush=True)
