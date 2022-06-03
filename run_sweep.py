@@ -18,7 +18,7 @@ from typing import List, Optional, Dict, Any, Tuple
 from torchbenchmark import ModelTask
 
 WARMUP_ROUNDS = 3
-WORKER_TIMEOUT = 60 # seconds
+WORKER_TIMEOUT = 300 # seconds
 MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
