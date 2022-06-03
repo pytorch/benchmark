@@ -112,7 +112,7 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     except subprocess.CalledProcessError:
-        print(f"Failed to checkout commit f{commit} in repo {repo}")
+        print(f"Failed to checkout commit {commit} in repo {repo}")
         return False
 
 def update_git_repo(repo: str, branch: str="main") -> bool:
