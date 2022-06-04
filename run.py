@@ -82,6 +82,14 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
             torch.cuda.synchronize()
             t1 = time.time_ns()
             result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
+        elif args.device == "mps":
+            t0 = time.time_ns()
+            func()
+            t1 = time.time_ns()
+            wall_latency = t1 - t0
+            # TODO: modify this to add GPU time as well
+            # print('{:<20} {:>20}'.format("MPS Total Wall Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
+            result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
         else:
             t0 = time.time_ns()
             func()
@@ -143,6 +151,8 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
 def _validate_devices(devices: str):
     devices_list = devices.split(",")
     valid_devices = ['cpu', 'cuda']
+    if (torch.backends.mps.is_available()):
+        valid_devices.append('mps')
     for d in devices_list:
         if d not in valid_devices:
             raise ValueError(f'Invalid device {d} passed into --profile-devices. Expected devices: {valid_devices}.')
@@ -152,6 +162,8 @@ def _validate_devices(devices: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
+    if (torch.backends.mps.is_available()):
+        SUPPORT_DEVICE_LIST.append("mps")
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
     parser.add_argument("-d", "--device", choices=SUPPORT_DEVICE_LIST, default="cpu", help="Which device to use.")
     parser.add_argument("-m", "--mode", choices=["eager", "jit"], default="eager", help="Which mode to run.")

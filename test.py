@@ -118,6 +118,8 @@ def _load_tests():
     devices = ['cpu']
     if torch.cuda.is_available():
         devices.append('cuda')
+    if torch.backends.mps.is_available():
+        devices.append('mps')
 
     for path in _list_model_paths():
         # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
