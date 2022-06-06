@@ -1,0 +1,10 @@
+# Test the speedup with dynamo+nvfuser+aotautograd
+device:
+  - "cuda"
+test:
+  - "train"
+args:
+  # empty argument means the default pytorch eager mode
+  - ""
+  - "--torchdynamo nvfuser"
+  - "--torchdynamo aot_autograd_speedup_strategy"
