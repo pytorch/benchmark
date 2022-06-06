@@ -5,18 +5,19 @@ on:
       benchmark_config:
         description: "Benchmark config"
         required: true
-        default: "torchdynamo/eager-overhead"
+        default: "torchdynamo/fx2trt-speedup"
 env:
   PYTHON_VERSION: "3.8"
   TENSORRT_PYTHON_VERSION: "cp38"
+  TENSORRT_VERSION: "8.2.4.2"
   CUDA_VERSION: "cu113"
   CONDA_ENV_NAME: "backends-ci"
   MAGMA_VERSION: "magma-cuda113"
-  CONDA_PROFILE: "/home/ec2-user/data/miniconda3/etc/profile.d/conda.sh"
+  SETUP_SCRIPT: "/data/shared/setup_instance.sh"
 jobs:
   run-test:
-    runs-on: [self-hosted, bm-runner-v100]
-    timeout-minutes: 240 # 4 hours
+    runs-on: [self-hosted, a100-runner]
+    timeout-minutes: 480 # 8 hours
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v2
@@ -38,24 +39,29 @@ jobs:
         with:
           repository: facebookresearch/torchdynamo
           path: torchdynamo
+      - name: Checkout functorch
+        uses: actions/checkout@v2
+        with:
+          repository: pytorch/functorch
+          path: functorch
+          # fetch the entire history
+          fetch-depth: 0
       - name: Create conda environment
         run: |
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
       - name: Install TensorRT
         run: |
-          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
-          pushd "${HOME}/TensorRT"
-          pip install graphsurgeon/graphsurgeon-0.4.5-py2.py3-none-any.whl
-          pip install onnx_graphsurgeon/onnx_graphsurgeon-0.3.12-py2.py3-none-any.whl
-          pip install uff/uff-0.6.9-py2.py3-none-any.whl
-          pip install "python/tensorrt-8.2.1.8-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd "${TENSORRT_HOME}"
+          pip install graphsurgeon/graphsurgeon-*.whl
+          pip install onnx_graphsurgeon/onnx_graphsurgeon-*.whl
+          pip install uff/uff-*.whl
+          pip install "python/tensorrt-${TENSORRT_VERSION}-${TENSORRT_PYTHON_VERSION}-none-linux_x86_64.whl"
           # make sure tensorrt works
-          TENSORRT_HOME=${HOME}/TensorRT
-          export LD_LIBRARY_PATH="${TENSORRT_HOME}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-          echo $LD_LIBRARY_PATH
+          python -c "import tensorrt"
       - name: Install PyTorch nightly
         run: |
-          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
           conda install -y -c pytorch "${MAGMA_VERSION}"
@@ -70,28 +76,31 @@ jobs:
           # Install PyTorch nightly from pip
           pip install --pre torch torchtext torchvision \
             -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
-      - name: Install fx2trt and TorchDynamo
+          # make sure pytorch+cuda works
+          python -c "import torch; torch.cuda.init()"
+      - name: Install fx2trt, TorchDynamo, and functorch
         run: |
-          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd fx2trt
           python setup.py install
           popd
           pushd torchdynamo
           python setup.py develop
           popd
+          pushd functorch
+          python setup.py install
+          popd
       - name: Install benchmark deps
         run: |
           set -x
-          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           python install.py
           popd
       - name: Run benchmark
         run: |
           set -x
-          . "${CONDA_PROFILE}" && conda activate "${CONDA_ENV_NAME}"
-          TENSORRT_HOME=${HOME}/TensorRT
-          export LD_LIBRARY_PATH="${TENSORRT_HOME}/lib"${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           mkdir -p benchmark-output/
           pushd benchmark
           # run the backend options and store the result to the "benchmark-output" directory

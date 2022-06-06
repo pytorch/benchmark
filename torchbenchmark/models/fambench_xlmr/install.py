@@ -13,10 +13,6 @@ def update_fambench_submodule():
 def pip_install_requirements():
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
-def download_model():
-    torch.hub.load('pytorch/fairseq:v0.11.0', 'xlmr.large')
-
 if __name__ == "__main__":
     update_fambench_submodule()
     pip_install_requirements()
-    download_model()

@@ -14,6 +14,8 @@ transformers == 4.12.1
 MonkeyType
 psutil
 pyyaml
-numpy
+# pytorch build script pins numpy version
+# https://github.com/pytorch/builder/blob/ae5c82e65cb3d8bac6df50e742a195019af91ad3/wheel/build_wheel.sh#L145
+numpy==1.21.2
 scipy # for lazy_bench.py
 submitit

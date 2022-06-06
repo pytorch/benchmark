@@ -35,7 +35,7 @@ def has_native_amp() -> bool:
         pass
     return False
 
-def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True) -> Optional[Tuple['torch.Tensor']]:
+def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True) -> Optional[Tuple['torch.Tensor']]:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
        If the result is not stable, return None. """
     assert model.test=="eval", "We only support stableness check for inference."
@@ -45,7 +45,10 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
         # some models, (e.g., moco) is stateful and will give different outputs
         # on the same input if called multiple times
         try:
-            copy_model = copy.deepcopy(model)
+            if deepcopy:
+                copy_model = copy.deepcopy(model)
+            else:
+                copy_model = model
         except RuntimeError:
             # if the model is not copy-able, don't copy it
             copy_model = model
@@ -61,7 +64,7 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
                     return None
     return previous_result
 
-def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True) -> str:
+def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True) -> str:
     assert model.test=="eval", "We only support correctness check for inference."
     assert hasattr(model, 'eager_output'), "Need stableness result to check correctness."
     if model.eager_output == None:
@@ -71,7 +74,10 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
         # some models, (e.g., moco) is stateful and will give different outputs
         # on the same input if called multiple times
         try:
-            copy_model = copy.deepcopy(model)
+            if deepcopy:
+                copy_model = copy.deepcopy(model)
+            else:
+                copy_model = model
         except RuntimeError:
             # if the model is not copy-able, don't copy it
             copy_model = model

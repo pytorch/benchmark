@@ -14,6 +14,7 @@ e.g. --benchmark-autosave
 import os
 import pytest
 import time
+import torch
 from components._impl.workers import subprocess_worker
 from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
 from torchbenchmark.util.machine_config import get_machine_state
@@ -23,6 +24,10 @@ def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
     # e.g. by using info in metafunc.config
     devices = ['cpu', 'cuda']
+
+    if (torch.backends.mps.is_available()):
+        devices.append('mps')
+
     if metafunc.config.option.cpu_only:
         devices = ['cpu']
 

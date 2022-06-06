@@ -3,3 +3,4 @@ inflect
 scipy
 Unidecode
 pillow
+librosa
