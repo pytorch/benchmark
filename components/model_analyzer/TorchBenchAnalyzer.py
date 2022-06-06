@@ -1,4 +1,5 @@
 
+from typing import OrderedDict
 from components.model_analyzer.dcgm.dcgm_monitor import DCGMMonitor
 from components.model_analyzer.tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 from components.model_analyzer.tb_dcgm_types.gpu_device_factory import GPUDeviceFactory
@@ -10,6 +11,10 @@ from components.model_analyzer.tb_dcgm_types.gpu_power_usage import GPUPowerUsag
 from components.model_analyzer.tb_dcgm_types.gpu_free_memory import GPUFreeMemory
 from components.model_analyzer.tb_dcgm_types.gpu_used_memory import GPUUsedMemory
 from components.model_analyzer.tb_dcgm_types.gpu_fp32active import GPUFP32Active
+from components.model_analyzer.tb_dcgm_types.gpu_dram_active import GPUDRAMActive
+from components.model_analyzer.tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
+from components.model_analyzer.tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
+from components.model_analyzer.tb_dcgm_types.record import RecordType
 from components.model_analyzer.tb_dcgm_types.record_aggregator import RecordAggregator
 from components.model_analyzer.tb_dcgm_types.tb_logger import set_logger, LOGGER_NAME
 from components.model_analyzer.tb_dcgm_types.config import *
@@ -18,21 +23,32 @@ from components.model_analyzer.tb_dcgm_types.config import DEFAULT_MONITORING_IN
 import logging
 logger = logging.getLogger(LOGGER_NAME)
 import json
+from collections import defaultdict
 
 class ModelAnalyzer:
     def __init__(self):
+        # For debug
+        # set_logger(logging.DEBUG)
+        set_logger()
         self.gpu_factory = GPUDeviceFactory()
         self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
         # the metrics to be collected
         # self.gpu_metrics = [GPUUtilization, GPUPowerUsage,
-        #                     GPUFreeMemory, GPUUsedMemory, GPUFP32Active, GPUTensorActive]
+        #                     GPUFreeMemory, GPUUsedMemory, GPUFP32Active, GPUTensorActive, GPUDRAMActive, GPUPCIERX, GPUPCIETX]
         self.gpu_metrics = [GPUFP32Active]
         # the final metric results. Its format is {GPU_UUID: {GPUUtilization: }}
+        # Example:
+        # {'GPU-4177e846-1274-84e3-dcde': 
+        #   {<class 'components.model_analyzer.tb_dcgm_types.gpu_fp32active.GPUFP32Active'>: 
+        #      <components.model_analyzer.tb_dcgm_types.gpu_fp32active.GPUFP32Active object at 0x7f14bbae2280>
+        #   }
+        #  }
         self.gpu_metric_value = {}
         self.gpu_monitor = None
         self.gpu_records = None
         self.config = AnalayzerConfig()
-        set_logger()
+        self.gpu_record_aggregator = RecordAggregator()
+
 
     def start_monitor(self):
         try:
@@ -48,19 +64,16 @@ class ModelAnalyzer:
         self.gpu_monitor = None
     
     def stop_monitor(self):
-        """
-        @return: collected gpu records @todo: add return type 
-        """
         self.gpu_records = self.gpu_monitor.stop_recording_metrics()
         self._destory_monitor()
-        return self.gpu_records
+        # insert all gpu_records into record_aggregator
+        self.gpu_record_aggregator.insert_all(self.gpu_records)
     
     def aggregate(self):
-        gpu_record_aggregator = RecordAggregator()
-        gpu_record_aggregator.insert_all(self.gpu_records)
-        # @Yueming Hao todo: groupby GPU, then metric. Then calculate the flops
-        records_groupby_gpu = {}
-        records_groupby_gpu = gpu_record_aggregator.groupby(
+        """
+        aggregate must be called after stop_monitor.
+        """
+        records_groupby_gpu = self.gpu_record_aggregator.groupby(
             self.gpu_metrics, lambda record: record.device_uuid())
         
         for gpu in self.gpus:
@@ -88,6 +101,42 @@ class ModelAnalyzer:
         # @Yueming Hao: print all collected gpu records, for debug only
         logger.debug(json.dumps([_.to_dict() for _ in self.gpu_records], indent = 4))
     
+    def export_all_records_to_csv(self, output_path=None):
+        records_groupby_gpu = self.gpu_record_aggregator.groupby_wo_aggregate(
+            self.gpu_metrics, lambda record: record.device_uuid())
+        # {GPUUUID: {record_type: {timestamp: a_record, } }}
+        csv_records = {}
+        for gpu in self.gpus:
+            csv_records[gpu.device_uuid()] = OrderedDict()
+        for record_type in records_groupby_gpu:
+            csv_records[gpu.device_uuid()][record_type] = OrderedDict()
+            for gpu_uuid in records_groupby_gpu[record_type]:
+                cluster_records = records_groupby_gpu[record_type][gpu_uuid][record_type]
+                cluster_records.sort(key=lambda x: x.timestamp())
+                for record in cluster_records:
+                    csv_records[gpu_uuid][record_type][record.timestamp()] = record.value()
+        if not output_path:
+            output_path = "all_records.csv"
+        with open(output_path, 'w') as fout:
+            for gpu_uuid in csv_records:
+                # timestamp record in DCGM is microsecond 
+                timestamps = set()
+                fout.write("timestamp(ms), ")
+                for record_type in csv_records[gpu_uuid]:
+                    timestamps |= set(csv_records[gpu_uuid][record_type])
+                    fout.write("%s, " % (record_type.tag))
+                timestamps = list(timestamps)
+                timestamps.sort()
+                timestamp_start = timestamps[0]
+                fout.write('\n')
+                for a_timestamp in timestamps:
+                    line = "%.3f, " % ((a_timestamp - timestamp_start) / 1000)
+                    for record_type in csv_records[gpu_uuid]:
+                        value = csv_records[gpu_uuid][record_type].get(a_timestamp, -1)
+                        line += "%.2f, "% value
+                    fout.write(line + "\n")
+
+
     def calculate_flops(self, gpu_uuid=None):
         """
         The function to calculate TFLOPs/second for the desired GPU or the first available GPU.
