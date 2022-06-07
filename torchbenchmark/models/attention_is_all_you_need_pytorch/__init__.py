@@ -3,6 +3,7 @@ import math
 import time
 import dill as pickle
 from tqdm import tqdm
+import os
 
 import torch
 import torch.nn.functional as F
@@ -56,7 +57,7 @@ class Model(BenchmarkModel):
         super().__init__()
         self.device = device
         self.jit = jit
-        root = str(Path(__file__).parent)
+        root = os.path.join(str(Path(__file__).parent), ".data")
         self.opt = Namespace(**{
             'batch_size': 128,
             'd_inner_hid': 2048,
