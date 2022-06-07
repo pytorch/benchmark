@@ -16,6 +16,7 @@ jobs:
       PYTHON_VER: "3.8"
       CUDA_VER: "11.3"
       NUMPY_VER: "1.21.2"
+      MKL_VER: "2021.2.0"
       MAGMA_VERSION: "magma-cuda113"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
@@ -34,7 +35,7 @@ jobs:
           conda install -y numpy="${NUMPY_VER}" requests ninja pyyaml mkl mkl-include setuptools cmake=3.22 cffi \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm
           # Install mkl
-          conda install -y mkl mkl-include
+          conda install -y mkl="${MKL_VERSION}" mkl-include
           # Install magma
           conda install -y -c pytorch "${MAGMA_VERSION}"
           # Pin ffmpeg version to 4.4.1. See: https://github.com/pytorch/vision/issues/5616

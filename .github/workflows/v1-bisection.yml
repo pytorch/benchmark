@@ -16,6 +16,7 @@ jobs:
       PYTHON_VERSION: "3.8"
       MAGMA_VERSION: "magma-cuda113"
       CUDA_VERSION: "11.3"
+      MKL_VERSION: "2021.2.0"
       NUMPY_VERSION: "1.21.2"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
@@ -33,7 +34,7 @@ jobs:
           # See: https://github.com/pytorch/pytorch/issues/74985
           conda install -y numpy="${NUMPY_VERSION}" requests ninja pyyaml mkl mkl-include setuptools cmake=3.22 cffi \
                            typing_extensions future six dataclasses tabulate gitpython tqdm
-          conda install -y mkl mkl-include
+          conda install -y mkl="${MKL_VERSION}" mkl-include
           conda install -y -c pytorch "${MAGMA_VERSION}"
       - name: Bisection
         run: |
