@@ -26,6 +26,7 @@ proxy_suggestion = "Unable to verify https connectivity, " \
 
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = 'models'
+internal_model_dir = "fb"
 install_file = 'install.py'
 
 
@@ -85,8 +86,19 @@ def _list_model_paths() -> List[str]:
         return file_name in names
     p = pathlib.Path(__file__).parent.joinpath(model_dir)
     # Only load the model directories that contain a "__init.py__" file
-    return sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and dir_contains_file(child, "__init__.py"))
+    models = sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and \
+                        (not child.name == internal_model_dir) and dir_contains_file(child, "__init__.py"))
+    p = p.joinpath(internal_model_dir)
+    if p.exists():
+        m = sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and dir_contains_file(child, "__init__.py"))
+        models.extend(m)
+    return models
 
+def _is_internal_model(model_name: str) -> bool:
+    p = pathlib.Path(__file__).parent.joinpath(model_dir).joinpath(internal_model_dir).joinpath(model_name)
+    if p.exists() and p.joinpath("__init__.py").exists():
+        return True
+    return False
 
 def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False) -> bool:
     if not _test_https():
@@ -503,8 +515,9 @@ def list_models(model_match=None):
     models = []
     for model_path in _list_model_paths():
         model_name = os.path.basename(model_path)
+        model_pkg = model_name if not _is_internal_model(model_name) else f"{internal_model_dir}.{model_name}"
         try:
-            module = importlib.import_module(f'.models.{model_name}', package=__name__)
+            module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
         except ModuleNotFoundError as e:
             print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it")
             continue
@@ -531,10 +544,11 @@ def load_model_by_name(model):
         return None
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
+    model_pkg = model_name if not _is_internal_model(model_name) else f"{internal_model_dir}.{model_name}"
     try:
-        module = importlib.import_module(f'.models.{model_name}', package=__name__)
+        module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
     except ModuleNotFoundError as e:
-        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it")
+        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it. \n {e}")
         return None
     Model = getattr(module, 'Model', None)
     if Model is None:
