@@ -32,7 +32,7 @@ jobs:
           . activate "${BISECT_CONDA_ENV}"
           # pytorch doesn't support cmake>3.22
           # See: https://github.com/pytorch/pytorch/issues/74985
-          conda install -y numpy="${NUMPY_VER}" requests ninja pyyaml mkl mkl-include setuptools cmake=3.22 cffi \
+          conda install -y numpy="${NUMPY_VER}" requests ninja pyyaml setuptools cmake=3.22 cffi \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm
           # Install mkl
           conda install -y mkl="${MKL_VERSION}" mkl-include
