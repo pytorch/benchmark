@@ -35,7 +35,7 @@ jobs:
           conda install -y numpy="${NUMPY_VER}" requests ninja pyyaml setuptools cmake=3.22 cffi \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm
           # Install mkl
-          conda install -y mkl="${MKL_VERSION}" mkl-include
+          conda install -y mkl="${MKL_VERSION}" mkl-include="${MKL_VERSION}"
           # Install magma
           conda install -y -c pytorch "${MAGMA_VERSION}"
           # Pin ffmpeg version to 4.4.1. See: https://github.com/pytorch/vision/issues/5616
