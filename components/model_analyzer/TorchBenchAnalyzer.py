@@ -47,7 +47,17 @@ class ModelAnalyzer:
         self.gpu_records = None
         self.config = AnalayzerConfig()
         self.gpu_record_aggregator = RecordAggregator()
+        self.export_csv_name = ''
 
+    def add_mem_throughput_metrics(self):
+        self.gpu_metrics.append(GPUPCIERX)
+        self.gpu_metrics.append(GPUPCIETX)
+
+    def set_export_csv_name(self, export_csv_name=''):
+        self.export_csv_name = export_csv_name
+        # test for correct permission
+        with open(export_csv_name, 'w') as fout:
+            fout.write('')
 
     def start_monitor(self):
         try:
@@ -100,7 +110,7 @@ class ModelAnalyzer:
         # @Yueming Hao: print all collected gpu records, for debug only
         logger.debug(json.dumps([_.to_dict() for _ in self.gpu_records], indent = 4))
     
-    def export_all_records_to_csv(self, output_path=None):
+    def export_all_records_to_csv(self):
         records_groupby_gpu = self.gpu_record_aggregator.groupby_wo_aggregate(
             self.gpu_metrics, lambda record: record.device_uuid())
         # {GPUUUID: {record_type: {timestamp: a_record, } }}
@@ -114,9 +124,7 @@ class ModelAnalyzer:
                 cluster_records.sort(key=lambda x: x.timestamp())
                 for record in cluster_records:
                     csv_records[gpu_uuid][record_type][record.timestamp()] = record.value()
-        if not output_path:
-            output_path = "all_records.csv"
-        with open(output_path, 'w') as fout:
+        with open(self.export_csv_name, 'w') as fout:
             for gpu_uuid in csv_records:
                 # timestamp record in DCGM is microsecond 
                 timestamps = set()
