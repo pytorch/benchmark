@@ -54,7 +54,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_all_records=False):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -65,6 +65,9 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         dcgm_enabled = True
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
+        if export_all_records:
+            model_analyzer.set_export_csv_name(export_all_records)
+            model_analyzer.add_mem_throughput_metrics()
         model_analyzer.start_monitor()
 
     for _i in range(num_iter):
@@ -116,6 +119,8 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         if dcgm_enabled:
             model_analyzer.aggregate()
             tflops = model_analyzer.calculate_flops()
+            if export_all_records:
+                model_analyzer.export_all_records_to_csv()
         else:
             flops, batch_size = model_flops
             tflops = flops * batch_size / (cpu_walltime / 1.0e9) / 1.0e12
@@ -181,7 +186,9 @@ if __name__ == "__main__":
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
-    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result")
+    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result.")
+    parser.add_argument("--export-all-records", type=str, action="store",
+                        help="Export all GPU FP32 unit active ratio, memory traffic, and memory throughput records to a csv file. The default csv file name is all_records.csv, and it could be specified by this option.")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -218,6 +225,6 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model_flops=model_flops, model=m)
+        run_one_step(test, model_flops=model_flops, model=m, export_all_records=args.export_all_records)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", m.correctness), sep='')
