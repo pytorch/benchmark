@@ -23,7 +23,6 @@ from components.model_analyzer.tb_dcgm_types.config import DEFAULT_MONITORING_IN
 import logging
 logger = logging.getLogger(LOGGER_NAME)
 import json
-from collections import defaultdict
 
 class ModelAnalyzer:
     def __init__(self):
@@ -124,20 +123,41 @@ class ModelAnalyzer:
                 fout.write("timestamp(ms), ")
                 for record_type in csv_records[gpu_uuid]:
                     timestamps |= set(csv_records[gpu_uuid][record_type])
-                    fout.write("%s, " % (record_type.tag))
+                    if record_type.tag == "gpu_fp32active":
+                        tmp_line = "%s, " % (record_type.tag + '(%)')
+                    elif record_type.tag.startswith('gpu_pice'):
+                        tmp_line = "%s, " % (record_type.tag + '(bytes)')
+                    fout.write(tmp_line)
+                fout.write("duration(ms), ")
+                if GPUPCIERX in self.gpu_metrics:
+                    fout.write("read_throughput(GB/s), ")
+                if GPUPCIETX in self.gpu_metrics:
+                    fout.write("write_throughput(GB/s), ")
                 timestamps = list(timestamps)
                 timestamps.sort()
                 timestamp_start = timestamps[0]
                 fout.write('\n')
+                last_timestamp = timestamp_start
                 for a_timestamp in timestamps:
-                    line = "%.3f, " % ((a_timestamp - timestamp_start) / 1000)
+                    duration = (a_timestamp - last_timestamp) / 1000.0
+                    last_timestamp = a_timestamp
+                    line = "%.2f, " % ((a_timestamp - timestamp_start) / 1000)
                     for record_type in csv_records[gpu_uuid]:
                         value = csv_records[gpu_uuid][record_type].get(a_timestamp, -1)
                         line += "%.2f, "% value
+                    line += "%.2f, " % duration
+                    if duration != 0 :
+                        if GPUPCIERX in self.gpu_metrics:
+                            pcierx_record = csv_records[gpu_uuid][GPUPCIERX].get(a_timestamp, -1)
+                            if pcierx_record != -1:
+                                line += "%.2f, " % (pcierx_record / duration *1000/1024/1024/1024 )
+                        if GPUPCIETX in self.gpu_metrics:
+                            pcietx_record = csv_records[gpu_uuid][GPUPCIETX].get(a_timestamp, -1)
+                            line += "%.2f, " % (pcietx_record / duration *1000/1024/1024/1024 )
                     fout.write(line + "\n")
 
 
-    def calculate_flops(self, gpu_uuid=None):
+    def calculate_flops(self, gpu_uuid=None) -> float:
         """
         The function to calculate TFLOPs/second for the desired GPU or the first available GPU.
         @return : a floating number representing TFLOPs/second.
