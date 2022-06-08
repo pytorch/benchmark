@@ -28,6 +28,7 @@ jobs:
           ref: v1.0
       - name: Create conda environment
         run: |
+          set -x
           conda create -y -n "$BISECT_CONDA_ENV" python="${PYTHON_VERSION}"
           . activate "$BISECT_CONDA_ENV"
           # pytorch doesn't support cmake>3.22

@@ -28,6 +28,7 @@ jobs:
           ref: v2.0
       - name: Create conda environment
         run: |
+          set -x
           conda create -y -n "${BISECT_CONDA_ENV}" python="${PYTHON_VER}"
           . activate "${BISECT_CONDA_ENV}"
           # pytorch doesn't support cmake>3.22
@@ -38,8 +39,6 @@ jobs:
           conda install -y mkl="${MKL_VERSION}" mkl-include="${MKL_VERSION}"
           # Install magma
           conda install -y -c pytorch "${MAGMA_VERSION}"
-          # Pin ffmpeg version to 4.4.1. See: https://github.com/pytorch/vision/issues/5616
-          conda install -y ffmpeg=4.4.1
       - name: Bisection
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
