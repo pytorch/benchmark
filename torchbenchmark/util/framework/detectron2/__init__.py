@@ -47,7 +47,7 @@ def prefetch(dataloader, device):
 
 class Detectron2Model(BenchmarkModel):
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(self, test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", variant])
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
