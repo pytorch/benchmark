@@ -46,7 +46,7 @@ def prefetch(dataloader, device):
         r.append(batch.to(device))
 
 class Detectron2Model(BenchmarkModel):
-    def __init__(self, test, device, variant, jit=False, batch_size=None, extra_args=[]):
+    def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", variant])

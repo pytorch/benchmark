@@ -7,5 +7,5 @@ class Model(Detectron2Model):
     DEFAULT_EVAL_BSIZE = 2
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(self, test=test, device=device, variant="mask_rcnn_R_50_C4_1x.yaml",
+        super().__init__(self, variant="mask_rcnn_R_50_C4_1x.yaml", test=test, device=device,
                          jit=jit, batch_size=batch_size, extra_args=extra_args)
