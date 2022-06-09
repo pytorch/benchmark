@@ -26,8 +26,7 @@ def run(args: List[str]):
     args.output_dir = args.job_dir
 
     job = executor.submit(TrainerWrapper(args))
-    # print ID of the Slurm job
-    print(job.job_id)
 
     # waits for completion and returns output
-    print(job.results())
+    result = job.results()
+    print(result)
