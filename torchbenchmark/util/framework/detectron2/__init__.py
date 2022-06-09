@@ -18,7 +18,6 @@ assert os.path.exists(DATA_DIR), "Couldn't find coco2017 minimal data dir, pleas
 if not 'DETECTRON2_DATASETS' in os.environ:
     os.environ['DETECTRON2_DATASETS'] = DATA_DIR
 
-
 def setup(args):
     if args.config_file.endswith(".yaml"):
         cfg = get_cfg()
