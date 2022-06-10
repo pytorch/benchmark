@@ -1,6 +1,17 @@
 from typing import List
 import submitit
+import torch
 from torchbenchmark.util.distributed.submit import parse_args, get_init_file, TrainerWrapper
+from ..utils import dump_output
+
+BM_NAME = "distributed"
+
+def gen_metrics_from_result(result):
+    assert isinstance(result, List), "The result of submitit should be a list."
+    metrics = []
+    for result_id, key in enumerate(result):
+        metrics[f"{result_id}-{key}"] = result[key]
+    return metrics
 
 def run(args: List[str]):
     args = parse_args(args)
@@ -29,4 +40,10 @@ def run(args: List[str]):
 
     # waits for completion and returns output
     result = job.results()
-    print(result)
+    # dump the output file
+    output = {
+        "name": BM_NAME,
+        "environ": {"pytorch_git_version": torch.version.git_version},
+        "metrics": gen_metrics_from_result(result),
+    }
+    dump_output(BM_NAME, output)
