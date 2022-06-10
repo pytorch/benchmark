@@ -45,6 +45,7 @@ def run(args: List[str]):
     output = {
         "name": BM_NAME,
         "environ": {"pytorch_git_version": torch.version.git_version},
+        "args": vars(args),
         "metrics": gen_metrics_from_result(result),
     }
     dump_output(BM_NAME, output)
