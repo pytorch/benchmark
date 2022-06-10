@@ -8,9 +8,10 @@ BM_NAME = "distributed"
 
 def gen_metrics_from_result(result):
     assert isinstance(result, List), "The result of submitit should be a list."
-    metrics = []
-    for result_id, key in enumerate(result):
-        metrics[f"{result_id}-{key}"] = result[key]
+    metrics = {}
+    for result_id, r in enumerate(result):
+        for metric_name in r:
+            metrics[f"{result_id}-{metric_name}"] = r[metric_name]
     return metrics
 
 def run(args: List[str]):
