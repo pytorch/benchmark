@@ -44,11 +44,16 @@ def prefetch(dataloader, device):
     for batch in dataloader:
         r.append(batch.to(device))
 
+def get_abs_path(config):
+    import detectron2
+    detectron2_root = os.path.abspath(os.path.dirname(detectron2.__file__))
+    return os.path.join(detectron2_root, "model_zoo", "configs", config)
+
 class Detectron2Model(BenchmarkModel):
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         parser = default_argument_parser()
-        args = parser.parse_args(["--config-file", variant])
+        args = parser.parse_args(["--config-file", get_abs_path(variant)])
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
         cfg = setup(args)
         self.model = build_model(cfg).to(self.device)
