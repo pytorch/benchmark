@@ -3,7 +3,7 @@ import submitit
 from torchbenchmark.util.distributed.submit import parse_args, get_init_file, TrainerWrapper
 
 def run(args: List[str]):
-    args = parse_args()
+    args = parse_args(args)
 
     # Note that the folder will depend on the job_id, to easily track experiments
     executor = submitit.AutoExecutor(folder=args.job_dir, slurm_max_num_timeout=3000)
