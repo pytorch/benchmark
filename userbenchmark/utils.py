@@ -1,5 +1,5 @@
 import os
-import datetime
+from datetime import datetime
 import time
 import json
 from pathlib import Path
