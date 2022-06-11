@@ -16,7 +16,9 @@ from detectron2.engine import default_argument_parser
 from detectron2.solver import build_optimizer
 from detectron2.config import LazyConfig, get_cfg, instantiate
 from detectron2 import model_zoo
-from torch.utils._pytree import tree_map
+from torch.utils._pytree import tree_map, tree_flatten
+
+from typing import Tuple
 
 def setup(args):
     if args.config_file.endswith(".yaml"):
@@ -42,7 +44,8 @@ def build_model(cfg):
 def prefetch(dataloader, device):
     r = []
     for batch in dataloader:
-        r.append(tree_map(lambda x: x.to(device), batch))
+        r.append(tree_map(lambda x: x.to(device) if isinstance(x, torch.Tensor) else x, batch))
+    return r
 
 def get_abs_path(config):
     import detectron2
@@ -89,7 +92,10 @@ class Detectron2Model(BenchmarkModel):
             losses.backward()
             self.optimizer.step()
 
-    def eval(self):
+    def eval(self) -> Tuple[torch.Tensor]:
+        out = tuple()
         with torch.no_grad():
             for _idx, d in enumerate(self.example_inputs):
-                self.model(d)
+                out = self.model(d)
+        out = tuple(filter(lambda x: isinstance(x, torch.Tensor), tree_flatten(out)))
+        return out
