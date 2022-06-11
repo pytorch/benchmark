@@ -16,6 +16,7 @@ from detectron2.engine import default_argument_parser
 from detectron2.solver import build_optimizer
 from detectron2.config import LazyConfig, get_cfg, instantiate
 from detectron2 import model_zoo
+from detectron2.utils.events import EventStorage
 from torch.utils._pytree import tree_map, tree_flatten
 
 from typing import Tuple
@@ -81,16 +82,17 @@ class Detectron2Model(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self):
-        for _idx, d in enumerate(self.example_inputs):
-            loss_dict = self.model(d)
-            if isinstance(loss_dict, torch.Tensor):
-                losses = loss_dict
-                loss_dict = {"total_loss": loss_dict}
-            else:
-                losses = sum(loss_dict.values())
-            self.optimizer.zero_grad()
-            losses.backward()
-            self.optimizer.step()
+        with EventStorage():
+            for _idx, d in enumerate(self.example_inputs):
+                loss_dict = self.model(d)
+                if isinstance(loss_dict, torch.Tensor):
+                    losses = loss_dict
+                    loss_dict = {"total_loss": loss_dict}
+                else:
+                    losses = sum(loss_dict.values())
+                self.optimizer.zero_grad()
+                losses.backward()
+                self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
         out = tuple()
