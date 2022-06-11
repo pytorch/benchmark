@@ -95,9 +95,14 @@ class Detectron2Model(BenchmarkModel):
                 self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
-        out = tuple()
         with torch.no_grad():
             for _idx, d in enumerate(self.example_inputs):
                 out = self.model(d)
-        out = tuple(filter(lambda x: isinstance(x, torch.Tensor), tree_flatten(out)))
-        return out
+                # retrieve output tensors
+        outputs = []
+        for item in out:
+            fields = list(map(lambda x: list(x.get_fields().values()), item.values()))
+            for boxes in fields:
+                tensor_box = list(filter(lambda x: isinstance(x, torch.Tensor), boxes))
+                outputs.extend(tensor_box)
+        return tuple(outputs)
