@@ -2,13 +2,6 @@ from torchbenchmark.util.model import BenchmarkModel
 import itertools
 import os
 from pathlib import Path
-
-from detectron2.modeling.meta_arch.build import META_ARCH_REGISTRY
-from detectron2.engine import default_argument_parser
-from detectron2.solver import build_optimizer
-from detectron2.config import LazyConfig, get_cfg, instantiate
-from detectron2 import model_zoo
-
 import torch
 
 # setup environment variable
@@ -17,6 +10,13 @@ DATA_DIR = os.path.join(CURRENT_DIR.parent.parent.parent, "data", ".data", "coco
 assert os.path.exists(DATA_DIR), "Couldn't find coco2017 minimal data dir, please run install.py again."
 if not 'DETECTRON2_DATASETS' in os.environ:
     os.environ['DETECTRON2_DATASETS'] = DATA_DIR
+
+from detectron2.modeling.meta_arch.build import META_ARCH_REGISTRY
+from detectron2.engine import default_argument_parser
+from detectron2.solver import build_optimizer
+from detectron2.config import LazyConfig, get_cfg, instantiate
+from detectron2 import model_zoo
+from torch.utils._pytree import tree_map
 
 def setup(args):
     if args.config_file.endswith(".yaml"):
@@ -42,7 +42,7 @@ def build_model(cfg):
 def prefetch(dataloader, device):
     r = []
     for batch in dataloader:
-        r.append(batch.to(device))
+        r.append(tree_map(lambda x: x.to(device), batch))
 
 def get_abs_path(config):
     import detectron2
