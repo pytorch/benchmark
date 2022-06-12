@@ -1,0 +1,17 @@
+# Sample benchmark config
+# Runs a test matrix of [models x device x test x test_args]
+# Currently, `summarize.py` only supports single device and single test
+# The first combination will be used as the baseline
+# In this example, baseline is ("cuda", "eval", "")
+models:
+  # if not specified, run all models
+  # otherwise, only run the models whose name matches the regex 
+  - "detectron2_.*"
+device:
+  - "cuda"
+test:
+  - "eval"
+args:
+  # empty argument means the default pytorch eager mode
+  - ""
+  - "--torchdynamo fx2trt"
