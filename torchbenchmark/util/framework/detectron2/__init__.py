@@ -42,10 +42,11 @@ def build_model(cfg):
     model = META_ARCH_REGISTRY.get(meta_arch)(cfg)
     return model
 
-def prefetch(dataloader, device):
+def prefetch(dataloader, device, precision="fp32"):
     r = []
+    dtype = torch.float16 if precision == "fp16" else torch.float32
     for batch in dataloader:
-        r.append(tree_map(lambda x: x.to(device) if isinstance(x, torch.Tensor) else x, batch))
+        r.append(tree_map(lambda x: x.to(device, dtype=dtype) if isinstance(x, torch.Tensor) else x, batch))
     return r
 
 def get_abs_path(config):
@@ -54,6 +55,11 @@ def get_abs_path(config):
     return os.path.join(detectron2_root, "model_zoo", "configs", config)
 
 class Detectron2Model(BenchmarkModel):
+    # To recognize this is a detectron2 model
+    DETECTRON2_MODEL = True
+    # Default eval precision on CUDA device is fp16
+    DEFAULT_EVAL_CUDA_PRECISION = "fp16"
+
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         parser = default_argument_parser()
@@ -80,6 +86,11 @@ class Detectron2Model(BenchmarkModel):
 
     def get_module(self):
         return self.model, self.example_inputs
+
+    def enable_fp16_half(self):
+        assert self.dargs.precision == "fp16", f"Expected precision fp16, get {self.dargs.precision}"
+        self.model = self.model.half()
+        self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
 
     def train(self):
         with EventStorage():
