@@ -74,7 +74,7 @@ def create_dir_if_nonexist(dirpath: str) -> Path:
     json_path.mkdir(parents=True, exist_ok=True)
     return path
 
-def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path):
+def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path, dryrun=False):
     cmd = [sys.executable, "run_sweep.py", "-d", config.device, "-t", config.test]
     if config.models:
         cmd.append("-m")
@@ -83,6 +83,8 @@ def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Pat
         cmd.extend(config.args)
     cmd.extend(["-o", os.path.join(output_path.absolute(), "json", f"{config.rewritten_option}.json")])
     print(f"Now running benchmark command: {cmd}.", flush=True)
+    if dryrun:
+        return
     subprocess.check_call(cmd, cwd=repo_path)
 
 def gen_output_csv(output_path: Path, base_key: str):
@@ -95,6 +97,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", "-c", required=True, help="Specify benchmark config to run.")
     parser.add_argument("--benchmark-repo", "-b", required=True, help="Specify the pytorch/benchmark repository location.")
     parser.add_argument("--output-dir", "-o", required=True, help="Specify the directory to save the outputs.")
+    parser.add_argument("--dryrun", action="store_true", help="Dry run the script and don't run the benchmark.")
     args = parser.parse_args()
     repo_path = Path(args.benchmark_repo)
     assert repo_path.exists(), f"Path {args.benchmark_repo} doesn't exist. Exit."
@@ -102,5 +105,6 @@ if __name__ == "__main__":
     bmconfig_list = parse_bmconfigs(repo_path, args.config)
     assert len(bmconfig_list), "Size of the BenchmarkModel list must be larger than zero."
     for bmconfig in bmconfig_list:
-        run_bmconfig(bmconfig, repo_path, output_path)
-    gen_output_csv(output_path, base_key=bmconfig_list[0].rewritten_option)
+        run_bmconfig(bmconfig, repo_path, output_path, args.dryrun)
+    if not args.dryrun:
+        gen_output_csv(output_path, base_key=bmconfig_list[0].rewritten_option)
