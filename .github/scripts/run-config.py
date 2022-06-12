@@ -3,6 +3,7 @@ Script that runs torchbench with a benchmarking config.
 The configs are located within the configs/ directory.
 For example, the default config we use is `torchdynamo/eager-overhead`
 """
+import re
 import sys
 import os
 import yaml
@@ -11,12 +12,18 @@ import subprocess
 import itertools
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
+from bmutils import add_path
 from bmutils.summarize import analyze_result
+REPO_DIR = Path(__file__).parent.parent.parent
+
+with add_path(REPO_DIR):
+    from torchbenchmark import _list_model_paths
 
 @dataclass
 class BenchmarkModelConfig:
+    models: Optional[List[str]]
     device: str
     test: str
     args: List[str]
@@ -31,6 +38,21 @@ def rewrite_option(option: List[str]) -> str:
     else:
         return "-".join(out)
 
+def get_models(config) -> Optional[str]:
+    # if the config doesn't specify the 'models' key,
+    # returns None (means running all models)
+    if not "models" in config:
+        return None
+    # get list of models
+    models = list(map(lambda x: os.path.basename(x), _list_model_paths()))
+    enabled_models = []
+    for model_pattern in config["models"]:
+        r = re.compile(model_pattern)
+        matched_models = list(filter(lambda x: r.match(x), models))
+        enabled_models.extend(matched_models)
+    assert enabled_models, f"The model patterns you specified {config['models']} does not match any model. Please double check."
+    return enabled_models
+
 def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelConfig]:
     if not config_name.endswith(".yaml"):
         config_name += ".yaml"
@@ -40,8 +62,9 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
     with open(config_file, "r") as cf:
         config = yaml.safe_load(cf)
     out = []
+    models = get_models(config)
     for device, test, args in itertools.product(*[config["device"], config["test"], config["args"]]):
-        out.append(BenchmarkModelConfig(device=device, test=test, args=args.split(" "), rewritten_option=rewrite_option(args.split(" "))))
+        out.append(BenchmarkModelConfig(models=models, device=device, test=test, args=args.split(" "), rewritten_option=rewrite_option(args.split(" "))))
     return out
 
 def create_dir_if_nonexist(dirpath: str) -> Path:
@@ -53,6 +76,9 @@ def create_dir_if_nonexist(dirpath: str) -> Path:
 
 def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path):
     cmd = [sys.executable, "run_sweep.py", "-d", config.device, "-t", config.test]
+    if config.models:
+        cmd.append("-m")
+        cmd.extend(config.models)
     if config.args != ['']:
         cmd.extend(config.args)
     cmd.extend(["-o", os.path.join(output_path.absolute(), "json", f"{config.rewritten_option}.json")])
