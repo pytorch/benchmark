@@ -16,7 +16,7 @@ from typing import List, Optional
 
 from bmutils import add_path
 from bmutils.summarize import analyze_result
-REPO_DIR = Path(__file__).parent.parent.parent
+REPO_DIR = str(Path(__file__).parent.parent.parent.resolve())
 
 with add_path(REPO_DIR):
     from torchbenchmark import _list_model_paths
