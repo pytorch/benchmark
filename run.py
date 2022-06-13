@@ -224,7 +224,8 @@ if __name__ == "__main__":
             print("You have to specifiy --flops dcgm accompany with --export-dcgm-metrics")
             exit(-1)
         export_dcgm_metrics_file = "%s_all_metrics.csv" % args.model
-
+    else:
+        export_dcgm_metrics_file = False
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:
