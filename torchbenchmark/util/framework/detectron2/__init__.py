@@ -26,6 +26,8 @@ def setup(args):
         cfg = get_cfg()
         cfg.merge_from_file(args.config_file)
         cfg.SOLVER.BASE_LR = 0.001  # Avoid NaNs. Not useful in this script anyway.
+        # set images per batch to 1
+        cfg.SOLVER.IMS_PER_BATCH = 1
         cfg.merge_from_list(args.opts)
         cfg.freeze()
     else:
