@@ -2,6 +2,7 @@ accelerate
 bs4
 patch
 py-cpuinfo
+deepspeed
 distro
 iopath
 pytest

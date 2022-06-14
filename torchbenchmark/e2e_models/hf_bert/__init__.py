@@ -1,3 +1,4 @@
+from accelerate.utils.dataclasses import DeepSpeedPlugin
 import torch
 import math
 import os
@@ -28,7 +29,7 @@ class Model(E2EBenchmarkModel):
     DEFAULT_TRAIN_BSIZE: int = 32
     DEFAULT_EVAL_BSIZE: int = 1
 
-    def __init__(self, test, batch_size=None, extra_args=[]):
+    def __init__(self, test, batch_size=None, use_deepspeed=False, extra_args=[]):
         super().__init__(test=test, batch_size=batch_size, extra_args=extra_args)
         # TODO: currently only support 1 GPU device
         self.device = "cuda"
@@ -56,6 +57,21 @@ class Model(E2EBenchmarkModel):
                   "--num_train_epochs", num_train_epochs,
                   "--output_dir", output_dir]
         hf_args = parse_args(in_arg)
+
+        # ideally we don't modify the model code directly, but attaching deepspeed
+        # must be done before self.prep initialiazes accelerator.
+        if use_deepspeed:
+            zero_opt_cfg = {
+                "zero_optimization": {
+                    "stage": 1,
+                    "reduce_bucket_size": 2e8,
+                    "overlap_comm": True,
+                    "contiguous_gradients": False
+                }
+            }
+            hf_args.deepspeed_plugin = DeepSpeedPlugin()
+            hf_args.deepspeed_plugin.deepspeed_config.update(zero_opt_cfg)
+
         # setup other members
         self.prep(hf_args)
         if test == "train":
@@ -65,7 +81,11 @@ class Model(E2EBenchmarkModel):
     
     def prep(self, hf_args):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
-        accelerator = Accelerator(fp16=(self.tb_args.fp16 == "amp"))
+        if hasattr(hf_args, "deepspeed_plugin"):
+            accelerator = Accelerator(deepspeed_plugin=hf_args.deepspeed_plugin, mixed_precision='bf16')
+        else:
+            # TODO(whc) restore this to previous state, using fp16?
+            accelerator = Accelerator(mixed_precision='bf16')
         accelerator.wait_for_everyone()
         raw_datasets = prep_dataset(hf_args)
         num_labels, label_list, is_regression = prep_labels(hf_args, raw_datasets)

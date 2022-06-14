@@ -82,7 +82,7 @@ class Trainer():
         torch.cuda.synchronize(device=self.local_rank)
 
         now = datetime.now()
-        name = f"ddp_{now.strftime('%Y_%m_%d_%H_%M_%S')}"
+        name = f"{type(self).__name__}_{now.strftime('%Y_%m_%d_%H_%M_%S')}"
         ##################################################################
         # 2. measure raw delays and memory to rule out profiler overhead #
         ##################################################################

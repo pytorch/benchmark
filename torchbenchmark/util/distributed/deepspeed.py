@@ -1,19 +1,21 @@
-
 from .trainer import Trainer
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 import torch.distributed as dist
 
-class DDPTrainer(Trainer):
+class DeepSpeedTrainer(Trainer):
     DEFAULT_MEASURE_ITERATIONS = 10
     def __init__(self, args, model_class, batch_size=None, extra_args=[]):
         super().__init__(args, model_class, mode="SPMD")
-
+        
         self.setup()
-
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
-        model: E2EBenchmarkModel = model_class("train", batch_size, extra_args=extra_args)
+
+        #TODO(whc) use_deepspeed breaks the API... but it is most convenient to initialize/configure deepspeed
+        # inside the model constructur rather than later, since later is too late to intercept the Accelerator
+        # configuration for hf_ models
+        model: E2EBenchmarkModel = model_class("train", batch_size, use_deepspeed=True, extra_args=extra_args)
 
         expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator"]
         assert all(attr in dir(model) for attr in expected_attrs), (
@@ -28,20 +30,7 @@ class DDPTrainer(Trainer):
 
         self.rank = dist.get_rank()
         self.world_size = dist.get_world_size()
-
-
-        self.ddp_model = DDP(
-            self.model,
-            device_ids=[self.local_rank],
-            # If buffer broadcast is necessary, specific optimizations might be
-            # necessary to optimize performance. Disable it by default.
-            broadcast_buffers=False,
-            # Set gradient as bucket view to avoid unnecessary copies
-            gradient_as_bucket_view=True,
-            # TODO: tune bucket_cap_mb
-            static_graph=True,
-        )
-
+    
     def next_batch(self):
         return next(iter(self.dataloader))
 
@@ -49,7 +38,7 @@ class DDPTrainer(Trainer):
         """
         compute model forward and return loss
         """
-        return self.ddp_model(**input).loss
+        return self.model(**input).loss
     
     def backward(self, loss):
         self.accelerator.backward(loss)
@@ -68,7 +57,7 @@ def test():
     os.environ["MASTER_PORT"] = "5678"
     os.environ["RANK"] = str(0)
 
-    trainer = DDPTrainer(Model)
+    trainer = DeepSpeedTrainer(Model)
 
     trainer.measure()
 
