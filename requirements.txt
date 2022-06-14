@@ -8,6 +8,7 @@ pytest
 pytest-benchmark
 requests
 tabulate
+xmlrunner
 git+https://github.com/rwightman/pytorch-image-models.git@6d4665b
 # huggingface fx2trt support requires transformers == 4.12.1
 transformers == 4.12.1
