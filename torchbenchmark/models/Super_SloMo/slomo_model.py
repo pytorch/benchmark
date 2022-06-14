@@ -315,7 +315,7 @@ def getFlowCoeff (indices, device: torch.device):
         tensor
             coefficients C00, C01, C10, C11.
     """
-    t = torch.linspace(0.125, 0.875, 7)
+    t = torch.linspace(0.125, 0.875, 7, device=device)
 
 
     # Convert indices tensor to numpy array
@@ -353,7 +353,7 @@ def getWarpCoeff (indices, device: torch.device):
         tensor
             coefficients C0 and C1.
     """
-    t = torch.linspace(0.125, 0.875, 7)
+    t = torch.linspace(0.125, 0.875, 7, device=device)
 
 
     # Convert indices tensor to numpy array
