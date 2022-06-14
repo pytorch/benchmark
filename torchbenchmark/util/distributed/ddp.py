@@ -57,8 +57,7 @@ class DDPTrainer(Trainer):
         """
         compute model forward and return loss
         """
-        # TODO(whc) bug: replace w/ self.ddp_model and/or use Accelerator for DDP
-        return self.model(**input).loss
+        return self.ddp_model(**input).loss
     
     def backward(self, loss):
         self.accelerator.backward(loss)
