@@ -7,7 +7,7 @@ import torch
 import uuid
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 
 def parse_args(args: List[str]=None):
@@ -46,6 +46,12 @@ def parse_args(args: List[str]=None):
         default="train",
         type=str,
         help="The Slurm partition to submit to"
+    )
+
+    parser.add_argument(
+        "--cluster",
+        default=None,
+        help="Which slurm cluster to target. Use 'local' to run jobs locally, 'debug' to run jobs in process"
     )
 
     parser.add_argument(
@@ -133,7 +139,7 @@ def main():
     args = parse_args()
 
     # Note that the folder will depend on the job_id, to easily track experiments
-    executor = submitit.AutoExecutor(folder=args.job_dir, slurm_max_num_timeout=3000)
+    executor = submitit.AutoExecutor(folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000)
 
     executor.update_parameters(
         gpus_per_node=args.ngpus,
