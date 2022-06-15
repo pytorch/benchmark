@@ -16,6 +16,7 @@ from detectron2.engine import default_argument_parser
 from detectron2.solver import build_optimizer
 from detectron2.config import LazyConfig, get_cfg, instantiate
 from detectron2 import model_zoo
+from detectron2.modeling import build_model
 from detectron2.utils.events import EventStorage
 from torch.utils._pytree import tree_map
 from detectron2.checkpoint import DetectionCheckpointer
@@ -36,15 +37,6 @@ def setup(args):
         cfg = LazyConfig.load(args.config_file)
         cfg = LazyConfig.apply_overrides(cfg, args.opts)
     return cfg
-
-def build_model(cfg):
-    """
-    Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
-    Note that it does not load any weights from ``cfg``.
-    """
-    meta_arch = cfg.MODEL.META_ARCHITECTURE
-    model = META_ARCH_REGISTRY.get(meta_arch)(cfg)
-    return model
 
 def prefetch(dataloader, device, precision="fp32"):
     r = []
