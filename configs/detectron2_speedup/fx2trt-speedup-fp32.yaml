@@ -5,5 +5,5 @@ device:
 test:
   - "eval"
 args:
-  - ""
-  - "--torchdynamo fx2trt"
+  - "--precision fp32"
+  - "--precision fp32 --torchdynamo fx2trt"
