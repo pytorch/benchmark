@@ -24,12 +24,18 @@ if not 'DETECTRON2_DATASETS' in os.environ:
 
 from detectron2.config import instantiate
 from detectron2 import model_zoo
-from detectron2.utils.collect_env import collect_env_info
-from detectron2.utils.logger import setup_logger
 from detectron2.utils.events import EventStorage
+from torch.utils._pytree import tree_map
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
+
+def prefetch(dataloader, device, precision="fp32"):
+    r = []
+    dtype = torch.float16 if precision == "fp16" else torch.float32
+    for batch in dataloader:
+        r.append(tree_map(lambda x: x.to(device, dtype=dtype) if isinstance(x, torch.Tensor) else x, batch))
+    return r
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
@@ -49,7 +55,7 @@ class Model(BenchmarkModel):
             data_cfg.train.total_batch_size = self.batch_size
             self.model = instantiate(model_cfg).to(self.device)
             train_loader = instantiate(data_cfg.train)
-            self.example_inputs = itertools.cycle(itertools.islice(train_loader, 100))
+            self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device)
             self.optimizer = torch.optim.SGD(self.model.parameters(), 0.)
         elif test == "eval":
             data_cfg.test.dataset.names = "coco_2017_val_100"
@@ -59,27 +65,27 @@ class Model(BenchmarkModel):
             DetectionCheckpointer(self.model).load(self.model_file)
             self.model.eval()
             test_loader = instantiate(data_cfg.test)
-            self.example_inputs = itertools.cycle(itertools.islice(test_loader, 100))
+            self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
+        self.NUM_BATCHES = len(self.example_inputs)
 
     def get_module(self):
-        for data in self.example_inputs:
-            return self.model, (data, )
+        return self.model, (self.example_inputs[0], )
 
-    def train(self, niter=1):
+    def train(self):
         self.model.train()
         with EventStorage():
-            for idx, data in zip(range(niter), self.example_inputs):
-                losses = self.model(data)
+            for idx in range(self.NUM_BATCHES):
+                losses = self.model(self.example_inputs[idx])
                 loss = sum(losses.values())
                 loss.backward()
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
-    def eval(self, niter=2) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
         with torch.no_grad():
-            for idx, data in zip(range(niter), self.example_inputs):
-                out = self.model(data)
+            for idx in range(self.NUM_BATCHES):
+                out = self.model(self.example_inputs[idx])
         # retrieve output tensors
         outputs = []
         for item in out:
