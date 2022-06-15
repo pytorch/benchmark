@@ -19,9 +19,11 @@ def pytest_addoption(parser):
 
 def set_fuser(fuser):
     if fuser == "te":
-        # use default fuser (TE) and
-        # profiling executor settings
-        pass
+        torch._C._jit_set_profiling_executor(True)
+        torch._C._jit_set_profiling_mode(True)
+        torch._C._jit_override_can_fuse_on_cpu(False)
+        torch._C._jit_override_can_fuse_on_gpu(True)
+        torch._C._jit_set_texpr_fuser_enabled(True)
     elif fuser == "old":
         torch._C._jit_set_profiling_executor(False)
         torch._C._jit_set_profiling_mode(False)
