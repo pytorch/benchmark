@@ -61,6 +61,9 @@ class Detectron2Model(BenchmarkModel):
     DETECTRON2_MODEL = True
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
+    # Default batch sizes
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)

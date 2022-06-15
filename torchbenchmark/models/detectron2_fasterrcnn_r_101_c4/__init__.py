@@ -3,8 +3,6 @@ from torchbenchmark.util.framework.detectron2.model_factory import Detectron2Mod
 
 class Model(Detectron2Model):
     task = COMPUTER_VISION.DETECTION
-    DEFAULT_TRAIN_BSIZE = 1
-    DEFAULT_EVAL_BSIZE = 2
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(variant="COCO-Detection/faster_rcnn_R_101_C4_3x.yaml", test=test, device=device,
