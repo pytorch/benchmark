@@ -61,6 +61,8 @@ class Detectron2Model(BenchmarkModel):
 
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = False
         # load model file
         assert hasattr(self, "model_file"), f"Detectron2 models must specify its model_file."
         assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
