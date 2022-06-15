@@ -15,5 +15,5 @@ chmod +x "$filename"
 conda activate base
 # Use python3.8 by default
 conda install -y python=3.8
-
-
+# install unittest-xml-reporting
+pip install unittest-xml-reporting
