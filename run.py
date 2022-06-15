@@ -54,7 +54,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -101,8 +101,12 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
-        print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
-        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
+        if hasattr(model, "NUM_BATCHES"):
+            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" % (gpu_time / model.NUM_BATCHES), sep=''))
+            print('{:<20} {:>20}'.format("CPU Total Wall Time per batch:", "%.3f milliseconds" % (cpu_walltime / model.NUM_BATCHES), sep=''))
+        else:
+            print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
+            print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
     else:
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
@@ -214,6 +218,6 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model_flops=model_flops)
+        run_one_step(test, model_flops=model_flops, model=m)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", m.correctness), sep='')

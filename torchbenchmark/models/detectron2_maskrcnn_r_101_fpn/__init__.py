@@ -1,5 +1,5 @@
 from torchbenchmark.tasks import COMPUTER_VISION
-from torchbenchmark.util.framework.detectron2 import Detectron2Model
+from torchbenchmark.util.framework.detectron2.model_factory import Detectron2Model
 
 class Model(Detectron2Model):
     task = COMPUTER_VISION.SEGMENTATION

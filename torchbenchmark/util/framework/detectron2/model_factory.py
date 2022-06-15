@@ -17,7 +17,7 @@ from detectron2.solver import build_optimizer
 from detectron2.config import LazyConfig, get_cfg, instantiate
 from detectron2 import model_zoo
 from detectron2.utils.events import EventStorage
-from torch.utils._pytree import tree_map, tree_flatten
+from torch.utils._pytree import tree_map
 
 from typing import Tuple
 
@@ -84,6 +84,7 @@ class Detectron2Model(BenchmarkModel):
             data_cfg.test.batch_size = self.batch_size
             test_loader = instantiate(data_cfg.test)
             self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
+        self.NUM_BATCHES = len(self.example_inputs)
         cfg.defrost()
 
     def get_module(self):
@@ -96,8 +97,8 @@ class Detectron2Model(BenchmarkModel):
 
     def train(self):
         with EventStorage():
-            for _idx, d in enumerate(self.example_inputs):
-                loss_dict = self.model(d)
+            for batch_id in range(self.NUM_BATCHES):
+                loss_dict = self.model(self.example_inputs[batch_id])
                 if isinstance(loss_dict, torch.Tensor):
                     losses = loss_dict
                     loss_dict = {"total_loss": loss_dict}
@@ -109,9 +110,9 @@ class Detectron2Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
-            for _idx, d in enumerate(self.example_inputs):
-                out = self.model(d)
-                # retrieve output tensors
+            for batch_id in range(self.NUM_BATCHES):
+                out = self.model(self.example_inputs[batch_id])
+        # retrieve output tensors
         outputs = []
         for item in out:
             fields = list(map(lambda x: list(x.get_fields().values()), item.values()))
