@@ -6,9 +6,14 @@ import itertools
 from pathlib import Path
 from typing import Tuple
 
+from detectron2.checkpoint import DetectionCheckpointer
+
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
+
+MODEL_NAME = os.path.basename(os.path.dirname(__file__))
+MODEL_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -28,6 +33,7 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
+    model_file = os.path.join(MODEL_DIR, ".data", f"{MODEL_NAME}.pkl")
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 2
 
@@ -49,6 +55,8 @@ class Model(BenchmarkModel):
             data_cfg.test.dataset.names = "coco_2017_val_100"
             data_cfg.test.batch_size = self.batch_size
             self.model = instantiate(model_cfg).to(self.device)
+            # load model from checkpoint
+            DetectionCheckpointer(self.model).load(self.model_file)
             self.model.eval()
             test_loader = instantiate(data_cfg.test)
             self.example_inputs = itertools.cycle(itertools.islice(test_loader, 100))

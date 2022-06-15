@@ -18,6 +18,7 @@ from detectron2.config import LazyConfig, get_cfg, instantiate
 from detectron2 import model_zoo
 from detectron2.utils.events import EventStorage
 from torch.utils._pytree import tree_map
+from detectron2.checkpoint import DetectionCheckpointer
 
 from typing import Tuple
 
@@ -28,6 +29,7 @@ def setup(args):
         cfg.SOLVER.BASE_LR = 0.001  # Avoid NaNs. Not useful in this script anyway.
         # set images per batch to 1
         cfg.SOLVER.IMS_PER_BATCH = 1
+        cfg.MODEL.WEIGHTS = args.model_file
         cfg.merge_from_list(args.opts)
         cfg.freeze()
     else:
@@ -67,8 +69,13 @@ class Detectron2Model(BenchmarkModel):
 
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        # load model file
+        assert hasattr(self, "model_file"), f"Detectron2 models must specify its model_file."
+        assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
+        # setup pre-trained model weights
+        args.model_file = self.model_file
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
         cfg = setup(args)
         self.model = build_model(cfg).to(self.device)
@@ -81,6 +88,8 @@ class Detectron2Model(BenchmarkModel):
             train_loader = instantiate(data_cfg.train)
             self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device)
         elif self.test == "eval":
+            # load model from pretrained checkpoint
+            DetectionCheckpointer(self.model).load(self.model_file)
             self.model.eval()
             # setup eval dataset
             data_cfg.test.dataset.names = "coco_2017_val_100"
