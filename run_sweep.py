@@ -149,4 +149,4 @@ if __name__ == "__main__":
         results.append(r)
     results = list(map(lambda x: dataclasses.asdict(x), results))
     with open(args.output, "w") as outfile:
-        json.dump(results, outfile)
+        json.dump(results, outfile, indent=4)
