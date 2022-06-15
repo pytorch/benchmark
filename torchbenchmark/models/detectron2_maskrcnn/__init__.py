@@ -12,7 +12,7 @@ from detectron2.checkpoint import DetectionCheckpointer
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
-MODEL_NAME = os.path.basename(os.path.dirname(__file__))
+MODEL_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # setup environment variable

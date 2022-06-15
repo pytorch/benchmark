@@ -27,11 +27,12 @@ def check_data_dir():
 
 def install_model_weights(model_name, model_dir):
     assert model_name in MODEL_WEIGHTS_MAP, f"Model {model_name} is not in MODEL_WEIGHTS_MAP. Cannot download the model weights file."
-    model_full_path = os.path.join(model_dir, ".data", f"{model_name}.pkl")
+    model_full_path = Path(os.path.join(model_dir, ".data", f"{model_name}.pkl"))
     # download the file if not exists
     # TODO: verify the model file integrity
     if os.path.exists(model_full_path):
         return
+    model_full_path.parent.mkdir(parents=True, exist_ok=True)
     request.urlretrieve(MODEL_WEIGHTS_MAP[model_name], model_full_path)
 
 def pip_install_requirements():

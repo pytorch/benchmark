@@ -2,7 +2,7 @@ import os
 from torchbenchmark.tasks import COMPUTER_VISION
 from torchbenchmark.util.framework.detectron2.model_factory import Detectron2Model
 
-MODEL_NAME = os.path.basename(os.path.dirname(__file__))
+MODEL_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.abspath(os.path.dirname(__file__))
 
 class Model(Detectron2Model):
