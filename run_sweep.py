@@ -105,7 +105,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         # if NUM_BATCHES is set, update to per-batch latencies
         num_batches = task.get_model_attribute("NUM_BATCHES")
         if num_batches:
-            result.results["latency_ms"] = result["latency_ms"] / num_batches
+            result.results["latency_ms"] = result.results["latency_ms"] / num_batches
         # if the model provides eager eval result, save it for cosine similarity
         correctness = task.get_model_attribute(correctness_name)
         if correctness is not None:
