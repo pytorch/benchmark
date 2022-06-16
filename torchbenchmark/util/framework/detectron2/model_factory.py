@@ -103,7 +103,7 @@ class Detectron2Model(BenchmarkModel):
 
     def train(self):
         # TODO: train is not yet supported
-        return NotImplementedError("detectron2 models donot support train tests for now.")
+        raise NotImplementedError("detectron2 models donot support train tests for now.")
         with EventStorage():
             for batch_id in range(self.NUM_BATCHES):
                 loss_dict = self.model(self.example_inputs[batch_id])
