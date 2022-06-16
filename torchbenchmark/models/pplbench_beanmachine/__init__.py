@@ -17,9 +17,10 @@ class Pplbench(torch.nn.Module):
 
         # Instantiate model
         self.model = RobustRegression()
+        self.test = test
 
         # Get data for inference & evaluating model
-        if test == "eval":
+        if self.test == "eval":
             # Increased number of samples (n) and number of features(k) to increase computation for eval
             # Default values Reference: https://github.com/facebookresearch/pplbench/blob/main/examples/robust_regression.json
             self.train_data, self.test_data = self.model.generate_data(seed=int(time.time()), n=500000, k=500)
@@ -31,16 +32,16 @@ class Pplbench(torch.nn.Module):
                               self.train_data.attrs)
         self.infer_obj.compile()
 
-        if test == "eval":
+        if self.test == "eval":
             # Run bayesian inference (training) on given data for 1 iteration
             # We need the object of type MonteCarloSamples for the evaluation step
             # @Todo Can we create samples object without using infer function?
             self.samples = self.infer_obj.infer(data=self.train_data, iterations=1, num_warmup=0, seed=random.randint(1, int(1e7)),
                                                 algorithm="GlobalNoUTurnSampler")
 
-    def forward(self, train_data, test_data, training=False):
+    def forward(self, train_data, test_data):
 
-        if training:
+        if self.test == "train":
             # Run bayesian inference (training) on given data
             # Reference: https://github.com/facebookresearch/pplbench/blob/main/examples/robust_regression.json
             self.samples = self.infer_obj.infer(data=train_data, iterations=500, num_warmup=250, seed=random.randint(1, int(1e7)),
@@ -96,7 +97,7 @@ class Model(BenchmarkModel):
     def train(self, niter=1):
         model, example_inputs = self.get_module()
 
-        _ = model(*example_inputs, training=True)
+        _ = model(*example_inputs)
 
     def eval(self, niter=1) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
