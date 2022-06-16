@@ -101,6 +101,8 @@ jobs:
         run: |
           set -x
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          # remove the result of previous runs if exist
+          if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           mkdir -p benchmark-output/
           pushd benchmark
           # run the backend options and store the result to the "benchmark-output" directory

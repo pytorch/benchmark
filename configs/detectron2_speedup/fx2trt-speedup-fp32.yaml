@@ -1,0 +1,9 @@
+models:
+  - "detectron2_.*"
+device:
+  - "cuda"
+test:
+  - "eval"
+args:
+  - "--precision fp32"
+  - "--precision fp32 --torchdynamo fx2trt"
