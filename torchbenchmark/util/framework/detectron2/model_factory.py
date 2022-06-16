@@ -94,7 +94,7 @@ class Detectron2Model(BenchmarkModel):
         cfg.defrost()
 
     def get_module(self):
-        return self.model, self.example_inputs
+        return self.model, (self.example_inputs[0], )
 
     def enable_fp16_half(self):
         assert self.dargs.precision == "fp16", f"Expected precision fp16, get {self.dargs.precision}"
