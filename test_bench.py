@@ -31,6 +31,9 @@ def pytest_generate_tests(metafunc):
     if metafunc.config.option.cpu_only:
         devices = ['cpu']
 
+    if metafunc.config.option.cuda_only:
+        devices = ['cuda']
+
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         paths = _list_model_paths()
         metafunc.parametrize(
