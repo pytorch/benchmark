@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from torchbenchmark.util.model import BenchmarkModel
 import itertools
 import os
@@ -23,6 +24,8 @@ from detectron2.checkpoint import DetectionCheckpointer
 
 from typing import Tuple
 
+RESIZE_OPTIONS = ["448x608"]
+
 def setup(args):
     if args.config_file.endswith(".yaml"):
         cfg = get_cfg()
@@ -31,6 +34,12 @@ def setup(args):
         # set images per batch to 1
         cfg.SOLVER.IMS_PER_BATCH = 1
         cfg.MODEL.WEIGHTS = args.model_file
+        if args.resize and args.resize == "448x608":
+            cfg.MODEL.RPN.POST_NMS_TOPK_TEST = 300
+            cfg.INPUT.MIN_SIZE_TEST = 448
+            cfg.INPUT.MAX_SIZE_TEST = 608
+        else:
+            assert False, f"Valid resize options are {RESIZE_OPTIONS}, but getting {args.resize}"
         cfg.merge_from_list(args.opts)
         cfg.freeze()
     else:
@@ -50,6 +59,11 @@ def get_abs_path(config):
     detectron2_root = os.path.abspath(os.path.dirname(detectron2.__file__))
     return os.path.join(detectron2_root, "model_zoo", "configs", config)
 
+def get_tb_parser():
+    parser = ArgumentParser()
+    parser.add_argument("--resize", choices=RESIZE_OPTIONS, help="resize the data")
+    return parser
+
 class Detectron2Model(BenchmarkModel):
     # To recognize this is a detectron2 model
     DETECTRON2_MODEL = True
@@ -68,6 +82,10 @@ class Detectron2Model(BenchmarkModel):
         assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
+        tb_parser = get_tb_parser()
+        tb_args, self.extra_args = tb_parser.parse_known_args()
+        # setup resize
+        args.resize = tb_args.resize
         # setup pre-trained model weights
         args.model_file = self.model_file
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader

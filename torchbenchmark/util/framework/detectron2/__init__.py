@@ -19,6 +19,8 @@ MODEL_WEIGHTS_MAP = {
     "detectron2_maskrcnn_r_101_c4": "https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_101_C4_3x/138363239/model_final_a2914c.pkl",
     "detectron2_maskrcnn_r_101_fpn": "https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x/138205316/model_final_a3ec72.pkl",
     "detectron2_maskrcnn": "https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_1x/137260431/model_final_a54504.pkl",
+    # this model uses randomly initialized weights, so no weights file is required
+    "detectron2_fcos_r_50_fpn": "",
 }
 
 def check_data_dir():
@@ -28,12 +30,13 @@ def check_data_dir():
 def install_model_weights(model_name, model_dir):
     assert model_name in MODEL_WEIGHTS_MAP, f"Model {model_name} is not in MODEL_WEIGHTS_MAP. Cannot download the model weights file."
     model_full_path = Path(os.path.join(model_dir, ".data", f"{model_name}.pkl"))
-    # download the file if not exists
-    # TODO: verify the model file integrity
-    if os.path.exists(model_full_path):
-        return
-    model_full_path.parent.mkdir(parents=True, exist_ok=True)
-    request.urlretrieve(MODEL_WEIGHTS_MAP[model_name], model_full_path)
+    if MODEL_WEIGHTS_MAP[model_name]:
+        # download the file if not exists
+        # TODO: verify the model file integrity
+        if os.path.exists(model_full_path):
+            return
+        model_full_path.parent.mkdir(parents=True, exist_ok=True)
+        request.urlretrieve(MODEL_WEIGHTS_MAP[model_name], model_full_path)
 
 def pip_install_requirements():
     requirements_file = os.path.join(CURRENT_DIR, "requirements.txt")
