@@ -79,7 +79,8 @@ class Detectron2Model(BenchmarkModel):
         torch.backends.cudnn.benchmark = False
         # load model file
         assert hasattr(self, "model_file"), f"Detectron2 models must specify its model_file."
-        assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
+        if self.model_file:
+            assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
         tb_parser = get_tb_parser()
