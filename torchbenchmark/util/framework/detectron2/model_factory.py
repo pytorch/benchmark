@@ -114,7 +114,7 @@ class Detectron2Model(BenchmarkModel):
             data_cfg.test.batch_size = self.batch_size
             test_loader = instantiate(data_cfg.test)
             self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
-        self.NUM_BATCHES = len(self.example_inputs)
+        self.NUM_BATCHES = 1
         cfg.defrost()
 
     def get_module(self):
@@ -126,8 +126,6 @@ class Detectron2Model(BenchmarkModel):
         self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
 
     def train(self):
-        # TODO: train is not yet supported
-        raise NotImplementedError("detectron2 models donot support train tests for now.")
         with EventStorage():
             for batch_id in range(self.NUM_BATCHES):
                 loss_dict = self.model(self.example_inputs[batch_id])
