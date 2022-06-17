@@ -82,9 +82,13 @@ jobs:
           python setup.py install
           popd
           popd
+          # test torch-tensorrt
+          python -c "import torch_tensorrt; from torch_tensorrt.fx.lower import lower_to_trt"
           pushd torchdynamo
           python setup.py develop
           popd
+          # test torchdynamo
+          python -c "import torchdynamo"
           pushd functorch
           python setup.py install
           popd
