@@ -96,10 +96,8 @@ class Detectron2Model(BenchmarkModel):
         else:
             self.model = instantiate(cfg.model).to(self.device)
         if self.test == "train":
-            self.optimizer = build_optimizer(cfg, self.model)
-            checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
-            checkpointer.load(self.model_file)
             self.model.train()
+            self.optimizer = build_optimizer(cfg, self.model)
             # setup train dataset
             data_cfg.train.dataset.names = "coco_2017_val_100"
             data_cfg.train.total_batch_size = self.batch_size
