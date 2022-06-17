@@ -34,12 +34,12 @@ def setup(args):
         # set images per batch to 1
         cfg.SOLVER.IMS_PER_BATCH = 1
         cfg.MODEL.WEIGHTS = args.model_file
-        if args.resize and args.resize == "448x608":
-            cfg.MODEL.RPN.POST_NMS_TOPK_TEST = 300
-            cfg.INPUT.MIN_SIZE_TEST = 448
-            cfg.INPUT.MAX_SIZE_TEST = 608
-        else:
-            assert False, f"Valid resize options are {RESIZE_OPTIONS}, but getting {args.resize}"
+        # if args.resize and args.resize == "448x608":
+        #     cfg.MODEL.RPN.POST_NMS_TOPK_TEST = 300
+        #     cfg.INPUT.MIN_SIZE_TEST = 448
+        #     cfg.INPUT.MAX_SIZE_TEST = 608
+        # else:
+        #     assert False, f"Valid resize options are {RESIZE_OPTIONS}, but getting {args.resize}"
         cfg.merge_from_list(args.opts)
         cfg.freeze()
     else:
