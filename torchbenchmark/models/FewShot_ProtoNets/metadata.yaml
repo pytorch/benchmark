@@ -1,9 +1,0 @@
-eval_benchmark: false
-eval_deterministic: true
-eval_nograd: true
-optimized_for_inference: false
-train_benchmark: false
-train_deterministic: true
-not_implemented:
-  # FastNLP-Bert model does not support JIT
-  - jit: true
