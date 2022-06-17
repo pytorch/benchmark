@@ -2,6 +2,7 @@ import torch
 import os
 import shutil
 from typing import Tuple, List
+from pathlib import Path
 
 from ..config import EPSILON, PATH
 
@@ -12,10 +13,8 @@ def mkdir(dir):
     # Arguments:
         dir: Path of directory to create
     """
-    try:
-        os.mkdir(dir)
-    except:
-        pass
+    dir_path = Path(dir)
+    dir_path.mkdir(parents=True, exist_ok=True)
 
 
 def rmdir(dir):

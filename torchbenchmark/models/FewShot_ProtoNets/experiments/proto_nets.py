@@ -12,13 +12,22 @@ from ..few_shot.proto import proto_net_episode
 from ..few_shot.train import fit
 from ..few_shot.callbacks import *
 from ..few_shot.utils import setup_dirs
+from torch.utils._pytree import tree_map
+
+def prefetch(dataloader, device, precision="fp32"):
+    r = []
+    dtype = torch.float16 if precision == "fp16" else torch.float32
+    for batch in dataloader:
+        r.append(tree_map(lambda x: x.to(device, dtype=dtype) if isinstance(x, torch.Tensor) else x, batch))
+    return r
 
 from ..config import PATH
 
 class ProtoNets:
-  def __init__(self, test, bs, device, dataset='omniglot', distance='l2', n_train=1, n_test=1, k_train=60, k_test=5, q_train=5, q_test=1):
+  def __init__(self, test, bs, num_of_batches, device, precision, dataset='omniglot', distance='l2', n_train=1, n_test=1, k_train=60, k_test=5, q_train=5, q_test=1):
     torchbench = True
 
+    # setup model runtime directories
     setup_dirs()
 
     self.test = test
@@ -60,24 +69,19 @@ class ProtoNets:
       args = parser.parse_args()
 
     self.args = args
-    if self.test == "eval":
-      # eval batch size
-      self.evaluation_episodes = bs
-    elif self.test == "train":
-      # train batch size
-      self.episodes_per_epoch = bs
+    if self.test == "train":
+      self.evaluation_episodes = num_of_batches
+    self.episodes_per_epoch = num_of_batches
     self.persistent_workers = True
     self.num_workers = 4
 
     if args.dataset == 'omniglot':
       self.n_epochs = 40
-      self.n_epochs = 1
       self.dataset_class = OmniglotDataset
       self.num_input_channels = 1
       self.drop_lr_every = 20
     elif args.dataset == 'miniImageNet':
       self.n_epochs = 80
-      self.n_epochs = 1
       self.dataset_class = MiniImageNet
       self.num_input_channels = 3
       self.drop_lr_every = 40
@@ -85,8 +89,8 @@ class ProtoNets:
       raise(ValueError, 'Unsupported dataset')
 
     if args.torchbench:
-      # torchbench: benchmark epoch 3
-      self.n_epochs = 3
+      # torchbench: benchmark only 1 epoch
+      self.n_epochs = 1
       self.num_workers = 8
       self.persistent_workers = True
 
@@ -106,7 +110,7 @@ class ProtoNets:
       background = self.dataset_class('background')
       self.dl = DataLoader(
         background,
-        batch_sampler=NShotTaskSampler(background, self.episodes_per_epoch, args.n_train, args.k_train,   args.q_train),
+        batch_sampler=NShotTaskSampler(background, self.episodes_per_epoch, args.n_train, args.k_train, args.q_train, num_tasks=bs),
         num_workers=self.num_workers,
         persistent_workers=self.persistent_workers
       )
@@ -117,14 +121,15 @@ class ProtoNets:
       evaluation = self.dataset_class('evaluation')
       self.dl = DataLoader(
         evaluation,
-        batch_sampler=NShotTaskSampler(evaluation, self.episodes_per_epoch, self.args.n_test, self.args.k_test, self.args.q_test),
+        batch_sampler=NShotTaskSampler(evaluation, self.episodes_per_epoch, self.args.n_test, self.args.k_test, self.args.q_test, num_tasks=bs),
         num_workers=self.num_workers,
         persistent_workers=self.persistent_workers
       )
       self.model.eval()
+    self.dl = prefetch(self.dl, device, precision)
 
   def get_module(self):
-    return self.model, self.dl
+    return self.model, (self.dl[0], )
 
   def Eval(self):
     for batch in self.dl:
