@@ -91,7 +91,10 @@ class Detectron2Model(BenchmarkModel):
         args.model_file = self.model_file
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
         cfg = setup(args)
-        self.model = build_model(cfg).to(self.device)
+        if args.config_file.endswith(".yaml"):
+            self.model = build_model(cfg).to(self.device)
+        else:
+            self.model = instantiate(cfg.model).to(self.device)
         if self.test == "train":
             self.model.train()
             self.optimizer = build_optimizer(cfg, self.model)
