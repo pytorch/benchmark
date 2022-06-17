@@ -109,13 +109,13 @@ index 2779e93c..f1c59825 100644
 -#)
 +new_local_repository(
 +    name = "libtorch",
-+    path = "/home/xzhao9/miniconda3/envs/backends-ci/lib/python3.8/site-packages/torch/__init__.py",
++    path = "/home/xzhao9/miniconda3/envs/backends-ci/lib/python3.8/site-packages/torch",
 +    build_file = "third_party/libtorch/BUILD"
 +)
 +
 +new_local_repository(
 +    name = "libtorch_pre_cxx11_abi",
-+    path = "/home/xzhao9/miniconda3/envs/backends-ci/lib/python3.8/site-packages/torch/__init__.py",
++    path = "/home/xzhao9/miniconda3/envs/backends-ci/lib/python3.8/site-packages/torch",
 +    build_file = "third_party/libtorch/BUILD"
 +)
 +
