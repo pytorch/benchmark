@@ -4,7 +4,7 @@ from pathlib import Path
 PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-root = str(Path(__file__).parent.parent)
+root = str(Path(__file__).parent.parent.parent)
 DATA_PATH = os.path.join(root, "data", ".data", "omniglot-minimal")
 EPSILON = 1e-8
 
