@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import subprocess
 from pathlib import Path
@@ -42,7 +43,18 @@ def pip_install_requirements():
     requirements_file = os.path.join(CURRENT_DIR, "requirements.txt")
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', requirements_file])
 
+# This is to workaround https://github.com/facebookresearch/detectron2/issues/3934
+def remove_tools_directory():
+    try:
+        import tools
+        tools_path = os.path.dirname(os.path.abspath(tools.__file__))
+        shutil.rmtree(tools_path)
+    except ImportError:
+        # if the "tools" package doesn't exist, do nothing
+        pass
+
 def install_detectron2(model_name, model_dir):
     check_data_dir()
     install_model_weights(model_name, model_dir)
     pip_install_requirements()
+    remove_tools_directory()
