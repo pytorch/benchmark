@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 from torchbenchmark.util.model import BenchmarkModel
 import itertools
 import os
@@ -24,8 +23,6 @@ from detectron2.checkpoint import DetectionCheckpointer
 
 from typing import Tuple
 
-RESIZE_OPTIONS = ["448x608"]
-
 def setup(args):
     if args.config_file.endswith(".yaml"):
         cfg = get_cfg()
@@ -34,12 +31,6 @@ def setup(args):
         # set images per batch to 1
         cfg.SOLVER.IMS_PER_BATCH = 1
         cfg.MODEL.WEIGHTS = args.model_file
-        # if args.resize and args.resize == "448x608":
-        #     cfg.MODEL.RPN.POST_NMS_TOPK_TEST = 300
-        #     cfg.INPUT.MIN_SIZE_TEST = 448
-        #     cfg.INPUT.MAX_SIZE_TEST = 608
-        # else:
-        #     assert False, f"Valid resize options are {RESIZE_OPTIONS}, but getting {args.resize}"
         cfg.merge_from_list(args.opts)
         cfg.freeze()
     else:
@@ -58,11 +49,6 @@ def get_abs_path(config):
     import detectron2
     detectron2_root = os.path.abspath(os.path.dirname(detectron2.__file__))
     return os.path.join(detectron2_root, "model_zoo", "configs", config)
-
-def get_tb_parser():
-    parser = ArgumentParser()
-    parser.add_argument("--resize", choices=RESIZE_OPTIONS, help="resize the data")
-    return parser
 
 class Detectron2Model(BenchmarkModel):
     # To recognize this is a detectron2 model
@@ -114,6 +100,7 @@ class Detectron2Model(BenchmarkModel):
             data_cfg.test.batch_size = self.batch_size
             test_loader = instantiate(data_cfg.test)
             self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
+        # torchbench: only run 1 batch
         self.NUM_BATCHES = 1
         cfg.defrost()
 

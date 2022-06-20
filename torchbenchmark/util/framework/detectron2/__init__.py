@@ -20,8 +20,6 @@ MODEL_WEIGHTS_MAP = {
     "detectron2_maskrcnn_r_101_c4": "https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_101_C4_3x/138363239/model_final_a2914c.pkl",
     "detectron2_maskrcnn_r_101_fpn": "https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x/138205316/model_final_a3ec72.pkl",
     "detectron2_maskrcnn": "https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_1x/137260431/model_final_a54504.pkl",
-    # this model uses randomly initialized weights, so no weights file is required
-    "detectron2_fcos_r_50_fpn": "",
 }
 
 def check_data_dir():
