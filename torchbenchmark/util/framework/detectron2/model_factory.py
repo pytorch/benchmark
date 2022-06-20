@@ -58,6 +58,9 @@ class Detectron2Model(BenchmarkModel):
     # Default batch sizes
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
+    # Skip correctness check, because the output tensor can't be verified using
+    # cosine similarity or torch.close()
+    SKIP_CORRECTNESS_CHECK = True
 
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -65,17 +68,27 @@ class Detectron2Model(BenchmarkModel):
         torch.backends.cudnn.benchmark = False
         # load model file
         assert hasattr(self, "model_file"), f"Detectron2 models must specify its model_file."
-        assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
+        if self.model_file:
+            assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
+        # tb_parser = get_tb_parser()
+        # tb_args, self.extra_args = tb_parser.parse_known_args()
+        # setup resize
+        # args.resize = tb_args.resize
         # setup pre-trained model weights
         args.model_file = self.model_file
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
         cfg = setup(args)
-        self.model = build_model(cfg).to(self.device)
+        if args.config_file.endswith(".yaml"):
+            self.model = build_model(cfg).to(self.device)
+        else:
+            self.model = instantiate(cfg.model).to(self.device)
         if self.test == "train":
-            self.model.train()
             self.optimizer = build_optimizer(cfg, self.model)
+            checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
+            checkpointer.load(self.model_file)
+            self.model.train()
             # setup train dataset
             data_cfg.train.dataset.names = "coco_2017_val_100"
             data_cfg.train.total_batch_size = self.batch_size
@@ -90,7 +103,8 @@ class Detectron2Model(BenchmarkModel):
             data_cfg.test.batch_size = self.batch_size
             test_loader = instantiate(data_cfg.test)
             self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
-        self.NUM_BATCHES = len(self.example_inputs)
+        # torchbench: only run 1 batch
+        self.NUM_BATCHES = 1
         cfg.defrost()
 
     def get_module(self):
@@ -102,8 +116,6 @@ class Detectron2Model(BenchmarkModel):
         self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
 
     def train(self):
-        # TODO: train is not yet supported
-        return NotImplementedError("detectron2 models donot support train tests for now.")
         with EventStorage():
             for batch_id in range(self.NUM_BATCHES):
                 loss_dict = self.model(self.example_inputs[batch_id])
