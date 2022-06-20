@@ -45,7 +45,8 @@ def pip_install_requirements():
 def remove_tools_directory():
     try:
         import tools
-        tools_path = os.path.dirname(os.path.abspath(tools.__file__))
+        if tools.__file__:
+            tools_path = os.path.dirname(os.path.abspath(tools.__file__))
         shutil.rmtree(tools_path)
     except ImportError:
         # if the "tools" package doesn't exist, do nothing
