@@ -104,9 +104,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             apply_opt_args(self, self.opt_args)
         # if test is eval, check correctness
         if self.need_correctness_check:
-            # if fp16 is used, use cosine similarity instead of torch.allclose
-            # because cosine similarity is more relaxed
-            if self.dargs.precision == "fp16":
+            # tensorrt or fp16 is known to generate less-accurate results
+            # in this case, use more relaxed cosine similarity instead of torch.allclose
+            # for correctness testing
+            # see: https://github.com/pytorch/torchdynamo/pull/438
+            if self.dargs.precision == "fp16" or self.dynamo == "fx2trt" or self.opt_args.fx2trt:
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
                 self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
