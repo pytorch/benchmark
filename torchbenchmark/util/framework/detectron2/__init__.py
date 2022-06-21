@@ -45,9 +45,11 @@ def pip_install_requirements():
 def remove_tools_directory():
     try:
         import tools
-        if tools.__file__:
-            tools_path = os.path.dirname(os.path.abspath(tools.__file__))
-        shutil.rmtree(tools_path)
+        import detectron2
+        d2_dir_path = Path(detectron2.__file__).parent
+        assumed_tools_path = d2_dir_path.parent.joinpath("tools")
+        if tools.__file__ and assumed_tools_path.exists():
+            shutil.rmtree(str(assumed_tools_path))
     except ImportError:
         # if the "tools" package doesn't exist, do nothing
         pass
