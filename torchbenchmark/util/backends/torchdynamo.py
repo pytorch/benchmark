@@ -27,6 +27,8 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         model.add_context(functools.partial(torchdynamo.optimize, EXTRA_BACKENDS[args.torchdynamo]))
     elif args.torchdynamo == "fx2trt" and precision == "fp16":
         model.add_context(functools.partial(torchdynamo.optimize, torchdynamo.optimizations.backends.fx2trt_compiler_fp16))
+    elif args.torchdynamo == "fx2trt" and precision == "fp32":
+        model.add_context(functools.partial(torchdynamo.optimize, torchdynamo.optimizations.backends.fx2trt_compiler))
     else:
         model.add_context(functools.partial(torchdynamo.optimize, args.torchdynamo))
     torchdynamo.reset()
