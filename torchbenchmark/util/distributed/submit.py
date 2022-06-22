@@ -71,8 +71,16 @@ def parse_args(args: List[str]=None):
     parser.add_argument(
         "--trainer",
         type=str,
-        default="torchbenchmark.util.distributed.ddp.DDPTrainer",
-        help="training paradigm, by default using DDP"
+        default="torchbenchmark.util.distributed.trainer.Trainer",
+        help="trainer loop class, can be customized for specific behavior",
+    )
+
+    parser.add_argument(
+        "--distributed",
+        type=str,
+        choices=["ddp", "fsdp", "deepspeed", "none"],
+        default="ddp",
+        help="distributed training paradigm, by default using DDP",
     )
 
     try:

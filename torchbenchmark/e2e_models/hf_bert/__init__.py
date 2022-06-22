@@ -29,7 +29,7 @@ class Model(E2EBenchmarkModel):
     DEFAULT_TRAIN_BSIZE: int = 32
     DEFAULT_EVAL_BSIZE: int = 1
 
-    def __init__(self, test, batch_size=None, use_deepspeed=False, extra_args=[]):
+    def __init__(self, test, batch_size=None, extra_args=[]):
         super().__init__(test=test, batch_size=batch_size, extra_args=extra_args)
         # TODO: currently only support 1 GPU device
         self.device = "cuda"
@@ -60,7 +60,7 @@ class Model(E2EBenchmarkModel):
 
         # ideally we don't modify the model code directly, but attaching deepspeed
         # must be done before self.prep initialiazes accelerator.
-        if use_deepspeed:
+        if self.tb_args.distributed == "deepspeed":
             zero_opt_cfg = {
                 "zero_optimization": {
                     "stage": 1,
@@ -71,6 +71,11 @@ class Model(E2EBenchmarkModel):
             }
             hf_args.deepspeed_plugin = DeepSpeedPlugin()
             hf_args.deepspeed_plugin.deepspeed_config.update(zero_opt_cfg)
+        elif self.tb_args.distributed == "ddp":
+            # ddp is applied uniformly outside the model script by the Trainer
+            pass
+        else:
+            raise RuntimeError(f"Unsupported distributed scheme {self.tb_args.distributed} for model hf_bert")
 
         # setup other members
         self.prep(hf_args)

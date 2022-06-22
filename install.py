@@ -83,7 +83,7 @@ if __name__ == '__main__':
     if args.component == "distributed":
         success, errmsg = pip_install_requirements(requirements_txt="torchbenchmark/util/distributed/requirements.txt")
         if not success:
-            print("Failed to install torchbenchmark requirements:")
+            print("Failed to install torchbenchmark distributed requirements:")
             print(errmsg)
             if not args.continue_on_fail:
                 sys.exit(-1)

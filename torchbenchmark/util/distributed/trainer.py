@@ -6,14 +6,56 @@ from statistics import stdev
 import torch
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
-
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 import torch.distributed as dist
 
 class Trainer():
+    DEFAULT_MEASURE_ITERATIONS = 10
+
     def __init__(self, args, model_class, mode="SPMD"):
         self.args = args
         self.model_class = model_class
         self.mode = mode
+        
+        self.setup()
+
+        extra_args = [
+            "--distributed",
+            self.args.distributed,
+        ]
+
+        # create model instance after Trainer setup, so that
+        # visible devices won't be revised in model constructor
+        model: E2EBenchmarkModel = model_class("train", batch_size=None, extra_args=extra_args)
+
+        expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator"]
+        assert all(attr in dir(model) for attr in expected_attrs), (
+            "Missing attributes in the input E2EBenchmarkModel implementation: "
+            f"{[attr for attr in expected_attrs if attr not in dir(model)]}"
+        )
+
+        self.model = model.model
+        self.optimizer = model.optimizer
+        self.dataloader = model.train_dataloader
+        self.accelerator = model.accelerator
+
+        self.rank = dist.get_rank()
+        self.world_size = dist.get_world_size()
+
+        if self.args.distributed == "ddp":
+            self.model = DDP(
+                self.model,
+                device_ids=[self.local_rank],
+                # If buffer broadcast is necessary, specific optimizations might be
+                # necessary to optimize performance. Disable it by default.
+                broadcast_buffers=False,
+                # Set gradient as bucket view to avoid unnecessary copies
+                gradient_as_bucket_view=True,
+                # TODO: tune bucket_cap_mb
+                static_graph=True,
+            )
+
 
     def setup(self):
         if self.mode == "SPMD":
@@ -51,19 +93,19 @@ class Trainer():
             raise ValueError(f"Unrecognized distributed training mode {self.mode}")
 
     def next_batch(self):
-        raise NotImplementedError("Each trainer sublcass must implement this.")
+        return next(iter(self.dataloader))
 
     def forward(self, input):
         """
         compute model forward and return loss
         """
-        raise NotImplementedError("Each trainer sublcass must implement this.")
+        return self.model(**input).loss
 
     def backward(self, loss):
-        raise NotImplementedError("Each trainer sublcass must implement this.")
+        self.accelerator.backward(loss)
 
     def optimizer_step(self):
-        raise NotImplementedError("Each trainer sublcass must implement this.")
+        self.optimizer.step()
 
     def measure(self):
         niters = self.DEFAULT_MEASURE_ITERATIONS
