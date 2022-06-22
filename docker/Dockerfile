@@ -20,6 +20,6 @@ RUN conda create --name torchbench --clone base && \
     echo "conda activate torchbench" >> ${HOME}/.bashrc
 
 # Run the setup
+RUN cd /workspace/benchmark; python install.py
 RUN cd /workspace/functorch; python setup.py develop
 RUN cd /workspace/torchdynamo; python setup.py develop
-RUN cd /workspace/benchmark; python install.py
