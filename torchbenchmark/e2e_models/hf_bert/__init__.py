@@ -1,7 +1,9 @@
+from accelerate.utils.dataclasses import DeepSpeedPlugin
 import torch
 import math
 import os
 from pathlib import Path
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import NLP
@@ -56,6 +58,25 @@ class Model(E2EBenchmarkModel):
                   "--num_train_epochs", num_train_epochs,
                   "--output_dir", output_dir]
         hf_args = parse_args(in_arg)
+
+        # ideally we don't modify the model code directly, but attaching deepspeed
+        # must be done before self.prep initialiazes accelerator.
+        if self.tb_args.distributed == "deepspeed":
+            zero_opt_cfg = {
+                "zero_optimization": {
+                    "stage": 1,
+                    "reduce_bucket_size": 2e8,
+                    "overlap_comm": True,
+                    "contiguous_gradients": False
+                }
+            }
+            hf_args.deepspeed_plugin = DeepSpeedPlugin()
+            hf_args.deepspeed_plugin.deepspeed_config.update(zero_opt_cfg)
+        elif self.tb_args.distributed == "ddp":
+            hf_args.apply_ddp = True
+        else:
+            raise RuntimeError(f"Unsupported distributed scheme {self.tb_args.distributed} for model hf_bert")
+
         # setup other members
         self.prep(hf_args)
         if test == "train":
@@ -65,7 +86,12 @@ class Model(E2EBenchmarkModel):
     
     def prep(self, hf_args):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
-        accelerator = Accelerator(fp16=(self.tb_args.fp16 == "amp"))
+        if hasattr(hf_args, "deepspeed_plugin"):
+            # Note: self.tb_args.fp16 could be renamed to better clarify its meaning
+            assert self.tb_args.fp16=="amp", "deepspeed is only supported with bf16/amp enabled"
+            accelerator = Accelerator(deepspeed_plugin=hf_args.deepspeed_plugin, mixed_precision='bf16')
+        else:
+            accelerator = Accelerator(mixed_precision='fp16' if self.tb_args.fp16=='amp' else 'no')
         accelerator.wait_for_everyone()
         raw_datasets = prep_dataset(hf_args)
         num_labels, label_list, is_regression = prep_labels(hf_args, raw_datasets)
@@ -148,6 +174,20 @@ class Model(E2EBenchmarkModel):
         self.lr_scheduler = lr_scheduler
         self.accelerator = accelerator
 
+        if hf_args.apply_ddp:
+            local_rank = int(os.getenv("LOCAL_RANK", -1))
+            self.model = DDP(
+                self.model,
+                device_ids=[local_rank],
+                # If buffer broadcast is necessary, specific optimizations might be
+                # necessary to optimize performance. Disable it by default.
+                broadcast_buffers=False,
+                # Set gradient as bucket view to avoid unnecessary copies
+                gradient_as_bucket_view=True,
+                # TODO: tune bucket_cap_mb
+                static_graph=True,
+            )
+
     def train(self) -> Optional[dict]:
         completed_steps = 0
         eval_metric = None
@@ -208,3 +248,19 @@ class Model(E2EBenchmarkModel):
                 )
         eval_metric = self.metric.compute()
         return eval_metric
+
+    def next_batch(self):
+        return next(iter(self.train_dataloader))
+
+    def run_forward(self, input):
+        """
+        compute model forward and return loss
+        """
+        return self.model(**input).loss
+
+    def run_backward(self, loss):
+        self.accelerator.backward(loss)
+
+    def run_optimizer_step(self):
+        self.optimizer.step()
+

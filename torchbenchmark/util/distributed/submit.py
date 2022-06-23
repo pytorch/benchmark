@@ -49,6 +49,12 @@ def parse_args(args: List[str]=None):
     )
 
     parser.add_argument(
+        "--cluster",
+        default=None,
+        help="Which slurm cluster to target. Use 'local' to run jobs locally, 'debug' to run jobs in process"
+    )
+
+    parser.add_argument(
         "--job_dir",
         default=os.getcwd(),
         type=str,
@@ -65,8 +71,16 @@ def parse_args(args: List[str]=None):
     parser.add_argument(
         "--trainer",
         type=str,
-        default="torchbenchmark.util.distributed.ddp.DDPTrainer",
-        help="training paradigm, by default using DDP"
+        default="torchbenchmark.util.distributed.trainer.Trainer",
+        help="trainer loop class, can be customized for specific behavior",
+    )
+
+    parser.add_argument(
+        "--distributed",
+        type=str,
+        choices=["ddp", "fsdp", "deepspeed", "none"],
+        default="ddp",
+        help="distributed training paradigm, by default using DDP",
     )
 
     try:
@@ -133,7 +147,7 @@ def main():
     args = parse_args()
 
     # Note that the folder will depend on the job_id, to easily track experiments
-    executor = submitit.AutoExecutor(folder=args.job_dir, slurm_max_num_timeout=3000)
+    executor = submitit.AutoExecutor(folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000)
 
     executor.update_parameters(
         gpus_per_node=args.ngpus,
