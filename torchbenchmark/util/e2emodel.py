@@ -15,3 +15,15 @@ class E2EBenchmarkModel():
             if not self.batch_size:
                 raise NotImplementedError(f"Test {test} is not implemented.")
         self.extra_args = extra_args
+    
+    def next_batch(self):
+        raise NotImplementedError("Every E2EModel should implement this")
+    
+    def run_forward(self, input):
+        raise NotImplementedError("Every E2EModel should implement this")
+
+    def run_backward(self, loss):
+        raise NotImplementedError("Every E2EModel should implement this")
+
+    def run_optimizer_step(self):
+        raise NotImplementedError("Every E2EModel should implement this")

@@ -6,7 +6,6 @@ from statistics import stdev
 import torch
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
-from torch.nn.parallel import DistributedDataParallel as DDP
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 import torch.distributed as dist
 
@@ -17,7 +16,8 @@ class Trainer():
         self.args = args
         self.model_class = model_class
         self.mode = mode
-        
+
+        self.local_rank = int(os.getenv("LOCAL_RANK", -1))
         self.setup()
 
         extra_args = [
@@ -27,40 +27,19 @@ class Trainer():
 
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
-        model: E2EBenchmarkModel = model_class("train", batch_size=None, extra_args=extra_args)
+        self.e2e_benchmark: E2EBenchmarkModel = model_class("train", batch_size=None, extra_args=extra_args)
 
         expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator"]
-        assert all(attr in dir(model) for attr in expected_attrs), (
+        assert all(attr in dir(self.e2e_benchmark) for attr in expected_attrs), (
             "Missing attributes in the input E2EBenchmarkModel implementation: "
-            f"{[attr for attr in expected_attrs if attr not in dir(model)]}"
+            f"{[attr for attr in expected_attrs if attr not in dir(self.e2e_benchmark)]}"
         )
 
-        self.model = model.model
-        self.optimizer = model.optimizer
-        self.dataloader = model.train_dataloader
-        self.accelerator = model.accelerator
-
         self.rank = dist.get_rank()
-        self.world_size = dist.get_world_size()
-
-        if self.args.distributed == "ddp":
-            self.model = DDP(
-                self.model,
-                device_ids=[self.local_rank],
-                # If buffer broadcast is necessary, specific optimizations might be
-                # necessary to optimize performance. Disable it by default.
-                broadcast_buffers=False,
-                # Set gradient as bucket view to avoid unnecessary copies
-                gradient_as_bucket_view=True,
-                # TODO: tune bucket_cap_mb
-                static_graph=True,
-            )
 
 
     def setup(self):
         if self.mode == "SPMD":
-            local_rank = int(os.getenv("LOCAL_RANK", -1))
-            self.local_rank = local_rank
             # set the visible devices so that each SPMD process only sees one
             # CUDA device
             # N.B.: this has to be done before using any CUDA API from torch
@@ -75,14 +54,14 @@ class Trainer():
                 f"{torch.cuda.device_count()} devices."
             )
             """
-            torch.cuda.set_device(local_rank)
+            torch.cuda.set_device(self.local_rank)
 
             world_size = int(os.getenv("WORLD_SIZE", -1))
             rank = int(os.getenv("RANK", -1))
 
-            assert local_rank != -1 and world_size != -1 and rank != -1, (
+            assert self.local_rank != -1 and world_size != -1 and rank != -1, (
                 "Failed to retrieve SPMD configurations from environment "
-                f"variables. local_rank={local_rank}, world_size={world_size}, "
+                f"variables. local_rank={self.local_rank}, world_size={world_size}, "
                 f"rank={rank}."
 
             )
@@ -92,33 +71,18 @@ class Trainer():
         else:
             raise ValueError(f"Unrecognized distributed training mode {self.mode}")
 
-    def next_batch(self):
-        return next(iter(self.dataloader))
-
-    def forward(self, input):
-        """
-        compute model forward and return loss
-        """
-        return self.model(**input).loss
-
-    def backward(self, loss):
-        self.accelerator.backward(loss)
-
-    def optimizer_step(self):
-        self.optimizer.step()
-
     def measure(self):
         niters = self.DEFAULT_MEASURE_ITERATIONS
         # TODO: using dummy data for now to rule out dataloader delays
-        batch = self.next_batch()
+        batch = self.e2e_benchmark.next_batch()
 
         ######################################
         # 1. warming up CUDACachingAllocator #
         ######################################
         for _ in range(self.DEFAULT_MEASURE_ITERATIONS):
-            loss = self.forward(batch)
-            self.backward(loss)
-            self.optimizer_step()
+            loss = self.e2e_benchmark.run_forward(batch)
+            self.e2e_benchmark.run_backward(loss)
+            self.e2e_benchmark.run_optimizer_step()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
@@ -134,13 +98,13 @@ class Trainer():
         events_post_opt = [Event(enable_timing=True) for _ in range(niters)]
         for i in range(niters):
             events_pre_fwd[i].record()
-            loss = self.forward(batch)
+            loss = self.e2e_benchmark.run_forward(batch)
 
             events_pre_bwd[i].record()
-            self.backward(loss)
+            self.e2e_benchmark.run_backward(loss)
 
             events_pre_opt[i].record()
-            self.optimizer_step()
+            self.e2e_benchmark.run_optimizer_step()
 
             events_post_opt[i].record()
 
@@ -187,9 +151,9 @@ class Trainer():
                 )
             ):
                 for i in range(niters):
-                    loss = self.forward(batch)
-                    self.backward(loss)
-                    self.optimizer_step()
+                    loss = self.e2e_benchmark.run_forward(batch)
+                    self.e2e_benchmark.run_backward(loss)
+                    self.e2e_benchmark.run_optimizer_step()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
