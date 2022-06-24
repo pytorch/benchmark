@@ -4,7 +4,7 @@ from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
 from typing import ContextManager, Optional, List, Tuple, Generator
-from torchbenchmark.util.extra_args import enable_opt_args, parse_opt_args, apply_opt_args, \
+from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
 
@@ -90,9 +90,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             self.dynamo = False
             self.opt_args = parse_opt_args(self, opt_args)
-        self.need_correctness_check = True if self.dynamo else enable_opt_args(self.opt_args)
+        self.need_correctness_check = check_correctness_p(self, self.opt_args)
         # currently, only check correctness under CUDA+inference, and `need_correctness_check` is True
-        if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
+        if self.need_correctness_check:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
@@ -103,10 +103,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             apply_opt_args(self, self.opt_args)
         # if test is eval, check correctness
-        if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            # if fp16 is used, use cosine similarity instead of torch.allclose
-            # because cosine similarity is more relaxed
-            if self.dargs.precision == "fp16":
+        if self.need_correctness_check:
+            # tensorrt or fp16 is known to generate less-accurate results
+            # in this case, use more relaxed cosine similarity instead of torch.allclose
+            # for correctness testing
+            # see: https://github.com/pytorch/torchdynamo/pull/438
+            if self.dargs.precision == "fp16" or self.dynamo == "fx2trt" or self.opt_args.fx2trt:
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
                 self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)

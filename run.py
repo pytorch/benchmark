@@ -231,10 +231,6 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-<<<<<<< HEAD
-        run_one_step(test, model_flops=model_flops, model=m, export_all_records=args.export_all_records)
-=======
-        run_one_step(test, model_flops=model_flops, export_dcgm_metrics_file=export_dcgm_metrics_file)
->>>>>>> update parser argument
+        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", m.correctness), sep='')

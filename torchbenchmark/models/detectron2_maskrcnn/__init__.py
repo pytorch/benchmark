@@ -42,6 +42,9 @@ class Model(BenchmarkModel):
     model_file = os.path.join(MODEL_DIR, ".data", f"{MODEL_NAME}.pkl")
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
+    # Skip correctness check, because the output tensor can't be verified using
+    # cosine similarity or torch.close()
+    SKIP_CORRECTNESS_CHECK = True
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)

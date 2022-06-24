@@ -31,7 +31,7 @@ class Model(torch.nn.Module):
         F_0_1 = flowOut[:,:2,:,:]
         F_1_0 = flowOut[:,2:,:,:]
         
-        fCoeff = model.getFlowCoeff(trainFrameIndex, I0.device)
+        fCoeff = model.getFlowCoeff(trainFrameIndex, I0.device, I0.dtype)
         
         # Calculate intermediate flows
         F_t_0 = fCoeff[0] * F_0_1 + fCoeff[1] * F_1_0
@@ -54,7 +54,7 @@ class Model(torch.nn.Module):
         g_I0_F_t_0_f = self.trainFlowBackWarp(I0, F_t_0_f)
         g_I1_F_t_1_f = self.trainFlowBackWarp(I1, F_t_1_f)
         
-        wCoeff = model.getWarpCoeff(trainFrameIndex, I0.device)
+        wCoeff = model.getWarpCoeff(trainFrameIndex, I0.device, I0.dtype)
         
         # Calculate final intermediate frame 
         Ft_p = (wCoeff[0] * V_t_0 * g_I0_F_t_0_f + wCoeff[1] * V_t_1 * g_I1_F_t_1_f) / (wCoeff[0] * V_t_0 + wCoeff[1] * V_t_1)
