@@ -130,9 +130,11 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" % (cpu_walltime / model.NUM_BATCHES), sep=''))
         else:
             print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
-            print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
+        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
     else:
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
+        if hasattr(model, "NUM_BATCHES"):
+            print('{:<20} {:>20}'.format("CPU Time per batch:", "%.3f milliseconds" % (cpu_walltime / model.NUM_BATCHES), sep=''))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
 
     # if model_flops is not None, output the TFLOPs per sec

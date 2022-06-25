@@ -80,6 +80,7 @@ class Model(BenchmarkModel):
             self.example_inputs = batchify(corpus.valid, self.batch_size).to(self.device)
             self.model.eval()
         # slice the inputs
+        self.NUM_BATCHES = self.DEFAULT_NUM_BATCHES
         self.example_inputs = self.example_inputs[:self.DEFAULT_NUM_BATCHES]
 
     def get_module(self):
