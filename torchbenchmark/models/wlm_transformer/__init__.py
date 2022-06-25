@@ -19,15 +19,16 @@ class add_path():
         except ValueError:
             pass
 
-WLM_PATH = os.path.join(REPO_PATH, "submodules", "examples", "world_language_model")
+WLM_PATH = os.path.join(REPO_PATH, "submodules", "examples", "word_language_model")
 DATA_PATH = os.path.join(WLM_PATH, "data", "wikitext-2")
+
 with add_path(WLM_PATH):
     import data
     import model as wlm_model
 
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
-from config import parse_args
+from .config import parse_args
 
 def batchify(data, bsz):
     # Work out how cleanly we can divide the dataset into bsz parts.
@@ -64,7 +65,7 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-        model_args = ["--data", DATA_PATH, "--bach-size", str(self.batch_size), "--model", "Transformer", "--epochs", "1"]
+        model_args = ["--data", DATA_PATH, "--batch_size", str(self.batch_size), "--model", "Transformer", "--epochs", "1"]
         args = parse_args(model_args)
         corpus = data.Corpus(args.data)
         self.ntokens = len(corpus.dictionary)
