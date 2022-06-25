@@ -59,7 +59,7 @@ class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     # default batch size from:
     # https://github.com/pytorch/examples/blob/main/word_language_model/main.py#L30
-    DEFAULT_NUM_BATCHES = 1
+    DEFAULT_NUM_BATCHES = 50
     DEFAULT_TRAIN_BSIZE = 20
     DEFAULT_EVAL_BSIZE = 20
 
@@ -79,6 +79,8 @@ class Model(BenchmarkModel):
         else:
             self.example_inputs = batchify(corpus.valid, self.batch_size).to(self.device)
             self.model.eval()
+        # slice the inputs
+        self.example_inputs = self.example_inputs[:self.DEFAULT_NUM_BATCHES]
 
     def get_module(self):
         for batch, i in enumerate(range(0, self.example_inputs.size(0)-1, self.args.bptt)):
@@ -86,6 +88,7 @@ class Model(BenchmarkModel):
             return self.model, (data, )
 
     def train(self):
+        total_loss = 0.
         for batch, i in enumerate(range(0, self.example_inputs.size(0)-1, self.args.bptt)):
             data, targets = get_batch(self.args, self.example_inputs, i)
             # Starting each batch, we detach the hidden state from how it was previously produced.
@@ -104,9 +107,11 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         ntokens = self.ntokens
+        out = None
         with torch.no_grad():
             for i in range(0, self.example_inputs.size(0) - 1, self.args.bptt):
                 data, _targets = get_batch(self.args, self.example_inputs, i)
                 output = self.model(data)
                 output = output.view(-1, ntokens)
-        return output
+                out = output
+        return out
