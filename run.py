@@ -183,7 +183,7 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
 def _validate_devices(devices: str):
     devices_list = devices.split(",")
     valid_devices = ['cpu', 'cuda']
-    if (torch.backends.mps.is_available()):
+    if hasattr(torch.backends, 'mps') and (torch.backends.mps.is_available()):
         valid_devices.append('mps')
     for d in devices_list:
         if d not in valid_devices:
