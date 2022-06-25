@@ -56,9 +56,11 @@ def get_batch(args, source, i):
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    # default batch size from:
+    # https://github.com/pytorch/examples/blob/main/word_language_model/main.py#L30
     DEFAULT_NUM_BATCHES = 1
-    DEFAULT_TRAIN_BSIZE = 1
-    DEFAULT_EVAL_BSIZE = 1
+    DEFAULT_TRAIN_BSIZE = 20
+    DEFAULT_EVAL_BSIZE = 20
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -71,9 +73,10 @@ class Model(BenchmarkModel):
         if self.test == "train":
             self.lr = args.lr
             self.criterion = nn.NLLLoss()
-            self.example_inputs = batchify(corpus.train, self.batch_size)
+            self.example_inputs = batchify(corpus.train, self.batch_size).to(self.device)
             self.model.train()
         else:
+            self.example_inputs = batchify(corpus.valid, self.batch_size).to(self.device)
             self.model.eval()
 
     def get_module(self):
