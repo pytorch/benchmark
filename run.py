@@ -194,7 +194,7 @@ def _validate_devices(devices: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
-    if (torch.backends.mps.is_available()):
+    if hasattr(torch.backends, 'mps') and (torch.backends.mps.is_available()):
         SUPPORT_DEVICE_LIST.append("mps")
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
     parser.add_argument("-d", "--device", choices=SUPPORT_DEVICE_LIST, default="cpu", help="Which device to use.")
