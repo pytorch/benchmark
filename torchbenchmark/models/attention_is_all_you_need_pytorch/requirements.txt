@@ -1,5 +1,0 @@
-dill==0.3.4
-tqdm
-iopath
-numpy
-spacy==2.3.5
