@@ -19,7 +19,7 @@ from components._impl.workers import subprocess_worker
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 DATA_PATH = os.path.join(REPO_PATH, "torchbenchmark", "data", ".data")
 
-TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
+TORCH_DEPS = ['torch', 'torchvision']
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
                    "Do you need to use a proxy?"
