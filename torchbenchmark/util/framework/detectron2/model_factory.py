@@ -76,10 +76,6 @@ class Detectron2Model(BenchmarkModel):
             assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
-        # tb_parser = get_tb_parser()
-        # tb_args, self.extra_args = tb_parser.parse_known_args()
-        # setup resize
-        # args.resize = tb_args.resize
         # setup pre-trained model weights
         args.model_file = self.model_file
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
