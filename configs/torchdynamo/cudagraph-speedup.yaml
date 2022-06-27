@@ -10,4 +10,4 @@ test:
 args:
   # empty argument means the default pytorch eager mode
   - ""
-  - "--torchdynamo cudagraph"
+  - "--torchdynamo cudagraphs"
