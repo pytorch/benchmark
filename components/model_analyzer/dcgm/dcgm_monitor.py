@@ -19,6 +19,9 @@ from components.model_analyzer.tb_dcgm_types.gpu_used_memory import GPUUsedMemor
 from components.model_analyzer.tb_dcgm_types.gpu_utilization import GPUUtilization
 from components.model_analyzer.tb_dcgm_types.gpu_power_usage import GPUPowerUsage
 from components.model_analyzer.tb_dcgm_types.gpu_fp32active import GPUFP32Active
+from components.model_analyzer.tb_dcgm_types.gpu_dram_active import GPUDRAMActive
+from components.model_analyzer.tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
+from components.model_analyzer.tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
 from components.model_analyzer.tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 
 
@@ -40,8 +43,10 @@ class DCGMMonitor(Monitor):
         GPUUtilization: dcgm_fields.DCGM_FI_DEV_GPU_UTIL,
         GPUPowerUsage: dcgm_fields.DCGM_FI_DEV_POWER_USAGE,
         GPUFP32Active: dcgm_fields.DCGM_FI_PROF_PIPE_FP32_ACTIVE,
-        GPUTensorActive: dcgm_fields.DCGM_FI_PROF_PIPE_TENSOR_ACTIVE
-# @Yueming todo: add more metrics here.
+        GPUTensorActive: dcgm_fields.DCGM_FI_PROF_PIPE_TENSOR_ACTIVE,
+        GPUDRAMActive: dcgm_fields.DCGM_FI_PROF_DRAM_ACTIVE,
+        GPUPCIERX: dcgm_fields.DCGM_FI_PROF_PCIE_RX_BYTES,
+        GPUPCIETX: dcgm_fields.DCGM_FI_PROF_PCIE_TX_BYTES,
     }
 
     def __init__(self, gpus, frequency, metrics, dcgmPath=None):
