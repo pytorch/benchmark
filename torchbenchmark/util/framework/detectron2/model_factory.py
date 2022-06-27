@@ -1,3 +1,4 @@
+from torchbenchmark.util.framework.detectron2.config import parse_tb_args
 from torchbenchmark.util.model import BenchmarkModel
 import itertools
 import os
@@ -20,6 +21,8 @@ from detectron2.modeling import build_model
 from detectron2.utils.events import EventStorage
 from torch.utils._pytree import tree_map
 from detectron2.checkpoint import DetectionCheckpointer
+import detectron2.data.transforms as T
+from detectron2.config import LazyCall as L
 
 from typing import Tuple
 
@@ -64,6 +67,7 @@ class Detectron2Model(BenchmarkModel):
 
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        self.tb_args, self.extra_args = parse_tb_args(self.extra_args)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = False
         # load model file
@@ -93,6 +97,8 @@ class Detectron2Model(BenchmarkModel):
             data_cfg.train.dataset.names = "coco_2017_val_100"
             data_cfg.train.total_batch_size = self.batch_size
             train_loader = instantiate(data_cfg.train)
+            if self.tb_args.resize == "448x608":
+                train_loader.test.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
             self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device)
         elif self.test == "eval":
             # load model from pretrained checkpoint
@@ -102,6 +108,8 @@ class Detectron2Model(BenchmarkModel):
             data_cfg.test.dataset.names = "coco_2017_val_100"
             data_cfg.test.batch_size = self.batch_size
             test_loader = instantiate(data_cfg.test)
+            if self.tb_args.resize == "448x608":
+                test_loader.test.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
             self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
         # torchbench: only run 1 batch
         self.NUM_BATCHES = 1
