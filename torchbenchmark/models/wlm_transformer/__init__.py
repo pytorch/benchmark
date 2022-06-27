@@ -59,7 +59,7 @@ class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     # default batch size from:
     # https://github.com/pytorch/examples/blob/main/word_language_model/main.py#L30
-    DEFAULT_NUM_BATCHES = 50
+    DEFAULT_NUM_BATCHES = 5
     DEFAULT_TRAIN_BSIZE = 20
     DEFAULT_EVAL_BSIZE = 20
 
