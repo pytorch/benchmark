@@ -205,15 +205,16 @@ class TorchSource:
     # Install dependencies such as torchtext and torchvision
     def build_install_deps(self, build_env):
         # Build torchvision
-        print(f"Building torchvision ...", end="", flush=True)
-        command = "python setup.py install"
-        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"][0], env=build_env, shell=True)
-        print("done")
+        # print(f"Building torchvision ...", end="", flush=True)
+        # command = "python setup.py install"
+        # subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"][0], env=build_env, shell=True)
+        # print("done")
         # Build torchtext
-        print(f"Building torchtext ...", end="", flush=True)
-        command = "python setup.py clean install"
-        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"][0], env=build_env, shell=True)
-        print("done")
+        # print(f"Building torchtext ...", end="", flush=True)
+        # command = "python setup.py clean install"
+        # subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"][0], env=build_env, shell=True)
+        # print("done")
+        pass
 
     def _build_lazy_tensor(self, commit: Commit, build_env: Dict[str, str]):
         if self.build_lazy:
@@ -318,7 +319,7 @@ class TorchBench:
         bmfilter = targets_to_bmfilter(targets, self.models)
         # If the first time to run benchmark, install the dependencies first
         if self.first_time:
-            self._install_benchmark()
+            # self._install_benchmark()
             self.first_time = False
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
