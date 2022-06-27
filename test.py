@@ -118,7 +118,7 @@ def _load_tests():
     devices = ['cpu']
     if torch.cuda.is_available():
         devices.append('cuda')
-    if torch.backends.mps.is_available():
+    if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
         devices.append('mps')
 
     for path in _list_model_paths():
