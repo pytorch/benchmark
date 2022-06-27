@@ -80,17 +80,16 @@ class Model(BenchmarkModel):
             self.example_inputs = batchify(corpus.valid, self.batch_size).to(self.device)
             self.model.eval()
         # slice the inputs
-        self.NUM_BATCHES = self.DEFAULT_NUM_BATCHES
-        self.example_inputs = self.example_inputs[:self.DEFAULT_NUM_BATCHES]
+        self.NUM_BATCHES = min(self.DEFAULT_NUM_BATCHES, self.example_inputs.size(0) / self.args.bptt)
 
     def get_module(self):
-        for batch, i in enumerate(range(0, self.example_inputs.size(0)-1, self.args.bptt)):
+        for batch, i in enumerate(range(0, self.NUM_BATCHES*self.args.bptt, self.args.bptt)):
             data, _targets = get_batch(self.args, self.example_inputs, i)
             return self.model, (data, )
 
     def train(self):
         total_loss = 0.
-        for batch, i in enumerate(range(0, self.example_inputs.size(0)-1, self.args.bptt)):
+        for batch, i in enumerate(range(0, self.NUM_BATCHES*self.args.bptt, self.args.bptt)):
             data, targets = get_batch(self.args, self.example_inputs, i)
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
@@ -110,7 +109,7 @@ class Model(BenchmarkModel):
         ntokens = self.ntokens
         out = None
         with torch.no_grad():
-            for i in range(0, self.example_inputs.size(0) - 1, self.args.bptt):
+            for i in range(0, self.NUM_BATCHES*self.args.bptt, self.args.bptt):
                 data, _targets = get_batch(self.args, self.example_inputs, i)
                 output = self.model(data)
                 output = output.view(-1, ntokens)
