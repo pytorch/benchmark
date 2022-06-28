@@ -17,33 +17,49 @@ import torch
 from typing import List, Optional, Dict, Any, Tuple
 from torchbenchmark import ModelTask
 
-WARMUP_ROUNDS = 3
+WARMUP_ROUNDS = 11
 WORKER_TIMEOUT = 600 # seconds
 MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
-def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10) -> Tuple[float, Optional[Tuple[torch.Tensor]]]:
+def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=20) -> Tuple[float, Optional[Tuple[torch.Tensor]]]:
     "Run one step of the model, and return the latency in milliseconds."
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
     result_summary = []
+    events = [torch.cuda.Event(enable_timing=True) for _ in range(num_iter)]
+    end_event = torch.cuda.Event(enable_timing=True)
     for _i in range(num_iter):
         if device == "cuda":
-            torch.cuda.synchronize()
-            # Collect time_ns() instead of time() which does not provide better precision than 1
-            # second according to https://docs.python.org/3/library/time.html#time.time.
-            t0 = time.time_ns()
             func()
-            torch.cuda.synchronize()  # Wait for the events to be recorded!
-            t1 = time.time_ns()
+            events[_i].record()
         else:
             t0 = time.time_ns()
             func()
             t1 = time.time_ns()
         result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
-    wall_latency = numpy.median(result_summary)
-    return wall_latency
+    
+    if device != 'cuda':
+        # return wall_latency
+        wall_latency_cpu = numpy.median(result_summary)
+        return wall_latency_cpu
+    else:
+        end_event.record()
+        torch.cuda.synchronize()
+
+        times = []
+        for event in events:
+            times.append(event.elapsed_time(end_event))
+
+        linreg = torch.linalg.lstsq(
+            torch.vstack([torch.arange(num_iter), torch.ones(num_iter)]).T,
+            torch.tensor(times))
+        # print(linreg, flush=True)
+        step_time_ms = -linreg[0][0].item()
+
+        return step_time_ms
+
 
 @dataclasses.dataclass
 class ModelTestResult:
