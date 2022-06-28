@@ -54,7 +54,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_dcgm_metrics_file=False):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_dcgm_metrics_file=False, stress=0):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -69,8 +69,14 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             model_analyzer.set_export_csv_name(export_dcgm_metrics_file)
             model_analyzer.add_mem_throughput_metrics()
         model_analyzer.start_monitor()
-
-    for _i in range(num_iter):
+    if stress != 0:
+        cur_time = time.time_ns()
+        start_time = cur_time
+        target_time = stress * 60 * 1e9 + start_time
+        num_iter = -1
+    else:
+        _i = 0
+    while ( num_iter != -1 and _i < num_iter ) or ( stress != 0 and cur_time < target_time ) :
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
@@ -98,6 +104,11 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             func()
             t1 = time.time_ns()
             result_summary.append([(t1 - t0) / 1_000_000])
+        if stress != 0:
+            cur_time = time.time_ns()
+            print(cur_time)
+        else:
+            _i += 1
     if dcgm_enabled:
             model_analyzer.stop_monitor()
 
@@ -189,6 +200,7 @@ if __name__ == "__main__":
     parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result.")
     parser.add_argument("--export-dcgm-metrics", action="store_true",
                         help="Export all GPU FP32 unit active ratio, memory traffic, and memory throughput records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
+    parser.add_argument("--stress", type=float, default=0, help="Specify execution time (minutes) to stress devices.")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -231,6 +243,6 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file)
+        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", m.correctness), sep='')
