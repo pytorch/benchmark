@@ -105,7 +105,7 @@ class Detectron2Model(BenchmarkModel):
             cfg.defrost()
             if self.tb_args.resize == "448x608":
                 raise NotImplementedError("Train test does not support resizing input image.")
-            loader = build_detection_train_loader(cfg)
+            loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0])
         else:
             # setup train dataset
             data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
