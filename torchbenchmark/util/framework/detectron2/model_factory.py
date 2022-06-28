@@ -23,6 +23,7 @@ from torch.utils._pytree import tree_map
 from detectron2.checkpoint import DetectionCheckpointer
 import detectron2.data.transforms as T
 from detectron2.config import LazyCall as L
+from detectron2.data import build_detection_test_loader, build_detection_train_loader
 
 from typing import Tuple
 
@@ -78,38 +79,61 @@ class Detectron2Model(BenchmarkModel):
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
         # setup pre-trained model weights
         args.model_file = self.model_file
-        data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
+
         cfg = setup(args)
         if args.config_file.endswith(".yaml"):
             self.model = build_model(cfg).to(self.device)
         else:
             self.model = instantiate(cfg.model).to(self.device)
+
+        # setup model and return the dataloader
         if self.test == "train":
-            self.optimizer = build_optimizer(cfg, self.model)
-            checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
-            checkpointer.load(self.model_file)
-            self.model.train()
+            loader = self.setup_train(cfg, args)
+        elif self.test == "eval":
+            loader = self.setup_eval(cfg, args)
+
+        self.example_inputs = prefetch(itertools.islice(loader, 100), self.device)
+        # torchbench: only run 1 batch
+        self.NUM_BATCHES = 1
+
+    def setup_train(self, cfg, args):
+        self.optimizer = build_optimizer(cfg, self.model)
+        checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
+        checkpointer.load(self.model_file)
+        self.model.train()
+        if args.config_file.endswith(".yaml"):
+            cfg.defrost()
+            if self.tb_args.resize == "448x608":
+                raise NotImplementedError("Train test does not support resizing input image.")
+            loader = build_detection_train_loader(cfg)
+        else:
             # setup train dataset
+            data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
             data_cfg.train.dataset.names = "coco_2017_val_100"
             data_cfg.train.total_batch_size = self.batch_size
             if self.tb_args.resize == "448x608":
                 data_cfg.train.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
-            train_loader = instantiate(data_cfg.train)
-            self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device)
-        elif self.test == "eval":
-            # load model from pretrained checkpoint
-            DetectionCheckpointer(self.model).load(self.model_file)
-            self.model.eval()
-            # setup eval dataset
+            loader = instantiate(data_cfg.train)
+        return loader
+
+    def setup_eval(self, cfg, args):
+         # load model from pretrained checkpoint
+        DetectionCheckpointer(self.model).load(self.model_file)
+        self.model.eval()
+        if args.config_file.endswith(".yaml"):
+            cfg.defrost()
+            if self.tb_args.resize == "448x608":
+                cfg._C.INPUT.MIN_SIZE_TEST = 448
+                cfg._C.INPUT.MAX_SIZE_TEST = 608
+            loader = build_detection_test_loader(cfg)
+        else:
+            data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
             data_cfg.test.dataset.names = "coco_2017_val_100"
             data_cfg.test.batch_size = self.batch_size
             if self.tb_args.resize == "448x608":
                 data_cfg.test.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
-            test_loader = instantiate(data_cfg.test)
-            self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
-        # torchbench: only run 1 batch
-        self.NUM_BATCHES = 1
-        cfg.defrost()
+            loader = instantiate(data_cfg.test)
+        return loader
 
     def get_module(self):
         return self.model, (self.example_inputs[0], )
