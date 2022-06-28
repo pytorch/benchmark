@@ -4,8 +4,15 @@ from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.jit import enable_jit
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
 
+def check_stableness_p(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    "If stableness check should be enabled."
+    # if the model doesn't support correctness check (like detectron2), skip it
+    if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
+        return False
+    return model.test == "eval"
+
 def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: argparse.Namespace) -> bool:
-    "Check if correctness check should be enabled."
+    "If correctness check should be enabled."
     # if the model doesn't support correctness check (like detectron2), skip it
     if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
         return False
