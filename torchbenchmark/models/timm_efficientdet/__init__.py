@@ -162,5 +162,4 @@ class Model(BenchmarkModel):
                     with self.amp_autocast():
                         output = self.model(input, img_info=target)
                     self.evaluator.add_predictions(output, target)
-        print(output)
         return output
