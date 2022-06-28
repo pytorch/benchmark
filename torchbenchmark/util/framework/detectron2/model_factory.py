@@ -44,6 +44,8 @@ def setup(args):
     else:
         cfg = LazyConfig.load(args.config_file)
         cfg = LazyConfig.apply_overrides(cfg, args.opts)
+        if args.fcos_use_bn:
+            cfg.model.head.norm = "BN"
     return cfg
 
 def prefetch(dataloader, device, precision="fp32"):
@@ -84,6 +86,8 @@ class Detectron2Model(BenchmarkModel):
         # setup pre-trained model weights
         args.model_file = self.model_file
         args.resize = self.tb_args.resize
+        if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
+            args.fcos_use_bn = True
 
         cfg = setup(args)
         if args.config_file.endswith(".yaml"):
