@@ -101,19 +101,13 @@ class Detectron2Model(BenchmarkModel):
         checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
         checkpointer.load(self.model_file)
         self.model.train()
-        if args.config_file.endswith(".yaml"):
-            cfg.defrost()
-            if self.tb_args.resize == "448x608":
-                raise NotImplementedError("Train test does not support resizing input image.")
-            loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0])
-        else:
-            # setup train dataset
-            data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
-            data_cfg.train.dataset.names = "coco_2017_val_100"
-            data_cfg.train.total_batch_size = self.batch_size
-            if self.tb_args.resize == "448x608":
-                data_cfg.train.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
-            loader = instantiate(data_cfg.train)
+        # setup train dataset
+        data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
+        data_cfg.train.dataset.names = "coco_2017_val_100"
+        data_cfg.train.total_batch_size = self.batch_size
+        if self.tb_args.resize == "448x608":
+            data_cfg.train.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
+        loader = instantiate(data_cfg.train)
         return loader
 
     def setup_eval(self, cfg, args):
