@@ -1,24 +1,24 @@
 
 from typing import OrderedDict
-from components.model_analyzer.dcgm.dcgm_monitor import DCGMMonitor
-from components.model_analyzer.tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
-from components.model_analyzer.tb_dcgm_types.gpu_device_factory import GPUDeviceFactory
-from components.model_analyzer.dcgm import dcgm_fields
-from components.model_analyzer.dcgm.dcgm_structs import DCGMError
-from components.model_analyzer.tb_dcgm_types.gpu_tensoractive import GPUTensorActive
-from components.model_analyzer.tb_dcgm_types.gpu_utilization import GPUUtilization
-from components.model_analyzer.tb_dcgm_types.gpu_power_usage import GPUPowerUsage
-from components.model_analyzer.tb_dcgm_types.gpu_free_memory import GPUFreeMemory
-from components.model_analyzer.tb_dcgm_types.gpu_used_memory import GPUUsedMemory
-from components.model_analyzer.tb_dcgm_types.gpu_fp32active import GPUFP32Active
-from components.model_analyzer.tb_dcgm_types.gpu_dram_active import GPUDRAMActive
-from components.model_analyzer.tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
-from components.model_analyzer.tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
-from components.model_analyzer.tb_dcgm_types.record import RecordType
-from components.model_analyzer.tb_dcgm_types.record_aggregator import RecordAggregator
-from components.model_analyzer.tb_dcgm_types.tb_logger import set_logger, LOGGER_NAME
-from components.model_analyzer.tb_dcgm_types.config import *
-from components.model_analyzer.tb_dcgm_types.config import DEFAULT_MONITORING_INTERVAL
+from .dcgm.dcgm_monitor import DCGMMonitor
+from .tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
+from .tb_dcgm_types.gpu_device_factory import GPUDeviceFactory
+from .dcgm import dcgm_fields
+from .dcgm.dcgm_structs import DCGMError
+from .tb_dcgm_types.gpu_tensoractive import GPUTensorActive
+from .tb_dcgm_types.gpu_utilization import GPUUtilization
+from .tb_dcgm_types.gpu_power_usage import GPUPowerUsage
+from .tb_dcgm_types.gpu_free_memory import GPUFreeMemory
+from .tb_dcgm_types.gpu_used_memory import GPUUsedMemory
+from .tb_dcgm_types.gpu_fp32active import GPUFP32Active
+from .tb_dcgm_types.gpu_dram_active import GPUDRAMActive
+from .tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
+from .tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
+from .tb_dcgm_types.record import RecordType
+from .tb_dcgm_types.record_aggregator import RecordAggregator
+from .tb_dcgm_types.tb_logger import set_logger, LOGGER_NAME
+from .tb_dcgm_types.config import *
+from .tb_dcgm_types.config import DEFAULT_MONITORING_INTERVAL
 
 import logging
 logger = logging.getLogger(LOGGER_NAME)
@@ -38,8 +38,8 @@ class ModelAnalyzer:
         # the final metric results. Its format is {GPU_UUID: {GPUUtilization: }}
         # Example:
         # {'GPU-4177e846-1274-84e3-dcde': 
-        #   {<class 'components.model_analyzer.tb_dcgm_types.gpu_fp32active.GPUFP32Active'>: 
-        #      <components.model_analyzer.tb_dcgm_types.gpu_fp32active.GPUFP32Active object at 0x7f14bbae2280>
+        #   {<class '.tb_dcgm_types.gpu_fp32active.GPUFP32Active'>: 
+        #      <.tb_dcgm_types.gpu_fp32active.GPUFP32Active object at 0x7f14bbae2280>
         #   }
         #  }
         self.gpu_metric_value = {}

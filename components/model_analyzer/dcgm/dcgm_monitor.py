@@ -13,16 +13,16 @@
 # limitations under the License.
 
 from .monitor import Monitor
-from components.model_analyzer.tb_dcgm_types.gpu_free_memory import GPUFreeMemory
-from components.model_analyzer.tb_dcgm_types.gpu_tensoractive import GPUTensorActive
-from components.model_analyzer.tb_dcgm_types.gpu_used_memory import GPUUsedMemory
-from components.model_analyzer.tb_dcgm_types.gpu_utilization import GPUUtilization
-from components.model_analyzer.tb_dcgm_types.gpu_power_usage import GPUPowerUsage
-from components.model_analyzer.tb_dcgm_types.gpu_fp32active import GPUFP32Active
-from components.model_analyzer.tb_dcgm_types.gpu_dram_active import GPUDRAMActive
-from components.model_analyzer.tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
-from components.model_analyzer.tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
-from components.model_analyzer.tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
+from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
+from ..tb_dcgm_types.gpu_tensoractive import GPUTensorActive
+from ..tb_dcgm_types.gpu_used_memory import GPUUsedMemory
+from ..tb_dcgm_types.gpu_utilization import GPUUtilization
+from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
+from ..tb_dcgm_types.gpu_fp32active import GPUFP32Active
+from ..tb_dcgm_types.gpu_dram_active import GPUDRAMActive
+from ..tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
+from ..tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
+from ..tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 
 
 from . import dcgm_agent

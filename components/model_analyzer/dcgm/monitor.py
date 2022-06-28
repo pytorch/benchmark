@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from multiprocessing.pool import ThreadPool
 import time
 
-from components.model_analyzer.tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
+from ..tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 
 
 
