@@ -125,7 +125,7 @@ class Detectron2Model(BenchmarkModel):
             if self.tb_args.resize == "448x608":
                 cfg._C.INPUT.MIN_SIZE_TEST = 448
                 cfg._C.INPUT.MAX_SIZE_TEST = 608
-            loader = build_detection_test_loader(cfg)
+            loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0])
         else:
             data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
             data_cfg.test.dataset.names = "coco_2017_val_100"
