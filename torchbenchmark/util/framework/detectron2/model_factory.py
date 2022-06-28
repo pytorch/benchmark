@@ -92,9 +92,9 @@ class Detectron2Model(BenchmarkModel):
             # setup train dataset
             data_cfg.train.dataset.names = "coco_2017_val_100"
             data_cfg.train.total_batch_size = self.batch_size
-            train_loader = instantiate(data_cfg.train)
             if self.tb_args.resize == "448x608":
-                train_loader.test.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
+                data_cfg.train.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
+            train_loader = instantiate(data_cfg.train)
             self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device)
         elif self.test == "eval":
             # load model from pretrained checkpoint
@@ -103,9 +103,9 @@ class Detectron2Model(BenchmarkModel):
             # setup eval dataset
             data_cfg.test.dataset.names = "coco_2017_val_100"
             data_cfg.test.batch_size = self.batch_size
-            test_loader = instantiate(data_cfg.test)
             if self.tb_args.resize == "448x608":
-                test_loader.test.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
+                data_cfg.test.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
+            test_loader = instantiate(data_cfg.test)
             self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
         # torchbench: only run 1 batch
         self.NUM_BATCHES = 1
