@@ -7,8 +7,8 @@ import copy
 from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
-# run 10 rounds for stableness and correctness tests
-CORRECTNESS_CHECK_ROUNDS: int = 10
+# rounds for stableness and correctness tests
+CORRECTNESS_CHECK_ROUNDS: int = 3
 
 def set_random_seed():
     import torch
@@ -55,12 +55,11 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
             previous_result = copy_model.invoke()
         else:
             if not same(previous_result, copy_model.invoke(), cos_similarity=cos_sim):
-                return None
+                raise RuntimeError("Model returns unstable result. Please report a bug.")
     return previous_result
 
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True) -> bool:
     assert model.test=="eval", "We only support correctness check for inference."
-    assert hasattr(model, 'eager_output'), "Need stableness result to check correctness."
     # some models, (e.g., moco) is stateful and will give different outputs
     # on the same input if called multiple times
     set_random_seed()
