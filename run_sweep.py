@@ -38,7 +38,7 @@ def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=20) -> Tuple
             t0 = time.time_ns()
             func()
             t1 = time.time_ns()
-        result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
+            result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
     
     if device != 'cuda':
         # return wall_latency
