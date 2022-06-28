@@ -7,7 +7,7 @@ MODEL_DIR = os.path.abspath(os.path.dirname(__file__))
 
 class Model(Detectron2Model):
     task = COMPUTER_VISION.SEGMENTATION
-    model_file = os.path.join(MODEL_DIR, ".data", f"{MODEL_NAME}.pkl")
+    model_file = None
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(variant="COCO-Detection/fcos_R_50_FPN_1x.py", test=test, device=device,
