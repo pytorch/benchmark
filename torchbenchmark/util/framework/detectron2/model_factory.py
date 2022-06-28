@@ -35,6 +35,10 @@ def setup(args):
         # set images per batch to 1
         cfg.SOLVER.IMS_PER_BATCH = 1
         cfg.MODEL.WEIGHTS = args.model_file
+        if args.resize == "448x608":
+            cfg.MODEL.RPN.POST_NMS_TOPK_TEST = 300
+            cfg.INPUT.MIN_SIZE_TEST = 448
+            cfg.INPUT.MAX_SIZE_TEST = 608
         cfg.merge_from_list(args.opts)
         cfg.freeze()
     else:
@@ -79,6 +83,7 @@ class Detectron2Model(BenchmarkModel):
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
         # setup pre-trained model weights
         args.model_file = self.model_file
+        args.resize = self.tb_args.resize
 
         cfg = setup(args)
         if args.config_file.endswith(".yaml"):
@@ -101,6 +106,7 @@ class Detectron2Model(BenchmarkModel):
         checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
         checkpointer.load(self.model_file)
         self.model.train()
+        # Always use coco.py to initialize train data
         # setup train dataset
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
         data_cfg.train.dataset.names = "coco_2017_val_100"
@@ -115,11 +121,8 @@ class Detectron2Model(BenchmarkModel):
         DetectionCheckpointer(self.model).load(self.model_file)
         self.model.eval()
         if args.config_file.endswith(".yaml"):
-            cfg.defrost()
-            if self.tb_args.resize == "448x608":
-                cfg.INPUT.MIN_SIZE_TEST = 448
-                cfg.INPUT.MAX_SIZE_TEST = 608
             loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0])
+            cfg.defrost()
         else:
             data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
             data_cfg.test.dataset.names = "coco_2017_val_100"
