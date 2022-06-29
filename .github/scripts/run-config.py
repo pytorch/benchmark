@@ -54,9 +54,22 @@ def get_models(config) -> Optional[str]:
     assert enabled_models, f"The model patterns you specified {config['models']} does not match any model. Please double check."
     return enabled_models
 
-def get_batch_sizes(config) -> Optional[int]:
+def get_subrun_key(device, test, batch_size=None):
+    return f"{test}-{device}-bsize_{batch_size}" if batch_size else f"{test}-{device}"
+
+def get_tests(config):
+    if not "test" in config:
+        return ["train", "eval"]
+    return config["test"]
+
+def get_devices(config):
+    if not "device" in config:
+        return ["cpu", "cuda"]
+    return config["device"]
+
+def get_batch_sizes(config):
     if not "batch_size" in config:
-        return None
+        return itertools.repeat(None)
     return config["batch_size"]
 
 def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelConfig]:
@@ -67,19 +80,21 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
         raise RuntimeError(f"Benchmark model config {config_file} does not exist.")
     with open(config_file, "r") as cf:
         config = yaml.safe_load(cf)
-    out = []
+    out = {}
+
     models = get_models(config)
+    devices = get_devices(config)
+    tests = get_tests(config)
     batch_sizes = get_batch_sizes(config)
-    bm_matrix = [config["device"], config["test"], config["args"]]
-    if batch_sizes:
-        bm_matrix.append(config["batch_size"])
-    else:
-        bm_matrix.append(itertools.repeat(None))
-    for device, test, args, batch_size in itertools.product(*bm_matrix):
-        output_args = args.split(" ")
-        if batch_size:
-            output_args.extend(["--bs", str(batch_size)])
-        out.append(BenchmarkModelConfig(models=models, device=device, test=test, batch_size=batch_size, args=args.split(" "), rewritten_option=rewrite_option(output_args)))
+
+    bm_matrix = [devices, tests, batch_sizes]
+    for device, test, batch_size in itertools.product(*bm_matrix):
+        subrun = (device, test, batch_size) if batch_size else (device, test)
+        out[subrun] = []
+        for args in config["args"]:
+            out[subrun].append(BenchmarkModelConfig(models=models, device=device, test=test, \
+                               batch_size=batch_size, args=args.split(" "), \
+                               rewritten_option=rewrite_option(args.split(" "))))
     return out
 
 def create_dir_if_nonexist(dirpath: str) -> Path:
@@ -93,7 +108,7 @@ def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Pat
     cmd = [sys.executable, "run_sweep.py", "-d", config.device, "-t", config.test]
     if config.batch_size:
         cmd.append("-b")
-        cmd.append(str(config.bs))
+        cmd.append(str(config.batch_size))
     if config.models:
         cmd.append("-m")
         cmd.extend(config.models)
@@ -120,9 +135,15 @@ if __name__ == "__main__":
     repo_path = Path(args.benchmark_repo)
     assert repo_path.exists(), f"Path {args.benchmark_repo} doesn't exist. Exit."
     output_path = create_dir_if_nonexist(args.output_dir)
-    bmconfig_list = parse_bmconfigs(repo_path, args.config)
-    assert len(bmconfig_list), "Size of the BenchmarkModel list must be larger than zero."
-    for bmconfig in bmconfig_list:
-        run_bmconfig(bmconfig, repo_path, output_path, args.dryrun)
-    if not args.dryrun:
-        gen_output_csv(output_path, base_key=bmconfig_list[0].rewritten_option)
+    total_run = parse_bmconfigs(repo_path, args.config)
+    assert len(total_run), "Size of the BenchmarkModel list must be larger than zero."
+    for subrun in total_run:
+        subrun_key = get_subrun_key(*subrun)
+        bmconfigs = total_run[subrun]
+        assert len(bmconfigs), f"Size of subrun {subrun} must be larger than zero."
+        subrun_path = output_path.joinpath(subrun_key)
+        subrun_path.mkdir(exist_ok=True, parents=True)
+        for bm in bmconfigs:
+            run_bmconfig(bm, repo_path, subrun_path, args.dryrun)
+            if not args.dryrun:
+                gen_output_csv(output_path, base_key=bmconfigs[0].rewritten_option)
