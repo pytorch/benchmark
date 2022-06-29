@@ -72,7 +72,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
     if stress != 0:
         cur_time = time.time_ns()
         start_time = cur_time
-        target_time = stress * 60 * 1e9 + start_time
+        target_time = stress * 1e9 + start_time
         num_iter = -1
         last_time = start_time
     _i = 0
@@ -106,10 +106,11 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             result_summary.append([(t1 - t0) / 1_000_000])
         if stress != 0:
             cur_time = time.time_ns()
-            if (cur_time - last_time) >= 60 * 1e9:
-                est = (target_time - cur_time) / 60 / 1e9
+            # print out the status every 10s.
+            if (cur_time - last_time) >= 10 * 1e9:
+                est = (target_time - cur_time) / 1e9
                 print('{:<20} {:>20}'.format("Passed Iterations:", "%d" % _i))
-                print('{:<20} {:>20}'.format("Estimated Rest Time:", "%d minutes" % int(est)))
+                print('{:<20} {:>20}'.format("Estimated Rest Time:", "%d seconds" % int(est)))
                 last_time = cur_time
         _i += 1
     if dcgm_enabled:
@@ -203,7 +204,7 @@ if __name__ == "__main__":
     parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result.")
     parser.add_argument("--export-dcgm-metrics", action="store_true",
                         help="Export all GPU FP32 unit active ratio, memory traffic, and memory throughput records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
-    parser.add_argument("--stress", type=float, default=0, help="Specify execution time (minutes) to stress devices.")
+    parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
