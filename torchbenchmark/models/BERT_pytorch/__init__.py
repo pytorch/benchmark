@@ -76,7 +76,7 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
         if device == "cpu":
-            self.DEFAULT_EVAL_BSIZE = self.DEFAULT_EVAL_BSIZE / 8
+            self.DEFAULT_EVAL_BSIZE = max(1, int(self.DEFAULT_EVAL_BSIZE / 8))
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         debug_print = False
         root = str(Path(__file__).parent)
