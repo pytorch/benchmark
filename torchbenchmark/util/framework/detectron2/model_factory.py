@@ -46,6 +46,9 @@ def setup(args):
         cfg = LazyConfig.apply_overrides(cfg, args.opts)
         if args.fcos_use_bn:
             cfg.model.head.norm = "BN"
+            cfg.SOLVER.BASE_LR = 0.001
+            # set images per batch to 1
+            cfg.SOLVER.IMS_PER_BATCH = 1
     return cfg
 
 def prefetch(dataloader, device, precision="fp32"):
