@@ -18,6 +18,12 @@ class_models = {
     'hf_Bert': (512, 512, 'BertConfig()', 'AutoModelForMaskedLM'),
 }
 
+cpu_input_slice = {
+    'hf_BigBird': 5,
+    'hf_Longformer': 8,
+    'hf_T5': 4,
+}
+
 class ArgsToKwargsWrapper(torch.nn.Module):
     def __init__(self, model):
         super(ArgsToKwargsWrapper, self).__init__()
@@ -39,6 +45,9 @@ class HuggingFaceModel(BenchmarkModel):
             self.max_length = class_models[name][0]
         elif test == "eval":
             self.max_length = class_models[name][1]
+        # Cut the length of sentence when running on CPU, to reduce test time
+        if self.device == "cpu" and self.name in cpu_input_slice:
+            self.max_length = int(self.max_length / cpu_input_slice[self.name])
         config = eval(class_models[name][2])
         if class_models[name][2] == "ReformerConfig()" and not config.num_buckets:
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
