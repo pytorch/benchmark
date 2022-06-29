@@ -149,7 +149,7 @@ class Detectron2Model(BenchmarkModel):
         self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
 
     def train(self):
-        if self.fcos_use_bn:
+        if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
             raise NotImplementedError("FCOS train is not supported by upstream detectron2. " \
                                       "See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.")
         with EventStorage():
