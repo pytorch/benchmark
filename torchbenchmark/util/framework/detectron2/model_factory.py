@@ -149,6 +149,9 @@ class Detectron2Model(BenchmarkModel):
         self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
 
     def train(self):
+        if self.fcos_use_bn:
+            raise NotImplementedError("FCOS train is not supported by upstream detectron2. " \
+                                      "See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.")
         with EventStorage():
             for batch_id in range(self.NUM_BATCHES):
                 loss_dict = self.model(self.example_inputs[batch_id])
