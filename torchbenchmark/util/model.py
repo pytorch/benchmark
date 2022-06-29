@@ -108,7 +108,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             # in this case, use more relaxed cosine similarity instead of torch.allclose
             # for correctness testing
             # see: https://github.com/pytorch/torchdynamo/pull/438
-            if self.dargs.precision == "fp16" or self.dynamo == "fx2trt" or self.opt_args.fx2trt:
+            if self.dargs.precision == "fp16" or (self.dynamo and self.opt_args.torchdynamo == "fx2trt") or (not self.dynamo and self.opt_args.fx2trt):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
                 self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
