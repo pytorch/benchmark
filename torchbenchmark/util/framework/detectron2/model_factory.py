@@ -125,8 +125,9 @@ class Detectron2Model(BenchmarkModel):
         DetectionCheckpointer(self.model).load(self.model_file)
         self.model.eval()
         if args.config_file.endswith(".yaml"):
-            loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0])
             cfg.defrost()
+            cfg.DATASETS.TEST = ("coco_2017_val_100", )
+            loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0], batch_size=self.batch_size)
         else:
             data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
             data_cfg.test.dataset.names = "coco_2017_val_100"
