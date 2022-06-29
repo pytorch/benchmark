@@ -97,13 +97,6 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
                                rewritten_option=rewrite_option(args.split(" "))))
     return out
 
-def create_dir_if_nonexist(dirpath: str) -> Path:
-    path = Path(dirpath)
-    path.mkdir(parents=True, exist_ok=True)
-    json_path = path.joinpath("json")
-    json_path.mkdir(parents=True, exist_ok=True)
-    return path
-
 def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path, dryrun=False):
     cmd = [sys.executable, "run_sweep.py", "-d", config.device, "-t", config.test]
     if config.batch_size:
@@ -136,7 +129,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     repo_path = Path(args.benchmark_repo)
     assert repo_path.exists(), f"Path {args.benchmark_repo} doesn't exist. Exit."
-    output_path = create_dir_if_nonexist(args.output_dir)
+    output_path = Path(args.output_dir)
+    output_path.mkdir(exist_ok=True, parents=True)
     total_run = parse_bmconfigs(repo_path, args.config)
     assert len(total_run), "Size of the BenchmarkModel list must be larger than zero."
     for subrun in total_run:
@@ -147,5 +141,5 @@ if __name__ == "__main__":
         subrun_path.mkdir(exist_ok=True, parents=True)
         for bm in bmconfigs:
             run_bmconfig(bm, repo_path, subrun_path, args.dryrun)
-            if not args.dryrun:
-                gen_output_csv(output_path, base_key=bmconfigs[0].rewritten_option)
+        if not args.dryrun:
+            gen_output_csv(subrun_path, base_key=bmconfigs[0].rewritten_option)
