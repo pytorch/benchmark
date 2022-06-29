@@ -26,6 +26,7 @@ class BenchmarkModelConfig:
     models: Optional[List[str]]
     device: str
     test: str
+    batch_size: Optional[int]
     args: List[str]
     rewritten_option: str
 
@@ -53,6 +54,11 @@ def get_models(config) -> Optional[str]:
     assert enabled_models, f"The model patterns you specified {config['models']} does not match any model. Please double check."
     return enabled_models
 
+def get_batch_sizes(config) -> Optional[int]:
+    if not "batch_size" in config:
+        return None
+    return config["batch_size"]
+
 def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelConfig]:
     if not config_name.endswith(".yaml"):
         config_name += ".yaml"
@@ -63,8 +69,17 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
         config = yaml.safe_load(cf)
     out = []
     models = get_models(config)
-    for device, test, args in itertools.product(*[config["device"], config["test"], config["args"]]):
-        out.append(BenchmarkModelConfig(models=models, device=device, test=test, args=args.split(" "), rewritten_option=rewrite_option(args.split(" "))))
+    batch_sizes = get_batch_sizes(config)
+    bm_matrix = [config["device"], config["test"], config["args"]]
+    if batch_sizes:
+        bm_matrix.append(config["batch_size"])
+    else:
+        bm_matrix.append(itertools.repeat(None))
+    for device, test, args, batch_size in itertools.product(*bm_matrix):
+        output_args = args.split(" ")
+        if batch_size:
+            output_args.extend(["--bs", str(batch_size)])
+        out.append(BenchmarkModelConfig(models=models, device=device, test=test, batch_size=batch_size, args=args.split(" "), rewritten_option=rewrite_option(output_args)))
     return out
 
 def create_dir_if_nonexist(dirpath: str) -> Path:
@@ -76,6 +91,9 @@ def create_dir_if_nonexist(dirpath: str) -> Path:
 
 def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path, dryrun=False):
     cmd = [sys.executable, "run_sweep.py", "-d", config.device, "-t", config.test]
+    if config.batch_size:
+        cmd.append("-b")
+        cmd.append(str(config.bs))
     if config.models:
         cmd.append("-m")
         cmd.extend(config.models)
