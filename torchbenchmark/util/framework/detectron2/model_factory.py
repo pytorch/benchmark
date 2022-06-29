@@ -46,9 +46,6 @@ def setup(args):
         cfg = LazyConfig.apply_overrides(cfg, args.opts)
         if args.fcos_use_bn:
             cfg.model.head.norm = "BN"
-            cfg.SOLVER.BASE_LR = 0.001
-            # set images per batch to 1
-            cfg.SOLVER.IMS_PER_BATCH = 1
     return cfg
 
 def prefetch(dataloader, device, precision="fp32"):
@@ -109,6 +106,9 @@ class Detectron2Model(BenchmarkModel):
         self.NUM_BATCHES = 1
 
     def setup_train(self, cfg, args):
+        if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
+            raise NotImplementedError("FCOS train is not supported by upstream detectron2. " \
+                                      "See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.")
         self.optimizer = build_optimizer(cfg, self.model)
         checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
         checkpointer.load(self.model_file)
@@ -149,9 +149,6 @@ class Detectron2Model(BenchmarkModel):
         self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
 
     def train(self):
-        if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
-            raise NotImplementedError("FCOS train is not supported by upstream detectron2. " \
-                                      "See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.")
         with EventStorage():
             for batch_id in range(self.NUM_BATCHES):
                 loss_dict = self.model(self.example_inputs[batch_id])
