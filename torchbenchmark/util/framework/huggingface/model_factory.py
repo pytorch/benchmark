@@ -22,6 +22,8 @@ cpu_input_slice = {
     'hf_BigBird': 5,
     'hf_Longformer': 8,
     'hf_T5': 4,
+    'hf_GPT2': 4,
+    'hf_Reformer': 2,
 }
 
 class ArgsToKwargsWrapper(torch.nn.Module):
