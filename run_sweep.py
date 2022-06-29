@@ -148,5 +148,7 @@ if __name__ == "__main__":
         r = _run_model_test(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
         results.append(r)
     results = list(map(lambda x: dataclasses.asdict(x), results))
+    parent_dir = pathlib.Path(args.output).parent
+    parent_dir.mkdir(exist_ok=True, parents=True)
     with open(args.output, "w") as outfile:
         json.dump(results, outfile, indent=4)
