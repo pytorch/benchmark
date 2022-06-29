@@ -114,7 +114,9 @@ def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Pat
         cmd.extend(config.models)
     if config.args != ['']:
         cmd.extend(config.args)
-    cmd.extend(["-o", os.path.join(output_path.absolute(), "json", f"{config.rewritten_option}.json")])
+    output_dir = output_path.joinpath("json")
+    output_dir.mkdir(exist_ok=True, parents=True)
+    cmd.extend(["-o", os.path.join(output_dir.absolute(), f"{config.rewritten_option}.json")])
     print(f"Now running benchmark command: {cmd}.", flush=True)
     if dryrun:
         return
