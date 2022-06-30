@@ -1,3 +1,4 @@
+from torchbenchmark.util.framework.detectron2.config import parse_tb_args
 from torchbenchmark.util.model import BenchmarkModel
 import itertools
 import os
@@ -20,6 +21,9 @@ from detectron2.modeling import build_model
 from detectron2.utils.events import EventStorage
 from torch.utils._pytree import tree_map
 from detectron2.checkpoint import DetectionCheckpointer
+import detectron2.data.transforms as T
+from detectron2.config import LazyCall as L
+from detectron2.data import build_detection_test_loader, build_detection_train_loader
 
 from typing import Tuple
 
@@ -31,11 +35,17 @@ def setup(args):
         # set images per batch to 1
         cfg.SOLVER.IMS_PER_BATCH = 1
         cfg.MODEL.WEIGHTS = args.model_file
+        if args.resize == "448x608":
+            cfg.MODEL.RPN.POST_NMS_TOPK_TEST = 300
+            cfg.INPUT.MIN_SIZE_TEST = 448
+            cfg.INPUT.MAX_SIZE_TEST = 608
         cfg.merge_from_list(args.opts)
         cfg.freeze()
     else:
         cfg = LazyConfig.load(args.config_file)
         cfg = LazyConfig.apply_overrides(cfg, args.opts)
+        if args.fcos_use_bn:
+            cfg.model.head.norm = "BN"
     return cfg
 
 def prefetch(dataloader, device, precision="fp32"):
@@ -64,6 +74,7 @@ class Detectron2Model(BenchmarkModel):
 
     def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        self.tb_args, self.extra_args = parse_tb_args(self.extra_args)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = False
         # load model file
@@ -72,40 +83,62 @@ class Detectron2Model(BenchmarkModel):
             assert (os.path.exists(self.model_file)), f"Detectron2 model file specified {self.model_file} doesn't exist."
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
-        # tb_parser = get_tb_parser()
-        # tb_args, self.extra_args = tb_parser.parse_known_args()
-        # setup resize
-        # args.resize = tb_args.resize
         # setup pre-trained model weights
         args.model_file = self.model_file
-        data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
+        args.resize = self.tb_args.resize
+        if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
+            args.fcos_use_bn = True
+
         cfg = setup(args)
         if args.config_file.endswith(".yaml"):
             self.model = build_model(cfg).to(self.device)
         else:
             self.model = instantiate(cfg.model).to(self.device)
+
+        # setup model and return the dataloader
         if self.test == "train":
-            self.optimizer = build_optimizer(cfg, self.model)
-            checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
-            checkpointer.load(self.model_file)
-            self.model.train()
-            # setup train dataset
-            data_cfg.train.dataset.names = "coco_2017_val_100"
-            data_cfg.train.total_batch_size = self.batch_size
-            train_loader = instantiate(data_cfg.train)
-            self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device)
+            loader = self.setup_train(cfg, args)
         elif self.test == "eval":
-            # load model from pretrained checkpoint
-            DetectionCheckpointer(self.model).load(self.model_file)
-            self.model.eval()
-            # setup eval dataset
-            data_cfg.test.dataset.names = "coco_2017_val_100"
-            data_cfg.test.batch_size = self.batch_size
-            test_loader = instantiate(data_cfg.test)
-            self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
+            loader = self.setup_eval(cfg, args)
+
+        self.example_inputs = prefetch(itertools.islice(loader, 100), self.device)
         # torchbench: only run 1 batch
         self.NUM_BATCHES = 1
-        cfg.defrost()
+
+    def setup_train(self, cfg, args):
+        if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
+            raise NotImplementedError("FCOS train is not supported by upstream detectron2. " \
+                                      "See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.")
+        self.optimizer = build_optimizer(cfg, self.model)
+        checkpointer = DetectionCheckpointer(self.model, optimizer=self.optimizer)
+        checkpointer.load(self.model_file)
+        self.model.train()
+        # Always use coco.py to initialize train data
+        # setup train dataset
+        data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
+        data_cfg.train.dataset.names = "coco_2017_val_100"
+        data_cfg.train.total_batch_size = self.batch_size
+        if self.tb_args.resize == "448x608":
+            data_cfg.train.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
+        loader = instantiate(data_cfg.train)
+        return loader
+
+    def setup_eval(self, cfg, args):
+         # load model from pretrained checkpoint
+        DetectionCheckpointer(self.model).load(self.model_file)
+        self.model.eval()
+        if args.config_file.endswith(".yaml"):
+            cfg.defrost()
+            cfg.DATASETS.TEST = ("coco_2017_val_100", )
+            loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0], batch_size=self.batch_size)
+        else:
+            data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
+            data_cfg.test.dataset.names = "coco_2017_val_100"
+            data_cfg.test.batch_size = self.batch_size
+            if self.tb_args.resize == "448x608":
+                data_cfg.test.mapper.augmentations = [L(T.ResizeShortestEdge)(short_edge_length=448, max_size=608)]
+            loader = instantiate(data_cfg.test)
+        return loader
 
     def get_module(self):
         return self.model, (self.example_inputs[0], )

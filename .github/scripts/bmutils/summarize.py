@@ -85,7 +85,7 @@ def find_result_by_header(r, header, base_arg):
         else:
             return r[args]["status"]
     elif tp == "speedup":
-        if is_ok(r[args]):
+        if is_ok(r[base_arg]) and is_ok(r[args]):
             return r[base_arg]["results"]["latency_ms"] / r[args]["results"]["latency_ms"]
         else:
             return "N/A"
