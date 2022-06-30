@@ -69,14 +69,14 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             model_analyzer.set_export_csv_name(export_dcgm_metrics_file)
             model_analyzer.add_mem_throughput_metrics()
         model_analyzer.start_monitor()
-    if stress != 0:
+    if stress:
         cur_time = time.time_ns()
         start_time = cur_time
         target_time = stress * 1e9 + start_time
         num_iter = -1
         last_time = start_time
     _i = 0
-    while ( num_iter != -1 and _i < num_iter ) or ( stress != 0 and cur_time < target_time ) :
+    while (not stress and _i < num_iter ) or (stress and cur_time < target_time ) :
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
@@ -104,7 +104,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             func()
             t1 = time.time_ns()
             result_summary.append([(t1 - t0) / 1_000_000])
-        if stress != 0:
+        if stress:
             cur_time = time.time_ns()
             # print out the status every 10s.
             if (cur_time - last_time) >= 10 * 1e9:
