@@ -18,7 +18,9 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
-    DEEPCOPY = False
+    # Skip correctness check, because maml runs backward and optimizer in eval()
+    # Which will return non-deterministic results
+    SKIP_CORRECTNESS_CHECK = True
 
     def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
