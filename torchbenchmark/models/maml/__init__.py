@@ -84,9 +84,8 @@ class Model(BenchmarkModel):
             out = self.module(*self.example_inputs)
         return (out, )
 
-    def train(self, niter=1):
-        for _ in range(niter):
-            self.module(*self.example_inputs)
+    def train(self):
+        raise NotImplementedError("MAML model doesn't support train.")
 
     def eval_in_nograd(self):
         return False
