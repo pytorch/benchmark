@@ -39,8 +39,8 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
        If the result is not stable, return None. """
     assert model.test=="eval", "We only support stableness check for inference."
     previous_result = None
-    set_random_seed()
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
+        set_random_seed()
         # some models, (e.g., moco) is stateful and will give different outputs
         # on the same input if called multiple times
         try:
