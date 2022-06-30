@@ -76,6 +76,8 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         num_iter = -1
         last_time = start_time
     _i = 0
+    last_it = 0
+    first_print_out = True
     while (not stress and _i < num_iter ) or (stress and cur_time < target_time ) :
         if args.device == "cuda":
             torch.cuda.synchronize()
@@ -108,10 +110,14 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             cur_time = time.time_ns()
             # print out the status every 10s.
             if (cur_time - last_time) >= 10 * 1e9:
+                if first_print_out:
+                    print('|{:^20}|{:^20}|{:^20}|'.format("Iterations", "Time/Iteration(ms)", "Rest Time(s)"))
+                    first_print_out = False
                 est = (target_time - cur_time) / 1e9
-                print('{:<20} {:>20}'.format("Passed Iterations:", "%d" % _i))
-                print('{:<20} {:>20}'.format("Estimated Rest Time:", "%d seconds" % int(est)))
+                time_per_it = (cur_time - last_time) / ( _i - last_it) / 1e6
+                print('|{:^20}|{:^20}|{:^20}|'.format("%d" % _i, "%.2f" % time_per_it , "%d" % int(est)))
                 last_time = cur_time
+                last_it = _i
         _i += 1
     if dcgm_enabled:
             model_analyzer.stop_monitor()
