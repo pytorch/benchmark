@@ -3,7 +3,7 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 import torch
 from typing import Tuple
-from .angular_tts_main import TTSModel, SYNTHETIC_DATA
+from .angular_tts_main import TTSModel
 
 class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
@@ -19,7 +19,7 @@ class Model(BenchmarkModel):
         self.model.model.to(self.device)
 
     def get_module(self):
-        return self.model.model, [SYNTHETIC_DATA[0], ]
+        return self.model.model, [self.model.SYNTHETIC_DATA[0], ]
 
     def set_module(self, new_model):
         self.model.model = new_model
