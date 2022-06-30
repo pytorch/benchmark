@@ -50,6 +50,10 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 4
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        # reduce the eval batch size when running on CPU
+        # see: https://github.com/pytorch/benchmark/issues/895
+        if device == "cpu":
+            self.DEFAULT_EVAL_BSIZE = 1
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True).to(self.device)

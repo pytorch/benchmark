@@ -18,6 +18,14 @@ class_models = {
     'hf_Bert': (512, 512, 'BertConfig()', 'AutoModelForMaskedLM'),
 }
 
+cpu_input_slice = {
+    'hf_BigBird': 5,
+    'hf_Longformer': 8,
+    'hf_T5': 4,
+    'hf_GPT2': 4,
+    'hf_Reformer': 2,
+}
+
 class ArgsToKwargsWrapper(torch.nn.Module):
     def __init__(self, model):
         super(ArgsToKwargsWrapper, self).__init__()
@@ -53,6 +61,9 @@ class HuggingFaceModel(BenchmarkModel):
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
             self.model.train()
         elif test == "eval":
+            # Cut the length of sentence when running on CPU, to reduce test time
+            if self.device == "cpu" and self.name in cpu_input_slice:
+                self.max_length = int(self.max_length / cpu_input_slice[self.name])
             eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': eval_context, }
             if class_models[name][3] == 'AutoModelForSeq2SeqLM':

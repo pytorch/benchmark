@@ -87,9 +87,9 @@ class Model(BenchmarkModel):
             self.data = data_bundle.get_dataset('dev')
 
         example_inputs = DataSetIter(dataset=self.data,
-                                          batch_size=self.batch_size,
-                                          sampler=None,
-                                          num_workers=self.num_workers, drop_last=False)
+                                     batch_size=self.batch_size,
+                                     sampler=None,
+                                     num_workers=self.num_workers, drop_last=False)
         self.example_inputs = self._prefetch(example_inputs)
 
     def get_module(self):
