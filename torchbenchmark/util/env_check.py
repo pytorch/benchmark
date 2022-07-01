@@ -39,18 +39,18 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
        If the result is not stable, raise RuntimeError. """
     assert model.test=="eval", "We only support stableness check for inference."
     previous_result = None
-    set_random_seed()
-    # some models, (e.g., moco) is stateful and will give different outputs
-    # on the same input if called multiple times
-    try:
-        if deepcopy:
-            copy_model = copy.deepcopy(model)
-        else:
-            copy_model = model
-    except RuntimeError:
-        # if the model is not copy-able, don't copy it
-        copy_model = model
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
+        set_random_seed()
+        # some models, (e.g., moco) is stateful and will give different outputs
+        # on the same input if called multiple times
+        try:
+            if deepcopy:
+                copy_model = copy.deepcopy(model)
+            else:
+                copy_model = model
+        except RuntimeError:
+            # if the model is not copy-able, don't copy it
+            copy_model = model
         if previous_result == None:
             previous_result = copy_model.invoke()
         else:
