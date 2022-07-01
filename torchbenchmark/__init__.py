@@ -12,6 +12,7 @@ import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 from urllib import request
+from torchbenchmark.util.env_check import stableness_check
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
@@ -407,13 +408,17 @@ class ModelTask(base_task.TaskBase):
         import torch
         assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."
         out = instance.invoke()
+        # check output type
         model_name = getattr(instance, 'name', None)
         if not isinstance(out, tuple):
             raise RuntimeError(f'Model {model_name} eval test output is not a tuple')
+
         for ind, element in enumerate(out):
             if not isinstance(element, torch.Tensor):
                 raise RuntimeError(f'Model {model_name} eval test output is tuple, but'
                                    f' its {ind}-th element is not a Tensor.')
+        # check output stableness
+        stableness_check(instance, cos_sim=False, deepcopy=instance.DEEPCOPY)
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod

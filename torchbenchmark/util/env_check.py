@@ -7,7 +7,9 @@ import copy
 from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
-# rounds for stableness and correctness tests
+# rounds for stableness tests
+STABLENESS_CHECK_ROUNDS: int = 3
+# rounds for correctness tests
 CORRECTNESS_CHECK_ROUNDS: int = 2
 
 def set_random_seed():
@@ -34,14 +36,14 @@ def has_native_amp() -> bool:
         pass
     return False
 
-def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True) -> Tuple['torch.Tensor']:
+def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
        If the result is not stable, raise RuntimeError. """
     assert model.test=="eval", "We only support stableness check for inference."
     previous_result = None
-    for _i in range(CORRECTNESS_CHECK_ROUNDS):
+    for _i in range(rounds):
         set_random_seed()
-        # some models, (e.g., moco) is stateful and will give different outputs
+        # some models are stateful and will give different outputs
         # on the same input if called multiple times
         try:
             if deepcopy:
@@ -60,20 +62,20 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
             del cur_result
     return previous_result
 
-def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True) -> bool:
+def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS) -> bool:
     assert model.test=="eval", "We only support correctness check for inference."
-    # some models, (e.g., moco) is stateful and will give different outputs
-    # on the same input if called multiple times
-    set_random_seed()
-    try:
-        if deepcopy:
-            copy_model = copy.deepcopy(model)
-        else:
+    for _i in range(rounds):
+        # some models are stateful and will give different outputs
+        # on the same input if called multiple times
+        set_random_seed()
+        try:
+            if deepcopy:
+                copy_model = copy.deepcopy(model)
+            else:
+                copy_model = model
+        except RuntimeError:
+            # if the model is not copy-able, don't copy it
             copy_model = model
-    except RuntimeError:
-        # if the model is not copy-able, don't copy it
-        copy_model = model
-    for _i in range(CORRECTNESS_CHECK_ROUNDS):
         cur_result = copy_model.invoke()
         if not same(model.eager_output, cur_result, cos_similarity=cos_sim):
             return False

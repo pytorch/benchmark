@@ -5,7 +5,7 @@ import warnings
 import inspect
 from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
-                                           parse_decoration_args, apply_decoration_args, check_stableness_p
+                                           parse_decoration_args, apply_decoration_args
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
 
 class PostInitProcessor(type):
@@ -90,8 +90,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             self.dynamo = False
             self.opt_args = parse_opt_args(self, opt_args)
-        if check_stableness_p(self):
-            self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
+        if check_correctness_p(self):
+            self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
