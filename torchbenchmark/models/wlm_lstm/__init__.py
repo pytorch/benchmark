@@ -79,7 +79,7 @@ class Model(BenchmarkModel):
         args = parse_args(model_args)
         corpus = data.Corpus(args.data)
         self.ntokens = len(corpus.dictionary)
-        self.model = wlm_model.RNNModel(args.model, self.ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout).to(self.device)
+        self.model = wlm_model.RNNModel(args.model, self.ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.tied).to(self.device)
         self.args = args
         if self.test == "train":
             self.lr = args.lr
