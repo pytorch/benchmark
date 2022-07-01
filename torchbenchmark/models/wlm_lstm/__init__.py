@@ -114,9 +114,10 @@ class Model(BenchmarkModel):
 
              # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.clip)
-            for p in self.model.parameters():
-                p.data.add_(p.grad, alpha=-self.lr)
-            total_loss += loss.item()
+            # TODO: fix cuda memory leak in train mode
+            # for p in self.model.parameters():
+            #     p.data.add_(p.grad, alpha=-self.lr)
+            # total_loss += loss.item()
 
     def eval(self) -> Tuple[torch.Tensor]:
         out = None
