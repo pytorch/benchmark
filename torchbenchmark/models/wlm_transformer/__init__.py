@@ -64,6 +64,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 20
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        if device == "cpu" and test == "eval":
+            self.DEFAULT_EVAL_BSIZE = max(1, self.DEFAULT_EVAL_BSIZE / 8)
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         model_args = ["--data", DATA_PATH, "--batch_size", str(self.batch_size), "--model", "Transformer", "--epochs", "1"]
         args = parse_args(model_args)
