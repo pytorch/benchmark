@@ -4,6 +4,7 @@ import os
 from torchbenchmark import REPO_PATH
 from typing import Tuple
 import torch.nn as nn
+from torch.utils._pytree import tree_map
 
 # Import extra model path
 class add_path():
@@ -126,4 +127,6 @@ class Model(BenchmarkModel):
                 output = self.model(data, hidden)
                 hidden = repackage_hidden(hidden)
                 out = output
-        return out
+        out_tensors = []
+        tree_map(lambda x: out_tensors.append(x) if isinstance(x, torch.Tensor) else x, out)
+        return tuple(out_tensors)

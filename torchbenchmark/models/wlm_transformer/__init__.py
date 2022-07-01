@@ -116,4 +116,4 @@ class Model(BenchmarkModel):
                 output = self.model(data)
                 output = output.view(-1, ntokens)
                 out = output
-        return out
+        return (out, )
