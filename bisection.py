@@ -144,7 +144,7 @@ class TorchSource:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
-        # self.update_repos()
+        self.update_repos()
         # Clean up the existing packages
         self.cleanup()
         return True
@@ -181,13 +181,13 @@ class TorchSource:
             return self.commits[int((left_index + right_index) / 2)]
 
     def setup_build_env(self, env) -> Dict[str, str]:
-        env["USE_CUDA"] = "0"
+        env["USE_CUDA"] = "1"
         env["BUILD_CAFFE2_OPS"] = "0"
         # Do not build the test
         env["BUILD_TEST"] = "0"
         env["USE_MKLDNN"] = "1"
         env["USE_MKL"] = "1"
-        env["USE_CUDNN"] = "0"
+        env["USE_CUDNN"] = "1"
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
         return env
 
@@ -205,16 +205,15 @@ class TorchSource:
     # Install dependencies such as torchtext and torchvision
     def build_install_deps(self, build_env):
         # Build torchvision
-        # print(f"Building torchvision ...", end="", flush=True)
-        # command = "python setup.py install"
-        # subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"][0], env=build_env, shell=True)
-        # print("done")
+        print(f"Building torchvision ...", end="", flush=True)
+        command = "python setup.py install"
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchvision"][0], env=build_env, shell=True)
+        print("done")
         # Build torchtext
-        # print(f"Building torchtext ...", end="", flush=True)
-        # command = "python setup.py clean install"
-        # subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"][0], env=build_env, shell=True)
-        # print("done")
-        pass
+        print(f"Building torchtext ...", end="", flush=True)
+        command = "python setup.py clean install"
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"][0], env=build_env, shell=True)
+        print("done")
 
     def _build_lazy_tensor(self, commit: Commit, build_env: Dict[str, str]):
         if self.build_lazy:
@@ -319,7 +318,7 @@ class TorchBench:
         bmfilter = targets_to_bmfilter(targets, self.models)
         # If the first time to run benchmark, install the dependencies first
         if self.first_time:
-            # self._install_benchmark()
+            self._install_benchmark()
             self.first_time = False
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""

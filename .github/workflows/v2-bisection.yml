@@ -25,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: xz9/add-wlm-trans
+          ref: v2.0
       - name: Create conda environment
         run: |
           set -x
