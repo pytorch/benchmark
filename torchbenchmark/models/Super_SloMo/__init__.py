@@ -31,7 +31,8 @@ class Model(BenchmarkModel):
     #    hardware platform: Nvidia GTX 1080 Ti
     # Source: https://github.com/avinashpaliwal/Super-SloMo/blob/master/train.ipynb
     DEFAULT_TRAIN_BSIZE = 6
-    DEFAULT_EVAL_BSIZE = 10
+    # use smaller batch size to fit on Nvidia T4
+    DEFAULT_EVAL_BSIZE = 6
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
