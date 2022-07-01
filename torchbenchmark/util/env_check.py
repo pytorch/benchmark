@@ -8,7 +8,7 @@ from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
 # rounds for stableness and correctness tests
-CORRECTNESS_CHECK_ROUNDS: int = 3
+CORRECTNESS_CHECK_ROUNDS: int = 2
 
 def set_random_seed():
     import torch

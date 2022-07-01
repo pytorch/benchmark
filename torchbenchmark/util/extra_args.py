@@ -9,7 +9,7 @@ def check_stableness_p(model: 'torchbenchmark.util.model.BenchmarkModel') -> boo
     # if the model doesn't support correctness check (like detectron2), skip it
     if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
         return False
-    return model.test == "eval"
+    return model.test == "eval" and model.device == "cuda"
 
 def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: argparse.Namespace) -> bool:
     "If correctness check should be enabled."
