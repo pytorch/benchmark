@@ -54,8 +54,10 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
         if previous_result == None:
             previous_result = copy_model.invoke()
         else:
-            if not same(previous_result, copy_model.invoke(), cos_similarity=cos_sim):
+            cur_result = copy_model.invoke()
+            if not same(previous_result, cur_result, cos_similarity=cos_sim):
                 raise RuntimeError("Model returns unstable result. Please report a bug.")
+            del cur_result
     return previous_result
 
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True) -> bool:
@@ -72,8 +74,10 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
         # if the model is not copy-able, don't copy it
         copy_model = model
     for _i in range(CORRECTNESS_CHECK_ROUNDS):
-        if not same(model.eager_output, copy_model.invoke(), cos_similarity=cos_sim):
+        cur_result = copy_model.invoke()
+        if not same(model.eager_output, cur_result, cos_similarity=cos_sim):
             return False
+        del cur_result
     return True
 
 def istype(obj, allowed_types):

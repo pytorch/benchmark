@@ -109,6 +109,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
                 self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
+        if self.test == "cuda":
             torch.cuda.empty_cache()
 
     def add_context(self, context_fn):
