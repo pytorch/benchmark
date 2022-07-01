@@ -5,7 +5,7 @@ from torchbenchmark import REPO_PATH
 from typing import Tuple
 import torch.nn as nn
 
-# Import FAMBench model path
+# Import extra model path
 class add_path():
     def __init__(self, path):
         self.path = path
