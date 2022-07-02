@@ -302,8 +302,11 @@ class ModelTask(base_task.TaskBase):
     # =========================================================================
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def get_model_attribute(attr: str, field: str=None) -> Any:
-        model = globals()["model"]
+    def get_model_attribute(attr: str, field: str=None, classattr: bool=False) -> Any:
+        if classattr:
+            model = globals()["Model"]
+        else:
+            model = globals()["model"]
         if hasattr(model, attr):
             if field:
                 model_attr = getattr(model, attr)
