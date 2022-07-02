@@ -45,6 +45,7 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_ARGS = FAMBenchTrainConfig()
     DEFAULT_EVAL_BSIZE = DEFAULT_EVAL_ARGS.mini_batch_size
     DEFAULT_TRAIN_BSIZE = DEFAULT_TRAIN_ARGS.mini_batch_size
+    DEEPCOPY: bool = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test, device, batch_size, jit, extra_args)

@@ -5,5 +5,5 @@ optimized_for_inference: false
 train_benchmark: false
 train_deterministic: true
 not_implemented:
-  # CUDA disabled due to CUDA out of memory on CI GPU
-  - device: cuda
+  # CPU disabled because it is too slow
+  - device: cpu
