@@ -233,4 +233,4 @@ if __name__ == "__main__":
     else:
         run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file)
     if hasattr(m, 'correctness'):
-        print('{:<20} {:>20}'.format("Correctness: ", m.correctness), sep='')
+        print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
