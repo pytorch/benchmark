@@ -9,14 +9,14 @@ def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_a
     # if the model doesn't support correctness check (like detectron2), skip it
     if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
         return False
-    is_cuda_eval_test = model.test == "eval" and model.device == "cuda"
+    is_eval_test = model.test == "eval"
     # always check correctness with torchdynamo
     if model.dynamo:
-        return is_cuda_eval_test
+        return is_eval_test
     opt_args_dict = vars(opt_args)
     for k in opt_args_dict:
         if opt_args_dict[k]:
-            return is_cuda_eval_test
+            return is_eval_test
     return False
 
 def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool=True):
