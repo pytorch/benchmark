@@ -416,9 +416,10 @@ class ModelTask(base_task.TaskBase):
             if not isinstance(element, torch.Tensor):
                 raise RuntimeError(f'Model {model_name} eval test output is tuple, but'
                                    f' its {ind}-th element is not a Tensor.')
-        # check output stableness
+        # check output stableness on CUDA device
         from torchbenchmark.util.env_check import stableness_check
-        stableness_check(instance, cos_sim=False, deepcopy=instance.DEEPCOPY)
+        if instance.device == "cuda":
+            stableness_check(instance, cos_sim=False, deepcopy=instance.DEEPCOPY)
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
