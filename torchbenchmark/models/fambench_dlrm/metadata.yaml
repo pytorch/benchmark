@@ -5,5 +5,5 @@ optimized_for_inference: false
 train_benchmark: false
 train_deterministic: true
 not_implemented:
-  # CPU disabled because it is too slow
-  - device: cpu
+  # CUDA test disabled because it doesn't fit on the CI machine (T4)
+  - device: cuda
