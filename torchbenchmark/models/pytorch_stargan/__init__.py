@@ -21,7 +21,6 @@ def _prefetch(loader, size, collate_fn):
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
-    optimized_for_inference = True
 
     # Original train batch size: 16
     # Source: https://github.com/yunjey/stargan/blob/94dd002e93a2863d9b987a937b85925b80f7a19f/main.py#L73

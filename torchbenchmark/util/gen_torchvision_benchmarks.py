@@ -25,7 +25,6 @@ from torchbenchmark.tasks import COMPUTER_VISION
 #######################################################
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.CLASSIFICATION
-    optimized_for_inference = True
     def __init__(self, device=None, jit=False):
         super().__init__()
         self.device = device

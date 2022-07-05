@@ -20,7 +20,6 @@ _DEFAULT_METADATA_ = {
     'eval_benchmark': True,
     'eval_deterministic': False,
     'eval_nograd': True,
-    'optimized_for_inference': False,
     # 'origin': None,
     # 'train_dtype': 'float32',
     # 'eval_dtype': 'float32',
@@ -106,8 +105,6 @@ def _maybe_override_extracted_details(args, extracted_details: List[Tuple[str, D
             ex_detail['eval_deterministic'] = args.eval_deterministic
         elif args.eval_nograd is not None:
             ex_detail['eval_nograd'] = args.eval_nograd
-        elif args.optimized_for_inference is not None:
-            ex_detail['optimized_for_inference'] = args.optimized_for_inference
 
 
 def _write_metadata_yaml_files(extracted_details: List[Tuple[str, Dict[str, Any]]]):
@@ -133,8 +130,6 @@ if __name__ == "__main__":
                         help="Whether to enable deterministic during eval.")
     parser.add_argument("--eval-nograd", default=None, type=_parser_helper,
                         help="Whether to enable no_grad during eval.")
-    parser.add_argument("--optimized-for-inference", default=None, type=_parser_helper,
-                        help="Whether to enable optimized_for_inference.")
     # parser.add_argument("--origin", default=None,
     #                     help="Location of benchmark's origin. Such as torchtext or torchvision.")
     # parser.add_argument("--train-dtype", default=None,

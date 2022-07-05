@@ -29,7 +29,6 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = NLP.TRANSLATION
-    optimized_for_inference = True
     # Original batch size 256, hardware platform unknown
     # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
     DEFAULT_TRAIN_BSIZE = 256
