@@ -45,7 +45,6 @@ def _prefetch(loader, device):
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
-    optimized_for_inference = True
     DEFAULT_TRAIN_BSIZE = 4
     DEFAULT_EVAL_BSIZE = 4
 

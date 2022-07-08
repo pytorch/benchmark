@@ -6,7 +6,6 @@ from torchbenchmark.util.model import BenchmarkModel
 from typing import Tuple, Generator, Optional
 
 class TorchVisionModel(BenchmarkModel):
-    optimized_for_inference = True
     # To recognize this is a torchvision model
     TORCHVISION_MODEL = True
     # These two variables should be defined by subclasses

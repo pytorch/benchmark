@@ -167,7 +167,6 @@ class ModelDetails:
     """
     path: str
     exists: bool
-    optimized_for_inference: bool
     _diagnostic_msg: str
 
     metadata: Dict[str, Any]
@@ -268,7 +267,6 @@ class ModelTask(base_task.TaskBase):
         return {
             "path": model_path,
             "exists": Model is not None,
-            "optimized_for_inference": hasattr(Model, "optimized_for_inference"),
             "_diagnostic_msg": diagnostic_msg,
             "metadata": {}
         }
