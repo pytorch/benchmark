@@ -99,8 +99,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             t1 = time.time_ns()
             wall_latency = t1 - t0
             # TODO: modify this to add GPU time as well
-            # print('{:<20} {:>20}'.format("MPS Total Wall Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
-            result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
+            result_summary.append([(t1 - t0) / 1_000_000])
         else:
             t0 = time.time_ns()
             func()
