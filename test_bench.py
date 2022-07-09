@@ -2,7 +2,7 @@
 Runs hub models in benchmark mode using pytest-benchmark. Run setup separately first.
 
 Usage:
-  python test.py --setup_only
+  python install.py
   pytest test_bench.py
 
 See pytest-benchmark help (pytest test_bench.py -h) for additional options
