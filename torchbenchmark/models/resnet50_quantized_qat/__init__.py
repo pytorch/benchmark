@@ -34,6 +34,8 @@ class Model(BenchmarkModel):
     # instance for inference that has
     # already been optimized for inference
     def set_eval(self):
+        if not self.device == "cpu":
+            raise NotImplementedError("Quantized model eval only supports CPU device.")
         self.prep_qat_eval()
 
     def prep_qat_eval(self):
