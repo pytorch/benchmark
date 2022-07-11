@@ -10,3 +10,6 @@ not_implemented:
   # Disable GPU training because it causes CUDA OOM on T4
   - test: train
     device: cuda
+  # Disable GPU inference because it causes CUDA OOM on T4
+  - test: eval
+    device: cuda

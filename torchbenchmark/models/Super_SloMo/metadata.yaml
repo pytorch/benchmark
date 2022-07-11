@@ -6,7 +6,6 @@ train_deterministic: true
 not_implemented:
   # Disabled due to excessively slow runtime - see GH Issue #100
   - device: cpu
-  # Disabled eval jit test due to insufficient GPU memory size on CI
+  # Disabled eval test due to insufficient GPU memory size on CI
   - device: cuda
-    jit: true
     test: eval

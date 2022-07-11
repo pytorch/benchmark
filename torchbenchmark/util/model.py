@@ -90,10 +90,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             self.dynamo = False
             self.opt_args = parse_opt_args(self, opt_args)
-        self.need_correctness_check = check_correctness_p(self, self.opt_args)
-        # currently, only check correctness under CUDA+inference, and `need_correctness_check` is True
-        if self.need_correctness_check:
-            self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
+        should_check_correctness = check_correctness_p(self, self.opt_args)
+        if should_check_correctness:
+            self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
@@ -102,8 +101,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
             apply_opt_args(self, self.opt_args)
-        # if test is eval, check correctness
-        if self.need_correctness_check:
+        if should_check_correctness:
             # tensorrt or fp16 is known to generate less-accurate results
             # in this case, use more relaxed cosine similarity instead of torch.allclose
             # for correctness testing
@@ -112,6 +110,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
                 self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
+        if self.test == "cuda":
             torch.cuda.empty_cache()
 
     def add_context(self, context_fn):

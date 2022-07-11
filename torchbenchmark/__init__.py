@@ -300,8 +300,11 @@ class ModelTask(base_task.TaskBase):
     # =========================================================================
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def get_model_attribute(attr: str, field: str=None) -> Any:
-        model = globals()["model"]
+    def get_model_attribute(attr: str, field: str=None, classattr: bool=False) -> Any:
+        if classattr:
+            model = globals()["Model"]
+        else:
+            model = globals()["model"]
         if hasattr(model, attr):
             if field:
                 model_attr = getattr(model, attr)
@@ -405,13 +408,19 @@ class ModelTask(base_task.TaskBase):
         import torch
         assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."
         out = instance.invoke()
+        # check output type
         model_name = getattr(instance, 'name', None)
         if not isinstance(out, tuple):
             raise RuntimeError(f'Model {model_name} eval test output is not a tuple')
+
         for ind, element in enumerate(out):
             if not isinstance(element, torch.Tensor):
                 raise RuntimeError(f'Model {model_name} eval test output is tuple, but'
                                    f' its {ind}-th element is not a Tensor.')
+        # check output stableness on CUDA device
+        from torchbenchmark.util.env_check import stableness_check
+        if instance.device == "cuda":
+            stableness_check(instance, cos_sim=False, deepcopy=instance.DEEPCOPY)
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod

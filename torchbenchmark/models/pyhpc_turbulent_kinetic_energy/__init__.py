@@ -91,6 +91,8 @@ class TurbulentKineticEnergy(torch.nn.Module):
         tke,
         dtke,
     ):
+        # tke and dtke will be modified in integrate_tke and generate inconsistent results
+        # so clone them before passing them in
         return tke_pytorch.integrate_tke(
             u,
             v,
@@ -111,8 +113,8 @@ class TurbulentKineticEnergy(torch.nn.Module):
             mxl,
             forc,
             forc_tke_surface,
-            tke,
-            dtke,
+            torch.clone(tke),
+            torch.clone(dtke),
         )
 
 

@@ -4,5 +4,5 @@ eval_nograd: true
 train_benchmark: false
 train_deterministic: true
 not_implemented:
-  # CUDA disabled due to CUDA out of memory on CI GPU
+  # CUDA test disabled because it doesn't fit on the CI machine (T4)
   - device: cuda

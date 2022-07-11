@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
     # Original train batch size: 16
     # Source: https://github.com/ultralytics/yolov3/blob/master/train.py#L447
     DEFAULT_TRAIN_BSIZE = 16
-    DEFAULT_EVAL_BSIZE = 16
+    DEFAULT_EVAL_BSIZE = 8
     # yolov3 CUDA inference test uses amp precision
     DEFAULT_EVAL_CUDA_PRECISION = "amp"
 
