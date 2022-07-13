@@ -60,6 +60,7 @@ def check_memory_layout(model: 'torchbenchmark.util.model.BenchmakModel', channe
 def check_distributed_trainer(model: 'torchbenchmark.util.model.BenchmakModel', distributed_trainer: Optional[str]) -> bool:
     if not model.test == "train" and distributed_trainer:
         return False
+    return True
 
 def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if hasattr(model, "DEFAULT_EVAL_CUDA_PRECISION") and model.test == 'eval' and model.device == 'cuda':
