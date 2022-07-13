@@ -57,6 +57,10 @@ def check_memory_layout(model: 'torchbenchmark.util.model.BenchmakModel', channe
         return hasattr(model, 'enable_channels_last')
     return True
 
+def check_distributed_trainer(model: 'torchbenchmark.util.model.BenchmakModel', distributed_trainer: Optional[str]) -> bool:
+    if not model.test == "train" and distributed_trainer:
+        return False
+
 def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if hasattr(model, "DEFAULT_EVAL_CUDA_PRECISION") and model.test == 'eval' and model.device == 'cuda':
         return model.DEFAULT_EVAL_CUDA_PRECISION
@@ -66,6 +70,7 @@ def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> 
 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--distributed", choices=["ddp"], default=None, help="Enable distributed trainer")
     parser.add_argument("--precision", choices=["fp32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, fp16, or amp")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     dargs, opt_args = parser.parse_known_args(extra_args)
@@ -75,6 +80,9 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     if not check_memory_layout(model, dargs.channels_last):
         raise NotImplementedError(f"Specified channels_last: {dargs.channels_last} ,"
                                   f" but the model doesn't implement the enable_channels_last() interface.")
+    if not check_distributed_trainer(model, dargs.distributed):
+        raise NotImplementedError(f"We only support distributed trainer {dargs.distributed} for train tests, "
+                                  f"but get test: {model.test}")
     return (dargs, opt_args)
 
 def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dargs: argparse.Namespace):

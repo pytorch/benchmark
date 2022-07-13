@@ -20,6 +20,7 @@ class Trainer():
         self.local_rank = int(os.getenv("LOCAL_RANK", -1))
         self.setup()
 
+        # specify the name of the distributed trainer
         extra_args = [
             "--distributed",
             self.args.distributed,
@@ -28,12 +29,6 @@ class Trainer():
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
         self.benchmark: BenchmarkModel = model_class(test="train", device="cuda", batch_size=None, extra_args=extra_args)
-
-        expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator"]
-        assert all(attr in dir(self.e2e_benchmark) for attr in expected_attrs), (
-            "Missing attributes in the input E2EBenchmarkModel implementation: "
-            f"{[attr for attr in expected_attrs if attr not in dir(self.e2e_benchmark)]}"
-        )
 
         self.rank = dist.get_rank()
 
@@ -90,8 +85,6 @@ class Trainer():
         ##################################################################
         events_pre_train = [Event(enable_timing=True) for _ in range(niters)]
         events_post_train = [Event(enable_timing=True) for _ in range(niters)]
-        events_pre_opt = [Event(enable_timing=True) for _ in range(niters)]
-        events_post_opt = [Event(enable_timing=True) for _ in range(niters)]
         for i in range(niters):
             events_pre_train[i].record()
             self.benchmark.invoke()
