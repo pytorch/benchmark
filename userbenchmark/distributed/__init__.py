@@ -15,7 +15,7 @@ def gen_metrics_from_result(result):
     return metrics
 
 def run(args: List[str]):
-    args = parse_args(args)
+    args, model_args = parse_args(args)
 
     # Note that the folder will depend on the job_id, to easily track experiments
     executor = submitit.AutoExecutor(folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000)
@@ -37,7 +37,7 @@ def run(args: List[str]):
     args.dist_url = get_init_file(args).as_uri()
     args.output_dir = args.job_dir
 
-    job = executor.submit(TrainerWrapper(args))
+    job = executor.submit(TrainerWrapper(args, model_args))
 
     # waits for completion and returns output
     result = job.results()

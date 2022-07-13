@@ -12,8 +12,9 @@ import torch.distributed as dist
 class Trainer():
     DEFAULT_MEASURE_ITERATIONS = 10
 
-    def __init__(self, args, model_class, mode="SPMD"):
+    def __init__(self, args, model_class, mode="SPMD", model_args=None):
         self.args = args
+        self.model_args = model_args
         self.model_class = model_class
         self.mode = mode
 
@@ -25,6 +26,7 @@ class Trainer():
             "--distributed",
             self.args.distributed,
         ]
+        extra_args.extend(model_args)
 
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
