@@ -112,7 +112,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
         # setup distributed trainer
         if self.dargs.distributed:
-            from torchbenchmark.util.distributed.core_models.apply_trainer import apply_trainer
+            from torchbenchmark.util.distributed.core_model.apply_trainer import apply_trainer
             module, _inputs = self.get_module()
             self.set_module(apply_trainer(module, self.dargs.distributed))
         if self.test == "cuda":
