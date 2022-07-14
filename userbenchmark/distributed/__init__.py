@@ -36,6 +36,7 @@ def run(args: List[str]):
 
     args.dist_url = get_init_file(args).as_uri()
     args.output_dir = args.job_dir
+    args.extra_args = []
     if model_args:
         args.extra_args = model_args
 
