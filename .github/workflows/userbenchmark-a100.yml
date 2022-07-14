@@ -14,7 +14,7 @@ env:
   MAGMA_VERSION: "magma-cuda113"
   SETUP_SCRIPT: "/data/shared/setup_instance.sh"
 jobs:
-  run-benchmark:
+  run-userbenchmark:
     runs-on: [self-hosted, a100-runner]
     timeout-minutes: 1440 # 24 hours
     steps:
