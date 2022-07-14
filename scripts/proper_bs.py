@@ -63,6 +63,8 @@ def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, 
                 status = "NotExist"
                 return
             task.make_model_instance(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+            if task.get_model_attribute("ALLOW_CUSTOMIZE_BSIZE") == False:
+                raise ValueError(f"Model does not support tuning batch size")
             result.precision = task.get_model_attribute("dargs", "precision")
             # Check the batch size in the model matches the specified value
             if batch_size and (not task.get_model_attribute(bs_name) == batch_size):
@@ -82,6 +84,9 @@ def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, 
             error_message = str(e)
         except KeyboardInterrupt as e:
             status = "UserInterrupted"
+            error_message = str(e)
+        except ValueError as e:
+            status = "ValueError"
             error_message = str(e)
         except Exception as e:
             status = f"{type(e).__name__}"
