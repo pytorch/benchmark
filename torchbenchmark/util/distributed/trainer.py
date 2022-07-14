@@ -6,7 +6,7 @@ from statistics import stdev
 import torch
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
-from torchbenchmark.util.e2emodel import E2EBenchmarkModel
+from torchbenchmark.util.e2emodel import E2EBenchmarkModel, nested
 import torch.distributed as dist
 
 class Trainer():
@@ -31,7 +31,7 @@ class Trainer():
         # visible devices won't be revised in model constructor
         self.e2e_benchmark: E2EBenchmarkModel = model_class("train", batch_size=None, extra_args=extra_args)
 
-        expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator"]
+        expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator", "run_contexts"]
         assert all(attr in dir(self.e2e_benchmark) for attr in expected_attrs), (
             "Missing attributes in the input E2EBenchmarkModel implementation: "
             f"{[attr for attr in expected_attrs if attr not in dir(self.e2e_benchmark)]}"
@@ -82,9 +82,10 @@ class Trainer():
         # 1. warming up CUDACachingAllocator #
         ######################################
         for _ in range(self.DEFAULT_MEASURE_ITERATIONS):
-            loss = self.e2e_benchmark.run_forward(batch)
-            self.e2e_benchmark.run_backward(loss)
-            self.e2e_benchmark.run_optimizer_step()
+            with nested(*self.e2e_benchmark.run_contexts):
+                loss = self.e2e_benchmark.run_forward(batch)
+                self.e2e_benchmark.run_backward(loss)
+                self.e2e_benchmark.run_optimizer_step()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
@@ -98,17 +99,18 @@ class Trainer():
         events_pre_bwd = [Event(enable_timing=True) for _ in range(niters)]
         events_pre_opt = [Event(enable_timing=True) for _ in range(niters)]
         events_post_opt = [Event(enable_timing=True) for _ in range(niters)]
-        for i in range(niters):
-            events_pre_fwd[i].record()
-            loss = self.e2e_benchmark.run_forward(batch)
+        with nested(*self.e2e_benchmark.run_contexts):
+            for i in range(niters):
+                events_pre_fwd[i].record()
+                loss = self.e2e_benchmark.run_forward(batch)
 
-            events_pre_bwd[i].record()
-            self.e2e_benchmark.run_backward(loss)
+                events_pre_bwd[i].record()
+                self.e2e_benchmark.run_backward(loss)
 
-            events_pre_opt[i].record()
-            self.e2e_benchmark.run_optimizer_step()
+                events_pre_opt[i].record()
+                self.e2e_benchmark.run_optimizer_step()
 
-            events_post_opt[i].record()
+                events_post_opt[i].record()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
