@@ -1,4 +1,4 @@
-name: TorchBench Benchmarking
+name: TorchBench Userbenchmark on A100
 on:
   workflow_dispatch:
     inputs:
