@@ -36,6 +36,8 @@ def run(args: List[str]):
 
     args.dist_url = get_init_file(args).as_uri()
     args.output_dir = args.job_dir
+    if model_args:
+        args.extra_args = model_args
 
     job = executor.submit(TrainerWrapper(args, model_args))
 
