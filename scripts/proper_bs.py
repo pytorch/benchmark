@@ -54,7 +54,8 @@ def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, 
     error_message: Optional[str] = None
     result.results['details'] = []
     task = ModelTask(os.path.basename(model_path), timeout=WORKER_TIMEOUT)
-    for batch_size in range(1, 128):
+    for batch_size_exp in range(8):
+        batch_size = 2 ** batch_size_exp
         try:
             print(f"Batch Size {batch_size} ", end='')
             latency_ms_cur = 0
