@@ -147,6 +147,9 @@ if __name__ == "__main__":
     for element in itertools.product(*[args.models, args.tests, args.devices]):
         model_path, test, device = element
         if args.proper_bs:
+            if test != 'eval':
+                print("Error: Only batch size of eval test is tunable.")
+                sys.exit(1)
             from scripts.proper_bs import _run_model_test_proper_bs
             r = _run_model_test_proper_bs(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
         else:
