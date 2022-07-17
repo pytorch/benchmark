@@ -85,7 +85,7 @@ def parse_args(args: List[str]=None):
 
     try:
         if args:
-            return parser.parse_args(args)
+            return parser.parse_known_args(args)
         else:
             return parser.parse_args()
     except:
@@ -104,8 +104,9 @@ def get_init_file(args):
 
 
 class TrainerWrapper(object):
-    def __init__(self, args):
+    def __init__(self, args, model_args=None):
         self.args = args
+        self.model_args = model_args
         self.args.output_dir = args.job_dir
 
     def __call__(self):
@@ -119,7 +120,7 @@ class TrainerWrapper(object):
         module = importlib.import_module(self.args.trainer[:pos])
         trainer_class = getattr(module, self.args.trainer[(pos+1):])
 
-        return trainer_class(self.args, model_class).measure()
+        return trainer_class(self.args, model_class, model_args=self.model_args).measure()
 
     def checkpoint(self):
         self.args.dist_url = get_init_file(self.args).as_uri()
