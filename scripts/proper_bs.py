@@ -100,10 +100,8 @@ def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, 
                 sys.exit(1)
             if status != 'OK':
                 if result.results['details']:
-                    result.results['optimal_latency_bs'] = min(result.results['details'], key=lambda x:x['latency_ms'])['batch_size']
                     result.results['optimal_tflops_bs'] = max(result.results['details'], key=lambda x:x['tflops'])['batch_size']
                 return result
     # find the best case
-    result.results['optimal_latency_bs'] = min(result.results['details'], key=lambda x:x['latency_ms'])['batch_size']
     result.results['optimal_tflops_bs'] = max(result.results['details'], key=lambda x:x['tflops'])['batch_size']
     return result
