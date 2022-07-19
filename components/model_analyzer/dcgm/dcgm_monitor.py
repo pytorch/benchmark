@@ -37,6 +37,7 @@ class DCGMMonitor(Monitor):
     """
 
     # Mapping between the DCGM Fields and Model Analyzer Records
+    # For more explainations, please refer to https://docs.nvidia.com/datacenter/dcgm/latest/dcgm-api/dcgm-api-field-ids.html
     model_analyzer_to_dcgm_field = {
         GPUUsedMemory: dcgm_fields.DCGM_FI_DEV_FB_USED,
         GPUFreeMemory: dcgm_fields.DCGM_FI_DEV_FB_FREE,
