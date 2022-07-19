@@ -19,6 +19,7 @@ def run_one_step_flops(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10, fl
     if flops:
         model_analyzer = ModelAnalyzer()
         model_analyzer.start_monitor()
+        model_analyzer.set_monitoring_interval(0.01)
     for _i in range(num_iter):
         if device == "cuda":
             torch.cuda.synchronize()
@@ -54,7 +55,8 @@ def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, 
     error_message: Optional[str] = None
     result.results['details'] = []
     task = ModelTask(os.path.basename(model_path), timeout=WORKER_TIMEOUT)
-    for batch_size_exp in range(8):
+    MAX_EXP = 30
+    for batch_size_exp in range(MAX_EXP):
         batch_size = 2 ** batch_size_exp
         try:
             print(f"Batch Size {batch_size} ", end='')
