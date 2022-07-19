@@ -1,3 +1,5 @@
+import math
+import random
 import torch
 from torch import optim
 from torchbenchmark.util.model import BenchmarkModel
@@ -59,6 +61,18 @@ class HuggingFaceModel(BenchmarkModel):
             input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
+
+            nbuckets = 8
+            nsamples = 32
+            n = int(math.log2(self.max_length))
+            buckets = [2**n for n in range(n - nbuckets, n)]
+            self.dynamic_example_inputs = [
+                {
+                    'input_ids': torch.randint(0, config.vocab_size, (self.batch_size, bucket_len)).to(device),
+                    'labels': torch.randint(0, config.vocab_size, (self.batch_size, bucket_len)).to(device)}
+                for bucket_len in random.choices(buckets, k=nsamples)
+            ]
+
             self.model.train()
         elif test == "eval":
             # Cut the length of sentence when running on CPU, to reduce test time
@@ -76,7 +90,15 @@ class HuggingFaceModel(BenchmarkModel):
             return ArgsToKwargsWrapper(self.model), (
                     self.example_inputs['input_ids'], self.example_inputs[k])
         return self.model, (self.example_inputs["input_ids"], )
-    
+
+    def get_dynamic_shapes_module(self):
+        if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
+            k = 'labels' if self.test == 'train' else 'decoder_input_ids'
+            return ArgsToKwargsWrapper(self.model), (
+                    self.example_inputs['input_ids'], self.example_inputs[k])
+        # TODO(whc) why is labels not passed through?
+        return self.model, ([i['input_ids'] for i in self.dynamic_example_inputs], )
+
     def enable_fp16_half(self):
         self.model = self.model.half()
 
