@@ -69,7 +69,7 @@ def get_devices(config):
 
 def get_batch_sizes(config):
     if not "batch_size" in config:
-        return itertools.repeat(None)
+        return [None]
     return config["batch_size"]
 
 def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelConfig]:
