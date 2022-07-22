@@ -5,7 +5,7 @@ from torch import optim
 from torch.jit.frontend import NotSupportedError
 from torchbenchmark.util.model import BenchmarkModel
 import transformers
-from transformers import AutoConfig, ReformerConfig, BigBirdConfig, BertConfig
+from transformers import AutoConfig, ReformerConfig, BertConfig
 from typing import Tuple
 
 class_models = {
@@ -50,6 +50,9 @@ class HuggingFaceModel(BenchmarkModel):
             self.max_length = class_models[name][0]
         elif test == "eval":
             self.max_length = class_models[name][1]
+        # workaround the bigbird config import
+        if name == "hf_BigBird":
+            from transformers import BigBirdConfig
         config = eval(class_models[name][2])
         if class_models[name][2] == "ReformerConfig()" and not config.num_buckets:
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
@@ -120,7 +123,9 @@ class HuggingFaceModel(BenchmarkModel):
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
         # transformations such as fx2trt will cast the original output type to dict
-        if hasattr(out, 'logits'):
+        if isinstance(out, tuple):
+            return out
+        elif hasattr(out, 'logits'):
             return (out.logits, )
         else:
             return (out["logits"], )

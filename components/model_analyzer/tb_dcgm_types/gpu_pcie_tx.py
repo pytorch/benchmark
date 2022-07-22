@@ -5,7 +5,8 @@ from .gpu_record import GPURecord
 @total_ordering
 class GPUPCIETX(GPURecord):
     """
-    GPU PCIe TX Bytes record. It is supposed to be memory write traffic.
+    GPU PCIe TX Bytes record. The number of bytes of active PCIe tx (transmit) data including both header and payload.
+    Note that this is from the perspective of the GPU, so copying data from device to host (DtoH) would be reflected in this metric.
     """
 
     tag = "gpu_picetx"

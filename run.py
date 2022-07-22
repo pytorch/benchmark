@@ -208,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
     parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result.")
     parser.add_argument("--export-dcgm-metrics", action="store_true",
-                        help="Export all GPU FP32 unit active ratio, memory traffic, and memory throughput records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
+                        help="Export all GPU FP32 unit active ratio, CPU-GPU memory traffic, and CPU-GPU memory throughput records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
     args, extra_args = parser.parse_known_args()
 

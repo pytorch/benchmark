@@ -50,6 +50,8 @@ class ModelAnalyzer:
         self.export_csv_name = ''
 
     def add_mem_throughput_metrics(self):
+        # Note that this is from the perspective of the GPU, 
+        # so copying data from device to host (DtoH) / host to device (HtoD) would be reflected in the below two metrics.
         self.gpu_metrics.append(GPUPCIERX)
         self.gpu_metrics.append(GPUPCIETX)
 
@@ -138,9 +140,9 @@ class ModelAnalyzer:
                     fout.write(tmp_line)
                 fout.write("duration(ms), ")
                 if GPUPCIERX in self.gpu_metrics:
-                    fout.write("read_throughput(GB/s), ")
+                    fout.write("HtoD_throughput(GB/s), ")
                 if GPUPCIETX in self.gpu_metrics:
-                    fout.write("write_throughput(GB/s), ")
+                    fout.write("DtoH_throughput(GB/s), ")
                 timestamps = list(timestamps)
                 timestamps.sort()
                 timestamp_start = timestamps[0]
