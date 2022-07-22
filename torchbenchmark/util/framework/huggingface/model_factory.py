@@ -2,7 +2,6 @@ import math
 import random
 import torch
 from torch import optim
-from torch.jit.frontend import NotSupportedError
 from torchbenchmark.util.model import BenchmarkModel
 import transformers
 from transformers import AutoConfig, ReformerConfig, BertConfig
@@ -101,7 +100,7 @@ class HuggingFaceModel(BenchmarkModel):
             ]
 
         if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
-            raise NotSupportedError("Not yet supported")
+            raise NotImplementedError("Not yet supported")
 
         # TODO(whc) why is labels not passed through?
         return self.model, [(i['input_ids'],) for i in self.dynamic_example_inputs]
