@@ -140,15 +140,23 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--bs", type=int, help="Specify batch size.")
     parser.add_argument("--jit", action='store_true', help="Turn on torchscript.")
     parser.add_argument("-o", "--output", type=str, default="tb-output.json", help="The default output json file.")
+    parser.add_argument("--proper-bs", action='store_true', help="Find the best batch_size for current devices.")
     args, extra_args = parser.parse_known_args()
     args.models = _list_model_paths(args.models)
     results = []
     for element in itertools.product(*[args.models, args.tests, args.devices]):
         model_path, test, device = element
-        r = _run_model_test(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
+        if args.proper_bs:
+            if test != 'eval':
+                print("Error: Only batch size of eval test is tunable.")
+                sys.exit(1)
+            from scripts.proper_bs import _run_model_test_proper_bs
+            r = _run_model_test_proper_bs(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
+        else:
+            r = _run_model_test(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
         results.append(r)
-    results = list(map(lambda x: dataclasses.asdict(x), results))
-    parent_dir = pathlib.Path(args.output).parent
-    parent_dir.mkdir(exist_ok=True, parents=True)
-    with open(args.output, "w") as outfile:
-        json.dump(results, outfile, indent=4)
+        results_to_export = list(map(lambda x: dataclasses.asdict(x), results))
+        parent_dir = pathlib.Path(args.output).parent
+        parent_dir.mkdir(exist_ok=True, parents=True)
+        with open(args.output, "w") as outfile:
+            json.dump(results_to_export, outfile, indent=4)
