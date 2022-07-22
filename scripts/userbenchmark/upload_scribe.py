@@ -5,11 +5,9 @@ Currently supports userbenchmark result json file.
 
 import argparse
 import time
-import multiprocessing
 import json
 import os
 import requests
-import subprocess
 from collections import defaultdict
 from datetime import datetime
 
@@ -62,23 +60,55 @@ class ScribeUploader:
         r.raise_for_status()
 
 class TorchBenchUserbenchmarkUploader(ScribeUploader):
-    def __init__(self, benchmark_time):
+    CLIENT_NAME = 'torchbench_userbenchmark_upload_scribe.py'
+    UNIX_USER = 'torchbench_userbenchmark_gcp_a100_ci'
+    SUBMISSION_GROUP_GUID = 'default'
+
+    def __init__(self):
+        # upload table name: pytorch_adhoc_benchmarks
         super().__init__('perfpipe_pytorch_benchmarks')
         self.schema = {
             'int': [
-                'time',
+                'time',                     # timestamp of upload
             ],
+            # string fields
             'normal': [
-                'pytorch_git_version',
+                'benchmark_date',           # date of benchmark
+                'client_name',              # name of upload client (logger)
+                'unix_user',                # name of upload user
+                'submission_group_guid',    # name of data batch (for debugging)
+                'pytorch_git_version',      # pytorch version
+                'metric_id',                # id of the metric (e.g., adhoc.nvfuser.nvfuser:autogen-42)
             ],
-            'float': [ ]
+            # float perf metrics go here
+            'float': [
+                'metric_value'
+            ]
         }
+
+    def get_metric_name(self, bm_name, metric_name):
+        return f"adhoc.{bm_name}.{metric_name}"
 
     def post_userbenchmark_results(self, bm_time, bm_data):
         messages = []
-        # update schema
-        for metrics in bm_data["metrics"]:
-            pass
+        bm_name = bm_data["name"]
+        base_message = {
+            'time': int(time.time()),
+            'benchmark_date': bm_time,
+            'client_name': self.CLIENT_NAME,
+            'unix_user': self.UNIX_USER,
+            'submission_group_guid': self.SUBMISSION_GROUP_GUID,
+            'pytorch_git_version': bm_data["environ"]["pytorch_git_version"]
+        }
+        # construct message and upload
+        for metric in bm_data["metrics"]:
+            msg = base_message.copy()
+            metric_name = self.get_metric_name(bm_name, metric)
+            msg['metric_id'] = metric_name
+            msg['metric_value'] = bm_data['metrics'][metric]
+            formatted_msg = self.format_message(msg)
+            messages.append(formatted_msg)
+        self.upload(messages)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
