@@ -34,24 +34,22 @@ class Model(BenchmarkModel):
         self.model.train()
         self.model = quantize_fx.prepare_qat_fx(self.model, qconfig_dict, self.example_inputs)
 
-    def train(self, niter=3):
+    def train(self):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
-        for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
-            loss(pred, y).backward()
-            optimizer.step()
+        optimizer.zero_grad()
+        pred = self.model(*self.example_inputs)
+        y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
+        loss(pred, y).backward()
+        optimizer.step()
 
     def prep_qat_eval(self):
         self.model = quantize_fx.convert_fx(self.model)
         self.model.eval()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         example_inputs = self.example_inputs[0][0].unsqueeze(0)
-        for _i in range(niter):
-            out = self.model(example_inputs)
+        out = self.model(example_inputs)
         return (out, )
 
     def get_module(self):

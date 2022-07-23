@@ -52,10 +52,11 @@ class Model(BenchmarkModel):
 
     def train(self):
         # the training process is not patched to use scripted models
-        # training_loop has its own count logic inside.  It actually runs 7 epochs per niter=1 (with each 'epoch'
-        # being limited to a small set of data)
-        # it would be more in symmetry with the rest of torchbenchmark if niter=1 ran just an inner-loop
-        # step rather than 7 epochs, but changing it now would potentially cause discontinuity with existing/historical measurement
+        # training_loop has its own count logic inside.  It actually runs 7 epochs
+        # (with each 'epoch' being limited to a small set of data)
+        # it would be more in symmetry with the rest of torchbenchmark if it ran just one step
+        # rather than 7 epochs, but changing it now would potentially cause
+        # discontinuity with existing/historical measurement
         self.training_loop(None)
 
     def eval(self) -> Tuple[torch.Tensor]:
