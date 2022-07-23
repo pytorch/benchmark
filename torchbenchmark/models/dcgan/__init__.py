@@ -220,18 +220,16 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.exmaple_inputs,)
 
-    def eval(self, niter=1):
-        for _ in range(niter):
+    def eval(self):
+       if False == self.inference_just_descriminator:
+           # Generate fake image batch with G
+           self.eval_fake = self.netG(self.eval_noise)
 
-            if False == self.inference_just_descriminator:
-              # Generate fake image batch with G
-              self.eval_fake = self.netG(self.eval_noise)
+       # Since we just updated D, perform another forward pass of all-fake batch through D
+       output = self.model(self.exmaple_inputs).view(-1)
+       return (output, )
 
-            # Since we just updated D, perform another forward pass of all-fake batch through D
-            output = self.model(self.exmaple_inputs).view(-1)
-        return (output, )
-
-    def train(self, niter=1):
+    def train(self):
 
         # Training Loop
 
@@ -243,7 +241,7 @@ class Model(BenchmarkModel):
         device = dcgan.device
 
         num_epochs = dcgan.num_epochs
-        num_train_batch = niter
+        num_train_batch = 1
 
         lr = dcgan.lr
         nz = dcgan.nz

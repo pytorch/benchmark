@@ -161,34 +161,32 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.model.bert = new_model
 
-    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
+    def eval(self) -> typing.Tuple[torch.Tensor]:
         model = self.model
-        for _ in range(niter):
-            # 1. forward the next_sentence_prediction and masked_lm model
-            next_sent_output, mask_lm_output = model.model.forward(*self.example_inputs)
+        # 1. forward the next_sentence_prediction and masked_lm model
+        next_sent_output, mask_lm_output = model.model.forward(*self.example_inputs)
 
-            # 2-1. NLL(negative log likelihood) loss of is_next classification result
-            # 2-2. NLLLoss of predicting masked token word
-            # 2-3. Adding next_loss and mask_loss : 3.4 Pre-training Procedure
-            next_loss = model.criterion(next_sent_output, self.is_next)
-            mask_loss = model.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
-            loss = next_loss + mask_loss
+        # 2-1. NLL(negative log likelihood) loss of is_next classification result
+        # 2-2. NLLLoss of predicting masked token word
+        # 2-3. Adding next_loss and mask_loss : 3.4 Pre-training Procedure
+        next_loss = model.criterion(next_sent_output, self.is_next)
+        mask_loss = model.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
+        loss = next_loss + mask_loss
         return (next_sent_output, mask_lm_output)
 
-    def train(self, niter=1):
+    def train(self):
         trainer = self.model
-        for _ in range(niter):
-            # 1. forward the next_sentence_prediction and masked_lm model
-            next_sent_output, mask_lm_output = trainer.model.forward(*self.example_inputs)
+        # 1. forward the next_sentence_prediction and masked_lm model
+        next_sent_output, mask_lm_output = trainer.model.forward(*self.example_inputs)
 
-            # 2-1. NLL(negative log likelihood) loss of is_next classification result
-            # 2-2. NLLLoss of predicting masked token word
-            # 2-3. Adding next_loss and mask_loss : 3.4 Pre-training Procedure
-            next_loss = trainer.criterion(next_sent_output, self.is_next)
-            mask_loss = trainer.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
-            loss = next_loss + mask_loss
+        # 2-1. NLL(negative log likelihood) loss of is_next classification result
+        # 2-2. NLLLoss of predicting masked token word
+        # 2-3. Adding next_loss and mask_loss : 3.4 Pre-training Procedure
+        next_loss = trainer.criterion(next_sent_output, self.is_next)
+        mask_loss = trainer.criterion(mask_lm_output.transpose(1, 2), self.bert_label)
+        loss = next_loss + mask_loss
 
-            # 3. backward and optimization only in train
-            trainer.optim_schedule.zero_grad()
-            loss.backward()
-            trainer.optim_schedule.step_and_update_lr()
+        # 3. backward and optimization only in train
+        trainer.optim_schedule.zero_grad()
+        loss.backward()
+        trainer.optim_schedule.step_and_update_lr()
