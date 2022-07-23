@@ -55,6 +55,7 @@ class Model(BenchmarkModel):
   # Original train batch size: 200
   # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
   DEFAULT_TRAIN_BSIZE = 200
+  NUM_OF_BATCHES = 1
 
   def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
     super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -85,8 +86,8 @@ class Model(BenchmarkModel):
     for words, _ in self.example_inputs:
       return self.model, (words, )
 
-  def train(self, niter=1):
-    for _, (words, lengths) in zip(range(niter), self.example_inputs):
+  def train(self):
+    for _, (words, lengths) in zip(range(self.NUM_OF_BATCHES), self.example_inputs):
       losses = []
       self.opt.zero_grad()
       params = self.model(words)
@@ -97,7 +98,7 @@ class Model(BenchmarkModel):
       torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3.0)
       self.opt.step()
 
-  def eval(self, niter=1):
+  def eval(self):
     raise NotImplementedError("Eval is not supported by this model")
 
 def cuda_sync(func, sync=False):

@@ -51,13 +51,11 @@ class Model(BenchmarkModel):
   def set_train(self):
     self.eval_mode = False
 
-  def train(self, niter=1):
-    for i in range(niter):
-      self.model.train(niter)
+  def train(self):
+    self.model.train()
 
-  def eval(self, niter=1) -> Tuple[torch.Tensor]:
-    for i in range(niter):
-      out = self.model.eval(niter)
+  def eval(self) -> Tuple[torch.Tensor]:
+    out = self.model.eval()
     return (out, )
 
   def timed_infer(self):
