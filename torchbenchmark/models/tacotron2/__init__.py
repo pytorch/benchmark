@@ -123,18 +123,16 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.example_inputs,)
 
-    def train(self, niter=1):
+    def train(self):
         self.model.train()
-        for _ in range(niter):
-            self.model.zero_grad()
-            y_pred = self.model(self.example_inputs)
+        self.model.zero_grad()
+        y_pred = self.model(self.example_inputs)
 
-            loss = self.criterion(y_pred, self.target)
-            loss.backward()
-            self.optimizer.step()
+        loss = self.criterion(y_pred, self.target)
+        loss.backward()
+        self.optimizer.step()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
-        for _ in range(niter):
-            out = self.model(self.example_inputs)
+        out = self.model(self.example_inputs)
         return out

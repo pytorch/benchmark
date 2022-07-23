@@ -51,13 +51,11 @@ class Model(BenchmarkModel):
         elif self.test == "eval":
             self.evalcfg.model = new_model
 
-    def train(self, niter=1):
-        for i in range(niter):
-            self.traincfg.train(epoch = i)
+    def train(self):
+        self.traincfg.train(epoch=1)
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        for _ in range(niter):
-            out = self.evalcfg.eval()
+    def eval(self) -> Tuple[torch.Tensor]:
+        out = self.evalcfg.eval()
         # only the first element of model output is a tensor
         out = tuple(itertools.chain(*list(map(lambda x: x.values(), out))))
         return (out[0], )
