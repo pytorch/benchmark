@@ -135,7 +135,7 @@ class Model(BenchmarkModel):
         step = 50
         num_of_batches = 1
 
-        for i, data in zip(range(num_of_batches), enumerate(self.train_data)):
+        for i, data in zip(range(num_of_batches), self.train_data):
             # Initiating
 
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
