@@ -49,11 +49,6 @@ class ModelAnalyzer:
         self.gpu_record_aggregator = RecordAggregator()
         self.export_csv_name = ''
 
-    def add_mem_throughput_metrics(self):
-        # Note that this is from the perspective of the GPU, 
-        # so copying data from device to host (DtoH) / host to device (HtoD) would be reflected in the below two metrics.
-        self.gpu_metrics.append(GPUPCIERX)
-        self.gpu_metrics.append(GPUPCIETX)
 
     def set_export_csv_name(self, export_csv_name=''):
         self.export_csv_name = export_csv_name
@@ -137,6 +132,8 @@ class ModelAnalyzer:
                         tmp_line = "%s, " % (record_type.tag + '(%)')
                     elif record_type.tag.startswith('gpu_pice'):
                         tmp_line = "%s, " % (record_type.tag + '(bytes)')
+                    else:
+                        tmp_line = "%s, " % record_type.tag
                     fout.write(tmp_line)
                 fout.write("duration(ms), ")
                 if GPUPCIERX in self.gpu_metrics:
