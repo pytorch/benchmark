@@ -1,0 +1,19 @@
+# Sample benchmark config
+# Runs a test matrix of [device x test x models x precisions x test_args]
+# Currently, `summarize.py` only supports sinxxgle device and single test
+# The first combination will be used as the baseline
+# In this example, baseline is ("cuda", "eval", "fp32")
+device:
+  - "cuda"
+test:
+  - "eval"
+# models:
+#   - "alexnet"
+precision:
+  # - "fp16"
+  - "fp32"
+args:
+  # empty argument means the default pytorch eager mode
+  - ""
+  - "--blade"
+  - "--torchdynamo blade_optimize_dynamo"
