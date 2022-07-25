@@ -36,7 +36,7 @@ class ScribeUploader:
         return message
 
     def upload(self, messages: list):
-        access_token = os.environ.get("SCRIBE_GRAPHQL_ACCESS_TOKEN")
+        access_token = os.environ.get("TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN")
         if not access_token:
             raise ValueError("Can't find access token from environment variable")
         url = "https://graph.facebook.com/scribe_logs"
@@ -62,11 +62,10 @@ class ScribeUploader:
 class TorchBenchUserbenchmarkUploader(ScribeUploader):
     CLIENT_NAME = 'torchbench_userbenchmark_upload_scribe.py'
     UNIX_USER = 'torchbench_userbenchmark_gcp_a100_ci'
-    SUBMISSION_GROUP_GUID = 'default'
+    SUBMISSION_GROUP_GUID = 'oss-ci-gcp-a100'
 
     def __init__(self):
-        # upload table name: pytorch_adhoc_benchmarks
-        super().__init__('perfpipe_pytorch_benchmarks')
+        super().__init__('perfpipe_pytorch_adhoc_benchmarks')
         self.schema = {
             'int': [
                 'time',                     # timestamp of upload
@@ -108,6 +107,7 @@ class TorchBenchUserbenchmarkUploader(ScribeUploader):
             msg['metric_value'] = bm_data['metrics'][metric]
             formatted_msg = self.format_message(msg)
             messages.append(formatted_msg)
+        # print(messages)
         self.upload(messages)
 
 if __name__ == "__main__":
