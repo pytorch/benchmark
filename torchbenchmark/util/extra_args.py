@@ -5,6 +5,7 @@ from torchbenchmark.util.backends import list_backends, BACKENDS
 from torchbenchmark.util.backends.flops import enable_fvcore_flops
 from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
+from torchbenchmark.util.backends.blade import blade_optimize_script
 
 def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: argparse.Namespace) -> bool:
     "If correctness check should be enabled."
@@ -115,6 +116,9 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"
+    parser.add_argument("--blade", action='store_true', help="enable blade optimize")
+    args = parser.parse_args(opt_args)
+    args.jit = model.jit
     if model.device == "cpu" and args.fuser:
         raise NotImplementedError("Fuser only works with GPU.")
     if not (model.device == "cuda" and model.test == "eval"):
@@ -147,3 +151,6 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
         module, exmaple_inputs = model.get_module()
         precision = 'fp16' if not model.dargs.precision == "fp32" else 'fp32'
         model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
+    if args.blade:
+        module, exmaple_inputs = model.get_module()
+        model.set_module(blade_optimize_script(module, exmaple_inputs))

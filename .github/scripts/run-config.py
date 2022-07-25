@@ -30,6 +30,7 @@ class BenchmarkModelConfig:
     test: str
     batch_size: Optional[int]
     cuda_version: Optional[str]
+    precision: Optional[str]
     args: List[str]
     rewritten_option: str
 
@@ -57,13 +58,13 @@ def get_models(config) -> Optional[str]:
     assert enabled_models, f"The model patterns you specified {config['models']} does not match any model. Please double check."
     return enabled_models
 
-def get_subrun_key(subrun_key):
-    return "-".join(subrun_key)
-
 def get_cuda_versions(config):
     if not "cuda_version" in config:
         return [None]
     return config["cuda_version"]
+
+def get_subrun_key(subrun_key):
+    return "-".join(subrun_key)
 
 def get_tests(config):
     if not "test" in config:
@@ -80,14 +81,20 @@ def get_batch_sizes(config):
         return [None]
     return config["batch_size"]
 
-def get_subrun(device, test, batch_size, cuda_version):
-    if not batch_size and not cuda_version:
-        return (device, test)
-    if not batch_size:
-        return (device, test, f"cuda_{cuda_version}")
-    if not cuda_version:
-        return (device, test, f"bs_{batch_size}")
-    return (device, test, f"bs_{batch_size}", f"cuda_{cuda_version}")
+def get_precisions(config):
+    if not "precision" in config:
+        return [""]
+    return config["precision"]
+
+def get_subrun(device, test, batch_size, cuda_version, precision):
+    subrun = [device, test]
+    if batch_size:
+        subrun.append(f"bs_{batch_size}")
+    if cuda_version:
+        subrun.append(f"cuda_{cuda_version}")
+    if precision:
+        subrun.append(precision)
+    return tuple(subrun)
 
 def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelConfig]:
     if not config_name.endswith(".yaml"):
@@ -104,15 +111,17 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
     tests = get_tests(config)
     batch_sizes = get_batch_sizes(config)
     cuda_versions = get_cuda_versions(config)
+    precisions = get_precisions(config)
 
-    bm_matrix = [devices, tests, batch_sizes, cuda_versions]
-    for device, test, batch_size, cuda_version in itertools.product(*bm_matrix):
-        subrun = get_subrun(device, test, batch_size, cuda_version)
+    bm_matrix = [devices, tests, batch_sizes, cuda_versions, precisions]
+    for device, test, batch_size, cuda_version, precision in itertools.product(*bm_matrix):
+        subrun = get_subrun(device, test, batch_size, cuda_version, precision)
         out[subrun] = []
         for args in config["args"]:
             out[subrun].append(BenchmarkModelConfig(models=models, device=device, test=test, \
-                               batch_size=batch_size, cuda_version=cuda_version, args=args.split(" "), \
-                               rewritten_option=rewrite_option(args.split(" "))))
+                               batch_size=batch_size, cuda_version=cuda_version, precision=precision, \
+                               args=args.split(" "), rewritten_option=rewrite_option(args.split(" "))))
+
     return out
 
 def prepare_bmconfig_env(config: BenchmarkModelConfig, repo_path: Path, dryrun=False):
@@ -133,6 +142,9 @@ def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Pat
     if config.models:
         cmd.append("-m")
         cmd.extend(config.models)
+    if config.precision:
+        cmd.append("--precision")
+        cmd.append(config.precision)
     if config.args != ['']:
         cmd.extend(config.args)
     output_dir = output_path.joinpath("json")

@@ -4,6 +4,7 @@ This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 import importlib
 import copy
+import os
 from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
