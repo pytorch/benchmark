@@ -41,20 +41,18 @@ class Model(BenchmarkModel):
         self.model = quantize_fx.convert_fx(self.model)
         self.model.eval()
 
-    def train(self, niter=3):
+    def train(self):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
-        for _ in range(niter):
-            optimizer.zero_grad()
-            pred = self.model(*self.example_inputs)
-            y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
-            loss(pred, y).backward()
-            optimizer.step()
+        optimizer.zero_grad()
+        pred = self.model(*self.example_inputs)
+        y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
+        loss(pred, y).backward()
+        optimizer.step()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         model = self.model
         example_inputs = self.example_inputs
         example_inputs = example_inputs[0][0].unsqueeze(0)
-        for i in range(niter):
-            out = model(example_inputs)
+        out = model(example_inputs)
         return (out, )

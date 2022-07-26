@@ -64,13 +64,13 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def train(self, niter=3):
+    def train(self):
         net, _ = self.get_module()
         net.train()
         x_spt, y_spt, x_qry, y_qry = self.meta_inputs
         meta_opt = optim.Adam(net.parameters(), lr=1e-3)
 
-        for _ in range(niter):
+        if True:
             task_num, setsz, c_, h, w = x_spt.size()
             querysz = x_qry.size(1)
 
@@ -93,10 +93,9 @@ class Model(BenchmarkModel):
 
             meta_opt.step()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         model, (example_input,) = self.get_module()
         model.eval()
         with torch.no_grad():
-            for i in range(niter):
-                out = model(example_input)
+            out = model(example_input)
         return (out, )

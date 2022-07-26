@@ -47,6 +47,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
     DEFAULT_TRAIN_BSIZE = 4
     DEFAULT_EVAL_BSIZE = 4
+    NUM_OF_BATCHES = 1
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         # reduce the eval batch size when running on CPU
@@ -80,9 +81,9 @@ class Model(BenchmarkModel):
         for (example_inputs, _example_targets) in self.data_loader:
             return self.model, (example_inputs, )
 
-    def train(self, niter=1):
+    def train(self):
         self.model.train()
-        for _, (images, targets) in zip(range(niter), self.data_loader):
+        for _batch_id, (images, targets) in zip(range(self.NUM_OF_BATCHES), self.data_loader):
             # images = list(image.to(self.device) for image in images)
             # targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
             loss_dict = self.model(images, targets)
@@ -91,10 +92,10 @@ class Model(BenchmarkModel):
             losses.backward()
             self.optimizer.step()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
         with torch.no_grad():
-            for _, (images, _targets) in zip(range(niter), self.data_loader):
+            for _batch_id, (images, _targets) in zip(range(self.NUM_OF_BATCHES), self.data_loader):
                 out = self.model(images)
         out = list(map(lambda x: x.values(), out))
         return tuple(itertools.chain(*out))
