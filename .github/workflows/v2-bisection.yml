@@ -47,6 +47,14 @@ jobs:
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"
           cp -r "${BISECT_BASE}" ./bisection-result
+      - name: Create the github issue
+        if: env.TORCHBENCH_PERF_BISECTION_SIGNAL
+        uses: peter-evans/create-issue-from-file@v3
+        with:
+          title: V2 Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_BISECTION_SIGNAL }}
+          content-filepath: ./bisection-result/gh-issue.md
+          labels: |
+            torchbench-perf-report
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
