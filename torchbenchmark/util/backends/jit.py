@@ -17,13 +17,15 @@ def torchscript(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args:
     args = parse_torchscript_args(backend_args)
     # customized jit callback function
     if hasattr(model, 'jit_callback'):
+        if args.no_ofi:
+            raise NotImplementedError("Customized jit callback doesn't support options.")
         model.jit_callback()
+        return
+    module, example_inputs = model.get_module()
+    if hasattr(torch.jit, '_script_pdt'):
+        module = torch.jit._script_pdt(module, example_inputs=[example_inputs, ])
     else:
-        module, example_inputs = model.get_module()
-        if hasattr(torch.jit, '_script_pdt'):
-            module = torch.jit._script_pdt(module, example_inputs=[example_inputs, ])
-        else:
-            module = torch.jit.script(module, example_inputs=[example_inputs, ])
+        module = torch.jit.script(module, example_inputs=[example_inputs, ])
     if model.test == "eval" and not args.no_ofi:
         module = torch.jit.optimize_for_inference(module)
     model.set_module(module)
