@@ -72,13 +72,27 @@ class PytorchBenchmarkUploader(ScribeUploader):
         super().__init__('perfpipe_pytorch_benchmarks')
         self.schema = {
             'int': [
-                'time',
+                'time', 'rounds',
             ],
             'normal': [
-                'name',
-                'pytorch_git_version',
+                'benchmark_group', 'benchmark_name',
+                'benchmark_class', 'benchmark_time',
+                'git_repo', 'git_commit_id', 'git_branch',
+                'git_commit_time', 'git_dirty',
+                'pytorch_version', 'python_version',
+                'torchtext_version', 'torchvision_version',
+                'machine_kernel', 'machine_processor', 'machine_hostname',
+                'github_run_id', 'torchbench_score_version',
             ],
-            'float': [ ],
+            'float': [
+                'stddev', 'min', 'median', 'max', 'mean', 'runtime',
+                'torchbench_score',
+                'torchbench_score_jit_speedup',
+                'torchbench_subscore_cpu_train',
+                'torchbench_subscore_cpu_infer',
+                'torchbench_subscore_gpu_train',
+                'torchbench_subscore_gpu_infer',
+            ]
         }
 
     def post_pytest_benchmarks(self, pytest_json, max_data_upload=100):
