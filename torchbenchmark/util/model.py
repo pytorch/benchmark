@@ -89,7 +89,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.opt_args = parse_torchdynamo_args(self, opt_args)
         else:
             self.dynamo = False
-            self.opt_args = parse_opt_args(self, opt_args)
+            self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
         should_check_correctness = check_correctness_p(self, self.opt_args)
         if should_check_correctness:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
@@ -100,7 +100,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
-            apply_opt_args(self, self.opt_args)
+            apply_opt_args(self, self.opt_args, self.extra_args)
         if should_check_correctness:
             # tensorrt or fp16 is known to generate less-accurate results
             # in this case, use more relaxed cosine similarity instead of torch.allclose

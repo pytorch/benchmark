@@ -1,12 +1,21 @@
 import torch
-from typing import Tuple
 
-def enable_jit(model: torch.nn.Module, example_inputs: Tuple[torch.Tensor], test: str, optimize_for_inference: bool=True) -> torch.ScriptModule:
+from torchbenchmark.util.backends import create_backend
+
+@create_backend
+def torchscript(model: 'torchbenchmark.util.model.BenchmarkModel', **kwargs):
+    # customized jit callback function
+    model.jit = True
+    if hasattr(model, 'jit_callback'):
+        model.jit_callback()
+        return
+    module, example_inputs = model.get_module()
     if hasattr(torch.jit, '_script_pdt'):
-        model = torch.jit._script_pdt(model, example_inputs=[example_inputs, ])
+        module = torch.jit._script_pdt(module, example_inputs=[example_inputs, ])
     else:
-        model = torch.jit.script(model, example_inputs=[example_inputs, ])
-    if test == "eval" and optimize_for_inference:
-        model = torch.jit.optimize_for_inference(model)
-    assert isinstance(model, torch.jit.ScriptModule)
-    return model
+        module = torch.jit.script(module, example_inputs=[example_inputs, ])
+    optimized_for_inference = False if "optimize_for_inference" in kwargs and \
+                                    not kwargs["optimize_for_inference"] else True
+    if model.test == "eval" and optimized_for_inference:
+        module = torch.jit.optimize_for_inference(module)
+    model.set_module(module)
