@@ -24,8 +24,6 @@ def torchscript(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args:
         module = torch.jit._script_pdt(module, example_inputs=[example_inputs, ])
     else:
         module = torch.jit.script(module, example_inputs=[example_inputs, ])
-    print(backend_args)
-    print(args)
     if model.test == "eval" and not args.no_ofi:
         module = torch.jit.optimize_for_inference(module)
     model.set_module(module)
