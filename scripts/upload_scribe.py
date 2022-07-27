@@ -88,7 +88,7 @@ class PytorchBenchmarkUploader(ScribeUploader):
                 'stddev', 'min', 'median', 'max', 'mean', 'runtime',
                 'torchbench_score',
                 'torchbench_score_jit_speedup',
-                'torchbench_subscore_cpu_train', 
+                'torchbench_subscore_cpu_train',
                 'torchbench_subscore_cpu_infer',
                 'torchbench_subscore_gpu_train',
                 'torchbench_subscore_gpu_infer',
