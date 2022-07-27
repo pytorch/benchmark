@@ -17,6 +17,7 @@ def parse_fusers(extra_args: List[str]):
         choices=["no_fuser", "fuser0", "fuser1", "fuser2"],
         help="List of fusers to run tests on")
     parser.add_argument("--filters", nargs="*", default=[], help='List of fuser microbenchmarks to test')
+    parser.add_argument("--output", help="specifiy the output file name")
     args = parser.parse_args(extra_args)
     return args
 
@@ -44,7 +45,7 @@ class NVFuserBenchmark():
         return inputs
 
 
-def dump_metrics(metrics):
+def dump_metrics(metrics, output_name):
     output = {
         "name": "nvfuser",
         "environ": {"pytorch_git_version": torch.version.git_version},
@@ -55,6 +56,8 @@ def dump_metrics(metrics):
     os.makedirs(target_dir, exist_ok=True)
     fname = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
     full_fname = os.path.join(target_dir, fname)
+    if output_name is not None:
+        full_fname = output_name
     with open(full_fname, 'w') as f:
         json.dump(output, f, indent=4)
 
@@ -78,7 +81,7 @@ def run_nvfuser_microbenchmarks(extra_args: List[str]):
             outputs.append((fuser, runtime))
             metrics[f"{fuser}:{b.name}"] = runtime
         print(f"{b.name}:", "; ".join(f"{name} = {time:.3f} ms" for name, time in outputs))
-    dump_metrics(metrics)
+    dump_metrics(metrics, args.output)
 
 
 def run(args: List[str]):
