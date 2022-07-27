@@ -8,22 +8,8 @@ from ..utils import get_output_dir
 
 BM_NAME = "release-test"
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
-
-RUN_SCRIPT_TEMPLATE = """
-set -x
-conda uninstall -y pytorch torchvision torchtext ${MAGMA_VERSION}
-. switch-cuda.sh {CUDA_VERSION}
-# install magma and cudatoolkit
-conda install -y cudatoolkit=${CUDA_VERSION}
-conda install -y -c pytorch ${MAGMA_VERSION}
-# install pytorch
-conda install -y -c {PYTORCH_CHANNEL} pytorch={PYTORCH_VERSION} torchvision torchtext
-python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
-sudo nvidia-smi -ac ${GPU_FREQUENCY}
-# check machine tuned
-pip install -U py-cpuinfo psutil distro
-python ../torchbenchmark/util/machine_config.py
-# run benchmarks
+RUN_TEMPLATE = """
+bash setup_env.sh {CUDA_VERSION}
 """
 
 def generate_test_scripts(config, log_dir):
