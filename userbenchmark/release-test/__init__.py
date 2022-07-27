@@ -1,28 +1,48 @@
 import argparse
 import os
 import yaml
+import time
 import itertools
 from pathlib import Path
 from typing import List
 from ..utils import get_output_dir
 
 BM_NAME = "release-test"
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
 RUN_TEMPLATE = """
-bash setup_env.sh {CUDA_VERSION}
+bash {RELEASE_TEST_ROOT}/setup_env.sh {CUDA_VERSION} {MAGMA_VERSION} {PYTORCH_VERSION} {PYTORCH_CHANNEL} {WORK_DIR}
+bash {RELEASE_TEST_ROOT}/run_release_test.sh {CUDA_VERSION} {RESULT_DIR} {WORK_DIR}
 """
 
 def generate_test_scripts(config, log_dir):
     assert "cuda" in config and isinstance(config["cuda"], list), f"Expected CUDA config list, but not found."
     assert "pytorch" in config and isinstance(config["pytorch"], list), f"Exptected pytorch version list, but not found."
     bm_matrix = [config["cuda"], config["pytorch"]]
-    for cuda_ver, pytorch_ver in itertools.product(*bm_matrix):
-        run_script = ""
+    run_scripts = []
+    for cuda, pytorch in itertools.product(*bm_matrix):
+        run_script = RUN_TEMPLATE.format(RELEASE_TEST_ROOT=CURRENT_DIR,
+                                         CUDA_VERSION=cuda["version"],
+                                         MAGMA_VERSION=cuda["magma_version"],
+                                         PYTORCH_VERSION=pytorch["version"],
+                                         PYTORCH_CHANNEL=pytorch["conda_channel"],
+                                         WORK_DIR="")
+        run_scripts.append(run_script)
+    return run_scripts
 
-def get_log_dir(output_dir, config_name):
-    log_dir = output_dir.joinpath("logs", config_name)
-    log_dir.mkdir(exist_ok=True, parents=True)
-    return log_dir
+def run_benchmark():
+    pass
+
+def analyze_benchmark_results():
+    pass
+
+def get_timestamp():
+    return time.time().strftime("%Y%m%d%H%M%S")
+
+def get_work_dir(output_dir, config_name):
+    work_dir = output_dir.joinpath("run-", config_name)
+    work_dir.mkdir(exist_ok=True, parents=True)
+    return work_dir
 
 def get_config(config_name: str):
     if os.path.exists(os.path.join(DEFAULT_CONFIG_PATH, config_name)):
