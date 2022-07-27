@@ -124,7 +124,7 @@ class Model(BenchmarkModel):
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
             return self.netG, (image.to(self.device), bg.to(self.device), seg.to(self.device), multi_fr.to(self.device))
 
-    def train(self, niter=1):
+    def train(self):
         self.netG.train()
         self.netD.train()
         lG, lD, GenL, DisL_r, DisL_f, alL, fgL, compL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -133,10 +133,9 @@ class Model(BenchmarkModel):
         wt = 1
         epoch = 0
         step = 50
+        num_of_batches = 1
 
-        for i, data in enumerate(self.train_data):
-            if (i > niter):
-                break
+        for i, data in zip(range(num_of_batches), self.train_data):
             # Initiating
 
             bg, image, seg, multi_fr, seg_gt, back_rnd = data['bg'], data[
@@ -284,5 +283,5 @@ class Model(BenchmarkModel):
             # Change weight every 2 epoch to put more stress on discriminator weight and less on pseudo-supervision
             wt = wt/2
 
-    def eval(self, niter=1):
+    def eval(self):
         raise NotImplementedError()

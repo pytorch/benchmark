@@ -52,6 +52,10 @@ class Model(BenchmarkModel):
                              config=config,
                              should_script=config.should_script)
         self.model = self.solver.G
+        if self.test == "train":
+            self.model.train()
+        elif self.test == "eval":
+            self.model.eval()
 
         self.example_inputs = self.generate_example_inputs()
 
@@ -68,19 +72,11 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def set_train(self):
-        self.model.train()
+    def train(self):
+        self.solver.train()
 
-    def set_eval(self):
-        self.model.eval()
-
-    def train(self, niter=1):
-        for _ in range(niter):
-            self.solver.train()
-
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         model = self.model
         example_inputs = self.example_inputs
-        for _ in range(niter):
-            out = model(*example_inputs)
+        out = model(*example_inputs)
         return (out, )

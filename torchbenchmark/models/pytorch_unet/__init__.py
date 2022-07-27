@@ -48,14 +48,14 @@ class Model(BenchmarkModel):
     def enable_amp(self):
         self.args.amp = True
 
-    def train(self, niter=1):
+    def train(self):
         optimizer = optim.RMSprop(self.model.parameters(), lr=self.args.lr, weight_decay=1e-8, momentum=0.9)
         grad_scaler = torch.cuda.amp.GradScaler(enabled=self.args.amp)
         criterion = nn.CrossEntropyLoss()
 
         self.model.train()
 
-        for _ in range(niter):
+        if True:
             with torch.cuda.amp.autocast(enabled=self.args.amp):
                 masks_pred = self.model(self.example_inputs)
                 masks_true = self.sample_masks
@@ -70,17 +70,16 @@ class Model(BenchmarkModel):
             grad_scaler.step(optimizer)
             grad_scaler.update()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
         with torch.no_grad():
-            for _ in range(niter):
-                with torch.cuda.amp.autocast(enabled=self.args.amp):
-                    mask_pred = self.model(self.example_inputs)
+            with torch.cuda.amp.autocast(enabled=self.args.amp):
+                mask_pred = self.model(self.example_inputs)
 
-                    if self.model.n_classes == 1:
-                        mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
-                    else:
-                        mask_pred = F.one_hot(mask_pred.argmax(dim=1), self.model.n_classes).permute(0, 3, 1, 2).float()
+                if self.model.n_classes == 1:
+                    mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
+                else:
+                    mask_pred = F.one_hot(mask_pred.argmax(dim=1), self.model.n_classes).permute(0, 3, 1, 2).float()
         return (mask_pred, )
 
     def _get_args(self):

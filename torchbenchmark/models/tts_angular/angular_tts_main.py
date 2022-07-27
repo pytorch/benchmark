@@ -249,7 +249,7 @@ class TTSModel:
     def __del__(self):
         del self.SYNTHETIC_DATA[0]
 
-    def train(self, niter):
+    def train(self, niter=1):
         _, global_step = self._train(self.model, self.criterion,
                                      self.optimizer, self.scheduler, None,
                                      self.global_step, self.c, niter)

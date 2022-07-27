@@ -6,7 +6,7 @@ from statistics import stdev
 import torch
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
-from torchbenchmark.util.e2emodel import E2EBenchmarkModel
+from torchbenchmark.util.model import BenchmarkModel
 import torch.distributed as dist
 
 class Trainer():
@@ -21,21 +21,16 @@ class Trainer():
         self.local_rank = int(os.getenv("LOCAL_RANK", -1))
         self.setup()
 
+        # specify the name of the distributed trainer
         extra_args = [
             "--distributed",
             self.args.distributed,
         ]
-        extra_args.extend(self.model_args)
+        extra_args.extend(model_args)
 
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
-        self.e2e_benchmark: E2EBenchmarkModel = model_class("train", batch_size=None, extra_args=extra_args)
-
-        expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator"]
-        assert all(attr in dir(self.e2e_benchmark) for attr in expected_attrs), (
-            "Missing attributes in the input E2EBenchmarkModel implementation: "
-            f"{[attr for attr in expected_attrs if attr not in dir(self.e2e_benchmark)]}"
-        )
+        self.benchmark: BenchmarkModel = model_class(test="train", device="cuda", batch_size=None, extra_args=extra_args)
 
         self.rank = dist.get_rank()
 
@@ -75,16 +70,12 @@ class Trainer():
 
     def measure(self):
         niters = self.DEFAULT_MEASURE_ITERATIONS
-        # TODO: using dummy data for now to rule out dataloader delays
-        batch = self.e2e_benchmark.next_batch()
 
         ######################################
         # 1. warming up CUDACachingAllocator #
         ######################################
         for _ in range(self.DEFAULT_MEASURE_ITERATIONS):
-            loss = self.e2e_benchmark.run_forward(batch)
-            self.e2e_benchmark.run_backward(loss)
-            self.e2e_benchmark.run_optimizer_step()
+            self.benchmark.invoke()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
@@ -94,46 +85,21 @@ class Trainer():
         ##################################################################
         # 2. measure raw delays and memory to rule out profiler overhead #
         ##################################################################
-        events_pre_fwd = [Event(enable_timing=True) for _ in range(niters)]
-        events_pre_bwd = [Event(enable_timing=True) for _ in range(niters)]
-        events_pre_opt = [Event(enable_timing=True) for _ in range(niters)]
-        events_post_opt = [Event(enable_timing=True) for _ in range(niters)]
+        events_pre_train = [Event(enable_timing=True) for _ in range(niters)]
+        events_post_train = [Event(enable_timing=True) for _ in range(niters)]
         for i in range(niters):
-            events_pre_fwd[i].record()
-            loss = self.e2e_benchmark.run_forward(batch)
-
-            events_pre_bwd[i].record()
-            self.e2e_benchmark.run_backward(loss)
-
-            events_pre_opt[i].record()
-            self.e2e_benchmark.run_optimizer_step()
-
-            events_post_opt[i].record()
+            events_pre_train[i].record()
+            self.benchmark.invoke()
+            events_post_train[i].record()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
 
-        delays_fwd = [pre.elapsed_time(post) for pre, post in zip(events_pre_fwd, events_pre_bwd)]
-        delays_bwd = [pre.elapsed_time(post) for pre, post in zip(events_pre_bwd, events_pre_opt)]
-        delays_opt = [pre.elapsed_time(post) for pre, post in zip(events_pre_opt, events_post_opt)]
+        latency_train = [pre.elapsed_time(post) for pre, post in zip(events_pre_train, events_post_train)]
 
-        mean_fwd = float(sum(delays_fwd)) / len(delays_fwd)
-        stdev_fwd = stdev(delays_fwd)
-        mean_bwd = float(sum(delays_bwd)) / len(delays_bwd)
-        stdev_bwd = stdev(delays_bwd)
-        mean_opt = float(sum(delays_opt)) / len(delays_opt)
-        stdev_opt = stdev(delays_opt)
+        median_latency = float(sum(latency_train)) / len(latency_train)
+        stdev_latency = stdev(latency_train)
 
-        # write results
-        delay_dir = f"{self.args.job_dir}/delay"
-        Path(delay_dir).mkdir(parents=True, exist_ok=True)
-        fout = open(f"{delay_dir}/{name}.log", "w")
-        fout.write(
-            f"{mean_fwd:.2f}, {stdev_fwd:.2f}, "
-            f"{mean_bwd:.2f}, {stdev_bwd:.2f}, "
-            f"{mean_opt:.2f}, {stdev_opt:.2f}\n"
-        )
-        fout.close()
 
         if self.args.profiler:
             # N.B.: disable PyTorch Profiler by default due to
@@ -153,9 +119,7 @@ class Trainer():
                 )
             ):
                 for i in range(niters):
-                    loss = self.e2e_benchmark.run_forward(batch)
-                    self.e2e_benchmark.run_backward(loss)
-                    self.e2e_benchmark.run_optimizer_step()
+                    self.benchmark.invoke()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
@@ -163,12 +127,8 @@ class Trainer():
         dist.barrier(device_ids=[self.local_rank])
 
         return {
-            "fwd_mean" : mean_fwd,
-            "fwd_stdev" : stdev_fwd,
-            "bwd_mean" : mean_bwd,
-            "bwd_stdev" : stdev_bwd,
-            "opt_mean" : mean_opt,
-            "opt_stdev" : stdev_opt,
+            "latency_median" : median_latency,
+            "latency_stdev" : stdev_latency,
         }
 
 

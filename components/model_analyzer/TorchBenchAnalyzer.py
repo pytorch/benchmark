@@ -49,9 +49,6 @@ class ModelAnalyzer:
         self.gpu_record_aggregator = RecordAggregator()
         self.export_csv_name = ''
 
-    def add_mem_throughput_metrics(self):
-        self.gpu_metrics.append(GPUPCIERX)
-        self.gpu_metrics.append(GPUPCIETX)
 
     def set_export_csv_name(self, export_csv_name=''):
         self.export_csv_name = export_csv_name
@@ -135,12 +132,14 @@ class ModelAnalyzer:
                         tmp_line = "%s, " % (record_type.tag + '(%)')
                     elif record_type.tag.startswith('gpu_pice'):
                         tmp_line = "%s, " % (record_type.tag + '(bytes)')
+                    else:
+                        tmp_line = "%s, " % record_type.tag
                     fout.write(tmp_line)
                 fout.write("duration(ms), ")
                 if GPUPCIERX in self.gpu_metrics:
-                    fout.write("read_throughput(GB/s), ")
+                    fout.write("HtoD_throughput(GB/s), ")
                 if GPUPCIETX in self.gpu_metrics:
-                    fout.write("write_throughput(GB/s), ")
+                    fout.write("DtoH_throughput(GB/s), ")
                 timestamps = list(timestamps)
                 timestamps.sort()
                 timestamp_start = timestamps[0]

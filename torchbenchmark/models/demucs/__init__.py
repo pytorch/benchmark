@@ -79,18 +79,16 @@ class Model(BenchmarkModel):
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
         return self.model, self.example_inputs
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        for _ in range(niter):
-            sources, estimates = self.model(*self.example_inputs)
-            sources = center_trim(sources, estimates)
-            loss = self.criterion(estimates, sources)
+    def eval(self) -> Tuple[torch.Tensor]:
+        sources, estimates = self.model(*self.example_inputs)
+        sources = center_trim(sources, estimates)
+        loss = self.criterion(estimates, sources)
         return (sources, estimates)
 
-    def train(self, niter=1):
-        for _ in range(niter):
-            sources, estimates = self.model(*self.example_inputs)
-            sources = center_trim(sources, estimates)
-            loss = self.criterion(estimates, sources)
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
+    def train(self):
+        sources, estimates = self.model(*self.example_inputs)
+        sources = center_trim(sources, estimates)
+        loss = self.criterion(estimates, sources)
+        loss.backward()
+        self.optimizer.step()
+        self.optimizer.zero_grad()

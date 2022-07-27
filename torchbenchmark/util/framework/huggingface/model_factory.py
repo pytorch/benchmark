@@ -1,8 +1,10 @@
+import math
+import random
 import torch
 from torch import optim
 from torchbenchmark.util.model import BenchmarkModel
 import transformers
-from transformers import AutoConfig, ReformerConfig, BigBirdConfig, BertConfig
+from transformers import AutoConfig, ReformerConfig, BertConfig
 from typing import Tuple
 
 class_models = {
@@ -47,6 +49,9 @@ class HuggingFaceModel(BenchmarkModel):
             self.max_length = class_models[name][0]
         elif test == "eval":
             self.max_length = class_models[name][1]
+        # workaround the bigbird config import
+        if name == "hf_BigBird":
+            from transformers import BigBirdConfig
         config = eval(class_models[name][2])
         if class_models[name][2] == "ReformerConfig()" and not config.num_buckets:
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
@@ -54,6 +59,10 @@ class HuggingFaceModel(BenchmarkModel):
         class_ctor = getattr(transformers, class_models[name][3])
         self.model = class_ctor.from_config(config).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+
+        # populate these on-demand to avoid wasting memory when not used
+        self.vocab_size = config.vocab_size
+        self.dynamic_example_inputs = None
 
         if test == "train":
             input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
@@ -76,7 +85,26 @@ class HuggingFaceModel(BenchmarkModel):
             return ArgsToKwargsWrapper(self.model), (
                     self.example_inputs['input_ids'], self.example_inputs[k])
         return self.model, (self.example_inputs["input_ids"], )
-    
+
+    def get_dynamic_shapes_module(self):
+        if self.dynamic_example_inputs is None:
+            nbuckets = 8
+            nsamples = 32
+            n = int(math.log2(self.max_length))
+            buckets = [2**n for n in range(n - nbuckets, n)]
+            self.dynamic_example_inputs = [
+                {
+                    'input_ids': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
+                    'labels': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device)}
+                for bucket_len in random.choices(buckets, k=nsamples)
+            ]
+
+        if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
+            raise NotImplementedError("Not yet supported")
+
+        # TODO(whc) why is labels not passed through?
+        return self.model, [(i['input_ids'],) for i in self.dynamic_example_inputs]
+
     def enable_fp16_half(self):
         self.model = self.model.half()
 
@@ -94,7 +122,9 @@ class HuggingFaceModel(BenchmarkModel):
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
         # transformations such as fx2trt will cast the original output type to dict
-        if hasattr(out, 'logits'):
+        if isinstance(out, tuple):
+            return out
+        elif hasattr(out, 'logits'):
             return (out.logits, )
         else:
             return (out["logits"], )

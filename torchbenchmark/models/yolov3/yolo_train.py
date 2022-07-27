@@ -246,7 +246,7 @@ def prepare_training_loop(args):
         # Model EMA
         ema = torch_utils.ModelEMA(model)
 
-        def train_loop(epochs):
+        def train_loop(epochs=1):
             epoch = 0
             nonlocal img_size, best_fitness
             # Start training
