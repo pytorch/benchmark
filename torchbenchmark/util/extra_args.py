@@ -1,7 +1,8 @@
 import argparse
 from typing import List, Optional, Tuple
+from torchbenchmark.util.backends import list_backends, BACKENDS
+
 from torchbenchmark.util.backends.fx2trt import enable_fx2trt
-from torchbenchmark.util.backends.jit import enable_jit
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
 
 def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: argparse.Namespace) -> bool:
@@ -104,12 +105,14 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
 # Dispatch arguments based on model type
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--backend", choices=list_backends(), help="enable backends")
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result")
-    args = parser.parse_args(opt_args)
-    args.jit = model.jit
+    args, extra_args = parser.parse_known_args(opt_args)
+    if model.jit:
+        args.backend = "torchscript"
     if model.device == "cpu" and args.fuser:
         raise NotImplementedError("Fuser only works with GPU.")
     if not (model.device == "cuda" and model.test == "eval"):
@@ -117,20 +120,18 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
             raise NotImplementedError("TensorRT only works for CUDA inference tests.")
     if is_torchvision_model(model):
         args.cudagraph = False
-    return args
+    return args, extra_args
 
-def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
+def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, extra_args: List[str]):
+    if args.backend:
+        backend = BACKENDS[args.backend]
+        # transform the model using the specified backend
+        backend(model, backend_args=extra_args)
+        return
+    assert not extra_args, f"Exptected no unknown args at this point, found {extra_args}"
     if args.fuser:
         import torch
         model.add_context(lambda: torch.jit.fuser(args.fuser))
-    if args.jit:
-        # model can handle jit code themselves through the 'jit_callback' callback function
-        if hasattr(model, 'jit_callback'):
-            model.jit_callback()
-        else:
-            # if model doesn't have customized jit code, use the default jit script code
-            module, exmaple_inputs = model.get_module()
-            model.set_module(enable_jit(model=module, example_inputs=exmaple_inputs, test=model.test))
     if args.fx2trt:
         if args.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")
