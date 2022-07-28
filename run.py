@@ -20,6 +20,7 @@ import torch
 
 WARMUP_ROUNDS = 3
 
+
 def run_one_step_with_cudastreams(func, streamcount):
 
     print("Running Utilization Scaling Using Cuda Streams")
@@ -77,7 +78,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
     _i = 0
     last_it = 0
     first_print_out = True
-    while (not stress and _i < num_iter ) or (stress and cur_time < target_time ) :
+    while (not stress and _i < num_iter) or (stress and cur_time < target_time) :
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
@@ -112,20 +113,22 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
                     print('|{:^20}|{:^20}|{:^20}|'.format("Iterations", "Time/Iteration(ms)", "Rest Time(s)"))
                     first_print_out = False
                 est = (target_time - cur_time) / 1e9
-                time_per_it = (cur_time - last_time) / ( _i - last_it) / 1e6
+                time_per_it = (cur_time - last_time) / (_i - last_it) / 1e6
                 print('|{:^20}|{:^20}|{:^20}|'.format("%d" % _i, "%.2f" % time_per_it , "%d" % int(est)))
                 last_time = cur_time
                 last_it = _i
         _i += 1
     if dcgm_enabled:
-            model_analyzer.stop_monitor()
+        model_analyzer.stop_monitor()
 
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
         if hasattr(model, "NUM_BATCHES"):
-            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" % (gpu_time / model.NUM_BATCHES), sep=''))
-            print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" % (cpu_walltime / model.NUM_BATCHES), sep=''))
+            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" %
+                  (gpu_time / model.NUM_BATCHES), sep=''))
+            print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" %
+                  (cpu_walltime / model.NUM_BATCHES), sep=''))
         else:
             print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
             print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
@@ -173,6 +176,41 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
             prof.step()
 
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
+    print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
+
+
+def profile_one_step_torchexpert(func, nwarmup=WARMUP_ROUNDS):
+    import sys
+    sys.path.append("./TorchExpert")
+    from torchexpert import TorchExpert
+    torchexpert = TorchExpert()
+    activity_groups = []
+    if ((not args.profile_devices and args.device == 'cuda') or
+            (args.profile_devices and 'cuda' in args.profile_devices)):
+        print("Collecting CUDA activity.")
+        activity_groups.append(profiler.ProfilerActivity.CUDA)
+
+    if ((not args.profile_devices and args.device == 'cpu') or
+            (args.profile_devices and 'cpu' in args.profile_devices)):
+        print("Collecting CPU activity.")
+        activity_groups.append(profiler.ProfilerActivity.CPU)
+    with profiler.profile(
+        schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1),
+        activities=activity_groups,
+        record_shapes=args.profile_detailed,
+        profile_memory=args.profile_detailed,
+        with_stack=args.profile_detailed,
+        with_flops=args.profile_detailed,
+        on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
+    ) as prof:
+        for _i in range(nwarmup + 1):
+            func()
+            torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
+            if _i != nwarmup:
+                prof.step()
+    torchexpert.set_profile(prof)
+    torchexpert.analyze()
+    # print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
 
@@ -247,10 +285,11 @@ if __name__ == "__main__":
     else:
         export_dcgm_metrics_file = False
     if args.profile:
-        profile_one_step(test)
+        profile_one_step_torchexpert(test)
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress)
+        run_one_step(test, model_flops=model_flops, model=m,
+                     export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
