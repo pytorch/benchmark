@@ -19,10 +19,11 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 # install pytorch
 conda install -y -c ${PYTORCH_CHANNEL} pytorch=${PYTORCH_VERSION} torchvision torchtext
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
-sudo nvidia-smi -ac "${GPU_FREQUENCY}"
 
+# tune the machine
+sudo nvidia-smi -ac "${GPU_FREQUENCY}"
 pip install -U py-cpuinfo psutil distro
-# Make sure the machine is tuned
+# check machine tuned
 python "${CURRENT_DIR}/torchbenchmark/util/machine_config.py"
 
 # clone the examples

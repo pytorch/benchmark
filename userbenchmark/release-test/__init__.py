@@ -3,46 +3,66 @@ import os
 import yaml
 import time
 import itertools
+import subprocess
 from pathlib import Path
 from typing import List
 from ..utils import get_output_dir
+from .result_analyzer import analyze
+
+# Expected WORK_DIR structure
+# WORK_DIR/
+#  |---examples/
+#  |---pytorch-<ver1>-cuda<ver1>/
+#        |---run.sh
+#        |---mnist/
+#        |---mnist-hogwild/
+#        |---<other-benchmarks>
+#  |---pytorch-<ver2>-cuda<ver2>/
+#  |---summary.csv
 
 BM_NAME = "release-test"
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
 RUN_TEMPLATE = """
-bash {RELEASE_TEST_ROOT}/setup_env.sh {CUDA_VERSION} {MAGMA_VERSION} {PYTORCH_VERSION} {PYTORCH_CHANNEL} {WORK_DIR}
-bash {RELEASE_TEST_ROOT}/run_release_test.sh {CUDA_VERSION} {RESULT_DIR} {WORK_DIR}
+bash {RELEASE_TEST_ROOT}/setup_env.sh '{CUDA_VERSION}' '{MAGMA_VERSION}' '{PYTORCH_VERSION}' '{PYTORCH_CHANNEL}' '{WORK_DIR}'
+bash {RELEASE_TEST_ROOT}/run_release_test.sh '{CUDA_VERSION}' '{RESULT_DIR}'
 """
 
-def generate_test_scripts(config, log_dir):
+def get_timestamp():
+    return time.time().strftime("%Y%m%d%H%M%S")
+
+def get_work_dir(output_dir):
+    work_dir = output_dir.joinpath(f"run-{get_timestamp()}")
+    work_dir.mkdir(exist_ok=True, parents=True)
+    return work_dir
+
+def generate_test_scripts(config, work_dir):
     assert "cuda" in config and isinstance(config["cuda"], list), f"Expected CUDA config list, but not found."
     assert "pytorch" in config and isinstance(config["pytorch"], list), f"Exptected pytorch version list, but not found."
     bm_matrix = [config["cuda"], config["pytorch"]]
-    run_scripts = []
+    run_scripts = {}
     for cuda, pytorch in itertools.product(*bm_matrix):
+        run_key = f"pytorch-{pytorch['version']}-cuda-{cuda['version']}"
         run_script = RUN_TEMPLATE.format(RELEASE_TEST_ROOT=CURRENT_DIR,
                                          CUDA_VERSION=cuda["version"],
                                          MAGMA_VERSION=cuda["magma_version"],
                                          PYTORCH_VERSION=pytorch["version"],
                                          PYTORCH_CHANNEL=pytorch["conda_channel"],
-                                         WORK_DIR="")
-        run_scripts.append(run_script)
+                                         WORK_DIR=work_dir,
+                                         RESULT_DIR=work_dir.joinpath(run_key))
+        run_scripts[run_key] = run_script
     return run_scripts
 
-def run_benchmark():
-    pass
+def dump_test_scripts(run_scripts, work_dir):
+    for run_key, run_script in run_scripts.items():
+        run_script_loc = work_dir.joinpath(run_key)
+        run_script_loc.mkdir(exist_ok=True)
+        with open(run_script_loc.joinpath("run.py"), "w") as rs:
+            rs.write(run_script)
 
-def analyze_benchmark_results():
-    pass
-
-def get_timestamp():
-    return time.time().strftime("%Y%m%d%H%M%S")
-
-def get_work_dir(output_dir, config_name):
-    work_dir = output_dir.joinpath("run-", config_name)
-    work_dir.mkdir(exist_ok=True, parents=True)
-    return work_dir
+def run_benchmark(run_scripts, work_dir):
+    for run_key, _rscript in run_scripts.item():
+        pass
 
 def get_config(config_name: str):
     if os.path.exists(os.path.join(DEFAULT_CONFIG_PATH, config_name)):
@@ -58,14 +78,24 @@ def get_config(config_name: str):
 def parse_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, help="Config for release testing")
+    parser.add_argument("--dry-run", action='store_true', help="Only generate the test scripts. Do not run the benchmark.")
+    parser.add_argument("--analyze-result", type=str, help="Only analyze the result of the specified work directory.")
     args = parser.parse_args(args)
     return args
 
-def prepare_release_tests(args: argparse.Namespace, output_dir: Path):
+def prepare_release_tests(args: argparse.Namespace, work_dir: Path):
     config = get_config(args.config)
-    log_dir = get_log_dir(output_dir, args.config)
-    run_scripts = generate_test_scripts(config, log_dir)
+    run_scripts = generate_test_scripts(config, work_dir)
+    dump_test_scripts(run_scripts, work_dir)
+    return run_scripts
 
 def run(args: List[str]):
     args = parse_args(args)
-    prepare_release_tests(extra_args=args, output_dir=get_output_dir())
+    if args.analyze_result:
+        analyze(args.analyze_result)
+        return
+    work_dir = get_work_dir(get_output_dir())
+    run_scripts = prepare_release_tests(extra_args=args, work_dir=work_dir)
+    if not args.dry_run:
+        run_benchmark(run_scripts, work_dir)
+        analyze(work_dir)

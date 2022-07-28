@@ -4,7 +4,7 @@ set -xeuo pipefail
 
 CUDA_VERSION="$1"
 RESULT_DIR="$2"
-EXAMPLES_DIR="$3"
+EXAMPLES_DIR="${RESULT_DIR}/../examples"
 # get the directory of the current script
 CURRENT_DIR=$(dirname -- "$0")
 
