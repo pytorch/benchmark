@@ -13,7 +13,9 @@ GPU_FREQUENCY="5001,900"
 CURRENT_DIR=$(dirname -- "$0")
 
 . switch-cuda.sh ${CUDA_VERSION}
-conda uninstall -y pytorch torchvision torchtext
+conda uninstall -y pytorch torchvision torchtext cudatoolkit
+# install cuda toolkit
+conda install -y cudatoolkit=${CUDA_VERSION}
 # install magma
 conda install -y -c pytorch ${MAGMA_VERSION}
 # install pytorch
@@ -30,4 +32,3 @@ python "${CURRENT_DIR}/torchbenchmark/util/machine_config.py"
 if [ -e "${WORK_DIR}/examples" ]; then
     rm -rf "${WORK_DIR}/examples"
 fi
-git clone https://github.com/pytorch/examples.git "${WORK_DIR}/examples"

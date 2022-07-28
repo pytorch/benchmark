@@ -4,6 +4,8 @@ import yaml
 import time
 import itertools
 import subprocess
+from datetime import datetime
+from git import Repo
 from pathlib import Path
 from typing import List
 from ..utils import get_output_dir
@@ -21,6 +23,7 @@ from .result_analyzer import analyze
 #  |---summary.csv
 
 BM_NAME = "release-test"
+EXAMPLE_URL = "https://github.com/pytorch/examples.git"
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
 RUN_TEMPLATE = """
@@ -29,7 +32,7 @@ bash {RELEASE_TEST_ROOT}/run_release_test.sh '{CUDA_VERSION}' '{RESULT_DIR}'
 """
 
 def get_timestamp():
-    return time.time().strftime("%Y%m%d%H%M%S")
+    return datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
 
 def get_work_dir(output_dir):
     work_dir = output_dir.joinpath(f"run-{get_timestamp()}")
@@ -61,14 +64,14 @@ def dump_test_scripts(run_scripts, work_dir):
             rs.write(run_script)
 
 def run_benchmark(run_scripts, work_dir):
-    for run_key, _rscript in run_scripts.item():
+    for run_key, _rscript in run_scripts.items():
         pass
 
 def get_config(config_name: str):
     if os.path.exists(os.path.join(DEFAULT_CONFIG_PATH, config_name)):
         config_name = os.path.join(DEFAULT_CONFIG_PATH, config_name)
-    elif os.path.exists(os.path.join(DEFAULT_CONFIG_PATH, config_name, ".yaml")):
-        config_name = os.path.join(DEFAULT_CONFIG_PATH, config_name, ".yaml")
+    elif os.path.exists(os.path.join(DEFAULT_CONFIG_PATH, f"{config_name}.yaml")):
+        config_name = os.path.join(DEFAULT_CONFIG_PATH, f"{config_name}.yaml")
     else:
         raise ValueError(f"Can't find config name {config_name} in config path {DEFAULT_CONFIG_PATH}.")
     with open(config_name, "r") as yfile:
@@ -87,6 +90,8 @@ def prepare_release_tests(args: argparse.Namespace, work_dir: Path):
     config = get_config(args.config)
     run_scripts = generate_test_scripts(config, work_dir)
     dump_test_scripts(run_scripts, work_dir)
+    # clone the examples repo
+    Repo.clone_from(EXAMPLE_URL, work_dir.joinpath("examples"))
     return run_scripts
 
 def run(args: List[str]):
@@ -94,8 +99,8 @@ def run(args: List[str]):
     if args.analyze_result:
         analyze(args.analyze_result)
         return
-    work_dir = get_work_dir(get_output_dir())
-    run_scripts = prepare_release_tests(extra_args=args, work_dir=work_dir)
+    work_dir = get_work_dir(get_output_dir(BM_NAME))
+    run_scripts = prepare_release_tests(args=args, work_dir=work_dir)
     if not args.dry_run:
         run_benchmark(run_scripts, work_dir)
         analyze(work_dir)
