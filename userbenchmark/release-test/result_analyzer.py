@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import functools
 
 def is_userbenchmark_runscript(run_script_file):
@@ -24,10 +25,22 @@ def dump_result_csv(result):
     # print the csv file
     pass
 
+def get_peak_mem(mem_log):
+    pass
+
 def analyze_workload(run_dir: Path, workload_name: str, res):
     workload_dir = run_dir.joinpath(workload_name)
     assert workload_dir.joinpath("result.log").exists() and workload_dir.joinpath("result_mem.log").exists(), \
         f"Error: missing benchmark result file result.log or result_mem.log in {workload_dir}."
+    LATENCY_REGEX = "Total time elapsed: (.*) seconds."
+    with open(workload_dir.joinpath("result.log"), "r") as lf:
+        latency_log = lf.readlines()[-1].strip()
+    with open(workload_dir.joinpath("result_mem.log"), "r") as mf:
+        mem_log = mf.readlines()
+    latency = re.search(LATENCY_REGEX, latency_log).groups()[0]
+    res[workload_name] = {}
+    res[workload_name]["latency"] = latency
+    res[workload_name]["cpu_memory"], res[workload_name]["gpu_memory"]  = get_peak_mem(mem_log)
     return res
 
 def generate_result(workload_results):
