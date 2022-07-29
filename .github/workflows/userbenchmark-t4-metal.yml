@@ -1,0 +1,61 @@
+name: TorchBench Userbenchmark on T4 Metal
+on:
+  workflow_dispatch:
+    inputs:
+      userbenchmark_name:
+        description: "Name of the user benchmark to run"
+        required: true
+      userbenchmark_options:
+        description: "Option of the user benchmark to run"
+env:
+  PYTHON_VERSION: "3.8"
+  CUDA_VERSION: "cu113"
+  CONDA_ENV_NAME: "userbenchmarks-ci"
+  MAGMA_VERSION: "magma-cuda113"
+jobs:
+  run-userbenchmark:
+    runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 1440 # 24 hours
+    steps:
+      - name: Checkout TorchBench
+        uses: actions/checkout@v2
+        with:
+          path: benchmark
+      - name: Create conda environment
+        run: |
+          conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+      - name: Install PyTorch nightly
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          # Install dependencies
+          conda install -y -c pytorch "${MAGMA_VERSION}"
+          pip install requests bs4 argparse gitpython boto3
+          # Check if nightly builds are available
+          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+          # If failed, the script will generate empty result
+          if [ -z $NIGHTLIES ]; then
+              echo "Torch nightly build failed. Cancel the workflow."
+              exit 1
+          fi
+          # Install PyTorch nightly from pip
+          pip install --pre torch \
+            -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
+          # make sure pytorch+cuda works
+          python -c "import torch; torch.cuda.init()"
+      - name: Run user benchmark
+        run: |
+          . activate "${CONDA_ENV_NAME}"
+          if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
+          pushd benchmark
+          if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
+          python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
+          cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: TorchBench result
+          path: benchmark-output/
+      - name: Remove conda environment
+        run: |
+          conda env remove --name "${CONDA_ENV_NAME}"
