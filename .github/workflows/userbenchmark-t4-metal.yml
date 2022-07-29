@@ -29,6 +29,7 @@ jobs:
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
+          conda install -y pyyaml
           conda install -y -c pytorch "${MAGMA_VERSION}"
           pip install requests bs4 argparse gitpython boto3
           # Check if nightly builds are available
