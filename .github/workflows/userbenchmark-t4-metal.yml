@@ -5,6 +5,8 @@ on:
       userbenchmark_name:
         description: "Name of the user benchmark to run"
         required: true
+      userbenchmark_options:
+        description: "Option of the user benchmark to run"
 env:
   PYTHON_VERSION: "3.8"
   CUDA_VERSION: "cu113"
@@ -47,7 +49,7 @@ jobs:
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
-          python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}"
+          python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
           cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
       - name: Upload artifact
         uses: actions/upload-artifact@v2

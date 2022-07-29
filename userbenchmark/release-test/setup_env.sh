@@ -27,8 +27,3 @@ sudo nvidia-smi -ac "${GPU_FREQUENCY}"
 pip install -U py-cpuinfo psutil distro
 # check machine tuned
 python "${CURRENT_DIR}/torchbenchmark/util/machine_config.py"
-
-# clone the examples
-if [ -e "${WORK_DIR}/examples" ]; then
-    rm -rf "${WORK_DIR}/examples"
-fi

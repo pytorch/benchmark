@@ -83,7 +83,7 @@ def get_config(config_name: str):
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", "-c", required=True, type=str, help="Config for release testing")
+    parser.add_argument("--config", "-c", required=True, default="1.12.1", type=str, help="Config for release testing")
     parser.add_argument("--dry-run", action='store_true', help="Only generate the test scripts. Do not run the benchmark.")
     parser.add_argument("--analyze-result", type=str, help="Only analyze the result of the specified work directory.")
     args = parser.parse_args(args)
