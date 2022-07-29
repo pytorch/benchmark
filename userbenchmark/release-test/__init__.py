@@ -65,7 +65,7 @@ def dump_test_scripts(run_scripts, work_dir):
 
 def run_benchmark(run_scripts, work_dir):
     for run_key, _rscript in run_scripts.items():
-        run_script_path = work_dir.joinpath(run_key, "run.py")
+        run_script_path = work_dir.joinpath(run_key, "run.sh")
         # run the benchmark
         print(f"Running benchmark {run_key} ...")
         subprocess.check_call(["bash", run_script_path])
