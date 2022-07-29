@@ -14,8 +14,8 @@ CURRENT_DIR=$(dirname -- "$0")
 
 . switch-cuda.sh ${CUDA_VERSION}
 conda uninstall -y pytorch torchvision torchtext cudatoolkit
-# install cuda toolkit
-conda install -y cudatoolkit=${CUDA_VERSION}
+# install cuda toolkit and dependencies
+conda install -y cudatoolkit=${CUDA_VERSION} pyyaml
 # install magma
 conda install -y -c pytorch ${MAGMA_VERSION}
 # install pytorch
