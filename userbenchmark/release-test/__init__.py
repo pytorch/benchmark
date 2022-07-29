@@ -60,12 +60,15 @@ def dump_test_scripts(run_scripts, work_dir):
     for run_key, run_script in run_scripts.items():
         run_script_loc = work_dir.joinpath(run_key)
         run_script_loc.mkdir(exist_ok=True)
-        with open(run_script_loc.joinpath("run.py"), "w") as rs:
+        with open(run_script_loc.joinpath("run.sh"), "w") as rs:
             rs.write(run_script)
 
 def run_benchmark(run_scripts, work_dir):
     for run_key, _rscript in run_scripts.items():
-        pass
+        run_script_path = work_dir.join(run_key, "run.py")
+        # run the benchmark
+        print(f"Running benchmark {run_key} ...")
+        subprocess.check_call(["bash", run_script_path])
 
 def get_config(config_name: str):
     if os.path.exists(os.path.join(DEFAULT_CONFIG_PATH, config_name)):
@@ -80,7 +83,7 @@ def get_config(config_name: str):
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, help="Config for release testing")
+    parser.add_argument("--config", "-c", required=True, type=str, help="Config for release testing")
     parser.add_argument("--dry-run", action='store_true', help="Only generate the test scripts. Do not run the benchmark.")
     parser.add_argument("--analyze-result", type=str, help="Only analyze the result of the specified work directory.")
     args = parser.parse_args(args)
