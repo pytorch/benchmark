@@ -2,7 +2,15 @@ import os
 from datetime import datetime
 import time
 import json
+import torch
 from pathlib import Path
+
+def get_output_json(bm_name, metrics):
+    return {
+        "name": bm_name,
+        "environ": {"pytorch_git_version": torch.version.git_version},
+        "metrics": metrics,
+    }
 
 def dump_output(bm_name, output):
     current_dir = Path(os.path.dirname(os.path.abspath(__file__)))

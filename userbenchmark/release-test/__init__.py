@@ -8,7 +8,7 @@ from datetime import datetime
 from git import Repo
 from pathlib import Path
 from typing import List
-from ..utils import get_output_dir
+from ..utils import dump_output, get_output_dir, get_output_json
 from .result_analyzer import analyze
 
 # Expected WORK_DIR structure
@@ -64,8 +64,9 @@ def dump_test_scripts(run_scripts, work_dir):
         with open(run_script_loc.joinpath("run.sh"), "w") as rs:
             rs.write(run_script)
 
-def dump_result_to_json(result):
-    pass
+def dump_result_to_json(metrics):
+    result = get_output_json(metrics)
+    dump_output(BM_NAME, result)
 
 def run_benchmark(run_scripts, work_dir):
     for run_key, _rscript in run_scripts.items():
@@ -110,5 +111,5 @@ def run(args: List[str]):
     run_scripts = prepare_release_tests(args=args, work_dir=work_dir)
     if not args.dry_run:
         run_benchmark(run_scripts, work_dir)
-        result = analyze(work_dir)
-        dump_result_to_json(result)
+        metrics = analyze(work_dir)
+        dump_result_to_json(metrics)

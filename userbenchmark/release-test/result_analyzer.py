@@ -21,12 +21,42 @@ def get_run_keys(work_dir: Path):
 def get_workloads(run_dir: Path):
     return list(map(lambda x: x.name, filter(lambda x: x.is_dir(), run_dir.iterdir())))
 
-def dump_result_csv(result):
-    # print the csv file
-    pass
+def dump_result_csv(work_dir, result):
+    csv_object = [["Benchmark"]]
+    DELIMITER = ";"
+    # generate header
+    run_keys = sorted(result.keys())
+    workloads = sorted(result[run_keys[0]])
+    metrics = sorted(result[run_keys[0]][workloads[0]])
+    for workload in workloads:
+        for metric in metrics:
+            csv_object[0].append(f"{workload}-{metric}")
+    # generate data
+    for run_key in run_keys:
+        csv_object.append([run_key])
+        for workload in workloads:
+            for metric in metrics:
+                csv_object[-1].append(str(result[run_key][workload][metric]))
+    csv_text = []
+    for csv_line in csv_object:
+        csv_text.append(DELIMITER.join(csv_line))
+    csv_text = "\n".join(csv_text) + "\n"
+    print(csv_text)
 
 def get_peak_mem(mem_log):
-    pass
+    # example log:
+    # Max GPU Mem.   Max RSS Mem.   Max PSS Mem.
+    # 697            1971.07        1438.21
+    max_gpu_mem = 0.0
+    max_cpu_mem = 0.0
+    for line in mem_log:
+        numbers = re.split('\s+', line.strip())
+        if len(numbers) == 3:
+            gpu_mem = float(numbers[0])
+            cpu_mem = float(numbers[1])
+            max_gpu_mem = gpu_mem if gpu_mem > max_gpu_mem else max_gpu_mem
+            max_cpu_mem = cpu_mem if cpu_mem > max_cpu_mem else max_cpu_mem
+    return max_gpu_mem, max_cpu_mem
 
 def analyze_workload(run_dir: Path, workload_name: str, res):
     workload_dir = run_dir.joinpath(workload_name)
@@ -40,16 +70,21 @@ def analyze_workload(run_dir: Path, workload_name: str, res):
     latency = re.search(LATENCY_REGEX, latency_log).groups()[0]
     res[workload_name] = {}
     res[workload_name]["latency"] = latency
-    res[workload_name]["cpu_memory"], res[workload_name]["gpu_memory"]  = get_peak_mem(mem_log)
+    res[workload_name]["gpu_memory"], res[workload_name]["cpu_memory"]  = get_peak_mem(mem_log)
     return res
 
-def generate_result(workload_results):
-    pass
+def dump_userbenchmark_result(results):
+    metrics = {}
+    for run_key in results:
+        for workload in results[run_key]:
+            for metric in results[run_key][workload]:
+                metric_name = f"{run_key}-{workload}-{metric}"
+                metrics[metric_name] = results[run_key][workload][metric]
+    return metrics
 
 def analyze_run_key(work_dir, run_key, r):
     run_dir = work_dir.joinpath(run_key)
     workloads = get_workloads(run_dir)
-    print(workloads)
     workload_results = functools.reduce(lambda r, w: analyze_workload(run_dir, w, r), workloads, {})
     r[run_key] = workload_results
     return r
@@ -58,8 +93,9 @@ def analyze(work_dir: Path):
     # get base_args (directory starting with "pytorch-")
     work_dir = Path(work_dir)
     run_keys = get_run_keys(work_dir)
-    workload_results = functools.reduce(lambda r, k: analyze_run_key(work_dir, k, r), run_keys, {})
-    result = generate_result(workload_results)
+    results = functools.reduce(lambda r, k: analyze_run_key(work_dir, k, r), run_keys, {})
     # dump result to csv file
-    dump_result_csv(result)
-    return result
+    dump_result_csv(work_dir, results)
+    # dump results to userbenchmark object
+    results = dump_userbenchmark_result(results)
+    return results
