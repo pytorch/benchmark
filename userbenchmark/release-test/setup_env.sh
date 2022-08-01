@@ -35,5 +35,3 @@ python -c 'import torch; print(torch.__version__); print(torch.version.git_versi
 sudo nvidia-smi -ac "${GPU_FREQUENCY}"
 
 pip install -U py-cpuinfo psutil distro
-# check machine tuned
-python "${CURRENT_DIR}/torchbenchmark/util/machine_config.py"
