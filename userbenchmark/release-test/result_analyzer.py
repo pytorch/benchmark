@@ -42,6 +42,11 @@ def dump_result_csv(work_dir, result):
         csv_text.append(DELIMITER.join(csv_line))
     csv_text = "\n".join(csv_text) + "\n"
     print(csv_text)
+    summary_file = work_dir.joinpath("summary.csv")
+    # write result file to summary
+    with open(summary_file, "w") as sf:
+        sf.write(csv_text)
+
 
 def get_peak_mem(mem_log):
     # example log:
