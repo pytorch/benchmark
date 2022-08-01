@@ -158,6 +158,19 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         print("Collecting CPU activity.")
         activity_groups.append(profiler.ProfilerActivity.CPU)
 
+    if args.profile_eg:
+        from datetime import datetime
+        import os
+        from torch.profiler import ExecutionGraphObserver
+        start_time = datetime.now()
+        timestamp = int(datetime.timestamp(start_time))
+        eg_file = f"{args.model}_{timestamp}_eg.json"
+        eg = ExecutionGraphObserver()
+        if not os.path.exists(args.profile_eg_folder):
+            os.makedirs(args.profile_eg_folder)
+        eg.register_callback(f"{args.profile_eg_folder}/{eg_file}")
+        eg.start()
+
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1),
         activities=activity_groups,
@@ -171,7 +184,10 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
             func()
             torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
             prof.step()
-
+    if eg:
+        eg.stop()
+        eg.unregister_callback()
+        print(f"exeution graph: {eg_file}")
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
@@ -202,6 +218,8 @@ if __name__ == "__main__":
                         help="Profiling includes record_shapes, profile_memory, with_stack, and with_flops.")
     parser.add_argument("--profile-devices", type=_validate_devices,
                         help="Profiling comma separated list of activities such as cpu,cuda.")
+    parser.add_argument("--profile-eg", action="store_true", help="Collect execution graph by PARAM")
+    parser.add_argument("--profile-eg-folder", default="./eg_logs/", help="Save execution graph traces to this directory.")
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
