@@ -66,7 +66,7 @@ def dump_test_scripts(run_scripts, work_dir):
             rs.write(run_script)
 
 def dump_result_to_json(metrics):
-    result = get_output_json(metrics)
+    result = get_output_json(BM_NAME, metrics)
     dump_output(BM_NAME, result)
 
 def run_benchmark(run_scripts, work_dir):
