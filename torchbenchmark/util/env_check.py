@@ -62,7 +62,7 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
             del cur_result
     return previous_result
 
-def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS) -> bool:
+def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, atol=1e-4, rtol=1e-4) -> bool:
     assert model.test=="eval", "We only support correctness check for inference."
     for _i in range(rounds):
         # some models are stateful and will give different outputs
@@ -77,7 +77,8 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
             # if the model is not copy-able, don't copy it
             copy_model = model
         cur_result = copy_model.invoke()
-        if not same(model.eager_output, cur_result, cos_similarity=cos_sim):
+
+        if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol):
             return False
         del cur_result
     return True
@@ -117,14 +118,14 @@ def is_numpy_float_type(value):
     )
 
 # copied from https://github.com/pytorch/torchdynamo/blob/main/torchdynamo/utils.py#L411
-def same(a, b, cos_similarity=False, tol=1e-4, equal_nan=False):
+def same(a, b, cos_similarity=False, atol=1e-4, rtol=1e-4, equal_nan=False):
     """Check correctness to see if a and b match"""
     import torch
     import math
     if isinstance(a, (list, tuple, torch.nn.ParameterList, torch.Size)):
         assert isinstance(b, (list, tuple)), f"type mismatch {type(a)} {type(b)}"
         return len(a) == len(b) and all(
-            same(ai, bi, cos_similarity, tol, equal_nan) for ai, bi in zip(a, b)
+            same(ai, bi, cos_similarity, atol, rtol, equal_nan) for ai, bi in zip(a, b)
         )
     elif isinstance(a, dict):
         assert isinstance(b, dict)
@@ -132,7 +133,7 @@ def same(a, b, cos_similarity=False, tol=1e-4, equal_nan=False):
             b.keys()
         ), f"keys mismatch {set(a.keys())} == {set(b.keys())}"
         for k in a.keys():
-            if not (same(a[k], b[k], cos_similarity, tol, equal_nan=equal_nan)):
+            if not (same(a[k], b[k], cos_similarity, atol, rtol, equal_nan=equal_nan)):
                 print("Accuracy failed for key name", k)
                 return False
         return True
@@ -151,11 +152,11 @@ def same(a, b, cos_similarity=False, tol=1e-4, equal_nan=False):
                 print(f"Similarity score={res.cpu().detach().item()}")
             return res >= 0.99
         else:
-            return torch.allclose(a, b, atol=tol, rtol=tol, equal_nan=equal_nan)
+            return torch.allclose(a, b, atol=atol, rtol=rtol, equal_nan=equal_nan)
     elif isinstance(a, (str, int, type(None), bool, torch.device)):
         return a == b
     elif isinstance(a, float):
-        return math.isclose(a, b, rel_tol=tol, abs_tol=tol)
+        return math.isclose(a, b, rel_tol=rtol, abs_tol=atol)
     elif is_numpy_int_type(a) or is_numpy_float_type(a):
         return (type(a) is type(b)) and (a == b)
     elif type(a).__name__ in (
@@ -173,7 +174,7 @@ def same(a, b, cos_similarity=False, tol=1e-4, equal_nan=False):
     ):
         assert type(a) is type(b)
         return all(
-            same(getattr(a, key), getattr(b, key), cos_similarity, tol, equal_nan)
+            same(getattr(a, key), getattr(b, key), cos_similarity, atol, rtol, equal_nan)
             for key in a.__dict__.keys()
         )
     else:
