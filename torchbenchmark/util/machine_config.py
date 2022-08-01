@@ -291,17 +291,6 @@ def get_machine_state():
             state['process_cpu_affinity'] = get_process_cpu_affinity()
     return state
 
-def check():
-    assert 1 == check_intel_no_turbo_state(), "Turbo Boost is not disabled"
-    assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
-    assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
-    assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
-    assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
-    assert check_pstate_frequency_pin(), "CPU frequency is not correctly pinned, which is required to minimize noise."
-    # doesn't make too much sense to ask the user to run this configure script with the isolated cpu cores
-    # that check is more important to be done at runtime of benchmark, and is checked by conftest.py
-    #assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--enable_ht", action="store_true", help="Enable HyperThreading")
@@ -323,7 +312,15 @@ if __name__ == "__main__":
         set_pstate_frequency()
 
     if not args.no_verify:
-        check()
+        assert 1 == check_intel_no_turbo_state(), "Turbo Boost is not disabled"
+        assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
+        assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
+        assert len(get_isolated_cpus()) > 0, "No cpus are isolated for benchmarking with isolcpus"
+        assert 900 == get_nvidia_gpu_clocks()[0], "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
+        assert check_pstate_frequency_pin(), "CPU frequency is not correctly pinned, which is required to minimize noise."
+        # doesn't make too much sense to ask the user to run this configure script with the isolated cpu cores
+        # that check is more important to be done at runtime of benchmark, and is checked by conftest.py
+        #assert is_using_isolated_cpus(), "Not using isolated CPUs for this process"
 
 def check_environment():
     checks = [

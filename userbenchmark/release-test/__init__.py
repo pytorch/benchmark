@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import List
 from ..utils import dump_output, get_output_dir, get_output_json
 from .result_analyzer import analyze
-from ...torchbenchmark.util.machine_config import check
 
 # Expected WORK_DIR structure
 # WORK_DIR/
@@ -93,7 +92,6 @@ def parse_args(args):
     parser.add_argument("--config", "-c", default="1.12.1", type=str, help="Config for release testing")
     parser.add_argument("--dry-run", action='store_true', help="Only generate the test scripts. Do not run the benchmark.")
     parser.add_argument("--analyze", type=str, help="Only analyze the result of the specified work directory.")
-    parser.add_argument("--ignore-machine-config", action="store_true", help="Ignore checking the performance stableness of the machine.")
     args = parser.parse_args(args)
     return args
 
@@ -112,8 +110,6 @@ def cleanup_release_tests(work_dir):
 
 def run(args: List[str]):
     args = parse_args(args)
-    if not args.ignore_machine_config:
-        check()
     if args.analyze:
         analyze(args.analyze)
         return
