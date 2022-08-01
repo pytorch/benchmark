@@ -2,6 +2,7 @@ import argparse
 import os
 import yaml
 import time
+import shutil
 import itertools
 import subprocess
 from datetime import datetime
@@ -102,6 +103,11 @@ def prepare_release_tests(args: argparse.Namespace, work_dir: Path):
     Repo.clone_from(EXAMPLE_URL, work_dir.joinpath("examples"))
     return run_scripts
 
+def cleanup_release_tests(work_dir):
+    examples_path = work_dir.joinpath("examples")
+    if examples_path.exists():
+        shutil.rmtree(examples_path)
+
 def run(args: List[str]):
     args = parse_args(args)
     if args.analyze:
@@ -113,3 +119,4 @@ def run(args: List[str]):
         run_benchmark(run_scripts, work_dir)
         metrics = analyze(work_dir)
         dump_result_to_json(metrics)
+        cleanup_release_tests(work_dir)

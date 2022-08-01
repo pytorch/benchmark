@@ -28,15 +28,15 @@ def dump_result_csv(work_dir, result):
     run_keys = sorted(result.keys())
     workloads = sorted(result[run_keys[0]])
     metrics = sorted(result[run_keys[0]][workloads[0]])
-    for workload in workloads:
-        for metric in metrics:
-            csv_object[0].append(f"{workload}-{metric}")
+    for run_key in run_keys:
+        csv_object[0].append(f"{run_key}")
     # generate data
     for run_key in run_keys:
-        csv_object.append([run_key])
-        for workload in workloads:
-            for metric in metrics:
-                csv_object[-1].append(str(result[run_key][workload][metric]))
+        for wl_id, workload in enumerate(workloads):
+            for mid, metric in enumerate(metrics):
+                if len(csv_object) <= len(workloads) * len(metrics):
+                    csv_object.append([f"{workload}-{metric}"])
+                csv_object[wl_id*len(metrics)+mid+1].append(str(result[run_key][workload][metric]))
     csv_text = []
     for csv_line in csv_object:
         csv_text.append(DELIMITER.join(csv_line))
@@ -93,6 +93,7 @@ def analyze(work_dir: Path):
     # get base_args (directory starting with "pytorch-")
     work_dir = Path(work_dir)
     run_keys = get_run_keys(work_dir)
+    assert run_keys, f"Expected non-empty run keys, get {run_keys}"
     results = functools.reduce(lambda r, k: analyze_run_key(work_dir, k, r), run_keys, {})
     # dump result to csv file
     dump_result_csv(work_dir, results)
