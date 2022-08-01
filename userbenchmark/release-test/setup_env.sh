@@ -20,9 +20,9 @@ fi
 sudo ln -sf /usr/local/cuda-${CUDA_VERSION} /usr/local/cuda
 conda uninstall -y pytorch torchvision torchtext cudatoolkit
 # make sure we have a clean environment without pytorch
-pip uninstlal -y torch torchvision
 pip uninstall -y torch torchvision
-pip uninstlal -y torch torchvision
+pip uninstall -y torch torchvision
+pip uninstall -y torch torchvision
 # install cuda toolkit and dependencies
 conda install -y cudatoolkit=${CUDA_VERSION}
 # install magma
