@@ -169,8 +169,8 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         if not os.path.exists(args.profile_eg_folder):
             os.makedirs(args.profile_eg_folder)
         eg.register_callback(f"{args.profile_eg_folder}/{eg_file}")
+        nwarmup = 0
         eg.start()
-
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1),
         activities=activity_groups,
@@ -184,10 +184,10 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
             func()
             torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
             prof.step()
-    if eg:
+    if args.profile_eg and eg:
         eg.stop()
         eg.unregister_callback()
-        print(f"exeution graph: {eg_file}")
+        print(f"Save Exeution Graph to : {args.profile_eg_folder}/{eg_file}")
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
