@@ -1,11 +1,12 @@
+devices:
+  NVIDIA A100-SXM4-40GB:
+    eval_batch_size: 16
 eval_benchmark: false
 eval_deterministic: true
 eval_nograd: true
+not_implemented:
+- device: cpu
+- device: cuda
+  test: eval
 train_benchmark: false
 train_deterministic: true
-not_implemented:
-  # Disabled due to excessively slow runtime - see GH Issue #100
-  - device: cpu
-  # Disabled eval test due to insufficient GPU memory size on CI
-  - device: cuda
-    test: eval

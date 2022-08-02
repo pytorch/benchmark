@@ -1,10 +1,11 @@
+devices:
+  NVIDIA A100-SXM4-40GB:
+    eval_batch_size: 16
 eval_benchmark: false
 eval_deterministic: false
 eval_nograd: true
+not_implemented:
+- jit: true
+- test: train
 train_benchmark: false
 train_deterministic: false
-not_implemented:
-  # hf_T5 model doesn't support JIT
-  - jit: true
-  # disable train test because of CI infra capacity issue
-  - test: train

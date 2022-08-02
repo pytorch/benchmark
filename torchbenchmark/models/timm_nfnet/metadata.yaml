@@ -1,9 +1,11 @@
+devices:
+  NVIDIA A100-SXM4-40GB:
+    eval_batch_size: 1024
 eval_benchmark: false
 eval_deterministic: false
 eval_nograd: true
+not_implemented:
+- evice: cuda
+  test: train
 train_benchmark: false
 train_deterministic: false
-not_implemented:
-  # Disable CUDA train test because of insufficient GPU memory on CI machine
-  - test: train
-    evice: cuda
