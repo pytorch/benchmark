@@ -64,7 +64,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device
         self.jit = jit
-        self.batch_size = self.determine_batch_size(batch_size)
+        self.determine_batch_size(batch_size)
         self.extra_args = extra_args
         # contexts to run in the test function
         self.run_contexts = []
