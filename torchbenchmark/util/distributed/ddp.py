@@ -12,10 +12,10 @@ from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
 
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.models import resnet50, hf_Bert
+from torchbenchmark.models import resnet50, hf_Bert, hf_BertLarge
 import torch
 import torch.distributed as dist
-
+net_type = 'efa'
 class DDPTrainer(Trainer):
     DEFAULT_MEASURE_ITERATIONS = 10
     def __init__(self, args, model_class, batch_size=None, extra_args=[]):
@@ -42,6 +42,9 @@ class DDPTrainer(Trainer):
             self.forward = self.resnet_forward
             self.forward_ddp = self.resnet_forward_ddp
         elif(self.model_type == hf_Bert.Model):
+            self.forward = self.bert_forward
+            self.forward_ddp = self.bert_forward_ddp
+        elif(self.model_type == hf_BertLarge.Model):
             self.forward = self.bert_forward
             self.forward_ddp = self.bert_forward_ddp
 
@@ -159,11 +162,13 @@ class DDPTrainer(Trainer):
         current_size = 0
         size = 2**18
         num_tasks = self.world_size
-        name = f"all_red_{num_tasks}_{self.gpus_per_node}_{self.rank}"
+        name = f"all_red_{net_type}_{num_tasks}_{self.gpus_per_node}_{self.rank}"
         delay_dir = f"{self.args.job_dir}/delay"
         Path(delay_dir).mkdir(parents=True, exist_ok=True)
         fout = open(f"{delay_dir}/{name}.data", "w")
-        for _ in range(100):
+        for i in range(145):
+            if(i == 100):
+                size = 20 * (2**18)
             current_size += size
             size_in_mb = (current_size * 4)// 2**20     
 
