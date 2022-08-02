@@ -220,13 +220,13 @@ if __name__ == "__main__":
     if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
-    print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
     # build the model and get the chosen test method
     if args.flops:
         extra_args.append("--flops")
         extra_args.append(args.flops)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
+    print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode with input batch size {m.batch_size}.")
 
     test = m.invoke
     model_flops = None
