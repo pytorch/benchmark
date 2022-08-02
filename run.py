@@ -219,7 +219,7 @@ if __name__ == "__main__":
     parser.add_argument("--profile-devices", type=_validate_devices,
                         help="Profiling comma separated list of activities such as cpu,cuda.")
     parser.add_argument("--profile-eg", action="store_true", help="Collect execution graph by PARAM")
-    parser.add_argument("--profile-eg-folder", default="./eg_logs/", help="Save execution graph traces to this directory.")
+    parser.add_argument("--profile-eg-folder", default="./eg_logs", help="Save execution graph traces to this directory.")
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
