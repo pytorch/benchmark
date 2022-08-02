@@ -40,8 +40,10 @@ class DDPTrainer(Trainer):
             self.example_outputs = model.example_outputs
             self.loss_fn = model.loss_fn
             self.forward = self.resnet_forward
+            self.forward_ddp = self.resnet_forward_ddp
         elif(self.model_type == hf_Bert.Model):
             self.forward = self.bert_forward
+            self.forward_ddp = self.bert_forward_ddp
 
         self.example_inputs = model.example_inputs
         
@@ -63,17 +65,17 @@ class DDPTrainer(Trainer):
         )
         opt_cls = type(self.optimizer)
         self.ddp_optimizer = opt_cls(self.ddp_model.parameters(), lr=0.001)
+
     def measure(self):
         niters = self.DEFAULT_MEASURE_ITERATIONS
         # TODO: using dummy data for now to rule out dataloader delays
-        batch = next(iter(self.dataloader))
 
         ######################################
         # 1. warming up CUDACachingAllocator #
         ######################################
         for _ in range(self.DEFAULT_MEASURE_ITERATIONS):
-            loss = self.model(**batch).loss
-            self.accelerator.backward(loss)
+            loss = self.forward()
+            loss.backward()
             self.optimizer.step()
 
         # wait for all pending CUDA ops to finish
@@ -90,10 +92,10 @@ class DDPTrainer(Trainer):
         events_post_opt = [Event(enable_timing=True) for _ in range(niters)]
         for i in range(niters):
             events_pre_fwd[i].record()
-            loss = self.model(**batch).loss
+            loss = self.forward()
 
             events_pre_bwd[i].record()
-            self.accelerator.backward(loss)
+            loss.backward()
 
             events_pre_opt[i].record()
             self.optimizer.step()
@@ -125,27 +127,6 @@ class DDPTrainer(Trainer):
         )
         fout.close()
 
-        if self.args.profiler:
-            # N.B.: disable PyTorch Profiler by default due to
-            # https://github.com/pytorch/pytorch/issues/75369
-            ################################################
-            # 3. meausre complete metrics through profiler #
-            ################################################
-            with profile(
-                activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-                record_shapes=True, # Causes seg fault in export_chrome_trace
-                with_stack=True, # Causes seg fault with EFA
-                with_flops=True, # Causes seg fault in export_chrome_trace
-                on_trace_ready=tensorboard_trace_handler(
-                    f"{self.args.job_dir}/tb/{name}",
-                    self.rank,
-                    use_gzip=True,
-                )
-            ):
-                for i in range(niters):
-                    loss = self.model(**batch).loss
-                    self.accelerator.backward(loss)
-                    self.optimizer.step()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
@@ -164,14 +145,13 @@ class DDPTrainer(Trainer):
     def measure_allreduce(self):
         niters = self.DEFAULT_MEASURE_ITERATIONS
         # TODO: using dummy data for now to rule out dataloader delays
-        batch = next(iter(self.dataloader))
 
         ######################################
         # 1. warming up CUDACachingAllocator #
         ######################################
         for _ in range(self.DEFAULT_MEASURE_ITERATIONS):
-            loss = self.model(**batch).loss
-            self.accelerator.backward(loss)
+            loss = self.forward()
+            loss.backward()
             self.optimizer.step()
 
         # wait for all pending CUDA ops to finish
@@ -193,8 +173,8 @@ class DDPTrainer(Trainer):
             events_pre_all_reduce = [Event(enable_timing=True) for _ in range(niters)]
             events_post_all_reduce = [Event(enable_timing=True) for _ in range(niters)]
             for i in range(niters):
-                loss = self.model(**batch).loss
-                self.accelerator.backward(loss)
+                loss = self.forward()
+                loss.backward()
                 data_tensor = torch.randn(current_size, dtype=torch.float32, device=self.local_rank)
                 events_pre_all_reduce[i].record()
                 dist.all_reduce(data_tensor)
@@ -223,12 +203,19 @@ class DDPTrainer(Trainer):
             "data_size" : size_in_mb,
         }
 
-    def resnet_forward(self):
+    def resnet_forward_ddp(self):
         out = self.ddp_model(*self.example_inputs)
         loss = self.loss_fn(out, self.example_outputs)
         return loss
-    def bert_forward(self):
+    def resnet_forward(self):
+        out = self.model(*self.example_inputs)
+        loss = self.loss_fn(out, self.example_outputs)
+        return loss
+    def bert_forward_ddp(self):
         loss = self.ddp_model(**self.example_inputs).loss
+        return loss
+    def bert_forward(self):
+        loss = self.model(**self.example_inputs).loss
         return loss
 
     def measure_ddp(self):
@@ -239,7 +226,7 @@ class DDPTrainer(Trainer):
         # 1. warming up CUDACachingAllocator #
         ######################################
         for _ in range(self.DEFAULT_MEASURE_ITERATIONS):
-            loss = self.forward()
+            loss = self.forward_ddp()
             loss.backward()
             self.ddp_optimizer.step()
 
@@ -257,7 +244,7 @@ class DDPTrainer(Trainer):
         events_post_opt = [Event(enable_timing=True) for _ in range(niters)]
         for i in range(niters):
             events_pre_fwd[i].record()
-            loss = self.forward()
+            loss = self.forward_ddp()
 
             events_pre_bwd[i].record()
             loss.backward()

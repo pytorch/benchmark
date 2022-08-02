@@ -135,6 +135,11 @@ class TrainerWrapper(object):
         os.environ["GPUS_PER_NODE"] = str(job_env.num_tasks//job_env.num_nodes)
         # os.environ["NCCL_IB_DISABLE"] = str(1)
         os.environ["NCCL_DEBUG"] = 'INFO'
+        os.environ["NCCL_DEBUG_SUBSYS"] = 'INIT,ENV,NET'
+        os.environ['NCCL_SOCKET_IFNAME'] = 'ens'
+        # os.environ["NCCL_ALGO"] = 'ring'
+        os.environ["FI_PROVIDER"] = 'efa'
+        os.environ["FI_EFA_USE_DEVICE_RDMA"]= str(1)
 
 
 def main():
