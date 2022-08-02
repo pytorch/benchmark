@@ -3,7 +3,10 @@ import torch
 from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
+import yaml
+from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
+from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
@@ -55,23 +58,13 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
     def __init__(self, test: str, device: str, jit: bool=False, batch_size: Optional[int]=None, extra_args: List[str]=[]):
+        self.metadata = self.load_metadata()
         self.test = test
-        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
+        assert self.test == "train" or self.test == "eval", \
+            f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device
         self.jit = jit
-        self.batch_size = batch_size
-        if not self.batch_size:
-            self.batch_size = self.DEFAULT_TRAIN_BSIZE if test == "train" else self.DEFAULT_EVAL_BSIZE
-            # If the model doesn't implement test or eval test
-            # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
-            if not self.batch_size:
-                raise NotImplementedError(f"Test {test} is not implemented.")
-        # Check if customizing batch size is supported
-        if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
-            if test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
-                raise NotImplementedError("Model doesn't support customizing batch size.")
-            elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
-                raise NotImplementedError("Model doesn't support customizing batch size.")
+        self.determine_batch_size(batch_size)
         self.extra_args = extra_args
         # contexts to run in the test function
         self.run_contexts = []
@@ -117,6 +110,35 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.set_module(apply_trainer(module, self.dargs.distributed))
         if self.test == "cuda":
             torch.cuda.empty_cache()
+
+    def determine_batch_size(self, batch_size=None):
+        # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
+        # batch size priority for train tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > default
+        if not batch_size:
+            self.batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
+            # use the device suggestion on CUDA inference tests
+            if self.test == "eval" and self.device == "cuda":
+                current_device_name = torch.cuda.get_device_name()
+                assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+                if "devices" in self.metadata and current_device_name in self.metadata["devices"]:
+                    self.batch_size = self.metadata["devices"][current_device_name]["eval_batch_size"]
+            # If the model doesn't implement test or eval test
+            # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
+            if not self.batch_size:
+                raise NotImplementedError(f"Test {self.test} is not implemented.")
+        # Check if specified batch size is supported by the model
+        if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
+            if self.test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
+                raise NotImplementedError("Model doesn't support customizing batch size.")
+            elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
+                raise NotImplementedError("Model doesn't support customizing batch size.")
+
+    def load_metadata(self):
+        relative_path = self.__class__.__module__.split(".")
+        metadata_loc = Path(REPO_PATH).joinpath(*relative_path).joinpath("metadata.yaml")
+        with open(metadata_loc, "r") as mf:
+            metadata = yaml.safe_load(mf)
+        return metadata
 
     def add_context(self, context_fn):
         ctx = context_fn()

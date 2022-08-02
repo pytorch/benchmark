@@ -1,15 +1,15 @@
+devices:
+  NVIDIA A100-SXM4-40GB:
+    eval_batch_size: 32
 eval_benchmark: true
 eval_deterministic: false
 eval_nograd: true
+not_implemented:
+- device: cpu
+  test: train
+- device: cuda
+  test: train
+- device: cuda
+  test: eval
 train_benchmark: true
 train_deterministic: false
-not_implemented:
-  # Disable CPU training because it is too slow (> 1min)
-  - test: train
-    device: cpu
-  # Disable GPU training because it causes CUDA OOM on T4
-  - test: train
-    device: cuda
-  # Disable GPU inference because it causes CUDA OOM on T4
-  - test: eval
-    device: cuda

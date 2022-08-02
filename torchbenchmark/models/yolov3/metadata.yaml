@@ -1,11 +1,12 @@
+devices:
+  NVIDIA A100-SXM4-40GB:
+    eval_batch_size: 8
 eval_benchmark: true
 eval_deterministic: false
 eval_nograd: true
+not_implemented:
+- device: cpu
+  test: train
+- jit: true
 train_benchmark: true
 train_deterministic: false
-not_implemented:
-  # Disabled due to excessively slow runtime - see GH Issue #100
-  - test: train
-    device: cpu
-  # yolov3 model doesn't support scripting
-  - jit: True
