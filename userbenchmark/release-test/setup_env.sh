@@ -13,8 +13,17 @@ GPU_FREQUENCY="5001,900"
 CURRENT_DIR=$(dirname -- "$0")
 
 . switch-cuda.sh ${CUDA_VERSION}
+# re-setup the cuda soft link
+if [ -e "/usr/local/cuda" ]; then
+    sudo rm /usr/local/cuda
+fi
+sudo ln -sf /usr/local/cuda-${CUDA_VERSION} /usr/local/cuda
 conda uninstall -y pytorch torchvision torchtext cudatoolkit
-# install cuda toolkit
+# make sure we have a clean environment without pytorch
+pip uninstall -y torch torchvision
+pip uninstall -y torch torchvision
+pip uninstall -y torch torchvision
+# install cuda toolkit and dependencies
 conda install -y cudatoolkit=${CUDA_VERSION}
 # install magma
 conda install -y -c pytorch ${MAGMA_VERSION}
@@ -24,6 +33,5 @@ python -c 'import torch; print(torch.__version__); print(torch.version.git_versi
 
 # tune the machine
 sudo nvidia-smi -ac "${GPU_FREQUENCY}"
+
 pip install -U py-cpuinfo psutil distro
-# check machine tuned
-python "${CURRENT_DIR}/torchbenchmark/util/machine_config.py"
