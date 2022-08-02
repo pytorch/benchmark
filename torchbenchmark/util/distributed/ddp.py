@@ -1,7 +1,7 @@
 from datetime import datetime
 from statistics import stdev
 from pathlib import Path
-
+from commfuser.demo.ddp import Engine
 import torchbenchmark
 
 from .trainer import Trainer
