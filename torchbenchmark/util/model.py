@@ -122,6 +122,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
                 if "devices" in self.metadata and current_device_name in self.metadata["devices"]:
                     self.batch_size = self.metadata["devices"][current_device_name]["eval_batch_size"]
+        else:
+            self.batch_size = batch_size
             # If the model doesn't implement test or eval test
             # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
             if not self.batch_size:
@@ -211,14 +213,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 raise RuntimeError("Encountered an supported type.\n" +
                     "Please add the type or override `bench_allclose`")
 
-       
+
         try:
             opt = model(*inputs)
         except Exception as e:
             print(e)
             warnings.warn(UserWarning(f"{model_name}.eval() doesn't support `check_results` yet!"))
             return
-        
+
         # disable optimizations and force a recompilation
         # to a baseline version
         fwd = model._c._get_method("forward")

@@ -18,6 +18,11 @@ def pytest_addoption(parser):
                     help="Run benchmarks on cpu only and ignore machine configuration checks")
     parser.addoption("--cuda_only", action='store_true',
                     help="Run benchmarks on cuda only and ignore machine configuration checks")
+    parser.addoption("--mps_only", action='store_true',
+                    help="Run benchmarks on mps only and ignore machine configuration checks")
+    parser.addoption("--sweep_bs", action='store', default=None,
+                    help="Sweep on list of batch sizes (should be greater than the default batch size)")
+
 
 def set_fuser(fuser):
     if fuser == "te":

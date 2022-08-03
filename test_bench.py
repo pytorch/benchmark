@@ -34,6 +34,9 @@ def pytest_generate_tests(metafunc):
     if metafunc.config.option.cuda_only:
         devices = ['cuda']
 
+    if metafunc.config.option.mps_only:
+        devices = ['mps']
+
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         paths = _list_model_paths()
         metafunc.parametrize(
@@ -44,6 +47,15 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('device', devices, scope='class')
         metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
 
+        sweep_bs = metafunc.config.option.sweep_bs
+        if (sweep_bs == "all"):
+            # this defines the range of all 'possible' batch sizes. The YAML settings of
+            # each benchmark would determine which batch sizes will be executed or skipped.
+            batch_size_sweep = [1, 4, 8, 16, 32, 64, 96, 128, 256]
+        else:
+            batch_size_sweep = list(map(int, sweep_bs.split(','))) if (sweep_bs) else [None]
+
+        metafunc.parametrize('batch_size', batch_size_sweep, scope='class')
 
 @pytest.mark.benchmark(
     warmup=True,
@@ -54,9 +66,9 @@ def pytest_generate_tests(metafunc):
 )
 class TestBenchNetwork:
 
-    def test_train(self, model_path, device, compiler, benchmark):
+    def test_train(self, model_path, device, compiler, benchmark, batch_size):
         try:
-            if skip_by_metadata(test="train", device=device, jit=(compiler == 'jit'), \
+            if skip_by_metadata(test="train", device=device, jit=(compiler == 'jit'), batch_size=batch_size, \
                                 extra_args=[], metadata=get_metadata_from_yaml(model_path)):
                 raise NotImplementedError("Test skipped by its metadata.")
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
@@ -66,8 +78,7 @@ class TestBenchNetwork:
             task = ModelTask(model_path)
             if not task.model_details.exists:
                 return  # Model is not supported.
-
-            task.make_model_instance(test="train", device=device, jit=(compiler == 'jit'))
+            task.make_model_instance(test="train", device=device, jit=(compiler == 'jit'), batch_size=batch_size)
             benchmark(task.invoke)
             benchmark.extra_info['machine_state'] = get_machine_state()
             benchmark.extra_info['batch_size'] = task.get_model_attribute('batch_size')
@@ -77,9 +88,9 @@ class TestBenchNetwork:
         except NotImplementedError:
             print(f'Test train on {device} is not implemented, skipping...')
 
-    def test_eval(self, model_path, device, compiler, benchmark, pytestconfig):
+    def test_eval(self, model_path, device, compiler, benchmark, pytestconfig, batch_size):
         try:
-            if skip_by_metadata(test="eval", device=device, jit=(compiler == 'jit'), \
+            if skip_by_metadata(test="eval", device=device, jit=(compiler == 'jit'), batch_size=batch_size, \
                                 extra_args=[], metadata=get_metadata_from_yaml(model_path)):
                 raise NotImplementedError("Test skipped by its metadata.")
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
@@ -90,7 +101,7 @@ class TestBenchNetwork:
             if not task.model_details.exists:
                 return  # Model is not supported.
 
-            task.make_model_instance(test="eval", device=device, jit=(compiler == 'jit'))
+            task.make_model_instance(test="eval", device=device, jit=(compiler == 'jit'), batch_size=batch_size)
 
             with task.no_grad(disable_nograd=pytestconfig.getoption("disable_nograd")):
                 benchmark(task.invoke)
