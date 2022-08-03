@@ -12,7 +12,7 @@ from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
 
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.models import resnet50, hf_Bert, hf_BertLarge
+from torchbenchmark.models import hf_GPT2_large, resnet50, hf_Bert, hf_BertLarge, resnet152, hf_T5_large, timm_vision_transformer_large
 import torch
 import torch.distributed as dist
 net_type = 'efa'
@@ -26,27 +26,36 @@ class DDPTrainer(Trainer):
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
 
-        expected_attrs = ["model", "optimizer", "example_inputs", "device"]
+        expected_attrs = ["model", "example_inputs", "device"]
         assert all(attr in dir(model) for attr in expected_attrs), (
             "Missing attributes in the input BenchmarkModel implementation: "
             f"{[attr for attr in expected_attrs if attr not in dir(model)]}"
         )
 
         self.model = model.model
-        self.optimizer = model.optimizer
         self.model_type = type(model)
+        
+        
         self.batch_size = batch_size
-        if(self.model_type == resnet50.Model):
+        if(self.model_type in (resnet50.Model, resnet152.Model)):
             self.example_outputs = model.example_outputs
+            self.optimizer = model.optimizer
             self.loss_fn = model.loss_fn
             self.forward = self.resnet_forward
             self.forward_ddp = self.resnet_forward_ddp
-        elif(self.model_type == hf_Bert.Model):
+        elif(self.model_type in ( hf_Bert.Model, hf_BertLarge.Model, hf_T5_large.Model, hf_GPT2_large.Model)):
             self.forward = self.bert_forward
             self.forward_ddp = self.bert_forward_ddp
-        elif(self.model_type == hf_BertLarge.Model):
-            self.forward = self.bert_forward
-            self.forward_ddp = self.bert_forward_ddp
+            self.optimizer = model.optimizer
+        elif(self.model_type == timm_vision_transformer_large.Model):
+            self.optimizer = model.cfg.optimizer
+            self.forward = self.timm_vit_forward
+            self.forward_ddp = self.timm_vit_forward_ddp
+            self.loss_fn = model.cfg.loss
+            self._gen_target = model._gen_target
+            self.amp_context = model.amp_context
+  
+
 
         self.example_inputs = model.example_inputs
         
@@ -221,6 +230,23 @@ class DDPTrainer(Trainer):
         return loss
     def bert_forward(self):
         loss = self.model(**self.example_inputs).loss
+        return loss
+    def timm_vit_forward(self):
+        with self.amp_context():
+            output = self.model(self.example_inputs)
+        if isinstance(output, tuple):
+            output = output[0]
+        target = self._gen_target(output.shape[0])
+        loss = self.loss_fn(output, target)
+        return loss
+
+    def timm_vit_forward_ddp(self):
+        with self.amp_context():
+            output = self.ddp_model(self.example_inputs)
+        if isinstance(output, tuple):
+            output = output[0]
+        target = self._gen_target(output.shape[0])
+        loss = self.loss_fn(output, target)
         return loss
 
     def measure_ddp(self):
