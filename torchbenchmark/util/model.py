@@ -117,13 +117,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def determine_batch_size(self, batch_size=None):
         # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
         # batch size priority for train tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > default
+        self.batch_size = batch_size
         if not batch_size:
             self.batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
             # use the device suggestion on CUDA inference tests
             if self.test == "eval" and self.device == "cuda":
                 current_device_name = torch.cuda.get_device_name()
                 assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
-                if "devices" in self.metadata and current_device_name in self.metadata["devices"]:
+                if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"]:
                     self.batch_size = self.metadata["devices"][current_device_name]["eval_batch_size"]
             # If the model doesn't implement test or eval test
             # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
@@ -139,6 +140,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def load_metadata(self):
         relative_path = self.__class__.__module__.split(".")
         metadata_loc = Path(REPO_PATH).joinpath(*relative_path).joinpath("metadata.yaml")
+        if not metadata_loc.exists():
+            return None
         with open(metadata_loc, "r") as mf:
             metadata = yaml.safe_load(mf)
         return metadata
@@ -214,14 +217,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 raise RuntimeError("Encountered an supported type.\n" +
                     "Please add the type or override `bench_allclose`")
 
-       
+
         try:
             opt = model(*inputs)
         except Exception as e:
             print(e)
             warnings.warn(UserWarning(f"{model_name}.eval() doesn't support `check_results` yet!"))
             return
-        
+
         # disable optimizations and force a recompilation
         # to a baseline version
         fwd = model._c._get_method("forward")
