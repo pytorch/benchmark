@@ -102,7 +102,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             if self.dargs.precision == "fp16" or (self.dynamo and self.opt_args.torchdynamo == "fx2trt") or (not self.dynamo and self.opt_args.fx2trt):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
-                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
+                # get tolerance of correctness check from os.environ
+                atol = float(os.environ.get("TORCHBENCH_ATOL", "1e-4"))
+                rtol = float(os.environ.get("TORCHBENCH_RTOL", "1e-4"))
+                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, atol=atol, rtol=rtol)
         # setup distributed trainer
         if self.dargs.distributed:
             from torchbenchmark.util.distributed.core_model.apply_trainer import apply_trainer
