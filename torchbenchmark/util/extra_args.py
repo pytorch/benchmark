@@ -133,7 +133,7 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
         import torch
         model.add_context(lambda: torch.jit.fuser(args.fuser))
     if args.fx2trt:
-        if args.jit:
+        if model.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")
         module, exmaple_inputs = model.get_module()
         fp16 = not (model.dargs.precision == "fp32")
