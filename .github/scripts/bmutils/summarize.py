@@ -57,6 +57,15 @@ def generate_header(result, base_key):
                 insert_if_nonexist(args, f"{k} (correctness)")
                 insert_if_nonexist(args, f"{k} (latency)")
                 insert_if_nonexist(args, f"{k} (speedup)")
+                if "blade" in k:
+                    # count torchdynamo subgraphs
+                    if k == "torchdynamo-blade_optimize_dynamo":
+                        insert_if_nonexist(args, f"{k} (subgraphs)")
+                    # count blade clusters
+                    insert_if_nonexist(args, f"{k} (clusters)")
+                    # count blade compiled nodes
+                    insert_if_nonexist(args, f"{k} (compiled)")
+
     header.append(f"Model ({test}, {device})")
     header.append(f"precision")
     header.append(f"batch size")
@@ -87,6 +96,21 @@ def find_result_by_header(r, header, base_arg):
     elif tp == "speedup":
         if is_ok(r[base_arg]) and is_ok(r[args]):
             return round(r[base_arg]["results"]["latency_ms"] / r[args]["results"]["latency_ms"], 3)
+        else:
+            return "N/A"
+    elif tp == "clusters":
+        if is_ok(r[args]):
+            return r[args]["results"]["clusters"]
+        else:
+            return "N/A"
+    elif tp == "subgraphs":
+        if is_ok(r[args]):
+            return r[args]["results"]["subgraphs"]
+        else:
+            return "N/A"
+    elif tp == "compiled":
+        if is_ok(r[args]):
+            return r[args]["results"]["blade_compiled_nodes"]
         else:
             return "N/A"
     else:

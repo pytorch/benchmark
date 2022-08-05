@@ -6,7 +6,7 @@ from typing import List
 import torchdynamo
 from .blade import blade_optimize_dynamo
 
-
+TORCHDYNAMO_ROUNDS = 3
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     available_backends = torchdynamo.list_backends()
@@ -17,6 +17,10 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
     return args, extra_args
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
+    torchdynamo.config.raise_on_backend_error = False
+    torchdynamo.reset()
+    torchdynamo.utils.counters.clear()
+
     if args.torchdynamo == "fx2trt" and precision == "fp16":
         dynamo_optimizer = torchdynamo.optimize(torchdynamo.optimizations.backends.fx2trt_compiler_fp16)
     else:
@@ -26,3 +30,6 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
     else:
         model.eval = dynamo_optimizer(model.eval)
     torchdynamo.reset()
+    
+    for _ in range(TORCHDYNAMO_ROUNDS):
+        model.invoke()

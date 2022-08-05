@@ -10,6 +10,7 @@ from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import check_correctness_p, is_hf_model, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
+from torch.utils._pytree import tree_map
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -105,10 +106,21 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         apply_decoration_args(self, self.dargs)
         # apply optimization args
         if self.dynamo:
+            import torchdynamo
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
+            if self.opt_args.torchdynamo == "blade_optimize_dynamo":
+                self.subgraphs = torchdynamo.utils.counters["stats"]["unique_graphs"]
+                self.clusters = torchdynamo.utils.counters["blade"]["clusters"]
+                self.blade_compiled_nodes = torchdynamo.utils.counters["blade"]["compiled_nodes"]
         else:
             apply_opt_args(self, self.opt_args, self.extra_args)
+            if self.opt_args.blade:
+                from torch_blade import mlir
+                # could not use self.model directly! Some model has it's own get_module
+                model, _ = self.get_module()
+                self.clusters = mlir.num_engines(model)
+                self.blade_compiled_nodes = sum(mlir.num_compiled_nodes(model))
         if should_check_correctness:
             # tensorrt or fp16 is known to generate less-accurate results
             # in this case, use more relaxed cosine similarity instead of torch.allclose
@@ -255,3 +267,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         torch._C._set_graph_executor_optimize(True)
 
         bench_allclose(base, opt)
+
+    def enable_fp16_half(self):
+        # copied from torchdynamo
+        self.model = self.model.half()
+        self.example_inputs = tree_map(
+            lambda x: x.to(torch.float16)
+            if getattr(x, "dtype", None) == torch.float32
+            or getattr(x, "dtype", None) == torch.float64
+            else x,
+            self.example_inputs,
+        )

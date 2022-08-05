@@ -9,6 +9,9 @@ test:
   - "eval"
 # models:
 #   - "alexnet"
+#   - "attention_is_all_you_need_pytorch"
+#   - "timm_efficientnet"
+#   - "hf_Bert"
 precision:
   # - "fp16"
   - "fp32"
@@ -16,4 +19,11 @@ args:
   # empty argument means the default pytorch eager mode
   - ""
   - "--blade"
+  # script based
+  - "--fuser fuser2 --jit"  # nvfuser
+
+  # torchdynamo based
+  - "--torchdynamo eager"
+  - "--torchdynamo nvfuser"
   - "--torchdynamo blade_optimize_dynamo"
+  - "--torchdynamo cudagraphs"
