@@ -1,9 +1,19 @@
 """ Full assembly of the parts to form the complete network """
 
 from .unet_parts import *
-
+try:
+    from typing_extensions import Final
+except:
+    # If you don't have `typing_extensions` installed, you can use a
+    # polyfill from `torch.jit`.
+    from torch.jit import Final
 
 class UNet(nn.Module):
+    # benckmarkmodel.eval() would use this attribute, which will be lost in torch.jit.script
+    # so marked as final to keep this attribute
+    # according to https://pytorch.org/docs/stable/jit.html#attributes
+    n_classes: Final[int]
+
     def __init__(self, n_channels, n_classes, bilinear=True):
         super(UNet, self).__init__()
         self.n_channels = n_channels
