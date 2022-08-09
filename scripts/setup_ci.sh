@@ -7,3 +7,4 @@ sudo apt-get install git-lfs=2.13.2
 git lfs install
 git lfs fetch
 git lfs checkout .
+git submodule update --init --recursive
