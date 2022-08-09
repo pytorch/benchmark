@@ -231,7 +231,7 @@ if __name__ == "__main__":
     model_flops = None
 
     if args.flops:
-        if args.flops == 'model':
+        if args.flops == 'fvcore':
             assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
             model_flops = m.get_flops()
         else:
