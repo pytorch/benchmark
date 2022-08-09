@@ -142,7 +142,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
                 model_analyzer.export_all_records_to_csv()
         else:
             flops, batch_size = model_flops
-            tflops = flops * batch_size / (cpu_walltime / 1.0e9) / 1.0e12
+            tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
 
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
-    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result.")
+    parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result.")
     parser.add_argument("--export-dcgm-metrics", action="store_true",
                         help="Export all GPU FP32 unit active ratio records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
@@ -220,8 +220,7 @@ if __name__ == "__main__":
     if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
-    # build the model and get the chosen test method
-    if args.flops:
+    if args.flops and args.flops == "fvcore":
         extra_args.append("--flops")
         extra_args.append(args.flops)
 
@@ -232,7 +231,7 @@ if __name__ == "__main__":
     model_flops = None
 
     if args.flops:
-        if args.flops == 'model':
+        if args.flops == 'fvcore':
             assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
             model_flops = m.get_flops()
         else:
