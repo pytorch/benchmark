@@ -180,9 +180,7 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
 
 
 def profile_one_step_torchexpert(func, nwarmup=WARMUP_ROUNDS):
-    import sys
-    sys.path.append("./TorchExpert")
-    from torchexpert import TorchExpert
+    from components.TorchExpert.torchexpert import TorchExpert
     torchexpert = TorchExpert()
     activity_groups = []
     if ((not args.profile_devices and args.device == 'cuda') or
@@ -206,11 +204,11 @@ def profile_one_step_torchexpert(func, nwarmup=WARMUP_ROUNDS):
         for _i in range(nwarmup + 1):
             func()
             torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
+            # prof.step() will clean some content in prof, so need to skip the last iteration.
             if _i != nwarmup:
                 prof.step()
     torchexpert.set_profile(prof)
     torchexpert.analyze()
-    # print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
 
@@ -240,6 +238,7 @@ if __name__ == "__main__":
                         help="Profiling includes record_shapes, profile_memory, with_stack, and with_flops.")
     parser.add_argument("--profile-devices", type=_validate_devices,
                         help="Profiling comma separated list of activities such as cpu,cuda.")
+    parser.add_argument("--torchexpert", action="store_true", help="Run the profiler with TorchExpert")
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
@@ -285,6 +284,8 @@ if __name__ == "__main__":
     else:
         export_dcgm_metrics_file = False
     if args.profile:
+        profile_one_step(test)
+    elif args.torchexpert:
         profile_one_step_torchexpert(test)
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)

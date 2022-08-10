@@ -1,3 +1,6 @@
 [submodule "submodules/FAMBench"]
 	path = submodules/FAMBench
 	url = https://github.com/facebookresearch/FAMBench.git
+[submodule "components/TorchExpert"]
+	path = components/TorchExpert
+	url = git@github.com:FindHao/TorchExpert.git
