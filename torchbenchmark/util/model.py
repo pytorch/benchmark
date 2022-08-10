@@ -39,6 +39,17 @@ def nested(*contexts):
             stack.enter_context(ctx())
         yield contexts
 
+# enable JIT profiling executor
+@contextmanager
+def enable_profiling_executor():
+    try:
+        graph_executor = torch._C._get_graph_executor_optimize(True)
+        profiling_mode = torch._C._jit_set_profiling_executor(True)
+        yield
+    finally:
+        torch._C._jit_set_profiling_executor(profiling_mode)
+        torch._C._get_graph_executor_optimize(graph_executor)
+
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
     DEFAULT_EVAL_BSIZE: Optional[int] = None
@@ -67,7 +78,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.determine_batch_size(batch_size)
         self.extra_args = extra_args
         # contexts to run in the test function
-        self.run_contexts = []
+        self.run_contexts = [
+            enable_profiling_executor  # force JIT profiling executor to be enabled by default
+        ]
         set_random_seed()
 
     # Run the post processing for model acceleration
