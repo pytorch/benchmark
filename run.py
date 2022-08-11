@@ -148,15 +148,19 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     activity_groups = []
-    if ((not args.profile_devices and args.device == 'cuda') or
-            (args.profile_devices and 'cuda' in args.profile_devices)):
-        print("Collecting CUDA activity.")
-        activity_groups.append(profiler.ProfilerActivity.CUDA)
-
-    if ((not args.profile_devices and args.device == 'cpu') or
-            (args.profile_devices and 'cpu' in args.profile_devices)):
-        print("Collecting CPU activity.")
-        activity_groups.append(profiler.ProfilerActivity.CPU)
+    device_to_activity = {'cuda': profiler.ProfilerActivity.CUDA, 'cpu': profiler.ProfilerActivity.CPU}
+    if args.profile_devices:
+        activity_groups = [
+            device_to_activity[device] for device in args.profile_devices if (device in device_to_activity)
+        ]
+    else:
+        if args.device == 'cuda':
+            activity_groups = [
+                profiler.ProfilerActivity.CUDA,
+                profiler.ProfilerActivity.CPU,
+            ]
+        elif args.device == 'cpu':
+            activity_groups = [profiler.ProfilerActivity.CPU]
 
     if args.profile_eg:
         from datetime import datetime
