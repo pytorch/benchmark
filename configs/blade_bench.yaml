@@ -7,19 +7,22 @@ device:
   - "cuda"
 test:
   - "eval"
-# models:
-#   - "alexnet"
-#   - "attention_is_all_you_need_pytorch"
-#   - "timm_efficientnet"
-#   - "hf_Bert"
+models:
+  - "alexnet"
+  - "attention_is_all_you_need_pytorch"
+  - "BERT_pytorch"
+  - "hf_Bert"
+  - "nvidia_deeprecommender"
+  - "resnet18"
+  - "timm_efficientnet"
 precision:
-  # - "fp16"
+  - "fp16"
   - "fp32"
 args:
   # empty argument means the default pytorch eager mode
   - ""
-  - "--blade"
   # script based
+  - "--blade"
   - "--fuser fuser2 --jit"  # nvfuser
 
   # torchdynamo based
