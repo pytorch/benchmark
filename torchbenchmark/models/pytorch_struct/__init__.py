@@ -55,6 +55,7 @@ class Model(BenchmarkModel):
   # Original train batch size: 200
   # Source: https://github.com/harvardnlp/pytorch-struct/blob/f4e374e894b94a9411fb3d2dfb44201a18e37b26/notebooks/Unsupervised_CFG.ipynb
   DEFAULT_TRAIN_BSIZE = 200
+  DEFAULT_EVAL_BSIZE = 200
   NUM_OF_BATCHES = 1
 
   def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
