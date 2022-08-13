@@ -54,7 +54,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_dcgm_metrics_file=False, stress=0):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -65,9 +65,19 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
         dcgm_enabled = True
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
+        if export_dcgm_metrics_file:
+            model_analyzer.set_export_csv_name(export_dcgm_metrics_file)
         model_analyzer.start_monitor()
-
-    for _i in range(num_iter):
+    if stress:
+        cur_time = time.time_ns()
+        start_time = cur_time
+        target_time = stress * 1e9 + start_time
+        num_iter = -1
+        last_time = start_time
+    _i = 0
+    last_it = 0
+    first_print_out = True
+    while (not stress and _i < num_iter ) or (stress and cur_time < target_time ) :
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
@@ -88,21 +98,37 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
             t1 = time.time_ns()
             wall_latency = t1 - t0
             # TODO: modify this to add GPU time as well
-            # print('{:<20} {:>20}'.format("MPS Total Wall Time:", "%.3f milliseconds" % ((t1 - t0) / 1_000_000)), sep='')
-            result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
+            result_summary.append([(t1 - t0) / 1_000_000])
         else:
             t0 = time.time_ns()
             func()
             t1 = time.time_ns()
             result_summary.append([(t1 - t0) / 1_000_000])
+        if stress:
+            cur_time = time.time_ns()
+            # print out the status every 10s.
+            if (cur_time - last_time) >= 10 * 1e9:
+                if first_print_out:
+                    print('|{:^20}|{:^20}|{:^20}|'.format("Iterations", "Time/Iteration(ms)", "Rest Time(s)"))
+                    first_print_out = False
+                est = (target_time - cur_time) / 1e9
+                time_per_it = (cur_time - last_time) / ( _i - last_it) / 1e6
+                print('|{:^20}|{:^20}|{:^20}|'.format("%d" % _i, "%.2f" % time_per_it , "%d" % int(est)))
+                last_time = cur_time
+                last_it = _i
+        _i += 1
     if dcgm_enabled:
             model_analyzer.stop_monitor()
 
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
-        print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
-        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
+        if hasattr(model, "NUM_BATCHES"):
+            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" % (gpu_time / model.NUM_BATCHES), sep=''))
+            print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" % (cpu_walltime / model.NUM_BATCHES), sep=''))
+        else:
+            print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
+            print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
     else:
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
@@ -112,24 +138,43 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10):
         if dcgm_enabled:
             model_analyzer.aggregate()
             tflops = model_analyzer.calculate_flops()
+            if export_dcgm_metrics_file:
+                model_analyzer.export_all_records_to_csv()
         else:
             flops, batch_size = model_flops
-            tflops = flops * batch_size / (cpu_walltime / 1.0e9) / 1.0e12
+            tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     activity_groups = []
-    if ((not args.profile_devices and args.device == 'cuda') or
-            (args.profile_devices and 'cuda' in args.profile_devices)):
-        print("Collecting CUDA activity.")
-        activity_groups.append(profiler.ProfilerActivity.CUDA)
+    device_to_activity = {'cuda': profiler.ProfilerActivity.CUDA, 'cpu': profiler.ProfilerActivity.CPU}
+    if args.profile_devices:
+        activity_groups = [
+            device_to_activity[device] for device in args.profile_devices if (device in device_to_activity)
+        ]
+    else:
+        if args.device == 'cuda':
+            activity_groups = [
+                profiler.ProfilerActivity.CUDA,
+                profiler.ProfilerActivity.CPU,
+            ]
+        elif args.device == 'cpu':
+            activity_groups = [profiler.ProfilerActivity.CPU]
 
-    if ((not args.profile_devices and args.device == 'cpu') or
-            (args.profile_devices and 'cpu' in args.profile_devices)):
-        print("Collecting CPU activity.")
-        activity_groups.append(profiler.ProfilerActivity.CPU)
-
+    if args.profile_eg:
+        from datetime import datetime
+        import os
+        from torch.profiler import ExecutionGraphObserver
+        start_time = datetime.now()
+        timestamp = int(datetime.timestamp(start_time))
+        eg_file = f"{args.model}_{timestamp}_eg.json"
+        eg = ExecutionGraphObserver()
+        if not os.path.exists(args.profile_eg_folder):
+            os.makedirs(args.profile_eg_folder)
+        eg.register_callback(f"{args.profile_eg_folder}/{eg_file}")
+        nwarmup = 0
+        eg.start()
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1),
         activities=activity_groups,
@@ -143,7 +188,10 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
             func()
             torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
             prof.step()
-
+    if args.profile_eg and eg:
+        eg.stop()
+        eg.unregister_callback()
+        print(f"Save Exeution Graph to : {args.profile_eg_folder}/{eg_file}")
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
@@ -174,10 +222,15 @@ if __name__ == "__main__":
                         help="Profiling includes record_shapes, profile_memory, with_stack, and with_flops.")
     parser.add_argument("--profile-devices", type=_validate_devices,
                         help="Profiling comma separated list of activities such as cpu,cuda.")
+    parser.add_argument("--profile-eg", action="store_true", help="Collect execution graph by PARAM")
+    parser.add_argument("--profile-eg-folder", default="./eg_logs", help="Save execution graph traces to this directory.")
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
-    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result")
+    parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result.")
+    parser.add_argument("--export-dcgm-metrics", action="store_true",
+                        help="Export all GPU FP32 unit active ratio records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
+    parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -189,31 +242,36 @@ if __name__ == "__main__":
     if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
-    print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode.")
-    # build the model and get the chosen test method
-    if args.flops:
+    if args.flops and args.flops == "fvcore":
         extra_args.append("--flops")
         extra_args.append(args.flops)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
+    print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode with input batch size {m.batch_size}.")
 
     test = m.invoke
     model_flops = None
 
     if args.flops:
-        if args.flops == 'model':
+        if args.flops == 'fvcore':
             assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
             model_flops = m.get_flops()
         else:
             from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
             if check_dcgm():
                 model_flops = 'dcgm'
-            
+    if args.export_dcgm_metrics:
+        if not args.flops:
+            print("You have to specifiy --flops dcgm accompany with --export-dcgm-metrics")
+            exit(-1)
+        export_dcgm_metrics_file = "%s_all_metrics.csv" % args.model
+    else:
+        export_dcgm_metrics_file = False
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model_flops=model_flops)
+        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress)
     if hasattr(m, 'correctness'):
-        print('{:<20} {:>20}'.format("Correctness: ", m.correctness), sep='')
+        print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')

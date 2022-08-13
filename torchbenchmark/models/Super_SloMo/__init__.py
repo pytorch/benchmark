@@ -31,7 +31,8 @@ class Model(BenchmarkModel):
     #    hardware platform: Nvidia GTX 1080 Ti
     # Source: https://github.com/avinashpaliwal/Super-SloMo/blob/master/train.ipynb
     DEFAULT_TRAIN_BSIZE = 6
-    DEFAULT_EVAL_BSIZE = 10
+    # use smaller batch size to fit on Nvidia T4
+    DEFAULT_EVAL_BSIZE = 6
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -67,16 +68,14 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        for _ in range(niter):
-            out = self.model(*self.example_inputs)
+    def eval(self) -> Tuple[torch.Tensor]:
+        out = self.model(*self.example_inputs)
         return out
 
-    def train(self, niter=1):
-        for _ in range(niter):
-            self.optimizer.zero_grad()
+    def train(self):
+        self.optimizer.zero_grad()
 
-            Ft_p, loss = self.model(*self.example_inputs)
+        Ft_p, loss = self.model(*self.example_inputs)
 
-            loss.backward()
-            self.optimizer.step()
+        loss.backward()
+        self.optimizer.step()

@@ -15,8 +15,8 @@
 # Logging
 LOGGER_NAME = "model_analyzer_logger"
 from .gpu_device import GPUDevice
-import components.model_analyzer.dcgm.dcgm_agent as dcgm_agent
-import components.model_analyzer.dcgm.dcgm_structs as structs
+from  ..dcgm import dcgm_agent as dcgm_agent
+from ..dcgm import dcgm_structs as structs
 from .da_exceptions import TorchBenchAnalyzerException
 
 import numba.cuda

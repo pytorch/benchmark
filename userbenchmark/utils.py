@@ -1,0 +1,28 @@
+import os
+from datetime import datetime
+import time
+import json
+import torch
+from pathlib import Path
+
+def get_output_json(bm_name, metrics):
+    return {
+        "name": bm_name,
+        "environ": {"pytorch_git_version": torch.version.git_version},
+        "metrics": metrics,
+    }
+
+def dump_output(bm_name, output):
+    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+    target_dir = current_dir.parent.joinpath(".userbenchmark", bm_name)
+    target_dir.mkdir(exist_ok=True, parents=True)
+    fname = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
+    full_fname = os.path.join(target_dir, fname)
+    with open(full_fname, 'w') as f:
+        json.dump(output, f, indent=4)
+
+def get_output_dir(bm_name):
+    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+    target_dir = current_dir.parent.joinpath(".userbenchmark", bm_name)
+    target_dir.mkdir(exist_ok=True, parents=True)
+    return target_dir

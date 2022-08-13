@@ -18,6 +18,9 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
+    # Skip correctness check, because maml runs backward and optimizer in eval()
+    # Which will return non-deterministic results
+    SKIP_CORRECTNESS_CHECK = True
 
     def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -76,14 +79,12 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.module, self.example_inputs
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        for _ in range(niter):
-            out = self.module(*self.example_inputs)
+    def eval(self) -> Tuple[torch.Tensor]:
+        out = self.module(*self.example_inputs)
         return (out, )
 
-    def train(self, niter=1):
-        for _ in range(niter):
-            self.module(*self.example_inputs)
+    def train(self):
+        raise NotImplementedError("MAML model doesn't support train.")
 
     def eval_in_nograd(self):
         return False

@@ -7,9 +7,10 @@ import copy
 from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
-# run 10 rounds for stableness and correctness tests
-CORRECTNESS_CHECK_ROUNDS: int = 10
-CORRECTNESS_THRESHOLD: float = 0.99
+# rounds for stableness tests
+STABLENESS_CHECK_ROUNDS: int = 3
+# rounds for correctness tests
+CORRECTNESS_CHECK_ROUNDS: int = 2
 
 def set_random_seed():
     import torch
@@ -35,14 +36,14 @@ def has_native_amp() -> bool:
         pass
     return False
 
-def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True) -> Optional[Tuple['torch.Tensor']]:
+def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
-       If the result is not stable, return None. """
+       If the result is not stable, raise RuntimeError. """
     assert model.test=="eval", "We only support stableness check for inference."
     previous_result = None
-    for _i in range(CORRECTNESS_CHECK_ROUNDS):
+    for _i in range(rounds):
         set_random_seed()
-        # some models, (e.g., moco) is stateful and will give different outputs
+        # some models are stateful and will give different outputs
         # on the same input if called multiple times
         try:
             if deepcopy:
@@ -55,24 +56,18 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
         if previous_result == None:
             previous_result = copy_model.invoke()
         else:
-            if cos_sim:
-                cos_sim = cos_similarity(copy_model.invoke(), previous_result)
-                if cos_sim < CORRECTNESS_THRESHOLD:
-                    return None
-            else:
-                if not torch_allclose(copy_model.invoke(), previous_result):
-                    return None
+            cur_result = copy_model.invoke()
+            if not same(previous_result, cur_result, cos_similarity=cos_sim):
+                raise RuntimeError("Model returns unstable result. Please report a bug.")
+            del cur_result
     return previous_result
 
-def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True) -> str:
+def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, atol=1e-4, rtol=1e-4) -> bool:
     assert model.test=="eval", "We only support correctness check for inference."
-    assert hasattr(model, 'eager_output'), "Need stableness result to check correctness."
-    if model.eager_output == None:
-        return "Unstable"
-    for _i in range(CORRECTNESS_CHECK_ROUNDS):
-        set_random_seed()
-        # some models, (e.g., moco) is stateful and will give different outputs
+    for _i in range(rounds):
+        # some models are stateful and will give different outputs
         # on the same input if called multiple times
+        set_random_seed()
         try:
             if deepcopy:
                 copy_model = copy.deepcopy(model)
@@ -81,36 +76,106 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
         except RuntimeError:
             # if the model is not copy-able, don't copy it
             copy_model = model
-        if cos_sim:
-            cos_sim = cos_similarity(model.eager_output, copy_model.invoke())
-            if cos_sim < CORRECTNESS_THRESHOLD:
-                return f"Incorrect (cos_sim: {cos_sim})"
-        else:
-            if not torch_allclose(model.eager_output, copy_model.invoke()):
-                return "Incorrect (torch.allclose() returns False)"
-    return "Correct"
+        cur_result = copy_model.invoke()
 
-def torch_allclose(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor'], threshold=1e-4) -> bool:
-    import torch
-    # sanity checks
-    assert len(eager_output) == len(output), "Correctness check requires two inputs have the same length"
-    for i in range(len(eager_output)):
-        if not torch.allclose(eager_output[i].float(), output[i].float(), atol=threshold, rtol=threshold):
+        if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol):
             return False
+        del cur_result
     return True
 
-def cos_similarity(eager_output: Tuple['torch.Tensor'], output: Tuple['torch.Tensor']) -> float:
+def istype(obj, allowed_types):
+    """isinstance() without subclasses"""
+    if isinstance(allowed_types, (tuple, list, set)):
+        return type(obj) in allowed_types
+    return type(obj) is allowed_types
+
+def is_numpy_int_type(value):
+    import numpy as np
+    return istype(
+        value,
+        (
+            np.int8,
+            np.int16,
+            np.int32,
+            np.int64,
+            np.uint8,
+            np.uint16,
+            np.uint32,
+            np.uint64,
+        ),
+    )
+
+
+def is_numpy_float_type(value):
+    import numpy as np
+    return istype(
+        value,
+        (
+            np.float16,
+            np.float32,
+            np.float64,
+        ),
+    )
+
+# copied from https://github.com/pytorch/torchdynamo/blob/main/torchdynamo/utils.py#L411
+def same(a, b, cos_similarity=False, atol=1e-4, rtol=1e-4, equal_nan=False):
+    """Check correctness to see if a and b match"""
     import torch
-    # sanity checks
-    assert len(eager_output) == len(output), "Correctness check requires two inputs have the same length"
-    result = 1.0
-    for i in range(len(eager_output)):
-        t1 = eager_output[i]
-        t2 = output[i]
-        cos = torch.nn.CosineSimilarity(dim=0, eps=1e-4)
-        # deal with special case: both t1 and t2 are zeros
-        if not (torch.count_nonzero(t1) == 0 and torch.count_nonzero(t2) == 0):
-            # need to call float() because fp16 tensor may overflow when calculating cosine similarity
-            result *= cos(t1.flatten().float(), t2.flatten().float())
-    assert list(result.size())==[], "The result of cosine similarity must be a scalar."
-    return float(result)
+    import math
+    if isinstance(a, (list, tuple, torch.nn.ParameterList, torch.Size)):
+        assert isinstance(b, (list, tuple)), f"type mismatch {type(a)} {type(b)}"
+        return len(a) == len(b) and all(
+            same(ai, bi, cos_similarity, atol, rtol, equal_nan) for ai, bi in zip(a, b)
+        )
+    elif isinstance(a, dict):
+        assert isinstance(b, dict)
+        assert set(a.keys()) == set(
+            b.keys()
+        ), f"keys mismatch {set(a.keys())} == {set(b.keys())}"
+        for k in a.keys():
+            if not (same(a[k], b[k], cos_similarity, atol, rtol, equal_nan=equal_nan)):
+                print("Accuracy failed for key name", k)
+                return False
+        return True
+    elif isinstance(a, torch.Tensor):
+        if a.is_sparse:
+            assert b.is_sparse
+            a = a.to_dense()
+            b = b.to_dense()
+        assert isinstance(b, torch.Tensor), f"type mismatch {type(a)} {type(b)}"
+        if cos_similarity:
+            # TRT will bring error loss larger than current threshold. Use cosine similarity as replacement
+            a = a.flatten().to(torch.float32)
+            b = b.flatten().to(torch.float32)
+            res = torch.nn.functional.cosine_similarity(a, b, dim=0, eps=1e-6)
+            if res < 0.99:
+                print(f"Similarity score={res.cpu().detach().item()}")
+            return res >= 0.99
+        else:
+            return torch.allclose(a, b, atol=atol, rtol=rtol, equal_nan=equal_nan)
+    elif isinstance(a, (str, int, type(None), bool, torch.device)):
+        return a == b
+    elif isinstance(a, float):
+        return math.isclose(a, b, rel_tol=rtol, abs_tol=atol)
+    elif is_numpy_int_type(a) or is_numpy_float_type(a):
+        return (type(a) is type(b)) and (a == b)
+    elif type(a).__name__ in (
+        "MaskedLMOutput",
+        "Seq2SeqLMOutput",
+        "CausalLMOutputWithCrossAttentions",
+        "LongformerMaskedLMOutput",
+        "Instances",
+        "SquashedNormal",
+        "Boxes",
+        "Normal",
+        "TanhTransform",
+        "Foo",
+        "Variable",
+    ):
+        assert type(a) is type(b)
+        return all(
+            same(getattr(a, key), getattr(b, key), cos_similarity, atol, rtol, equal_nan)
+            for key in a.__dict__.keys()
+        )
+    else:
+        raise RuntimeError(f"unsupported type: {type(a).__name__}")

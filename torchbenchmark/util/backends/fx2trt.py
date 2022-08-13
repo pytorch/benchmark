@@ -3,8 +3,8 @@ from typing import Tuple, Optional
 
 def enable_fx2trt(max_batch_size: int, fp16: bool, model: torch.nn.Module, example_inputs: Tuple[torch.tensor],
                   is_hf_model: bool=False, hf_max_length: Optional[int]=None) -> torch.nn.Module:
-    from fx2trt_oss.fx.lower import lower_to_trt
-    from fx2trt_oss.fx.utils import LowerPrecision
+    from torch_tensorrt.fx.lower import lower_to_trt
+    from torch_tensorrt.fx.utils import LowerPrecision
     if fp16:
         precision = LowerPrecision.FP16
     else:

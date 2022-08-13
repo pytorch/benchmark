@@ -14,7 +14,7 @@ def get_nonempty_json(d):
             r.append(fullpath)
     return r
 
-def process_json(result, f):
+def process_json(result, f, base_key):
     with open(f, "r") as jf:
         tbo = json.load(jf)
     key = Path(f).stem
@@ -23,8 +23,9 @@ def process_json(result, f):
         status = test["status"]
         if k not in result:
             result[k] = {}
-        result[k]["precision"] = test["precision"]
-        result[k]["batch_size"] = test["batch_size"]
+        if key == base_key:
+            result[k]["precision"] = test["precision"]
+            result[k]["batch_size"] = test["batch_size"]
         result[k][key] = {}
         result[k][key]["status"] = status
         result[k][key]["results"] = test["results"]
@@ -80,12 +81,12 @@ def find_result_by_header(r, header, base_arg):
             return "N/A"
     elif tp == "latency":
         if is_ok(r[args]):
-            return r[args]["results"]["latency_ms"]
+            return round(r[args]["results"]["latency_ms"], 3)
         else:
             return r[args]["status"]
     elif tp == "speedup":
-        if is_ok(r[args]):
-            return r[base_arg]["results"]["latency_ms"] / r[args]["results"]["latency_ms"]
+        if is_ok(r[base_arg]) and is_ok(r[args]):
+            return round(r[base_arg]["results"]["latency_ms"] / r[args]["results"]["latency_ms"], 3)
         else:
             return "N/A"
     else:
@@ -109,7 +110,7 @@ def analyze_result(result_dir: str, base_key: str) -> str:
     assert base_key in file_keys, f"Baseline key {base_key} is not found in all files: {file_keys}."
     result = {}
     for f in files:
-        process_json(result, f)
+        process_json(result, f, base_key)
     header = generate_header(result, base_key)
     s = dump_result(result, header, base_key)
     return s

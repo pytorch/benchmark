@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
     # Original train batch size: 16
     # Source: https://github.com/ultralytics/yolov3/blob/master/train.py#L447
     DEFAULT_TRAIN_BSIZE = 16
-    DEFAULT_EVAL_BSIZE = 16
+    DEFAULT_EVAL_BSIZE = 8
     # yolov3 CUDA inference test uses amp precision
     DEFAULT_EVAL_CUDA_PRECISION = "amp"
 
@@ -79,17 +79,16 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def train(self, niter=1):
+    def train(self):
         # the training process is not patched to use scripted models
-        return self.training_loop(niter)
+        return self.training_loop()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
-        for i in range(niter):
-            out = model(*example_inputs, augment=False)
-            pred = out[0]
-            # Apply NMS
-            pred = non_max_suppression(pred, 0.3, 0.6,
+        out = model(*example_inputs, augment=False)
+        pred = out[0]
+        # Apply NMS
+        pred = non_max_suppression(pred, 0.3, 0.6,
                                     multi_label=False, classes=None, agnostic=False)
         return (out[0],) + out[1]
 

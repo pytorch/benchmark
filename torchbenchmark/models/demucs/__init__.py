@@ -39,8 +39,10 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 8
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]) -> None:
-        if batch_size is None and device == "cpu":
-            batch_size = 1
+        # reduce the eval batch size when running on CPU
+        # see: https://github.com/pytorch/benchmark/issues/895
+        if device == "cpu":
+            self.DEFAULT_EVAL_BSIZE = max(1, int(self.DEFAULT_EVAL_BSIZE / 8))
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.parser = get_parser()
@@ -77,18 +79,16 @@ class Model(BenchmarkModel):
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
         return self.model, self.example_inputs
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        for _ in range(niter):
-            sources, estimates = self.model(*self.example_inputs)
-            sources = center_trim(sources, estimates)
-            loss = self.criterion(estimates, sources)
+    def eval(self) -> Tuple[torch.Tensor]:
+        sources, estimates = self.model(*self.example_inputs)
+        sources = center_trim(sources, estimates)
+        loss = self.criterion(estimates, sources)
         return (sources, estimates)
 
-    def train(self, niter=1):
-        for _ in range(niter):
-            sources, estimates = self.model(*self.example_inputs)
-            sources = center_trim(sources, estimates)
-            loss = self.criterion(estimates, sources)
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
+    def train(self):
+        sources, estimates = self.model(*self.example_inputs)
+        sources = center_trim(sources, estimates)
+        loss = self.criterion(estimates, sources)
+        loss.backward()
+        self.optimizer.step()
+        self.optimizer.zero_grad()

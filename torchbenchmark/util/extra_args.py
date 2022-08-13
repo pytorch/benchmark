@@ -1,15 +1,24 @@
 import argparse
 from typing import List, Optional, Tuple
+from torchbenchmark.util.backends import list_backends, BACKENDS
+
+from torchbenchmark.util.backends.flops import enable_fvcore_flops
 from torchbenchmark.util.backends.fx2trt import enable_fx2trt
-from torchbenchmark.util.backends.jit import enable_jit
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
 
-def enable_opt_args(opt_args: argparse.Namespace) -> bool:
-    "Check if any of the optimizations is enabled."
+def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: argparse.Namespace) -> bool:
+    "If correctness check should be enabled."
+    # if the model doesn't support correctness check (like detectron2), skip it
+    if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
+        return False
+    is_eval_test = model.test == "eval"
+    # always check correctness with torchdynamo
+    if model.dynamo:
+        return is_eval_test
     opt_args_dict = vars(opt_args)
     for k in opt_args_dict:
         if opt_args_dict[k]:
-            return True
+            return is_eval_test
     return False
 
 def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool=True):
@@ -50,6 +59,11 @@ def check_memory_layout(model: 'torchbenchmark.util.model.BenchmakModel', channe
         return hasattr(model, 'enable_channels_last')
     return True
 
+def check_distributed_trainer(model: 'torchbenchmark.util.model.BenchmakModel', distributed_trainer: Optional[str]) -> bool:
+    if not model.test == "train" and distributed_trainer:
+        return False
+    return True
+
 def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     if hasattr(model, "DEFAULT_EVAL_CUDA_PRECISION") and model.test == 'eval' and model.device == 'cuda':
         return model.DEFAULT_EVAL_CUDA_PRECISION
@@ -59,6 +73,7 @@ def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> 
 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--distributed", choices=["ddp"], default=None, help="Enable distributed trainer")
     parser.add_argument("--precision", choices=["fp32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, fp16, or amp")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     dargs, opt_args = parser.parse_known_args(extra_args)
@@ -68,6 +83,9 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     if not check_memory_layout(model, dargs.channels_last):
         raise NotImplementedError(f"Specified channels_last: {dargs.channels_last} ,"
                                   f" but the model doesn't implement the enable_channels_last() interface.")
+    if not check_distributed_trainer(model, dargs.distributed):
+        raise NotImplementedError(f"We only support distributed trainer {dargs.distributed} for train tests, "
+                                  f"but get test: {model.test}")
     return (dargs, opt_args)
 
 def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dargs: argparse.Namespace):
@@ -88,12 +106,14 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
 # Dispatch arguments based on model type
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--backend", choices=list_backends(), help="enable backends")
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
-    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result")
-    args = parser.parse_args(opt_args)
-    args.jit = model.jit
+    parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
+    args, extra_args = parser.parse_known_args(opt_args)
+    if model.jit:
+        args.backend = "torchscript"
     if model.device == "cpu" and args.fuser:
         raise NotImplementedError("Fuser only works with GPU.")
     if not (model.device == "cuda" and model.test == "eval"):
@@ -101,22 +121,22 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
             raise NotImplementedError("TensorRT only works for CUDA inference tests.")
     if is_torchvision_model(model):
         args.cudagraph = False
-    return args
+    return args, extra_args
 
-def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
+def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, extra_args: List[str]):
+    if args.flops == "fvcore":
+        enable_fvcore_flops(model)
+    if args.backend:
+        backend = BACKENDS[args.backend]
+        # transform the model using the specified backend
+        backend(model, backend_args=extra_args)
+        return
+    assert not extra_args, f"Exptected no unknown args at this point, found {extra_args}"
     if args.fuser:
         import torch
         model.add_context(lambda: torch.jit.fuser(args.fuser))
-    if args.jit:
-        # model can handle jit code themselves through the 'jit_callback' callback function
-        if hasattr(model, 'jit_callback'):
-            model.jit_callback()
-        else:
-            # if model doesn't have customized jit code, use the default jit script code
-            module, exmaple_inputs = model.get_module()
-            model.set_module(enable_jit(model=module, example_inputs=exmaple_inputs, test=model.test))
     if args.fx2trt:
-        if args.jit:
+        if model.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")
         module, exmaple_inputs = model.get_module()
         fp16 = not (model.dargs.precision == "fp32")

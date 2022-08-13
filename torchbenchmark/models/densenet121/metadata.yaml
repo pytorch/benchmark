@@ -1,11 +1,11 @@
+devices:
+  NVIDIA A100-SXM4-40GB:
+    eval_batch_size: 64
 eval_benchmark: false
 eval_deterministic: false
 eval_nograd: true
-optimized_for_inference: true
+not_implemented:
+- device: cuda
+- device: cpu
 train_benchmark: false
 train_deterministic: false
-not_implemented:
-  # CUDA disabled due to CUDA out of memory on CI GPU
-  - device: cuda
-  # CPU disabled due to out of memory on CI CPU
-  - device: cpu

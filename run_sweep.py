@@ -18,7 +18,7 @@ from typing import List, Optional, Dict, Any, Tuple
 from torchbenchmark import ModelTask
 
 WARMUP_ROUNDS = 3
-WORKER_TIMEOUT = 300 # seconds
+WORKER_TIMEOUT = 600 # seconds
 MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
@@ -102,10 +102,14 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         if batch_size and (not result.batch_size == batch_size):
             raise ValueError(f"User specify batch size {batch_size}, but model {result.name} runs with batch size {result.batch_size}. Please report a bug.")
         result.results["latency_ms"] = run_one_step(task.invoke, device)
+        # if NUM_BATCHES is set, update to per-batch latencies
+        num_batches = task.get_model_attribute("NUM_BATCHES")
+        if num_batches:
+            result.results["latency_ms"] = result.results["latency_ms"] / num_batches
         # if the model provides eager eval result, save it for cosine similarity
         correctness = task.get_model_attribute(correctness_name)
         if correctness is not None:
-            result.results[correctness_name] = correctness
+            result.results[correctness_name] = str(correctness)
     except NotImplementedError as e:
         status = "NotImplemented"
         error_message = str(e)
@@ -136,13 +140,23 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--bs", type=int, help="Specify batch size.")
     parser.add_argument("--jit", action='store_true', help="Turn on torchscript.")
     parser.add_argument("-o", "--output", type=str, default="tb-output.json", help="The default output json file.")
+    parser.add_argument("--proper-bs", action='store_true', help="Find the best batch_size for current devices.")
     args, extra_args = parser.parse_known_args()
     args.models = _list_model_paths(args.models)
     results = []
     for element in itertools.product(*[args.models, args.tests, args.devices]):
         model_path, test, device = element
-        r = _run_model_test(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
+        if args.proper_bs:
+            if test != 'eval':
+                print("Error: Only batch size of eval test is tunable.")
+                sys.exit(1)
+            from scripts.proper_bs import _run_model_test_proper_bs
+            r = _run_model_test_proper_bs(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
+        else:
+            r = _run_model_test(model_path, test, device, args.jit, batch_size=args.bs, extra_args=extra_args)
         results.append(r)
-    results = list(map(lambda x: dataclasses.asdict(x), results))
-    with open(args.output, "w") as outfile:
-        json.dump(results, outfile)
+        results_to_export = list(map(lambda x: dataclasses.asdict(x), results))
+        parent_dir = pathlib.Path(args.output).parent
+        parent_dir.mkdir(exist_ok=True, parents=True)
+        with open(args.output, "w") as outfile:
+            json.dump(results_to_export, outfile, indent=4)

@@ -18,8 +18,12 @@ def cache_model(name: str):
 def patch_transformers():
     import transformers
     transformers_dir = os.path.dirname(transformers.__file__)
+    if not os.path.exists(PATCH_DIR):
+        return
     for patch_file in os.listdir(PATCH_DIR):
         patch_file_fullpatch = os.path.join(PATCH_DIR, patch_file)
+        if not patch_file_fullpatch.endswith(".patch"):
+            continue
         try:
             subprocess.check_output(["patch", "-p1", "--forward", "-i", patch_file_fullpatch, "-r", "/tmp/rej"], cwd=transformers_dir)
         except subprocess.SubprocessError as e:

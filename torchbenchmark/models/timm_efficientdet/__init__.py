@@ -23,6 +23,8 @@ from .args import get_args
 from .train import train_epoch, validate
 from .loader import create_datasets_and_loaders
 
+from typing import Tuple
+
 # setup coco2017 input path
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-minimal", "coco")
@@ -134,7 +136,7 @@ class Model(BenchmarkModel):
         self.amp_autocast = torch.cuda.amp.autocast
         self.loss_scaler = NativeScaler()
 
-    def train(self, niter=1):
+    def train(self):
         eval_metric = self.args.eval_metric
         for epoch in range(self.num_epochs):
             train_metrics = train_epoch(
@@ -153,10 +155,10 @@ class Model(BenchmarkModel):
                 # step LR for next epoch
                 self.lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])
 
-    def eval(self, niter=1):
-        for _ in range(niter):
-            with torch.no_grad():
-                for _, (input, target) in zip(range(self.num_batches), self.loader):
-                    with self.amp_autocast():
-                        output = self.model(input, img_info=target)
-                    self.evaluator.add_predictions(output, target)
+    def eval(self) -> Tuple[torch.Tensor]:
+        with torch.no_grad():
+            for _, (input, target) in zip(range(self.num_batches), self.loader):
+                with self.amp_autocast():
+                    output = self.model(input, img_info=target)
+                self.evaluator.add_predictions(output, target)
+        return (output, )

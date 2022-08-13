@@ -3,7 +3,7 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import SPEECH
 import torch
 from typing import Tuple
-from .angular_tts_main import TTSModel, SYNTHETIC_DATA
+from .angular_tts_main import TTSModel
 
 class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
@@ -19,21 +19,21 @@ class Model(BenchmarkModel):
 
         self.model = TTSModel(device=self.device, batch_size=self.batch_size)
         self.model.model.to(self.device)
+        if self.test == "train":
+            self.model.model.train()
+        elif self.test == "eval":
+            self.model.model.eval()
 
     def get_module(self):
-        return self.model.model, [SYNTHETIC_DATA[0], ]
+        return self.model.model, [self.model.SYNTHETIC_DATA[0], ]
 
     def set_module(self, new_model):
         self.model.model = new_model
 
-    def set_train(self):
-        self.model.model.train()
-
-    def train(self, niter=1):
+    def train(self):
         # the training process is not patched to use scripted models
-        self.model.train(niter)
+        self.model.train()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
-        for _ in range(niter):
-            out = self.model.eval()
+    def eval(self) -> Tuple[torch.Tensor]:
+        out = self.model.eval()
         return (out, )

@@ -24,6 +24,10 @@ def parse_torchbench_args(extra_args):
     parser.add_argument("--validate_in_train", action="store_true", help="Validate result in train")
     # use fp16 mixed precision by default
     parser.add_argument("--fp16", default="amp", choices=["amp", "no"], help="Enable mixed precision")
+    parser.add_argument(
+        "--distributed", default="ddp", choices=["ddp", "fsdp", "deepspeed", "none"],
+        help="distributed training paradigm, by default using DDP"
+    )
     tb_args = parser.parse_args(extra_args)
     return tb_args
 

@@ -2,7 +2,7 @@
 Runs hub models in benchmark mode using pytest-benchmark. Run setup separately first.
 
 Usage:
-  python test.py --setup_only
+  python install.py
   pytest test_bench.py
 
 See pytest-benchmark help (pytest test_bench.py -h) for additional options
@@ -30,6 +30,9 @@ def pytest_generate_tests(metafunc):
 
     if metafunc.config.option.cpu_only:
         devices = ['cpu']
+
+    if metafunc.config.option.cuda_only:
+        devices = ['cuda']
 
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         paths = _list_model_paths()
@@ -67,6 +70,9 @@ class TestBenchNetwork:
             task.make_model_instance(test="train", device=device, jit=(compiler == 'jit'))
             benchmark(task.invoke)
             benchmark.extra_info['machine_state'] = get_machine_state()
+            benchmark.extra_info['batch_size'] = task.get_model_attribute('batch_size')
+            benchmark.extra_info['precision'] = task.get_model_attribute("dargs", "precision")
+            benchmark.extra_info['test'] = 'train'
 
         except NotImplementedError:
             print(f'Test train on {device} is not implemented, skipping...')
@@ -89,6 +95,9 @@ class TestBenchNetwork:
             with task.no_grad(disable_nograd=pytestconfig.getoption("disable_nograd")):
                 benchmark(task.invoke)
                 benchmark.extra_info['machine_state'] = get_machine_state()
+                benchmark.extra_info['batch_size'] = task.get_model_attribute('batch_size')
+                benchmark.extra_info['precision'] = task.get_model_attribute("dargs", "precision")
+                benchmark.extra_info['test'] = 'eval'
                 if pytestconfig.getoption("check_opt_vs_noopt_jit"):
                     task.check_opt_vs_noopt_jit()
 

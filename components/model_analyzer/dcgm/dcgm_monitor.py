@@ -13,13 +13,16 @@
 # limitations under the License.
 
 from .monitor import Monitor
-from components.model_analyzer.tb_dcgm_types.gpu_free_memory import GPUFreeMemory
-from components.model_analyzer.tb_dcgm_types.gpu_tensoractive import GPUTensorActive
-from components.model_analyzer.tb_dcgm_types.gpu_used_memory import GPUUsedMemory
-from components.model_analyzer.tb_dcgm_types.gpu_utilization import GPUUtilization
-from components.model_analyzer.tb_dcgm_types.gpu_power_usage import GPUPowerUsage
-from components.model_analyzer.tb_dcgm_types.gpu_fp32active import GPUFP32Active
-from components.model_analyzer.tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
+from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
+from ..tb_dcgm_types.gpu_tensoractive import GPUTensorActive
+from ..tb_dcgm_types.gpu_used_memory import GPUUsedMemory
+from ..tb_dcgm_types.gpu_utilization import GPUUtilization
+from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
+from ..tb_dcgm_types.gpu_fp32active import GPUFP32Active
+from ..tb_dcgm_types.gpu_dram_active import GPUDRAMActive
+from ..tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
+from ..tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
+from ..tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 
 
 from . import dcgm_agent
@@ -34,14 +37,17 @@ class DCGMMonitor(Monitor):
     """
 
     # Mapping between the DCGM Fields and Model Analyzer Records
+    # For more explainations, please refer to https://docs.nvidia.com/datacenter/dcgm/latest/dcgm-api/dcgm-api-field-ids.html
     model_analyzer_to_dcgm_field = {
         GPUUsedMemory: dcgm_fields.DCGM_FI_DEV_FB_USED,
         GPUFreeMemory: dcgm_fields.DCGM_FI_DEV_FB_FREE,
         GPUUtilization: dcgm_fields.DCGM_FI_DEV_GPU_UTIL,
         GPUPowerUsage: dcgm_fields.DCGM_FI_DEV_POWER_USAGE,
         GPUFP32Active: dcgm_fields.DCGM_FI_PROF_PIPE_FP32_ACTIVE,
-        GPUTensorActive: dcgm_fields.DCGM_FI_PROF_PIPE_TENSOR_ACTIVE
-# @Yueming todo: add more metrics here.
+        GPUTensorActive: dcgm_fields.DCGM_FI_PROF_PIPE_TENSOR_ACTIVE,
+        GPUDRAMActive: dcgm_fields.DCGM_FI_PROF_DRAM_ACTIVE,
+        GPUPCIERX: dcgm_fields.DCGM_FI_PROF_PCIE_RX_BYTES,
+        GPUPCIETX: dcgm_fields.DCGM_FI_PROF_PCIE_TX_BYTES,
     }
 
     def __init__(self, gpus, frequency, metrics, dcgmPath=None):

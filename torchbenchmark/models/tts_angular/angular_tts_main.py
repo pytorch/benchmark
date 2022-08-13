@@ -221,14 +221,13 @@ CONFIG = {
         ]
 }
 
-SYNTHETIC_DATA = []
-
 
 class TTSModel:
     def __init__(self, device, batch_size):
         self.device = device
         self.use_cuda = True if self.device == 'cuda' else False
 
+        self.SYNTHETIC_DATA = []
         self.c = AttrDict()
         self.c.update(CONFIG)
         c = self.c
@@ -238,7 +237,7 @@ class TTSModel:
                                     num_lstm_layers=c.model['num_lstm_layers'])
         self.optimizer = RAdam(self.model.parameters(), lr=c.lr)
         self.criterion = AngleProtoLoss()
-        SYNTHETIC_DATA.append(T.rand(batch_size, 50, 40).to(device=self.device))
+        self.SYNTHETIC_DATA.append(T.rand(batch_size, 50, 40).to(device=self.device))
 
         if self.use_cuda:
             self.model = self.model.cuda()
@@ -248,15 +247,15 @@ class TTSModel:
         self.global_step = 0
 
     def __del__(self):
-        del SYNTHETIC_DATA[0]
+        del self.SYNTHETIC_DATA[0]
 
-    def train(self, niter):
+    def train(self, niter=1):
         _, global_step = self._train(self.model, self.criterion,
                                      self.optimizer, self.scheduler, None,
                                      self.global_step, self.c, niter)
 
     def eval(self):
-        result = self.model(SYNTHETIC_DATA[0])
+        result = self.model(self.SYNTHETIC_DATA[0])
         return result
 
     def __call__(self, *things):
@@ -273,7 +272,7 @@ class TTSModel:
         # for _, data in enumerate(data_loader):
         start_time = time.time()
         for reps in range(niter):
-            for _, data in enumerate(SYNTHETIC_DATA):
+            for _, data in enumerate(self.SYNTHETIC_DATA):
                 # setup input data
                 # inputs = data[0]
                 inputs = data

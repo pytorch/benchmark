@@ -7,7 +7,6 @@ from .timm_config import TimmConfig
 from typing import Generator, Tuple, Optional
 
 class TimmModel(BenchmarkModel):
-    optimized_for_inference = True
     # To recognize this is a timm model
     TIMM_MODEL = True
     # These two variables should be defined by subclasses

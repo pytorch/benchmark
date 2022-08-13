@@ -3,8 +3,11 @@ import torch
 from contextlib import contextmanager, ExitStack
 import warnings
 import inspect
+import yaml
+from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
-from torchbenchmark.util.extra_args import enable_opt_args, parse_opt_args, apply_opt_args, \
+from torchbenchmark import REPO_PATH
+from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
 
@@ -36,6 +39,17 @@ def nested(*contexts):
             stack.enter_context(ctx())
         yield contexts
 
+# enable JIT profiling executor
+@contextmanager
+def enable_profiling_executor():
+    try:
+        graph_executor = torch._C._get_graph_executor_optimize(True)
+        profiling_mode = torch._C._jit_set_profiling_executor(True)
+        yield
+    finally:
+        torch._C._jit_set_profiling_executor(profiling_mode)
+        torch._C._get_graph_executor_optimize(graph_executor)
+
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
     DEFAULT_EVAL_BSIZE: Optional[int] = None
@@ -55,24 +69,18 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
     def __init__(self, test: str, device: str, jit: bool=False, batch_size: Optional[int]=None, extra_args: List[str]=[]):
+        self.metadata = self.load_metadata()
         self.test = test
-        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
+        assert self.test == "train" or self.test == "eval", \
+            f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device
         self.jit = jit
-        self.batch_size = batch_size
-        if not self.batch_size:
-            self.batch_size = self.DEFAULT_TRAIN_BSIZE if test == "train" else self.DEFAULT_EVAL_BSIZE
-            if not self.batch_size:
-                self.batch_size = (self.DEFAULT_TRAIN_BSIZE or self.DEFAULT_EVAL_BSIZE)
-        # Check if customizing batch size is supported
-        if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
-            if test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE) and self.DEFAULT_TRAIN_BSIZE:
-                raise NotImplementedError("Model doesn't support customizing batch size.")
-            elif test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE) and self.DEFAULT_EVAL_BSIZE:
-                raise NotImplementedError("Model doesn't support customizing batch size.")
+        self.determine_batch_size(batch_size)
         self.extra_args = extra_args
         # contexts to run in the test function
-        self.run_contexts = []
+        self.run_contexts = [
+            enable_profiling_executor  # force JIT profiling executor to be enabled by default
+        ]
         set_random_seed()
 
     # Run the post processing for model acceleration
@@ -87,11 +95,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.opt_args = parse_torchdynamo_args(self, opt_args)
         else:
             self.dynamo = False
-            self.opt_args = parse_opt_args(self, opt_args)
-        self.need_correctness_check = True if self.dynamo else enable_opt_args(self.opt_args)
-        # currently, only check correctness under CUDA+inference, and `need_correctness_check` is True
-        if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
+            self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
+        should_check_correctness = check_correctness_p(self, self.opt_args)
+        if should_check_correctness:
+            self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
@@ -99,16 +106,60 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
-            apply_opt_args(self, self.opt_args)
-        # if test is eval, check correctness
-        if self.device == "cuda" and self.test == "eval" and self.need_correctness_check:
-            # if fp16 is used, use cosine similarity instead of torch.allclose
-            # because cosine similarity is more relaxed
-            if self.dargs.precision == "fp16":
+            apply_opt_args(self, self.opt_args, self.extra_args)
+        if should_check_correctness:
+            # tensorrt or fp16 is known to generate less-accurate results
+            # in this case, use more relaxed cosine similarity instead of torch.allclose
+            # for correctness testing
+            # see: https://github.com/pytorch/torchdynamo/pull/438
+            if self.dargs.precision == "fp16" or (self.dynamo and self.opt_args.torchdynamo == "fx2trt") or (not self.dynamo and self.opt_args.fx2trt):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
-                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY)
+                # get tolerance of correctness check from os.environ
+                atol = float(os.environ.get("TORCHBENCH_ATOL", "1e-4"))
+                rtol = float(os.environ.get("TORCHBENCH_RTOL", "1e-4"))
+                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, atol=atol, rtol=rtol)
+        # setup distributed trainer
+        if self.dargs.distributed:
+            from torchbenchmark.util.distributed.core_model.apply_trainer import apply_trainer
+            module, _inputs = self.get_module()
+            self.set_module(apply_trainer(module, self.dargs.distributed))
+        if self.test == "cuda":
             torch.cuda.empty_cache()
+
+    def determine_batch_size(self, batch_size=None):
+        # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
+        # batch size priority for train tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > default
+        self.batch_size = batch_size
+        if not batch_size:
+            self.batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
+            # use the device suggestion on CUDA inference tests
+            if self.test == "eval" and self.device == "cuda":
+                current_device_name = torch.cuda.get_device_name()
+                assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+                if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"]:
+                    self.batch_size = self.metadata["devices"][current_device_name]["eval_batch_size"]
+            # If the model doesn't implement test or eval test
+            # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
+            if not self.batch_size:
+                raise NotImplementedError(f"Test {self.test} is not implemented.")
+        else:
+            self.batch_size = batch_size
+        # Check if specified batch size is supported by the model
+        if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
+            if self.test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
+                raise NotImplementedError("Model doesn't support customizing batch size.")
+            elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
+                raise NotImplementedError("Model doesn't support customizing batch size.")
+
+    def load_metadata(self):
+        relative_path = self.__class__.__module__.split(".")
+        metadata_loc = Path(REPO_PATH).joinpath(*relative_path).joinpath("metadata.yaml")
+        if not metadata_loc.exists():
+            return None
+        with open(metadata_loc, "r") as mf:
+            metadata = yaml.safe_load(mf)
+        return metadata
 
     def add_context(self, context_fn):
         ctx = context_fn()
@@ -181,14 +232,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 raise RuntimeError("Encountered an supported type.\n" +
                     "Please add the type or override `bench_allclose`")
 
-       
+
         try:
             opt = model(*inputs)
         except Exception as e:
             print(e)
             warnings.warn(UserWarning(f"{model_name}.eval() doesn't support `check_results` yet!"))
             return
-        
+
         # disable optimizations and force a recompilation
         # to a baseline version
         fwd = model._c._get_method("forward")

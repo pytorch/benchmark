@@ -119,15 +119,15 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.agent.actor = new_model
 
-    def train(self, niter=2):
+    def train(self):
         episode, episode_reward, episode_step, done = 0, 0, 1, True
-        for step in range(niter):
+        if True:
             obs = self.env.reset()
             done = False
             episode_reward = 0
             episode_step = 0
             episode += 1
-            if step < self.cfg.num_seed_steps:
+            if self.step < self.cfg.num_seed_steps:
                 action = self.env.action_space.sample()
             else:
                 with eval_mode(self.agent):
@@ -148,9 +148,10 @@ class Model(BenchmarkModel):
             episode_step += 1
             self.step += 1
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         average_episode_reward = 0
-        for _episode in range(niter):
+        steps = 0
+        if True:
             obs = self.env.reset()
             episode_reward = 0
             episode_step = 0
@@ -160,5 +161,6 @@ class Model(BenchmarkModel):
             episode_reward += reward
             episode_step += 1
             average_episode_reward += episode_reward
-        average_episode_reward /= float(niter)
+            steps += 1
+        average_episode_reward /= float(steps)
         return (torch.Tensor(action), )

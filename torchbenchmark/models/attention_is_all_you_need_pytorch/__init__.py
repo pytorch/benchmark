@@ -29,11 +29,11 @@ torch.backends.cudnn.benchmark = False
 
 class Model(BenchmarkModel):
     task = NLP.TRANSLATION
-    optimized_for_inference = True
     # Original batch size 256, hardware platform unknown
     # Source: https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/132907dd272e2cc92e3c10e6c4e783a87ff8893d/README.md?plain=1#L83
     DEFAULT_TRAIN_BSIZE = 256
     DEFAULT_EVAL_BSIZE = 32
+    NUM_OF_BATCHES = 1
 
     def _create_transformer(self):
         transformer = Transformer(
@@ -111,14 +111,14 @@ class Model(BenchmarkModel):
         for (src_seq, trg_seq, gold) in self.example_inputs:
             return self.model, (*(src_seq, trg_seq), )
 
-    def eval(self, niter=1) -> torch.Tensor:
+    def eval(self) -> torch.Tensor:
         result = None
-        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
+        for _, (src_seq, trg_seq, gold) in zip(range(self.NUM_OF_BATCHES), self.example_inputs):
             result = self.model(*(src_seq, trg_seq))
         return (result, )
 
-    def train(self, niter=1):
-        for _, (src_seq, trg_seq, gold) in zip(range(niter), self.example_inputs):
+    def train(self):
+        for _, (src_seq, trg_seq, gold) in zip(range(self.NUM_OF_BATCHES), self.example_inputs):
             self.optimizer.zero_grad()
             example_inputs = (src_seq, trg_seq)
             pred = self.model(*example_inputs)

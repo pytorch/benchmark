@@ -1,0 +1,8 @@
+eval_benchmark: false
+eval_deterministic: true
+eval_nograd: true
+train_benchmark: false
+train_deterministic: true
+not_implemented:
+  # CUDA test disabled because it doesn't fit on the CI machine (T4)
+  - device: cuda

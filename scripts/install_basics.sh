@@ -15,5 +15,16 @@ chmod +x "$filename"
 conda activate base
 # Use python3.8 by default
 conda install -y python=3.8
+# install unittest-xml-reporting
+pip install unittest-xml-reporting
 
+# install Nvidia cuDNN
+wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.3.2/local_installers/11.5/cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive.tar.xz \
+     -O cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive.tar.xz
 
+tar xJf cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive.tar.xz
+pushd cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive
+sudo cp include/* /usr/local/cuda/include
+sudo cp lib/* /usr/local/cuda/lib64
+popd
+sudo ldconfig

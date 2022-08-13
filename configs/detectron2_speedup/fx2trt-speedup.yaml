@@ -1,0 +1,9 @@
+models:
+  - "detectron2_.*"
+device:
+  - "cuda"
+test:
+  - "eval"
+args:
+  - ""
+  - "--torchdynamo fx2trt"

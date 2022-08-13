@@ -15,7 +15,9 @@ jobs:
       BISECT_BRANCH: "v2.0"
       PYTHON_VER: "3.8"
       CUDA_VER: "11.3"
-      MAGMA_VERSION: "magma-cuda113"
+      NUMPY_VER: "1.21.2"
+      MKL_VER: "2021.2.0"
+      MAGMA_VER: "magma-cuda113"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
@@ -26,16 +28,16 @@ jobs:
           ref: v2.0
       - name: Create conda environment
         run: |
+          set -x
           conda create -y -n "${BISECT_CONDA_ENV}" python="${PYTHON_VER}"
           . activate "${BISECT_CONDA_ENV}"
           # pytorch doesn't support cmake>3.22
           # See: https://github.com/pytorch/pytorch/issues/74985
-          conda install -y numpy requests ninja pyyaml mkl mkl-include setuptools cmake=3.22 cffi \
+          conda install -y numpy="${NUMPY_VER}"  mkl="${MKL_VER}" mkl-include="${MKL_VER}" \
+                           requests ninja pyyaml setuptools cmake=3.22 cffi \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm
           # Install magma
-          conda install -y -c pytorch "${MAGMA_VERSION}"
-          # Pin ffmpeg version to 4.4.1. See: https://github.com/pytorch/vision/issues/5616
-          conda install -y ffmpeg=4.4.1
+          conda install -y -c pytorch "${MAGMA_VER}"
       - name: Bisection
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
