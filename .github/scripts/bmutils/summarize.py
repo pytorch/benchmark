@@ -39,7 +39,7 @@ def insert_if_nonexist(arr, k, loc=None):
     arr.insert(loc, k)
 
 # Result header
-# Model (<test>, <device>); <base arg>; <arg1>; <arg2>; ...; <argn>
+# Model(<test>-<device>); <base arg>; <arg1>; <arg2>; ...; <argn>
 def generate_header(result, base_key):
     header = []
     args = []
@@ -66,7 +66,7 @@ def generate_header(result, base_key):
                     # count blade compiled nodes
                     insert_if_nonexist(args, f"{k} (compiled)")
 
-    header.append(f"Model ({test}, {device})")
+    header.append(f"Model({test}-{device})")
     header.append(f"precision")
     header.append(f"batch size")
     header.extend(args)
@@ -118,13 +118,13 @@ def find_result_by_header(r, header, base_arg):
 
 # Dump the result to csv, so that can be used in Google Sheets
 def dump_result(result, header, base_key):
-    s = [";".join(header) + "\n"]
+    s = [",".join(header) + "\n"]
     # sort models by their names in lowercase
     for k in sorted(result, key=lambda x: x[0].lower()):
         rt = [str(k[0]), str(result[k]["precision"]), str(result[k]["batch_size"])]
         for h in header[3:]:
             rt.append(str(find_result_by_header(result[k], split_header(h), base_key)))
-        s.append(";".join(rt) + "\n")
+        s.append(",".join(rt) + "\n")
     return "".join(s)
 
 def analyze_result(result_dir: str, base_key: str) -> str:
