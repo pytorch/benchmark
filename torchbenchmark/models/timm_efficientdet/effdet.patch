@@ -38,3 +38,30 @@ index d47e183..1b6d487 100644
          for s in splits:
              if s not in dataset_cfg.splits:
                  raise RuntimeError(f'{s} split not found in config')
+diff --git a/effdet/loss.py b/effdet/loss.py
+index 078b7a1..147499f 100644
+--- a/effdet/loss.py
++++ b/effdet/loss.py
+@@ -139,7 +139,8 @@ def one_hot(x, num_classes: int):
+     # NOTE: PyTorch one-hot does not handle -ve entries (no hot) like Tensorflow, so mask them out
+     x_non_neg = (x >= 0).unsqueeze(-1)
+     onehot = torch.zeros(x.shape + (num_classes,), device=x.device, dtype=torch.float32)
+-    return onehot.scatter(-1, x.unsqueeze(-1) * x_non_neg, 1) * x_non_neg
++    ind = (x.unsqueeze(-1) * x_non_neg).to(dtype=torch.int64)
++    return onehot.scatter(-1, ind, 1) * x_non_neg
+
+
+ def loss_fn(
+diff --git a/effdet/evaluator_origin.py b/effdet/evaluator.py
+index 73d73fd..a35e284 100644
+--- a/effdet/evaluator_origin.py
++++ b/effdet/evaluator.py
+@@ -56,7 +56,7 @@ class Evaluator:
+         coco_predictions = []
+         coco_ids = []
+         for img_idx, img_dets in zip(self.img_indices, self.predictions):
+-            img_id = self._dataset.img_ids[img_idx]
++            img_id = self._dataset.img_ids[int(img_idx)]
+             coco_ids.append(img_id)
+             if self.pred_yxyx:
+                 # to xyxy
