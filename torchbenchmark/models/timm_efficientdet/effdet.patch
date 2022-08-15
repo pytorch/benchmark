@@ -52,9 +52,9 @@ index 078b7a1..147499f 100644
 
 
  def loss_fn(
-diff --git a/effdet/evaluator_origin.py b/effdet/evaluator.py
+diff --git a/effdet/evaluator.py b/effdet/evaluator.py
 index 73d73fd..a35e284 100644
---- a/effdet/evaluator_origin.py
+--- a/effdet/evaluator.py
 +++ b/effdet/evaluator.py
 @@ -56,7 +56,7 @@ class Evaluator:
          coco_predictions = []
