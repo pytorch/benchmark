@@ -49,12 +49,6 @@ def parse_args(args: List[str]=None):
     )
 
     parser.add_argument(
-        "--cluster",
-        default=None,
-        help="Which slurm cluster to target. Use 'local' to run jobs locally, 'debug' to run jobs in process"
-    )
-
-    parser.add_argument(
         "--job_dir",
         default=os.getcwd(),
         type=str,
@@ -67,25 +61,22 @@ def parse_args(args: List[str]=None):
         default="torchbenchmark.e2e_models.hf_bert.Model",
         help="specify the model to experiment with, by default uses e2e_models.hf_bert"
     )
-
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=32,
+        help="specify the batch size of the input"
+    )
     parser.add_argument(
         "--trainer",
         type=str,
-        default="torchbenchmark.util.distributed.trainer.Trainer",
-        help="trainer loop class, can be customized for specific behavior",
-    )
-
-    parser.add_argument(
-        "--distributed",
-        type=str,
-        choices=["ddp", "fsdp", "deepspeed", "none"],
-        default="ddp",
-        help="distributed training paradigm, by default using DDP",
+        default="torchbenchmark.util.distributed.ddp.DDPTrainer",
+        help="training paradigm, by default using DDP"
     )
 
     try:
         if args:
-            return parser.parse_known_args(args)
+            return parser.parse_args(args)
         else:
             return parser.parse_args()
     except:
@@ -104,9 +95,8 @@ def get_init_file(args):
 
 
 class TrainerWrapper(object):
-    def __init__(self, args, model_args=None):
+    def __init__(self, args):
         self.args = args
-        self.model_args = model_args
         self.args.output_dir = args.job_dir
 
     def __call__(self):
@@ -120,7 +110,7 @@ class TrainerWrapper(object):
         module = importlib.import_module(self.args.trainer[:pos])
         trainer_class = getattr(module, self.args.trainer[(pos+1):])
 
-        return trainer_class(self.args, model_class, model_args=self.model_args).measure()
+        return trainer_class(self.args, model_class, batch_size=self.args.batch_size).measure_ddp()
 
     def checkpoint(self):
         self.args.dist_url = get_init_file(self.args).as_uri()
@@ -142,14 +132,22 @@ class TrainerWrapper(object):
         os.environ["LOCAL_RANK"] = str(job_env.local_rank)
         os.environ["RANK"] = str(job_env.global_rank)
         os.environ["WORLD_SIZE"] = str(job_env.num_tasks)
+        os.environ["GPUS_PER_NODE"] = str(job_env.num_tasks//job_env.num_nodes)
+        # os.environ["NCCL_IB_DISABLE"] = str(1)
+        os.environ["NCCL_DEBUG"] = 'INFO'
+        os.environ["NCCL_DEBUG_SUBSYS"] = 'INIT,ENV,NET'
+        os.environ['NCCL_SOCKET_IFNAME'] = 'ens'
+        # os.environ["NCCL_ALGO"] = 'ring'
+        os.environ["FI_PROVIDER"] = 'efa'
+        os.environ["FI_EFA_USE_DEVICE_RDMA"]= str(1)
 
 
 def main():
     args = parse_args()
 
     # Note that the folder will depend on the job_id, to easily track experiments
-    executor = submitit.AutoExecutor(folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000)
-
+    executor = submitit.AutoExecutor(folder=args.job_dir, slurm_max_num_timeout=3000)
+    
     executor.update_parameters(
         gpus_per_node=args.ngpus,
         # one task per GPU
@@ -164,15 +162,39 @@ def main():
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
 
+    
     args.dist_url = get_init_file(args).as_uri()
     args.output_dir = args.job_dir
-
     job = executor.submit(TrainerWrapper(args))
-    # print ID of the Slurm job
+        # print ID of the Slurm job
     print(job.job_id)
 
     # waits for completion and returns output
     print(job.results())
+
+    # args.ngpus = 8
+    # for nodes in range(10,11):
+    #     args.nodes = nodes
+    #     args.dist_url = get_init_file(args).as_uri()
+    #     args.output_dir = args.job_dir
+    #     executor.update_parameters(
+    #         gpus_per_node=args.ngpus,
+    #         # one task per GPU
+    #         tasks_per_node=args.ngpus,
+    #         cpus_per_task=10,
+    #         nodes=args.nodes,
+    #         timeout_min=args.timeout,
+    #         # Below are cluster dependent parameters
+    #         slurm_partition=args.partition,
+    #         slurm_signal_delay_s=120,
+    #     )
+    #     job = executor.submit(TrainerWrapper(args))
+
+    #     # print ID of the Slurm job
+    #     print(job.job_id)
+
+    #     # waits for completion and returns output
+    #     print(job.results())
 
 
 if __name__=="__main__":
