@@ -34,7 +34,9 @@ DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-mi
 def prefetch(loader, device, num_of_batches):
     prefetched_loader = []
     for batch, _bid in zip(loader, range(num_of_batches)):
-        prefetched_loader.append(tree_map(lambda x: x.to(device, dtype=torch.float32) if isinstance(x, torch.Tensor) else x, batch))
+        input, target = batch
+        prefetched_loader.append((tree_map(lambda x: x.to(device, dtype=torch.float32) if isinstance(x, torch.Tensor) else x, input),
+                                 tree_map(lambda x: x.to(device, dtype=torch.float32) if isinstance(x, torch.Tensor) else x, target)))
     return prefetched_loader
 
 class Model(BenchmarkModel):
@@ -169,7 +171,7 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
-            for _, (input, target) in self.loader:
+            for input, target in self.loader:
                 with self.amp_autocast():
                     output = self.model(input, img_info=target)
                 self.evaluator.add_predictions(output, target)
