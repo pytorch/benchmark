@@ -159,11 +159,12 @@ class Model(BenchmarkModel):
                 loss_scaler=self.loss_scaler, model_ema=self.model_ema,
                 num_batch=self.NUM_OF_BATCHES,
             )
+            # TorchBench: skip validation step in train
             # the overhead of evaluating with coco style datasets is fairly high, so just ema or non, not both
-            if self.model_ema is not None:
-                eval_metrics = validate(self.model_ema.module, self.loader_eval, self.args, self.evaluator, log_suffix=' (EMA)', num_batch=self.NUM_OF_BATCHES)
-            else:
-                eval_metrics = validate(self.model, self.loader_eval, self.args, self.evaluator, num_batch=self.NUM_OF_BATCHES)
+            # if self.model_ema is not None:
+            #     eval_metrics = validate(self.model_ema.module, self.loader_eval, self.args, self.evaluator, log_suffix=' (EMA)', num_batch=self.NUM_OF_BATCHES)
+            # else:
+            #     eval_metrics = validate(self.model, self.loader_eval, self.args, self.evaluator, num_batch=self.NUM_OF_BATCHES)
             if self.lr_scheduler is not None:
                 # step LR for next epoch
                 self.lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])
