@@ -1,4 +1,4 @@
-name: TorchBench V3 nightly
+name: TorchBench V3 Dev Infra nightly benchmarking
 on:
   workflow_dispatch:
 jobs:
@@ -9,8 +9,8 @@ jobs:
       PYTHON_VER: "3.8"
       CUDA_VER: "11.3"
       MAGMA_VERSION: "magma-cuda113"
-      CONDA_ENV_NAME:  "torchbench-v3-nightly-ci"
-      OUTPUT_DIR: ".torchbench/v3-nightly-ci"
+      CONDA_ENV_NAME:  "torchbench-v3-devinfra-nightly-ci"
+      UB_NAME: "devinfra-nightly"
       CUDA_VERSION: "cu113"
       IS_GHA: 1
       AWS_DEFAULT_REGION: us-east-1
@@ -50,12 +50,12 @@ jobs:
       - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
-          python run_benchmark.py devinfra-nightly
+          python run_benchmark.py "${UB_NAME}"
       - name: Copy artifact
         run: |
           . activate "${CONDA_ENV_NAME}"
           mkdir -p benchmark-output
-          cp .userbenchmark/devinfra-nightly/* benchmark-output/
+          cp -r .userbenchmark/"${UB_NAME}"/* benchmark-output/
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:

@@ -5,6 +5,8 @@ import json
 import torch
 from pathlib import Path
 
+REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
+
 def get_output_json(bm_name, metrics):
     return {
         "name": bm_name,
