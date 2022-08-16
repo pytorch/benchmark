@@ -2,16 +2,16 @@ name: TorchBench V3 Dev Infra nightly benchmarking
 on:
   workflow_dispatch:
 jobs:
-  # CUDA 11.3 nightly test
+  # CUDA 11.6 nightly test
   benchmark-cu113:
     env:
       TORCHBENCH_VER: "v3"
       PYTHON_VER: "3.8"
-      CUDA_VER: "11.3"
-      MAGMA_VERSION: "magma-cuda113"
+      CUDA_VER: "11.6"
+      MAGMA_VERSION: "magma-cuda116"
       CONDA_ENV_NAME:  "torchbench-v3-devinfra-nightly-ci"
       UB_NAME: "devinfra-nightly"
-      CUDA_VERSION: "cu113"
+      CUDA_VERSION: "cu116"
       IS_GHA: 1
       AWS_DEFAULT_REGION: us-east-1
       BUILD_ENVIRONMENT: benchmark-nightly
