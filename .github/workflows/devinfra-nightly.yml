@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
 jobs:
   # CUDA 11.6 nightly test
-  benchmark-cu113:
+  benchmark-cu116:
     env:
       TORCHBENCH_VER: "v3"
       PYTHON_VER: "3.8"
