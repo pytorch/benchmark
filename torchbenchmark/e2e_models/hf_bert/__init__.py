@@ -74,6 +74,8 @@ class Model(E2EBenchmarkModel):
             hf_args.deepspeed_plugin.deepspeed_config.update(zero_opt_cfg)
         elif self.tb_args.distributed == "ddp":
             hf_args.apply_ddp = True
+        elif self.tb_args.distributed == "none":
+            hf_args.apply_ddp = False
         else:
             raise RuntimeError(f"Unsupported distributed scheme {self.tb_args.distributed} for model hf_bert")
 
