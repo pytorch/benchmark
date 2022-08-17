@@ -1,5 +1,7 @@
-name: TorchBench Userbenchmark on A100
+name: TorchBench Userbenchmarks on A100
 on:
+  schedule:
+    - cron: '0 14 * * *' # run at 2 PM UTC
   workflow_dispatch:
     inputs:
       userbenchmark_name:
@@ -48,18 +50,30 @@ jobs:
       - name: Run user benchmark
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
-          python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}"
-          cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
-      - name: Upload data to Scribe
+          MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
+          if [ -z "${MANUAL_WORKFLOW}" ]; then
+            python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}"
+            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
+          else
+            # Figure out what userbenchmarks we should run today
+            SHOULD_RUN_WORKLOADS=`python ./.github/scripts/userbenchmarks/get-should-run-benchmarks.py --runner a100`
+            # run each of them
+            # copy the result directory
+            cp -r ./.userbenchmark ../benchmark-output
+          fi
+      - name: Upload result jsons to Scribe
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
-          LATEST_RESULT=$(find ${PWD}/../benchmark-output -name "*.json" -maxdepth 1 | sort -r | head -1)
-          echo "Uploading result: ${LATEST_RESULT}"
-          python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json ${LATEST_RESULT}
+          RESULTS=$(find ${PWD}/../benchmark-output -name "*.json" -maxdepth 2 | sort -r)
+          echo "Uploading results: ${RESULTS}"
+          for r in ${RESULTS}; do
+            python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json ${LATEST_RESULT}
+          done
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
