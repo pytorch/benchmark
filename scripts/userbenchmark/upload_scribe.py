@@ -65,7 +65,7 @@ class TorchBenchUserbenchmarkUploader(ScribeUploader):
     SUBMISSION_GROUP_GUID = 'oss-ci-gcp-a100'
 
     def __init__(self):
-        super().__init__('perfpipe_pytorch_adhoc_benchmarks')
+        super().__init__('perfpipe_pytorch_user_benchmarks')
         self.schema = {
             'int': [
                 'time',                     # timestamp of upload
