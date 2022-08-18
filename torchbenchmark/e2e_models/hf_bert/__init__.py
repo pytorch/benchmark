@@ -36,7 +36,7 @@ class Model(E2EBenchmarkModel):
         self.device = "cuda"
         self.device_num = 1
         # Parse the extra arguments
-        self.tb_args = parse_torchbench_args(extra_args)
+        self.tb_args = parse_torchbench_args(self.extra_args)
         torch.manual_seed(1337)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
