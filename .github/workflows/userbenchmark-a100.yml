@@ -60,8 +60,11 @@ jobs:
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           else
             # Figure out what userbenchmarks we should run today
-            SHOULD_RUN_WORKLOADS=`python ./.github/scripts/userbenchmarks/get-should-run-benchmarks.py --runner a100`
+            SHOULD_RUN_BENCHMARKS=`python ./.github/scripts/userbenchmarks/schedule-benchmarks.py --runner gcp-a100`
             # run each of them
+            for bm in ${SHOULD_RUN_BENCHMARKS[@]}; do
+              python run_benchmark.py "${bm}"
+            done
             # copy the result directory
             cp -r ./.userbenchmark ../benchmark-output
           fi
@@ -71,7 +74,7 @@ jobs:
           pushd benchmark
           RESULTS=$(find ${PWD}/../benchmark-output -name "*.json" -maxdepth 2 | sort -r)
           echo "Uploading results: ${RESULTS}"
-          for r in ${RESULTS}; do
+          for r in ${RESULTS[@]}; do
             python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json ${LATEST_RESULT}
           done
       - name: Upload artifact
