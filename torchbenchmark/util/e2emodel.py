@@ -34,6 +34,12 @@ class E2EBenchmarkModel(metaclass=PostInitProcessor):
             if not self.batch_size:
                 raise NotImplementedError(f"Test {test} is not implemented.")
         self.extra_args = extra_args
+        if "--torchdynamo" in self.extra_args:
+            self.dynamo = True
+            from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
+            self.opt_args, self.extra_args = parse_torchdynamo_args(self, self.extra_args)
+        else:
+            self.dynamo = False
 
     # Run the post processing for model acceleration
     def __post__init__(self):
@@ -41,15 +47,9 @@ class E2EBenchmarkModel(metaclass=PostInitProcessor):
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # initialize run contexts
         self.run_contexts = []
-        if "--torchdynamo" in self.extra_args:
-            self.dynamo = True
-            from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
-            self.opt_args = parse_torchdynamo_args(self, self.extra_args)
-        else:
-            self.dynamo = False
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
-            apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
+            apply_torchdynamo_args(self, self.opt_args, precision=self.tb_args.fp16)
 
     def add_context(self, context_fn):
         ctx = context_fn()
