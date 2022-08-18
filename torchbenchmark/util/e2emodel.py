@@ -45,6 +45,8 @@ class E2EBenchmarkModel(metaclass=PostInitProcessor):
             self.dynamo = True
             from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
             self.opt_args = parse_torchdynamo_args(self, self.extra_args)
+        else:
+            self.dynamo = False
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
