@@ -57,12 +57,12 @@ jobs:
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
           if [ -z "${MANUAL_WORKFLOW}" ]; then
-            python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}"
-            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
-          else
             # Figure out what userbenchmarks we should run, and run it
             python ./.github/scripts/userbenchmarks/schedule-benchmarks.py --runner ${PLATFORM_NAME}
             cp -r ./.userbenchmark ../benchmark-output
+          else
+            python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}"
+            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           fi
       - name: Upload result jsons to Scribe
         run: |
