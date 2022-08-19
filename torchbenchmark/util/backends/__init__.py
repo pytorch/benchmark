@@ -33,5 +33,6 @@ def list_backends():
 
 # register the backends
 from .jit import torchscript
+from .blade import blade
 
 __all__ = [list_backends, create_backend ]

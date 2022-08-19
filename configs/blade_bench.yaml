@@ -22,11 +22,14 @@ args:
   # empty argument means the default pytorch eager mode
   - ""
   # script based
-  - "--blade"
+  - "--backend blade"
+  - "--backend blade --trt"
+  - "--jit"
   - "--fuser fuser2 --jit"  # nvfuser
 
   # torchdynamo based
   - "--torchdynamo eager"
   - "--torchdynamo nvfuser"
   - "--torchdynamo blade_optimize_dynamo"
+  - "--torchdynamo blade_optimize_dynamo --trt"
   - "--torchdynamo cudagraphs"
