@@ -12,9 +12,8 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
     parser.add_argument(
         "--torchdynamo", choices=available_backends, help="Specify torchdynamo backends"
     )
-    args = parser.parse_args(dyamo_args)
-    return args
-
+    args, extra_args = parser.parse_known_args(dyamo_args)
+    return args, extra_args
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
     if args.torchdynamo == "fx2trt" and precision == "fp16":
