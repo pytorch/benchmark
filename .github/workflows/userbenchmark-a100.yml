@@ -14,6 +14,7 @@ env:
   CUDA_VERSION: "cu113"
   CONDA_ENV_NAME: "userbenchmarks-ci"
   MAGMA_VERSION: "magma-cuda113"
+  PLATFORM_NAME: "gcp-a100"
   TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
   SETUP_SCRIPT: "/data/shared/setup_instance.sh"
 jobs:
@@ -49,6 +50,7 @@ jobs:
           python -c "import torch; torch.cuda.init()"
       - name: Run user benchmark
         run: |
+          set -x
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
@@ -59,23 +61,18 @@ jobs:
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}"
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           else
-            # Figure out what userbenchmarks we should run today
-            SHOULD_RUN_BENCHMARKS=`python ./.github/scripts/userbenchmarks/schedule-benchmarks.py --runner gcp-a100`
-            # run each of them
-            for bm in ${SHOULD_RUN_BENCHMARKS[@]}; do
-              python run_benchmark.py "${bm}"
-            done
-            # copy the result directory
+            # Figure out what userbenchmarks we should run, and run it
+            python ./.github/scripts/userbenchmarks/schedule-benchmarks.py --runner ${PLATFORM_NAME}
             cp -r ./.userbenchmark ../benchmark-output
           fi
       - name: Upload result jsons to Scribe
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
-          RESULTS=$(find ${PWD}/../benchmark-output -name "*.json" -maxdepth 2 | sort -r)
-          echo "Uploading results: ${RESULTS}"
+          RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
+          echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
-            python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json ${LATEST_RESULT}
+            python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}"
           done
       - name: Upload artifact
         uses: actions/upload-artifact@v2

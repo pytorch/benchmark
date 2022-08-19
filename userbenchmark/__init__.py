@@ -14,8 +14,12 @@ def get_ci_from_ub(ub_name):
         return None
     with open(ci_file, "r") as ciobj:
         cicfg = yaml.safe_load(ciobj)
-    return cicfg
+    ret = {}
+    ret["name"] = ub_name
+    ret["ci_cfg"] = cicfg
+    return ret
 
 def get_userbenchmarks_by_platform(platform):
     ub_names = list_userbenchmarks()
-    ci_cfgs = map(get_ci_from_ub, ub_names)
+    cfgs = list(map(lambda x: x["name"], filter(lambda x: x and x["ci_cfg"]["platform"] == platform, map(get_ci_from_ub, ub_names))))
+    return cfgs
