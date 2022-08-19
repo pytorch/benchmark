@@ -26,7 +26,7 @@ def run_userbenchmark(ub_name, dryrun=True):
     command = [sys.executable, "run_benchmark.py", ub_name]
     print(f"Running user benchmark command: {command}")
     if not dryrun:
-        subprocess.check_call(command, workdir=workdir)
+        subprocess.check_call(command, cwd=workdir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
