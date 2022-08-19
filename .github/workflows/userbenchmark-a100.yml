@@ -6,7 +6,6 @@ on:
     inputs:
       userbenchmark_name:
         description: "Name of the user benchmark to run"
-        required: true
 env:
   PYTHON_VERSION: "3.8"
   TENSORRT_PYTHON_VERSION: "cp38"
