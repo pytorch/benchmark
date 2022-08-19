@@ -1,4 +1,4 @@
-name: TorchBench Userbenchmarks on A100
+name: TorchBench Userbenchmark on A100
 on:
   schedule:
     - cron: '0 14 * * *' # run at 2 PM UTC
