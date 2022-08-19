@@ -77,7 +77,7 @@ class TorchBenchUserbenchmarkUploader(ScribeUploader):
                 'unix_user',                # name of upload user
                 'submission_group_guid',    # name of data batch (for debugging)
                 'pytorch_git_version',      # pytorch version
-                'metric_id',                # id of the metric (e.g., adhoc.nvfuser.nvfuser:autogen-42)
+                'metric_id',                # id of the metric (e.g., userbenchmark.nvfuser.nvfuser:autogen-42)
             ],
             # float perf metrics go here
             'float': [
@@ -86,7 +86,7 @@ class TorchBenchUserbenchmarkUploader(ScribeUploader):
         }
 
     def get_metric_name(self, bm_name, metric_name):
-        return f"adhoc.{bm_name}.{metric_name}"
+        return f"userbenchmark.{bm_name}.{metric_name}"
 
     def post_userbenchmark_results(self, bm_time, bm_data):
         messages = []
