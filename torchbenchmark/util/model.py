@@ -94,7 +94,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if "--torchdynamo" in opt_args:
             self.dynamo = True
             from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
-            self.opt_args = parse_torchdynamo_args(self, opt_args)
+            self.opt_args, self.extra_args = parse_torchdynamo_args(self, opt_args)
         else:
             self.dynamo = False
             self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
