@@ -44,10 +44,12 @@ def nested(*contexts):
 def enable_profiling_executor():
     try:
         graph_executor = torch._C._get_graph_executor_optimize(True)
-        profiling_mode = torch._C._jit_set_profiling_executor(True)
+        profiling_executor = torch._C._jit_set_profiling_executor(True)
+        profiling_mode = torch._C._jit_set_profiling_mode(True)
         yield
     finally:
-        torch._C._jit_set_profiling_executor(profiling_mode)
+        torch._C._jit_set_profiling_mode(profiling_mode)
+        torch._C._jit_set_profiling_executor(profiling_executor)
         torch._C._get_graph_executor_optimize(graph_executor)
 
 class BenchmarkModel(metaclass=PostInitProcessor):
