@@ -1,0 +1,55 @@
+name: TorchBench V3 Dev Infra nightly benchmarking
+on:
+  workflow_call:
+    inputs:
+      build-environment:
+        required: true
+        type: string
+        description: Top-level label for what's being built/tested.
+      docker-image:
+        required: true
+        type: string
+        description: Docker image to run in.
+jobs:
+  # CUDA 11.6 nightly test
+  benchmark-cu116:
+    env:
+      TORCHBENCH_VER: "v3"
+      PYTHON_VER: "3.8"
+      CUDA_VER: "11.6"
+      MAGMA_VERSION: "magma-cuda116"
+      CONDA_ENV_NAME:  "torchbench-v3-devinfra-nightly-ci"
+      UB_NAME: "devinfra-nightly"
+      CUDA_VERSION: "cu116"
+      IS_GHA: 1
+      AWS_DEFAULT_REGION: us-east-1
+      BUILD_ENVIRONMENT: benchmark-nightly
+    runs-on: [ linux.4xlarge.nvidia.gpu ]
+    steps:
+      - name: Checkout PyTorch
+        uses: pytorch/pytorch/.github/actions/checkout-pytorch@master
+        path: pytorch
+      
+      - name: Setup Linux
+        uses: ./pytorch/.github/actions/setup-linux
+
+      - name: Setup SSH (Click me for login details)
+        uses: ./pytorch/.github/actions/setup-ssh
+        with:
+          github-secret: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull docker image
+        uses: ./pytorch/.github/actions/pull-docker-image
+        with:
+          docker-image: ${{ inputs.docker-image }}
+
+      - name: Install nvidia driver, nvidia-docker runtime, set GPU_FLAG
+        uses: nick-fields/retry@71062288b76e2b6214ebde0e673ce0de1755740a
+        if: contains(inputs.build-environment, 'cuda') && !contains(matrix.config, 'nogpu')
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            set -ex
+            bash pytorch/.github/scripts/install_nvidia_utils_linux.sh
+            echo "GPU_FLAG=--gpus all" >> "${GITHUB_ENV}"
