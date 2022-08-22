@@ -1,4 +1,5 @@
 import os
+import traceback
 import argparse
 import importlib
 from typing import List
@@ -19,6 +20,7 @@ def run():
         benchmark.run(bm_args)
     except ImportError as e:
         print(f"Failed to import user benchmark module {args.bm_name}, error: {str(e)}")
+        traceback.print_exc()
 
 if __name__ == "__main__":
     run()
