@@ -97,7 +97,6 @@ class Trainer():
         torch.cuda.synchronize(device=self.local_rank)
 
         latency_train = [pre.elapsed_time(post) for pre, post in zip(events_pre_train, events_post_train)]
-        print(f"latencies: {[f'{l:.3f}' for l in latency_train]}")
         median_latency = np.median(latency_train)
         stdev_latency = stdev(latency_train)
 
