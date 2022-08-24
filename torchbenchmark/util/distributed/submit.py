@@ -58,7 +58,7 @@ def parse_args(args: List[str]=None):
     parser.add_argument(
         "--model",
         type=str,
-        default="torchbenchmark.e2e_models.hf_bert.Model",
+        default="torchbenchmark.models.hf_Bert.Model",
         help="specify the model to experiment with, by default uses e2e_models.hf_bert"
     )
     parser.add_argument(
@@ -140,6 +140,7 @@ class TrainerWrapper(object):
         # os.environ["NCCL_ALGO"] = 'ring'
         os.environ["FI_PROVIDER"] = 'efa'
         os.environ["FI_EFA_USE_DEVICE_RDMA"]= str(1)
+        os.environ["NET_TYPE"] = 'efa'
 
 
 def main():
@@ -163,38 +164,53 @@ def main():
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
 
     
-    args.dist_url = get_init_file(args).as_uri()
-    args.output_dir = args.job_dir
-    job = executor.submit(TrainerWrapper(args))
-        # print ID of the Slurm job
-    print(job.job_id)
-
-    # waits for completion and returns output
-    print(job.results())
-
-    # args.ngpus = 8
-    # for nodes in range(10,11):
-    #     args.nodes = nodes
-    #     args.dist_url = get_init_file(args).as_uri()
-    #     args.output_dir = args.job_dir
-    #     executor.update_parameters(
-    #         gpus_per_node=args.ngpus,
-    #         # one task per GPU
-    #         tasks_per_node=args.ngpus,
-    #         cpus_per_task=10,
-    #         nodes=args.nodes,
-    #         timeout_min=args.timeout,
-    #         # Below are cluster dependent parameters
-    #         slurm_partition=args.partition,
-    #         slurm_signal_delay_s=120,
-    #     )
-    #     job = executor.submit(TrainerWrapper(args))
-
+    # args.dist_url = get_init_file(args).as_uri()
+    # args.output_dir = args.job_dir
+    # job = executor.submit(TrainerWrapper(args))
     #     # print ID of the Slurm job
-    #     print(job.job_id)
+    # print(job.job_id)
 
-    #     # waits for completion and returns output
-    #     print(job.results())
+    # # waits for completion and returns output
+    # print(job.results())
+
+    models = ['torchbenchmark.models.hf_Bert.Model', 'torchbenchmark.models.hf_BertLarge.Model', \
+        'torchbenchmark.models.hf_GPT2_large.Model', 'torchbenchmark.models.hf_T5_large.Model', \
+            'torchbenchmark.models.timm_vision_transformer_large.Model', 'torchbenchmark.models.hf_GPT2.Model', \
+                'torchbenchmark.models.hf_T5.Model']
+
+    model_batch_size = {'torchbenchmark.models.hf_Bert.Model': 32, 'torchbenchmark.models.hf_BertLarge.Model': 16, \
+        'torchbenchmark.models.hf_GPT2_large.Model': 4, 'torchbenchmark.models.hf_T5_large.Model': 4, \
+            'torchbenchmark.models.timm_vision_transformer_large.Model': 16, 'torchbenchmark.models.hf_GPT2.Model': 24, \
+                'torchbenchmark.models.hf_T5.Model': 12}
+
+    node_list = [i for i in range(24, 25)]
+    args.ngpus = 8
+    for nodes in node_list:
+        for model_name in models:
+            batch_size = model_batch_size[model_name]
+            args.model = model_name
+            args.batch_size = batch_size
+            args.nodes = nodes
+            args.dist_url = get_init_file(args).as_uri()
+            args.output_dir = args.job_dir
+            executor.update_parameters(
+                gpus_per_node=args.ngpus,
+                # one task per GPU
+                tasks_per_node=args.ngpus,
+                cpus_per_task=10,
+                nodes=args.nodes,
+                timeout_min=args.timeout,
+                # Below are cluster dependent parameters
+                slurm_partition=args.partition,
+                slurm_signal_delay_s=120,
+            )
+            job = executor.submit(TrainerWrapper(args))
+
+            # print ID of the Slurm job
+            print(job.job_id)
+
+        # waits for completion and returns output
+        # print(job.results())
 
 
 if __name__=="__main__":

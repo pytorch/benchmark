@@ -1,7 +1,6 @@
 from datetime import datetime
 from statistics import stdev
 from pathlib import Path
-from commfuser.demo.ddp import Engine
 import torchbenchmark
 
 from .trainer import Trainer
@@ -12,10 +11,9 @@ from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
 
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.models import hf_GPT2_large, resnet50, hf_Bert, hf_BertLarge, resnet152, hf_T5_large, timm_vision_transformer_large
+from torchbenchmark.models import hf_GPT2, hf_T5, hf_GPT2_large, resnet50, hf_Bert, hf_BertLarge, resnet152, hf_T5_large, timm_vision_transformer_large
 import torch
 import torch.distributed as dist
-net_type = 'efa'
 class DDPTrainer(Trainer):
     DEFAULT_MEASURE_ITERATIONS = 10
     def __init__(self, args, model_class, batch_size=None, extra_args=[]):
@@ -35,7 +33,6 @@ class DDPTrainer(Trainer):
         self.model = model.model
         self.model_type = type(model)
         
-        
         self.batch_size = batch_size
         if(self.model_type in (resnet50.Model, resnet152.Model)):
             self.example_outputs = model.example_outputs
@@ -43,7 +40,7 @@ class DDPTrainer(Trainer):
             self.loss_fn = model.loss_fn
             self.forward = self.resnet_forward
             self.forward_ddp = self.resnet_forward_ddp
-        elif(self.model_type in ( hf_Bert.Model, hf_BertLarge.Model, hf_T5_large.Model, hf_GPT2_large.Model)):
+        elif(self.model_type in ( hf_T5.Model, hf_GPT2.Model, hf_Bert.Model, hf_BertLarge.Model, hf_T5_large.Model, hf_GPT2_large.Model)):
             self.forward = self.bert_forward
             self.forward_ddp = self.bert_forward_ddp
             self.optimizer = model.optimizer
@@ -73,10 +70,11 @@ class DDPTrainer(Trainer):
             # Set gradient as bucket view to avoid unnecessary copies
             gradient_as_bucket_view=True,
             # TODO: tune bucket_cap_mb
+            bucket_cap_mb=200,
             static_graph=True,
         )
         opt_cls = type(self.optimizer)
-        self.ddp_optimizer = opt_cls(self.ddp_model.parameters(), lr=0.001)
+        self.ddp_optimizer = opt_cls(self.ddp_model.parameters(), lr=0.00001)
 
     def measure(self):
         niters = self.DEFAULT_MEASURE_ITERATIONS
@@ -164,20 +162,22 @@ class DDPTrainer(Trainer):
         for _ in range(self.DEFAULT_MEASURE_ITERATIONS):
             loss = self.forward()
             loss.backward()
-            self.optimizer.step()
+            self.optimizer.zero_grad()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
         current_size = 0
-        size = 2**18
+        size = 5*(2**18)
         num_tasks = self.world_size
-        name = f"all_red_{net_type}_{num_tasks}_{self.gpus_per_node}_{self.rank}"
-        delay_dir = f"{self.args.job_dir}/delay"
+        name = f"all_red_{self.network_type}_{num_tasks}_{self.rank}"
+        delay_dir = f"{self.args.job_dir}/all_reduce"
         Path(delay_dir).mkdir(parents=True, exist_ok=True)
         fout = open(f"{delay_dir}/{name}.data", "w")
-        for i in range(145):
-            if(i == 100):
+        for i in range(45):
+            if(i == 20):
                 size = 20 * (2**18)
+            elif(i==30):
+                size = 50 * (2**18)
             current_size += size
             size_in_mb = (current_size * 4)// 2**20     
 
@@ -193,7 +193,8 @@ class DDPTrainer(Trainer):
                 events_pre_all_reduce[i].record()
                 dist.all_reduce(data_tensor)
                 events_post_all_reduce[i].record()
-                self.optimizer.step()
+                self.optimizer.zero_grad()
+                data_tensor = None
 
 
             # wait for all pending CUDA ops to finish
@@ -265,7 +266,10 @@ class DDPTrainer(Trainer):
         torch.cuda.synchronize(device=self.local_rank)
 
         now = datetime.now()
-        name = f"ddp_{str(type(self.model).__name__)}_{self.batch_size}"
+        pos = self.args.model.rfind(".")
+        pos2 = self.args.model.rfind(".", 0, pos)
+        m_name = self.args.model[pos2+1: pos]
+        name = f"ddp_{m_name}_{self.batch_size}_{self.network_type}_{self.world_size}_{self.rank}"
         ##################################################################
         # 2. measure raw delays and memory to rule out profiler overhead #
         ##################################################################
@@ -300,9 +304,9 @@ class DDPTrainer(Trainer):
         stdev_opt = stdev(delays_opt)
 
         # write results
-        delay_dir = f"{self.args.job_dir}/delay"
+        delay_dir = f"{self.args.job_dir}/ddp_latency"
         Path(delay_dir).mkdir(parents=True, exist_ok=True)
-        fout = open(f"{delay_dir}/{name}.log", "w")
+        fout = open(f"{delay_dir}/{name}.data", "w")
         fout.write(
             f"{mean_fwd:.2f}, {stdev_fwd:.2f}, "
             f"{mean_bwd:.2f}, {stdev_bwd:.2f}, "
@@ -315,6 +319,7 @@ class DDPTrainer(Trainer):
         torch.cuda.synchronize(device=self.local_rank)
         # wait for all peers to finish
         dist.barrier(device_ids=[self.local_rank])
+        self.teardown()
 
         return {
             "fwd_mean" : mean_fwd,

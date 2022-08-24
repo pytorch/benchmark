@@ -18,3 +18,5 @@ logs/
 scripts/scribe.py
 .userbenchmark/
 commfuser
+pytorch_examples
+*.zip

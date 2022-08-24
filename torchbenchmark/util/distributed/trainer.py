@@ -15,6 +15,7 @@ class Trainer():
             local_rank = int(os.getenv("LOCAL_RANK", -1))
             self.local_rank = local_rank
             self.gpus_per_node = int(os.getenv("GPUS_PER_NODE"))
+            self.network_type = str(os.getenv("NET_TYPE","efa"))
             # set the visible devices so that each SPMD process only sees one
             # CUDA device
             # N.B.: this has to be done before using any CUDA API from torch
