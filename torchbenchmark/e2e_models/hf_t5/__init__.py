@@ -1,5 +1,6 @@
 from accelerate.utils.dataclasses import DeepSpeedPlugin
 import torch
+import numpy as np
 import math
 import os
 from pathlib import Path
@@ -7,7 +8,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import NLP
-from datasets import load_metric
+
+import evaluate
 from accelerate import Accelerator
 from transformers import (
     AutoConfig,
@@ -33,7 +35,6 @@ class Model(E2EBenchmarkModel):
 
     def __init__(self, test, batch_size=None, extra_args=[]):
         super().__init__(test=test, batch_size=batch_size, extra_args=extra_args)
-        # TODO: currently only support 1 GPU device
         self.device = "cuda"
         self.device_num = 1
         # Parse the extra arguments
@@ -53,7 +54,7 @@ class Model(E2EBenchmarkModel):
         max_target_length = "128"
         learning_rate = "2e-5"
         num_train_epochs = "1"
-        max_train_steps = "1000" # overrides num_train_epochs
+        max_train_steps = "1000" # overrides num_train_epochs TODO: allow this to be whatever?
         # this benchmark runs on a single GPU
         cuda_visible_devices = "0"
         output_dir = os.path.join(CURRENT_DIR, ".output")
@@ -269,7 +270,13 @@ class Model(E2EBenchmarkModel):
         #         experiment_config["lr_scheduler_type"] = experiment_config["lr_scheduler_type"].value
         #         accelerator.init_trackers("translation_no_trainer", experiment_config)
 
-        # metric = evaluate.load("sacrebleu") # TODO bring this back, potentially w/o evaluate library?
+        def postprocess_text(preds, labels):
+            preds = [pred.strip() for pred in preds]
+            labels = [[label.strip()] for label in labels]
+
+            return preds, labels
+
+        metric = evaluate.load("sacrebleu") # TODO replace to not use evaluate?
 
         # Setup class members
         self.hf_args = hf_args
@@ -279,6 +286,10 @@ class Model(E2EBenchmarkModel):
         self.eval_dataloader = eval_dataloader
         self.lr_scheduler = lr_scheduler
         self.accelerator = accelerator
+        self.tokenizer = tokenizer
+        self.metric = metric
+        self.config = config
+        self.postprocess_text = postprocess_text
 
         if hf_args.apply_ddp:
             local_rank = int(os.getenv("LOCAL_RANK", -1))
@@ -310,29 +321,19 @@ class Model(E2EBenchmarkModel):
                     completed_steps += 1
                 if completed_steps >= self.hf_args.max_train_steps:
                     break
-        # self.eval2() # TODO: bring back eval
-
-    def eval(self) -> Optional[dict]:
-        self.model.eval()
-        for _step, batch in enumerate(self.eval_dataloader):
-            outputs = self.model(**batch)
-            predictions = outputs.logits.argmax(dim=-1) if not self.is_regression else outputs.logits.squeeze()
-            self.metric.add_batch(
-                    predictions=self.accelerator.gather(predictions),
-                    references=self.accelerator.gather(batch["labels"]),
-                )
-        eval_metric = self.metric.compute()
+            if self.tb_args.validate_in_train:
+                eval_metric = self.eval() # run evaluation 
         return eval_metric
     
-    def eval2(self):
+    def eval(self):
         self.model.eval()
 
-        if args.val_max_target_length is None:
-            args.val_max_target_length = args.max_target_length
+        if self.hf_args.val_max_target_length is None:
+            self.hf_args.val_max_target_length = self.hf_args.max_target_length
 
         gen_kwargs = {
-            "max_length": args.val_max_target_length if args is not None else config.max_length,
-            "num_beams": args.num_beams,
+            "max_length": self.hf_args.val_max_target_length if self.hf_args is not None else self.config.max_length,
+            "num_beams": self.hf_args.num_beams,
         }
         samples_seen = 0
         for step, batch in enumerate(self.eval_dataloader):
@@ -344,36 +345,37 @@ class Model(E2EBenchmarkModel):
                 )
 
                 generated_tokens = self.accelerator.pad_across_processes(
-                    generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
+                    generated_tokens, dim=1, pad_index=self.tokenizer.pad_token_id
                 )
                 labels = batch["labels"]
-                if not args.pad_to_max_length:
+                if not self.hf_args.pad_to_max_length:
                     # If we did not pad to max length, we need to pad the labels too
-                    labels = accelerator.pad_across_processes(batch["labels"], dim=1, pad_index=tokenizer.pad_token_id)
+                    labels = self.accelerator.pad_across_processes(batch["labels"], dim=1, pad_index=self.tokenizer.pad_token_id)
 
                 generated_tokens = self.accelerator.gather(generated_tokens).cpu().numpy()
                 labels = self.accelerator.gather(labels).cpu().numpy()
 
-                if args.ignore_pad_token_for_loss:
+                if self.hf_args.ignore_pad_token_for_loss:
                     # Replace -100 in the labels as we can't decode them.
-                    labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+                    labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
 
-                decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-                decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+                decoded_preds = self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+                decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
 
-                decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
+                decoded_preds, decoded_labels = self.postprocess_text(decoded_preds, decoded_labels)
 
                 # If we are in a multiprocess environment, the last batch has duplicates
-                if accelerator.num_processes > 1:
-                    if step == len(eval_dataloader) - 1:
-                        decoded_preds = decoded_preds[: len(eval_dataloader.dataset) - samples_seen]
-                        decoded_labels = decoded_labels[: len(eval_dataloader.dataset) - samples_seen]
+                if self.accelerator.num_processes > 1:
+                    if step == len(self.eval_dataloader) - 1:
+                        decoded_preds = decoded_preds[: len(self.eval_dataloader.dataset) - samples_seen]
+                        decoded_labels = decoded_labels[: len(self.eval_dataloader.dataset) - samples_seen]
                     else:
                         samples_seen += len(decoded_labels)
 
                 self.metric.add_batch(predictions=decoded_preds, references=decoded_labels)
         eval_metric = self.metric.compute()
-        logger.info({"bleu": eval_metric["score"]})
+        # logger.info({"bleu": eval_metric["score"]})
+        return eval_metric
 
     def next_batch(self):
         return next(iter(self.train_dataloader))
