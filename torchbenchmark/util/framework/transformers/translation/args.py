@@ -1,20 +1,30 @@
 """
 Hacked from https://github.com/huggingface/transformers/blob/main/examples/pytorch/translation/run_translation_no_trainer.py 
-# TODO: put the commit hash for the above link instead of main
 It runs HuggingFace transformer models translation on WMT16
 """
 import argparse
 from transformers import SchedulerType
 
 task_to_keys = {
-    "wmt16": ("sentence", None),
-    "stas/wmt14-en-de-pre-processed": (), # TODO: fix this one
+    # hf args to include for different tasks
+    # english to romanian
+    "wmt-en-ro": [
+        "--dataset_name", "wmt16",
+        "--dataset_config_name", "ro-en",
+        "--source_lang", "en",
+        "--target_lang", "ro",
+    ],
+    # english to german
+    "wmt-en-de": [
+        "--dataset_name", "stas/wmt14-en-de-pre-processed",
+        "--source_lang", "en",
+        "--target_lang", "de",
+    ], 
 }
 
 def parse_torchbench_args(extra_args):
     parser = argparse.ArgumentParser()
-    # TODO: eventually allow task name to correspond to set of args for wmt16 eng->romanian for example
-    # parser.add_argument("--task_name", default="wmt16", choices=task_to_keys.keys(), help="Name of task to run") 
+    parser.add_argument("--task_name", default="wmt16", choices=task_to_keys.keys(), help="Name of task to run") 
     # do not validate in train by default
     parser.add_argument("--validate_in_train", action="store_true", help="Validate result in train")
     # use fp16 mixed precision by default

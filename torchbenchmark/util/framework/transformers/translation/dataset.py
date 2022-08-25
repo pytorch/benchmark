@@ -1,7 +1,5 @@
 from datasets import load_dataset
 
-from .args import task_to_keys
-
 def prep_dataset(hf_args):
     # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
     # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
