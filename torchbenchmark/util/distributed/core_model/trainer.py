@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from statistics import stdev
 
+import numpy as np
 import torch
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
@@ -96,8 +97,7 @@ class Trainer():
         torch.cuda.synchronize(device=self.local_rank)
 
         latency_train = [pre.elapsed_time(post) for pre, post in zip(events_pre_train, events_post_train)]
-
-        median_latency = float(sum(latency_train)) / len(latency_train)
+        median_latency = np.median(latency_train)
         stdev_latency = stdev(latency_train)
 
 

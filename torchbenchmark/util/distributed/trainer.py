@@ -125,6 +125,7 @@ class Trainer():
         stdev_bwd = stdev(delays_bwd)
         mean_opt = float(sum(delays_opt)) / len(delays_opt)
         stdev_opt = stdev(delays_opt)
+        iter_time = events_pre_fwd[0].elapsed_time(events_post_opt[-1]) / niters
 
         # write results
         delay_dir = f"{self.args.job_dir}/delay"
@@ -165,6 +166,7 @@ class Trainer():
         dist.barrier(device_ids=[self.local_rank])
 
         return {
+            "iter" : iter_time,
             "fwd_mean" : mean_fwd,
             "fwd_stdev" : stdev_fwd,
             "bwd_mean" : mean_bwd,
