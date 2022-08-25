@@ -24,7 +24,7 @@ task_to_keys = {
 
 def parse_torchbench_args(extra_args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task_name", default="wmt16", choices=task_to_keys.keys(), help="Name of task to run") 
+    parser.add_argument("--task_name", default="wmt-en-ro", choices=task_to_keys.keys(), help="Name of task to run") 
     # do not validate in train by default
     parser.add_argument("--validate_in_train", action="store_true", help="Validate result in train")
     # use fp16 mixed precision by default

@@ -48,11 +48,12 @@ class Model(E2EBenchmarkModel):
         max_source_length = "1024"
         max_target_length = "128"
         learning_rate = "2e-5"
-        num_train_epochs = "1"
-        max_train_steps = "1000" # overrides num_train_epochs TODO: allow this to be whatever?
+        num_train_epochs = "3" # this takes a rather long time for wmt-en-ro
+        max_train_steps = "1000" # overrides num_train_epochs to run faster
+        checkpointing_steps = None # set to a string value, like "1000"
 
         task_name = self.tb_args.task_name
-        task_args = task_to_keys[task_name] # dataset/task specific hf_args
+        task_args = task_to_keys[task_name] # dataset specific hf_args
         # T5 requires source prefix to know what to translate
         if task_name == "wmt-en-ro":
             source_prefix = "translate English to Romanian: "
@@ -61,7 +62,6 @@ class Model(E2EBenchmarkModel):
         else:
             raise RuntimeError(f"Unsupported translation task {task_name} for model hf_t5")
         task_args.extend(["--source_prefix", source_prefix])
-
 
         # this benchmark runs on a single GPU
         cuda_visible_devices = "0"
@@ -75,8 +75,9 @@ class Model(E2EBenchmarkModel):
                   "--learning_rate", learning_rate,
                   "--num_train_epochs", num_train_epochs,
                   "--max_train_steps", max_train_steps,
+                  "--checkpointing_steps", checkpointing_steps,
                   "--output_dir", output_dir]
-        in_arg.extend(task_args) # TODO is this the cleanest way to separate dataset and model specific args?
+        in_arg.extend(task_args)
         hf_args = parse_args(in_arg)
 
         # ideally we don't modify the model code directly, but attaching deepspeed
@@ -247,14 +248,13 @@ class Model(E2EBenchmarkModel):
             hf_args.max_train_steps = hf_args.num_train_epochs * num_update_steps_per_epoch
         # Afterwards we recalculate our number of training epochs
         hf_args.num_train_epochs = math.ceil(hf_args.max_train_steps / num_update_steps_per_epoch)
-        # TODO: not doing checkpointing
-        # # Figure out how many steps we should save the Accelerator states
-        # if hasattr(hf_args.checkpointing_steps, "isdigit"):
-        #     checkpointing_steps = hf_args.checkpointing_steps
-        #     if hf_args.checkpointing_steps.isdigit():
-        #         checkpointing_steps = int(hf_args.checkpointing_steps)
-        # else:
-        #     checkpointing_steps = None
+        # Figure out how many steps we should save the Accelerator states
+        if hasattr(hf_args.checkpointing_steps, "isdigit"):
+            hf_args.checkpointing_steps = hf_args.checkpointing_steps
+            if hf_args.checkpointing_steps.isdigit():
+                hf_args.checkpointing_steps = int(hf_args.checkpointing_steps)
+        else:
+            hf_args.checkpointing_steps = None
 
         def postprocess_text(preds, labels):
             preds = [pred.strip() for pred in preds]
@@ -262,7 +262,7 @@ class Model(E2EBenchmarkModel):
 
             return preds, labels
 
-        metric = evaluate.load("sacrebleu") # TODO replace to not use evaluate?
+        metric = evaluate.load("sacrebleu")
 
         # Setup class members
         self.hf_args = hf_args
@@ -306,6 +306,14 @@ class Model(E2EBenchmarkModel):
                     self.lr_scheduler.step()
                     self.optimizer.zero_grad()
                     completed_steps += 1
+
+                if isinstance(self.hf_args.checkpointing_steps, int):
+                    if completed_steps % self.hf_args.checkpointing_steps == 0:
+                        output_dir = f"step_{completed_steps }"
+                        if self.hf_args.output_dir is not None:
+                            output_dir = os.path.join(self.hf_args.output_dir, output_dir)
+                        self.accelerator.save_state(output_dir)
+
                 if completed_steps >= self.hf_args.max_train_steps:
                     break
             if self.tb_args.validate_in_train:
