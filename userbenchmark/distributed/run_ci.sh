@@ -24,8 +24,9 @@ BENCHMARK_JOB="python run_benchmark.py distributed --ngpus 8 --partition train -
 /opt/slurm/bin/srun -p train --gpus-per-node=8 --cpus-per-task=96 --pty ${BENCHMARK_JOB}
 
 echo "moving the output files to ${JOB_DIRECTORY}"
-mv ${CONDA_ENV_DIR}/benchmark/.userbenchmark/distributed/*.json ${JOB_DIRECTORY}
+mv ${CONDA_ENV_DIR}/benchmark/.userbenchmark/distributed/metrics-*.json ${JOB_DIRECTORY}
 
-# TODO: upload the result to public GitHub repo
+echo "syncing result to S3 bucket"
+aws s3 sync "${JOB_DIRECTORY}" s3://ossci-metrics/torchbench-aicluster-metrics
 
 popd
