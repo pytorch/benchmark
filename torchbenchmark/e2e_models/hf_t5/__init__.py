@@ -12,6 +12,7 @@ from torchbenchmark.tasks import NLP
 import evaluate
 from accelerate import Accelerator
 from transformers import (
+    CONFIG_MAPPING,
     AutoConfig,
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
@@ -21,9 +22,8 @@ from transformers import (
     MBartTokenizer,
     MBartTokenizerFast
 )
-from typing import Optional
 from torchbenchmark.util.framework.transformers.translation.dataset import prep_dataset, preprocess_dataset
-from torchbenchmark.util.framework.transformers.translation.args import parse_args, parse_torchbench_args
+from torchbenchmark.util.framework.transformers.translation.args import parse_args, parse_torchbench_args, task_to_keys
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -45,26 +45,29 @@ class Model(E2EBenchmarkModel):
 
         # Parameters
         model_name = "t5-base"
-        dataset_name = "wmt16"
-        dataset_config_name = "ro-en"
-        source_lang = "en" 
-        target_lang = "ro" 
-        source_prefix = "translate English to Romanian: "
         max_source_length = "1024"
         max_target_length = "128"
         learning_rate = "2e-5"
         num_train_epochs = "1"
         max_train_steps = "1000" # overrides num_train_epochs TODO: allow this to be whatever?
+
+        task_name = self.tb_args.task_name
+        task_args = task_to_keys[task_name] # dataset/task specific hf_args
+        # T5 requires source prefix to know what to translate
+        if task_name == "wmt-en-ro":
+            source_prefix = "translate English to Romanian: "
+        elif task_name == "wmt-en-de":
+            source_prefix = "translate English to German: "
+        else:
+            raise RuntimeError(f"Unsupported translation task {task_name} for model hf_t5")
+        task_args.extend(["--source_prefix", source_prefix])
+
+
         # this benchmark runs on a single GPU
         cuda_visible_devices = "0"
         output_dir = os.path.join(CURRENT_DIR, ".output")
         os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
         in_arg = ["--model_name_or_path", model_name, 
-                  "--dataset_name", dataset_name,
-                  "--dataset_config_name", dataset_config_name,
-                  "--source_lang", source_lang,
-                  "--target_lang", target_lang,
-                  "--source_prefix", source_prefix,
                   "--max_source_length", max_source_length,
                   "--max_target_length", max_target_length,
                   "--per_device_train_batch_size", str(self.batch_size), 
@@ -73,6 +76,7 @@ class Model(E2EBenchmarkModel):
                   "--num_train_epochs", num_train_epochs,
                   "--max_train_steps", max_train_steps,
                   "--output_dir", output_dir]
+        in_arg.extend(task_args) # TODO is this the cleanest way to separate dataset and model specific args?
         hf_args = parse_args(in_arg)
 
         # ideally we don't modify the model code directly, but attaching deepspeed
@@ -103,13 +107,6 @@ class Model(E2EBenchmarkModel):
             self.num_examples = len(self.eval_dataloader) * self.batch_size
     
     def prep(self, hf_args):
-        # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
-        # information sent is the one passed as arguments along with your Python/PyTorch versions.
-        # send_example_telemetry("run_translation_no_trainer", args) # comment out for simplicity
-
-        # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
-        # If we're using tracking, we also need to initialize it here and it will by default pick up all supported trackers
-        # in the environment
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
         if hasattr(hf_args, "deepspeed_plugin"):
             # Note: self.tb_args.fp16 could be renamed to better clarify its meaning
@@ -134,9 +131,9 @@ class Model(E2EBenchmarkModel):
             config = AutoConfig.from_pretrained(hf_args.config_name)
         elif hf_args.model_name_or_path:
             config = AutoConfig.from_pretrained(hf_args.model_name_or_path)
-        # else: # TODO: comment out for simplicity, but probably want this.
-        #     config = CONFIG_MAPPING[hf_args.model_type]()
-        #     logger.warning("You are instantiating a new config instance from scratch.")
+        else: 
+            config = CONFIG_MAPPING[hf_args.model_type]()
+            # logger.warning("You are instantiating a new config instance from scratch.")
 
         if hf_args.tokenizer_name:
             tokenizer = AutoTokenizer.from_pretrained(hf_args.tokenizer_name, use_fast=not hf_args.use_slow_tokenizer)
@@ -258,17 +255,6 @@ class Model(E2EBenchmarkModel):
         #         checkpointing_steps = int(hf_args.checkpointing_steps)
         # else:
         #     checkpointing_steps = None
-        
-        # TODO: commented out tracking
-        # # We need to initialize the trackers we use, and also store our configuration.
-        # # We initialize the trackers only on main process because `accelerator.log`
-        # # only logs on main process and we don't want empty logs/runs on other processes.
-        # if hf_args.with_tracking:
-        #     if accelerator.is_main_process:
-        #         experiment_config = vars(hf_args)
-        #         # TensorBoard cannot log Enums, need the raw value
-        #         experiment_config["lr_scheduler_type"] = experiment_config["lr_scheduler_type"].value
-        #         accelerator.init_trackers("translation_no_trainer", experiment_config)
 
         def postprocess_text(preds, labels):
             preds = [pred.strip() for pred in preds]
@@ -307,6 +293,7 @@ class Model(E2EBenchmarkModel):
 
     def train(self):
         completed_steps = 0
+        eval_metric = None
         for epoch in range(self.hf_args.num_train_epochs):
             self.model.train()
             for step, batch in enumerate(self.train_dataloader):
