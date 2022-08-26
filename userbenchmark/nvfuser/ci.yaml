@@ -1,0 +1,2 @@
+platform:   "gcp-a100"
+schedule:   "nightly"

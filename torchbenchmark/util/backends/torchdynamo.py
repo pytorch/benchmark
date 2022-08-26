@@ -6,15 +6,14 @@ import functools
 from typing import List
 import torchdynamo
 
-def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dyamo_args: List[str]) -> argparse.Namespace:
+def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     available_backends = torchdynamo.list_backends()
     parser.add_argument(
         "--torchdynamo", choices=available_backends, help="Specify torchdynamo backends"
     )
-    args = parser.parse_args(dyamo_args)
-    return args
-
+    args, extra_args = parser.parse_known_args(dynamo_args)
+    return args, extra_args
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
     if args.torchdynamo == "fx2trt" and precision == "fp16":

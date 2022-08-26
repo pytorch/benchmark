@@ -44,10 +44,12 @@ def nested(*contexts):
 def enable_profiling_executor():
     try:
         graph_executor = torch._C._get_graph_executor_optimize(True)
-        profiling_mode = torch._C._jit_set_profiling_executor(True)
+        profiling_executor = torch._C._jit_set_profiling_executor(True)
+        profiling_mode = torch._C._jit_set_profiling_mode(True)
         yield
     finally:
-        torch._C._jit_set_profiling_executor(profiling_mode)
+        torch._C._jit_set_profiling_mode(profiling_mode)
+        torch._C._jit_set_profiling_executor(profiling_executor)
         torch._C._get_graph_executor_optimize(graph_executor)
 
 class BenchmarkModel(metaclass=PostInitProcessor):
@@ -92,7 +94,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if "--torchdynamo" in opt_args:
             self.dynamo = True
             from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
-            self.opt_args = parse_torchdynamo_args(self, opt_args)
+            self.opt_args, self.extra_args = parse_torchdynamo_args(self, opt_args)
         else:
             self.dynamo = False
             self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
@@ -112,7 +114,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             # in this case, use more relaxed cosine similarity instead of torch.allclose
             # for correctness testing
             # see: https://github.com/pytorch/torchdynamo/pull/438
-            if self.dargs.precision == "fp16" or (self.dynamo and self.opt_args.torchdynamo == "fx2trt") or (not self.dynamo and self.opt_args.fx2trt):
+            if self.dargs.precision == "fp16" or (self.dynamo and self.opt_args.torchdynamo == "fx2trt") or (not self.dynamo and self.opt_args.fx2trt) or (not self.dynamo and self.opt_args.use_cosine_similarity):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
                 # get tolerance of correctness check from os.environ
