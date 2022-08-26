@@ -3,6 +3,8 @@ import sys
 import subprocess
 from pathlib import Path
 
+from aicluster import run_aicluster_benchmark
+
 REPO_ROOT = Path(__file__).parent.parent.parent.parent.absolute()
 
 class add_path():
@@ -30,9 +32,13 @@ def run_userbenchmark(ub_name, dryrun=True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--platform", choices=["gcp-a100"], required=True, help="specify the benchmark platform.")
+    parser.add_argument("--platform", choices=["gcp-a100", "ai-cluster"], required=True, help="specify the benchmark platform.")
     parser.add_argument("--dryrun", action="store_true", help="only dry run the command.")
     args = parser.parse_args()
     benchmarks = get_userbenchmarks_by_platform(args.platform)
-    for ub in benchmarks:
-        run_userbenchmark(ub_name=ub, dryrun=args.dryrun)
+    if args.platform == "ai-cluster":
+        for ub in benchmarks:
+            run_aicluster_benchmark(ub, dryrun=args.dryrun)
+    else:
+        for ub in benchmarks:
+            run_userbenchmark(ub_name=ub, dryrun=args.dryrun)
