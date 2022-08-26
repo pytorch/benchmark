@@ -130,11 +130,11 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
 
 def prepare_bmconfig_env(config: BenchmarkModelConfig, repo_path: Path, dryrun=False):
     """Prepare the correct cuda version environment for the benchmarking."""
+    env = os.environ
     if not config.cuda_version:
-        return
+        return env
     cuda_version = config.cuda_version
     # step 1: setup CUDA path and environment variables
-    env = os.environ
     cuda_path = Path("/").joinpath("usr", "local", f"cuda-{cuda_version}")
     assert cuda_path.exists() and cuda_path.is_dir(), f"Expected CUDA Library path {cuda_path} doesn't exist."
     env["CUDA_ROOT"] = str(cuda_path)
