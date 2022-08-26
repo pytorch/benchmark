@@ -39,7 +39,8 @@ def parse_args(args):
 def run(args: List[str]):
     args = parse_args(args)
     if args.analyze:
-        analyze(args.analyze)
+        metrics = analyze(args.analyze)
+        dump_result_to_json(metrics)
         return
     work_dir = get_work_dir(get_output_dir(BM_NAME))
     run_benchmark(work_dir, dryrun=args.dryrun)
