@@ -216,7 +216,7 @@ if __name__ == "__main__":
     assert len(total_run), "Size of the BenchmarkModel list must be larger than zero."
     check_env(total_run)
     for subrun in total_run:
-        subrun_key = get_subrun_key(*subrun)
+        subrun_key = get_subrun_key(subrun)
         bmconfigs = total_run[subrun]
         assert len(bmconfigs), f"Size of subrun {subrun} must be larger than zero."
         subrun_path = output_path.joinpath(subrun_key)
