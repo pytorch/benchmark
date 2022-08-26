@@ -12,7 +12,7 @@ BM_NAME = "cuda-compare"
 
 def run_benchmark(output_path, dryrun=False):
     benchmark_script = REPO_PATH.joinpath(".github", "scripts", "run-config.py")
-    benchmark_cmd = [sys.executable, benchmark_script, "-c", "devinfra/cuda-comparison", "-b", REPO_PATH, "-o", output_path]
+    benchmark_cmd = [sys.executable, str(benchmark_script), "-c", "devinfra/cuda-comparison", "-b", str(REPO_PATH), "-o", str(output_path)]
     print(f"Running benchmark: {benchmark_cmd}")
     if not dryrun:
         subprocess.check_call(benchmark_cmd, cwd=REPO_PATH)

@@ -135,12 +135,16 @@ def prepare_bmconfig_env(config: BenchmarkModelConfig, repo_path: Path, dryrun=F
     cuda_version = config.cuda_version
     # step 1: setup CUDA path and environment variables
     env = os.environ
-    cuda_path = Path("usr").joinpath("local").joinpath(f"cuda-{cuda_version}")
+    cuda_path = Path("/").joinpath("usr", "local", f"cuda-{cuda_version}")
     assert cuda_path.exists() and cuda_path.is_dir(), f"Expected CUDA Library path {cuda_path} doesn't exist."
-    env["CUDA_ROOT"] = cuda_path
-    env["CUDA_HOME"] = cuda_path
-    env["PATH"] = f"{cuda_path}/bin:{env['PATH']}"
-    env["LD_LIBRARY_PATH"] = f"{cuda_path}/lib64:{cuda_path}/extras/CUPTI/lib64:{env['LD_LIBRARY_PATH']}"
+    env["CUDA_ROOT"] = str(cuda_path)
+    env["CUDA_HOME"] = str(cuda_path)
+    env["PATH"] = f"{str(cuda_path)}/bin:{env['PATH']}"
+    env["LD_LIBRARY_PATH"] = f"{str(cuda_path)}/lib64:{str(cuda_path)}/extras/CUPTI/lib64:{env['LD_LIBRARY_PATH']}"
+    # step 2: test call nvcc to confirm the version
+    test_nvcc = ["nvcc", "--version"]
+    if not dryrun:
+        subprocess.check_call(test_nvcc)
     # step 1: uninstall all pytorch packages
     uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext"]
     print(f"Uninstall pytorch: {uninstall_torch_cmd}")
@@ -191,10 +195,11 @@ def gen_output_csv(output_path: Path, base_key: str):
 def check_env(bmconfigs):
     """Check that the machine has been properly setup to run the config."""
     for subrun in total_run:
-        bmconfig = total_run[subrun]
-        if bmconfig.cuda_version:
-            cuda_path = Path("usr").joinpath("local").joinpath(f"cuda-{bmconfig.cuda_version}")
-            assert cuda_path.exists() and cuda_path.is_dir(), f"Expected CUDA path {str(cuda_path)} doesn't exist. Please report a bug."
+        bmconfigs = total_run[subrun]
+        for bmconfig in bmconfigs:
+            if bmconfig.cuda_version:
+                cuda_path = Path("/").joinpath("usr", "local", f"cuda-{bmconfig.cuda_version}")
+                assert cuda_path.exists() and cuda_path.is_dir(), f"Expected CUDA path {str(cuda_path)} doesn't exist. Please report a bug."
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
