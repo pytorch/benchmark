@@ -1,4 +1,4 @@
-name: TorchBench Userbenchmark on A100
+name: TorchBench Userbenchmark on AI Cluster
 on:
   schedule:
     # on the AI cluster, the cron job runs at 8 PM UTC
@@ -13,7 +13,7 @@ env:
   CONDA_ENV_NAME: "ai-cluster-ci"
 jobs:
   collect-userbenchmark-result:
-    runs-on: [linux.2xlarge]
+    runs-on: [linux.2xlarge] # a small instance is sufficient
     timeout-minutes: 60 # 1 hour
     steps:
       - name: Checkout TorchBench
@@ -23,3 +23,6 @@ jobs:
       - name: Create conda environment
         run: |
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+      - name: Run AI Cluster benchmark
+        run: |
+          

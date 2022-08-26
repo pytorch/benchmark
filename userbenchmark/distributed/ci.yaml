@@ -1,1 +1,2 @@
 platform: "ai-cluster"
+schedule:   "nightly"
