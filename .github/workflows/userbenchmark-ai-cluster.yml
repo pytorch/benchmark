@@ -31,4 +31,4 @@ jobs:
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
-          python ./github/scripts/userbenchmarks/schedule-benchmarks.py --platform ai-cluster
+          python ./.github/scripts/userbenchmarks/schedule-benchmarks.py --platform ai-cluster
