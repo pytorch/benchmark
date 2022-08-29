@@ -20,8 +20,7 @@ jobs:
           path: benchmark
       - name: Install conda
         run: |
-          bash benchmark/scripts/setup_ci.sh
-          bash benchmark/scripts/install_basics.sh
+          bash benchmark/scripts/install_conda.sh
       - name: Create conda environment
         run: |
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
