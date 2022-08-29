@@ -25,10 +25,10 @@ jobs:
         run: |
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
-          . activate "${CONDA_ENV_NAME}"
+          conda activate "${CONDA_ENV_NAME}"
       - name: Run AI Cluster benchmark
         run: |
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          . activate "${CONDA_ENV_NAME}"
+          conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           python ./github/scripts/userbenchmarks/schedule-benchmarks.py --platform ai-cluster
