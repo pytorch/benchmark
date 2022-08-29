@@ -12,12 +12,13 @@ class RecordKind(Enum):
   H2D = 5
   Unknown = 6
 
+KnownMathOp = ['gemm', 'gemv', 'cutlass', 'conv', 'winograd', "Conv"]
 class Record:
   def __init__(self):
     self.kind = RecordKind.Unknown
 
 def is_known_math_kernel(name):
-  return ('gemm' in name or 'gemv' in name or 'cutlass' in name)
+  return (any(math_op_name in name for math_op_name in KnownMathOp))
 
 def parse_one_line(line):
   r = Record()

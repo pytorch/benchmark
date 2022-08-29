@@ -54,7 +54,7 @@ def blade(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[
     module, example_inputs = model.get_module()
                                                           
     torch_config = torch_blade.config.Config()
-    torch_config.enable_fp16 = model.dargs.precision == "fp16"
+    torch_config.enable_fp16 = model.dargs.precision in ["fp16", "amp"]
     if args.trt:
         torch_config.optimization_pipeline = torch_blade.tensorrt.backend_name()
     with torch_config, torch.no_grad():
@@ -63,6 +63,4 @@ def blade(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[
             allow_tracing=True,
             model_inputs=tuple(example_inputs),
         )
-    
     model.set_module(optimized_model)
-

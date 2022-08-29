@@ -200,7 +200,7 @@ def run_bmconfig_profiling(config: BenchmarkModelConfig, repo_path: Path, output
             print(f"Now stats benchmark command: {stats_cmd}.", flush=True)
             subprocess.check_call(stats_cmd, cwd=repo_path)
             print(f"Now parse benchmark command: {parse_cmd}.", flush=True)
-            with open(model_prefix + ".log", "w") as fd:
+            with open(model_prefix + ".csv", "w") as fd:
                 subprocess.check_call(parse_cmd, cwd=repo_path, stdout=fd)
         except subprocess.CalledProcessError:
             pass
