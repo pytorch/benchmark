@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -18,7 +19,9 @@ CUDA_VERSION_MAP = {
 }
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
-    return False
+    regex = 'release (.*),'
+    version = re.search(regex, nvcc_output).groups()[0]
+    return version == target_cuda_version
 
 def prepare_cuda_env(cuda_version: str, dryrun=False):
     assert cuda_version in CUDA_VERSION_MAP, f"Required CUDA version {cuda_version} doesn't exist in {CUDA_VERSION_MAP.keys()}."
@@ -39,16 +42,16 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
     if dryrun:
         print(f"Checking nvcc version, command {test_nvcc}")
     else:
-        output = subprocess.check_output(test_nvcc)
+        output = subprocess.check_output(test_nvcc, stderr=subprocess.STDOUT, env=env).decode()
         assert _nvcc_output_match(output, cuda_version), f"Expected CUDA version {cuda_version}, getting nvcc test result {output}"
     # step 3: install the correct magma version
     install_magma_cmd = ["conda", "install", "-c", "pytorch", CUDA_VERSION_MAP[cuda_version]['magma_version']]
     if dryrun:
         print(f"Installing CUDA magma: {install_magma_cmd}")
-    subprocess.check_call(install_magma_cmd)
+    subprocess.check_call(install_magma_cmd, env=env)
     return env
 
-def install_pytorch_nightly(cuda_version: str, dryrun=False):
+def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
     uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext"]
     if dryrun:
         print(f"Uninstall pytorch: {uninstall_torch_cmd}")
@@ -61,4 +64,4 @@ def install_pytorch_nightly(cuda_version: str, dryrun=False):
     if dryrun:
         print(f"Install pytorch nightly: {install_torch_cmd}")
     else:
-        subprocess.check_call(install_torch_cmd)
+        subprocess.check_call(install_torch_cmd, env=env)

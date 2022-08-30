@@ -121,7 +121,7 @@ def prepare_bmconfig_env(config: BenchmarkModelConfig, repo_path: Path, dryrun=F
         return os.environ.copy()
     cuda_version = config.cuda_version
     new_env = prepare_cuda_env(cuda_version=cuda_version)
-    install_pytorch_nightly(cuda_version=cuda_version, dryrun=dryrun)
+    install_pytorch_nightly(cuda_version=cuda_version, env=new_env, dryrun=dryrun)
     return new_env
 
 def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path, dryrun=False):

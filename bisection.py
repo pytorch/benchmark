@@ -15,7 +15,6 @@ import json
 import shutil
 import yaml
 import argparse
-import typing
 from tabulate import tabulate
 import re
 import subprocess
@@ -136,6 +135,7 @@ class TorchSource:
     srcpath: str
     build_lazy: bool
     commits: List[Commit]
+    build_env: os._Environ
     # Map from commit SHA to index in commits
     commit_dict: Dict[str, int]
     def __init__(self, srcpath: str, build_lazy: bool):
@@ -144,13 +144,14 @@ class TorchSource:
         self.commits = []
         self.commit_dict = dict()
 
-    def prep(self) -> bool:
+    def prep(self, build_env: os._Environ) -> bool:
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
         self.update_repos()
         # Clean up the existing packages
         self.cleanup()
+        self.build_env = build_env
         return True
 
     # Update pytorch, torchtext, and torchvision repo
@@ -238,7 +239,7 @@ class TorchSource:
         ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
         self.checkout_deps(ctime)
         # setup environment variables
-        build_env = self.setup_build_env(os.environ.copy())
+        build_env = self.setup_build_env(self.build_env)
         # build pytorch
         print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
         # Check if version.py exists, if it does, remove it.
@@ -279,6 +280,7 @@ class TorchBench:
     models: List[str]
     first_time: bool
     torch_src: TorchSource
+    bench_env: os._Environ
 
     def __init__(self, srcpath: str,
                  torch_src: TorchSource,
@@ -291,7 +293,8 @@ class TorchBench:
         self.first_time = True
         self.models = list()
 
-    def prep(self) -> bool:
+    def prep(self, bench_env) -> bool:
+        self.bench_env = bench_env
         # Verify the code in srcpath is pytorch/benchmark
         repo_origin_url = gitutils.get_git_origin(self.srcpath)
         if not repo_origin_url == TORCHBENCH_GITREPO:
@@ -306,7 +309,7 @@ class TorchBench:
     def _install_benchmark(self):
         "Install and build TorchBench dependencies"
         command = ["python", "install.py"]
-        subprocess.check_call(command, cwd=self.srcpath, shell=False)
+        subprocess.check_call(command, cwd=self.srcpath, env=self.bench_env, shell=False)
 
     def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
         # Return the result json file path
@@ -327,7 +330,7 @@ class TorchBench:
         print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
         command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
         try:
-            subprocess.check_call(command, cwd=self.srcpath, shell=True, timeout=self.timelimit * 60)
+            subprocess.check_call(command, cwd=self.srcpath, env=self.bench_env, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
             print(f"Benchmark timeout for {commit.sha}. Result will be None.")
             return output_dir
@@ -465,7 +468,8 @@ class TorchBenchBisection:
         return out
 
     def prep(self) -> bool:
-        if not self.torch_src.prep():
+        base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
+        if not self.torch_src.prep(base_build_env):
             return False
         if not self.torch_src.init_commits(self.start, self.end, self.abtest):
             return False
