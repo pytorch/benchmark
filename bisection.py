@@ -473,7 +473,7 @@ class TorchBenchBisection:
             return False
         if not self.torch_src.init_commits(self.start, self.end, self.abtest):
             return False
-        if not self.bench.prep():
+        if not self.bench.prep(base_build_env):
             return False
         left_commit = self.torch_src.commits[0]
         right_commit = self.torch_src.commits[-1]
