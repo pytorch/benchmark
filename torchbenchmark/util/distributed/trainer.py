@@ -36,7 +36,7 @@ class Trainer():
 
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
-        self.e2e_benchmark: E2EBenchmarkModel = model_class("train", known_args.device, batch_size=None, extra_args=extra_args)
+        self.e2e_benchmark: E2EBenchmarkModel = model_class("train", device=known_args.device, batch_size=None, extra_args=extra_args)
 
         expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator", "run_contexts"]
         assert all(attr in dir(self.e2e_benchmark) for attr in expected_attrs), (
