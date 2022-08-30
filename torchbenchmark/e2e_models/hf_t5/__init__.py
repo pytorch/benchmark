@@ -5,6 +5,7 @@ import math
 import os
 from pathlib import Path
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.utils.data import DataLoader
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import NLP
@@ -82,6 +83,11 @@ class Model(E2EBenchmarkModel):
 
         # ideally we don't modify the model code directly, but attaching deepspeed
         # must be done before self.prep initialiazes accelerator.
+        hf_args.distributed = self.tb_args.distributed
+        # supported distributed backends
+        if hf_args.distributed not in ["deepspeed", "ddp", "fsdp", "none"]:
+            raise RuntimeError(f"Unsupported distributed scheme {self.tb_args.distributed} for model hf_t5")
+        # prep args for any distributed backend that needs it
         if self.tb_args.distributed == "deepspeed":
             zero_opt_cfg = {
                 "zero_optimization": {
@@ -93,12 +99,7 @@ class Model(E2EBenchmarkModel):
             }
             hf_args.deepspeed_plugin = DeepSpeedPlugin()
             hf_args.deepspeed_plugin.deepspeed_config.update(zero_opt_cfg)
-        elif self.tb_args.distributed == "ddp":
-            hf_args.apply_ddp = True
-        elif self.tb_args.distributed == "none":
-            hf_args.apply_ddp = False
-        else:
-            raise RuntimeError(f"Unsupported distributed scheme {self.tb_args.distributed} for model hf_t5")
+            
 
         # setup other members
         self.prep(hf_args)
@@ -109,7 +110,7 @@ class Model(E2EBenchmarkModel):
     
     def prep(self, hf_args):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
-        if hasattr(hf_args, "deepspeed_plugin"):
+        if hf_args.distributed == "deepspeed":
             # Note: self.tb_args.fp16 could be renamed to better clarify its meaning
             assert self.tb_args.fp16=="amp", "deepspeed is only supported with bf16/amp enabled"
             accelerator = Accelerator(deepspeed_plugin=hf_args.deepspeed_plugin, mixed_precision='bf16')
@@ -207,6 +208,25 @@ class Model(E2EBenchmarkModel):
         train_dataloader = DataLoader(
             train_dataset, shuffle=True, collate_fn=self.data_collator, batch_size=hf_args.per_device_train_batch_size)
         eval_dataloader = DataLoader(eval_dataset, collate_fn=self.data_collator, batch_size=hf_args.per_device_eval_batch_size)
+        
+        # set distributed strategy before creating optimizer
+        if hf_args.distributed == "ddp":
+            local_rank = int(os.getenv("LOCAL_RANK", -1))
+            self.model = DDP(
+                self.model,
+                device_ids=[local_rank],
+                # If buffer broadcast is necessary, specific optimizations might be
+                # necessary to optimize performance. Disable it by default.
+                broadcast_buffers=False,
+                # Set gradient as bucket view to avoid unnecessary copies
+                gradient_as_bucket_view=True,
+                # TODO: tune bucket_cap_mb
+                static_graph=True,
+            )
+        elif hf_args.distributed == "fsdp":
+            local_rank = int(os.getenv("LOCAL_RANK", -1))
+            torch.cuda.set_device(local_rank)
+            self.model = FSDP(self.model)
 
         # Optimizer
         # Split weights in two groups, one with weight decay and the other not.
@@ -276,20 +296,6 @@ class Model(E2EBenchmarkModel):
         self.metric = metric
         self.config = config
         self.postprocess_text = postprocess_text
-
-        if hf_args.apply_ddp:
-            local_rank = int(os.getenv("LOCAL_RANK", -1))
-            self.model = DDP(
-                self.model,
-                device_ids=[local_rank],
-                # If buffer broadcast is necessary, specific optimizations might be
-                # necessary to optimize performance. Disable it by default.
-                broadcast_buffers=False,
-                # Set gradient as bucket view to avoid unnecessary copies
-                gradient_as_bucket_view=True,
-                # TODO: tune bucket_cap_mb
-                static_graph=True,
-            )
 
     def train(self):
         completed_steps = 0
