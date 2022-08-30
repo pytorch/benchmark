@@ -22,10 +22,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Tuple
 
 from torchbenchmark.util import gitutils
-from utils.cuda_utils import prepare_cuda_env
-
-# defines the default CUDA version to compile against
-DEFAULT_CUDA_VERSION = "11.6"
+from utils.cuda_utils import prepare_cuda_env, DEFAULT_CUDA_VERSION
 
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"

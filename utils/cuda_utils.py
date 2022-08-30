@@ -3,6 +3,9 @@ import re
 import subprocess
 from pathlib import Path
 
+# defines the default CUDA version to compile against
+DEFAULT_CUDA_VERSION = "11.6"
+
 CUDA_VERSION_MAP = {
     "11.3": {
         "pytorch_url": "cu113",
@@ -43,6 +46,7 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
         print(f"Checking nvcc version, command {test_nvcc}")
     else:
         output = subprocess.check_output(test_nvcc, stderr=subprocess.STDOUT, env=env).decode()
+        print(f"NVCC version output: {output}")
         assert _nvcc_output_match(output, cuda_version), f"Expected CUDA version {cuda_version}, getting nvcc test result {output}"
     # step 3: install the correct magma version
     install_magma_cmd = ["conda", "install", "-c", "pytorch", CUDA_VERSION_MAP[cuda_version]['magma_version']]
