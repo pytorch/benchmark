@@ -210,6 +210,7 @@ class Model(E2EBenchmarkModel):
         eval_dataloader = DataLoader(eval_dataset, collate_fn=self.data_collator, batch_size=hf_args.per_device_eval_batch_size)
         
         # set distributed strategy before creating optimizer
+        model = accelerator.prepare(model)
         if hf_args.distributed == "ddp":
             local_rank = int(os.getenv("LOCAL_RANK", -1))
             self.model = DDP(
@@ -258,8 +259,8 @@ class Model(E2EBenchmarkModel):
         )
 
         # Prepare everything with our `accelerator`.
-        model, optimizer, train_dataloader, eval_dataloader, lr_scheduler = accelerator.prepare(
-            model, optimizer, train_dataloader, eval_dataloader, lr_scheduler
+        optimizer, train_dataloader, eval_dataloader, lr_scheduler = accelerator.prepare(
+            optimizer, train_dataloader, eval_dataloader, lr_scheduler
         )
 
         # We need to recalculate our total training steps as the size of the training dataloader may have changed.
