@@ -213,8 +213,8 @@ class Model(E2EBenchmarkModel):
         model = accelerator.prepare(model)
         if hf_args.distributed == "ddp":
             local_rank = int(os.getenv("LOCAL_RANK", -1))
-            self.model = DDP(
-                self.model,
+            model = DDP(
+                model,
                 device_ids=[local_rank],
                 # If buffer broadcast is necessary, specific optimizations might be
                 # necessary to optimize performance. Disable it by default.
@@ -227,7 +227,7 @@ class Model(E2EBenchmarkModel):
         elif hf_args.distributed == "fsdp":
             local_rank = int(os.getenv("LOCAL_RANK", -1))
             torch.cuda.set_device(local_rank)
-            self.model = FSDP(self.model)
+            model = FSDP(model)
 
         # Optimizer
         # Split weights in two groups, one with weight decay and the other not.
