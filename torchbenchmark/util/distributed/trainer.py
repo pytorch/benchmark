@@ -1,4 +1,3 @@
-import argparse
 from datetime import datetime
 import os
 from pathlib import Path
@@ -10,18 +9,12 @@ from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel, nested
 import torch.distributed as dist
 
-def parse_model_args(model_args):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--device", choices=["cpu", "cuda"], default="cuda", help="Which device to use.")
-    return parser.parse_known_args(model_args)
-
 class Trainer():
     DEFAULT_MEASURE_ITERATIONS = 10
 
     def __init__(self, args, model_class, mode="SPMD", model_args=None):
         self.args = args
-        known_args, other_model_args = parse_model_args(model_args)
-        self.model_args = other_model_args
+        self.model_args = model_args
         self.model_class = model_class
         self.mode = mode
 
@@ -36,7 +29,7 @@ class Trainer():
 
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
-        self.e2e_benchmark: E2EBenchmarkModel = model_class("train", known_args.device, batch_size=None, extra_args=extra_args)
+        self.e2e_benchmark: E2EBenchmarkModel = model_class("train", batch_size=None, extra_args=extra_args)
 
         expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator", "run_contexts"]
         assert all(attr in dir(self.e2e_benchmark) for attr in expected_attrs), (

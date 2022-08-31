@@ -16,25 +16,12 @@ from typing import List, Optional
 
 from bmutils import add_path
 from bmutils.summarize import analyze_result
+
 REPO_DIR = str(Path(__file__).parent.parent.parent.resolve())
 
 with add_path(REPO_DIR):
     from torchbenchmark import _list_model_paths
-
-CUDA_VERSION_MAP = {
-    "11.3": {
-        "pytorch_url": "cu113",
-        "magma_version": "magma-cuda113",
-    },
-    "11.6": {
-         "pytorch_url": "cu116",
-         "magma_version": "magma-cuda116",
-    },
-    "11.7": {
-         "pytorch_url": "cu117",
-         "magma_version": "magma-cuda117",
-    }
-}
+    from utils.cuda_utils import prepare_cuda_env, install_pytorch_nightly
 
 @dataclass
 class BenchmarkModelConfig:
@@ -130,43 +117,12 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
 
 def prepare_bmconfig_env(config: BenchmarkModelConfig, repo_path: Path, dryrun=False):
     """Prepare the correct cuda version environment for the benchmarking."""
-    env = os.environ
     if not config.cuda_version:
-        return env
+        return os.environ.copy()
     cuda_version = config.cuda_version
-    # step 1: setup CUDA path and environment variables
-    cuda_path = Path("/").joinpath("usr", "local", f"cuda-{cuda_version}")
-    assert cuda_path.exists() and cuda_path.is_dir(), f"Expected CUDA Library path {cuda_path} doesn't exist."
-    env["CUDA_ROOT"] = str(cuda_path)
-    env["CUDA_HOME"] = str(cuda_path)
-    env["PATH"] = f"{str(cuda_path)}/bin:{env['PATH']}"
-    env["LD_LIBRARY_PATH"] = f"{str(cuda_path)}/lib64:{str(cuda_path)}/extras/CUPTI/lib64:{env['LD_LIBRARY_PATH']}"
-    # step 2: test call nvcc to confirm the version
-    test_nvcc = ["nvcc", "--version"]
-    if not dryrun:
-        subprocess.check_call(test_nvcc)
-    # step 1: uninstall all pytorch packages
-    uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext"]
-    print(f"Uninstall pytorch: {uninstall_torch_cmd}")
-    if not dryrun:
-        for _loop in range(3):
-            subprocess.check_call(uninstall_torch_cmd)
-    # step 2: install pytorch nightly with the correct cuda version
-    install_magma_cmd = ["conda", "install", "-c", "pytorch", CUDA_VERSION_MAP[cuda_version]['magma_version']]
-    print(f"Install magma: {install_magma_cmd}")
-    if not dryrun:
-        subprocess.check_call(install_magma_cmd)
-    pytorch_nightly_url = f"https://download.pytorch.org/whl/nightly/{CUDA_VERSION_MAP[cuda_version]['pytorch_url']}/torch_nightly.html"
-    install_torch_cmd = ["pip", "install", "--pre", "torch", "torchvision", "torchtext", "-f",  pytorch_nightly_url]
-    print(f"Install pytorch nightly: {install_torch_cmd}")
-    if not dryrun:
-        subprocess.check_call(install_torch_cmd)
-    # step 3: install torchbench
-    install_torchbench_cmd = [sys.executable, "install.py"]
-    print(f"Install torchbench: {install_torchbench_cmd}")
-    if not dryrun:
-        subprocess.check_call(install_torchbench_cmd, cwd=repo_path)
-    return env
+    new_env = prepare_cuda_env(cuda_version=cuda_version)
+    install_pytorch_nightly(cuda_version=cuda_version, env=new_env, dryrun=dryrun)
+    return new_env
 
 def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path, dryrun=False):
     run_env = prepare_bmconfig_env(config, repo_path=repo_path, dryrun=dryrun)
