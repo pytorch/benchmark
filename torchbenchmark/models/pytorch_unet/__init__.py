@@ -72,7 +72,8 @@ class Model(BenchmarkModel):
 
     def jit_callback(self):
         assert self.jit, "Calling JIT callback without specifying the JIT option."
-        self.model = torch.jit.freeze(torch.jit.script(self.model.eval()), preserved_attrs=["n_classes"])
+        if self.test == 'eval':
+            self.model = torch.jit.optimize_for_inference(torch.jit.freeze(torch.jit.script(self.model.eval()), preserved_attrs=["n_classes"]))
 
     def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
