@@ -5,7 +5,7 @@ from pathlib import Path
 
 from aicluster import run_aicluster_benchmark
 
-REPO_ROOT = Path(__file__).parent.parent.parent.parent.absolute()
+REPO_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 
 class add_path():
     def __init__(self, path):

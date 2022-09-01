@@ -29,7 +29,14 @@ jobs:
           conda install -y pyyaml numpy
       - name: Run AI Cluster benchmark
         run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV_NAME}"
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           python ./.github/scripts/userbenchmarks/schedule-benchmarks.py --platform ai-cluster
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: TorchBench result
+          path: benchmark-output/
+      - name: Remove conda environment
+        run: |
+          conda env remove --name "${CONDA_ENV_NAME}"
