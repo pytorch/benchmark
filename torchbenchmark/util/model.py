@@ -147,8 +147,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
             if not self.batch_size:
                 raise NotImplementedError(f"Test {self.test} is not implemented.")
-        else:
-            self.batch_size = batch_size
+
         # Check if specified batch size is supported by the model
         if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
             if self.test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
