@@ -13,12 +13,13 @@ import time
 import numpy as np
 import torch.profiler as profiler
 
-
 from torchbenchmark import load_model_by_name
 import torch
 
-
 WARMUP_ROUNDS = 3
+SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
+if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+    SUPPORT_DEVICE_LIST.append("mps")
 
 def run_one_step_with_cudastreams(func, streamcount):
 
@@ -142,22 +143,39 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
                 model_analyzer.export_all_records_to_csv()
         else:
             flops, batch_size = model_flops
-            tflops = flops * batch_size / (cpu_walltime / 1.0e9) / 1.0e12
+            tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     activity_groups = []
-    if ((not args.profile_devices and args.device == 'cuda') or
-            (args.profile_devices and 'cuda' in args.profile_devices)):
-        print("Collecting CUDA activity.")
-        activity_groups.append(profiler.ProfilerActivity.CUDA)
+    device_to_activity = {'cuda': profiler.ProfilerActivity.CUDA, 'cpu': profiler.ProfilerActivity.CPU}
+    if args.profile_devices:
+        activity_groups = [
+            device_to_activity[device] for device in args.profile_devices if (device in device_to_activity)
+        ]
+    else:
+        if args.device == 'cuda':
+            activity_groups = [
+                profiler.ProfilerActivity.CUDA,
+                profiler.ProfilerActivity.CPU,
+            ]
+        elif args.device == 'cpu':
+            activity_groups = [profiler.ProfilerActivity.CPU]
 
-    if ((not args.profile_devices and args.device == 'cpu') or
-            (args.profile_devices and 'cpu' in args.profile_devices)):
-        print("Collecting CPU activity.")
-        activity_groups.append(profiler.ProfilerActivity.CPU)
-
+    if args.profile_eg:
+        from datetime import datetime
+        import os
+        from torch.profiler import ExecutionGraphObserver
+        start_time = datetime.now()
+        timestamp = int(datetime.timestamp(start_time))
+        eg_file = f"{args.model}_{timestamp}_eg.json"
+        eg = ExecutionGraphObserver()
+        if not os.path.exists(args.profile_eg_folder):
+            os.makedirs(args.profile_eg_folder)
+        eg.register_callback(f"{args.profile_eg_folder}/{eg_file}")
+        nwarmup = 0
+        eg.start()
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1),
         activities=activity_groups,
@@ -171,16 +189,17 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
             func()
             torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
             prof.step()
-
+    if args.profile_eg and eg:
+        eg.stop()
+        eg.unregister_callback()
+        print(f"Save Exeution Graph to : {args.profile_eg_folder}/{eg_file}")
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
 
 def _validate_devices(devices: str):
     devices_list = devices.split(",")
-    valid_devices = ['cpu', 'cuda']
-    if (torch.backends.mps.is_available()):
-        valid_devices.append('mps')
+    valid_devices = SUPPORT_DEVICE_LIST
     for d in devices_list:
         if d not in valid_devices:
             raise ValueError(f'Invalid device {d} passed into --profile-devices. Expected devices: {valid_devices}.')
@@ -189,9 +208,6 @@ def _validate_devices(devices: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
-    SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
-    if (torch.backends.mps.is_available()):
-        SUPPORT_DEVICE_LIST.append("mps")
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
     parser.add_argument("-d", "--device", choices=SUPPORT_DEVICE_LIST, default="cpu", help="Which device to use.")
     parser.add_argument("-m", "--mode", choices=["eager", "jit"], default="eager", help="Which mode to run.")
@@ -202,10 +218,12 @@ if __name__ == "__main__":
                         help="Profiling includes record_shapes, profile_memory, with_stack, and with_flops.")
     parser.add_argument("--profile-devices", type=_validate_devices,
                         help="Profiling comma separated list of activities such as cpu,cuda.")
+    parser.add_argument("--profile-eg", action="store_true", help="Collect execution graph by PARAM")
+    parser.add_argument("--profile-eg-folder", default="./eg_logs", help="Save execution graph traces to this directory.")
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
-    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result.")
+    parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result.")
     parser.add_argument("--export-dcgm-metrics", action="store_true",
                         help="Export all GPU FP32 unit active ratio records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
@@ -220,8 +238,7 @@ if __name__ == "__main__":
     if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
-    # build the model and get the chosen test method
-    if args.flops:
+    if args.flops and args.flops == "fvcore":
         extra_args.append("--flops")
         extra_args.append(args.flops)
 
@@ -232,7 +249,7 @@ if __name__ == "__main__":
     model_flops = None
 
     if args.flops:
-        if args.flops == 'model':
+        if args.flops == 'fvcore':
             assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
             model_flops = m.get_flops()
         else:

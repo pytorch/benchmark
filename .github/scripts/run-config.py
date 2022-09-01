@@ -16,10 +16,12 @@ from typing import List, Optional
 
 from bmutils import add_path
 from bmutils.summarize import analyze_result
+
 REPO_DIR = str(Path(__file__).parent.parent.parent.resolve())
 
 with add_path(REPO_DIR):
     from torchbenchmark import _list_model_paths
+    from utils.cuda_utils import prepare_cuda_env, install_pytorch_nightly
 
 @dataclass
 class BenchmarkModelConfig:
@@ -27,6 +29,7 @@ class BenchmarkModelConfig:
     device: str
     test: str
     batch_size: Optional[int]
+    cuda_version: Optional[str]
     args: List[str]
     rewritten_option: str
 
@@ -54,8 +57,13 @@ def get_models(config) -> Optional[str]:
     assert enabled_models, f"The model patterns you specified {config['models']} does not match any model. Please double check."
     return enabled_models
 
-def get_subrun_key(device, test, batch_size=None):
-    return f"{test}-{device}-bsize_{batch_size}" if batch_size else f"{test}-{device}"
+def get_subrun_key(subrun_key):
+    return "-".join(subrun_key)
+
+def get_cuda_versions(config):
+    if not "cuda_version" in config:
+        return [None]
+    return config["cuda_version"]
 
 def get_tests(config):
     if not "test" in config:
@@ -72,6 +80,15 @@ def get_batch_sizes(config):
         return [None]
     return config["batch_size"]
 
+def get_subrun(device, test, batch_size, cuda_version):
+    if not batch_size and not cuda_version:
+        return (device, test)
+    if not batch_size:
+        return (device, test, f"cuda_{cuda_version}")
+    if not cuda_version:
+        return (device, test, f"bs_{batch_size}")
+    return (device, test, f"bs_{batch_size}", f"cuda_{cuda_version}")
+
 def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelConfig]:
     if not config_name.endswith(".yaml"):
         config_name += ".yaml"
@@ -86,18 +103,29 @@ def parse_bmconfigs(repo_path: Path, config_name: str) -> List[BenchmarkModelCon
     devices = get_devices(config)
     tests = get_tests(config)
     batch_sizes = get_batch_sizes(config)
+    cuda_versions = get_cuda_versions(config)
 
-    bm_matrix = [devices, tests, batch_sizes]
-    for device, test, batch_size in itertools.product(*bm_matrix):
-        subrun = (device, test, batch_size) if batch_size else (device, test)
+    bm_matrix = [devices, tests, batch_sizes, cuda_versions]
+    for device, test, batch_size, cuda_version in itertools.product(*bm_matrix):
+        subrun = get_subrun(device, test, batch_size, cuda_version)
         out[subrun] = []
         for args in config["args"]:
             out[subrun].append(BenchmarkModelConfig(models=models, device=device, test=test, \
-                               batch_size=batch_size, args=args.split(" "), \
+                               batch_size=batch_size, cuda_version=cuda_version, args=args.split(" "), \
                                rewritten_option=rewrite_option(args.split(" "))))
     return out
 
+def prepare_bmconfig_env(config: BenchmarkModelConfig, repo_path: Path, dryrun=False):
+    """Prepare the correct cuda version environment for the benchmarking."""
+    if not config.cuda_version:
+        return os.environ.copy()
+    cuda_version = config.cuda_version
+    new_env = prepare_cuda_env(cuda_version=cuda_version)
+    install_pytorch_nightly(cuda_version=cuda_version, env=new_env, dryrun=dryrun)
+    return new_env
+
 def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Path, dryrun=False):
+    run_env = prepare_bmconfig_env(config, repo_path=repo_path, dryrun=dryrun)
     cmd = [sys.executable, "run_sweep.py", "-d", config.device, "-t", config.test]
     if config.batch_size:
         cmd.append("-b")
@@ -113,12 +141,21 @@ def run_bmconfig(config: BenchmarkModelConfig, repo_path: Path, output_path: Pat
     print(f"Now running benchmark command: {cmd}.", flush=True)
     if dryrun:
         return
-    subprocess.check_call(cmd, cwd=repo_path)
+    subprocess.check_call(cmd, cwd=repo_path, env=run_env)
 
 def gen_output_csv(output_path: Path, base_key: str):
     result = analyze_result(output_path.joinpath("json").absolute(), base_key=base_key)
     with open(output_path.joinpath("summary.csv"), "w") as sw:
         sw.write(result)
+
+def check_env(bmconfigs):
+    """Check that the machine has been properly setup to run the config."""
+    for subrun in total_run:
+        bmconfigs = total_run[subrun]
+        for bmconfig in bmconfigs:
+            if bmconfig.cuda_version:
+                cuda_path = Path("/").joinpath("usr", "local", f"cuda-{bmconfig.cuda_version}")
+                assert cuda_path.exists() and cuda_path.is_dir(), f"Expected CUDA path {str(cuda_path)} doesn't exist. Please report a bug."
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -133,8 +170,9 @@ if __name__ == "__main__":
     output_path.mkdir(exist_ok=True, parents=True)
     total_run = parse_bmconfigs(repo_path, args.config)
     assert len(total_run), "Size of the BenchmarkModel list must be larger than zero."
+    check_env(total_run)
     for subrun in total_run:
-        subrun_key = get_subrun_key(*subrun)
+        subrun_key = get_subrun_key(subrun)
         bmconfigs = total_run[subrun]
         assert len(bmconfigs), f"Size of subrun {subrun} must be larger than zero."
         subrun_path = output_path.joinpath(subrun_key)

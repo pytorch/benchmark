@@ -1,0 +1,33 @@
+name: TorchBench Userbenchmark on AI Cluster
+on:
+  schedule:
+    # on the AI cluster, the cron job runs at 8 PM UTC
+    # we expect the result to be available at 10 PM UTC
+    - cron: '0 22 * * *' # run at 10 PM UTC
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.8"
+  CONDA_ENV_NAME: "ai-cluster-ci"
+jobs:
+  collect-userbenchmark-result:
+    runs-on: [linux.2xlarge] # a small instance is sufficient
+    timeout-minutes: 60 # 1 hour
+    steps:
+      - name: Checkout TorchBench
+        uses: actions/checkout@v2
+        with:
+          path: benchmark
+      - name: Install conda
+        run: |
+          bash benchmark/scripts/setup_ci.sh
+          bash benchmark/scripts/install_basics.sh
+      - name: Create conda environment
+        run: |
+          conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+          . activate "${CONDA_ENV_NAME}"
+      - name: Run AI Cluster benchmark
+        run: |
+          . activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python ./github/scripts/userbenchmarks/schedule-benchmarks.py --platform ai-cluster

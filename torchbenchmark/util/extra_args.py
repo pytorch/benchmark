@@ -2,6 +2,7 @@ import argparse
 from typing import List, Optional, Tuple
 from torchbenchmark.util.backends import list_backends, BACKENDS
 
+from torchbenchmark.util.backends.flops import enable_fvcore_flops
 from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
 
@@ -109,7 +110,8 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
-    parser.add_argument("--flops", choices=["model", "dcgm"], help="Return the flops result")
+    parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
+    parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"
@@ -123,6 +125,8 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     return args, extra_args
 
 def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, extra_args: List[str]):
+    if args.flops == "fvcore":
+        enable_fvcore_flops(model)
     if args.backend:
         backend = BACKENDS[args.backend]
         # transform the model using the specified backend
@@ -133,7 +137,7 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
         import torch
         model.add_context(lambda: torch.jit.fuser(args.fuser))
     if args.fx2trt:
-        if args.jit:
+        if model.jit:
             raise NotImplementedError("fx2trt with JIT is not available.")
         module, exmaple_inputs = model.get_module()
         fp16 = not (model.dargs.precision == "fp32")

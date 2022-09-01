@@ -87,7 +87,7 @@ def parse_args(args: List[str]=None):
         if args:
             return parser.parse_known_args(args)
         else:
-            return parser.parse_args()
+            return parser.parse_known_args()
     except:
         parser.print_help()
         sys.exit(0)
@@ -145,7 +145,7 @@ class TrainerWrapper(object):
 
 
 def main():
-    args = parse_args()
+    args, model_args, = parse_args()
 
     # Note that the folder will depend on the job_id, to easily track experiments
     executor = submitit.AutoExecutor(folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000)
@@ -167,7 +167,7 @@ def main():
     args.dist_url = get_init_file(args).as_uri()
     args.output_dir = args.job_dir
 
-    job = executor.submit(TrainerWrapper(args))
+    job = executor.submit(TrainerWrapper(args, model_args))
     # print ID of the Slurm job
     print(job.job_id)
 

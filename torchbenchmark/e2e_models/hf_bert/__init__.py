@@ -36,7 +36,7 @@ class Model(E2EBenchmarkModel):
         self.device = "cuda"
         self.device_num = 1
         # Parse the extra arguments
-        self.tb_args = parse_torchbench_args(extra_args)
+        self.tb_args = parse_torchbench_args(self.extra_args)
         torch.manual_seed(1337)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
@@ -74,6 +74,8 @@ class Model(E2EBenchmarkModel):
             hf_args.deepspeed_plugin.deepspeed_config.update(zero_opt_cfg)
         elif self.tb_args.distributed == "ddp":
             hf_args.apply_ddp = True
+        elif self.tb_args.distributed == "none":
+            hf_args.apply_ddp = False
         else:
             raise RuntimeError(f"Unsupported distributed scheme {self.tb_args.distributed} for model hf_bert")
 

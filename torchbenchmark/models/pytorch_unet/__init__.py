@@ -70,6 +70,14 @@ class Model(BenchmarkModel):
             grad_scaler.step(optimizer)
             grad_scaler.update()
 
+    def jit_callback(self):
+        assert self.jit, "Calling JIT callback without specifying the JIT option."
+        if self.test == 'eval':
+            self.model = torch.jit.optimize_for_inference( \
+                torch.jit.freeze(torch.jit.script(self.model.eval()), preserved_attrs=["n_classes"]))
+        else:
+            self.model = torch.jit.script(self.model)
+
     def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
         with torch.no_grad():

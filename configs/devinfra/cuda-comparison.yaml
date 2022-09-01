@@ -1,0 +1,10 @@
+cuda_version:
+  - "11.3"
+  - "11.6"
+device:
+  - "cuda"
+test:
+  - "train"
+  - "eval"
+args:
+  - ""

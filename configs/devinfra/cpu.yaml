@@ -1,0 +1,7 @@
+device:
+  - "cpu"
+test:
+  - "train"
+  - "eval"
+args:
+  - ""

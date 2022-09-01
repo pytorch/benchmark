@@ -38,8 +38,8 @@ from torchbenchmark.tasks import RECOMMENDATION
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
-    DEFAULT_TRAIN_BSIZE = 1000
-    DEFAULT_EVAL_BSIZE = 1000
+    DEFAULT_TRAIN_BSIZE = 2048
+    DEFAULT_EVAL_BSIZE = 2048
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -51,8 +51,8 @@ class Model(BenchmarkModel):
         arch_mlp_bot = "512-512-64"
         arch_mlp_top = "1024-1024-1024-1"
         data_generation = "random"
-        mini_batch_size = 2048
-        num_batches = self.batch_size
+        mini_batch_size = self.batch_size
+        num_batches = 1
         num_indicies_per_lookup = 100
 
         self.opt = Namespace(**{
