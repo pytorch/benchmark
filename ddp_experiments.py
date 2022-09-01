@@ -1,13 +1,32 @@
 import argparse
 import importlib
 import os
+import csv
+import io
 import submitit
+import datetime
 import sys
 import torch
 import uuid
 
 from pathlib import Path
 from typing import List
+
+def output_csv(filename, headers, row):
+    assert filename
+    existed = os.path.exists(filename)
+    output = csv.writer(
+        io.TextIOWrapper(
+            open(filename, "ab", buffering=0),
+            "utf-8",
+            write_through=True,
+        ),
+        lineterminator="\n",
+    )
+    if not existed:
+        output.writerow(headers)
+    output.writerow([(f"{x:.4f}" if isinstance(x, float) else x) for x in row])
+
 
 
 def parse_args(args: List[str]=None):
@@ -49,6 +68,13 @@ def parse_args(args: List[str]=None):
     )
 
     parser.add_argument(
+        "--distributed",
+        default="ddp",
+        type=str,
+        help="the distributed runner to use"
+    )
+
+    parser.add_argument(
         "--job_dir",
         default=os.getcwd(),
         type=str,
@@ -73,6 +99,13 @@ def parse_args(args: List[str]=None):
         default="torchbenchmark.util.distributed.core_model.trainer.Trainer",
         help="training paradigm, by default using DDP"
     )
+    parser.add_argument(
+        "--index_file",
+        type=str,
+        default=f"ddp_experiments_{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv",
+        help="training paradigm, by default using DDP"
+    )
+
 
     try:
         if args:
@@ -113,7 +146,7 @@ class TrainerWrapper(object):
         module = importlib.import_module(self.args.trainer[:pos])
         trainer_class = getattr(module, self.args.trainer[(pos+1):])
 
-        return trainer_class(self.args, model_class, batch_size=self.args.batch_size, model_args=self.model_args).measure()
+        return trainer_class(self.args, model_class, model_args=self.model_args).measure()
 
     def checkpoint(self):
         self.args.dist_url = get_init_file(self.args).as_uri()
@@ -176,29 +209,43 @@ def main():
     # # waits for completion and returns output
     # print(job.results())
 
-    # models = ['torchbenchmark.models.hf_Bert.Model', 'torchbenchmark.models.hf_BertLarge.Model', \
-    #     'torchbenchmark.models.hf_GPT2_large.Model', 'torchbenchmark.models.hf_T5_large.Model', \
-    #         'torchbenchmark.models.timm_vision_transformer_large.Model', 'torchbenchmark.models.hf_GPT2.Model', \
-    #             'torchbenchmark.models.hf_T5.Model']
+    models = [
+        'torchbenchmark.models.hf_Bert.Model',
+        # 'torchbenchmark.models.hf_BertLarge.Model',
+        'torchbenchmark.models.hf_GPT2_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
+        # 'torchbenchmark.models.hf_GPT2.Model',
+        'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.resnet50.Model',
+    ]
 
-    # model_batch_size = {'torchbenchmark.models.hf_Bert.Model': 32, 'torchbenchmark.models.hf_BertLarge.Model': 16, \
-    #     'torchbenchmark.models.hf_GPT2_large.Model': 4, 'torchbenchmark.models.hf_T5_large.Model': 4, \
-    #         'torchbenchmark.models.timm_vision_transformer_large.Model': 16, 'torchbenchmark.models.hf_GPT2.Model': 24, \
-    #             'torchbenchmark.models.hf_T5.Model': 12}
-    models = ['torchbenchmark.models.hf_Bert.Model', 'torchbenchmark.models.resnet50.Model']
-    model_batch_size = {'torchbenchmark.models.hf_Bert.Model': 32, 'torchbenchmark.models.resnet50.Model': 32}
+    model_batch_size = {
+        'torchbenchmark.models.hf_Bert.Model': 32,
+        'torchbenchmark.models.hf_BertLarge.Model': 16,
+        'torchbenchmark.models.hf_GPT2_large.Model': 4,
+        'torchbenchmark.models.hf_T5_large.Model': 4,
+        'torchbenchmark.models.timm_vision_transformer_large.Model': 16,
+        'torchbenchmark.models.hf_GPT2.Model': 24,
+        'torchbenchmark.models.hf_T5.Model': 12,
+        'torchbenchmark.models.resnet50.Model': 32,
+    }
     model_args_configs = [
         [],  # no args = pure eager baseline
         ["--torchdynamo", "eager"],  # runs dynamo without a backend
         ["--torchdynamo", "aot_nvfuser"],
+        ["--torchdynamo", "inductor"],
     ]
-    # node_list = [i for i in range(24, 25)]
-    # node_list = [1, 2, 4, 8, 16, 24]
-    node_list = [1, 2]
+    node_list = [1, 2, 4, 8, 12, 16, 20, 24]
+
+    def get_backend_name(model_args):
+        if "--torchdynamo" in model_args:
+            return "torchdynamo_" + model_args[model_args.index("--torchdynamo") + 1]
+        return "eager"
+
     for nodes in node_list:
         for model_name in models:
             for model_args in model_args_configs:
-                print(f"submitting {model_name} for {nodes} nodes, with backend settings {model_args}")
                 batch_size = model_batch_size[model_name]
                 args.model = model_name
                 args.batch_size = batch_size
@@ -219,10 +266,16 @@ def main():
                 job = executor.submit(TrainerWrapper(args, model_args))
 
                 # print ID of the Slurm job
-                print(job.job_id)
+                backend_name = get_backend_name(model_args)
+                print(f"{model_name}_{backend_name}_{nodes}: {job.job_id}")
+                output_csv(
+                    args.index_file,
+                    ("model", "backend", "nodes", "job_id"),
+                    (model_name, backend_name, nodes, job.job_id),
+                )
 
-        # waits for completion and returns output
-        print(job.results())
+    # waits for completion and returns output
+    print(job.results())
 
 
 if __name__=="__main__":
