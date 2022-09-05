@@ -14,6 +14,7 @@ import pathlib
 import dataclasses
 import itertools
 import torch
+from pprint import pprint
 from typing import List, Optional, Dict, Any, Tuple
 from torchbenchmark import ModelTask
 
@@ -168,6 +169,12 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         return result
 
 if __name__ == "__main__":
+    if '--list' in sys.argv:
+        model_fpathes = _list_model_paths([])
+        models = list(x.name for x in model_fpathes)
+        pprint(models)
+        exit(0)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--models", nargs='+', default=[],
                         help="Specify one or more models to run. If not set, trigger a sweep-run on all models.")
