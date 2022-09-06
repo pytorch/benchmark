@@ -110,16 +110,20 @@ class TorchBenchUserbenchmarkUploader(ScribeUploader):
         # print(messages)
         self.upload(messages)
 
+def process_benchmark_json(userbenchmark_json):
+    # Result sanity check
+    json_name = os.path.basename(args.userbenchmark_json.name)
+    benchmark_time = get_metrics_date_from_file(json_name)
+    benchmark_data = json.load(args.userbenchmark_json)
+    return benchmark_time, benchmark_data
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--userbenchmark_json", required=True,
                         type=argparse.FileType('r'),
                         help='Upload userbenchmark json data')
     args = parser.parse_args()
-    # Result sanity check
-    json_name = os.path.basename(args.userbenchmark_json.name)
-    benchmark_time = get_metrics_date_from_file(json_name)
-    benchmark_data = json.load(args.userbenchmark_json)
+    benchmark_time, benchmark_data = process_benchmark_json(args.userbenchmark_json)
     # use uploader
     uploader = TorchBenchUserbenchmarkUploader()
     uploader.post_userbenchmark_results(benchmark_time, benchmark_data)

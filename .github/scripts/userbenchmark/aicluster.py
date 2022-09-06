@@ -36,7 +36,7 @@ class add_path():
             pass
 
 with add_path(str(REPO_ROOT)):
-    pass
+    from scripts.userbenchmark.upload_scribe import TorchBenchUserbenchmarkUploader, process_benchmark_json
 
 class S3Client:
     def __init__(self, bucket=AICLUSTER_S3_BUCKET, object=AICLUSTER_S3_OBJECT):
@@ -50,14 +50,16 @@ class S3Client:
         with open(os.path.join(dest_dir, filename), 'wb') as f:
             self.s3.download_fileobj(self.bucket, key, f)
 
-    def upload_file(self, key, file_path):
-        response = self.s3.upload_file(file_path, self.bucket, key)
+    def upload_file(self, prefix, file_path):
+        file_name = file_path.name
+        s3_key = f"{self.object}/{prefix}/{file_name}" if prefix else f"{self.object}/{file_name}"
+        response = self.s3.upload_file(str(file_path), self.bucket, s3_key)
         print(f"S3 client response: {response}")
 
     def exists(self, prefix, file_name):
         """Test if the key object/prefix/file_name exists in the S3 bucket.
            If True, return the S3 object key. Return None otherwise. """
-        s3_key = f"{self.object}/{prefix}/{file_name}"
+        s3_key = f"{self.object}/{prefix}/{file_name}" if prefix else f"{self.object}/{file_name}"
         result = self.s3.list_objects_v2(Bucket=self.bucket, Prefix=s3_key)
         if 'Contents' in result:
             return s3_key
@@ -129,22 +131,44 @@ def get_metrics_index(s3, benchmark_name, work_dir):
     updated_index = update_index_from_metrics(index, metric_files)
     return updated_index
 
-def upload_scribe(s3, index):
+def upload_scribe(s3, benchmark_name, index, work_dir):
     """
     for each 'uploaded-scrbe: False' file in index
       1. download it from S3
       2. upload it to scribe
-      3. if success, update the index file with 'uploaded: True'
-      4. upload the updated index file to S3
+      3. if success, update the index file with 'uploaded-scribe: True'
+    upload the updated index file to S3 after processing all files
     """
     try:
         for index_key in index:
-            pass
-    except:
-        pass
+            assert "uploaded-scribe" in index[index_key], \
+                f"Index key {index_key} missing field uploaded-scribe!"
+        index_file_path = work_dir.joinpath(INDEX_FILE_NAME)
+        with open(index_file_path, "w") as index_file:
+            yaml.safe_dump(index, index_file)
+        need_upload_metrics = filter(lambda x: not index[x]["uploaded-scribe"], index.keys())
+        for upload_metrics in need_upload_metrics:
+            # download the metrics file from S3 to work_dir
+            metrics_key = s3.exists(prefix=None, file_name=upload_metrics)
+            assert metrics_key, f"Expected metrics file {upload_metrics} does not exist."
+            s3.download(metrics_key, work_dir)
+            # upload it to scribe
+            metrics_path = str(work_dir.joinpath(upload_metrics).resolve())
+            benchmark_time, benchmark_data = process_benchmark_json(metrics_path)
+            uploader = TorchBenchUserbenchmarkUploader()
+            # user who run the benchmark on ai cluster
+            uploader.UNIX_USER = "diegosarina"
+            uploader.SUBMISSION_GROUP_GUID = "ai-cluster"
+            uploader.post_userbenchmark_results(benchmark_time, benchmark_data)
+            # update the index file
+            index[upload_metrics]["uploaded-scribe"] = True
+            with open(index_file_path, "w") as index_file:
+                yaml.safe_dump(index, index_file)
+    except subprocess.SubprocessError:
+        print(f"Failed to upload the file to scribe.")
     finally:
-        # dump and upload the result index file to S3
-        pass
+        # upload the result index file to S3
+        s3.upload_file(prefix=benchmark_name, file_path=index_file_path)
 
 def get_work_dir(benchmark_name):
     workdir = Path(REPO_ROOT).joinpath(".userbenchmark").joinpath(benchmark_name).joinpath("logs")
@@ -162,7 +186,7 @@ def run_aicluster_benchmark(benchmark_name: str, check_success=True, upload_scri
         assert False, f"Don't find the last successful run in index: { index }. Please report a bug."
     # upload to scribe by the index
     if upload_scribe:
-        upload_scribe(s3, index, work_dir)
+        upload_scribe(s3, benchmark_name, index, work_dir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
