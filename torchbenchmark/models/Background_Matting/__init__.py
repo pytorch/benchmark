@@ -50,12 +50,11 @@ class Model(BenchmarkModel):
             'name': 'Real_fixed'
         })
 
-        scriptdir = os.path.join(DATA_PATH, "Background_Matting_inputs")
+        datadir = os.path.join(DATA_PATH, "Background_Matting_inputs")
         csv_file_path = _create_data_dir().joinpath("Video_data_train_processed.csv")
-        root = str(Path(__file__).parent)
-        with open(f"{root}/Video_data_train.csv", "r") as r:
+        with open(f"{datadir}/Video_data_train.csv", "r") as r:
             with open(csv_file_path, "w") as w:
-                w.write(r.read().format(scriptdir=scriptdir))
+                w.write(r.read().format(scriptdir=datadir))
         data_config_train = {
             'reso': (self.opt.resolution, self.opt.resolution)}
         traindata = VideoData(csv_file=csv_file_path,
@@ -98,8 +97,8 @@ class Model(BenchmarkModel):
         self.optimizerG = optim.Adam(netG.parameters(), lr=1e-4)
         self.optimizerD = optim.Adam(netD.parameters(), lr=1e-5)
 
-        self.log_writer = SummaryWriter(scriptdir)
-        self.model_dir = scriptdir
+        self.log_writer = SummaryWriter(datadir)
+        self.model_dir = datadir
 
         self._maybe_trace()
 
