@@ -6,7 +6,7 @@ import numpy as np
 
 from torchbenchmark.util.env_check import set_random_seed
 
-from .dalle2_pytorch import DALLE2, Unet, Decoder, DiffusionPriorNetwork, DiffusionPrior, OpenAIClipAdapter
+from dalle2_pytorch import DALLE2, Unet, Decoder, DiffusionPriorNetwork, DiffusionPrior, OpenAIClipAdapter
 import typing
 
 torch.backends.cudnn.deterministic = False
@@ -26,24 +26,24 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
     
-        self.clip = OpenAIClipAdapter()
+        self.clip = OpenAIClipAdapter().cpu()
 
-        self.sample_text = torch.randint(0, 49408, (4, 256)).cuda()
-        self.sample_images = torch.randn(4, 3, 256, 256).cuda()
+        self.sample_text = torch.randint(0, 49408, (4, 256), device=self.device)
+        self.sample_images = torch.randn(4, 3, 256, 256, device=self.device)
 
         prior_network = DiffusionPriorNetwork(
             dim = 512,
             depth = 6,
             dim_head = 64,
             heads = 8
-        ).cuda()
+        ).cpu()
 
         self.diffusion_prior = DiffusionPrior(
             net = prior_network,
             clip = self.clip,
             timesteps = 100,
             cond_drop_prob = 0.2
-        ).cuda()
+        ).cpu()
 
         unet1 = Unet(
             dim = 128,
@@ -53,7 +53,7 @@ class Model(BenchmarkModel):
             dim_mults=(1, 2, 4, 8),
             text_embed_dim = 512,
             cond_on_text_encodings = True  # set to True for any unets that need to be conditioned on text encodings (ex. first unet in cascade)
-        ).cuda()
+        ).cpu()
 
         unet2 = Unet(
             dim = 16,
@@ -61,7 +61,7 @@ class Model(BenchmarkModel):
             cond_dim = 128,
             channels = 3,
             dim_mults = (1, 2, 4, 8, 16)
-        ).cuda()
+        ).cpu()
 
         self.decoder = Decoder(
             unet = (unet1, unet2),
@@ -71,16 +71,25 @@ class Model(BenchmarkModel):
             sample_timesteps = (250, 27),
             image_cond_drop_prob = 0.1,
             text_cond_drop_prob = 0.5
-        ).cuda()
+        ).cpu()
+
+        if "cuda" in self.device:
+            self.clip = self.clip.cuda()
+            self.diffusion_prior = self.diffusion_prior.cuda()
+            self.decoder = self.decoder.cuda()
+
+        self.model = (self.diffusion_prior, self.decoder, )
+        self.example_inputs = ((self.sample_text, self.sample_images), (self.sample_images, self.sample_text),)
 
         if test == "train":
-            self.train()
+            self.diffusion_prior.train()
+            self.decoder.train()
         elif test == "eval":
-            self.eval()
-
+            self.diffusion_prior.eval()
+            self.decoder.eval()
 
     def get_module(self):
-        return (self.diffusion_prior, self.decoder,), ((self.sample_text, self.sample_images), (self.sample_images, self.sample_text),)
+        return self.model, self.example_inputs
 
     def set_module(self, new_model):
         self.diffusion_prior, self.decoder = new_model
@@ -104,8 +113,8 @@ class Model(BenchmarkModel):
         clip = self.clip
 
         # mock data
-        text = torch.randint(0, 49408, (4, 256)).cuda()
-        images = torch.randn(4, 3, 256, 256).cuda()
+        text = torch.randint(0, 49408, (4, 256), device=self.device)
+        images = torch.randn(4, 3, 256, 256, device=self.device)
 
         # prior networks (with transformer)
         diffusion_prior = self.diffusion_prior
