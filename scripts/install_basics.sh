@@ -19,8 +19,9 @@ conda install -y python=3.8
 pip install unittest-xml-reporting
 
 # install CUDA 11.6
-wget -q https://developer.download.nvidia.com/compute/cuda/11.6.2/local_installers/cuda_11.6.2_510.47.03_linux.run
-chmod +x https://developer.download.nvidia.com/compute/cuda/11.6.2/local_installers/cuda_11.6.2_510.47.03_linux.run
+wget -q https://developer.download.nvidia.com/compute/cuda/11.6.2/local_installers/cuda_11.6.2_510.47.03_linux.run \
+     -O cuda_11.6.2_510.47.03_linux.run
+chmod +x cuda_11.6.2_510.47.03_linux.run
 sudo ./cuda_11.6.2_510.47.03_linux.run --toolkit --silent
 sudo rm -f cuda_11.6.2_510.47.03_linux.run
 sudo rm -f /usr/local/cuda
