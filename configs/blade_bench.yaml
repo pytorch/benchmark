@@ -14,7 +14,6 @@ models:
   - "hf_Bert"
   - "nvidia_deeprecommender"
   - "resnet18"
-  - "timm_efficientnet"
 precision:
   - "fp16"
   - "fp32"
