@@ -16,6 +16,7 @@ import numpy as np
 from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
+from torchbenchmark import DATA_PATH
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
@@ -49,7 +50,7 @@ class Model(BenchmarkModel):
             'name': 'Real_fixed'
         })
 
-        scriptdir = os.path.dirname(os.path.realpath(__file__))
+        scriptdir = os.path.join(DATA_PATH, "Background_Matting_inputs")
         csv_file_path = _create_data_dir().joinpath("Video_data_train_processed.csv")
         root = str(Path(__file__).parent)
         with open(f"{root}/Video_data_train.csv", "r") as r:
