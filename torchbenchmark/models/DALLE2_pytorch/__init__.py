@@ -20,8 +20,8 @@ import io
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
-    DEFAULT_TRAIN_BSIZE = 16
-    DEFAULT_EVAL_BSIZE = 16
+    DEFAULT_TRAIN_BSIZE = 4
+    DEFAULT_EVAL_BSIZE = 4
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -73,13 +73,14 @@ class Model(BenchmarkModel):
             text_cond_drop_prob = 0.5
         ).cpu()
 
+        self.model = DALLE2(prior = self.diffusion_prior, decoder = self.decoder).cpu()
+        self.example_inputs = self.sample_text = torch.randint(0, 49408, (4, 256), device=self.device)
+
         if "cuda" in self.device:
             self.clip = self.clip.cuda()
             self.diffusion_prior = self.diffusion_prior.cuda()
             self.decoder = self.decoder.cuda()
-
-        self.model = (self.diffusion_prior, self.decoder, )
-        self.example_inputs = ((self.sample_text, self.sample_images), (self.sample_images, self.sample_text),)
+            self.model = self.model.cuda()
 
         if test == "train":
             self.diffusion_prior.train()
@@ -95,38 +96,25 @@ class Model(BenchmarkModel):
         self.diffusion_prior, self.decoder = new_model
 
     def eval(self):
-        diffusion_prior = self.diffusion_prior
-        decoder = self.decoder
-
-        dalle2 = DALLE2(
-            prior = diffusion_prior,
-            decoder = decoder
-        )
-
-        texts = ['glistening morning dew on a flower petal']
-        images = dalle2(texts)
-
+        inputs, model = self.example_inputs, self.model
+        images = model(inputs)
         return images
 
     def train(self):
         # openai pretrained clip - defaults to ViT-B/32
         clip = self.clip
 
-        # mock data
-        text = torch.randint(0, 49408, (4, 256), device=self.device)
-        images = torch.randn(4, 3, 256, 256, device=self.device)
-
         # prior networks (with transformer)
         diffusion_prior = self.diffusion_prior
 
-        loss = diffusion_prior(text, images)
+        loss = diffusion_prior(self.sample_text, self.sample_images)
         loss.backward()
 
         # decoder (with unet)
         decoder = self.decoder
 
-        loss = decoder(images, text, unet_number=1)
+        loss = decoder(self.sample_images, self.sample_text, unet_number=1)
         loss.backward()
 
-        loss = decoder(images, text, unet_number=2)
+        loss = decoder(self.sample_images, self.sample_text, unet_number=2)
         loss.backward()
