@@ -9,7 +9,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).parent
 
 def s3_checkout():
-    S3_URL_BASE = "https://ossci-datasets.s3.amazonaws.com/torchbench/data/"
+    S3_URL_BASE = "https://ossci-datasets.s3.amazonaws.com/torchbench"
     data_dir = REPO_ROOT.joinpath("torchbenchmark", "data")
     model_dir = REPO_ROOT.joinpath("torchbenchmark", "models")
     index_file = REPO_ROOT.joinpath("torchbenchmark", "data", "index.yaml")
@@ -17,14 +17,16 @@ def s3_checkout():
     with open(index_file, "r") as ind:
         index = yaml.safe_load(ind)
     for input_file in index["INPUT_TARBALLS"]:
-        s3_url = f"{S3_URL_BASE}{input_file}"
+        s3_url = f"{S3_URL_BASE}/data/{input_file}"
         r = requests.get(s3_url, allow_redirects=True)
         with open(str(data_dir.joinpath(input_file)), "wb") as output:
+            print(f"Checking out {s3_url} to {data_dir.joinpath(input_file)}")
             output.write(r.content)
     for model_file in index["MODEL_PKLS"]:
-        s3_url = f"{S3_URL_BASE}{model_file}"
+        s3_url = f"{S3_URL_BASE}/models/{model_file}"
         r = requests.get(s3_url, allow_redirects=True)
-        with open(str(model_dir.joinpath(input_file)), "wb") as output:
+        with open(str(model_dir.joinpath(model_file)), "wb") as output:
+            print(f"Checking out {s3_url} to {model_dir.joinpath(model_file)}")
             output.write(r.content)
 
 def git_lfs_checkout():
@@ -97,7 +99,7 @@ if __name__ == '__main__':
         print("OK")
     else:
         print("FAIL")
-        print("git lfs failed. checking out input files from S3 instead...", end="", flush=True)
+        print("git lfs failed. checking out input files from S3...", end="", flush=True)
         s3_checkout()
         print("OK")
 
