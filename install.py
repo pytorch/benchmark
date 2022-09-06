@@ -2,8 +2,24 @@ import argparse
 import subprocess
 import os
 import sys
+import yaml
 import tarfile
 from utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
+from pathlib import Path
+REPO_ROOT = Path(__file__).parent
+
+def s3_checkout():
+    S3_URL_BASE = "https://ossci-datasets.s3.amazonaws.com/torchbench/data/"
+    download_dir = REPO_ROOT.joinpath("torchbenchmark", "data")
+    index_file = REPO_ROOT.joinpath("torchbenchmark", "data", "index.yaml")
+    import requests
+    with open(index_file, "r") as ind:
+        index = yaml.safe_load(ind)
+    for input_file in index:
+        s3_url = f"{S3_URL_BASE}{input_file}"
+        r = requests.get(s3_url, allow_redirects=True)
+        with open(str(download_dir.joinpath(input_file)), "wb") as output:
+            output.write(r.content)
 
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
@@ -69,15 +85,8 @@ if __name__ == '__main__':
         sys.exit(-1)
     print("OK")
 
-    print("checking out Git LFS files...", end="", flush=True)
-    success, errmsg = git_lfs_checkout()
-    if success:
-        print("OK")
-    else:
-        print("FAIL")
-        print("Failed to checkout git lfs files. Please make sure you have installed git lfs.")
-        print(errmsg)
-        sys.exit(-1)
+    print("checking out input files from S3...", end="", flush=True)
+    s3_checkout()
     decompress_input()
 
     if args.component == "distributed":
