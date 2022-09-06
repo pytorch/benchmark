@@ -1,6 +1,4 @@
 *.pkl filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/pytorch_struct/docs/source/model.ipynb filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/pytorch_struct/docs/source/semiring.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/data/tacotron2-minimal.tar.gz filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/data/coco128.tar.gz filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/maml/batch.pt filter=lfs diff=lfs merge=lfs -text
