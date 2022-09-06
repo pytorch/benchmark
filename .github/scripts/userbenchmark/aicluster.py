@@ -17,6 +17,7 @@ from pathlib import Path
 
 AICLUSTER_S3_BUCKET = "ossci-metrics"
 AICLUSTER_S3_OBJECT = "torchbench-aicluster-metrics"
+INDEX_FILE_NAME = "index.yaml"
 
 REPO_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 class add_path():
@@ -68,30 +69,49 @@ class S3Client:
                 raise RuntimeError(f"Error when checking s3 file {file_name} exist: {e}")
         return True
 
-    def list_directory(self, directory):
+    def list_directory(self, directory=None):
         """List the directory files in the S3 bucket path.
            If the directory doesn't exist, report an error. """
-        pages = self.s3.get_paginator("list_objects_v2").paginate(Bucket=self.bucket)
-        for p in pages:
-            print(p['Contents'])
-        # keys = [e['Key'] for p in pages for e in p['Contents']]
-        keys = []
+        prefix = f"{self.object}/{directory}/" if directory else f"{self.object}/"
+        pages = self.s3.get_paginator("list_objects").paginate(Bucket=self.bucket, Prefix=prefix)
+        keys = filter(lambda x: not x == prefix, [e['Key'] for p in pages for e in p['Contents']])
         return list(keys)
+    
+    def get_filename_from_key():
+        pass
 
 def determine_success_today(index):
     """
     Determine whether today's run is successful.
     """
+    # get today's date in UTC
+    # check if today's json exists in the json file
+    # return result
     pass
 
 def get_metrics_index(s3, benchmark_name, work_dir):
     """
-    1. List the metrics files from S3 directory
-    2. Try download the index file from S3, if not found, create an initial one
+    1. Try to download the index file from S3, 
+    2. if not found, create an initial one with the metrics files from S3 directory
     3. Otherwise, compare the downloaded index file with the metrics file list, update the index file, and return
     """
-    metric_files = s3.list_directory(benchmark_name)
-    print(metric_files)
+    def exist_index_file(index_file_keys):
+        if not index_file_keys:
+            return None
+        for key in index_file_keys:
+            if s3.get_filename_from_key() == INDEX_FILE_NAME:
+                return key
+        return None
+    def gen_index_obj(index_file):
+        # download and load the index file if exists, otherwise, return empty object
+        pass
+    def update_index_from_metrics():
+        pass
+    index_file = exist_index_file(s3.list_directory(directory=benchmark_name))
+    index_obj = gen_index_obj(index_file)
+    metric_files = s3.list_directory(directory=None)
+    updated_index = update_index_from_metrics(index_obj, metric_files)
+    return updated_index
 
 def upload_scribe(s3, index):
     """
