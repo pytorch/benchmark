@@ -85,9 +85,16 @@ if __name__ == '__main__':
         sys.exit(-1)
     print("OK")
 
-    print("checking out input files from S3...", end="", flush=True)
-    s3_checkout()
-    print("OK")
+    print("checking out Git LFS files...", end="", flush=True)
+    success, errmsg = git_lfs_checkout()
+    if success:
+        print("OK")
+    else:
+        print("FAIL")
+        print("git lfs failed. checking out input files from S3 instead...", end="", flush=True)
+        s3_checkout()
+        print("OK")
+
     decompress_input()
 
     if args.component == "distributed":
