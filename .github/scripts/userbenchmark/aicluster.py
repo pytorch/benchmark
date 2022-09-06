@@ -11,7 +11,10 @@ torchbench-aicluster-metrics/
 import boto3
 import sys
 import os
+import datetime
+import yaml
 import argparse
+import subprocess
 from pathlib import Path
 
 AICLUSTER_S3_BUCKET = "ossci-metrics"
@@ -72,14 +75,25 @@ class S3Client:
         filename = object_key.split('/')[-1]
         return filename
 
-def determine_success_today(index):
+def determine_success_today(index, allow_yesterday=True):
     """
-    Determine whether today's run is successful.
+    Determine whether today or yesterday's run is successful.
     """
     # get today's date in UTC
-    # check if today's json exists in the json file
-    # return result
-    pass
+    today = datetime.datetime.utcnow().date()
+    today_str = f"metrics-{today.strftime('%Y%m%d')}"
+    yesterday = (today - datetime.timedelta(days=1))
+    yesterday_str = f"metrics-{yesterday.strftime('%Y%m%d')}"
+    for index_key in index:
+        # check if today or yesterday's date exists in the index
+        if today_str in index_key:
+            print(f"Found today run log: {index_key} ")
+            return True
+        if allow_yesterday and yesterday_str in index_key:
+            print(f"Found yesterday run log: {index_key} ")
+            return True
+    # not found, the last run probably failed
+    return False
 
 def get_metrics_index(s3, benchmark_name, work_dir):
     """
@@ -87,42 +101,65 @@ def get_metrics_index(s3, benchmark_name, work_dir):
     2. if not found, create an initial one with the metrics files from S3 directory
     3. Otherwise, compare the downloaded index file with the metrics file list, update the index file, and return
     """
-    def gen_index_obj(s3, index_key):
+    def gen_index_obj(index_key):
         "download and load the index file if exists, otherwise, return empty object."
         if not index_key:
             return {}
-        s3.download_file()
-    def update_index_from_metrics():
-        pass
+        filename = S3Client.get_filename_from_key(index_key)
+        s3.download_file(index_key, work_dir)
+        with open(work_dir.joinpath(filename), "r") as index_f:
+            index = yaml.safe_load(index_f)
+        return index
+    def filter_metric_files(metric_files):
+        filtered_metrics = list(filter(lambda x: S3Client.get_filename_from_key(x) \
+                                and S3Client.get_filename_from_key(x).startswith("metrics-") \
+                                and x.endswith(".json"), \
+                                s3.list_directory(directory=None)))
+        return filtered_metrics
+    def update_index_from_metrics(index, metric_files):
+        metric_filenames = list(map(lambda x: S3Client.get_filename_from_key(x), metric_files))
+        for metric_filename in metric_filenames:
+            if not metric_filename in index:
+                index[metric_filename] = {}
+                index[metric_filename]["uploaded-scribe"] = False
+        return index
     index_key = s3.exists(prefix=benchmark_name, file_name=INDEX_FILE_NAME)
-    index_obj = gen_index_obj(index_key)
-    metric_files = s3.list_directory(directory=None)
-    updated_index = update_index_from_metrics(index_obj, metric_files)
+    index = gen_index_obj(index_key)
+    metric_files = filter_metric_files(s3.list_directory(directory=None))
+    updated_index = update_index_from_metrics(index, metric_files)
     return updated_index
 
 def upload_scribe(s3, index):
     """
-    for each 'uploaded: False' file in index
+    for each 'uploaded-scrbe: False' file in index
       1. download it from S3
       2. upload it to scribe
       3. if success, update the index file with 'uploaded: True'
       4. upload the updated index file to S3
     """
-    pass
+    try:
+        for index_key in index:
+            pass
+    except:
+        pass
+    finally:
+        # dump and upload the result index file to S3
+        pass
 
 def get_work_dir(benchmark_name):
     workdir = Path(REPO_ROOT).joinpath(".userbenchmark").joinpath(benchmark_name).joinpath("logs")
     workdir.mkdir(parents=True, exist_ok=True)
     return workdir
 
-def run_aicluster_benchmark(benchmark_name: str, dryrun=False, upload_scribe=True):
+def run_aicluster_benchmark(benchmark_name: str, check_success=True, upload_scribe=True):
     work_dir = get_work_dir(benchmark_name)
     print(f"Running benchmark {benchmark_name} on aicluster, work directory: {work_dir}")
     s3 = S3Client()
     # get the benchmark metrics index or create a new one
     index = get_metrics_index(s3, benchmark_name, work_dir)
-    # if today's run is not successful, exit immediately
-    determine_success_today(index)
+    # if the previous run is not successful, exit immediately
+    if check_success and not determine_success_today(index):
+        assert False, f"Don't find the last successful run in index: { index }. Please report a bug."
     # upload to scribe by the index
     if upload_scribe:
         upload_scribe(s3, index, work_dir)
@@ -130,7 +167,7 @@ def run_aicluster_benchmark(benchmark_name: str, dryrun=False, upload_scribe=Tru
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--benchmark", required=True, help="Name of the benchmark to run.")
-    parser.add_argument("--success-today", action="store_true", help="Determine whether the run is succeeded today.")
+    parser.add_argument("--check-success", action="store_true", help="Determine whether checking the run is successful in the last two days.")
     parser.add_argument("--upload-scribe", action="store_true", help="Update the result to Scribe.")
     args = parser.parse_args()
-    run_aicluster_benchmark(benchmark_name=args.benchmark, upload_scribe=args.upload_scribe)
+    run_aicluster_benchmark(benchmark_name=args.benchmark, check_success=args.check_success, upload_scribe=args.upload_scribe)

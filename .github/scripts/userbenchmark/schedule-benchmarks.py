@@ -37,8 +37,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     benchmarks = get_userbenchmarks_by_platform(args.platform)
     if args.platform == "ai-cluster":
+        assert not args.dryrun, "AICluster workflow doesn't support dryrun."
         for ub in benchmarks:
-            run_aicluster_benchmark(ub, dryrun=args.dryrun)
+            run_aicluster_benchmark(ub, check_success=True, upload_scribe=True)
     else:
         for ub in benchmarks:
             run_userbenchmark(ub_name=ub, dryrun=args.dryrun)
