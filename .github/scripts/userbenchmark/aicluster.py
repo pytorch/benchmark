@@ -1,11 +1,12 @@
 """
-The script to upload TorchBench nightly CI result to Amazon S3.
+The script to upload TorchBench CI result from S3 to Scribe (Internal).
 It assumes the following hierarchy of the result directory:
 torchbench-aicluster-metrics/
  |-distributed
    |-metrics-20220805192500.json
 """
 import boto3
+import sys
 import os
 import argparse
 import botocore
@@ -14,6 +15,21 @@ from pathlib import Path
 AICLUSTER_S3_BUCKET = "ossci-metrics"
 AICLUSTER_S3_OBJECT = "torchbench-aicluster-metrics"
 REPO_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
+class add_path():
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
+
+with add_path(str(REPO_ROOT)):
+    from userbenchmark import get_userbenchmarks_by_platform
 
 class S3Client:
     def __init__(self, bucket=AICLUSTER_S3_BUCKET, object=AICLUSTER_S3_OBJECT):
@@ -53,13 +69,19 @@ class S3Client:
            If the directory doesn't exist, report an error. """
         pass
 
-def get_metrics_index(s3, work_dir):
+def determine_success_today(index):
+    """
+    Determine whether today's run is successful.
+    """
+    pass
+
+def get_metrics_index(s3, benchmark_name, work_dir):
     """
     1. List the metrics files from S3 directory
     2. Try download the index file from S3, if not found, create an initial one
     3. Otherwise, compare the downloaded index file with the metrics file list, update the index file, and return
     """
-    pass
+    metric_files = s3.list_directory(benchmark_name)
 
 def upload_scribe(s3, index):
     """
@@ -82,13 +104,16 @@ def run_aicluster_benchmark(benchmark_name: str, dryrun=False, upload_scribe=Tru
     s3 = S3Client()
     # get the benchmark metrics index or create a new one
     index = get_metrics_index(s3, work_dir)
+    # if today's run is not successful, exit immediately
+    determine_success_today(index)
     # upload to scribe by the index
     if upload_scribe:
         upload_scribe(s3, index, work_dir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--benchmark", help="Name of the benchmark to run.")
+    parser.add_argument("--benchmark", required=True, help="Name of the benchmark to run.")
+    parser.add_argument("--success-today", action="store_true", help="Determine whether the run is succeeded today.")
     parser.add_argument("--upload-scribe", action="store_true", help="Update the result to Scribe.")
     args = parser.parse_args()
     run_aicluster_benchmark(benchmark_name=args.benchmark, upload_scribe=args.upload_scribe)
