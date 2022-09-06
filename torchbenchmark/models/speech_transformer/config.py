@@ -12,6 +12,7 @@ from .speech_transformer.transformer.loss import cal_performance
 from .speech_transformer.utils import add_results_to_json, process_dict, IGNORE_ID
 from .speech_transformer.data import build_LFR_features
 from .speech_transformer.data import AudioDataLoader, AudioDataset
+from torchbenchmark import DATA_PATH
 
 @dataclasses.dataclass
 class SpeechTransformerTrainConfig:
@@ -62,7 +63,7 @@ class SpeechTransformerTrainConfig:
     valid_json = "input_data/dev/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self, prefetch=True, train_bs=32, num_train_batch=1, device='cuda'):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = os.path.join(DATA_PATH, "speech_transformer_inputs")
         self.device = device
         self.train_json = os.path.join(dir_path, self.train_json)
         self.valid_json = os.path.join(dir_path, self.valid_json)
