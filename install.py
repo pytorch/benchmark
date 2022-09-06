@@ -15,7 +15,7 @@ def s3_checkout():
     import requests
     with open(index_file, "r") as ind:
         index = yaml.safe_load(ind)
-    for input_file in index:
+    for input_file in index["S3_FILES"]:
         s3_url = f"{S3_URL_BASE}{input_file}"
         r = requests.get(s3_url, allow_redirects=True)
         with open(str(download_dir.joinpath(input_file)), "wb") as output:
@@ -87,6 +87,7 @@ if __name__ == '__main__':
 
     print("checking out input files from S3...", end="", flush=True)
     s3_checkout()
+    print("OK")
     decompress_input()
 
     if args.component == "distributed":
