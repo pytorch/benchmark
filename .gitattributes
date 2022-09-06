@@ -1,14 +1,6 @@
 *.pkl filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/pytorch_CycleGAN_and_pix2pix/imgs/edges2cats.jpg filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/pytorch_CycleGAN_and_pix2pix/imgs/horse2zebra.gif filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_struct/docs/source/model.ipynb filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/pytorch_struct/docs/source/semiring.ipynb filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/BERT_pytorch/data/corpus.small filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/BERT_pytorch/data/vocab.small filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/dlrm/input/dist_emb_0.log filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/dlrm/input/dist_emb_1.log filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/dlrm/input/dist_emb_2.log filter=lfs diff=lfs merge=lfs -text
-torchbenchmark/models/dlrm/input/trace.log filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/data/tacotron2-minimal.tar.gz filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/data/coco128.tar.gz filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/models/maml/batch.pt filter=lfs diff=lfs merge=lfs -text
@@ -19,3 +11,4 @@ torchbenchmark/data/Background_Matting_inputs.tar.gz filter=lfs diff=lfs merge=l
 torchbenchmark/data/LearningToPaint_inputs.tar.gz filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/data/Super_SloMo_inputs.tar.gz filter=lfs diff=lfs merge=lfs -text
 torchbenchmark/data/speech_transformer_inputs.tar.gz filter=lfs diff=lfs merge=lfs -text
+torchbenchmark/data/pytorch_CycleGAN_and_pix2pix_inputs.tar.gz filter=lfs diff=lfs merge=lfs -text
