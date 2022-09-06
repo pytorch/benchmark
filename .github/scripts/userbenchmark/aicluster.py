@@ -1,5 +1,8 @@
 """
 The script to upload TorchBench CI result from S3 to Scribe (Internal).
+To run this script, users need to set two environment variables:
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY
 It assumes the following hierarchy of the result directory:
 torchbench-aicluster-metrics/
  |-distributed
@@ -14,6 +17,7 @@ from pathlib import Path
 
 AICLUSTER_S3_BUCKET = "ossci-metrics"
 AICLUSTER_S3_OBJECT = "torchbench-aicluster-metrics"
+
 REPO_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 class add_path():
     def __init__(self, path):
@@ -29,7 +33,7 @@ class add_path():
             pass
 
 with add_path(str(REPO_ROOT)):
-    from userbenchmark import get_userbenchmarks_by_platform
+    pass
 
 class S3Client:
     def __init__(self, bucket=AICLUSTER_S3_BUCKET, object=AICLUSTER_S3_OBJECT):
@@ -67,7 +71,12 @@ class S3Client:
     def list_directory(self, directory):
         """List the directory files in the S3 bucket path.
            If the directory doesn't exist, report an error. """
-        pass
+        pages = self.s3.get_paginator("list_objects_v2").paginate(Bucket=self.bucket)
+        for p in pages:
+            print(p['Contents'])
+        # keys = [e['Key'] for p in pages for e in p['Contents']]
+        keys = []
+        return list(keys)
 
 def determine_success_today(index):
     """
@@ -82,6 +91,7 @@ def get_metrics_index(s3, benchmark_name, work_dir):
     3. Otherwise, compare the downloaded index file with the metrics file list, update the index file, and return
     """
     metric_files = s3.list_directory(benchmark_name)
+    print(metric_files)
 
 def upload_scribe(s3, index):
     """
@@ -103,7 +113,7 @@ def run_aicluster_benchmark(benchmark_name: str, dryrun=False, upload_scribe=Tru
     print(f"Running benchmark {benchmark_name} on aicluster, work directory: {work_dir}")
     s3 = S3Client()
     # get the benchmark metrics index or create a new one
-    index = get_metrics_index(s3, work_dir)
+    index = get_metrics_index(s3, benchmark_name, work_dir)
     # if today's run is not successful, exit immediately
     determine_success_today(index)
     # upload to scribe by the index
