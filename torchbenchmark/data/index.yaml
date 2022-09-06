@@ -1,6 +1,10 @@
-S3_FILES:
+INPUT_TARBALLS:
   # index file for S3 storage of the input data
   - coco128.tar.gz
   - multi30k.tar.gz
   - tacotron2-minimal.tar.gz
   - coco2017-minimal.tar.gz
+  - pytorch_startgan_inputs.tar.gz
+MODEL_PKLS:
+  - drq/obs.pkl
+  - maml_omniglot/batch.pt

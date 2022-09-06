@@ -10,15 +10,21 @@ REPO_ROOT = Path(__file__).parent
 
 def s3_checkout():
     S3_URL_BASE = "https://ossci-datasets.s3.amazonaws.com/torchbench/data/"
-    download_dir = REPO_ROOT.joinpath("torchbenchmark", "data")
+    data_dir = REPO_ROOT.joinpath("torchbenchmark", "data")
+    model_dir = REPO_ROOT.joinpath("torchbenchmark", "models")
     index_file = REPO_ROOT.joinpath("torchbenchmark", "data", "index.yaml")
     import requests
     with open(index_file, "r") as ind:
         index = yaml.safe_load(ind)
-    for input_file in index["S3_FILES"]:
+    for input_file in index["INPUT_TARBALLS"]:
         s3_url = f"{S3_URL_BASE}{input_file}"
         r = requests.get(s3_url, allow_redirects=True)
-        with open(str(download_dir.joinpath(input_file)), "wb") as output:
+        with open(str(data_dir.joinpath(input_file)), "wb") as output:
+            output.write(r.content)
+    for model_file in index["MODEL_PKLS"]:
+        s3_url = f"{S3_URL_BASE}{model_file}"
+        r = requests.get(s3_url, allow_redirects=True)
+        with open(str(model_dir.joinpath(input_file)), "wb") as output:
             output.write(r.content)
 
 def git_lfs_checkout():
