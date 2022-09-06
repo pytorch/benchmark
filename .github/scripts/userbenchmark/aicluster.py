@@ -45,7 +45,7 @@ class S3Client:
         self.object = object
 
     def download_file(self, key, dest_dir):
-        filename = self.get_filename_from_key(key)
+        filename = S3Client.get_filename_from_key(key)
         assert filename, f"Expected non-empty filename from key {key}."
         with open(os.path.join(dest_dir, filename), 'wb') as f:
             self.s3.download_fileobj(self.bucket, key, f)
@@ -131,7 +131,7 @@ def get_metrics_index(s3, benchmark_name, work_dir):
     updated_index = update_index_from_metrics(index, metric_files)
     return updated_index
 
-def upload_scribe(s3, benchmark_name, index, work_dir):
+def upload_metrics_to_scribe(s3, benchmark_name, index, work_dir):
     """
     for each 'uploaded-scrbe: False' file in index
       1. download it from S3
@@ -149,10 +149,12 @@ def upload_scribe(s3, benchmark_name, index, work_dir):
         need_upload_metrics = filter(lambda x: not index[x]["uploaded-scribe"], index.keys())
         for upload_metrics in need_upload_metrics:
             # download the metrics file from S3 to work_dir
+            print(f"Downloading metrics file {upload_metrics} to local.")
             metrics_key = s3.exists(prefix=None, file_name=upload_metrics)
             assert metrics_key, f"Expected metrics file {upload_metrics} does not exist."
-            s3.download(metrics_key, work_dir)
+            s3.download_file(metrics_key, work_dir)
             # upload it to scribe
+            print(f"Uploading metrics file {upload_metrics} to scribe.")
             metrics_path = str(work_dir.joinpath(upload_metrics).resolve())
             benchmark_time, benchmark_data = process_benchmark_json(metrics_path)
             uploader = TorchBenchUserbenchmarkUploader()
@@ -186,7 +188,7 @@ def run_aicluster_benchmark(benchmark_name: str, check_success=True, upload_scri
         assert False, f"Don't find the last successful run in index: { index }. Please report a bug."
     # upload to scribe by the index
     if upload_scribe:
-        upload_scribe(s3, benchmark_name, index, work_dir)
+        upload_metrics_to_scribe(s3, benchmark_name, index, work_dir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
