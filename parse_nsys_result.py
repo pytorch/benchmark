@@ -12,7 +12,7 @@ class RecordKind(Enum):
   H2D = 5
   Unknown = 6
 
-KnownMathOp = ['gemm', 'gemv', 'cutlass', 'conv', 'winograd', "Conv"]
+KnownMathOp = ['gemm', 'gemv', 'cutlass', 'conv', 'winograd', "Conv", "cudnn"]
 class Record:
   def __init__(self):
     self.kind = RecordKind.Unknown
@@ -121,7 +121,7 @@ class NsysResults:
         percentage=self.total_math_time_in_ns / self.total_time_in_ns * 100)
     )
     print('=' * 80)
-    print_topk_records(self.math_records, topk=5)
+    print_topk_records(self.math_records, topk=10)
 
     print(header_template.format(
         kind='Mem',
@@ -131,7 +131,7 @@ class NsysResults:
         percentage=self.total_mem_time_in_ns / self.total_time_in_ns * 100)
     )
     print('=' * 80)
-    print_topk_records(self.mem_records, topk=10)
+    print_topk_records(self.mem_records, topk=5)
 
     print(header_template.format(
         kind='D2H/H2D',
