@@ -17,7 +17,7 @@ class Model(BenchmarkModel):
         if device == "cuda":
           torch.backends.cudnn.benchmark = True
         self.proto_nets = ProtoNets(test=self.test, bs=self.batch_size, num_of_batches=self.NUM_BATCHES, device=self.device,
-                                    dataset='omniglot', k_train=20, k_test=20, n_test=5, n_train=5)
+                                    dataset='omniglot', k_train=60, k_test=5, n_test=1, n_train=1)
 
     def get_module(self):
         return self.proto_nets.get_module()

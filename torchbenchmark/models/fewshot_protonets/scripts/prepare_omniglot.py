@@ -15,16 +15,31 @@ import zipfile
 import shutil
 import os
 
-from config import DATA_PATH
-from few_shot.utils import mkdir, rmdir
+from pathlib import Path
+# from few_shot.utils import mkdir, rmdir
+
+PATH = os.path.dirname(os.path.realpath(__file__))
 
 
+root = str(Path(__file__).parent.parent.parent.parent)
+DATA_PATH = os.path.join(root, "data", ".data", "omniglot-ss")
 # Parameters
-dataset_zip_files = ['images_background.zip', 'images_evaluation.zip']
+dataset_zip_files = ['images_background_small1.zip', 'images_evaluation.zip']
 raw_omniglot_location = DATA_PATH + '/Omniglot_Raw/'
 prepared_omniglot_location = DATA_PATH + '/Omniglot/'
 output_shape = (28, 28)
 
+
+print(prepared_omniglot_location)
+
+def mkdir(path):
+    p = Path(path)
+    p.mkdir(parents=True, exist_ok=True)
+
+def rmdir(path):
+    p = Path(path)
+    if p.exists():
+        shutil.rmtree(p)
 
 def handle_characters(alphabet_folder, character_folder, rotate):
     for root, _, character_images in os.walk(character_folder):

@@ -27,6 +27,7 @@ class OmniglotDataset(Dataset):
         self.df = self.df.assign(id=self.df.index.values)
 
         # Convert arbitrary class names of dataset to ordered 0-(num_speakers - 1) integers
+        print(self.df.keys())
         self.unique_characters = sorted(self.df['class_name'].unique())
         self.class_name_to_id = {self.unique_characters[i]: i for i in range(self.num_classes())}
         self.df = self.df.assign(class_id=self.df['class_name'].apply(lambda c: self.class_name_to_id[c]))

@@ -69,8 +69,7 @@ class ProtoNets:
       args = parser.parse_args()
 
     self.args = args
-    if self.test == "train":
-      self.evaluation_episodes = num_of_batches
+    self.evaluation_episodes = num_of_batches
     self.episodes_per_epoch = num_of_batches
     self.persistent_workers = True
     self.num_workers = 4
@@ -107,13 +106,17 @@ class ProtoNets:
     # Create datasets #
     ###################
     if self.test == "train":
-      background = self.dataset_class('background')
+      background = self.dataset_class('evaluation')
       self.dl = DataLoader(
         background,
         batch_sampler=NShotTaskSampler(background, self.episodes_per_epoch, args.n_train, args.k_train, args.q_train, num_tasks=bs),
         num_workers=self.num_workers,
         persistent_workers=self.persistent_workers
       )
+      self.prepare_batch = prepare_nshot_task(args.n_train, args.k_train, args.q_train)
+      self.fit_function = proto_net_episode
+      self.fit_function_kwargs = {'n_shot': args.n_train, 'k_way': args.k_train, 'q_queries': args.q_train,
+                                  'train': True, 'distance': args.distance}
       self.model.train()
       self.optimiser = Adam(self.model.parameters(), lr=1e-3)
       self.loss_fn = torch.nn.NLLLoss().to(self.device)
@@ -125,6 +128,8 @@ class ProtoNets:
         num_workers=self.num_workers,
         persistent_workers=self.persistent_workers
       )
+      self.loss_fn = torch.nn.NLLLoss().to(self.device)
+      self.prepare_batch = prepare_nshot_task(self.args.n_test, self.args.k_test, self.args.q_test)
       self.model.eval()
     self.dl = prefetch(self.dl, device)
 
@@ -132,50 +137,21 @@ class ProtoNets:
     return self.model, (self.dl[0], )
 
   def Eval(self):
-    for batch in self.dl:
-      x = self.model(batch).view(-1)
+    with torch.no_grad():
+      for batch in self.dl:
+        x, y = self.prepare_batch(batch)
+        y_pred = self.model(x)
+        if self.loss_fn is not None:
+           self.loss_fn(y_pred, y).item() * x.shape[0]
 
   def Train(self):
     ############
     # Training #
     ############
-    #print(f'Training Prototypical network on {self.args.dataset}...')
-    def lr_schedule(epoch, lr):
-      # Drop lr every 2000 episodes
-      if epoch % self.drop_lr_every == 0:
-          return lr / 2
-      else:
-          return lr
+    for batch_index, batch in enumerate(self.dl):
+        batch_logs = dict(batch=batch_index, size=(self.bs or 1))
+        x, y = self.prepare_batch(batch)
 
-    self.callbacks = [
-      EvaluateFewShot(
-          eval_fn=proto_net_episode,
-          num_tasks=self.evaluation_episodes,
-          n_shot=self.args.n_test,
-          k_way=self.args.k_test,
-          q_queries=self.args.q_test,
-          taskloader=self.evaluation_taskloader,
-          prepare_batch=prepare_nshot_task(self.args.n_test, self.args.k_test, self.args.q_test),
-          distance=self.args.distance
-      ),
-      ModelCheckpoint(
-          filepath=PATH + f'/models/proto_nets/{self.param_str}.pth',
-          monitor=f'val_{self.args.n_test}-shot_{self.args.k_test}-way_acc'
-      ),
-      LearningRateScheduler(schedule=lr_schedule),
-      CSVLogger(PATH + f'/logs/proto_nets/{self.param_str}.csv'),
-    ]
+        loss, y_pred = self.fit_function(self.model, self.optimiser, self.loss_fn, x, y, **self.fit_function_kwargs)
+        batch_logs['loss'] = loss.item()
 
-    fit(
-      self.model,
-      self.optimiser,
-      self.loss_fn,
-      epochs=self.n_epochs,
-      dataloader=self.dl,
-      prepare_batch=prepare_nshot_task(self.args.n_train, self.args.k_train, self.args.q_train),
-      callbacks=self.callbacks,
-      metrics=['categorical_accuracy'],
-      fit_function=proto_net_episode,
-      fit_function_kwargs={'n_shot': self.args.n_train, 'k_way': self.args.k_train, 'q_queries': self.args.q_train, 'train': True,
-                           'distance': self.args.distance},
-    )
