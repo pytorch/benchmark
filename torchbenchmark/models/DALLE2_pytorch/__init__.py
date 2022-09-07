@@ -31,7 +31,7 @@ class Model(BenchmarkModel):
     
         self.clip = OpenAIClipAdapter().cuda()
 
-        self.sample_text = torch.randint(0, 49408, (4, 256)).cuda()
+        self.sample_text = self.example_input = torch.randint(0, 49408, (4, 256)).cuda()
         self.sample_images = torch.randn(4, 3, 256, 256).cuda()
 
         prior_network = DiffusionPriorNetwork(
@@ -77,7 +77,6 @@ class Model(BenchmarkModel):
         ).cuda()
 
         self.model = DALLE2(prior = self.diffusion_prior, decoder = self.decoder).cuda()
-        self.example_inputs = self.sample_text = torch.randint(0, 49408, (4, 256)).cuda()
 
         if test == "train":
             self.diffusion_prior.train()
@@ -87,13 +86,13 @@ class Model(BenchmarkModel):
             self.decoder.eval()
 
     def get_module(self):
-        return self.model, self.example_inputs
+        return self.model, (self.example_input,)
 
     def set_module(self, new_model):
         self.diffusion_prior, self.decoder = new_model
 
     def eval(self):
-        inputs, model = self.example_inputs, self.model
+        inputs, model = self.example_input, self.model
         images = model(inputs)
         return (images,)
 
