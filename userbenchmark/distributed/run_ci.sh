@@ -26,9 +26,6 @@ BENCHMARK_JOB="python run_benchmark.py distributed --ngpus 8 --partition train -
 echo "moving the output files to ${JOB_DIRECTORY}"
 mv ${CONDA_ENV_DIR}/benchmark/.userbenchmark/distributed/metrics-*.json ${JOB_DIRECTORY}
 
-echo "updating index file"
-python ${CONDA_ENV_DIR}/benchmark/userbenchmark/distributed/update_metrics.py --metrics-dir "${JOB_DIRECTORY}"
-
 echo "syncing result to S3 bucket"
 aws s3 sync "${JOB_DIRECTORY}" s3://ossci-metrics/torchbench-aicluster-metrics
 
