@@ -384,8 +384,10 @@ class ModelTask(base_task.TaskBase):
         if isinstance(example_inputs, dict):
             # Huggingface models pass **kwargs as arguments, not *args
             module(**example_inputs)
-        else:
+        elif isinstance(example_inputs, tuple):
             module(*example_inputs)
+        else:
+            assert False, "example_inputs from model.get_module() must be dict or tuple"
         # If model implements `gen_inputs()` interface, test the first example input it generates
         try:
             input_iter, _size = model.gen_inputs()
