@@ -16,7 +16,7 @@ args:
   # script based
   - "--backend blade"
   - "--backend blade --trt"
-  - "--jit" #ofi
+  - "--backend torchscript" # ofi
   - "--fuser fuser2 --jit"  # nvfuser
 
   # # torchdynamo based

@@ -57,9 +57,9 @@ def generate_header(result, base_key):
                 insert_if_nonexist(args, f"{k} (correctness)")
                 insert_if_nonexist(args, f"{k} (latency)")
                 insert_if_nonexist(args, f"{k} (speedup)")
-                if "blade" in k:
+                if "blade" in k or "disc" in k:
                     # count torchdynamo subgraphs
-                    if k == "torchdynamo-blade_optimize_dynamo":
+                    if k == "dynamo-blade":
                         insert_if_nonexist(args, f"{k} (subgraphs)")
                     # count blade clusters
                     insert_if_nonexist(args, f"{k} (clusters)")
