@@ -9,9 +9,9 @@ on:
         description: "Option of the user benchmark to run"
 env:
   PYTHON_VERSION: "3.8"
-  CUDA_VERSION: "cu113"
+  CUDA_VERSION: "cu116"
   CONDA_ENV_NAME: "userbenchmarks-ci"
-  MAGMA_VERSION: "magma-cuda113"
+  MAGMA_VERSION: "magma-cuda116"
 jobs:
   run-userbenchmark:
     runs-on: [self-hosted, bm-runner]
