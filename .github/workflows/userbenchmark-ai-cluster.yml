@@ -32,7 +32,7 @@ jobs:
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
           conda activate "${CONDA_ENV_NAME}"
-          conda install -y pyyaml numpy boto3
+          conda install -y pyyaml numpy boto3 requests
       - name: Run AI Cluster benchmark
         run: |
           . ${HOME}/miniconda3/etc/profile.d/conda.sh && conda activate "${CONDA_ENV_NAME}"
