@@ -95,7 +95,7 @@ class Model(BenchmarkModel):
     def eval(self):
         inputs, model = self.example_inputs, self.model
         images = model(inputs)
-        return images
+        return (images,)
 
     def train(self):
         # openai pretrained clip - defaults to ViT-B/32
