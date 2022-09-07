@@ -50,4 +50,5 @@ jobs:
           path: benchmark-output/
       - name: Remove conda environment
         run: |
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda env remove --name "${CONDA_ENV_NAME}"
