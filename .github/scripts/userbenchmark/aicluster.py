@@ -156,7 +156,8 @@ def upload_metrics_to_scribe(s3, benchmark_name, index, work_dir):
             # upload it to scribe
             print(f"Uploading metrics file {upload_metrics} to scribe.")
             metrics_path = str(work_dir.joinpath(upload_metrics).resolve())
-            benchmark_time, benchmark_data = process_benchmark_json(metrics_path)
+            with open(metrics_path, "r") as mp:
+                benchmark_time, benchmark_data = process_benchmark_json(mp)
             uploader = TorchBenchUserbenchmarkUploader()
             # user who run the benchmark on ai cluster
             uploader.UNIX_USER = "diegosarina"

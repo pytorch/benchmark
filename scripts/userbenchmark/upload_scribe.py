@@ -112,9 +112,9 @@ class TorchBenchUserbenchmarkUploader(ScribeUploader):
 
 def process_benchmark_json(userbenchmark_json):
     # Result sanity check
-    json_name = os.path.basename(args.userbenchmark_json.name)
+    json_name = os.path.basename(userbenchmark_json.name)
     benchmark_time = get_metrics_date_from_file(json_name)
-    benchmark_data = json.load(args.userbenchmark_json)
+    benchmark_data = json.load(userbenchmark_json)
     return benchmark_time, benchmark_data
 
 if __name__ == "__main__":
