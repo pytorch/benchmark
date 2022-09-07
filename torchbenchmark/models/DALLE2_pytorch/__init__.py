@@ -25,25 +25,28 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-    
-        self.clip = OpenAIClipAdapter().cpu()
 
-        self.sample_text = torch.randint(0, 49408, (4, 256), device=self.device)
-        self.sample_images = torch.randn(4, 3, 256, 256, device=self.device)
+        if device == "cpu":
+            raise NotImplementedError("DALL-E 2 Not Supported on CPU")
+    
+        self.clip = OpenAIClipAdapter().cuda()
+
+        self.sample_text = torch.randint(0, 49408, (4, 256)).cuda()
+        self.sample_images = torch.randn(4, 3, 256, 256).cuda()
 
         prior_network = DiffusionPriorNetwork(
             dim = 512,
             depth = 6,
             dim_head = 64,
             heads = 8
-        ).cpu()
+        ).cuda()
 
         self.diffusion_prior = DiffusionPrior(
             net = prior_network,
             clip = self.clip,
             timesteps = 100,
             cond_drop_prob = 0.2
-        ).cpu()
+        ).cuda()
 
         unet1 = Unet(
             dim = 128,
@@ -53,7 +56,7 @@ class Model(BenchmarkModel):
             dim_mults=(1, 2, 4, 8),
             text_embed_dim = 512,
             cond_on_text_encodings = True  # set to True for any unets that need to be conditioned on text encodings (ex. first unet in cascade)
-        ).cpu()
+        ).cuda()
 
         unet2 = Unet(
             dim = 16,
@@ -61,7 +64,7 @@ class Model(BenchmarkModel):
             cond_dim = 128,
             channels = 3,
             dim_mults = (1, 2, 4, 8, 16)
-        ).cpu()
+        ).cuda()
 
         self.decoder = Decoder(
             unet = (unet1, unet2),
@@ -71,16 +74,10 @@ class Model(BenchmarkModel):
             sample_timesteps = (250, 27),
             image_cond_drop_prob = 0.1,
             text_cond_drop_prob = 0.5
-        ).cpu()
+        ).cuda()
 
-        self.model = DALLE2(prior = self.diffusion_prior, decoder = self.decoder).cpu()
-        self.example_inputs = self.sample_text = torch.randint(0, 49408, (4, 256), device=self.device)
-
-        if "cuda" in self.device:
-            self.clip = self.clip.cuda()
-            self.diffusion_prior = self.diffusion_prior.cuda()
-            self.decoder = self.decoder.cuda()
-            self.model = self.model.cuda()
+        self.model = DALLE2(prior = self.diffusion_prior, decoder = self.decoder).cuda()
+        self.example_inputs = self.sample_text = torch.randint(0, 49408, (4, 256)).cuda()
 
         if test == "train":
             self.diffusion_prior.train()
