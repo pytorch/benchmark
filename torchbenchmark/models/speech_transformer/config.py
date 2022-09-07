@@ -162,7 +162,7 @@ class SpeechTransformerEvalConfig:
     recog_json = "input_data/test/data.json"
     dict_txt = "input_data/lang_1char/train_chars.txt"
     def __init__(self, traincfg, num_eval_batch=1, device='cuda'):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = os.path.join(DATA_PATH, "speech_transformer_inputs")
         self.device = device
         self.base_path = dir_path
         self.recog_json = os.path.join(dir_path, self.recog_json)
