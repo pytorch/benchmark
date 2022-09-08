@@ -21,7 +21,7 @@ import io
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
     DEFAULT_TRAIN_BSIZE = 4
-    DEFAULT_EVAL_BSIZE = 4
+    DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -31,8 +31,8 @@ class Model(BenchmarkModel):
     
         self.clip = OpenAIClipAdapter().to(self.device)
 
-        self.sample_text = self.example_input = torch.randint(0, 49408, (4, 256)).to(self.device)
-        self.sample_images = torch.randn(4, 3, 256, 256).to(self.device)
+        self.sample_text = self.example_input = torch.randint(0, 49408, (self.batch_size, 256)).to(self.device)
+        self.sample_images = torch.randn(self.batch_size, 3, 256, 256).to(self.device)
 
         prior_network = DiffusionPriorNetwork(
             dim = 512,
@@ -44,7 +44,7 @@ class Model(BenchmarkModel):
         diffusion_prior = DiffusionPrior(
             net = prior_network,
             clip = self.clip,
-            timesteps = 100,
+            timesteps = 1,
             cond_drop_prob = 0.2
         ).to(self.device)
 
@@ -70,8 +70,8 @@ class Model(BenchmarkModel):
             unet = (unet1, unet2),
             image_sizes = (128, 256),
             clip = self.clip,
-            timesteps = 1000,
-            sample_timesteps = (250, 27),
+            timesteps = 1,
+            sample_timesteps = (1, 1),
             image_cond_drop_prob = 0.1,
             text_cond_drop_prob = 0.5
         ).to(self.device)
