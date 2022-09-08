@@ -1,3 +1,2 @@
-# gym 0.26.0 has bc-breaking api change
 gym==0.25.2
 pygame
