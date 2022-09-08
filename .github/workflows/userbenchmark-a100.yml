@@ -58,7 +58,7 @@ jobs:
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
-            python ./.github/scripts/userbenchmarks/schedule-benchmarks.py --platform ${PLATFORM_NAME}
+            python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
             cp -r ./.userbenchmark ../benchmark-output
           else
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}"
