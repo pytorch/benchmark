@@ -4,7 +4,7 @@ import os
 import csv
 import io
 import submitit
-import datetime
+from datetime import datetime
 import sys
 import torch
 import uuid
@@ -193,7 +193,7 @@ def main():
         nodes=args.nodes,
         timeout_min=args.timeout,
         # Below are cluster dependent parameters
-        slurm_partition=args.partition,
+        slurm_partition=args.partition if args.nodes < 16 else 'scavenge',
         slurm_signal_delay_s=120,
     )
 
