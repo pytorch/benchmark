@@ -1,2 +1,2 @@
-gym
+gym==0.25.2
 pygame
