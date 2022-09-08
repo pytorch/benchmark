@@ -8,13 +8,13 @@ torchbench-aicluster-metrics/
  |-distributed
    |-metrics-20220805192500.json
 """
-import boto3
-import sys
-import os
-import datetime
-import yaml
 import argparse
+import boto3
+import datetime
+import os
 import subprocess
+import sys
+import yaml
 from pathlib import Path
 
 AICLUSTER_S3_BUCKET = "ossci-metrics"

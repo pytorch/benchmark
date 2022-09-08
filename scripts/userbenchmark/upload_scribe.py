@@ -127,3 +127,4 @@ if __name__ == "__main__":
     # use uploader
     uploader = TorchBenchUserbenchmarkUploader()
     uploader.post_userbenchmark_results(benchmark_time, benchmark_data)
+
