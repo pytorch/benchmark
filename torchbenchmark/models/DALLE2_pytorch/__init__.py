@@ -89,7 +89,7 @@ class Model(BenchmarkModel):
         return self.model, (self.example_input,)
 
     def set_module(self, new_model):
-        self.diffusion_prior, self.decoder = new_model
+        self.model = new_model
 
     def eval(self):
         inputs, model = self.example_input, self.model
