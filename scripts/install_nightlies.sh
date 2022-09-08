@@ -4,12 +4,11 @@ set -e
 . ~/miniconda3/etc/profile.d/conda.sh
 conda activate base
 
-conda install -y numpy requests ninja pyyaml setuptools gitpython
-conda install -y -c pytorch magma-cuda113
+conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4
+conda install -y -c pytorch magma-cuda116
 
-pip install --pre torch torchvision torchtext \
-    --progress-bar off \
-    -f https://download.pytorch.org/whl/nightly/cu113/torch_nightly.html
+# install the most recent successfully built pytorch packages
+python torchbenchmark/util/torch_nightly.py --install-nightlies --packages torch torchvision torchtext
 
 conda install -y expecttest -c conda-forge
 
