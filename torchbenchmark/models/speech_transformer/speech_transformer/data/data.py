@@ -144,9 +144,10 @@ def load_inputs_and_targets(batch, LFR_m=1, LFR_n=1):
     # for b in batch:
     #     print(b[1]['input'][0]['feat'])
     # TorchBench: Patch the input data with current file directory
-    # Current file path: TORCHBENCH_ROOT/torchbenchmark/models/speech_transformer/speech_transformer/data/data.py
-    TORCHBENCH_ROOT = Path(__file__).parents[5]
-    xs = [kaldi_io.read_mat(str(TORCHBENCH_ROOT.joinpath(b[1]['input'][0]['feat']).resolve())) for b in batch]
+    # Input data path: TORCHBENCH_DATA_ROOT/speech_transformer_inputs/
+    from torchbenchmark import DATA_PATH
+    TORCHBENCH_DATA_ROOT = Path(DATA_PATH).joinpath("speech_transformer_inputs")
+    xs = [kaldi_io.read_mat(str(TORCHBENCH_DATA_ROOT.joinpath(b[1]['input'][0]['feat']).resolve())) for b in batch]
     ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
 
     if LFR_m != 1 or LFR_n != 1:
