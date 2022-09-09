@@ -238,7 +238,7 @@ class Model(E2EBenchmarkModel):
             torch.cuda.set_device(local_rank)
             model = FSDP(
                 model,
-                auto_wrap_policy=transformer_auto_wrapper_policy,
+                # auto_wrap_policy=transformer_auto_wrapper_policy, # TODO: seems to make benchmark slower? investigate
                 device_id = torch.cuda.current_device()
             )
 
