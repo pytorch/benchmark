@@ -58,7 +58,7 @@ class HuggingFaceModel(BenchmarkModel):
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
         self.model = class_ctor.from_config(config).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001, capturable=True)
 
         # populate these on-demand to avoid wasting memory when not used
         self.vocab_size = config.vocab_size

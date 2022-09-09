@@ -25,7 +25,7 @@ class TorchVisionModel(BenchmarkModel):
             self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
             self.model.train()
             # setup optimizer and loss_fn
-            self.optimizer = optim.Adam(self.model.parameters())
+            self.optimizer = optim.Adam(self.model.parameters(), capturable=True)
             self.loss_fn = torch.nn.CrossEntropyLoss()
             self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
             self.real_output = [ torch.rand_like(self.example_outputs) ]
