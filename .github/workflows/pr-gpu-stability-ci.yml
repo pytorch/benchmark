@@ -14,7 +14,7 @@ jobs:
       CONDA_ENV: "stability-test-ci"
       TEST_HOME: "/tmp/tb-stability-ci"
       PYTHON_VERSION: "3.8"
-      CUDA_VERSION: "cu113"
+      CUDA_VERSION: "cu116"
       PR_BODY: ${{ github.event.pull_request.body }}
       MODEL: ${{ github.event.inputs.model }}
       GPU_ID: "1"
