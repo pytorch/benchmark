@@ -1,21 +1,11 @@
-import argparse
-import random
 import torch
 
-import numpy as np
-
-from torchbenchmark.util.env_check import set_random_seed
-
 from dalle2_pytorch import DALLE2, Unet, Decoder, DiffusionPriorNetwork, DiffusionPrior, OpenAIClipAdapter
-import typing
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
-from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
-
-import io
 
 
 class Model(BenchmarkModel):
