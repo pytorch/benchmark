@@ -1,0 +1,65 @@
+diff --git a/dalle2_pytorch/dalle2_pytorch.py b/dalle2_pytorch/dalle2_pytorch.py
+index 5c6d610..220c0e2 100644
+--- a/dalle2_pytorch/dalle2_pytorch.py
++++ b/dalle2_pytorch/dalle2_pytorch.py
+@@ -1,6 +1,5 @@
+ import math
+ import random
+-from tqdm.auto import tqdm
+ from functools import partial, wraps
+ from contextlib import contextmanager
+ from collections import namedtuple
+@@ -1244,7 +1243,7 @@ class DiffusionPrior(nn.Module):
+         if self.init_image_embed_l2norm:
+             image_embed = l2norm(image_embed) * self.image_embed_scale
+ 
+-        for i in tqdm(reversed(range(0, self.noise_scheduler.num_timesteps)), desc='sampling loop time step', total=self.noise_scheduler.num_timesteps):
++        for i in range(0, self.noise_scheduler.num_timesteps):
+             times = torch.full((batch,), i, device = device, dtype = torch.long)
+ 
+             self_cond = x_start if self.net.self_cond else None
+@@ -1271,7 +1270,7 @@ class DiffusionPrior(nn.Module):
+         if self.init_image_embed_l2norm:
+             image_embed = l2norm(image_embed) * self.image_embed_scale
+ 
+-        for time, time_next in tqdm(time_pairs, desc = 'sampling loop time step'):
++        for time, time_next in time_pairs:
+             alpha = alphas[time]
+             alpha_next = alphas[time_next]
+ 
+@@ -1369,7 +1368,7 @@ class DiffusionPrior(nn.Module):
+ 
+         img = torch.randn(shape, device = device)
+ 
+-        for i in tqdm(reversed(range(0, self.noise_scheduler.num_timesteps)), desc = 'sampling loop time step', total = self.noise_scheduler.num_timesteps):
++        for i in range(0, self.noise_scheduler.num_timesteps):
+             img = self.p_sample(img, torch.full((batch_size,), i, device = device, dtype = torch.long), text_cond = text_cond, cond_scale = cond_scale)
+         return img
+ 
+@@ -2795,7 +2794,7 @@ class Decoder(nn.Module):
+         if not is_latent_diffusion:
+             lowres_cond_img = maybe(self.normalize_img)(lowres_cond_img)
+ 
+-        for time in tqdm(reversed(range(0, noise_scheduler.num_timesteps)), desc = 'sampling loop time step', total = noise_scheduler.num_timesteps):
++        for time in range(0, noise_scheduler.num_timesteps):
+             is_last_timestep = time == 0
+ 
+             for r in reversed(range(0, resample_times)):
+@@ -2883,7 +2882,7 @@ class Decoder(nn.Module):
+         if not is_latent_diffusion:
+             lowres_cond_img = maybe(self.normalize_img)(lowres_cond_img)
+ 
+-        for time, time_next in tqdm(time_pairs, desc = 'sampling loop time step'):
++        for time, time_next in time_pairs:
+             is_last_timestep = time_next == 0
+ 
+             for r in reversed(range(0, resample_times)):
+@@ -3088,7 +3087,7 @@ class Decoder(nn.Module):
+         num_unets = self.num_unets
+         cond_scale = cast_tuple(cond_scale, num_unets)
+ 
+-        for unet_number, unet, vae, channel, image_size, predict_x_start, learned_variance, noise_scheduler, lowres_cond, sample_timesteps, unet_cond_scale in tqdm(zip(range(1, num_unets + 1), self.unets, self.vaes, self.sample_channels, self.image_sizes, self.predict_x_start, self.learned_variance, self.noise_schedulers, self.lowres_conds, self.sample_timesteps, cond_scale)):
++        for unet_number, unet, vae, channel, image_size, predict_x_start, learned_variance, noise_scheduler, lowres_cond, sample_timesteps, unet_cond_scale in zip(range(1, num_unets + 1), self.unets, self.vaes, self.sample_channels, self.image_sizes, self.predict_x_start, self.learned_variance, self.noise_schedulers, self.lowres_conds, self.sample_timesteps, cond_scale):
+             if unet_number < start_at_unet_number:
+                 continue  # It's the easiest way to do it
+ 
