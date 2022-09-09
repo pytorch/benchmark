@@ -1,4 +1,5 @@
 from accelerate.utils.dataclasses import DeepSpeedPlugin
+import functools
 import torch
 import numpy as np
 import math
@@ -6,6 +7,7 @@ import os
 from pathlib import Path
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from torch.utils.data import DataLoader
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import NLP
@@ -23,6 +25,7 @@ from transformers import (
     MBartTokenizer,
     MBartTokenizerFast
 )
+from transformers.models.t5.modeling_t5 import T5Block
 from torchbenchmark.util.framework.transformers.translation.dataset import prep_dataset, preprocess_dataset
 from torchbenchmark.util.framework.transformers.translation.args import parse_args, parse_torchbench_args, task_to_keys
 
@@ -225,9 +228,19 @@ class Model(E2EBenchmarkModel):
                 static_graph=True,
             )
         elif hf_args.distributed == "fsdp":
+            transformer_auto_wrapper_policy = functools.partial(
+                transformer_auto_wrap_policy,
+                transformer_layer_cls={
+                    T5Block,
+                },
+            )
             local_rank = int(os.getenv("LOCAL_RANK", -1))
             torch.cuda.set_device(local_rank)
-            model = FSDP(model)
+            model = FSDP(
+                model,
+                auto_wrap_policy=transformer_auto_wrapper_policy,
+                device_id = torch.cuda.current_device()
+            )
 
         # Optimizer
         # Split weights in two groups, one with weight decay and the other not.
