@@ -48,7 +48,8 @@ def parse_args(args: List[str]=None):
 
     parser.add_argument(
         "--timeout",
-        default=1440,
+        # default=1440,
+        default=60,
         type=int,
         help="Duration of the job"
     )
@@ -209,6 +210,18 @@ def main():
     # # waits for completion and returns output
     # print(job.results())
 
+    '''
+    models = [
+        'torchbenchmark.models.hf_Bert.Model',
+        # 'torchbenchmark.models.hf_BertLarge.Model',
+        'torchbenchmark.models.hf_GPT2_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
+        # 'torchbenchmark.models.hf_GPT2.Model',
+        'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.resnet50.Model',
+    ]
+    '''
     models = [
         'torchbenchmark.models.hf_Bert.Model',
         # 'torchbenchmark.models.hf_BertLarge.Model',
@@ -231,12 +244,13 @@ def main():
         'torchbenchmark.models.resnet50.Model': 32,
     }
     model_args_configs = [
-        [],  # no args = pure eager baseline
-        ["--torchdynamo", "eager"],  # runs dynamo without a backend
-        ["--torchdynamo", "aot_nvfuser"],
+        # [],  # no args = pure eager baseline
+        # ["--torchdynamo", "eager"],  # runs dynamo without a backend
+        # ["--torchdynamo", "aot_nvfuser"],
         ["--torchdynamo", "inductor"],
     ]
-    node_list = [1, 2, 4, 8, 12, 16, 20, 24]
+    # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
+    node_list = [1, 2]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
