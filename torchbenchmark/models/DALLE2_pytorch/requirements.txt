@@ -1,1 +1,1 @@
-git+https://github.com/lucidrains/DALLE2-pytorch@0d82dff
+git+https://github.com/lucidrains/DALLE2-pytorch@0d82dff9c53a7a74cbd66cf8930866308bd9ff49
