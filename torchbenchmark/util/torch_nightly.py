@@ -12,9 +12,36 @@ import urllib.parse
 from datetime import date, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
+import sys
+from pathlib import Path
+import subprocess
 
-torch_wheel_nightly_base ="https://download.pytorch.org/whl/nightly/cu113/"
-torch_nightly_wheel_index = "https://download.pytorch.org/whl/nightly/cu113/torch_nightly.html"
+from typing import List
+
+REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
+
+class add_path():
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
+
+with add_path(str(REPO_ROOT)):
+    from utils.cuda_utils import DEFAULT_CUDA_VERSION, CUDA_VERSION_MAP
+    from utils.python_utils import DEFAULT_PYTHON_VERSION, PYTHON_VERSION_MAP
+
+PYTORCH_CUDA_VERISON = CUDA_VERSION_MAP[DEFAULT_CUDA_VERSION]["pytorch_url"]
+PYTORCH_PYTHON_VERSION = PYTHON_VERSION_MAP[DEFAULT_PYTHON_VERSION]["pytorch_url"]
+
+torch_wheel_nightly_base = f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/"
+torch_nightly_wheel_index = f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/torch_nightly.html"
 torch_nightly_wheel_index_override = "torch_nightly.html" 
 
 def memoize(function):
@@ -56,7 +83,7 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
     return data
 
 def get_nightly_wheel_urls(packages:list, date:date,
-                           py_version='cp38', platform_version='linux_x86_64'):
+                           py_version=PYTORCH_PYTHON_VERSION, platform_version='linux_x86_64'):
     """Gets urls to wheels for specified packages matching the date, py_version, platform_version
     """
     date_str = f"{date.year}{date.month:02}{date.day:02}"
@@ -75,13 +102,13 @@ def get_nightly_wheel_urls(packages:list, date:date,
             return None
         full_url = pkg_versions[keys[0]]
         rc[pkg] = {
-                        "version": keys[0],
-                        "wheel": full_url,
+            "version": keys[0],
+            "wheel": full_url,
         }
     return rc
 
 def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
-                                py_version='cp38', platform_version='linux_x86_64', reverse=False):
+                                py_version=PYTORCH_PYTHON_VERSION, platform_version='linux_x86_64', reverse=False):
     rc = []
     curr_date = start_date
     while curr_date <= end_date:
@@ -96,20 +123,54 @@ def get_nightly_wheels_in_range(packages:list, start_date:date, end_date:date,
     return rc
 
 def get_n_prior_nightly_wheels(packages:list, n:int,
-                               py_version='cp38', platform_version='linux_x86_64', reverse=False):
+                               py_version=PYTORCH_PYTHON_VERSION, platform_version='linux_x86_64', reverse=False):
     end_date = date.today()
     start_date = end_date - timedelta(days=n)
     return get_nightly_wheels_in_range(packages, start_date, end_date,
                                        py_version=py_version, platform_version=platform_version, reverse=reverse)
 
+def get_most_recent_successful_wheels(packages: list, pyver: str, platform: str) -> List[str]:
+    """Get the most recent successful nightly wheels. Return List[str] """
+    curr_date = date.today()
+    date_limit = curr_date - timedelta(days=365)
+    while curr_date >= date_limit:
+        wheels = get_nightly_wheel_urls(packages, curr_date, py_version=pyver, platform_version=platform)
+        if wheels:
+            return wheels
+        curr_date = curr_date - timedelta(days=1)
+    # Can't find any valid pytorch package
+    return None
+
+def install_wheels(wheels):
+    """Install the wheels specified in the wheels."""
+    wheel_urls = list(map(lambda x: wheels[x]["wheel"], wheels.keys()))
+    work_dir = Path(__file__).parent.joinpath(".data")
+    work_dir.mkdir(parents=True, exist_ok=True)
+    requirements_file = work_dir.joinpath("requirements.txt").resolve()
+    with open(requirements_file, "w") as rf:
+        rf.write("\n".join(wheel_urls))
+    command = ["pip", "install", "-r", str(requirements_file)]
+    print(f"Installing pytorch nightly packages command: {command}")
+    subprocess.check_call(command)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pyver", type=str, default="cp38", help="PyTorch Python version")
+    parser.add_argument("--pyver", type=str, default=PYTORCH_PYTHON_VERSION, help="PyTorch Python version")
     parser.add_argument("--platform", type=str, default="linux_x86_64", help="PyTorch platform")
     parser.add_argument("--priordays", type=int, default=1, help="Number of days")
     parser.add_argument("--reverse", action="store_true", help="Return reversed result")
     parser.add_argument("--packages", required=True, type=str, nargs="+", help="List of package names")
+    parser.add_argument("--install-nightlies", action="store_true",
+                        help="Install the most recent successfully built nightly packages")
     args = parser.parse_args()
+
+    if args.install_nightlies:
+        wheels = get_most_recent_successful_wheels(args.packages, args.pyver, args.platform)
+        assert wheels, f"We do not find any successful pytorch nightly build of packages: {args.packages}."
+        print(f"Found pytorch nightly wheels: {wheels} ")
+        install_wheels(wheels)
+        exit(0)
+
     wheels = get_n_prior_nightly_wheels(packages=args.packages,
                                         n=args.priordays,
                                         py_version=args.pyver,

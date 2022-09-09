@@ -281,7 +281,7 @@ def timed(args, benchmark, sync, times=1):
         if args.test == 'eval':
             results = call_model_with(model, example_inputs)
         elif args.test == 'train':
-            benchmark.train(niter=1)
+            benchmark.train()
 
         # for the last i, let final_sync take care of it
         if i < times - 1:
@@ -449,7 +449,7 @@ def just_run_once(args, lazy_benchmark):
         model, example_inputs = lazy_benchmark.get_module()
         results.append(call_model_with(model, example_inputs))
     elif args.test == 'train':
-        lazy_benchmark.train(niter=1)
+        lazy_benchmark.train()
     torch._lazy.mark_step()
     torch._lazy.wait_device_ops()
     if current_device == 'cuda':
@@ -504,7 +504,7 @@ def run_tracing_execute_noops(test, lazy_benchmark):
         if test == 'eval':
             results.append(call_model_with(model, example_inputs))
         elif test == 'train':
-            lazy_benchmark.train(niter=1)
+            lazy_benchmark.train()
         # we still do a mark step, to preserve the ratio of how often we split the graph
         # and run through the process of 'compile and execute' (even though these are now noops)
         torch._lazy.mark_step()

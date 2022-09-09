@@ -316,8 +316,8 @@ class DLRM_Net(nn.Module):
             # li, lj = torch.tril_indices(ni, nj, offset=offset)
             # approach 2: custom
             offset = 1 if self.arch_interaction_itself else 0
-            li = torch.tensor([i for i in range(ni) for j in range(i + offset)])
-            lj = torch.tensor([j for i in range(nj) for j in range(i + offset)])
+            li = torch.tensor([i for i in range(ni) for j in range(i + offset)], device=x.device)
+            lj = torch.tensor([j for i in range(nj) for j in range(i + offset)], device=x.device)
             Zflat = Z[:, li, lj]
             # concatenate dense features and interactions
             R = torch.cat([x] + [Zflat], dim=1)

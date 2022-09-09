@@ -147,7 +147,7 @@ class Model(BenchmarkModel):
     def get_module(self):
         raise NotImplementedError("get_module is not supported by this model")
 
-    def train(self, niter=1):
+    def train(self):
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")
         if not self.device == "cuda":
