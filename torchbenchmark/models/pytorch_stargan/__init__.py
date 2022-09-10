@@ -9,6 +9,7 @@ from .main import parse_config, makedirs
 from typing import Tuple
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
+from torchbenchmark import DATA_PATH
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
@@ -36,8 +37,8 @@ class Model(BenchmarkModel):
 
         # init config
         config = parse_config()
-        config.celeba_image_dir = os.path.join(os.path.dirname(__file__), 'data/celeba/images')
-        config.attr_path = os.path.join(os.path.dirname(__file__), 'data/celeba/list_attr_celeba.txt')
+        config.celeba_image_dir = os.path.join(DATA_PATH, 'pytorch_stargan_inputs/data/celeba/images')
+        config.attr_path = os.path.join(DATA_PATH, 'pytorch_stargan_inputs/data/celeba/list_attr_celeba.txt')
         config.num_iters = 1
         config.batch_size = self.batch_size
         config.use_tensorboard = False

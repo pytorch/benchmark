@@ -4,8 +4,5 @@ devices:
 eval_benchmark: false
 eval_deterministic: true
 eval_nograd: true
-not_implemented:
-- jit: true
-  test: eval
 train_benchmark: false
 train_deterministic: true
