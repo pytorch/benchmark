@@ -1,4 +1,5 @@
 import argparse
+import copy
 import importlib
 import os
 import csv
@@ -223,20 +224,20 @@ def main():
     ]
     '''
     models = [
-        'torchbenchmark.models.hf_Bert.Model',
-        # 'torchbenchmark.models.hf_BertLarge.Model',
-        'torchbenchmark.models.hf_GPT2_large.Model',
-        'torchbenchmark.models.hf_T5_large.Model',
-        'torchbenchmark.models.timm_vision_transformer_large.Model',
-        # 'torchbenchmark.models.hf_GPT2.Model',
-        'torchbenchmark.models.hf_T5.Model',
+        # 'torchbenchmark.models.hf_Bert.Model',
+        # # 'torchbenchmark.models.hf_BertLarge.Model',
+        # 'torchbenchmark.models.hf_GPT2_large.Model',
+        # 'torchbenchmark.models.hf_T5_large.Model',
+        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        # # 'torchbenchmark.models.hf_GPT2.Model',
+        # 'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
     model_batch_size = {
         'torchbenchmark.models.hf_Bert.Model': 32,
         'torchbenchmark.models.hf_BertLarge.Model': 16,
-        'torchbenchmark.models.hf_GPT2_large.Model': 4,
+        'torchbenchmark.models.hf_GPT2_large.Model': 2,
         'torchbenchmark.models.hf_T5_large.Model': 4,
         'torchbenchmark.models.timm_vision_transformer_large.Model': 16,
         'torchbenchmark.models.hf_GPT2.Model': 24,
@@ -244,9 +245,9 @@ def main():
         'torchbenchmark.models.resnet50.Model': 32,
     }
     model_args_configs = [
-        # [],  # no args = pure eager baseline
-        # ["--torchdynamo", "eager"],  # runs dynamo without a backend
-        # ["--torchdynamo", "aot_nvfuser"],
+        [],  # no args = pure eager baseline
+        ["--torchdynamo", "eager"],  # runs dynamo without a backend
+        ["--torchdynamo", "aot_nvfuser"],
         ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
@@ -260,33 +261,38 @@ def main():
     for nodes in node_list:
         for model_name in models:
             for model_args in model_args_configs:
-                batch_size = model_batch_size[model_name]
-                args.model = model_name
-                args.batch_size = batch_size
-                args.nodes = nodes
-                args.dist_url = get_init_file(args).as_uri()
-                args.output_dir = args.job_dir
-                executor.update_parameters(
-                    gpus_per_node=args.ngpus,
-                    # one task per GPU
-                    tasks_per_node=args.ngpus,
-                    cpus_per_task=10,
-                    nodes=args.nodes,
-                    timeout_min=args.timeout,
-                    # Below are cluster dependent parameters
-                    slurm_partition=args.partition,
-                    slurm_signal_delay_s=120,
-                )
-                job = executor.submit(TrainerWrapper(args, model_args))
+                for has_breaks in [True, False]:
+                    copied_model_args = copy.deepcopy(model_args)
+                    if has_breaks:
+                        copied_model_args.append("--enable_ddp_breaks")
+                    breakname = "withbreaks" if has_breaks else "nobreaks"
+                    batch_size = model_batch_size[model_name]
+                    args.model = model_name
+                    args.batch_size = batch_size
+                    args.nodes = nodes
+                    args.dist_url = get_init_file(args).as_uri()
+                    args.output_dir = args.job_dir
+                    executor.update_parameters(
+                        gpus_per_node=args.ngpus,
+                        # one task per GPU
+                        tasks_per_node=args.ngpus,
+                        cpus_per_task=10,
+                        nodes=args.nodes,
+                        timeout_min=args.timeout,
+                        # Below are cluster dependent parameters
+                        slurm_partition=args.partition,
+                        slurm_signal_delay_s=120,
+                    )
+                    job = executor.submit(TrainerWrapper(args, copied_model_args))
 
-                # print ID of the Slurm job
-                backend_name = get_backend_name(model_args)
-                print(f"{model_name}_{backend_name}_{nodes}: {job.job_id}")
-                output_csv(
-                    args.index_file,
-                    ("model", "backend", "nodes", "job_id"),
-                    (model_name, backend_name, nodes, job.job_id),
-                )
+                    # print ID of the Slurm job
+                    backend_name = get_backend_name(model_args)
+                    print(f"{model_name}_{backend_name}_{nodes}_{breakname}: {job.job_id}")
+                    output_csv(
+                        args.index_file,
+                        ("model", "backend", "nodes", "has_breaks", "job_id"),
+                        (model_name, backend_name, nodes, has_breaks, job.job_id),
+                    )
 
     # waits for completion and returns output
     print(job.results())

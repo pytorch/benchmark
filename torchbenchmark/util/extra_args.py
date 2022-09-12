@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 from typing import List, Optional, Tuple
 from torchbenchmark.util.backends import list_backends, BACKENDS
 
@@ -112,6 +113,7 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
     parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
+    parser.add_argument("--enable_ddp_breaks", action='store_true', help="enable experimental ddp breaks")
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"
@@ -147,3 +149,16 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
         module, exmaple_inputs = model.get_module()
         precision = 'fp16' if not model.dargs.precision == "fp32" else 'fp32'
         model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
+
+    if args.enable_ddp_breaks:
+        import torchdyanmo
+        @contextlib.contextmanager
+        def optimize_ddp_ctx(val: bool):
+            old_value = torchdynamo.config.optimize_ddp
+            try:
+                torchdynamo.config.optimize_ddp = val
+                yield
+            finally:
+                torchdynamo.config.optimize_ddp = old_value
+
+        model.add_context(lambda: optimize_ddp_ctx(True))
