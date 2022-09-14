@@ -16,10 +16,24 @@ from urllib import request
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
-from ..utils import TORCH_DEPS, get_pkg_versions, proxy_suggestion
-
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 DATA_PATH = os.path.join(REPO_PATH, "torchbenchmark", "data", ".data")
+
+class add_path():
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
+
+with add_path(str(REPO_PATH)):
+    from utils import TORCH_DEPS, get_pkg_versions, proxy_suggestion
 
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = 'models'
