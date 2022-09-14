@@ -125,7 +125,7 @@ def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool =
             versions = get_pkg_versions(TORCH_DEPS)
         success, errmsg, stdout_stderr = _install_deps(model_path, verbose=verbose)
         if test_mode:
-            new_versions = get_pkg_versions(TORCH_DEPS)
+            new_versions = get_pkg_versions(TORCH_DEPS, reload=True)
             if versions != new_versions:
                 print(f"The torch packages are re-installed after installing the benchmark model {model_path}. \
                         Before: {versions}, after: {new_versions}")
