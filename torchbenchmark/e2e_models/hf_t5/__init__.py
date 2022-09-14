@@ -53,7 +53,7 @@ class Model(E2EBenchmarkModel):
         max_target_length = "128"
         learning_rate = "2e-5"
         num_train_epochs = "3" # this takes a rather long time for wmt-en-ro
-        max_train_steps = "1000" # overrides num_train_epochs to run faster
+        max_train_steps = "100" # overrides num_train_epochs to run faster
         checkpointing_steps = None # set to a string value, like "1000"
 
         task_name = self.tb_args.task_name
@@ -213,8 +213,8 @@ class Model(E2EBenchmarkModel):
         eval_dataloader = DataLoader(eval_dataset, collate_fn=self.data_collator, batch_size=hf_args.per_device_eval_batch_size)
         
         # set distributed strategy before creating optimizer
-        model = accelerator.prepare(model)
         if hf_args.distributed == "ddp":
+            model = accelerator.prepare(model)
             local_rank = int(os.getenv("LOCAL_RANK", -1))
             model = DDP(
                 model,
@@ -228,6 +228,7 @@ class Model(E2EBenchmarkModel):
                 static_graph=True,
             )
         elif hf_args.distributed == "fsdp":
+            model = accelerator.prepare(model)
             transformer_auto_wrapper_policy = functools.partial(
                 transformer_auto_wrap_policy,
                 transformer_layer_cls={
@@ -238,7 +239,8 @@ class Model(E2EBenchmarkModel):
             torch.cuda.set_device(local_rank)
             model = FSDP(
                 model,
-                # auto_wrap_policy=transformer_auto_wrapper_policy, # TODO: seems to make benchmark slower? investigate
+                # TODO: seems to make benchmark slower? and profile doesn't work? investigate
+                # auto_wrap_policy=transformer_auto_wrapper_policy,
                 device_id = torch.cuda.current_device()
             )
 
@@ -272,9 +274,12 @@ class Model(E2EBenchmarkModel):
         )
 
         # Prepare everything with our `accelerator`.
-        optimizer, train_dataloader, eval_dataloader, lr_scheduler = accelerator.prepare(
-            optimizer, train_dataloader, eval_dataloader, lr_scheduler
-        )
+        if hf_args.distributed == "fsdp" or hf_args.distributed == "fsdp":
+            # deepspeed will error unless all components prepared at the same time
+            model, train_dataloader, eval_dataloader, optimizer = accelerator.prepare(model, train_dataloader, eval_dataloader, optimizer)
+        else:
+             # ddp and fsdp need model prepared before wrapping.
+            train_dataloader, eval_dataloader, optimizer, lr_scheduler = accelerator.prepare(train_dataloader, eval_dataloader, optimizer, lr_scheduler)
 
         # We need to recalculate our total training steps as the size of the training dataloader may have changed.
         num_update_steps_per_epoch = math.ceil(len(train_dataloader) / hf_args.gradient_accumulation_steps)
