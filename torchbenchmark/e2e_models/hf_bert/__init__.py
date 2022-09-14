@@ -126,6 +126,7 @@ class Model(E2EBenchmarkModel):
 
         # transform model for DDP and FSDP
         if hf_args.distributed == "ddp":
+            # prepare before wrap w/ DDP (or else error)
             model = accelerator.prepare(model)
             local_rank = int(os.getenv("LOCAL_RANK", -1))
             model = DDP(
@@ -165,7 +166,7 @@ class Model(E2EBenchmarkModel):
         optimizer = AdamW(optimizer_grouped_parameters, lr=hf_args.learning_rate)
 
         # Prepare everything with our `accelerator`.
-        if hf_args.distributed == "fsdp" or hf_args.distributed == "fsdp":
+        if hf_args.distributed == "deepspeed":
             # deepspeed will error unless all components prepared at the same time
             model, train_dataloader, eval_dataloader, optimizer = accelerator.prepare(model, train_dataloader, eval_dataloader, optimizer)
         else:
