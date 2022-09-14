@@ -276,7 +276,7 @@ class Model(E2EBenchmarkModel):
         # Prepare everything with our `accelerator`.
         if hf_args.distributed == "deepspeed":
             # deepspeed will error unless all components prepared at the same time
-            model, train_dataloader, eval_dataloader, optimizer = accelerator.prepare(model, train_dataloader, eval_dataloader, optimizer)
+            model, train_dataloader, eval_dataloader, optimizer, lr_scheduler = accelerator.prepare(model, train_dataloader, eval_dataloader, optimizer, lr_scheduler)
         else:
              # ddp and fsdp need model prepared before wrapping.
             train_dataloader, eval_dataloader, optimizer, lr_scheduler = accelerator.prepare(train_dataloader, eval_dataloader, optimizer, lr_scheduler)
