@@ -1,1 +1,1 @@
-opacus
+opacus==1.1.3
