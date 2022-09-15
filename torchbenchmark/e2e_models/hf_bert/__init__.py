@@ -47,6 +47,7 @@ class Model(E2EBenchmarkModel):
         max_seq_length = "128"
         learning_rate = "2e-5"
         num_train_epochs = "3"
+        max_train_steps = "100" # overrides num_train_epochs to run faster
         # this benchmark runs on a single GPU
         cuda_visible_devices = "0"
         output_dir = os.path.join(CURRENT_DIR, ".output")
@@ -57,6 +58,7 @@ class Model(E2EBenchmarkModel):
                   "--per_device_eval_batch_size", str(self.batch_size),
                   "--learning_rate", learning_rate,
                   "--num_train_epochs", num_train_epochs,
+                  "--max_train_steps", max_train_steps,
                   "--output_dir", output_dir]
         hf_args = parse_args(in_arg)
 
@@ -122,9 +124,10 @@ class Model(E2EBenchmarkModel):
             train_dataset, shuffle=True, collate_fn=self.data_collator, batch_size=hf_args.per_device_train_batch_size)
         eval_dataloader = DataLoader(eval_dataset, collate_fn=self.data_collator, batch_size=hf_args.per_device_eval_batch_size)
 
-        # set distributed strategy before creating optimizer
-        model = accelerator.prepare(model)
+        # transform model for DDP and FSDP
         if hf_args.distributed == "ddp":
+            # prepare before wrap w/ DDP (or else error)
+            model = accelerator.prepare(model)
             local_rank = int(os.getenv("LOCAL_RANK", -1))
             model = DDP(
                 model,
@@ -138,6 +141,8 @@ class Model(E2EBenchmarkModel):
                 static_graph=True,
             )
         elif hf_args.distributed == "fsdp":
+            # model needs to be prepared and wrapped w/ FSDP before optimizer is created, because FSDP flattens params
+            model = accelerator.prepare(model)
             local_rank = int(os.getenv("LOCAL_RANK", -1))
             torch.cuda.set_device(local_rank)
             model = FSDP(
@@ -161,9 +166,13 @@ class Model(E2EBenchmarkModel):
         optimizer = AdamW(optimizer_grouped_parameters, lr=hf_args.learning_rate)
 
         # Prepare everything with our `accelerator`.
-        optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
-            optimizer, train_dataloader, eval_dataloader
-        )
+        if hf_args.distributed == "deepspeed":
+            # deepspeed will error unless all components prepared at the same time
+            model, train_dataloader, eval_dataloader, optimizer = accelerator.prepare(model, train_dataloader, eval_dataloader, optimizer)
+        else:
+             # ddp and fsdp need model prepared before wrapping.
+            train_dataloader, eval_dataloader, optimizer = accelerator.prepare(train_dataloader, eval_dataloader, optimizer)
+            
 
         # Note -> the training dataloader needs to be prepared before we grab his length below (cause its length will be
         # shorter in multiprocess)
