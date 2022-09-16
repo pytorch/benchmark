@@ -67,24 +67,30 @@ class HuggingFaceModel(BenchmarkModel):
         if test == "train":
             input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
-            self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
+            example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
             self.model.train()
         elif test == "eval":
             # Cut the length of sentence when running on CPU, to reduce test time
             if self.device == "cpu" and self.name in cpu_input_slice:
                 self.max_length = int(self.max_length / cpu_input_slice[self.name])
             eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
-            self.example_inputs = {'input_ids': eval_context, }
+            example_inputs = {'input_ids': eval_context, }
             if class_models[name][3] == 'AutoModelForSeq2SeqLM':
-                self.example_inputs['decoder_input_ids'] = eval_context
+                example_inputs['decoder_input_ids'] = eval_context
             self.model.eval()
+        self.example_inputs = self._convert_kw_inputs_to_list(example_inputs)
+
+    def _convert_kw_inputs_to_list(self, example_inputs):
+        if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
+            k = 'labels' if self.test == 'train' else 'decoder_input_ids'
+            return (example_inputs['input_ids'], example_inputs[k])
+        return (example_inputs["input_ids"], )
 
     def get_module(self):
         if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
             k = 'labels' if self.test == 'train' else 'decoder_input_ids'
-            return ArgsToKwargsWrapper(self.model), (
-                    self.example_inputs['input_ids'], self.example_inputs[k])
-        return self.model, (self.example_inputs["input_ids"], )
+            return ArgsToKwargsWrapper(self.model), self.example_inputs
+        return self.model, self.example_inputs
 
     def get_dynamic_shapes_module(self):
         if self.dynamic_example_inputs is None:
@@ -108,22 +114,15 @@ class HuggingFaceModel(BenchmarkModel):
     def enable_fp16_half(self):
         self.model = self.model.half()
 
-    def _unwrap_model(self, model):
-        if isinstance(model, ArgsToKwargsWrapper):
-            return model.model
-        return model
-
     def train(self):
-        model = self._unwrap_model(self.model)
-        outputs = model(**self.example_inputs)
+        outputs = self.model(*self.example_inputs)
         loss = outputs.loss
         loss.backward()
         self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
-        model = self._unwrap_model(self.model)
         with torch.no_grad():
-            out = model(**self.example_inputs)
+            out = self.model(*self.example_inputs)
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
         # transformations such as fx2trt will cast the original output type to dict
