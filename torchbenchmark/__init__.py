@@ -19,10 +19,21 @@ from components._impl.workers import subprocess_worker
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 DATA_PATH = os.path.join(REPO_PATH, "torchbenchmark", "data", ".data")
 
-TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
-proxy_suggestion = "Unable to verify https connectivity, " \
-                   "required for setup.\n" \
-                   "Do you need to use a proxy?"
+class add_path():
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
+
+with add_path(str(REPO_PATH)):
+    from utils import TORCH_DEPS, get_pkg_versions, proxy_suggestion
 
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = 'models'
@@ -100,7 +111,7 @@ def _is_internal_model(model_name: str) -> bool:
         return True
     return False
 
-def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False) -> bool:
+def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False, test_mode: bool = False) -> bool:
     if not _test_https():
         print(proxy_suggestion)
         sys.exit(-1)
@@ -110,7 +121,15 @@ def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool =
     model_paths = filter(lambda p: True if not models else os.path.basename(p).lower() in models, _list_model_paths())
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
+        if test_mode:
+            versions = get_pkg_versions(TORCH_DEPS)
         success, errmsg, stdout_stderr = _install_deps(model_path, verbose=verbose)
+        if test_mode:
+            new_versions = get_pkg_versions(TORCH_DEPS, reload=True)
+            if versions != new_versions:
+                print(f"The torch packages are re-installed after installing the benchmark model {model_path}. \
+                        Before: {versions}, after: {new_versions}")
+                sys.exit(-1)
         if success and errmsg and "No install.py is found" in errmsg:
             print("SKIP - No install.py is found")
         elif success:

@@ -7,11 +7,13 @@ proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
                    "Do you need to use a proxy?"
 
-def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
+def get_pkg_versions(packages: List[str], reload: bool=False) -> Dict[str, str]:
     versions = {}
     for module in packages:
         module = importlib.import_module(module)
-        versions[module] = module.__version__
+        if reload:
+            module = importlib.reload(module)
+        versions[module.__name__] = module.__version__
     return versions
 
 def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> bool:

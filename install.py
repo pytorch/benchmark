@@ -77,6 +77,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("models", nargs='*', default=[],
                         help="Specify one or more models to install. If not set, install all models.")
+    parser.add_argument("--test-mode", action="store_true", help="Run in test mode and check package versions")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--component", choices=["distributed"], help="Install requirements for optional components.")
@@ -125,7 +126,7 @@ if __name__ == '__main__':
                 Before: {versions}, after: {new_versions}")
         sys.exit(-1)
     from torchbenchmark import setup
-    success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail)
+    success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail, test_mode=args.test_mode)
     if not success:
         if args.continue_on_fail:
             print("Warning: some benchmarks were not installed due to failure")
