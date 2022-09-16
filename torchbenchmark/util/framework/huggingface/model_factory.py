@@ -108,15 +108,22 @@ class HuggingFaceModel(BenchmarkModel):
     def enable_fp16_half(self):
         self.model = self.model.half()
 
+    def _unwrap_model(self, model):
+        if isinstance(model, ArgsToKwargsWrapper):
+            return model.model
+        return model
+
     def train(self):
-        outputs = self.model(**self.example_inputs)
+        model = self._unwrap_model(self.model)
+        outputs = model(**self.example_inputs)
         loss = outputs.loss
         loss.backward()
         self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
+        model = self._unwrap_model(self.model)
         with torch.no_grad():
-            out = self.model(**self.example_inputs)
+            out = model(**self.example_inputs)
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
         # transformations such as fx2trt will cast the original output type to dict
