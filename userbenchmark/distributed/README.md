@@ -9,3 +9,4 @@ Supported options (not-exhaustive):
 * `--distributed {ddp, fsdp, deepspeed, none}`
 * `--profiler {True, False}`
   * If set to True, returns one trace for every GPU, saved into --job_dir FOLDER.
+* multinode should work without issue (so `--nodes 2` or more)
