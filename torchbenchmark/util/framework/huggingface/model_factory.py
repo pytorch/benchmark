@@ -87,9 +87,12 @@ class HuggingFaceModel(BenchmarkModel):
                 self.example_inputs['decoder_input_ids'] = eval_context
             self.model.eval()
 
-    def get_module(self):
+    def get_module(self, wrap_model=True):
         if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
             k = 'labels' if self.test == 'train' else 'decoder_input_ids'
+            if not wrap_model:
+                return self.model, (
+                    self.example_inputs['input_ids'], self.example_inputs[k])
             return ArgsToKwargsWrapper(self.model), (
                     self.example_inputs['input_ids'], self.example_inputs[k])
         return self.model, (self.example_inputs["input_ids"], )
