@@ -114,6 +114,8 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
     parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     parser.add_argument("--enable_ddp_breaks", action='store_true', help="enable experimental ddp breaks")
+    parser.add_argument("--dynamo_log_level", type=str, default="", help="torchdynamo debug level")
+    parser.add_argument("--dynamo_functionalize", action='store_true', help="torchdynamo enable functionalization pass")
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"
@@ -151,7 +153,7 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
         model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
 
     if args.enable_ddp_breaks:
-        import torchdyanmo
+        import torchdynamo
         @contextlib.contextmanager
         def optimize_ddp_ctx(val: bool):
             old_value = torchdynamo.config.optimize_ddp
@@ -162,3 +164,24 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
                 torchdynamo.config.optimize_ddp = old_value
 
         model.add_context(lambda: optimize_ddp_ctx(True))
+
+    if args.dynamo_functionalize:
+        import functorch.compile
+        @contextlib.contextmanager
+        def functionalize_ctx(val: bool):
+            old_value = functorch.compile.config.use_functionalize
+            try:
+                functorch.compile.config.use_functionalize = True
+                yield
+            finally:
+                functorch.compile.config.use_functionalize = old_value
+
+        model.add_context(functionalize_ctx)
+
+    if args.dynamo_log_level:
+        import logging
+        import torchdynamo
+        mapping = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
+        torchdynamo.config.verbose = True
+        if args.dynamo_log_level in mapping:
+            torchdynamo.config.log_level = mapping[args.dynamo_log_level]

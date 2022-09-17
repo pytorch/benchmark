@@ -228,7 +228,7 @@ def main():
         # # 'torchbenchmark.models.hf_BertLarge.Model',
         # 'torchbenchmark.models.hf_GPT2_large.Model',
         # 'torchbenchmark.models.hf_T5_large.Model',
-        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
         # 'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
@@ -247,11 +247,13 @@ def main():
     model_args_configs = [
         [],  # no args = pure eager baseline
         ["--torchdynamo", "eager"],  # runs dynamo without a backend
-        ["--torchdynamo", "aot_nvfuser"],
+        # ["--torchdynamo", "aot_nvfuser"],
         ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
-    node_list = [1, 2]
+    # node_list = [8, 12, 1, 2, 4, 16, 24, 20]
+    # node_list = [1, 2]
+    node_list = [1]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
@@ -261,10 +263,15 @@ def main():
     for nodes in node_list:
         for model_name in models:
             for model_args in model_args_configs:
-                for has_breaks in [True, False]:
+                # for has_breaks in [True, False]:
+                for has_breaks in [False]:
                     copied_model_args = copy.deepcopy(model_args)
                     if has_breaks:
-                        copied_model_args.append("--enable_ddp_breaks")
+                        pass
+                        # copied_model_args.append("--enable_ddp_breaks")
+                        # copied_model_args.append("--dynamo_log_level")
+                        # copied_model_args.append("DEBUG")
+                        # copied_model_args.append("--dynamo_functionalize")
                     breakname = "withbreaks" if has_breaks else "nobreaks"
                     batch_size = model_batch_size[model_name]
                     args.model = model_name

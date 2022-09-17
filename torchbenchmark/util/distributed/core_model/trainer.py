@@ -14,6 +14,14 @@ class Trainer():
     DEFAULT_MEASURE_ITERATIONS = 10
 
     def __init__(self, args, model_class, mode="SPMD", model_args=None):
+        def print_env_var(env_name):
+            print(env_name, ":", os.getenv(env_name))
+
+        print_env_var("FI_PROVIDER")
+        print_env_var("LD_LIBRARY_PATH")
+        print_env_var("NCCL_DEBUG")
+        print_env_var("FI_EFA_USE_DEVICE_RDMA")
+
         self.args = args
         self.model_args = model_args
         self.model_class = model_class
@@ -101,6 +109,7 @@ class Trainer():
         stdev_latency = stdev(latency_train)
 
 
+        '''
         if self.args.profiler:
             # N.B.: disable PyTorch Profiler by default due to
             # https://github.com/pytorch/pytorch/issues/75369
@@ -120,6 +129,7 @@ class Trainer():
             ):
                 for i in range(niters):
                     self.benchmark.invoke()
+        '''
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)

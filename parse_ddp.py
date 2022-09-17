@@ -36,17 +36,18 @@ def parse_data(args):
     Schema:
     model_data["model"]["backend"][#nodes] = latency_median
     """
-    model_data = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+    model_data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
     with open(args.csv) as f:
         runs = csv.DictReader(f)
         for row in runs:
             model = row["model"]
             backend = row["backend"]
             nodes = row["nodes"]
+            has_breaks = row["has_breaks"]
             job_id = row["job_id"]
             result_code, result_data = get_job_result(args, job_id)
             latency = f"{result_data['latency_median']:.3f}" if result_code else str(result_data)[:10]
-            model_data[model][backend][nodes] = latency
+            model_data[model][backend][nodes][has_breaks] = latency
     return model_data
 
 def model_name(model):
@@ -66,7 +67,7 @@ def print_model_table(args, model, model_data):
         row = [backend, ]
         for node in node_counts:
             if node in model_data[backend]:
-                row.append(model_data[backend][node])
+                row.append(f"{model_data[backend][node]['False']} / {model_data[backend][node]['True']}")
             else:
                 row.append("-")
         rows.append(row)
@@ -77,6 +78,7 @@ def print_model_table(args, model, model_data):
     print()
 
 def print_results(args, data):
+    print("        (without ddp breaks) / (with ddp breaks)")
     for model in data:
         print_model_table(args, model, data[model])
 

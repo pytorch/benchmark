@@ -5,6 +5,17 @@ import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
 from typing import Tuple, Generator, Optional
 
+
+import logging
+import torchdynamo
+# torchdynamo.config.verbose = True
+# torchdynamo.config.log_level = logging.DEBUG
+
+'''
+import functorch.compile
+functorch.compile.config.use_functionalize = True
+'''
+
 class TorchVisionModel(BenchmarkModel):
     # To recognize this is a torchvision model
     TORCHVISION_MODEL = True
@@ -53,8 +64,9 @@ class TorchVisionModel(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
+
     def train(self):
-        self.optimizer.zero_grad()
+        # self.optimizer.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
             if not self.dynamo and self.opt_args.cudagraph:
                 self.example_inputs[0].copy_(data)
@@ -63,7 +75,7 @@ class TorchVisionModel(BenchmarkModel):
             else:
                 pred = self.model(data)
                 self.loss_fn(pred, target).backward()
-                self.optimizer.step()
+                # self.optimizer.step()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
         if not self.dynamo and self.opt_args.cudagraph:
