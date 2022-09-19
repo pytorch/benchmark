@@ -70,6 +70,7 @@ class Model(BenchmarkModel):
 
         # Generate some dummy targets based off of some interpretation of the lennard_jones force.
         norms = torch.norm(self.drs, dim=1).reshape(-1, 1)
+        self.norms = norms
         # Create training energies
         self.training_energies = torch.stack(list(map(lennard_jones, norms))).reshape(-1, 1)
         # Create forces with random direction vectors
@@ -80,7 +81,7 @@ class Model(BenchmarkModel):
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
 
     def get_module(self):
-        return self.model, self.drs
+        return self.model, (self.norms, )
 
     def train(self):
         model = self.model
