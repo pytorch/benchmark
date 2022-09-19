@@ -1,5 +1,6 @@
 import math
 import random
+import os
 import torch
 from torch import optim
 from torchbenchmark.util.model import BenchmarkModel
@@ -61,7 +62,12 @@ class HuggingFaceModel(BenchmarkModel):
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
         self.model = class_ctor.from_config(config).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001, capturable=True)
+        self.optimizer = optim.Adam(
+            self.model.parameters(),
+            lr=0.001,
+            # TODO resolve https://github.com/pytorch/torchdynamo/issues/1083
+            capturable=bool(int(os.getenv("ADAM_CAPTURABLE", 0)
+        )))
 
         # populate these on-demand to avoid wasting memory when not used
         self.vocab_size = config.vocab_size

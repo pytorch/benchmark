@@ -1,3 +1,4 @@
+import os
 import torch
 import typing
 import torch.optim as optim
@@ -25,7 +26,11 @@ class TorchVisionModel(BenchmarkModel):
             self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
             self.model.train()
             # setup optimizer and loss_fn
-            self.optimizer = optim.Adam(self.model.parameters(), capturable=True)
+            self.optimizer = optim.Adam(
+                self.model.parameters(),
+                # TODO resolve https://github.com/pytorch/torchdynamo/issues/1083
+                capturable=bool(int(os.getenv("ADAM_CAPTURABLE", 0)
+            )))
             self.loss_fn = torch.nn.CrossEntropyLoss()
             self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
             self.real_output = [ torch.rand_like(self.example_outputs) ]
