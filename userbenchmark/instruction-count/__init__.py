@@ -35,6 +35,10 @@ def get_work_dir(output_dir):
     work_dir.mkdir(exist_ok=True, parents=True)
     return work_dir
 
+def get_run_env(env):
+    env["BENCHMARK_USE_DEV_SHM"] = 1
+    return env
+
 def checkout_pytorch_repo(pytorch_repo: str, pytorch_branch: str):
     git.Repo.clone_from(PYTORCH_SRC_URL, pytorch_repo, depth=1, branch=pytorch_branch)
 
@@ -45,8 +49,9 @@ def cleanup_pytorch_repo(pytorch_repo: str):
 
 def run_benchmark(pytorch_src_path: Path, output_json_path: Path):
     benchmark_path = pytorch_src_path.joinpath("benchmarks", "instruction_counts")
+    runtime_env = get_run_env(os.environ.copy())
     command = [sys.executable, "main.py", "--mode", "ci", "--destination", str(output_json_path.resolve())]
-    subprocess.check_call(command, cwd=benchmark_path)
+    subprocess.check_call(command, cwd=benchmark_path, env=runtime_env)
 
 def parse_args(args: List[str], work_dir: Path):
     parser = argparse.ArgumentParser()
