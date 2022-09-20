@@ -103,12 +103,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
-        # apply optimization args
-        if self.dynamo:
-            from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
-            apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
-        else:
-            apply_opt_args(self, self.opt_args, self.extra_args)
         if should_check_correctness:
             # tensorrt or fp16 is known to generate less-accurate results
             # in this case, use more relaxed cosine similarity instead of torch.allclose
@@ -130,6 +124,13 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             else:
                 module, _inputs = self.get_module()
             self.set_module(apply_trainer(module, self.dargs.distributed))
+
+        # apply optimization args
+        if self.dynamo:
+            from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
+            apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
+        else:
+            apply_opt_args(self, self.opt_args, self.extra_args)
         if self.test == "cuda":
             torch.cuda.empty_cache()
 
