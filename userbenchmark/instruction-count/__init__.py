@@ -35,8 +35,8 @@ def get_work_dir(output_dir):
     work_dir.mkdir(exist_ok=True, parents=True)
     return work_dir
 
-def checkout_pytorch_repo(pytorch_repo: str):
-    git.Repo.clone_from(PYTORCH_SRC_URL, pytorch_repo, depth=1)
+def checkout_pytorch_repo(pytorch_repo: str, pytorch_branch: str):
+    git.Repo.clone_from(PYTORCH_SRC_URL, pytorch_repo, depth=1, branch=pytorch_branch)
 
 def cleanup_pytorch_repo(pytorch_repo: str):
     pytorch_repo_path = Path(pytorch_repo)
@@ -52,6 +52,8 @@ def parse_args(args: List[str], work_dir: Path):
     parser = argparse.ArgumentParser()
     parser.add_argument("--pytorch-src", default=str(work_dir.resolve()),
                         help="Location of PyTorch source repo")
+    parser.add_argument("--pytorch-branch", default="master",
+                        help="The branch of pytorch to check out")
     parser.add_argument("--analyze-json", type=str, default=None, help="Only analyze an existing result")
     args = parser.parse_args(args)
     return args
@@ -67,7 +69,7 @@ def run(args: List[str]):
         dump_output(BM_NAME, result)
         return
     cleanup_pytorch_repo(args.pytorch_src)
-    checkout_pytorch_repo(args.pytorch_src)
+    checkout_pytorch_repo(args.pytorch_src, args.pytorch_branch)
     pytorch_src_path = Path(args.pytorch_src)
     output_json_path = work_dir.joinpath(RESULT_JSON)
     run_benchmark(pytorch_src_path, output_json_path)
