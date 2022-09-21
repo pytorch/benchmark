@@ -2,8 +2,32 @@ import argparse
 import subprocess
 import os
 import sys
+import yaml
 import tarfile
 from utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
+from pathlib import Path
+REPO_ROOT = Path(__file__).parent
+
+def s3_checkout():
+    S3_URL_BASE = "https://ossci-datasets.s3.amazonaws.com/torchbench"
+    data_dir = REPO_ROOT.joinpath("torchbenchmark", "data")
+    model_dir = REPO_ROOT.joinpath("torchbenchmark", "models")
+    index_file = REPO_ROOT.joinpath("torchbenchmark", "data", "index.yaml")
+    import requests
+    with open(index_file, "r") as ind:
+        index = yaml.safe_load(ind)
+    for input_file in index["INPUT_TARBALLS"]:
+        s3_url = f"{S3_URL_BASE}/data/{input_file}"
+        r = requests.get(s3_url, allow_redirects=True)
+        with open(str(data_dir.joinpath(input_file)), "wb") as output:
+            print(f"Checking out {s3_url} to {data_dir.joinpath(input_file)}")
+            output.write(r.content)
+    for model_file in index["MODEL_PKLS"]:
+        s3_url = f"{S3_URL_BASE}/models/{model_file}"
+        r = requests.get(s3_url, allow_redirects=True)
+        with open(str(model_dir.joinpath(model_file)), "wb") as output:
+            print(f"Checking out {s3_url} to {model_dir.joinpath(model_file)}")
+            output.write(r.content)
 
 def git_lfs_checkout():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
@@ -53,6 +77,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("models", nargs='*', default=[],
                         help="Specify one or more models to install. If not set, install all models.")
+    parser.add_argument("--test-mode", action="store_true", help="Run in test mode and check package versions")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--component", choices=["distributed"], help="Install requirements for optional components.")
@@ -75,9 +100,10 @@ if __name__ == '__main__':
         print("OK")
     else:
         print("FAIL")
-        print("Failed to checkout git lfs files. Please make sure you have installed git lfs.")
-        print(errmsg)
-        sys.exit(-1)
+        print("git lfs failed. checking out input files from S3...", end="", flush=True)
+        s3_checkout()
+        print("OK")
+
     decompress_input()
 
     if args.component == "distributed":
@@ -100,7 +126,7 @@ if __name__ == '__main__':
                 Before: {versions}, after: {new_versions}")
         sys.exit(-1)
     from torchbenchmark import setup
-    success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail)
+    success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail, test_mode=args.test_mode)
     if not success:
         if args.continue_on_fail:
             print("Warning: some benchmarks were not installed due to failure")

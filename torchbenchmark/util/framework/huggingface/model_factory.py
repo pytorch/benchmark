@@ -79,9 +79,12 @@ class HuggingFaceModel(BenchmarkModel):
                 self.example_inputs['decoder_input_ids'] = eval_context
             self.model.eval()
 
-    def get_module(self):
+    def get_module(self, wrap_model=True):
         if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
             k = 'labels' if self.test == 'train' else 'decoder_input_ids'
+            if not wrap_model:
+                return self.model, (
+                    self.example_inputs['input_ids'], self.example_inputs[k])
             return ArgsToKwargsWrapper(self.model), (
                     self.example_inputs['input_ids'], self.example_inputs[k])
         return self.model, (self.example_inputs["input_ids"], )
@@ -108,17 +111,15 @@ class HuggingFaceModel(BenchmarkModel):
     def enable_fp16_half(self):
         self.model = self.model.half()
 
-    def train(self, niter=3):
-        for _ in range(niter):
-            outputs = self.model(**self.example_inputs)
-            loss = outputs.loss
-            loss.backward()
-            self.optimizer.step()
+    def train(self):
+        outputs = self.model(**self.example_inputs)
+        loss = outputs.loss
+        loss.backward()
+        self.optimizer.step()
 
-    def eval(self, niter=1) -> Tuple[torch.Tensor]:
+    def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
-            for _ in range(niter):
-                out = self.model(**self.example_inputs)
+            out = self.model(**self.example_inputs)
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
         # transformations such as fx2trt will cast the original output type to dict

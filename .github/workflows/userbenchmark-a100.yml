@@ -10,9 +10,9 @@ env:
   PYTHON_VERSION: "3.8"
   TENSORRT_PYTHON_VERSION: "cp38"
   TENSORRT_VERSION: "8.2.4.2"
-  CUDA_VERSION: "cu113"
+  CUDA_VERSION: "cu116"
   CONDA_ENV_NAME: "userbenchmarks-ci"
-  MAGMA_VERSION: "magma-cuda113"
+  MAGMA_VERSION: "magma-cuda116"
   PLATFORM_NAME: "gcp-a100"
   TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
   SETUP_SCRIPT: "/data/shared/setup_instance.sh"
@@ -58,7 +58,7 @@ jobs:
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
-            python ./.github/scripts/userbenchmarks/schedule-benchmarks.py --platform ${PLATFORM_NAME}
+            python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
             cp -r ./.userbenchmark ../benchmark-output
           else
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}"

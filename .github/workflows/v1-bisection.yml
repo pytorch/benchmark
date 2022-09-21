@@ -14,8 +14,8 @@ jobs:
       BISECT_DIR: ".torchbench/v1-bisection-ci"
       BISECT_BRANCH: "v1.0"
       PYTHON_VERSION: "3.8"
-      MAGMA_VERSION: "magma-cuda113"
-      CUDA_VERSION: "11.3"
+      MAGMA_VERSION: "magma-cuda116"
+      CUDA_VERSION: "11.6"
       MKL_VERSION: "2021.2.0"
       NUMPY_VERSION: "1.21.2"
     if: ${{ github.repository_owner == 'pytorch' }}

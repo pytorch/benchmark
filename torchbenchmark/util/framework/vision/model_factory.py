@@ -53,25 +53,22 @@ class TorchVisionModel(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def train(self, niter=3):
-        for _ in range(niter):
-            self.optimizer.zero_grad()
-            for data, target in zip(self.real_input, self.real_output):
-                if not self.dynamo and self.opt_args.cudagraph:
-                    self.example_inputs[0].copy_(data)
-                    self.example_outputs.copy_(target)
-                    self.g.replay()
-                else:
-                    pred = self.model(data)
-                    self.loss_fn(pred, target).backward()
-                    self.optimizer.step()
+    def train(self):
+        self.optimizer.zero_grad()
+        for data, target in zip(self.real_input, self.real_output):
+            if not self.dynamo and self.opt_args.cudagraph:
+                self.example_inputs[0].copy_(data)
+                self.example_outputs.copy_(target)
+                self.g.replay()
+            else:
+                pred = self.model(data)
+                self.loss_fn(pred, target).backward()
+                self.optimizer.step()
 
-    def eval(self, niter=1) -> typing.Tuple[torch.Tensor]:
+    def eval(self) -> typing.Tuple[torch.Tensor]:
         if not self.dynamo and self.opt_args.cudagraph:
             return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.model
         example_inputs = self.example_inputs
-        result = None
-        for _i in range(niter):
-            result = model(*example_inputs)
+        result = model(*example_inputs)
         return (result, )

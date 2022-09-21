@@ -7,7 +7,7 @@ import yaml
 from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark import REPO_PATH
-from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
+from torchbenchmark.util.extra_args import check_correctness_p, is_hf_model, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
 
@@ -124,7 +124,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         # setup distributed trainer
         if self.dargs.distributed:
             from torchbenchmark.util.distributed.core_model.apply_trainer import apply_trainer
-            module, _inputs = self.get_module()
+            if is_hf_model(self):
+                # DDP requires to use unwrapped model for huggingface
+                module, _inputs = self.get_module(wrap_model=False)
+            else:
+                module, _inputs = self.get_module()
             self.set_module(apply_trainer(module, self.dargs.distributed))
         if self.test == "cuda":
             torch.cuda.empty_cache()

@@ -1,0 +1,15 @@
+INPUT_TARBALLS:
+  # index file for S3 storage of the input data
+  - Background_Matting_inputs.tar.gz
+  - coco128.tar.gz
+  - multi30k.tar.gz
+  - tacotron2-minimal.tar.gz
+  - coco2017-minimal.tar.gz
+  - pytorch_stargan_inputs.tar.gz
+  - LearningToPaint_inputs.tar.gz
+  - pytorch_CycleGAN_and_pix2pix_inputs.tar.gz
+  - Super_SloMo_inputs.tar.gz
+  - speech_transformer_inputs.tar.gz
+MODEL_PKLS:
+  - drq/obs.pkl
+  - maml_omniglot/batch.pt

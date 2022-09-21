@@ -2,7 +2,6 @@
 Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 """
 import argparse
-import functools
 from typing import List
 import torchdynamo
 
@@ -17,7 +16,11 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
     if args.torchdynamo == "fx2trt" and precision == "fp16":
-        model.add_context(functools.partial(torchdynamo.optimize, torchdynamo.optimizations.backends.fx2trt_compiler_fp16))
+        dynamo_optimizer = torchdynamo.optimize(torchdynamo.optimizations.backends.fx2trt_compiler_fp16)
     else:
-        model.add_context(functools.partial(torchdynamo.optimize, args.torchdynamo))
+        dynamo_optimizer = torchdynamo.optimize(args.torchdynamo)
+    if model.test == "train":
+        model.train = dynamo_optimizer(model.train)
+    else:
+        model.eval = dynamo_optimizer(model.eval)
     torchdynamo.reset()

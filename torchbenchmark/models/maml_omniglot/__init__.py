@@ -30,8 +30,23 @@ from torchbenchmark.tasks import OTHER
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
-    DEFAULT_TRAIN_BSIZE = 1
-    DEFAULT_EVAL_BSIZE = 1
+    # batch size in the traditional sense doesn't apply to this maml model.
+    # Instead, there is a task number (32 in this case) and K-shot
+    # (5 in this case) and these were chosen to be representative of
+    # the training done in the original MAML paper
+    # (https://arxiv.org/pdf/1703.03400.pdf)
+    #
+    # The goal of MAML is to train a model in a way that if one brings along
+    # a new task and K data points, then the model generalizes well on the
+    # test set for that task.
+    #
+    # The task number (also known as the meta-batch size) is the number of
+    # independent tasks the model gets trained on.
+    # K-shot means that each task only sees K data points.
+    #
+    # We've set the following variables to be equal to the task number.
+    DEFAULT_TRAIN_BSIZE = 32
+    DEFAULT_EVAL_BSIZE = 32
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
