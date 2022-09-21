@@ -55,6 +55,7 @@ class Model(BenchmarkModel):
         elif test == "eval":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_EVAL_ARGS))
             self.fambench_args.inference_only = True
+            self.blade_reserve_attrs = ["quantize_mlp_input_with_half_call"]
         if device == "cuda":
             self.fambench_args.use_gpu = True
 

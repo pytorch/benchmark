@@ -41,6 +41,7 @@ class Model(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             self.model.eval()
+            self.blade_reserve_attrs = ["n_classes"]
 
     def get_module(self):
         return self.model, (self.example_inputs,)

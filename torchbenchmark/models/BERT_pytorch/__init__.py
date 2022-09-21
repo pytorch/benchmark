@@ -11,6 +11,7 @@ from .bert_pytorch.trainer import BERTTrainer
 from .bert_pytorch.dataset import BERTDataset, WordVocab
 from .bert_pytorch.model import BERT
 from torch.utils.data import DataLoader
+from torch.utils._pytree import tree_map
 import typing
 
 torch.backends.cudnn.deterministic = False
@@ -157,6 +158,16 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         return self.model.bert, self.example_inputs
+
+    def enable_fp16_half(self):
+        self.model.model.half()
+        self.example_inputs = tree_map(
+            lambda x: x.to(torch.float16)
+            if getattr(x, "dtype", None) == torch.float32
+            or getattr(x, "dtype", None) == torch.float64
+            else x,
+            self.example_inputs,
+        )
 
     def set_module(self, new_model):
         self.model.bert = new_model

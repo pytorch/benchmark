@@ -29,7 +29,6 @@ def blade_optimize_dynamo(subgraph, enable_fp16=False, use_trt=False):
             allow_tracing=True,
             model_inputs=tuple(subgraph.example_inputs),
         )
-
     if use_trt:
         num_engines = tensorrt.num_engines
         num_compiled_nodes = tensorrt.num_compiled_nodes
@@ -63,4 +62,12 @@ def blade(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[
             allow_tracing=True,
             model_inputs=tuple(example_inputs),
         )
+    if isinstance(optimized_model, torch.jit.ScriptModule):
+        for attr_name in getattr(model, "blade_reserve_attrs", []):
+            attr = getattr(module, attr_name, None)
+            if isinstance(attr, int):
+                optimized_model._c._register_attribute(attr_name, torch._C.IntType.get(), attr)
+            else:
+                raise NotImplementedError(f"register_attribute for {attr_name} haven't been implemented")
+
     model.set_module(optimized_model)

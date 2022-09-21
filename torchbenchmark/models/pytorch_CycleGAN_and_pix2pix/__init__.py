@@ -43,10 +43,10 @@ class Model(BenchmarkModel):
             self.training_loop = prepare_training_loop(train_args.split(' '))
         args = f"--dataroot {data_root}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test " + \
                f"--no_dropout {device_arg} {checkpoints_arg} {results_arg}"
-        self.model, self.input = get_model(args, self.device)
+        self.model, self.example_inputs = get_model(args, self.device)
 
     def get_module(self):
-        return self.model, self.input
+        return self.model, self.example_inputs
 
     def set_train(self):
         # another model instance is used for training
