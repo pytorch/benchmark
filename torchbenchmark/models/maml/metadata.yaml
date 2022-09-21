@@ -1,7 +1,0 @@
-eval_benchmark: false
-eval_deterministic: true
-eval_nograd: true
-train_benchmark: false
-train_deterministic: true
-not_implemented:
-  - jit: true
