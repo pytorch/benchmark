@@ -36,7 +36,7 @@ def get_work_dir(output_dir):
     return work_dir
 
 def get_run_env(env):
-    env["BENCHMARK_USE_DEV_SHM"] = 1
+    env["BENCHMARK_USE_DEV_SHM"] = "1"
     return env
 
 def checkout_pytorch_repo(pytorch_repo: str, pytorch_branch: str):
