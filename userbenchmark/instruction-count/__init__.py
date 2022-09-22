@@ -1,7 +1,7 @@
 import argparse
 from datetime import datetime
 import git
-import numpy
+import numpy as np
 import os
 import json
 import subprocess
@@ -23,8 +23,22 @@ def translate_result_metrics(json_path: Path):
         raw_result = json.load(j)
     raw_values = raw_result["values"]
     for key in raw_values:
-        median_time = numpy.median(raw_values[key]["times"])
-        metrics[key] = median_time
+        times = raw_values[key]["times"]
+        counts = raw_values[key]["counts"]
+        metrics[f"{key}_count_min"] = min(counts)
+        metrics[f"{key}_count_max"] = max(counts)
+        metrics[f"{key}_count_p25"] = int(np.percentile(counts, 25))
+        metrics[f"{key}_count_median"] = int(np.median(counts))
+        metrics[f"{key}_count_p75"] = int(np.percentile(counts, 75))
+        metrics[f"{key}_t_min"] = min(times)
+        metrics[f"{key}_t_max"] = max(times)
+        metrics[f"{key}_t_mean"] = float(np.mean(times))
+        metrics[f"{key}_t_p01"] = float(np.percentile(times, 1))
+        metrics[f"{key}_t_p25"] = float(np.percentile(times, 25))
+        metrics[f"{key}_t_median"] = float(np.median(times))
+        metrics[f"{key}_t_75"] = float(np.percentile(times, 75))
+        metrics[f"{key}_t_99"] = float(np.percentile(times, 99))
+        metrics[f"{key}_t_stddev"] = float(np.std(times))
     return metrics
 
 def get_timestamp():
