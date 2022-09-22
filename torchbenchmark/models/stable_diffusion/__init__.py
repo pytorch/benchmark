@@ -14,10 +14,10 @@ class Model(BenchmarkModel):
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(model_name="squeezenet1_1", test=test, device=device, jit=jit,
+        super().__init__(test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
         pipe = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4", use_auth_token=True)
-        self.model = pipe.to("cuda")
+        self.model = pipe.to(self.device)
         self.prompt = ("a photo of an astronaut riding a horse on mars", )
 
     def get_module(self):
@@ -27,6 +27,6 @@ class Model(BenchmarkModel):
         raise NotImplementedError("Train test is not implemented for stable diffusion.")
 
     def eval(self) -> Tuple[torch.Tensor]:
-        with torch.inference_mode(), torch.autocast("cuda"):
+        with torch.inference_mode():
             image = self.model(*self.prompt).images[0]
         return (image, )
