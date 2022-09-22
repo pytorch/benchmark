@@ -27,6 +27,6 @@ class Model(BenchmarkModel):
         raise NotImplementedError("Train test is not implemented for stable diffusion.")
 
     def eval(self) -> Tuple[torch.Tensor]:
-        with torch.inference_mode():
+        with torch.inference_mode(), torch.autocast(self.device):
             image = self.model(*self.prompt).images[0]
         return (image, )
