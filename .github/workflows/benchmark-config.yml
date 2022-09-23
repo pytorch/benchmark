@@ -81,7 +81,7 @@ jobs:
           popd
           popd
           # test torch-tensorrt
-          python -c "import torch_tensorrt; from torch_tensorrt.fx.lower import lower_to_trt"
+          python -c "import torch_tensorrt"
           pushd torchdynamo
           python setup.py develop
           popd
