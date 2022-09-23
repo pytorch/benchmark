@@ -9,7 +9,7 @@ on:
 env:
   PYTHON_VERSION: "3.8"
   TENSORRT_PYTHON_VERSION: "cp38"
-  TENSORRT_VERSION: "8.2.4.2"
+  TENSORRT_VERSION: "8.4.3.1"
   CUDA_VERSION: "cu116"
   CONDA_ENV_NAME: "backends-ci"
   MAGMA_VERSION: "magma-cuda116"
@@ -23,10 +23,11 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: benchmark
-      - name: Checkout pytorch/tensorrt
+      - name: Checkout xuzhao9/TensorRT
         uses: actions/checkout@v2
         with:
-          repository: pytorch/TensorRT
+          repository: xuzhao9/TensorRT
+          ref: xz9/gcp-a100-ci
           path: torch-tensorrt
       - name: Checkout TorchDynamo
         uses: actions/checkout@v2
@@ -38,8 +39,6 @@ jobs:
         with:
           repository: pytorch/functorch
           path: functorch
-          # fetch the entire history
-          fetch-depth: 0
       - name: Create conda environment
         run: |
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
@@ -77,13 +76,12 @@ jobs:
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           conda install -y bazel
           pushd torch-tensorrt
-          patch -p1 < ../benchmark/.github/scripts/torch-trt.patch
           pushd py
           python setup.py install
           popd
           popd
           # test torch-tensorrt
-          python -c "import torch_tensorrt; from torch_tensorrt.fx.lower import lower_to_trt"
+          python -c "import torch_tensorrt"
           pushd torchdynamo
           python setup.py develop
           popd
