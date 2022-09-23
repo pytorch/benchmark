@@ -72,7 +72,7 @@ Model code will require some small tweaks to make it work in these conditions:
   file lives in.
 - Look for errors in `test.py` tearDown. They might indicate that the model is not cleaning up GPU memory.
 
-### Creating yourbenchmark/\_\_init\_\_.py
+### Creating your benchmark/\_\_init\_\_.py
 This file should define two things:
 - `class Model`, extending `BenchmarkModel` with the API described below
 - `__main__` function, which exercises the model APIs for local testing
@@ -81,11 +81,7 @@ Important: be deliberate about support for cpu/gpu and jit/no-jit.  In the case 
 your model is instantiated in an unsupported configuration, the convention is to return
 a model object from \_\_init\_\_ but raise NotImplementedError() from all its methods.
 
-See the [BenchmarkModel API](https://github.com/pytorch/benchmark/blob/master/torchbenchmark/util/model.py) to get started.  Here's an [example \_\_init\_\_.py](attention_is_all_you_need_pytorch/__init__.py) from a real model.
-
-### `set_eval()` and `set_train()`
-
-`set_eval()` and `set_train()` are used by `test_bench.py` to set `train` or `eval` mode on an underlying model. The default implementation uses `get_module()` to get the underlying model instance. You should override these methods if your `Model` uses more than one underlying model (for training and inference).
+See the [BenchmarkModel API](https://github.com/pytorch/benchmark/blob/master/torchbenchmark/util/model.py) to get started. The [attention is all you need](attention_is_all_you_need_pytorch/__init__.py) benchmark can serve as a good example.
 
 ### JIT
 As an optional step, make whatever modifications necessary to the model code to enable it to script or trace.  If doing this,

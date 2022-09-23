@@ -24,19 +24,19 @@ conda activate torchbenchmark
 conda install -y git-lfs
 ```
 
-If you are running NVIDIA GPU tests, we support CUDA 10.2+, and CUDA 11.3 is recommended:
+If you are running NVIDIA GPU tests, we support CUDA 11.3+, and use CUDA 11.6 as default:
 ```
-conda install -y -c pytorch magma-cuda113
+conda install -y -c pytorch magma-cuda116
 ```
 
 Then install pytorch, torchtext, and torchvision using conda:
 ```
-conda install -y pytorch torchtext torchvision cudatoolkit=11.3 -c pytorch-nightly
+conda install -y pytorch torchtext torchvision cudatoolkit=11.6 -c pytorch-nightly
 ```
 Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
 ```
-pip install --pre torch torchvision torchtext -f https://download.pytorch.org/whl/nightly/cu113/torch_nightly.html
+pip install --pre torch torchvision torchtext -f https://download.pytorch.org/whl/nightly/cu116/torch_nightly.html
 ```
 
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.
