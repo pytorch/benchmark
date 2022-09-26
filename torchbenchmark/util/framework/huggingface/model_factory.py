@@ -8,9 +8,9 @@ from transformers import AutoConfig, ReformerConfig, BertConfig
 from typing import Tuple
 
 import torchdynamo
-torchdynamo.config.verbose = True
+# torchdynamo.config.verbose = True
 import logging
-torchdynamo.config.log_level = logging.DEBUG
+# torchdynamo.config.log_level = logging.DEBUG
 
 class_models = {
     # 'name': (train_max_length, eval_max_length, config, model)
@@ -123,7 +123,7 @@ class HuggingFaceModel(BenchmarkModel):
         outputs = self.model(**self.example_inputs)
         loss = outputs.loss
         loss.backward()
-        # self.optimizer.step()
+        self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():

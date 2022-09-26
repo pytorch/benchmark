@@ -10,6 +10,8 @@ import logging
 import torchdynamo
 # torchdynamo.config.verbose = True
 # torchdynamo.config.log_level = logging.DEBUG
+import functorch.compile
+# functorch.compile.config.debug_graphs = True
 
 '''
 import functorch.compile

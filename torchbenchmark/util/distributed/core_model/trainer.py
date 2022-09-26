@@ -17,6 +17,8 @@ class Trainer():
         def print_env_var(env_name):
             print(env_name, ":", os.getenv(env_name))
 
+        import socket
+        print("MY HOSTNAME:", socket.gethostname())
         print_env_var("FI_PROVIDER")
         print_env_var("LD_LIBRARY_PATH")
         print_env_var("NCCL_DEBUG")
@@ -109,7 +111,6 @@ class Trainer():
         stdev_latency = stdev(latency_train)
 
 
-        '''
         if self.args.profiler:
             # N.B.: disable PyTorch Profiler by default due to
             # https://github.com/pytorch/pytorch/issues/75369
@@ -129,7 +130,6 @@ class Trainer():
             ):
                 for i in range(niters):
                     self.benchmark.invoke()
-        '''
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)

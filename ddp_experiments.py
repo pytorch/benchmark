@@ -50,7 +50,7 @@ def parse_args(args: List[str]=None):
     parser.add_argument(
         "--timeout",
         # default=1440,
-        default=60,
+        default=120,
         type=int,
         help="Duration of the job"
     )
@@ -106,6 +106,12 @@ def parse_args(args: List[str]=None):
         type=str,
         default=f"ddp_experiments_{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv",
         help="training paradigm, by default using DDP"
+    )
+    parser.add_argument(
+        "--exclude",
+        type=str,
+        default=f"",
+        help="which nodes to exclude when selecting nodes",
     )
 
 
@@ -170,9 +176,12 @@ class TrainerWrapper(object):
         os.environ["LOCAL_RANK"] = str(job_env.local_rank)
         os.environ["RANK"] = str(job_env.global_rank)
         os.environ["WORLD_SIZE"] = str(job_env.num_tasks)
+        os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
+        os.environ["TORCH_CPP_LOG_LEVEL"] = "INFO"
         os.environ["GPUS_PER_NODE"] = str(job_env.num_tasks//job_env.num_nodes)
         # os.environ["NCCL_IB_DISABLE"] = str(1)
-        os.environ["NCCL_DEBUG"] = 'INFO'
+        # os.environ["NCCL_DEBUG"] = 'INFO'
+        os.environ["NCCL_DEBUG"] = 'TRACE'
         os.environ["NCCL_DEBUG_SUBSYS"] = 'INIT,ENV,NET'
         os.environ['NCCL_SOCKET_IFNAME'] = 'ens'
         # os.environ["NCCL_ALGO"] = 'ring'
@@ -197,6 +206,7 @@ def main():
         # Below are cluster dependent parameters
         slurm_partition=args.partition if args.nodes < 16 else 'scavenge',
         slurm_signal_delay_s=120,
+        slurm_exclude=args.exclude,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
@@ -227,17 +237,17 @@ def main():
         # 'torchbenchmark.models.hf_Bert.Model',
         # # 'torchbenchmark.models.hf_BertLarge.Model',
         # 'torchbenchmark.models.hf_GPT2_large.Model',
-        # 'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
         'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
-        # 'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
     model_batch_size = {
         'torchbenchmark.models.hf_Bert.Model': 32,
         'torchbenchmark.models.hf_BertLarge.Model': 16,
-        'torchbenchmark.models.hf_GPT2_large.Model': 2,
+        'torchbenchmark.models.hf_GPT2_large.Model': 1,
         'torchbenchmark.models.hf_T5_large.Model': 4,
         'torchbenchmark.models.timm_vision_transformer_large.Model': 16,
         'torchbenchmark.models.hf_GPT2.Model': 24,
@@ -246,14 +256,13 @@ def main():
     }
     model_args_configs = [
         [],  # no args = pure eager baseline
-        ["--torchdynamo", "eager"],  # runs dynamo without a backend
+        # ["--torchdynamo", "eager"],  # runs dynamo without a backend
         # ["--torchdynamo", "aot_nvfuser"],
         ["--torchdynamo", "inductor"],
+        # ["--torchdynamo", "aot_eager"],
     ]
-    # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
+    node_list = [1, 2, 4, 8, 12, 16, 20, 24]
     # node_list = [8, 12, 1, 2, 4, 16, 24, 20]
-    # node_list = [1, 2]
-    node_list = [1]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
@@ -263,8 +272,8 @@ def main():
     for nodes in node_list:
         for model_name in models:
             for model_args in model_args_configs:
-                # for has_breaks in [True, False]:
-                for has_breaks in [False]:
+                # for has_breaks in [False]:
+                for has_breaks in [True, False]:
                     copied_model_args = copy.deepcopy(model_args)
                     if has_breaks:
                         pass
