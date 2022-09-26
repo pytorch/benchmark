@@ -44,8 +44,7 @@ def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
 
 def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision: str) -> bool:
     if precision == "fp16":
-        # we disable half precision train (non-amp) for now
-        return model.device == 'cuda' and model.test == 'eval' and hasattr(model, "enable_fp16_half")
+        return model.device == 'cuda' and hasattr(model, "enable_fp16_half")
     if precision == "amp":
         if model.test == 'eval' and model.device == 'cuda':
             return True
