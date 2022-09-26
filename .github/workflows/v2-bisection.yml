@@ -51,7 +51,7 @@ jobs:
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
           export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
-          python ./.github/scripts/analyze-bisection-result.py --bisection-root "${BISECT_BASE}"
+          python ./.github/scripts/analyze-bisection-result.py --bisection-root "${BISECT_BASE}" --gh-workflow-id "${GITHUB_RUN_ID}"
       - name: Create the github issue
         if: env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL
         uses: peter-evans/create-issue-from-file@v3

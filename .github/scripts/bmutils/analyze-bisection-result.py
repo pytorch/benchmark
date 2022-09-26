@@ -25,8 +25,8 @@ def setup_gh_issue(bisection_root: str, gh_workflow_id: str):
     json_path = bisection_path.joinpath("result.json")
     with open(json_path, "r") as jp:
         result = jp.read()
-    result = f"```\n {result} \n```"
-    workflow_str = f"Bisection workflow link: {WORKFLOW_LINK_TEMPLATE}{gh_workflow_id}"
+    result = f"\nResult json: \n```\n{result}\n```"
+    workflow_str = f"\nBisection workflow link: {WORKFLOW_LINK_TEMPLATE}{gh_workflow_id}\n"
     gh_issue_path = bisection_path.joinpath("gh-issue.md")
     with open(gh_issue_path, "a") as ghi:
         ghi.write(result)

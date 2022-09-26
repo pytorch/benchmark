@@ -83,6 +83,7 @@ jobs:
             # Setup the bisection environment
             BISECTION_HOME="${HOME}/${{ env.BISECTION_ROOT }}/bisection-gh${GITHUB_RUN_ID}"
             mkdir -p "${BISECTION_HOME}"
+            mv ./benchmark-output/gh-issue.md "${BISECTION_HOME}/gh-issue.md"
             cp ./benchmark-output/bisection.yaml "${BISECTION_HOME}/config.yaml"
           fi
       - name: Dispatch the bisection workflow
