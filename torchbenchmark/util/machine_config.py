@@ -143,7 +143,7 @@ def get_nvidia_throttle_reasons(device_ids: typing.List[int] = None):
         throttle_reasons.append(gpu_reasons)
     return throttle_reasons
 
-MACHINE = enum.Enum('MACHINE', ['AMAZON_LINUX', 'UNKNOWN'])
+MACHINE = enum.Enum('MACHINE', ['AMAZON_LINUX', 'UBUNTU', 'UNKNOWN'])
 def get_machine_type():
     # It's tricky to write platform setup code that works on different OS/configs.
     # initially, just intend to identify a known environment and for any other 
@@ -152,11 +152,15 @@ def get_machine_type():
         if distro.name() == "Amazon Linux":
             return MACHINE.AMAZON_LINUX
 
+    if platform.system() == 'Linux':
+        if distro.name() == 'Ubuntu':
+            return MACHINE.UBUNTU
+
     return MACHINE.UNKNOWN
 
 def get_cpu_temp():
     temps = {}
-    if MACHINE.AMAZON_LINUX == get_machine_type():
+    if not MACHINE.UNKNOWN == get_machine_type():
         thermal_path = Path('/sys/class/thermal/')
         for zone in filter(lambda x: "thermal_zone" in x, os.listdir(thermal_path)):
             temps[zone] = int(read_sys_file(thermal_path / zone / "temp")) / 1000.
