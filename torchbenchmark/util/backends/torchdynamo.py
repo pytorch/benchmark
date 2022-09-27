@@ -28,5 +28,5 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         model.eval = dynamo_optimizer(model.eval)
     # evaluate extra python code passed by the user
     if args.extra_py_args:
-        eval(args.extra_py_args)
+        exec(args.extra_py_args)
     torchdynamo.reset()
