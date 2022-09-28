@@ -6,3 +6,5 @@ train_deterministic: false
 not_implemented:
   # hf_GPT2 model doesn't support JIT
   - jit: true
+  # OOMs on torchbench CI
+  - device: cuda
