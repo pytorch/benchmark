@@ -31,6 +31,7 @@ jobs:
           set -x
           conda create -y -n "${BISECT_CONDA_ENV}" python="${PYTHON_VER}"
           . activate "${BISECT_CONDA_ENV}"
+          . /data/shared/setup_instance.sh
           # pytorch doesn't support cmake>3.22
           # See: https://github.com/pytorch/pytorch/issues/74985
           conda install -y numpy="${NUMPY_VER}"  mkl="${MKL_VER}" mkl-include="${MKL_VER}" \
@@ -43,6 +44,7 @@ jobs:
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
           export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
           export TORCHBENCH_SRC_DIR="${PWD}"
+          . /data/shared/setup_instance.sh
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"

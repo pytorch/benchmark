@@ -35,6 +35,7 @@ jobs:
       - name: Install PyTorch nightly
         run: |
           . activate "${CONDA_ENV_NAME}"
+          . /data/shared/setup_instance.sh
           # Install dependencies
           pip install requests bs4 argparse gitpython boto3
           # Check if nightly builds are available
@@ -57,6 +58,7 @@ jobs:
       - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
+          . /data/shared/setup_instance.sh
           WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
