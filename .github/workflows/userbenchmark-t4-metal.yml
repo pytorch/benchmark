@@ -26,7 +26,7 @@ jobs:
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
       - name: Install PyTorch nightly
         run: |
-          . activate "${CONDA_ENV_NAME}"
+          . activate "${CONDA_ENV_NAME}" && . /data/nvme/bin/setup_instance.sh
           pushd benchmark
           # Install dependencies
           conda install -y pyyaml
