@@ -238,10 +238,10 @@ def main():
         # # 'torchbenchmark.models.hf_BertLarge.Model',
         # 'torchbenchmark.models.hf_GPT2_large.Model',
         'torchbenchmark.models.hf_T5_large.Model',
-        'torchbenchmark.models.timm_vision_transformer_large.Model',
+        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
-        'torchbenchmark.models.hf_T5.Model',
-        'torchbenchmark.models.resnet50.Model',
+        # 'torchbenchmark.models.hf_T5.Model',
+        # 'torchbenchmark.models.resnet50.Model',
     ]
 
     model_batch_size = {
@@ -258,10 +258,11 @@ def main():
         [],  # no args = pure eager baseline
         # ["--torchdynamo", "eager"],  # runs dynamo without a backend
         # ["--torchdynamo", "aot_nvfuser"],
-        ["--torchdynamo", "inductor"],
+        # ["--torchdynamo", "inductor"],
         # ["--torchdynamo", "aot_eager"],
     ]
-    node_list = [1, 2, 4, 8, 12, 16, 20, 24]
+    # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
+    node_list = [2]
     # node_list = [8, 12, 1, 2, 4, 16, 24, 20]
 
     def get_backend_name(model_args):
@@ -273,7 +274,8 @@ def main():
         for model_name in models:
             for model_args in model_args_configs:
                 # for has_breaks in [False]:
-                for has_breaks in [True, False]:
+                # for has_breaks in [True, False]:
+                for has_breaks in [False, False, False, False]:
                     copied_model_args = copy.deepcopy(model_args)
                     if has_breaks:
                         pass
@@ -298,6 +300,7 @@ def main():
                         # Below are cluster dependent parameters
                         slurm_partition=args.partition,
                         slurm_signal_delay_s=120,
+                        slurm_exclusive=True,
                     )
                     job = executor.submit(TrainerWrapper(args, copied_model_args))
 

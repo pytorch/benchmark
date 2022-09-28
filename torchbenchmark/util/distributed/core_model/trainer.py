@@ -80,7 +80,8 @@ class Trainer():
             raise ValueError(f"Unrecognized distributed training mode {self.mode}")
 
     def measure(self):
-        niters = self.DEFAULT_MEASURE_ITERATIONS
+        # niters = self.DEFAULT_MEASURE_ITERATIONS
+        niters = 30
 
         ######################################
         # 1. warming up CUDACachingAllocator #
@@ -101,6 +102,7 @@ class Trainer():
         for i in range(niters):
             events_pre_train[i].record()
             self.benchmark.invoke()
+            torch.cuda.synchronize(device=self.local_rank)
             events_post_train[i].record()
 
         # wait for all pending CUDA ops to finish
@@ -108,6 +110,8 @@ class Trainer():
 
         latency_train = [pre.elapsed_time(post) for pre, post in zip(events_pre_train, events_post_train)]
         median_latency = np.median(latency_train)
+        p10_latency = np.percentile(latency_train, 10)
+        p90_latency = np.percentile(latency_train, 90)
         stdev_latency = stdev(latency_train)
 
 
@@ -138,7 +142,10 @@ class Trainer():
 
         return {
             "latency_median" : median_latency,
+            "latency_p10": p10_latency,
+            "latency_p90": p90_latency,
             "latency_stdev" : stdev_latency,
+            "latency_train": latency_train,
         }
 
 
