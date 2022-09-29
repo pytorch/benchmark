@@ -49,7 +49,7 @@ def parse_args(args: List[str]=None):
 
     parser.add_argument(
         "--timeout",
-        default=1440,
+        default=120,
         type=int,
         help="Duration of the job"
     )
@@ -106,6 +106,12 @@ def parse_args(args: List[str]=None):
         default=f"ddp_experiments_{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv",
         help="training paradigm, by default using DDP"
     )
+    parser.add_argument(
+        "--exclude",
+        type=str,
+        default="",
+        help="excluded node list",
+    )
 
 
     try:
@@ -155,7 +161,7 @@ class TrainerWrapper(object):
         if os.path.exists(checkpoint_file):
             self.args.resume = checkpoint_file
         print("Requeuing ", self.args)
-        empty_trainer = type(self)(self.args)
+        empty_trainer = type(self)(self.args, self.model_args)
         return submitit.helpers.DelayedSubmission(empty_trainer)
 
     def _setup_gpu_args(self):
@@ -178,6 +184,7 @@ class TrainerWrapper(object):
         os.environ["FI_PROVIDER"] = 'efa'
         os.environ["FI_EFA_USE_DEVICE_RDMA"]= str(1)
         os.environ["NET_TYPE"] = 'efa'
+        os.environ["ADAM_CAPTURABLE"] = str(1)
 
 
 def main():
@@ -196,6 +203,7 @@ def main():
         # Below are cluster dependent parameters
         slurm_partition=args.partition if args.nodes < 16 else 'scavenge',
         slurm_signal_delay_s=120,
+        slurm_exclude=args.exclude,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
@@ -214,10 +222,10 @@ def main():
         # 'torchbenchmark.models.hf_Bert.Model',
         # # 'torchbenchmark.models.hf_BertLarge.Model',
         # 'torchbenchmark.models.hf_GPT2_large.Model',
-        # 'torchbenchmark.models.hf_T5_large.Model',
-        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
-        # 'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
@@ -235,10 +243,11 @@ def main():
         [],  # no args = pure eager baseline
         # ["--torchdynamo", "eager"],  # runs dynamo without a backend
         # ["--torchdynamo", "aot_nvfuser"],
-        # ["--torchdynamo", "inductor"],
+        ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
-    node_list = [1]
+    # node_list = [1, 2, 4, 8, 12]
+    node_list = [1, 2, 4]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
@@ -249,6 +258,9 @@ def main():
         for model_name in models:
             for model_args in model_args_configs:
                 for has_breaks in [True, False]:
+                    backend_name = get_backend_name(model_args)
+                    if backend_name == "eager" and has_breaks == True:
+                        continue
                     # copy the model args so we can add more arguments without modifying
                     # the original model_args list.
                     copied_model_args = copy.copy(model_args)
@@ -276,7 +288,6 @@ def main():
                     job = executor.submit(TrainerWrapper(args, copied_model_args))
 
                     # print ID of the Slurm job
-                    backend_name = get_backend_name(model_args)
                     print(f"{model_name}_{backend_name}_{nodes}_{breakname}: {job.job_id}")
                     output_csv(
                         args.index_file,
@@ -289,4 +300,10 @@ def main():
 
 
 if __name__=="__main__":
+    import torch
+    if torch.version.debug:
+        raise RuntimeError("torch.version.debug == True, which is disallowed because " \
+            "NCCL performance is drastically worse when debug is on. Build with " \
+            "DEBUG=0 python setup.py [develop|install|bdist_wheel] instead."
+        )
     main()
