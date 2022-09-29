@@ -49,7 +49,7 @@ def parse_args(args: List[str]=None):
 
     parser.add_argument(
         "--timeout",
-        default=1440,
+        default=120,
         type=int,
         help="Duration of the job"
     )
@@ -105,6 +105,12 @@ def parse_args(args: List[str]=None):
         type=str,
         default=f"ddp_experiments_{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv",
         help="training paradigm, by default using DDP"
+    )
+    parser.add_argument(
+        "--exclude",
+        type=str,
+        default="",
+        help="excluded node list",
     )
 
 
@@ -197,6 +203,7 @@ def main():
         # Below are cluster dependent parameters
         slurm_partition=args.partition if args.nodes < 16 else 'scavenge',
         slurm_signal_delay_s=120,
+        slurm_exclude=args.exclude,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
@@ -215,10 +222,10 @@ def main():
         # 'torchbenchmark.models.hf_Bert.Model',
         # # 'torchbenchmark.models.hf_BertLarge.Model',
         # 'torchbenchmark.models.hf_GPT2_large.Model',
-        # 'torchbenchmark.models.hf_T5_large.Model',
-        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
-        # 'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
@@ -236,10 +243,11 @@ def main():
         [],  # no args = pure eager baseline
         # ["--torchdynamo", "eager"],  # runs dynamo without a backend
         # ["--torchdynamo", "aot_nvfuser"],
-        # ["--torchdynamo", "inductor"],
+        ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
-    node_list = [1]
+    # node_list = [1, 2, 4, 8, 12]
+    node_list = [1, 2, 4]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
