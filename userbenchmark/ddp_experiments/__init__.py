@@ -131,7 +131,7 @@ class TrainerWrapper(object):
     def __init__(self, args, model_args):
         self.args = args
         self.args.output_dir = args.job_dir
-        
+
         # extra args just passed to the Trainer class ctor
         self.model_args=model_args
 
@@ -184,7 +184,7 @@ def main():
 
     # Note that the folder will depend on the job_id, to easily track experiments
     executor = submitit.AutoExecutor(folder=args.job_dir, slurm_max_num_timeout=3000)
-    
+
     executor.update_parameters(
         gpus_per_node=args.ngpus,
         # one task per GPU
@@ -199,7 +199,7 @@ def main():
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
 
-    
+
     # args.dist_url = get_init_file(args).as_uri()
     # args.output_dir = args.job_dir
     # job = executor.submit(TrainerWrapper(args))
@@ -247,33 +247,38 @@ def main():
     for nodes in node_list:
         for model_name in models:
             for model_args in model_args_configs:
-                batch_size = model_batch_size[model_name]
-                args.model = model_name
-                args.batch_size = batch_size
-                args.nodes = nodes
-                args.dist_url = get_init_file(args).as_uri()
-                args.output_dir = args.job_dir
-                executor.update_parameters(
-                    gpus_per_node=args.ngpus,
-                    # one task per GPU
-                    tasks_per_node=args.ngpus,
-                    cpus_per_task=10,
-                    nodes=args.nodes,
-                    timeout_min=args.timeout,
-                    # Below are cluster dependent parameters
-                    slurm_partition=args.partition,
-                    slurm_signal_delay_s=120,
-                )
-                job = executor.submit(TrainerWrapper(args, model_args))
+                for has_breaks in [True, False]:
+                    breakname = "withbreaks" if has_breaks else "nobreaks"
+                    if has_breaks:
+                        copied_model_args.append("--optimize_dynamo_ddp")
+                    batch_size = model_batch_size[model_name]
+                    args.model = model_name
+                    args.batch_size = batch_size
+                    args.nodes = nodes
+                    args.dist_url = get_init_file(args).as_uri()
+                    args.output_dir = args.job_dir
+                    executor.update_parameters(
+                        gpus_per_node=args.ngpus,
+                        # one task per GPU
+                        tasks_per_node=args.ngpus,
+                        cpus_per_task=10,
+                        nodes=args.nodes,
+                        timeout_min=args.timeout,
+                        # Below are cluster dependent parameters
+                        slurm_partition=args.partition,
+                        slurm_signal_delay_s=120,
+                        slurm_exclude=args.exclude,
+                    )
+                    job = executor.submit(TrainerWrapper(args, model_args))
 
-                # print ID of the Slurm job
-                backend_name = get_backend_name(model_args)
-                print(f"{model_name}_{backend_name}_{nodes}: {job.job_id}")
-                output_csv(
-                    args.index_file,
-                    ("model", "backend", "nodes", "job_id"),
-                    (model_name, backend_name, nodes, job.job_id),
-                )
+                    # print ID of the Slurm job
+                    backend_name = get_backend_name(model_args)
+                    print(f"{model_name}_{backend_name}_{nodes}_{breakname}: {job.job_id}")
+                    output_csv(
+                        args.index_file,
+                        ("model", "backend", "nodes", "has_breaks", "job_id"),
+                        (model_name, backend_name, nodes, has_breaks, job.job_id),
+                    )
 
     # waits for completion and returns output
     print(job.results())
