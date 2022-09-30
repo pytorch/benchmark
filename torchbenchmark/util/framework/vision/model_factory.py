@@ -55,6 +55,10 @@ class TorchVisionModel(BenchmarkModel):
         self.model = self.model.half()
         self.example_inputs = (self.example_inputs[0].half(), )
 
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
+        self.example_inputs = (self.example_inputs[0].contiguous(memory_format=torch.channels_last),)
+
     def get_module(self):
         return self.model, self.example_inputs
 

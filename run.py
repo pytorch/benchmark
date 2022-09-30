@@ -16,7 +16,7 @@ import torch.profiler as profiler
 from torchbenchmark import load_model_by_name
 import torch
 
-WARMUP_ROUNDS = 3
+WARMUP_ROUNDS = 10
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
 if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
@@ -104,7 +104,10 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             t0 = time.time_ns()
             func()
             t1 = time.time_ns()
-            result_summary.append([(t1 - t0) / 1_000_000])
+            time_spend = (t1 - t0) / 1_000_000
+            if _i % 10 == 0:
+                print("Iterations: {} Time/Iteration(ms): {}".format(_i, time_spend))
+            result_summary.append([time_spend])
         if stress:
             cur_time = time.time_ns()
             # print out the status every 10s.
@@ -132,7 +135,11 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
     else:
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
+        total_sample = model.batch_size * len(result_summary)
+        total_time = sum(map(lambda x: x[0], result_summary))
+        throughput = total_sample / total_time * 1000
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
+        print("Throughput: {:.2f} images/s".format(throughput))
 
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
@@ -227,6 +234,7 @@ if __name__ == "__main__":
     parser.add_argument("--export-dcgm-metrics", action="store_true",
                         help="Export all GPU FP32 unit active ratio records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
+    parser.add_argument("--num-iter", type=int, default=100, help="The number of interation for testing")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -268,6 +276,6 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress)
+        run_one_step(test, num_iter=args.num_iter, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
