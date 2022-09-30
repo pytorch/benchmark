@@ -177,6 +177,7 @@ class TrainerWrapper(object):
         os.environ["FI_PROVIDER"] = 'efa'
         os.environ["FI_EFA_USE_DEVICE_RDMA"]= str(1)
         os.environ["NET_TYPE"] = 'efa'
+        os.environ["ADAM_CAPTURABLE"] = str(1)
 
 
 def main():
