@@ -25,10 +25,10 @@ def get_job_result(args, job_id, worker_rank=0):
         elif desc == "success":
             # print(f"Success: {payload}")
             return True, payload
-        
+
         # print(f"Unknown result: {dat}")
         return False, dat
-    
+
     return False, None
 
 def parse_data(args):
@@ -36,17 +36,18 @@ def parse_data(args):
     Schema:
     model_data["model"]["backend"][#nodes] = latency_median
     """
-    model_data = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+    model_data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
     with open(args.csv) as f:
         runs = csv.DictReader(f)
         for row in runs:
             model = row["model"]
             backend = row["backend"]
             nodes = row["nodes"]
+            has_breaks = row["has_breaks"]
             job_id = row["job_id"]
             result_code, result_data = get_job_result(args, job_id)
             latency = f"{result_data['latency_median']:.3f}" if result_code else str(result_data)[:10]
-            model_data[model][backend][nodes] = latency
+            model_data[model][backend][nodes][has_breaks] = latency
     return model_data
 
 def model_name(model):
@@ -62,14 +63,15 @@ def print_model_table(args, model, model_data):
         for node in model_data[backend]:
             node_counts[node] = node  # hack orderedset
     rows = []
-    for backend in model_data:
-        row = [backend, ]
-        for node in node_counts:
-            if node in model_data[backend]:
-                row.append(model_data[backend][node])
-            else:
-                row.append("-")
-        rows.append(row)
+    for has_breaks in [False, True]:
+        for backend in model_data:
+            row = [f"{backend} {'w/' if has_breaks else 'wo/'}breaks", ]
+            for node in node_counts:
+                if node in model_data[backend]:
+                    row.append(model_data[backend][node][str(has_breaks)])
+                else:
+                    row.append("-")
+            rows.append(row)
 
     hdr = ("backend", ) + tuple(f"{node}_latency" for node in node_counts)
     print(f"{model_name(model)}:")
