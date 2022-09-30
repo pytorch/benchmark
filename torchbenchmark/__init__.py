@@ -520,10 +520,11 @@ class ModelTask(base_task.TaskBase):
         if skip or os.getenv('PYTORCH_TEST_SKIP_CUDA_MEM_LEAK_CHECK', '0') == '1':
             yield
             return
-
+        torch._C._cuda_clearCublasWorkspaces()
         self.gc_collect()
         memory_before = self.worker.load_stmt("torch.cuda.memory_allocated()")
         yield
+        torch._C._cuda_clearCublasWorkspaces()
         self.gc_collect()
         assert_equal(
             memory_before,
