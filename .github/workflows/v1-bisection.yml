@@ -43,6 +43,7 @@ jobs:
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
           export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
           export TORCHBENCH_SRC_DIR="${PWD}"
+          . activate "$BISECT_CONDA_ENV"
           . /data/nvme/bin/setup_instance.sh
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
@@ -52,6 +53,8 @@ jobs:
         run: |
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
           export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          . activate "$BISECT_CONDA_ENV"
+          . /data/nvme/bin/setup_instance.sh
           python ./.github/scripts/bmutils/analyze-bisection-result.py --bisection-root "${BISECT_BASE}" --gh-workflow-id "${GITHUB_RUN_ID}"
       - name: Create the github issue
         if: env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL
