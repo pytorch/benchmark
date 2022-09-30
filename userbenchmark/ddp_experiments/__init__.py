@@ -131,7 +131,7 @@ class TrainerWrapper(object):
     def __init__(self, args, model_args):
         self.args = args
         self.args.output_dir = args.job_dir
-        
+
         # extra args just passed to the Trainer class ctor
         self.model_args=model_args
 
@@ -153,8 +153,8 @@ class TrainerWrapper(object):
         checkpoint_file = os.path.join(self.args.output_dir, "checkpoint.pth")
         if os.path.exists(checkpoint_file):
             self.args.resume = checkpoint_file
-        print("Requeuing ", self.args)
-        empty_trainer = type(self)(self.args)
+        print("Requeuing ", self.args, self.model_args)
+        empty_trainer = type(self)(self.args, self.model_args)
         return submitit.helpers.DelayedSubmission(empty_trainer)
 
     def _setup_gpu_args(self):
@@ -184,7 +184,7 @@ def main():
 
     # Note that the folder will depend on the job_id, to easily track experiments
     executor = submitit.AutoExecutor(folder=args.job_dir, slurm_max_num_timeout=3000)
-    
+
     executor.update_parameters(
         gpus_per_node=args.ngpus,
         # one task per GPU
@@ -199,7 +199,7 @@ def main():
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
 
-    
+
     # args.dist_url = get_init_file(args).as_uri()
     # args.output_dir = args.job_dir
     # job = executor.submit(TrainerWrapper(args))
