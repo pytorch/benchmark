@@ -249,6 +249,9 @@ def main():
         for model_name in models:
             for model_args in model_args_configs:
                 for has_breaks in [True, False]:
+                    backend_name = get_backend_name(model_args)
+                    if backend_name == "eager" and has_breaks:
+                        continue
                     # copy the model args so we can add more arguments without modifying
                     # the original model_args list.
                     copied_model_args = copy.copy(model_args)
@@ -276,7 +279,6 @@ def main():
                     job = executor.submit(TrainerWrapper(args, copied_model_args))
 
                     # print ID of the Slurm job
-                    backend_name = get_backend_name(model_args)
                     print(f"{model_name}_{backend_name}_{nodes}_{breakname}: {job.job_id}")
                     output_csv(
                         args.index_file,
