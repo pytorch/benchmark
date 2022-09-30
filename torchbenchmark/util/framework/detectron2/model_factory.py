@@ -91,6 +91,9 @@ class Detectron2Model(BenchmarkModel):
 
         cfg = setup(args)
         if args.config_file.endswith(".yaml"):
+            cfg.defrost()
+            cfg.MODEL.DEVICE = self.device
+            cfg.freeze()
             self.model = build_model(cfg).to(self.device)
         else:
             self.model = instantiate(cfg.model).to(self.device)
@@ -147,6 +150,9 @@ class Detectron2Model(BenchmarkModel):
         assert self.dargs.precision == "fp16", f"Expected precision fp16, get {self.dargs.precision}"
         self.model = self.model.half()
         self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
+    
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
 
     def train(self):
         with EventStorage():
