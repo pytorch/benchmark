@@ -1,3 +1,4 @@
-git+https://github.com/pytorch/functorch.git
+# git+https://github.com/pytorch/functorch.git
+functorch==0.2.0
 # must include the fix https://github.com/pytorch/opacus/pull/426
 opacus>=1.1.2
