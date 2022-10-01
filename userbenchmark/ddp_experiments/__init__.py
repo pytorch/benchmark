@@ -292,4 +292,10 @@ def main():
 
 
 if __name__=="__main__":
+    import torch
+    if torch.version.debug:
+        raise RuntimeError("torch.version.debug == True, which is disallowed because " \
+            "NCCL performance is drastically worse when debug is on. Build with " \
+            "DEBUG=0 python setup.py [develop|install|bdist_wheel] instead."
+        )
     main()
