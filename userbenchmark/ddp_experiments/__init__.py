@@ -4,6 +4,7 @@ import os
 import copy
 import csv
 import io
+import json
 import submitit
 from datetime import datetime
 import sys
@@ -49,7 +50,7 @@ def parse_args(args: List[str]=None):
 
     parser.add_argument(
         "--timeout",
-        default=120,
+        default=240,
         type=int,
         help="Duration of the job"
     )
@@ -135,25 +136,37 @@ def get_init_file(args):
 
 
 class TrainerWrapper(object):
-    def __init__(self, args, model_args):
-        self.args = args
-        self.args.output_dir = args.job_dir
-
+    def __init__(self, per_model_args):
         # extra args just passed to the Trainer class ctor
-        self.model_args=model_args
+        self.per_model_args=per_model_args
+
+    def run_once(self, args, model_args):
+        self._setup_gpu_args(args)
+
+        pos = args.model.rfind(".")
+        module = importlib.import_module(args.model[:pos])
+        model_class = getattr(module, args.model[(pos+1):])
+
+        pos = args.trainer.rfind(".")
+        module = importlib.import_module(args.trainer[:pos])
+        trainer_class = getattr(module, args.trainer[(pos+1):])
+
+        trainer = trainer_class(args, model_class, model_args=model_args)
+        result = trainer.measure()
+        trainer.teardown()
+        return result
 
     def __call__(self):
-        self._setup_gpu_args()
+        full_result = {}
 
-        pos = self.args.model.rfind(".")
-        module = importlib.import_module(self.args.model[:pos])
-        model_class = getattr(module, self.args.model[(pos+1):])
+        for (name, args, model_args) in self.per_model_args:
+            result = self.run_once(args, model_args)
+            full_result[name] = result
+            result['name'] = name
+            # dump results in logs so we can collect stuff even if the job dies early
+            print("<RESULT>", json.dumps(result), "</RESULT>")
 
-        pos = self.args.trainer.rfind(".")
-        module = importlib.import_module(self.args.trainer[:pos])
-        trainer_class = getattr(module, self.args.trainer[(pos+1):])
-
-        return trainer_class(self.args, model_class, model_args=self.model_args).measure()
+        return full_result
 
     def checkpoint(self):
         self.args.dist_url = get_init_file(self.args).as_uri()
@@ -164,12 +177,14 @@ class TrainerWrapper(object):
         empty_trainer = type(self)(self.args, self.model_args)
         return submitit.helpers.DelayedSubmission(empty_trainer)
 
-    def _setup_gpu_args(self):
+    def _setup_gpu_args(self, args):
         job_env = submitit.JobEnvironment()
-        self.args.output_dir = Path(str(self.args.output_dir).replace("%j", str(job_env.job_id)))
-        self.args.gpu = job_env.local_rank
-        self.args.rank = job_env.global_rank
-        self.args.world_size = job_env.num_tasks
+        args.output_dir = args.job_dir
+
+        args.output_dir = Path(str(args.output_dir).replace("%j", str(job_env.job_id)))
+        args.gpu = job_env.local_rank
+        args.rank = job_env.global_rank
+        args.world_size = job_env.num_tasks
         print(f"Process group: {job_env.num_tasks} tasks, rank: {job_env.global_rank}")
 
         os.environ["LOCAL_RANK"] = str(job_env.local_rank)
@@ -247,7 +262,7 @@ def main():
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
     # node_list = [1, 2, 4, 8, 12]
-    node_list = [1, 2, 4]
+    node_list = [1, 2, 4, 8, 12, 16]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
@@ -256,6 +271,7 @@ def main():
 
     for nodes in node_list:
         for model_name in models:
+            configs = []
             for model_args in model_args_configs:
                 for has_breaks in [True, False]:
                     backend_name = get_backend_name(model_args)
@@ -268,33 +284,44 @@ def main():
                     if has_breaks:
                         copied_model_args.append("--optimize_dynamo_ddp")
                     batch_size = model_batch_size[model_name]
-                    args.model = model_name
-                    args.batch_size = batch_size
-                    args.nodes = nodes
-                    args.dist_url = get_init_file(args).as_uri()
-                    args.output_dir = args.job_dir
-                    executor.update_parameters(
-                        gpus_per_node=args.ngpus,
-                        # one task per GPU
-                        tasks_per_node=args.ngpus,
-                        cpus_per_task=10,
-                        nodes=args.nodes,
-                        timeout_min=args.timeout,
-                        # Below are cluster dependent parameters
-                        slurm_partition=args.partition,
-                        slurm_signal_delay_s=120,
-                        slurm_exclude=args.exclude,
-                    )
-                    job = executor.submit(TrainerWrapper(args, copied_model_args))
+                    copied_args= copy.copy(args)
+                    copied_args.model = model_name
+                    copied_args.batch_size = batch_size
+                    copied_args.nodes = nodes
+                    copied_args.dist_url = get_init_file(copied_args).as_uri()
+                    copied_args.output_dir = args.job_dir
 
-                    # print ID of the Slurm job
-                    print(f"{model_name}_{backend_name}_{nodes}_{breakname}: {job.job_id}")
-                    output_csv(
-                        args.index_file,
-                        ("model", "backend", "nodes", "has_breaks", "job_id"),
-                        (model_name, backend_name, nodes, has_breaks, job.job_id),
-                    )
+                    configs.append((f"{model_name}_{backend_name}_{has_breaks}", copied_args, copied_model_args))
 
+            executor.update_parameters(
+                gpus_per_node=args.ngpus,
+                # one task per GPU
+                tasks_per_node=args.ngpus,
+                cpus_per_task=10,
+                nodes=nodes,
+                timeout_min=args.timeout,
+                # Below are cluster dependent parameters
+                slurm_partition=args.partition,
+                slurm_signal_delay_s=120,
+                slurm_exclude=args.exclude,
+            )
+            job = executor.submit(TrainerWrapper(configs))
+
+            # print ID of the Slurm job
+            '''
+            print(f"{model_name}_{backend_name}_{nodes}_{breakname}: {job.job_id}")
+            output_csv(
+                args.index_file,
+                ("model", "backend", "nodes", "has_breaks", "job_id"),
+                (model_name, backend_name, nodes, has_breaks, job.job_id),
+            )
+            '''
+            print(f"{nodes}: {job.job_id}")
+            output_csv(
+                args.index_file,
+                ("nodes", "job_id"),
+                (nodes, job.job_id),
+            )
     # waits for completion and returns output
     print(job.results())
 
