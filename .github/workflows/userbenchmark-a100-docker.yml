@@ -1,0 +1,29 @@
+name: TorchBench Userbenchmark on A100 (Docker)
+on:
+  workflow_dispatch:
+  inputs:
+    userbenchmark_name:
+      description: "Name of the user benchmark to run"
+env:
+  PYTHON_VERSION: "3.8"
+  TENSORRT_PYTHON_VERSION: "cp38"
+  TENSORRT_VERSION: "8.2.4.2"
+  CUDA_VERSION: "cu116"
+  CONDA_ENV_NAME: "userbenchmarks-ci"
+  MAGMA_VERSION: "magma-cuda116"
+  PLATFORM_NAME: "gcp-a100"
+
+jobs:
+  run-userbenchmark:
+    runs-on: [self-hosted, a100-runner]
+    timeout-minutes: 1440 # 24 hours
+    steps:
+      - name: Checkout TorchBench
+        uses: actions/checkout@v2
+        with:
+          path: benchmark
+      - name: Build TorchBench Docker
+        run: |
+          set -x
+          pushd benchmark/docker
+          docker build .
