@@ -27,7 +27,6 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
     optimize_ddp_context = contextlib.nullcontext
 
     if args.optimize_dynamo_ddp:
-        import torchdynamo
         @contextlib.contextmanager
         def optimize_ddp_ctx(val: bool):
             old_value = torchdynamo.config.optimize_ddp
