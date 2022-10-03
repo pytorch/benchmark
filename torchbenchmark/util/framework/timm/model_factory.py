@@ -6,6 +6,11 @@ from torchbenchmark.util.model import BenchmarkModel
 from .timm_config import TimmConfig
 from typing import Generator, Tuple, Optional
 
+import torchdynamo
+import logging
+torchdynamo.config.verbose = True
+torchdynamo.config.log_level = logging.DEBUG
+
 class TimmModel(BenchmarkModel):
     # To recognize this is a timm model
     TIMM_MODEL = True
