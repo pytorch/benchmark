@@ -6,6 +6,7 @@ import os
 import pickle
 from collections import defaultdict
 import tabulate
+import sys
 
 def get_job_result(args, job_id, worker_rank=0):
     root = os.path.join(args.results_dir, f"{job_id}_{worker_rank}_")
@@ -78,6 +79,37 @@ def print_model_table(args, model, model_data):
     print(tabulate.tabulate(rows, headers=hdr))
     print()
 
+def print_csv(args, data):
+    csv_data = []
+    node_counts = OrderedDict()
+    for model in data:
+        for backend in data[model]:
+            for node in data[model][backend]:
+                node_counts[node] = node  # hack orderedset
+    labels = ["model", "has_ddp_breaks", "backend"]
+    for node in node_counts:
+        labels.append(f"{node}-node")
+    for has_breaks in [False, True]:
+        for model in data:
+            for backend in data[model]:
+                row = {
+                    "model": model,
+                    "has_ddp_breaks": str(has_breaks),
+                    "backend": backend,
+                }
+                for node in node_counts:
+                    if node in data[model][backend]:
+                        latency = data[model][backend][node][str(has_breaks)]
+                    else:
+                        latency = 0.
+                    node_label = f"{node}-node"
+                    row[node_label] = latency
+                csv_data.append(row)
+    csv_writer = csv.DictWriter(sys.stdout, fieldnames=labels)
+    csv_writer.writeheader()
+    for row in csv_data:
+        csv_writer.writerow(row)
+
 def print_results(args, data):
     for model in data:
         print_model_table(args, model, data[model])
@@ -86,9 +118,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", required=True)
     parser.add_argument("--results_dir", required=True)
+    parser.add_argument("--csv_out", action="store_true")
     args = parser.parse_args()
     data = parse_data(args)
-    print_results(args, data)
+    if args.csv_out:
+        print_csv(args, data)
+    else:
+        print_results(args, data)
 
 if __name__ == "__main__":
     main()
