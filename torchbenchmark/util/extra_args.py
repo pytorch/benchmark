@@ -1,5 +1,4 @@
 import argparse
-import contextlib
 from typing import List, Optional, Tuple
 from torchbenchmark.util.backends import list_backends, BACKENDS
 
@@ -147,4 +146,3 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
         module, exmaple_inputs = model.get_module()
         precision = 'fp16' if not model.dargs.precision == "fp32" else 'fp32'
         model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
-        model.add_context(lambda: optimize_ddp_ctx(True))
