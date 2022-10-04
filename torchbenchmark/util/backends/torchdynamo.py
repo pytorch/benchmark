@@ -12,7 +12,7 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         "--torchdynamo", choices=available_backends, help="Specify torchdynamo backends"
     )
     parser.add_argument(
-        "--extra-py-args", type=str, help="Extra Python args to evaluate."
+        "--tritonmm", type=str, help="torchinductor.config.triton.mm configuration"
     )
     args, extra_args = parser.parse_known_args(dynamo_args)
     return args, extra_args
@@ -22,9 +22,12 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         dynamo_optimizer = torchdynamo.optimize(torchdynamo.optimizations.backends.fx2trt_compiler_fp16)
     else:
         dynamo_optimizer = torchdynamo.optimize(args.torchdynamo)
-    # evaluate extra python code passed by the user
-    if args.extra_py_args:
-        exec(args.extra_py_args)
+    # Setup torchinductor.config.triton.mm
+    if args.tritonmm == "triton":
+        import torchinductor
+        torchinductor.config.triton.mm = "triton"
+        torchinductor.config.triton.use_bmm = True
+
     if model.test == "train":
         model.train = dynamo_optimizer(model.train)
     else:

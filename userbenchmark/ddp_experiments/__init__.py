@@ -48,7 +48,7 @@ def parse_args(args: List[str]=None):
 
     parser.add_argument(
         "--timeout",
-        default=1440,
+        default=120,
         type=int,
         help="Duration of the job"
     )
@@ -105,6 +105,12 @@ def parse_args(args: List[str]=None):
         default=f"ddp_experiments_{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv",
         help="training paradigm, by default using DDP"
     )
+    parser.add_argument(
+        "--exclude",
+        type=str,
+        default="",
+        help="comma-separated list of nodes to exclude from the slurm allocation",
+    )
 
 
     try:
@@ -131,7 +137,7 @@ class TrainerWrapper(object):
     def __init__(self, args, model_args):
         self.args = args
         self.args.output_dir = args.job_dir
-        
+
         # extra args just passed to the Trainer class ctor
         self.model_args=model_args
 
@@ -184,7 +190,7 @@ def main():
 
     # Note that the folder will depend on the job_id, to easily track experiments
     executor = submitit.AutoExecutor(folder=args.job_dir, slurm_max_num_timeout=3000)
-    
+
     executor.update_parameters(
         gpus_per_node=args.ngpus,
         # one task per GPU
@@ -195,11 +201,12 @@ def main():
         # Below are cluster dependent parameters
         slurm_partition=args.partition if args.nodes < 16 else 'scavenge',
         slurm_signal_delay_s=120,
+        slurm_exclude=args.exclude,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
 
-    
+
     # args.dist_url = get_init_file(args).as_uri()
     # args.output_dir = args.job_dir
     # job = executor.submit(TrainerWrapper(args))
