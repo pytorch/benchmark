@@ -45,12 +45,14 @@ def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
 def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision: str) -> bool:
     if precision == "fp16":
         return model.device == 'cuda' and hasattr(model, "enable_fp16_half")
+    if precision == "tf32":
+        return model.device == "cuda"
     if precision == "amp":
         if model.test == 'eval' and model.device == 'cuda':
             return True
         if model.test == 'train' and model.device == 'cuda':
             return hasattr(model, 'enable_amp')
-    assert precision == "fp32", f"Expected precision to be one of fp32, fp16, or amp, but get {precision}"
+    assert precision == "fp32", f"Expected precision to be one of fp32, tf32, fp16, or amp, but get {precision}"
     return True
 
 def check_memory_layout(model: 'torchbenchmark.util.model.BenchmakModel', channels_last: bool) -> bool:
@@ -73,7 +75,7 @@ def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
     parser.add_argument("--distributed", choices=["ddp", "fsdp"], default=None, help="Enable distributed trainer")
-    parser.add_argument("--precision", choices=["fp32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, fp16, or amp")
+    parser.add_argument("--precision", choices=["fp32", "tf32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, tf32, fp16, or amp")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
@@ -92,6 +94,10 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
         model.enable_channels_last()
     if dargs.precision == "fp16":
         model.enable_fp16_half()
+    elif dargs.precision == "tf32":
+        import torch
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
     elif dargs.precision == "amp":
         # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
         if hasattr(model, "enable_amp"):
