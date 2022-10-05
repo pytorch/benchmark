@@ -8,3 +8,5 @@ not_implemented:
   - jit: true
   # OOMs on torchbench CI
   - device: cuda
+  # OSError: Subprocess terminates with code 9
+  - device: cpu
