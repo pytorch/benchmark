@@ -1,6 +1,7 @@
 import argparse
 import importlib
 import os
+import copy
 import csv
 import io
 import submitit
@@ -254,33 +255,43 @@ def main():
     for nodes in node_list:
         for model_name in models:
             for model_args in model_args_configs:
-                batch_size = model_batch_size[model_name]
-                args.model = model_name
-                args.batch_size = batch_size
-                args.nodes = nodes
-                args.dist_url = get_init_file(args).as_uri()
-                args.output_dir = args.job_dir
-                executor.update_parameters(
-                    gpus_per_node=args.ngpus,
-                    # one task per GPU
-                    tasks_per_node=args.ngpus,
-                    cpus_per_task=10,
-                    nodes=args.nodes,
-                    timeout_min=args.timeout,
-                    # Below are cluster dependent parameters
-                    slurm_partition=args.partition,
-                    slurm_signal_delay_s=120,
-                )
-                job = executor.submit(TrainerWrapper(args, model_args))
+                for has_breaks in [True, False]:
+                    backend_name = get_backend_name(model_args)
+                    if backend_name == "eager" and has_breaks:
+                        continue
+                    # copy the model args so we can add more arguments without modifying
+                    # the original model_args list.
+                    copied_model_args = copy.copy(model_args)
+                    breakname = "withbreaks" if has_breaks else "nobreaks"
+                    if has_breaks:
+                        copied_model_args.append("--optimize_dynamo_ddp")
+                    batch_size = model_batch_size[model_name]
+                    args.model = model_name
+                    args.batch_size = batch_size
+                    args.nodes = nodes
+                    args.dist_url = get_init_file(args).as_uri()
+                    args.output_dir = args.job_dir
+                    executor.update_parameters(
+                        gpus_per_node=args.ngpus,
+                        # one task per GPU
+                        tasks_per_node=args.ngpus,
+                        cpus_per_task=10,
+                        nodes=args.nodes,
+                        timeout_min=args.timeout,
+                        # Below are cluster dependent parameters
+                        slurm_partition=args.partition,
+                        slurm_signal_delay_s=120,
+                        slurm_exclude=args.exclude,
+                    )
+                    job = executor.submit(TrainerWrapper(args, copied_model_args))
 
-                # print ID of the Slurm job
-                backend_name = get_backend_name(model_args)
-                print(f"{model_name}_{backend_name}_{nodes}: {job.job_id}")
-                output_csv(
-                    args.index_file,
-                    ("model", "backend", "nodes", "job_id"),
-                    (model_name, backend_name, nodes, job.job_id),
-                )
+                    # print ID of the Slurm job
+                    print(f"{model_name}_{backend_name}_{nodes}_{breakname}: {job.job_id}")
+                    output_csv(
+                        args.index_file,
+                        ("model", "backend", "nodes", "has_breaks", "job_id"),
+                        (model_name, backend_name, nodes, has_breaks, job.job_id),
+                    )
 
     # waits for completion and returns output
     print(job.results())
