@@ -49,7 +49,7 @@ def parse_args(args: List[str]=None):
 
     parser.add_argument(
         "--timeout",
-        default=1440,
+        default=120,
         type=int,
         help="Duration of the job"
     )
@@ -105,6 +105,12 @@ def parse_args(args: List[str]=None):
         type=str,
         default=f"ddp_experiments_{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv",
         help="training paradigm, by default using DDP"
+    )
+    parser.add_argument(
+        "--exclude",
+        type=str,
+        default="",
+        help="comma-separated list of nodes to exclude from the slurm allocation",
     )
 
 
@@ -197,6 +203,7 @@ def main():
         # Below are cluster dependent parameters
         slurm_partition=args.partition if args.nodes < 16 else 'scavenge',
         slurm_signal_delay_s=120,
+        slurm_exclude=args.exclude,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)

@@ -45,6 +45,7 @@ jobs:
             CONDA_ENV_NAME=$(echo "${CONFIG_BASE}" | sed 's/[^-]*-\(.*\)\.txt/\1/')
             conda create -y -q --name ${CONDA_ENV_NAME} python=${PYTHON_VER}
             . activate ${CONDA_ENV_NAME}
+            . /data/nvme/bin/setup_instance.sh
             conda install -y git-lfs
             # Install magma
             conda install -y -c pytorch "${MAGMA_VERSION}"
