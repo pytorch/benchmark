@@ -8,3 +8,6 @@ not_implemented:
   - jit: true
   # OOMs on torchbench CI
   - device: cuda
+  # CPU OOM on torchbench CI
+  - device: cpu
+    test: train
