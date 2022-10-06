@@ -25,9 +25,10 @@ pip uninstall -y torch torchvision
 pip uninstall -y torch torchvision
 
 # install magma and pytorch-cuda/cudatoolkit
-conda install -y -c pytorch -c conda-forge ${MAGMA_VERSION} cudatoolkit=${CUDA_VERSION}
-# install pytorch
-conda install -y -c ${PYTORCH_CHANNEL} pytorch=${PYTORCH_VERSION} torchvision torchtext
+conda install -y -c pytorch ${MAGMA_VERSION}
+# install pytorch and cuda toolkit
+conda install -y -c ${PYTORCH_CHANNEL} pytorch=${PYTORCH_VERSION} torchvision torchtext \
+                 -c conda-forge cudatoolkit=${CUDA_VERSION}
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
 # tune the machine
