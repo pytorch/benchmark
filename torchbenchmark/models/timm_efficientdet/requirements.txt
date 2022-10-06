@@ -1,1 +1,2 @@
+pycocotools==2.0.4
 git+https://github.com/rwightman/efficientdet-pytorch.git@79d26d8

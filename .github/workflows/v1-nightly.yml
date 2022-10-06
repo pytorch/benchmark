@@ -34,6 +34,7 @@ jobs:
       - name: Install PyTorch nightly
         run: |
           . activate "${CONDA_ENV_NAME}"
+          . /data/nvme/bin/setup_instance.sh
           # Install dependencies
           conda install -y -c pytorch "${MAGMA_VERSION}"
           pip install requests bs4 argparse gitpython boto3
@@ -54,6 +55,7 @@ jobs:
       - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
+          . /data/nvme/bin/setup_instance.sh
           WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
@@ -80,6 +82,7 @@ jobs:
             # Setup the bisection environment
             BISECTION_HOME="${HOME}/${{ env.BISECTION_ROOT }}/bisection-gh${GITHUB_RUN_ID}"
             mkdir -p "${BISECTION_HOME}"
+            mv ./benchmark-output/gh-issue.md "${BISECTION_HOME}/gh-issue.md"
             cp ./benchmark-output/bisection.yaml "${BISECTION_HOME}/config.yaml"
           fi
       - name: Dispatch the v1-bisection workflow
@@ -92,14 +95,6 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
              https://api.github.com/repos/pytorch/benchmark/actions/workflows/10693192/dispatches \
             -d '{"ref": "main", "inputs": {"issue_name": "bisection-gh'"${GITHUB_RUN_ID}"'" } }'
-      - name: Create the github issue
-        if: env.TORCHBENCH_PERF_SIGNAL
-        uses: peter-evans/create-issue-from-file@v3
-        with:
-          title: Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_SIGNAL }}
-          content-filepath: ./benchmark-output/gh-issue.md
-          labels: |
-            torchbench-perf-report
       - name: Copy artifact and upload to scribe
         run: |
           . activate "${CONDA_ENV_NAME}"

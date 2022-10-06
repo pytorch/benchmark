@@ -1,0 +1,7 @@
+eval_benchmark: false
+eval_deterministic: false
+eval_nograd: true
+train_benchmark: false
+train_deterministic: false
+not_implemented:
+- device: cuda

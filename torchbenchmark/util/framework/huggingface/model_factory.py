@@ -1,5 +1,6 @@
 import math
 import random
+import os
 import torch
 from torch import optim
 from torchbenchmark.util.model import BenchmarkModel
@@ -10,7 +11,10 @@ from typing import Tuple
 class_models = {
     # 'name': (train_max_length, eval_max_length, config, model)
     'hf_GPT2': (512, 1024, 'AutoConfig.from_pretrained("gpt2")', 'AutoModelForCausalLM'),
+    'hf_GPT2_large': (512, 1024, 'AutoConfig.from_pretrained("gpt2-large")', 'AutoModelForCausalLM'),
     'hf_T5': (1024, 2048, 'AutoConfig.from_pretrained("t5-small")', 'AutoModelForSeq2SeqLM'),
+    'hf_T5_base': (1024, 2048, 'AutoConfig.from_pretrained("t5-base")', 'AutoModelForSeq2SeqLM'),
+    'hf_T5_large': (512, 512, 'AutoConfig.from_pretrained("t5-large")', 'AutoModelForSeq2SeqLM'),
     'hf_Bart': (512, 512, 'AutoConfig.from_pretrained("facebook/bart-base")', 'AutoModelForSeq2SeqLM'),
     'hf_Reformer': (4096, 4096, 'ReformerConfig()', 'AutoModelForMaskedLM'),
     'hf_BigBird': (1024, 4096, 'BigBirdConfig(attention_type="block_sparse",)', 'AutoModelForMaskedLM'),
@@ -58,7 +62,12 @@ class HuggingFaceModel(BenchmarkModel):
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
         self.model = class_ctor.from_config(config).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(
+            self.model.parameters(),
+            lr=0.001,
+            # TODO resolve https://github.com/pytorch/torchdynamo/issues/1083
+            capturable=bool(int(os.getenv("ADAM_CAPTURABLE", 0)
+        )))
 
         # populate these on-demand to avoid wasting memory when not used
         self.vocab_size = config.vocab_size

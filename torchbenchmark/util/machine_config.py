@@ -143,7 +143,7 @@ def get_nvidia_throttle_reasons(device_ids: typing.List[int] = None):
         throttle_reasons.append(gpu_reasons)
     return throttle_reasons
 
-MACHINE = enum.Enum('MACHINE', ['AMAZON_LINUX', 'UNKNOWN'])
+MACHINE = enum.Enum('MACHINE', ['AMAZON_LINUX', 'UBUNTU', 'UNKNOWN'])
 def get_machine_type():
     # It's tricky to write platform setup code that works on different OS/configs.
     # initially, just intend to identify a known environment and for any other 
@@ -152,11 +152,15 @@ def get_machine_type():
         if distro.name() == "Amazon Linux":
             return MACHINE.AMAZON_LINUX
 
+    if platform.system() == 'Linux':
+        if distro.name() == 'Ubuntu':
+            return MACHINE.UBUNTU
+
     return MACHINE.UNKNOWN
 
 def get_cpu_temp():
     temps = {}
-    if MACHINE.AMAZON_LINUX == get_machine_type():
+    if not MACHINE.UNKNOWN == get_machine_type():
         thermal_path = Path('/sys/class/thermal/')
         for zone in filter(lambda x: "thermal_zone" in x, os.listdir(thermal_path)):
             temps[zone] = int(read_sys_file(thermal_path / zone / "temp")) / 1000.
@@ -254,7 +258,7 @@ def get_machine_config():
     machine_type = get_machine_type()
     config['machine_type'] = machine_type
     config['cpu_brand'] = cpuinfo.get_cpu_info()['brand_raw']
-    if MACHINE.AMAZON_LINUX == machine_type:
+    if not MACHINE.UNKNOWN == machine_type:
         config['linux_distribution'] = distro.linux_distribution()
         config['intel_turbo_disabled'] = check_intel_no_turbo_state()
         config['intel_hyper_threading_enabled'] = hyper_threading_enabled()
@@ -267,7 +271,7 @@ def get_machine_config():
 
 def check_machine_configured(check_process_affinity=True):
     check_environment()
-    if MACHINE.AMAZON_LINUX == get_machine_type():
+    if not MACHINE.UNKNOWN == get_machine_type():
         assert 1 == check_intel_no_turbo_state(), "Turbo Boost is not disabled"
         assert False == hyper_threading_enabled(), "HyperThreading is not disabled"
         assert 1 == get_intel_max_cstate(), "Intel max C-State isn't set to 1, which avoids power-saving modes."
@@ -282,7 +286,7 @@ def get_machine_state():
     state = {}
     machine_type = get_machine_type()
     state['machine_type'] = machine_type
-    if MACHINE.AMAZON_LINUX == machine_type:
+    if not MACHINE.UNKNOWN == machine_type:
         state['cpu_temps'] = get_cpu_temp()
         if has_nvidia_smi():
             state['nvidia_gpu_temps'] = get_nvidia_gpu_temps()

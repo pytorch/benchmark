@@ -84,11 +84,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             enable_profiling_executor  # force JIT profiling executor to be enabled by default
         ]
         set_random_seed()
-
-    # Run the post processing for model acceleration
-    def __post__init__(self):
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
+        # parse the args
         self.dargs, opt_args = parse_decoration_args(self, self.extra_args)
         # if the args contain "--torchdynamo", parse torchdynamo args
         if "--torchdynamo" in opt_args:
@@ -98,6 +96,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             self.dynamo = False
             self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
+
+    # Run the post processing for model acceleration
+    def __post__init__(self):
         should_check_correctness = check_correctness_p(self, self.opt_args)
         if should_check_correctness:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
