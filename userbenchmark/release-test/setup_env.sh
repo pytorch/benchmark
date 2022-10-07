@@ -30,9 +30,10 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 # weiwangmeta@: torchvision/torchtext not available
 #conda install -y -c ${PYTORCH_CHANNEL} pytorch=${PYTORCH_VERSION} torchvision torchtext \
 #                 -c conda-forge cudatoolkit=${CUDA_VERSION}
-conda install -y -c ${PYTORCH_CHANNEL} pytorch=${PYTORCH_VERSION} \
-                 cudatoolkit=${CUDA_VERSION} -c conda-forge
+conda install -y pytorch=${PYTORCH_VERSION}  cudatoolkit=${CUDA_VERSION} \
+                 -c ${PYTORCH_CHANNEL} -c conda-forge
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
+exit 0
 # temp workaround to buid torchvision before vision rc binary is available
 pushd  /tmp
 git clone https://github.com/pytorch/vision.git
