@@ -1,0 +1,2 @@
+platform: "aws-t4-metal"
+schedule: "nightly"
