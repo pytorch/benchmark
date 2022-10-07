@@ -25,7 +25,7 @@ pip uninstall -y torch torchvision
 pip uninstall -y torch torchvision
 
 # install magma and pytorch-cuda/cudatoolkit
-conda install -y -c pytorch ${MAGMA_VERSION}
+# conda install -y -c pytorch ${MAGMA_VERSION}
 # install pytorch and cuda toolkit
 # weiwangmeta@: torchvision/torchtext not available
 #conda install -y -c ${PYTORCH_CHANNEL} pytorch=${PYTORCH_VERSION} torchvision torchtext \
@@ -33,7 +33,7 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 conda install -y pytorch=${PYTORCH_VERSION}  cudatoolkit=${CUDA_VERSION} \
                  -c ${PYTORCH_CHANNEL} -c conda-forge
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
-exit 0
+
 # temp workaround to buid torchvision before vision rc binary is available
 pushd  /tmp
 git clone https://github.com/pytorch/vision.git
