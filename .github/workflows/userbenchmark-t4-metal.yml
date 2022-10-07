@@ -29,10 +29,10 @@ jobs:
           . activate "${CONDA_ENV_NAME}" && . /data/nvme/bin/setup_instance.sh
           pushd benchmark
           # Install dependencies
-          conda install -y pyyaml
+          conda install -y pyyaml numpy ninja
           # check the machine is tuned
           pip install -U py-cpuinfo psutil distro
-          sudo ${HOME}/anaconda3/envs/${CONDA_ENV_NAME}/bin/python3 torchbenchmark/util/machine_config.py
+          sudo ${HOME}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python3 torchbenchmark/util/machine_config.py
           conda install -y -c pytorch "${MAGMA_VERSION}"
           pip install requests bs4 argparse gitpython boto3
           # Check if nightly builds are available
