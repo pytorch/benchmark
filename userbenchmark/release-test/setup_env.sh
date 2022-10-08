@@ -31,7 +31,7 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 #conda install -y pytorch=${PYTORCH_VERSION}  cudatoolkit=${CUDA_VERSION} \
 #                 -c ${PYTORCH_CHANNEL} -c conda-forge
 # weiwangmeta: hardcode for now
-conda install pytorch=${PYTORCH_VERSION} pytorch-cuda=11.6 -c pytorch-test -c nvidia
+conda install -f pytorch=${PYTORCH_VERSION} pytorch-cuda=11.6 -c pytorch-test -c nvidia
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
 # temp workaround to buid torchvision before vision rc binary is available
@@ -41,6 +41,7 @@ cd vision
 # checkout 2022-10-05 nightly as the checkmarks shows green
 git checkout nightly && git checkout 64b14dcda9e4d283819ae69f9a60a41409aee92a 
 python setup.py install
+rm -rf /tmp/vision
 popd 
 
 # tune the machine
