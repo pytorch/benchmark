@@ -99,7 +99,7 @@ def get_precisions(config):
     return config["precision"]
 
 def get_subrun(device, test, batch_size, cuda_version, precision):
-    subrun = [device, test]
+    subrun = [test, device]
     if batch_size:
         subrun.append(f"bs_{batch_size}")
     if cuda_version:
