@@ -23,6 +23,7 @@ jobs:
           path: benchmark
       - name: Create conda environment
         run: |
+          conda env remove --name "${CONDA_ENV_NAME}"
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
       - name: Install PyTorch nightly
         run: |
