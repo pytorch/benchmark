@@ -32,7 +32,8 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
     if args.tritonmm == "triton":
         import torchinductor
         torchinductor.config.triton.mm = "triton"
-        torchinductor.config.triton.use_bmm = True
+        # currently can't pass correctness with use_bmm = True
+        # torchinductor.config.triton.use_bmm = True
 
     if model.test == "train":
         model.train = dynamo_optimizer(model.train)
