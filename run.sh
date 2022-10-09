@@ -1,5 +1,8 @@
 set -x
 
+bash launch_benchmark.sh all throughput "--num-iter 1"
+bash launch_benchmark.sh time_long throughput "--num-iter 1"
+
 mode_all=$1
 if [ ${mode_all} == "all" ]; then
     mode_all="latency,multi_instance"
