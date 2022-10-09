@@ -45,6 +45,10 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.example_inputs,)
 
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
+        self.example_inputs = self.example_inputs.to(memory_format=torch.channels_last)
+
     def enable_amp(self):
         self.args.amp = True
 

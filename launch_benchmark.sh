@@ -8,19 +8,19 @@ numa_mode=$2
 additional_options=$3
 
 vision_models="alexnet,densenet121,mnasnet1_0,mobilenet_v2,mobilenet_v3_large,resnet18,resnet50,resnext50_32x4d,shufflenet_v2_x1_0,squeezenet1_1,vgg16"
-detectron_models="detectron2_fasterrcnn_r_101_c4,detectron2_fasterrcnn_r_101_dc5,detectron2_fasterrcnn_r_101_fpn,detectron2_fasterrcnn_r_50_c4,detectron2_fasterrcnn_r_50_dc5,detectron2_fasterrcnn_r_50_fpn,detectron2_fcos_r_50_fpn,detectron2_maskrcnn_r_101_c4,detectron2_maskrcnn_r_101_fpn,detectron2_maskrcnn_r_50_c4,detectron2_maskrcnn_r_50_fpn"
+detectron_models="detectron2_fasterrcnn_r_101_c4,detectron2_fasterrcnn_r_101_dc5,detectron2_fasterrcnn_r_101_fpn,detectron2_fasterrcnn_r_50_c4,detectron2_fasterrcnn_r_50_dc5,detectron2_fasterrcnn_r_50_fpn,detectron2_fcos_r_50_fpn,detectron2_maskrcnn,detectron2_maskrcnn_r_101_c4,detectron2_maskrcnn_r_101_fpn,detectron2_maskrcnn_r_50_c4,detectron2_maskrcnn_r_50_fpn"
 hf_models="hf_Albert,hf_Bart,hf_Bert,hf_BigBird,hf_DistilBert,hf_GPT2,hf_GPT2_large,hf_Longformer,hf_Reformer,hf_T5,hf_T5_base,hf_T5_large"
 timm_models="timm_efficientnet,timm_nfnet,timm_regnet,timm_resnest,timm_vision_transformer,timm_vision_transformer_large,timm_vovnet"
-other_models="attention_is_all_you_need_pytorch,BERT_pytorch,DALLE2_pytorch, \
-                dcgan,demucs,detectron2_maskrcnn,dlrm,drq,fambench_xlmr,fastNLP_Bert,functorch_dp_cifar10, \
-                functorch_maml_omniglot,LearningToPaint,lennard_jones,maml,maml_omniglot,mobilenet_v2_quantized_qat, \
-                moco,nvidia_deeprecommender,opacus_cifar10,pyhpc_equation_of_state,pyhpc_isoneutral_mixing,pyhpc_turbulent_kinetic_energy, \
-                pytorch_CycleGAN_and_pix2pix,pytorch_stargan,pytorch_struct,pytorch_unet,resnet50_quantized_qat,soft_actor_critic, \
-                speech_transformer,Super_SloMo,tacotron2,timm_efficientdet,tts_angular,vision_maskrcnn,yolov3"
-not_implemented_models="Background_Matting"
+channels_last_models="dcgan,mobilenet_v2_quantized_qat,pytorch_unet,resnet50_quantized_qat,yolov3"
+time_long_models="LearningToPaint,maml,speech_transformer"
+other_models="attention_is_all_you_need_pytorch,BERT_pytorch,demucs,dlrm,drq,fastNLP_Bert,maml_omniglot,nvidia_deeprecommender,opacus_cifar10, \
+                pyhpc_equation_of_state,pyhpc_isoneutral_mixing,pyhpc_turbulent_kinetic_energy,pytorch_CycleGAN_and_pix2pix,pytorch_stargan, \
+                soft_actor_critic,speech_transformer,Super_SloMo,tacotron2,tts_angular,vision_maskrcnn"
+functorch_models="functorch_dp_cifar10,functorch_maml_omniglot,lennard_jones"
+not_implemented_models="Background_Matting,DALLE2_pytorch,fambench_xlmr,moco,pytorch_struct,timm_efficientdet"
 
 if [ "${model_all}" == "all" ];then
-    model_all="${vision_models},${detectron_models},${hf_models},${timm_models}, ${other_models}"
+    model_all="${vision_models},${detectron_models},${hf_models},${timm_models},${channels_last_models},${other_models}"
 fi
 
 model_list=($(echo "${model_all}" |sed 's/,/ /g'))

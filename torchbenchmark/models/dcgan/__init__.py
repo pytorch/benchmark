@@ -220,6 +220,10 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.exmaple_inputs,)
 
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
+        self.exmaple_inputs = self.exmaple_inputs.contiguous(memory_format=torch.channels_last)
+
     def eval(self):
        if False == self.inference_just_descriminator:
            # Generate fake image batch with G

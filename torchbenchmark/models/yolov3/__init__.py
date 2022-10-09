@@ -79,6 +79,10 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
+        self.example_inputs = (self.example_inputs[0].to(memory_format=torch.channels_last),)
+
     def train(self):
         # the training process is not patched to use scripted models
         return self.training_loop()

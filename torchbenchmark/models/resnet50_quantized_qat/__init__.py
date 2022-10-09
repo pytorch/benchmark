@@ -41,6 +41,10 @@ class Model(BenchmarkModel):
         self.model = quantize_fx.convert_fx(self.model)
         self.model.eval()
 
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
+        self.example_inputs = (self.example_inputs[0].to(memory_format=torch.channels_last),)
+
     def train(self):
         optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()

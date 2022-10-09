@@ -33,6 +33,10 @@ class Model(BenchmarkModel):
         qconfig_dict = {"": torch.quantization.get_default_qat_qconfig('fbgemm')}
         self.model.train()
         self.model = quantize_fx.prepare_qat_fx(self.model, qconfig_dict, self.example_inputs)
+    
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
+        self.example_inputs = (self.example_inputs[0].to(memory_format=torch.channels_last),)
 
     def train(self):
         optimizer = optim.Adam(self.model.parameters())

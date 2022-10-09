@@ -74,6 +74,9 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, (self.example_inputs[0], )
 
+    def enable_channels_last(self):
+        self.model = self.model.to(memory_format=torch.channels_last)
+
     def train(self):
         self.model.train()
         with EventStorage():
