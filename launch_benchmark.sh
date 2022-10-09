@@ -15,12 +15,13 @@ channels_last_models="dcgan,mobilenet_v2_quantized_qat,pytorch_unet,resnet50_qua
 time_long_models="LearningToPaint,maml,speech_transformer"
 other_models="attention_is_all_you_need_pytorch,BERT_pytorch,demucs,dlrm,drq,fastNLP_Bert,maml_omniglot,nvidia_deeprecommender,opacus_cifar10, \
                 pyhpc_equation_of_state,pyhpc_isoneutral_mixing,pyhpc_turbulent_kinetic_energy,pytorch_CycleGAN_and_pix2pix,pytorch_stargan, \
-                soft_actor_critic,speech_transformer,Super_SloMo,tacotron2,tts_angular,vision_maskrcnn"
+                soft_actor_critic,Super_SloMo,tacotron2,tts_angular,vision_maskrcnn"
 functorch_models="functorch_dp_cifar10,functorch_maml_omniglot,lennard_jones"
 not_implemented_models="Background_Matting,DALLE2_pytorch,fambench_xlmr,moco,pytorch_struct,timm_efficientdet"
 
 if [ "${model_all}" == "all" ];then
-    model_all="${vision_models},${detectron_models},${hf_models},${timm_models},${channels_last_models},${other_models}"
+    #model_all="${vision_models},${detectron_models},${hf_models},${timm_models},${channels_last_models},${time_long_models},${other_models}"
+    model_all="${vision_models},${hf_models},${timm_models},${channels_last_models},${other_models}"
 fi
 
 model_list=($(echo "${model_all}" |sed 's/,/ /g'))
@@ -68,7 +69,7 @@ do
     num_cpu_total_time=$(grep "CPU Total Wall Time:" ./logs/${log_file_prefix}*.log | wc -l)
     cpu_avg_time=`awk 'BEGIN {printf "%.2f",'${cpu_total_time}'/'${num_cpu_total_time}'}'`
     throughput=$(grep "Throughput:" ./logs/${log_file_prefix}*.log | sed -e 's/.*Throughput//;s/[^0-9.]//g' | awk 'BEGIN {sum = 0;}{sum = sum + $1;} END {printf("%.3f", sum);}')
-    echo broad_vision ${model} ${precision} ${numa_mode} ${cpu_avg_time} ${throughput} | tee -a ./logs/summary.log
+    echo torchbench ${model} ${precision} ${numa_mode} ${cpu_avg_time} ${throughput} | tee -a ./logs/summary.log
 done
 
 cat ./logs/summary.log
