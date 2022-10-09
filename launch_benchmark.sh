@@ -22,6 +22,8 @@ not_implemented_models="Background_Matting,DALLE2_pytorch,fambench_xlmr,moco,pyt
 if [ "${model_all}" == "all" ];then
     #model_all="${vision_models},${detectron_models},${hf_models},${timm_models},${channels_last_models},${time_long_models},${other_models}"
     model_all="${vision_models},${hf_models},${timm_models},${channels_last_models},${other_models}"
+elif [ "${model_all}" == "time_long" ]; then
+    model_all="${detectron_models},${time_long_models}"
 fi
 
 model_list=($(echo "${model_all}" |sed 's/,/ /g'))
