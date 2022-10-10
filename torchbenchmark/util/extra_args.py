@@ -1,10 +1,13 @@
 import argparse
+import enum
 from typing import List, Optional, Tuple
 from torchbenchmark.util.backends import list_backends, BACKENDS
 
 from torchbenchmark.util.backends.flops import enable_fvcore_flops
 from torchbenchmark.util.backends.fx2trt import enable_fx2trt
 from torchbenchmark.util.backends.torch_trt import enable_torchtrt
+
+TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
 
 def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: argparse.Namespace) -> bool:
     "If correctness check should be enabled."
@@ -39,6 +42,9 @@ def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
 def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
 
+def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer')
+
 def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[int]:
     return model.max_length if is_hf_model(model) else None
 
@@ -51,7 +57,7 @@ def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision
         if model.test == 'eval' and model.device == 'cuda':
             return True
         if model.test == 'train' and model.device == 'cuda':
-            return hasattr(model, 'enable_amp')
+            return hasattr(model, 'enable_amp') or is_staged_train_test(model)
     assert precision == "fp32", f"Expected precision to be one of fp32, tf32, fp16, or amp, but get {precision}"
     return True
 
@@ -79,8 +85,10 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
-        raise NotImplementedError(f"precision value: {dargs.precision}, fp16 or amp precision is only supported on CUDA inference tests, "
-                                  f"fp16 is only supported if the model implements the `enable_fp16_half()` callback function.")
+        raise NotImplementedError(f"precision value: {dargs.precision}, "
+                                  "fp16 is only supported if the model implements the `enable_fp16_half()` callback function."
+                                  "amp is only supported if cuda+eval, or if `enable_amp` implemented,"
+                                  "or if model uses staged train interfaces (forward, backward, optimizer).")
     if not check_memory_layout(model, dargs.channels_last):
         raise NotImplementedError(f"Specified channels_last: {dargs.channels_last} ,"
                                   f" but the model doesn't implement the enable_channels_last() interface.")
@@ -102,9 +110,14 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
         # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
         if hasattr(model, "enable_amp"):
             model.enable_amp()
-        else:
+        elif model.test == "eval":
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
+        elif model.test == "train":
+            # the model must implement staged train test
+            assert is_staged_train_test(model), f"Expected model implements staged train test (forward, backward, optimizer)."
+            import torch
+            model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16), stage=TEST_STAGE.FORWARD)
     elif not dargs.precision == "fp32":
         assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
 
