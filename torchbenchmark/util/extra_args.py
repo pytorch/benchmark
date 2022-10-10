@@ -17,7 +17,7 @@ def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_a
     is_eval_test = model.test == "eval"
     # always check correctness with torchdynamo
     if model.dynamo:
-        return True
+        return is_eval_test
     opt_args_dict = vars(opt_args)
     for k in opt_args_dict:
         if opt_args_dict[k]:
