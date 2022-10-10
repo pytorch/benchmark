@@ -59,7 +59,7 @@ class TorchVisionModel(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self):
-        self.optimizer.zero_grad()
+        # self.optimizer.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
             if not self.dynamo and self.opt_args.cudagraph:
                 self.example_inputs[0].copy_(data)
@@ -68,7 +68,7 @@ class TorchVisionModel(BenchmarkModel):
             else:
                 pred = self.model(data)
                 self.loss_fn(pred, target).backward()
-                self.optimizer.step()
+                # self.optimizer.step()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
         if not self.dynamo and self.opt_args.cudagraph:
