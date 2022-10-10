@@ -32,7 +32,7 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 #                 -c ${PYTORCH_CHANNEL} -c conda-forge
 # weiwangmeta: hardcode for now
 conda remove pytorch=${PYTORCH_VERSION}
-conda install --force-reinstall pytorch=${PYTORCH_VERSION} pytorch-cuda=11.6 -c ${PYTORCH_CHANNEL} -c nvidia
+conda install --force-reinstall pytorch=${PYTORCH_VERSION} pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
 # temp workaround to buid torchvision before vision rc binary is available
