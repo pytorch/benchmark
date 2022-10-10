@@ -1,8 +1,6 @@
 cuda:
-  - version: 11.6
-    magma_version: magma-cuda116
+  - version: 11.7
+    magma_version: magma-cuda117
 pytorch:
   - version: 1.13.0
     conda_channel: pytorch-test
-  - version: 1.12.1
-    conda_channel: pytorch
