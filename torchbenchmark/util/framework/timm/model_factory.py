@@ -56,14 +56,15 @@ class TimmModel(BenchmarkModel):
             device=self.device, dtype=torch.long).random_(self.cfg.num_classes)
 
     def _step_train(self):
-        self.cfg.optimizer.zero_grad()
+        # self.cfg.optimizer.zero_grad()
         with self.amp_context():
             output = self.model(self.example_inputs)
         if isinstance(output, tuple):
             output = output[0]
         target = self._gen_target(output.shape[0])
         self.cfg.loss(output, target).backward()
-        self.cfg.optimizer.step()
+        # self.cfg.optimizer.step()
+        torch.cuda.synchronize(device=self.device)
 
     def _step_eval(self):
         output = self.model(self.example_inputs)

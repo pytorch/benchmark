@@ -124,7 +124,8 @@ class HuggingFaceModel(BenchmarkModel):
         outputs = self.model(**self.example_inputs)
         loss = outputs.loss
         loss.backward()
-        self.optimizer.step()
+        # self.optimizer.step()
+        torch.cuda.synchronize(device=self.device)
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
