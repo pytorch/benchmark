@@ -517,7 +517,7 @@ class ModelTask(base_task.TaskBase):
         # This context manager is used in testing to ensure we're not leaking
         # memory; these tests are generally parameterized by device, so in some
         # cases we want this (and the outer check) to simply be a no-op.
-        if skip:
+        if skip or os.getenv('PYTORCH_TEST_SKIP_CUDA_MEM_LEAK_CHECK', '0') == '1':
             yield
             return
 
