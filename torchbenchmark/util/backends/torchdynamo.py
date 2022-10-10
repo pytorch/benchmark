@@ -5,6 +5,7 @@ import argparse
 import contextlib
 from typing import List
 import torchdynamo
+from torchbenchmark.util.model import is_staged_train_test
 
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -32,10 +33,14 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
     if args.tritonmm == "triton":
         import torchinductor
         torchinductor.config.triton.mm = "triton"
-        torchinductor.config.triton.use_bmm = True
+        # currently can't pass correctness with use_bmm = True
+        # torchinductor.config.triton.use_bmm = True
 
     if model.test == "train":
-        model.train = dynamo_optimizer(model.train)
+        if is_staged_train_test(model):
+            model.forward = dynamo_optimizer(model.forward)
+        else:
+            model.train = dynamo_optimizer(model.train)
     else:
         model.eval = dynamo_optimizer(model.eval)
 

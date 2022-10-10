@@ -61,11 +61,15 @@ class ScribeUploader:
 
 class TorchBenchUserbenchmarkUploader(ScribeUploader):
     CLIENT_NAME = 'torchbench_userbenchmark_upload_scribe.py'
-    UNIX_USER = 'torchbench_userbenchmark_gcp_a100_ci'
-    SUBMISSION_GROUP_GUID = 'oss-ci-gcp-a100'
+    # We use the UNIX_USER field to store the name of the benchmark platform
+    UNIX_USER = None
+    SUBMISSION_GROUP_GUID = 'oss-ci'
 
-    def __init__(self):
+    def __init__(self, platform_name):
         super().__init__('perfpipe_pytorch_user_benchmarks')
+        assert platform_name, f"We require non-empty platform_name from user."
+        self.UNIX_USER = f"torchbench_userbenchmark_{platform_name}_ci"
+
         self.schema = {
             'int': [
                 'time',                     # timestamp of upload
@@ -119,12 +123,14 @@ def process_benchmark_json(userbenchmark_json):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--userbenchmark_platform", required=True,
+                        help='Name of the userbenchmark platform')
     parser.add_argument("--userbenchmark_json", required=True,
                         type=argparse.FileType('r'),
                         help='Upload userbenchmark json data')
     args = parser.parse_args()
     benchmark_time, benchmark_data = process_benchmark_json(args.userbenchmark_json)
     # use uploader
-    uploader = TorchBenchUserbenchmarkUploader()
+    uploader = TorchBenchUserbenchmarkUploader(args.userbenchmark_platform)
     uploader.post_userbenchmark_results(benchmark_time, benchmark_data)
 

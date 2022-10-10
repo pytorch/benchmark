@@ -60,7 +60,7 @@ class Model(BenchmarkModel):
         )
         self.model = self.model.to(device)
 
-        r = torch.linspace(0.5, 2 * sigma, steps=self.batch_size, requires_grad=True)
+        r = torch.linspace(0.5, 2 * sigma, steps=self.batch_size)
 
         # Create a bunch of vectors that point along positive-x.
         # These are the dummy inputs to the model.

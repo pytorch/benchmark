@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import check_correctness_p, is_hf_model, parse_opt_args, apply_opt_args, \
-                                           parse_decoration_args, apply_decoration_args
+                                           parse_decoration_args, apply_decoration_args, is_staged_train_test, \
+                                           TEST_STAGE
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
 
 class PostInitProcessor(type):
@@ -80,6 +81,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.determine_batch_size(batch_size)
         self.extra_args = extra_args
         # contexts to run in the test function
+        if self.test == "train":
+            # In train test, there are run contexts that should only be applied for forward/backward/optimizer stage
+            # For example, amp only applies for the forward stage
+            self.forward_contexts = []
+            self.backward_contexts = []
+            self.optimizer_contexts = []
         self.run_contexts = [
             enable_profiling_executor  # force JIT profiling executor to be enabled by default
         ]
@@ -168,10 +175,17 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             metadata = yaml.safe_load(mf)
         return metadata
 
-    def add_context(self, context_fn):
+    def add_context(self, context_fn, stage=TEST_STAGE.ALL):
         ctx = context_fn()
         assert isinstance(ctx, ContextManager), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
-        self.run_contexts.append(context_fn)
+        if stage == TEST_STAGE.ALL:
+            self.run_contexts.append(context_fn)
+        elif stage == TEST_STAGE.FORWARD:
+            self.forward_contexts.append(context_fn)
+        elif stage == TEST_STAGE.BACKWARD:
+            self.backward_contexts.append(context_fn)
+        elif stage == TEST_STAGE.OPTIMIZER:
+            self.optimizer_contexts.append(context_fn)
 
     # Default implementation for replacing the model
     def set_module(self, new_model):
@@ -186,8 +200,23 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         raise NotImplementedError("Default input generation function is not implemented. "
                                   "Please submit an issue if you need input iterator implementation for the model.")
 
+    def invoke_staged_train_test(self) -> None:
+        with nested(*self.forward_contexts):
+            losses = self.forward()
+
+        with nested(*self.backward_contexts):
+            self.backward(losses)
+
+        with nested(*self.optimizer_contexts):
+            self.optimizer()
+
+        return None
+
     def invoke(self) -> Optional[Tuple[torch.Tensor]]:
         out = None
+        if self.test == "train" and is_staged_train_test(self):
+            self.invoke_staged_train_test()
+            return out
         with nested(*self.run_contexts):
             if self.test == "train":
                 self.train()

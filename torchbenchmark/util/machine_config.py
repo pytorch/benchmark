@@ -303,7 +303,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     machine_type = get_machine_type()
-    if not MACHINE.AMAZON_LINUX == machine_type:
+    if MACHINE.UNKNOWN == machine_type:
         raise RuntimeError(f"Unsupported machine type {machine_type}")
 
     if args.enable_ht:
