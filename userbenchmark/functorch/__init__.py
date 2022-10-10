@@ -24,7 +24,7 @@ def run(args: List[str]):
     result = {
         'name': BM_NAME,
         'environ': {
-            'git_version': torch.version.git_version,
+            'pytorch_git_version': torch.version.git_version,
         },
         'metrics': metrics,
     }

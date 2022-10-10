@@ -1,10 +1,11 @@
 name: TorchBench Userbenchmark on T4 Metal
 on:
+  schedule:
+    - cron: '0 17 * * *' # run at 5 PM UTC
   workflow_dispatch:
     inputs:
       userbenchmark_name:
         description: "Name of the user benchmark to run"
-        required: true
       userbenchmark_options:
         description: "Option of the user benchmark to run"
 env:
@@ -12,6 +13,9 @@ env:
   CUDA_VERSION: "cu116"
   CONDA_ENV_NAME: "userbenchmarks-ci"
   MAGMA_VERSION: "magma-cuda116"
+  PLATFORM_NAME: "aws_t4_metal"
+  TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+  SETUP_SCRIPT: "/data/nvme/bin/setup_instance.sh"
 jobs:
   run-userbenchmark:
     runs-on: [self-hosted, bm-runner]
@@ -26,7 +30,7 @@ jobs:
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
       - name: Install PyTorch nightly
         run: |
-          . activate "${CONDA_ENV_NAME}" && . /data/nvme/bin/setup_instance.sh
+          . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
           conda install -y pyyaml numpy ninja
@@ -42,19 +46,43 @@ jobs:
               echo "Torch nightly build failed. Cancel the workflow."
               exit 1
           fi
-          # Install PyTorch nightly from pip
-          pip install --pre torch \
+          # Install PyTorch and torchvision nightly from pip
+          pip install --pre torch torchvision torchtext \
             -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
           # make sure pytorch+cuda works
           python -c "import torch; torch.cuda.init()"
+      - name: Install TorchBench
+        run: |
+          set -x
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python install.py
       - name: Run user benchmark
         run: |
-          . activate "${CONDA_ENV_NAME}"
+          set -x
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
-          python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
-          cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
+          MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
+          if [ -z "${MANUAL_WORKFLOW}" ]; then
+            # Figure out what userbenchmarks we should run, and run it
+            python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
+            cp -r ./.userbenchmark ../benchmark-output
+          else
+            python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
+            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
+          fi
+      - name: Upload result jsons to Scribe
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
+          echo "Uploading result jsons: ${RESULTS}"
+          for r in ${RESULTS[@]}; do
+            python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
+          done
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
