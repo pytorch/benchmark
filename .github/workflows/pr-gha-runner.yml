@@ -7,7 +7,7 @@ jobs:
     runs-on: linux.2xlarge
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Simple check
       run: |
         echo "Success. You are running on GHA runner."

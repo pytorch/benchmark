@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 120 # 2 hours
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Create conda environment with pytorch nightly
         run: |
           conda create -y -n "${CONDA_ENV}" python="${PYTHON_VERSION}"
