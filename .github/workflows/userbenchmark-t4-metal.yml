@@ -27,8 +27,6 @@ jobs:
           path: benchmark
       - name: Create conda environment
         run: |
-          conda env remove --name "${CONDA_ENV_NAME}"
-          rm -rf /home/ubuntu/miniconda3/pkgs/pytorch-1.13.0* 
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
       - name: Install PyTorch nightly
         run: |
