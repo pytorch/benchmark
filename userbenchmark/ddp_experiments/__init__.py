@@ -160,8 +160,8 @@ class TrainerWrapper(object):
         checkpoint_file = os.path.join(self.args.output_dir, "checkpoint.pth")
         if os.path.exists(checkpoint_file):
             self.args.resume = checkpoint_file
-        print("Requeuing ", self.args)
-        empty_trainer = type(self)(self.args)
+        print("Requeuing ", self.args, self.model_args)
+        empty_trainer = type(self)(self.args, self.model_args)
         return submitit.helpers.DelayedSubmission(empty_trainer)
 
     def _setup_gpu_args(self):
@@ -184,6 +184,7 @@ class TrainerWrapper(object):
         os.environ["FI_PROVIDER"] = 'efa'
         os.environ["FI_EFA_USE_DEVICE_RDMA"]= str(1)
         os.environ["NET_TYPE"] = 'efa'
+        os.environ["ADAM_CAPTURABLE"] = str(1)
 
 
 def main():
@@ -298,4 +299,10 @@ def main():
 
 
 if __name__=="__main__":
+    import torch
+    if torch.version.debug:
+        raise RuntimeError("torch.version.debug == True, which is disallowed because " \
+            "NCCL performance is drastically worse when debug is on. Build with " \
+            "DEBUG=0 python setup.py [develop|install|bdist_wheel] instead."
+        )
     main()
