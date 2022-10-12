@@ -51,6 +51,31 @@ def parse_data(args):
             model_data[model][backend][nodes][has_breaks] = latency
     return model_data
 
+def parse_allocation_reuse_data(args):
+    model_data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
+    with open(args.csv) as f:
+        runs = csv.DictReader(f)
+        for row in runs:
+            job_id = row["job_id"]
+            rank_id = 0
+            pkl = os.path.join(args.results_dir, f"{job_id}_{rank_id}_result.pkl")
+            with open(pkl, "rb") as f:
+                dat = pickle.load(f)
+            assert isinstance(dat, tuple)
+            desc, payload = dat
+            if desc != "success":
+                print(f"job_id {job_id} failed")
+                continue
+            print(payload)
+            for item in payload:
+                model = item["model_name"]
+                backend = item["backend"]
+                nodes = item["nodes"]
+                has_breaks = str(item["has_breaks"])
+                latency = item["result"]["latency_median"]
+                model_data[model][backend][nodes][has_breaks] = f"{latency:.3f}"
+    return model_data
+
 def model_name(model):
     if "torchbenchmark.models." in model:
         model = model[len("torchbenchmark.models."):]
@@ -120,7 +145,10 @@ def main():
     parser.add_argument("--results_dir", required=True)
     parser.add_argument("--csv_out", action="store_true")
     args = parser.parse_args()
-    data = parse_data(args)
+    try:
+        data = parse_data(args)
+    except KeyError:  # this data only contains job ids
+        data = parse_allocation_reuse_data(args)
     if args.csv_out:
         print_csv(args, data)
     else:
