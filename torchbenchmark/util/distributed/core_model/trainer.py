@@ -12,6 +12,7 @@ import torch.distributed as dist
 
 class Trainer():
     DEFAULT_MEASURE_ITERATIONS = 10
+    PROFILE_ITERATIONS = 2
 
     def __init__(self, args, model_class, mode="SPMD", model_args=None):
         self.args = args
@@ -118,7 +119,7 @@ class Trainer():
                     use_gzip=True,
                 )
             ):
-                for i in range(niters):
+                for i in range(self.PROFILE_ITERATIONS):
                     self.benchmark.invoke()
 
         # wait for all pending CUDA ops to finish
