@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 from urllib import request
 
+import torch
+
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
@@ -520,10 +522,13 @@ class ModelTask(base_task.TaskBase):
         if skip or os.getenv('PYTORCH_TEST_SKIP_CUDA_MEM_LEAK_CHECK', '0') == '1':
             yield
             return
-
+        if hasattr(torch._C, '_cuda_clearCublasWorkspaces'):
+            self.worker.load_stmt("torch._C._cuda_clearCublasWorkspaces()")
         self.gc_collect()
         memory_before = self.worker.load_stmt("torch.cuda.memory_allocated()")
         yield
+        if hasattr(torch._C, '_cuda_clearCublasWorkspaces'):
+            self.worker.load_stmt("torch._C._cuda_clearCublasWorkspaces()")
         self.gc_collect()
         assert_equal(
             memory_before,
