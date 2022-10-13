@@ -8,7 +8,7 @@ import io
 import json
 import socket
 import submitit
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 import time
 import torch
@@ -18,56 +18,28 @@ import multiprocessing
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-class BasicBarrier:
-    FILE_POLL_PERIOD = 0.5  # seconds
-    INIT_WAIT_TIME = 30  # seconds
-    MSG_BYTES = 64
-
+class FileBarrier:
     def __init__(self, rank, world_size, sync_file):
         self.rank = rank
         self.world_size = world_size
         self.sync_file = sync_file
-        self.recv_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.recv_socket.bind((socket.gethostname(), 0))
-        self.recv_socket.listen()
-
-        if self.rank == 0:
-            self._primary_init()
-        else:
-            self._secondary_init()
-
-    def _primary_init(self):
-        with open(self.sync_file, "w") as f:
-            f.write(f"self.gethostname()}:{self.recv_socket.getsockname()[1]}")
-
-    def _secondary_init(self):
-        for i in range(int(self.INIT_WAIT_TIME / self.FILE_POLL_PERIOD))
-            with open(self.sync_file, "r") as f:
-                content = f.read()
-                if len(content) > 0:
-                    break
-            time.sleep(self.FILE_POLL_PERIOD)
-         if len(content) == 0:
-             sys.stderr.write(f"Could not find barrier initialization info in f{self.sync_file}\n")
-            sys.exit(1)
-        primary_hostname, primary_port = content.split(":")
-        primary_port = int(primary_port)
-
+        self.store = torch.distributed.FileStore(sync_file, world_size)
+        self.store.set_timeout(timedelta(minutes=30))
+        self.call_idx = 0
 
     def barrier(self):
-        pass
+        self.call_idx += 1
+        print(f"Barrier call on round {self.call_idx}.")
+        my_key = f"barrier{self.call_idx}.{self.rank}"
+        print(f"my key {my_key}")
+        self.store.add(my_key, 1)
+        wait_for = []
+        for i in range(self.world_size):
+            key = f"barrier{self.call_idx}.{i}"
+            wait_for.append(key)
+        print(f"waiting on {wait_for}")
+        self.store.wait(wait_for)
 
-    def _primary_barrier(self):
-        pass
-
-    def _secondary_barrier(self):
-        pass
-
-    def _pad_msg(self, msg):
-        while len(msg) < self.MSG_BYTES:
-            msg += b'\0'
-        assert len(msg) == self.MSG_BYTES
-        return msg
 
 def output_csv(filename, headers, row):
     assert filename
@@ -224,8 +196,8 @@ class TrainerWrapper(object):
     def __call__(self):
         results = []
 
-        self._setup_runner_pgroup()
         job_env = submitit.JobEnvironment()
+        barrier = self._get_barrier()
         print(f"This is node {job_env.node}")
         for (config, args, model_args) in self.per_experiment_args:
             try:
@@ -241,12 +213,14 @@ class TrainerWrapper(object):
                     result_dict['result'] = q.get()
                 else:
                     result_dict['result'] = None
+                assert 'result' in result_dict
+                if not isinstance(result_dict['result'], dict):
+                    result_dict['result'] = ('error', None)
                 # wrap in <RESULT></RESULT> so we can parse partial results in the stdout logs
                 print(f"<RESULT>{json.dumps(result_dict)}</RESULT>")
-                assert 'result' in result_dict
                 results.append(result_dict)
             finally:
-                torch.distributed.barrier()
+                barrier.barrier()
 
         return results
 
@@ -263,12 +237,11 @@ class TrainerWrapper(object):
         '''
         pass
 
-    def _setup_runner_pgroup(self):
+    def _get_barrier(self):
         job_env = submitit.JobEnvironment()
         rank = job_env.global_rank
         world_size = job_env.num_tasks
-
-        torch.distributed.init_process_group("gloo", world_size=world_size, rank=rank, init_method=self.job_config.runner_dist_path)
+        return FileBarrier(rank=rank, world_size=world_size, sync_file=self.job_config.runner_dist_path)
 
     def _setup_gpu_args(self, args):
         job_env = submitit.JobEnvironment()
@@ -276,12 +249,13 @@ class TrainerWrapper(object):
         args.gpu = job_env.local_rank
         args.rank = job_env.global_rank
         # args.world_size = job_env.num_tasks
-        args.world_size = args.ngpus * job_env.num_nodes
-        print(f"Process group: {job_env.num_tasks} tasks, rank: {job_env.global_rank}")
+        args.world_size = args.ngpus * args.nodes
+        print(f"Process group: {job_env.num_tasks} tasks, world_size: {args.world_size}, rank: {job_env.global_rank}")
 
         os.environ["LOCAL_RANK"] = str(job_env.local_rank)
         os.environ["RANK"] = str(job_env.global_rank)
-        os.environ["WORLD_SIZE"] = str(job_env.num_tasks)
+        # os.environ["WORLD_SIZE"] = str(job_env.num_tasks)
+        os.environ["WORLD_SIZE"] = str(args.world_size)
         os.environ["GPUS_PER_NODE"] = str(job_env.num_tasks//job_env.num_nodes)
         # os.environ["NCCL_IB_DISABLE"] = str(1)
         os.environ["NCCL_DEBUG"] = 'INFO'
@@ -326,11 +300,11 @@ def main():
     # print(job.results())
 
     models = [
-        # 'torchbenchmark.models.hf_Bert.Model',
+        'torchbenchmark.models.hf_Bert.Model',
         # # 'torchbenchmark.models.hf_BertLarge.Model',
-        # 'torchbenchmark.models.hf_GPT2_large.Model',
-        # 'torchbenchmark.models.hf_T5_large.Model',
-        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        'torchbenchmark.models.hf_GPT2_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
         'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
@@ -353,7 +327,7 @@ def main():
         ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
-    node_list = [1, 2]
+    node_list = [8, 4, 2, 1]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
@@ -361,30 +335,31 @@ def main():
         return "eager"
 
     experiments = []
-    for nodes in node_list:
-        for model_name in models:
-            for model_args in model_args_configs:
-                for has_breaks in [True, False]:
-                    config = {}
-                    args_copy = {}
-                    backend_name = get_backend_name(model_args)
-                    if backend_name == "eager" and has_breaks:
-                        continue
-                    # copy the model args so we can add more arguments without modifying
-                    # the original model_args list.
-                    copied_model_args = copy.copy(model_args)
-                    breakname = "withbreaks" if has_breaks else "nobreaks"
-                    if has_breaks:
-                        copied_model_args.append("--optimize_dynamo_ddp")
-                    batch_size = model_batch_size[model_name]
-                    args.model = model_name
-                    args.batch_size = batch_size
-                    args.nodes = nodes
-                    args.dist_url = get_init_file(args).as_uri()
-                    args.output_dir = args.job_dir
-                    args_copy = copy.deepcopy(args)
-                    config = {"nodes": nodes, "model_name": model_name, "backend": backend_name, "has_breaks": has_breaks}
-                    experiments.append((config, args_copy, copied_model_args))
+    for i in range(10):
+        for nodes in node_list:
+            for model_name in models:
+                for model_args in model_args_configs:
+                    for has_breaks in [True, False]:
+                        config = {}
+                        args_copy = {}
+                        backend_name = get_backend_name(model_args)
+                        if backend_name == "eager" and has_breaks:
+                            continue
+                        # copy the model args so we can add more arguments without modifying
+                        # the original model_args list.
+                        copied_model_args = copy.copy(model_args)
+                        breakname = "withbreaks" if has_breaks else "nobreaks"
+                        if has_breaks:
+                            copied_model_args.append("--optimize_dynamo_ddp")
+                        batch_size = model_batch_size[model_name]
+                        args.model = model_name
+                        args.batch_size = batch_size
+                        args.nodes = nodes
+                        args.dist_url = get_init_file(args).as_uri()
+                        args.output_dir = args.job_dir
+                        args_copy = copy.deepcopy(args)
+                        config = {"nodes": nodes, "model_name": model_name, "backend": backend_name, "has_breaks": has_breaks}
+                        experiments.append((config, args_copy, copied_model_args))
 
     executor.update_parameters(
         gpus_per_node=args.ngpus,
@@ -399,7 +374,7 @@ def main():
         slurm_exclude=args.exclude,
     )
     job_config = JobConfig(
-        runner_dist_path=get_init_file(args).as_uri()
+        runner_dist_path=str(get_init_file(args))
     )
     # job = executor.submit(TrainerWrapper(args, copied_model_args))
     job = executor.submit(TrainerWrapper(job_config, experiments))
