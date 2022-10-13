@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 1440 # 24 hours
     steps:
       - name: Checkout TorchBench
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: benchmark
       - name: Create conda environment

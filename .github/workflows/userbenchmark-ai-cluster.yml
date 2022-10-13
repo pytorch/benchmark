@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 60 # 1 hour
     steps:
       - name: Checkout TorchBench
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: benchmark
       - name: Install conda

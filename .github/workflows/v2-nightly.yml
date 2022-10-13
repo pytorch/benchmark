@@ -26,7 +26,7 @@ jobs:
     runs-on: [self-hosted, bm-runner]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: v2.0
       - name: Create conda env

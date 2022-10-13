@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: v1.0
       - name: Run sweep job
