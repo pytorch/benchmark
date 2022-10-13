@@ -4,6 +4,7 @@ This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 import importlib
 import copy
+import warnings
 from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
@@ -39,7 +40,12 @@ def has_native_amp() -> bool:
 def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
        If the result is not stable, raise RuntimeError. """
-    assert model.test=="eval", "We only support stableness check for inference."
+    old_test = model.test
+    model.test = "eval"
+    opt_saved = None
+    if hasattr(model, "opt"):
+        opt_saved = model.opt
+        model.opt = None
     previous_result = None
     for _i in range(rounds):
         set_random_seed()
@@ -60,10 +66,18 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
             if not same(previous_result, cur_result, cos_similarity=cos_sim):
                 raise RuntimeError("Model returns unstable result. Please report a bug.")
             del cur_result
+    model.test = old_test
+    if opt_saved:
+        model.opt = opt_saved
     return previous_result
 
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, atol=1e-4, rtol=1e-4) -> bool:
-    assert model.test=="eval", "We only support correctness check for inference."
+    old_test = model.test
+    model.test = "eval"
+    opt_saved = None
+    if hasattr(model, "opt"):
+        opt_saved = model.opt
+        model.opt = None
     for _i in range(rounds):
         # some models are stateful and will give different outputs
         # on the same input if called multiple times
@@ -80,7 +94,35 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
 
         if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol):
             return False
+
         del cur_result
+    model.test = old_test
+    if opt_saved:
+        model.opt = opt_saved
+
+    if model.test == "train":
+        if not hasattr(model, "model") or not hasattr(model.model, "named_parameters"):
+            warnings.warn(UserWarning("model doesn't have model or model.named_parameters. Skipping train correctness check."))
+        if not hasattr(model, "eager_model_after_one_train_iteration"):
+            warnings.warn(UserWarning("model doesn't have eager_model_after_one_train_iteration. Skipping train correctness check."))
+        model.invoke()
+        for name, param in model.model.named_parameters():
+            if not param.requires_grad:
+                continue
+            found = False
+            for name_ref, param_ref in model.eager_model_after_one_train_iteration.named_parameters():
+                if name_ref == name:
+                    found = True
+                    # backward typically requires higher error margin.
+                    # 400 times bigger may sound too big to be useful but still better than not checking at all.
+                    if not same(param_ref.grad, param.grad, cos_similarity=cos_sim, atol=atol*40, rtol=rtol*40):
+                        print(f"grad of param {name} after running with dynamo doesn't have gradient matching with eager mode")
+                        return False
+                    break
+            if not found:
+                print(f"param {name} in model with dynamo not found in the eager model")
+                return False
+
     return True
 
 def istype(obj, allowed_types):
