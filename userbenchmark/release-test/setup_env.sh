@@ -25,7 +25,8 @@ pip uninstall -y torch torchvision
 # install magma and pytorch-cuda/cudatoolkit
 conda install -y -c pytorch ${MAGMA_VERSION}
 # install pytorch and cuda toolkit
-conda install -y pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
+#conda install -y pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
+conda install --force-reinstall pytorch=${PYTORCH_VERSION} pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
 ## temp workaround to buid torchvision before vision rc binary is available
