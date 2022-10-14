@@ -369,12 +369,13 @@ def main():
                         }
                         experiments.append((config, args_copy, copied_model_args))
 
+    allocation_nodes = max(node_list)
     executor.update_parameters(
         gpus_per_node=args.ngpus,
         # one task per GPU
         tasks_per_node=args.ngpus,
         cpus_per_task=10,
-        nodes=max(node_list),
+        nodes=allocation_nodes,
         timeout_min=args.timeout,
         # Below are cluster dependent parameters
         slurm_partition=args.partition,
@@ -387,7 +388,7 @@ def main():
     job = executor.submit(TrainerWrapper(job_config, experiments))
 
     # print ID of the Slurm job
-    print(f"{nodes} nodes: {job.job_id}")
+    print(f"{allocation_nodes} nodes: {job.job_id}")
     output_csv(
         args.index_file,
         ("job_id",),
