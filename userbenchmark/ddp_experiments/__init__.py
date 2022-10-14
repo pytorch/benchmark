@@ -3,6 +3,7 @@ import importlib
 import os
 import copy
 import csv
+import dataclasses
 import io
 import json
 import multiprocessing
@@ -114,6 +115,12 @@ def parse_args(args: List[str]=None):
         default="",
         help="comma-separated list of nodes to exclude from the slurm allocation",
     )
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="number of times to repeat the experiments",
+    )
 
 
     try:
@@ -136,6 +143,9 @@ def get_init_file(args):
     return init_file
 
 
+# This implements a barrier function, where all processes wait until they all
+# reach the barrier() call.
+# rank: there should be one
 class FileBarrier:
     def __init__(self, rank, world_size, sync_file, timeout: Optional[timedelta] = None):
         self.rank = rank
@@ -146,6 +156,7 @@ class FileBarrier:
             timeout = timedelta(minutes=30)
         self.store.set_timeout(timeout)
         self.call_idx = 0
+        self.barrier()
 
     def barrier(self):
         self.call_idx += 1
@@ -329,6 +340,7 @@ def main():
         return "eager"
 
     experiments = []
+    for i in range(args.repeat):
         for nodes in node_list:
             for model_name in models:
                 for model_args in model_args_configs:
