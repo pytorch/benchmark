@@ -108,6 +108,7 @@ class Trainer():
             ################################################
             # 3. meausre complete metrics through profiler #
             ################################################
+            wait_runs = 2
             warmup_runs = 2
             with profile(
                 activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
@@ -119,9 +120,9 @@ class Trainer():
                     self.rank,
                     use_gzip=True,
                 ),
-                schedule=schedule(warmup=warmup_runs, active=self.PROFILE_ITERATIONS),
+                schedule=schedule(wait=wait_runs, warmup=warmup_runs, active=self.PROFILE_ITERATIONS),
             ) as profiler:
-                for i in range(self.PROFILE_ITERATIONS + warmup_runs):
+                for i in range(self.PROFILE_ITERATIONS + warmup_runs + wait_runs):
                     self.benchmark.invoke()
                     profiler.step()
 
