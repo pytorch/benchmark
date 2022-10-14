@@ -6,12 +6,13 @@ from statistics import stdev
 import numpy as np
 import torch
 from torch.cuda import Event
-from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
+from torch.profiler import profile, ProfilerActivity, schedule, tensorboard_trace_handler
 from torchbenchmark.util.model import BenchmarkModel
 import torch.distributed as dist
 
 class Trainer():
     DEFAULT_MEASURE_ITERATIONS = 10
+    PROFILE_ITERATIONS = 2
 
     def __init__(self, args, model_class, mode="SPMD", model_args=None):
         def print_env_var(env_name):
@@ -117,6 +118,8 @@ class Trainer():
             ################################################
             # 3. meausre complete metrics through profiler #
             ################################################
+            wait_runs = 2
+            warmup_runs = 2
             with profile(
                 activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
                 record_shapes=True, # Causes seg fault in export_chrome_trace
@@ -126,10 +129,12 @@ class Trainer():
                     f"{self.args.job_dir}/tb/{name}",
                     self.rank,
                     use_gzip=True,
-                )
-            ):
-                for i in range(niters):
+                ),
+                schedule=schedule(wait=wait_runs, warmup=warmup_runs, active=self.PROFILE_ITERATIONS),
+            ) as profiler:
+                for i in range(self.PROFILE_ITERATIONS + warmup_runs + wait_runs):
                     self.benchmark.invoke()
+                    profiler.step()
 
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
