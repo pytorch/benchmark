@@ -13,7 +13,7 @@ import torch
 import uuid
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 def output_csv(filename, headers, row):
     assert filename
@@ -137,12 +137,14 @@ def get_init_file(args):
 
 
 class FileBarrier:
-    def __init__(self, rank, world_size, sync_file):
+    def __init__(self, rank, world_size, sync_file, timeout: Optional[timedelta] = None):
         self.rank = rank
         self.world_size = world_size
         self.sync_file = sync_file
         self.store = torch.distributed.FileStore(sync_file, world_size)
-        self.store.set_timeout(timedelta(minutes=30))
+        if timeout is None:
+            timeout = timedelta(minutes=30)
+        self.store.set_timeout(timeout)
         self.call_idx = 0
 
     def barrier(self):
