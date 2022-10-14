@@ -225,8 +225,6 @@ class TrainerWrapper(object):
                 else:
                     result_dict['result'] = None
                 assert 'result' in result_dict
-                if not isinstance(result_dict['result'], dict):
-                    result_dict['result'] = ('error', None)
                 # wrap in <RESULT></RESULT> so we can parse partial results in the stdout logs
                 print(f"<RESULT>{json.dumps(result_dict)}</RESULT>")
                 results.append(result_dict)
