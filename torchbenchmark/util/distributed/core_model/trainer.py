@@ -128,7 +128,7 @@ class Trainer():
                     use_gzip=True,
                 )
             ):
-                for i in range(niters):
+                for i in range(2):
                     self.benchmark.invoke()
 
         # wait for all pending CUDA ops to finish

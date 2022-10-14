@@ -17,6 +17,7 @@ def apply_trainer(model, trainer):
             # Set gradient as bucket view to avoid unnecessary copies
             gradient_as_bucket_view=True,
             # TODO: tune bucket_cap_mb
+            bucket_cap_mb=4,
             static_graph=False,
         )
         return ddp_model

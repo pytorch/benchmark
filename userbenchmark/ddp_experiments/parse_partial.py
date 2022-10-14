@@ -134,7 +134,8 @@ def print_model_table(args, model, model_data):
                     res = model_data[backend][node][str(has_breaks)]
                     if isinstance(res, list):
                         if len(res) > 0:
-                            res = f"{min(res):.3f} : {median(res):.3f} : {max(res):.3f}"
+                            # res = f"{min(res):.3f} : {median(res):.3f} : {max(res):.3f}"
+                            res = f"{median(res):.3f}"
                         else:
                             res = 0.0
                     row.append(res)
@@ -143,6 +144,7 @@ def print_model_table(args, model, model_data):
             rows.append(row)
 
     hdr = ("backend", ) + tuple(f"{node}_latency" for node in node_counts)
+    print(f"{model_name(model)}:")
     print(tabulate.tabulate(rows, headers=hdr))
     print()
 
