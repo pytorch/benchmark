@@ -28,7 +28,9 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 conda install --force-reinstall pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
-## temp workaround to buid torchvision before vision rc binary is available
+## If torchvision is not yet available, uncomment the following and 
+## find a good torchvision commit to test
+##temp workaround to buid torchvision before vision rc binary is available
 #pushd  /tmp
 #git clone https://github.com/pytorch/vision.git
 #cd vision
