@@ -92,7 +92,8 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
             copy_model = model
         cur_result = copy_model.invoke()
 
-        if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol):
+        equal_nan = hasattr(model, "EQUAL_NAN") and model.EQUAL_NAN
+        if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol, equal_nan=equal_nan):
             return False
 
         del cur_result
