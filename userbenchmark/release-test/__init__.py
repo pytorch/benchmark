@@ -74,7 +74,7 @@ def run_benchmark(run_scripts, work_dir):
         run_script_path = work_dir.joinpath(run_key, "run.sh")
         # run the benchmark
         print(f"Running benchmark {run_key} ...")
-        subprocess.check_call(["bash", run_script_path])
+        subprocess.check_call(["bash", str(run_script_path)])
 
 def get_config(config_name: str):
     if os.path.exists(os.path.join(DEFAULT_CONFIG_PATH, config_name)):
