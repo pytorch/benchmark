@@ -160,15 +160,12 @@ class FileBarrier:
 
     def barrier(self):
         self.call_idx += 1
-        print(f"Barrier call on round {self.call_idx}.")
         my_key = f"barrier{self.call_idx}.{self.rank}"
-        print(f"my key {my_key}")
         self.store.add(my_key, 1)
         wait_for = []
         for i in range(self.world_size):
             key = f"barrier{self.call_idx}.{i}"
             wait_for.append(key)
-        print(f"waiting on {wait_for}")
         self.store.wait(wait_for)
 
 
