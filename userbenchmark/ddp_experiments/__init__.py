@@ -353,12 +353,12 @@ def main():
                         if has_breaks:
                             copied_model_args.append("--optimize_dynamo_ddp")
                         batch_size = model_batch_size[model_name]
-                        args.model = model_name
-                        args.batch_size = batch_size
-                        args.nodes = nodes
-                        args.dist_url = get_init_file(args).as_uri()
-                        args.output_dir = args.job_dir
                         args_copy = copy.deepcopy(args)
+                        args_copy.model = model_name
+                        args_copy.batch_size = batch_size
+                        args_copy.nodes = nodes
+                        args_copy.dist_url = get_init_file(args).as_uri()
+                        args_copy.output_dir = args.job_dir
                         config = {
                             "nodes": nodes,
                             "model_name": model_name,
