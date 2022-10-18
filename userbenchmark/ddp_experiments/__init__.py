@@ -3,15 +3,18 @@ import importlib
 import os
 import copy
 import csv
+import dataclasses
 import io
+import json
+import multiprocessing
 import submitit
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 import torch
 import uuid
 
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Optional, Tuple
 
 def output_csv(filename, headers, row):
     assert filename
@@ -112,6 +115,12 @@ def parse_args(args: List[str]=None):
         default="",
         help="comma-separated list of nodes to exclude from the slurm allocation",
     )
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="number of times to repeat the experiments",
+    )
 
 
     try:
@@ -134,26 +143,92 @@ def get_init_file(args):
     return init_file
 
 
-class TrainerWrapper(object):
-    def __init__(self, args, model_args):
-        self.args = args
-        self.args.output_dir = args.job_dir
+# This implements a barrier function, where all processes wait until they all
+# reach the barrier() call.
+# rank: there should be one
+class FileBarrier:
+    def __init__(self, rank, world_size, sync_file, timeout: Optional[timedelta] = None):
+        self.rank = rank
+        self.world_size = world_size
+        self.sync_file = sync_file
+        self.store = torch.distributed.FileStore(sync_file, world_size)
+        if timeout is None:
+            timeout = timedelta(minutes=30)
+        self.store.set_timeout(timeout)
+        self.call_idx = 0
+        self.barrier()
 
-        # extra args just passed to the Trainer class ctor
-        self.model_args=model_args
+    def barrier(self):
+        self.call_idx += 1
+        my_key = f"barrier{self.call_idx}.{self.rank}"
+        self.store.add(my_key, 1)
+        wait_for = []
+        for i in range(self.world_size):
+            key = f"barrier{self.call_idx}.{i}"
+            wait_for.append(key)
+        self.store.wait(wait_for)
+
+
+@dataclasses.dataclass
+class JobConfig:
+    outer_sync_path: str
+
+
+class TrainerWrapper(object):
+    # per_experiment_args is a list of expriments.
+    # Each experiment should be a tuple of (config dict, args, model_args).
+    # config: configuration data to attach to the result dict.
+    # args & model_args: arguments for core_model.Trainer.
+    def __init__(self, job_config: JobConfig, per_experiment_args: List[Tuple[Dict, Any, Any]]):
+        self.job_config = job_config
+        self.per_experiment_args = per_experiment_args
+
+    # this is called within a multiprocessing.Process.
+    def run_once(self, args, model_args, q):
+        print("run_once")
+        self._setup_gpu_args(args)
+
+        pos = args.model.rfind(".")
+        module = importlib.import_module(args.model[:pos])
+        model_class = getattr(module, args.model[(pos+1):])
+
+        pos = args.trainer.rfind(".")
+        module = importlib.import_module(args.trainer[:pos])
+        trainer_class = getattr(module, args.trainer[(pos+1):])
+
+        trainer = trainer_class(args, model_class, model_args=model_args)
+        result = trainer.measure()
+        print(f"result {result}")
+        q.put(result)
+        trainer.teardown()
 
     def __call__(self):
-        self._setup_gpu_args()
+        results = []
+        job_env = submitit.JobEnvironment()
+        barrier = self._get_barrier()
+        print(f"This is node {job_env.node}")
+        for (config, args, model_args) in self.per_experiment_args:
+            try:
+                if job_env.node >= args.nodes:
+                    continue
+                result_dict = {**config}
+                q = multiprocessing.Queue()
+                proc = multiprocessing.Process(target=self.run_once, args=(args, model_args, q))
+                proc.start()
+                proc.join()
+                print(f"exit code: {proc.exitcode} and result: {result_dict}")
+                if proc.exitcode == 0:
+                    result_dict['result'] = q.get()
+                else:
+                    result_dict['result'] = None
+                assert 'result' in result_dict
+                # wrap in <RESULT></RESULT> so we can parse partial results in the stdout logs
+                print(f"<RESULT>{json.dumps(result_dict)}</RESULT>")
+                results.append(result_dict)
+            finally:
+                barrier.barrier()
 
-        pos = self.args.model.rfind(".")
-        module = importlib.import_module(self.args.model[:pos])
-        model_class = getattr(module, self.args.model[(pos+1):])
-
-        pos = self.args.trainer.rfind(".")
-        module = importlib.import_module(self.args.trainer[:pos])
-        trainer_class = getattr(module, self.args.trainer[(pos+1):])
-
-        return trainer_class(self.args, model_class, model_args=self.model_args).measure()
+        return results
 
     def checkpoint(self):
         self.args.dist_url = get_init_file(self.args).as_uri()
@@ -164,17 +239,23 @@ class TrainerWrapper(object):
         empty_trainer = type(self)(self.args, self.model_args)
         return submitit.helpers.DelayedSubmission(empty_trainer)
 
-    def _setup_gpu_args(self):
+    def _get_barrier(self):
         job_env = submitit.JobEnvironment()
-        self.args.output_dir = Path(str(self.args.output_dir).replace("%j", str(job_env.job_id)))
-        self.args.gpu = job_env.local_rank
-        self.args.rank = job_env.global_rank
-        self.args.world_size = job_env.num_tasks
-        print(f"Process group: {job_env.num_tasks} tasks, rank: {job_env.global_rank}")
+        rank = job_env.global_rank
+        world_size = job_env.num_tasks
+        return FileBarrier(rank=rank, world_size=world_size, sync_file=self.job_config.outer_sync_path)
+
+    def _setup_gpu_args(self, args):
+        job_env = submitit.JobEnvironment()
+        args.output_dir = Path(str(args.output_dir).replace("%j", str(job_env.job_id)))
+        args.gpu = job_env.local_rank
+        args.rank = job_env.global_rank
+        args.world_size = args.ngpus * args.nodes
+        print(f"Process group: {args.world_size} tasks, rank: {args.rank}")
 
         os.environ["LOCAL_RANK"] = str(job_env.local_rank)
         os.environ["RANK"] = str(job_env.global_rank)
-        os.environ["WORLD_SIZE"] = str(job_env.num_tasks)
+        os.environ["WORLD_SIZE"] = str(args.world_size)
         os.environ["GPUS_PER_NODE"] = str(job_env.num_tasks//job_env.num_nodes)
         # os.environ["NCCL_IB_DISABLE"] = str(1)
         os.environ["NCCL_DEBUG"] = 'INFO'
@@ -253,46 +334,61 @@ def main():
             return "torchdynamo_" + model_args[model_args.index("--torchdynamo") + 1]
         return "eager"
 
-    for nodes in node_list:
-        for model_name in models:
-            for model_args in model_args_configs:
-                for has_breaks in [True, False]:
-                    backend_name = get_backend_name(model_args)
-                    if backend_name == "eager" and has_breaks:
-                        continue
-                    # copy the model args so we can add more arguments without modifying
-                    # the original model_args list.
-                    copied_model_args = copy.copy(model_args)
-                    breakname = "withbreaks" if has_breaks else "nobreaks"
-                    if has_breaks:
-                        copied_model_args.append("--optimize_dynamo_ddp")
-                    batch_size = model_batch_size[model_name]
-                    args.model = model_name
-                    args.batch_size = batch_size
-                    args.nodes = nodes
-                    args.dist_url = get_init_file(args).as_uri()
-                    args.output_dir = args.job_dir
-                    executor.update_parameters(
-                        gpus_per_node=args.ngpus,
-                        # one task per GPU
-                        tasks_per_node=args.ngpus,
-                        cpus_per_task=10,
-                        nodes=args.nodes,
-                        timeout_min=args.timeout,
-                        # Below are cluster dependent parameters
-                        slurm_partition=args.partition,
-                        slurm_signal_delay_s=120,
-                        slurm_exclude=args.exclude,
-                    )
-                    job = executor.submit(TrainerWrapper(args, copied_model_args))
+    experiments = []
+    for i in range(args.repeat):
+        for nodes in node_list:
+            for model_name in models:
+                for model_args in model_args_configs:
+                    for has_breaks in [True, False]:
+                        backend_name = get_backend_name(model_args)
+                        if backend_name == "eager" and has_breaks:
+                            continue
+                        # copy the model args so we can add more arguments without modifying
+                        # the original model_args list.
+                        copied_model_args = copy.copy(model_args)
+                        breakname = "withbreaks" if has_breaks else "nobreaks"
+                        if has_breaks:
+                            copied_model_args.append("--optimize_dynamo_ddp")
+                        batch_size = model_batch_size[model_name]
+                        args_copy = copy.deepcopy(args)
+                        args_copy.model = model_name
+                        args_copy.batch_size = batch_size
+                        args_copy.nodes = nodes
+                        args_copy.dist_url = get_init_file(args).as_uri()
+                        args_copy.output_dir = args.job_dir
+                        config = {
+                            "nodes": nodes,
+                            "model_name": model_name,
+                            "backend": backend_name,
+                            "has_breaks": has_breaks,
+                        }
+                        experiments.append((config, args_copy, copied_model_args))
 
-                    # print ID of the Slurm job
-                    print(f"{model_name}_{backend_name}_{nodes}_{breakname}: {job.job_id}")
-                    output_csv(
-                        args.index_file,
-                        ("model", "backend", "nodes", "has_breaks", "job_id"),
-                        (model_name, backend_name, nodes, has_breaks, job.job_id),
-                    )
+    allocation_nodes = max(node_list)
+    executor.update_parameters(
+        gpus_per_node=args.ngpus,
+        # one task per GPU
+        tasks_per_node=args.ngpus,
+        cpus_per_task=10,
+        nodes=allocation_nodes,
+        timeout_min=args.timeout,
+        # Below are cluster dependent parameters
+        slurm_partition=args.partition,
+        slurm_signal_delay_s=120,
+        slurm_exclude=args.exclude,
+    )
+    job_config = JobConfig(
+        outer_sync_path=str(get_init_file(args))
+    )
+    job = executor.submit(TrainerWrapper(job_config, experiments))
+
+    # print ID of the Slurm job
+    print(f"{allocation_nodes} nodes: {job.job_id}")
+    output_csv(
+        args.index_file,
+        ("job_id",),
+        (job.job_id,),
+    )
 
     # waits for completion and returns output
     print(job.results())
