@@ -1,5 +1,6 @@
 name: TorchBench PR Test
 on:
+  pull_request:
   workflow_dispatch:
 
 env:
