@@ -9,21 +9,21 @@ env:
   SETUP_INSTANCE_SCRIPT: "/workspace/setup_instance.sh"
 
 jobs:
-  run-test:
+  pr-test:
     runs-on: [self-hosted, a100-runner]
     timeout-minutes: 1440 # 24 hours
     steps:
-    - name: Checkout TorchBench
-      uses: actions/checkout@v3
-    - name: Check GPU availability
-      run: |
-        . "${SETUP_INSTANCE_SCRIPT}"
-        nvidia-smi
-     - name: Install PyTorch nightly
+      - name: Checkout TorchBench
+        uses: actions/checkout@v3
+      - name: Check GPU availability
+        run: |
+          . "${SETUP_INSTANCE_SCRIPT}"
+          nvidia-smi
+      - name: Install PyTorch nightly
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
           bash ./scripts/install_nightlies.sh
-    - name: Install TorchBench
+      - name: Install TorchBench
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
           python install.py
