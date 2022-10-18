@@ -35,7 +35,8 @@ mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 . activate ${BISECT_CONDA_ENV}
 
 # Install pytorch nightly
-conda install -y -c pytorch-nightly torchtext torchvision
+# conda install -y -c pytorch-nightly torchtext torchvision
+pip install --pre torch torchtext torchvision -f https://download.pytorch.org/whl/nightly/cu116/torch_nightly.html
 # Install torchbench deps
 python install.py
 
