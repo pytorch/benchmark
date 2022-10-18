@@ -36,7 +36,7 @@ jobs:
           # See: https://github.com/pytorch/pytorch/issues/74985
           conda install -y numpy="${NUMPY_VER}"  mkl="${MKL_VER}" mkl-include="${MKL_VER}" \
                            requests ninja pyyaml setuptools cmake=3.22 cffi \
-                           typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm
+                           typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm regex
           # Install magma
           conda install -y -c pytorch "${MAGMA_VER}"
       - name: Bisection

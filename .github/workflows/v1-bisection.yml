@@ -35,7 +35,7 @@ jobs:
           # pytorch doesn't support cmake>3.22
           # See: https://github.com/pytorch/pytorch/issues/74985
           conda install -y numpy="${NUMPY_VERSION}"  mkl="${MKL_VERSION}" mkl-include="${MKL_VERSION}" \
-                           requests ninja pyyaml setuptools cmake=3.22 cffi \
+                           requests ninja pyyaml setuptools cmake=3.22 cffi regex \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm
           conda install -y -c pytorch "${MAGMA_VERSION}"
       - name: Bisection
