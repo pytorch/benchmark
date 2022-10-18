@@ -4,7 +4,7 @@ Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 import argparse
 import contextlib
 from typing import List
-import torchdynamo
+import torch._dynamo as torchdynamo
 from torchbenchmark.util.model import is_staged_train_test
 
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
