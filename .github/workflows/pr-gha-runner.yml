@@ -16,9 +16,11 @@ jobs:
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-      - name: Check GPU availability
+      - name: GPU Tuning
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
           nvidia-smi
       - name: Install PyTorch nightly
         run: |
