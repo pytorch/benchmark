@@ -34,8 +34,8 @@ jobs:
       - name: Tune Nvidia GPU
         run: |
           . "${SETUP_SCRIPT}"
-          sudo nvidia-smi -pm 1
-          sudo nvidia-smi -ac 1215,1410
+          sudo -E nvidia-smi -pm 1
+          sudo -E nvidia-smi -ac 1215,1410
           nvidia-smi
       - name: Install PyTorch nightly
         run: |
