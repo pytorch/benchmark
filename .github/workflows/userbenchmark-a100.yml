@@ -31,6 +31,12 @@ jobs:
         run: |
           . "${SETUP_SCRIPT}"
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+      - name: Tune Nvidia GPU
+        run: |
+          . "${SETUP_SCRIPT}"
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
+          nvidia-smi
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
