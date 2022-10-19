@@ -339,16 +339,27 @@ def main():
         for nodes in node_list:
             for model_name in models:
                 for model_args in model_args_configs:
-                    for has_breaks in [True, False]:
-                        backend_name = get_backend_name(model_args)
-                        if backend_name == "eager" and has_breaks:
-                            continue
+                    backend_name = get_backend_name(model_args)
+                    configs = [
+                        {"has_breaks": False, "static_graph": False}
+                    ]
+                    if backend_name == "eager":
+                        configs.append({"has_breaks": False, "static_graph": True})
+                    else:
+                        configs.append({"has_breaks": True, "static_graph": False})
+                    # for has_breaks in [True, False]:
+                    for cfg in configs:
                         # copy the model args so we can add more arguments without modifying
                         # the original model_args list.
+                        has_breaks = configs["has_breaks"]
+                        static_graph = configs["static_graph"]
+
                         copied_model_args = copy.copy(model_args)
                         breakname = "withbreaks" if has_breaks else "nobreaks"
                         if has_breaks:
                             copied_model_args.append("--optimize_dynamo_ddp")
+                        if "inductor" in backend_name:
+                            copied_model_args.append("--disable_inductor_cudagraphs")
                         batch_size = model_batch_size[model_name]
                         args_copy = copy.deepcopy(args)
                         args_copy.model = model_name
@@ -356,11 +367,13 @@ def main():
                         args_copy.nodes = nodes
                         args_copy.dist_url = get_init_file(args).as_uri()
                         args_copy.output_dir = args.job_dir
+                        args_copy.distributed = "ddp" if static_graph else "ddp_no_static_graph"
                         config = {
                             "nodes": nodes,
                             "model_name": model_name,
                             "backend": backend_name,
                             "has_breaks": has_breaks,
+                            "static_graph": static_graph,
                         }
                         experiments.append((config, args_copy, copied_model_args))
 

@@ -21,6 +21,11 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         action='store_true',
         help="enable extra optimizations for DDP + dynamo"
     )
+    parser.add_argument(
+        "--disable_inductor_cudagraphs",
+        action='store_true',
+        help="Disable cudagraphs with inductor",
+    )
     args, extra_args = parser.parse_known_args(dynamo_args)
     return args, extra_args
 
@@ -54,5 +59,17 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             finally:
                 torchdynamo.config.optimize_ddp = old_value
         model.add_context(lambda: optimize_ddp_ctx(True))
+
+    if args.disable_inductor_cudagraphs:
+        import torch._inductor as torchinductor
+        @contextlib.contextmanager
+        def set_cudagraphs_ctx(val: bool):
+            old_value = torchinductor.config.triton.cudagraphs
+            try:
+                torchinductor.config.triton.cudagraphs = val
+                yield
+            finally:
+                torchinductor.config.triton.cudagraphs = old_value
+        model.add_context(lambda: set_cudagraphs_ctx(False))
 
     torchdynamo.reset()

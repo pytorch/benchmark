@@ -80,7 +80,7 @@ def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> 
 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--distributed", choices=["ddp", "fsdp"], default=None, help="Enable distributed trainer")
+    parser.add_argument("--distributed", choices=["ddp", "ddp_no_static_graph", "fsdp"], default=None, help="Enable distributed trainer")
     parser.add_argument("--precision", choices=["fp32", "tf32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, tf32, fp16, or amp")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     dargs, opt_args = parser.parse_known_args(extra_args)
