@@ -83,5 +83,5 @@ jobs:
           path: benchmark-output/
       - name: Remove conda environment
         run: |
-        . "${SETUP_SCRIPT}"
+          . "${SETUP_SCRIPT}"
           conda env remove --name "${CONDA_ENV_NAME}"
