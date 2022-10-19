@@ -34,11 +34,8 @@ jobs:
       - name: Tune Nvidia GPU
         run: |
           . "${SETUP_SCRIPT}"
-          ls /usr/local/nvidia/lib64/
-          export LD_LIBRARY_PATH=/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
-          export PATH=/usr/local/nvidia/lib64:${PATH}
-          sudo -E nvidia-smi -pm 1
-          sudo -E nvidia-smi -ac 1215,1410
+          nvidia-smi -pm 1
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
           nvidia-smi
       - name: Install PyTorch nightly
         run: |
