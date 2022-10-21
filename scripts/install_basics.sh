@@ -16,7 +16,7 @@ conda activate base
 # Use python3.8 by default
 conda install -y python=3.8
 # install unittest-xml-reporting
-pip install unittest-xml-reporting regex
+pip install unittest-xml-reporting
 
 # install CUDA 11.6
 wget -q https://developer.download.nvidia.com/compute/cuda/11.6.2/local_installers/cuda_11.6.2_510.47.03_linux.run \
