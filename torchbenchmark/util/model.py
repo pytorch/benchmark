@@ -256,3 +256,16 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         torch._C._set_graph_executor_optimize(True)
 
         bench_allclose(base, opt)
+
+    def enable_ipex_optimize(self):
+        import intel_extension_for_pytorch as ipex
+        if self.test == "eval":
+            self.model.eval()
+            self.model=ipex.optimize(self.model,inplace=True)
+            print("===================ENABLE IPEX OPTIMIZE EVAL=================")
+        else:
+            self.model.train()
+            optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9)
+            self.model, optimizer = ipex.optimize(self.model, optimizer=optimizer)
+            print("===================ENABLE IPEX OPTIMIZE TRAIN=================")
+        return self.model
