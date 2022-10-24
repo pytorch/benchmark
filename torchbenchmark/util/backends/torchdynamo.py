@@ -4,7 +4,7 @@ Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 import argparse
 import contextlib
 from typing import List
-import torchdynamo
+import torch._dynamo as torchdynamo
 from torchbenchmark.util.model import is_staged_train_test
 
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
@@ -31,7 +31,7 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         dynamo_optimizer = torchdynamo.optimize(args.torchdynamo)
     # Setup torchinductor.config.triton.mm
     if args.tritonmm == "triton":
-        import torchinductor
+        import torch._inductor as torchinductor
         torchinductor.config.triton.mm = "triton"
         # currently can't pass correctness with use_bmm = True
         # torchinductor.config.triton.use_bmm = True

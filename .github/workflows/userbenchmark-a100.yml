@@ -17,7 +17,7 @@ env:
   MAGMA_VERSION: "magma-cuda116"
   PLATFORM_NAME: "gcp_a100"
   TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
-  SETUP_SCRIPT: "/data/shared/setup_instance.sh"
+  SETUP_SCRIPT: "/workspace/setup_instance.sh"
 jobs:
   run-userbenchmark:
     runs-on: [self-hosted, a100-runner]
@@ -29,14 +29,21 @@ jobs:
           path: benchmark
       - name: Create conda environment
         run: |
+          . "${SETUP_SCRIPT}"
           conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+      - name: Tune Nvidia GPU
+        run: |
+          . "${SETUP_SCRIPT}"
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
+          nvidia-smi
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
           conda install -y -c pytorch "${MAGMA_VERSION}"
-          pip install requests bs4 argparse gitpython boto3 pyyaml numpy
+          pip install requests bs4 argparse gitpython boto3 pyyaml numpy regex
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -82,4 +89,5 @@ jobs:
           path: benchmark-output/
       - name: Remove conda environment
         run: |
+          . "${SETUP_SCRIPT}"
           conda env remove --name "${CONDA_ENV_NAME}"

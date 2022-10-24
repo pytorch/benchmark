@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("--dryrun", action="store_true", help="only dry run the command.")
     args = parser.parse_args()
     benchmarks = get_userbenchmarks_by_platform(args.platform)
-    if args.platform == "ai-cluster":
+    if args.platform == "ai_cluster":
         assert not args.dryrun, "AICluster workflow doesn't support dryrun."
         for ub in benchmarks:
             run_aicluster_benchmark(ub, check_success=True, upload_scribe=True)

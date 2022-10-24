@@ -1,13 +1,41 @@
-name: TorchBench Infra GHA runner test
+name: TorchBench PR Test
 on:
+  pull_request:
   workflow_dispatch:
 
+env:
+  PYTHON_VERSION: "3.8"
+  CUDA_VERSION: "cu116"
+  MAGMA_VERSION: "magma-cuda116"
+  SETUP_INSTANCE_SCRIPT: "/workspace/setup_instance.sh"
+
 jobs:
-  place_holder:
-    runs-on: linux.2xlarge
+  pr-test:
+    runs-on: [self-hosted, a100-runner]
+    timeout-minutes: 1440 # 24 hours
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Simple check
-      run: |
-        echo "Success. You are running on GHA runner."
+      - name: Checkout TorchBench
+        uses: actions/checkout@v3
+      - name: GPU Tuning
+        run: |
+          . "${SETUP_INSTANCE_SCRIPT}"
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
+          nvidia-smi
+      - name: Install PyTorch nightly
+        run: |
+          . "${SETUP_INSTANCE_SCRIPT}"
+          bash ./scripts/install_nightlies.sh
+      - name: Install TorchBench
+        run: |
+          . "${SETUP_INSTANCE_SCRIPT}"
+          python install.py
+      - name: Validate benchmark components (Worker)
+        run: |
+          . "${SETUP_INSTANCE_SCRIPT}"
+          python -m components.test.test_subprocess
+          python -m components.test.test_worker
+      - name: Validate benchmark components (Model)
+        run: |
+          . "${SETUP_INSTANCE_SCRIPT}"
+          python test.py

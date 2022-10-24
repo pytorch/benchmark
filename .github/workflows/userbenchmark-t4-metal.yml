@@ -38,7 +38,7 @@ jobs:
           pip install -U py-cpuinfo psutil distro
           sudo ${HOME}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python3 torchbenchmark/util/machine_config.py
           conda install -y -c pytorch "${MAGMA_VERSION}"
-          pip install requests bs4 argparse gitpython boto3
+          pip install requests bs4 argparse gitpython boto3 regex
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
