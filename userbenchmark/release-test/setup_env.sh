@@ -18,18 +18,27 @@ if [ -e "/usr/local/cuda" ]; then
     sudo rm /usr/local/cuda
 fi
 sudo ln -sf /usr/local/cuda-${CUDA_VERSION} /usr/local/cuda
-conda uninstall -y pytorch torchvision torchtext cudatoolkit
+conda uninstall -y pytorch torchvision torchtext pytorch-cuda
 # make sure we have a clean environment without pytorch
 pip uninstall -y torch torchvision
-pip uninstall -y torch torchvision
-pip uninstall -y torch torchvision
-# install cuda toolkit and dependencies
-conda install -y cudatoolkit=${CUDA_VERSION}
+
 # install magma
 conda install -y -c pytorch ${MAGMA_VERSION}
-# install pytorch
-conda install -y -c ${PYTORCH_CHANNEL} pytorch=${PYTORCH_VERSION} torchvision torchtext
+# install pytorch and pytorch-cuda
+conda install --force-reinstall pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
+
+## If torchvision is not yet available, uncomment the following and 
+## find a good torchvision commit to test
+##temp workaround to buid torchvision before vision rc binary is available
+#pushd  /tmp
+#git clone https://github.com/pytorch/vision.git
+#cd vision
+## checkout 2022-10-05 nightly as the checkmarks shows green
+#git checkout nightly && git checkout 64b14dcda9e4d283819ae69f9a60a41409aee92a 
+#python setup.py install
+#rm -rf /tmp/vision
+#popd 
 
 # tune the machine
 sudo nvidia-smi -ac "${GPU_FREQUENCY}"
