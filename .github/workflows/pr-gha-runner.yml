@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: "3.8"
+  PYTHON_VERSION: "3.10"
   CUDA_VERSION: "cu116"
   MAGMA_VERSION: "magma-cuda116"
   SETUP_INSTANCE_SCRIPT: "/workspace/setup_instance.sh"

@@ -45,11 +45,11 @@ RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.s
     chmod +x Miniconda3-latest-Linux-x86_64.sh && \
     bash ./Miniconda3-latest-Linux-x86_64.sh -b -u
 
-# Use Python 3.8 as default
+# Use Python 3.10 as default
 RUN . ${HOME}/miniconda3/etc/profile.d/conda.sh && \
     conda activate base && \
     conda init && \
-    conda install -y python=3.8 && \
+    conda install -y python=3.10 && \
     pip install unittest-xml-reporting pyyaml
 
 RUN echo "\
