@@ -56,7 +56,7 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
     return env
 
 def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
-    uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext"]
+    uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext", "torchaudio"]
     if dryrun:
         print(f"Uninstall pytorch: {uninstall_torch_cmd}")
     else:
@@ -64,7 +64,7 @@ def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
         for _loop in range(3):
             subprocess.check_call(uninstall_torch_cmd)
     pytorch_nightly_url = f"https://download.pytorch.org/whl/nightly/{CUDA_VERSION_MAP[cuda_version]['pytorch_url']}/torch_nightly.html"
-    install_torch_cmd = ["pip", "install", "--pre", "torch", "torchvision", "torchtext", "-f",  pytorch_nightly_url]
+    install_torch_cmd = ["pip", "install", "--pre", "torch", "torchvision", "torchtext", "torchaudio", "-f",  pytorch_nightly_url]
     if dryrun:
         print(f"Install pytorch nightly: {install_torch_cmd}")
     else:
