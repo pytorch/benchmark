@@ -1,12 +1,12 @@
 # pip install -U -r requirements.txt
 numpy
 # opencv-python 4.5 requires numpy 1.8
-opencv-python >= 4.1, < 4.5
+opencv-python
 matplotlib
 pycocotools
 tqdm
 pillow
-tensorboard >= 1.14
+tensorboard
 
 # Nvidia Apex (optional) for mixed precision training --------------------------
 # git clone https://github.com/NVIDIA/apex && cd apex && pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" . --user && cd .. && rm -rf apex
