@@ -2,6 +2,7 @@ sacrebleu
 bitarray
 # pin fairseq version
 fairseq==0.12.2
-omegaconf
+# omegaconf needs to be >= 2.1
+omegaconf==2.1.1
 hydra-core
 sentencepiece
