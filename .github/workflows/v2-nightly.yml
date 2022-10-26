@@ -26,7 +26,7 @@ jobs:
     runs-on: [self-hosted, bm-runner]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: v2.0
       - name: Create conda env
@@ -37,7 +37,7 @@ jobs:
           . activate "${CONDA_ENV_NAME}"
           . /data/nvme/bin/setup_instance.sh
           # Install dependencies
-          pip install requests bs4 argparse gitpython boto3
+          pip install requests bs4 argparse gitpython boto3 regex
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result

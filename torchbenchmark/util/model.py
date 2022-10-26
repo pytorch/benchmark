@@ -1,3 +1,4 @@
+import copy
 import os
 import torch
 from contextlib import contextmanager, ExitStack
@@ -109,6 +110,26 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         should_check_correctness = check_correctness_p(self, self.opt_args)
         if should_check_correctness:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
+            if isinstance(self.eager_output, Tuple):
+                self.eager_output = tuple((t.detach() if isinstance(t, torch.Tensor) else t) for t in self.eager_output)
+            elif isinstance(self.eager_output, torch.Tensor):
+                self.eager_output = self.eager_output.detach()
+            if self.test == "train":
+                opt_saved = None
+                if hasattr(self, "opt"):
+                    opt_saved = self.opt
+                    self.opt = None
+                try:
+                    if self.DEEPCOPY:
+                        copy_model = copy.deepcopy(self)
+                    else:
+                        copy_model = self
+                    copy_model.invoke()
+                    self.eager_model_after_one_train_iteration = copy_model.model
+                except RuntimeError:
+                    warnings.warn(UserWarning("Can't copy the model. Skipping train correctness check."))
+                if opt_saved:
+                    self.opt = opt_saved
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
