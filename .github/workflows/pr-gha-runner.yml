@@ -27,6 +27,7 @@ jobs:
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
           conda install -y python="${PYTHON_VERSION}"
+          conda install -y "${MAGMA_VERSION}" -c pytorch
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
