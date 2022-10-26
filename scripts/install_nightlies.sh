@@ -8,7 +8,8 @@ conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4
 conda install -y -c pytorch magma-cuda116
 
 # install the most recent successfully built pytorch packages
-python torchbenchmark/util/torch_nightly.py --install-nightlies --packages torch torchvision torchtext
+# torchaudio is required by fairseq/fambench_xlmr
+python torchbenchmark/util/torch_nightly.py --install-nightlies --packages torch torchvision torchtext torchaudio
 
 conda install -y expecttest -c conda-forge
 
