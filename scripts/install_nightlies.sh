@@ -1,8 +1,13 @@
 #!/bin/bash
-set -e
+set -ex
 
 . ~/miniconda3/etc/profile.d/conda.sh
-conda activate base
+
+if [[ -z "${CONDA_ENV}" ]]; then
+    conda activate base
+else
+    conda activate "${CONDA_ENV}"
+fi
 
 conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
 conda install -y -c pytorch magma-cuda116
