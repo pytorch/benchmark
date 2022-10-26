@@ -26,27 +26,21 @@ jobs:
       - name: Setup Conda Env
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
-          conda create -n "${CONDA_ENV}" python="${PYTHON_VERSION}"
-          conda activate "${CONDA_ENV}"
-          conda install -y "${MAGMA_VERSION}" pyyaml unittest-xml-reporting -c pytorch
+          conda install -y python="${PYTHON_VERSION}"
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
           bash ./scripts/install_nightlies.sh
       - name: Install TorchBench
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
           python install.py
       - name: Validate benchmark components (Worker)
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
           python -m components.test.test_subprocess
           python -m components.test.test_worker
       - name: Validate benchmark components (Model)
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
           python test.py
