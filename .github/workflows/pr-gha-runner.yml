@@ -28,12 +28,14 @@ jobs:
           . "${SETUP_INSTANCE_SCRIPT}"
           conda create -n "${CONDA_ENV}" python="${PYTHON_VERSION}"
           conda activate "${CONDA_ENV}"
-          conda install "${MAGMA_VERSION}" -c pytorch
+          conda install -y "${MAGMA_VERSION}" -c pytorch
+          conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
+          conda install -y expecttest -c conda-forge
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
           conda activate "${CONDA_ENV}"
-          bash ./scripts/install_nightlies.sh
+          pip install --pre torch torchvision torchtext torchaudio torchdata -f https://download.pytorch.org/whl/nightly/cu116/torch_nightly.html
       - name: Install TorchBench
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
