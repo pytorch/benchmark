@@ -1,8 +1,6 @@
 sacrebleu
 bitarray
-# pin fairseq version
-fairseq==0.12.2
-# override the omegaconf requirement of detectron2
-omegaconf==2.1.1
+cffi
+omegaconf
 hydra-core
 sentencepiece
