@@ -2,8 +2,8 @@ devices:
   NVIDIA A100-SXM4-40GB:
     eval_batch_size: 4
   MPS:
-    train_batch_size_sweep: [1, 4, 8, 16, 32]
-    eval_batch_size_sweep: [1, 4, 8, 16, 32]
+    train_batch_size_sweep: [1, 4, 8]
+    eval_batch_size_sweep: [1, 4, 8]
 eval_benchmark: false
 eval_deterministic: true
 eval_nograd: true
