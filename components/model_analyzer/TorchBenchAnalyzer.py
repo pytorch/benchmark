@@ -34,7 +34,7 @@ class ModelAnalyzer:
         # the metrics to be collected
         # self.gpu_metrics = [GPUUtilization, GPUPowerUsage,
         #                     GPUFreeMemory, GPUPeakMemory, GPUFP32Active, GPUTensorActive, GPUDRAMActive, GPUPCIERX, GPUPCIETX]
-        self.gpu_metrics = [GPUFP32Active]
+        self.gpu_metrics = []
         # the final metric results. Its format is {GPU_UUID: {GPUUtilization: }}
         # Example:
         # {'GPU-4177e846-1274-84e3-dcde': 
@@ -53,7 +53,8 @@ class ModelAnalyzer:
 
     def add_metric_gpu_peak_mem(self):
         self.gpu_metrics.append(GPUPeakMemory)
-    
+    def add_metric_gpu_flops(self):
+        self.gpu_metrics.append(GPUFP32Active)
 
     def set_export_csv_name(self, export_csv_name=''):
         self.export_csv_name = export_csv_name
@@ -137,6 +138,8 @@ class ModelAnalyzer:
                         tmp_line = "%s, " % (record_type.tag + '(%)')
                     elif record_type.tag.startswith('gpu_pice'):
                         tmp_line = "%s, " % (record_type.tag + '(bytes)')
+                    elif record_type.tag == 'gpu_peak_memory':
+                        tmp_line = "%s, " % (record_type.tag + '(MB)')
                     else:
                         tmp_line = "%s, " % record_type.tag
                     fout.write(tmp_line)
@@ -207,6 +210,7 @@ class ModelAnalyzer:
 def check_dcgm():
     try: 
         temp_model_analyzer = ModelAnalyzer()
+        temp_model_analyzer.add_metric_gpu_flops()
         temp_model_analyzer.start_monitor()
         temp_model_analyzer.stop_monitor()
     except DCGMError as e:

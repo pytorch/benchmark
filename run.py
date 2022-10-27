@@ -21,6 +21,7 @@ SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
 if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
 
+
 def run_one_step_with_cudastreams(func, streamcount):
 
     print("Running Utilization Scaling Using Cuda Streams")
@@ -63,17 +64,19 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
     result_summary = []
     if (type(model_flops) is str and model_flops.lower() == 'dcgm') or 'gpu_peak_mem' in metrics_needed:
         dcgm_enabled = True
-    else:
-        dcgm_enabled = False
-    gpu_peak_mem_enabled = 'gpu_peak_mem' in metrics_needed
-    if dcgm_enabled:
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
         if export_dcgm_metrics_file:
             model_analyzer.set_export_csv_name(export_dcgm_metrics_file)
         if 'gpu_peak_mem' in metrics_needed:
             model_analyzer.add_metric_gpu_peak_mem()
+            gpu_peak_mem_enabled = True
+        if (type(model_flops) is str and model_flops.lower() == 'dcgm') or 'flops_dcgm' in metrics_needed:
+            model_analyzer.add_metric_gpu_flops()
         model_analyzer.start_monitor()
+    else:
+        dcgm_enabled = False
+        gpu_peak_mem_enabled = False
     if stress:
         cur_time = time.time_ns()
         start_time = cur_time
@@ -83,7 +86,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
     _i = 0
     last_it = 0
     first_print_out = True
-    while (not stress and _i < num_iter ) or (stress and cur_time < target_time ) :
+    while (not stress and _i < num_iter) or (stress and cur_time < target_time) :
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
@@ -118,20 +121,22 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
                     print('|{:^20}|{:^20}|{:^20}|'.format("Iterations", "Time/Iteration(ms)", "Rest Time(s)"))
                     first_print_out = False
                 est = (target_time - cur_time) / 1e9
-                time_per_it = (cur_time - last_time) / ( _i - last_it) / 1e6
+                time_per_it = (cur_time - last_time) / (_i - last_it) / 1e6
                 print('|{:^20}|{:^20}|{:^20}|'.format("%d" % _i, "%.2f" % time_per_it , "%d" % int(est)))
                 last_time = cur_time
                 last_it = _i
         _i += 1
     if dcgm_enabled:
-            model_analyzer.stop_monitor()
+        model_analyzer.stop_monitor()
 
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
         if hasattr(model, "NUM_BATCHES"):
-            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" % (gpu_time / model.NUM_BATCHES), sep=''))
-            print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" % (cpu_walltime / model.NUM_BATCHES), sep=''))
+            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" %
+                  (gpu_time / model.NUM_BATCHES), sep=''))
+            print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" %
+                  (cpu_walltime / model.NUM_BATCHES), sep=''))
         else:
             print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
             print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
@@ -229,7 +234,8 @@ if __name__ == "__main__":
     parser.add_argument("--profile-devices", type=_validate_devices,
                         help="Profiling comma separated list of activities such as cpu,cuda.")
     parser.add_argument("--profile-eg", action="store_true", help="Collect execution graph by PARAM")
-    parser.add_argument("--profile-eg-folder", default="./eg_logs", help="Save execution graph traces to this directory.")
+    parser.add_argument("--profile-eg-folder", default="./eg_logs",
+                        help="Save execution graph traces to this directory.")
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
@@ -237,7 +243,8 @@ if __name__ == "__main__":
     parser.add_argument("--export-dcgm-metrics", action="store_true",
                         help="Export all GPU FP32 unit active ratio records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
-    parser.add_argument("--metrics", type=str, choices=['cpu_peak_mem', 'gpu_peak_mem', 'flops_dcgm'], help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops_dcgm]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
+    parser.add_argument("--metrics", type=str, choices=['cpu_peak_mem', 'gpu_peak_mem', 'flops_dcgm'],
+                        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops_dcgm]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -288,6 +295,7 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress, metrics_needed=metrics_needed)
+        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file,
+                     stress=args.stress, metrics_needed=metrics_needed)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
