@@ -55,19 +55,24 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_dcgm_metrics_file=False, stress=0):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_dcgm_metrics_file=False, stress=0, metrics_needed=[]):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
 
     result_summary = []
-    dcgm_enabled = False
-    if type(model_flops) is str and model_flops == 'dcgm':
+    if (type(model_flops) is str and model_flops.lower() == 'dcgm') or 'gpu_peak_mem' in metrics_needed:
         dcgm_enabled = True
+    else:
+        dcgm_enabled = False
+    gpu_peak_mem_enabled = 'gpu_peak_mem' in metrics_needed
+    if dcgm_enabled:
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
         if export_dcgm_metrics_file:
             model_analyzer.set_export_csv_name(export_dcgm_metrics_file)
+        if 'gpu_peak_mem' in metrics_needed:
+            model_analyzer.add_metric_gpu_peak_mem()
         model_analyzer.start_monitor()
     if stress:
         cur_time = time.time_ns()
@@ -134,17 +139,22 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
 
+    if dcgm_enabled:
+        model_analyzer.aggregate()
+
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
         if dcgm_enabled:
-            model_analyzer.aggregate()
             tflops = model_analyzer.calculate_flops()
-            if export_dcgm_metrics_file:
-                model_analyzer.export_all_records_to_csv()
         else:
             flops, batch_size = model_flops
             tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
+    if gpu_peak_mem_enabled:
+        gpu_peak_mem = model_analyzer.calculate_gpu_peak_mem()
+        print('{:<20} {:>20}'.format("GPU Peak Memory:", "%.4f GB" % gpu_peak_mem, sep=''))
+    if export_dcgm_metrics_file:
+        model_analyzer.export_all_records_to_csv()
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
@@ -227,6 +237,7 @@ if __name__ == "__main__":
     parser.add_argument("--export-dcgm-metrics", action="store_true",
                         help="Export all GPU FP32 unit active ratio records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
+    parser.add_argument("--metrics", type=str, choices=['cpu_peak_mem', 'gpu_peak_mem', 'flops_dcgm'], help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops_dcgm]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -256,9 +267,18 @@ if __name__ == "__main__":
             from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
             if check_dcgm():
                 model_flops = 'dcgm'
+    metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()]
+    if 'gpu_peak_mem' in metrics_needed:
+        assert args.device == 'cuda', "gpu_peak_mem is only available for cuda device."
+        from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
+        if not check_dcgm():
+            print("DCGM is not installed. gpu_peak_mem is not available.")
+            exit(-1)
+
     if args.export_dcgm_metrics:
-        if not args.flops:
-            print("You have to specifiy --flops dcgm accompany with --export-dcgm-metrics")
+        if not args.flops and not args.metrics:
+            print(
+                "You have to specifiy --flops dcgm or --metrics metrics_needed accompany with --export-dcgm-metrics")
             exit(-1)
         export_dcgm_metrics_file = "%s_all_metrics.csv" % args.model
     else:
@@ -268,6 +288,6 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress)
+        run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file, stress=args.stress, metrics_needed=metrics_needed)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')

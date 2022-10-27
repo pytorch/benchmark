@@ -17,12 +17,12 @@ from .gpu_record import GPURecord
 
 
 @total_ordering
-class GPUUsedMemory(GPURecord):
+class GPUPeakMemory(GPURecord):
     """
-    The used memory in the GPU.
+    The peak memory usage in the GPU. Because I didn't specify the aggregate function, the default is MAX inherited from Record Class.
     """
 
-    tag = "gpu_used_memory"
+    tag = "gpu_peak_memory"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         """
@@ -82,7 +82,7 @@ class GPUUsedMemory(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUUsedMemory(device_uuid=None,
+        return GPUPeakMemory(device_uuid=None,
                              value=(self.value() + other.value()))
 
     def __sub__(self, other):
@@ -91,5 +91,5 @@ class GPUUsedMemory(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUUsedMemory(device_uuid=None,
+        return GPUPeakMemory(device_uuid=None,
                              value=(other.value() - self.value()))
