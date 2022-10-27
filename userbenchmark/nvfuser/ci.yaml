@@ -1,2 +1,2 @@
-platform:   "gcp-a100"
+platform:   "gcp_a100"
 schedule:   "nightly"

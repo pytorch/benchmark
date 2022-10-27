@@ -18,7 +18,7 @@ jobs:
     runs-on: [ linux.4xlarge.nvidia.gpu ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: v2.0
       - name: Create conda env

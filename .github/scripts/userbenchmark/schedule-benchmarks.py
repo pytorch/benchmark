@@ -32,11 +32,11 @@ def run_userbenchmark(ub_name, dryrun=True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--platform", choices=["gcp-a100", "ai-cluster"], required=True, help="specify the benchmark platform.")
+    parser.add_argument("--platform", choices=["gcp_a100", "aws_t4_metal", "ai_cluster"], required=True, help="specify the benchmark platform.")
     parser.add_argument("--dryrun", action="store_true", help="only dry run the command.")
     args = parser.parse_args()
     benchmarks = get_userbenchmarks_by_platform(args.platform)
-    if args.platform == "ai-cluster":
+    if args.platform == "ai_cluster":
         assert not args.dryrun, "AICluster workflow doesn't support dryrun."
         for ub in benchmarks:
             run_aicluster_benchmark(ub, check_success=True, upload_scribe=True)
