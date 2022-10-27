@@ -14,7 +14,7 @@ conda install -y -c pytorch magma-cuda116
 
 # install the most recent successfully built pytorch packages
 # torchaudio is required by fairseq/fambench_xlmr
-python torchbenchmark/util/torch_nightly.py --install-nightlies --packages torch torchvision torchtext
+pip install --pre torch torchvision torchtext torchaudio -f https://download.pytorch.org/whl/nightly/cu116/torch_nightly.html
 
 conda install -y expecttest -c conda-forge
 

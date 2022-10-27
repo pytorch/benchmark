@@ -11,7 +11,12 @@ def update_fambench_submodule():
     subprocess.check_call(update_command, cwd=REPO_PATH)
 
 def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
+    try:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
+    except subprocess.CalledProcessError:
+        # We ignore the ResolutionImpossible error because fairseq requires omegaconf < 2.1
+        # but detectron2 requires omegaconf >= 2.1
+        pass
 
 if __name__ == "__main__":
     update_fambench_submodule()
