@@ -169,9 +169,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if not batch_size:
             self.batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
             # use the device suggestion on CUDA inference tests
-            if self.test == "eval" and self.device == "cuda":
-                current_device_name = torch.cuda.get_device_name()
-                assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+            if self.test == "eval":
+                if self.device == "cuda":
+                    current_device_name = torch.cuda.get_device_name()
+                    assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+                elif self.device == "cpu":
+                    current_device_name = "cpu"
                 if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"]:
                     self.batch_size = self.metadata["devices"][current_device_name]["eval_batch_size"]
             # If the model doesn't implement test or eval test
