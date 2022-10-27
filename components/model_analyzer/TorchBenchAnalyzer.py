@@ -9,7 +9,7 @@ from .tb_dcgm_types.gpu_tensoractive import GPUTensorActive
 from .tb_dcgm_types.gpu_utilization import GPUUtilization
 from .tb_dcgm_types.gpu_power_usage import GPUPowerUsage
 from .tb_dcgm_types.gpu_free_memory import GPUFreeMemory
-from .tb_dcgm_types.gpu_used_memory import GPUUsedMemory
+from .tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
 from .tb_dcgm_types.gpu_fp32active import GPUFP32Active
 from .tb_dcgm_types.gpu_dram_active import GPUDRAMActive
 from .tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
@@ -33,7 +33,7 @@ class ModelAnalyzer:
         self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
         # the metrics to be collected
         # self.gpu_metrics = [GPUUtilization, GPUPowerUsage,
-        #                     GPUFreeMemory, GPUUsedMemory, GPUFP32Active, GPUTensorActive, GPUDRAMActive, GPUPCIERX, GPUPCIETX]
+        #                     GPUFreeMemory, GPUPeakMemory, GPUFP32Active, GPUTensorActive, GPUDRAMActive, GPUPCIERX, GPUPCIETX]
         self.gpu_metrics = [GPUFP32Active]
         # the final metric results. Its format is {GPU_UUID: {GPUUtilization: }}
         # Example:
@@ -44,11 +44,16 @@ class ModelAnalyzer:
         #  }
         self.gpu_metric_value = {}
         self.gpu_monitor = None
+        # [ ...]
         self.gpu_records = None
         self.config = AnalayzerConfig()
         self.gpu_record_aggregator = RecordAggregator()
+        self.cpu_metrics = []
         self.export_csv_name = ''
 
+    def add_metric_gpu_peak_mem(self):
+        self.gpu_metrics.append(GPUPeakMemory)
+    
 
     def set_export_csv_name(self, export_csv_name=''):
         self.export_csv_name = export_csv_name
@@ -181,6 +186,23 @@ class ModelAnalyzer:
             gpu_uuid = next(iter(self.gpu_metric_value))
             gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
             return gpu._sm_count * gpu._fma_count * 2 * gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9
+
+    def calculate_gpu_peak_mem(self, gpu_uuid=None) -> float:
+        """
+        The function to calculate GPU peak memory usage for the first available GPU.
+        @return : a floating number representing GB.
+        """
+        if gpu_uuid:
+            if gpu_uuid in self.gpu_metric_value:
+                gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
+                return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
+            else:
+                raise TorchBenchAnalyzerException("No available GPU with uuid ", gpu_uuid, " found!")
+        if len(self.gpu_metric_value) > 1:
+            logger.warning("There are multiple available GPUs and will only return the first one's peak memory bandwidth.")
+        gpu_uuid = next(iter(self.gpu_metric_value))
+        return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
+
 
 def check_dcgm():
     try: 

@@ -15,7 +15,7 @@
 from .monitor import Monitor
 from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
 from ..tb_dcgm_types.gpu_tensoractive import GPUTensorActive
-from ..tb_dcgm_types.gpu_used_memory import GPUUsedMemory
+from ..tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
 from ..tb_dcgm_types.gpu_utilization import GPUUtilization
 from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
 from ..tb_dcgm_types.gpu_fp32active import GPUFP32Active
@@ -39,7 +39,7 @@ class DCGMMonitor(Monitor):
     # Mapping between the DCGM Fields and Model Analyzer Records
     # For more explainations, please refer to https://docs.nvidia.com/datacenter/dcgm/latest/dcgm-api/dcgm-api-field-ids.html
     model_analyzer_to_dcgm_field = {
-        GPUUsedMemory: dcgm_fields.DCGM_FI_DEV_FB_USED,
+        GPUPeakMemory: dcgm_fields.DCGM_FI_DEV_FB_USED,
         GPUFreeMemory: dcgm_fields.DCGM_FI_DEV_FB_FREE,
         GPUUtilization: dcgm_fields.DCGM_FI_DEV_GPU_UTIL,
         GPUPowerUsage: dcgm_fields.DCGM_FI_DEV_POWER_USAGE,
