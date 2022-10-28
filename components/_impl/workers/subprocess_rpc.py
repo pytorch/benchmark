@@ -358,16 +358,28 @@ class SerializedException:
         """
         try:
             print_file = io.StringIO()
-            traceback.print_exception(
-                etype=type(e),
-                value=e,
-                tb=tb,
-                file=print_file,
-            )
+            python_vinfo = sys.version_info
+            if python_vinfo.major == 3 and python_vinfo.minor < 10:
+                # Starting from Python 3.10, trackback renames the `etype` parameter to `exc`
+                # and make it positional-only.
+                # doc: https://docs.python.org/3/library/traceback.html#traceback.print_exception
+                traceback.print_exception(
+                    etype=type(e),
+                    value=e,
+                    tb=tb,
+                    file=print_file,
+                )
+            else:
+                traceback.print_exception(
+                    type(e),
+                    value=e,
+                    tb=tb,
+                    file=print_file,
+                )
             print_file.seek(0)
             traceback_print: str = print_file.read()
 
-        except Exception:
+        except Exception as e:
             traceback_print = textwrap.dedent("""
                 Traceback
                     Failed to extract traceback from worker. This is not expected.

@@ -1,8 +1,6 @@
 sacrebleu
 bitarray
-# pin fairseq version
-fairseq==0.10.2
-omegaconf==2.1.1
-hydra-core==1.1.2
+cffi
+omegaconf
+hydra-core
 sentencepiece
-xformers
