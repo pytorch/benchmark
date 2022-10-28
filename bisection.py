@@ -27,6 +27,7 @@ from utils.cuda_utils import prepare_cuda_env, DEFAULT_CUDA_VERSION
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 TORCHBENCH_DEPS = {
+    "torchdata": (os.path.expandvars("${HOME}/data"), "main"),
     "torchtext": (os.path.expandvars("${HOME}/text"), "main"),
     "torchvision": (os.path.expandvars("${HOME}/vision"), "main"),
     "torchaudio": (os.path.expandvars("${HOME}/audio"), "main"),
@@ -207,6 +208,11 @@ class TorchSource:
     
     # Install dependencies such as torchtext and torchvision
     def build_install_deps(self, build_env):
+        # Build torchdata (required by torchtext)
+        print(f"Building torchdata ...", end="", flush=True)
+        command = "python setup.py install"
+        subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchdata"][0], env=build_env, shell=True)
+        print("done")
         # Build torchvision
         print(f"Building torchvision ...", end="", flush=True)
         command = "python setup.py install"
@@ -266,7 +272,7 @@ class TorchSource:
         self.build_install_deps(build_env)
 
     def cleanup(self):
-        packages = ["torch", "torchtext", "torchvision", "torchaudio"]
+        packages = ["torch"] + list(TORCHBENCH_DEPS.keys())
         CLEANUP_ROUND = 5
         # Clean up multiple times to make sure the packages are all uninstalled
         for _ in range(CLEANUP_ROUND):
