@@ -225,14 +225,18 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                                   "Please submit an issue if you need input iterator implementation for the model.")
 
     def invoke_staged_train_test(self) -> None:
+        if hasattr(self, "opt") and self.opt:
+            self.opt.zero_grad()
+
         with nested(*self.forward_contexts):
             losses = self.forward()
 
         with nested(*self.backward_contexts):
             self.backward(losses)
 
-        with nested(*self.optimizer_contexts):
-            self.optimizer()
+        if hasattr(self, "opt") and self.opt:
+            with nested(*self.optimizer_contexts):
+                self.optimizer()
 
         return None
 
