@@ -7,6 +7,7 @@ import dataclasses
 import io
 import json
 import multiprocessing
+import queue
 import submitit
 from datetime import datetime, timedelta
 import sys
@@ -182,6 +183,7 @@ class TrainerWrapper(object):
     def __init__(self, job_config: JobConfig, per_experiment_args: List[Tuple[Dict, Any, Any]]):
         self.job_config = job_config
         self.per_experiment_args = per_experiment_args
+        self.timeout = timedelta(45)
 
     # this is called within a multiprocessing.Process.
     def run_once(self, args, model_args, q):
@@ -215,12 +217,44 @@ class TrainerWrapper(object):
                 q = multiprocessing.Queue()
                 proc = multiprocessing.Process(target=self.run_once, args=(args, model_args, q))
                 proc.start()
-                proc.join()
-                print(f"exit code: {proc.exitcode} and result: {result_dict}")
-                if proc.exitcode == 0:
-                    result_dict['result'] = q.get()
+
+                # wait for 3 minutes less than timeout, to give some buffer time so that
+                # the barrier doesn't time out
+                timeout_seconds = (self.timeout - timedelta(minutes=3)).total_seconds()
+
+                # Wait in a loop because:
+                # - the queue has a limited buffer size, so we need to call q.get() before proc.join()
+                #   in case the queue blocks when the worker process tries to put into the queue
+                # - if the worker process errors out, nothing will get put into the queue when it
+                #   exits early and then we end up waiting until the timeout finishes
+                # So we wait in a loop and wait until either finishes
+                got_result = False
+                got_exit = False
+                exit_code = None
+                result = None
+                while time.time() < start_time + timeout_seconds and not got_exit:
+                    proc.join(timeout=5)
+                    if proc.exitcode is not None:
+                        got_exit = True
+                        exit_code = proc.exitcode
+
+                    if not got_result:
+                        try:
+                            result = q.get(timeout=5)
+                            got_result = True
+                        except queue.Empty:
+                            pass
+                if not got_exit:
+                    proc.kill()
+                    proc.join(timeout=60)
+
+                proc.close()
+
+                if isinstance(result, dict) and 'latency_median' in result:
+                    result_dict['result'] = result
                 else:
                     result_dict['result'] = None
+                print(f"exit code: {proc.exitcode} and result: {result_dict}")
                 assert 'result' in result_dict
                 # wrap in <RESULT></RESULT> so we can parse partial results in the stdout logs
                 print(f"<RESULT>{json.dumps(result_dict)}</RESULT>")
@@ -243,7 +277,12 @@ class TrainerWrapper(object):
         job_env = submitit.JobEnvironment()
         rank = job_env.global_rank
         world_size = job_env.num_tasks
-        return FileBarrier(rank=rank, world_size=world_size, sync_file=self.job_config.outer_sync_path)
+        return FileBarrier(
+            rank=rank,
+            world_size=world_size,
+            sync_file=self.job_config.outer_sync_path
+            timeout=self.timeout
+        )
 
     def _setup_gpu_args(self, args):
         job_env = submitit.JobEnvironment()
