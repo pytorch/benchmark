@@ -30,7 +30,7 @@ class Monitor(ABC):
         Parameters
         ----------
         frequency : float
-            How often the metrics should be monitored.
+            How often the metrics should be monitored. It is in seconds.
         metrics : list
             A list of Record objects that will be monitored.
 
