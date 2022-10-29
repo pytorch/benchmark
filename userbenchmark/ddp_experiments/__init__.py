@@ -281,7 +281,7 @@ class TrainerWrapper(object):
         return FileBarrier(
             rank=rank,
             world_size=world_size,
-            sync_file=self.job_config.outer_sync_path
+            sync_file=self.job_config.outer_sync_path,
             timeout=self.timeout
         )
 
