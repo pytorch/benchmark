@@ -76,6 +76,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             gpu_peak_mem_enabled = True
         if (type(model_flops) is str and model_flops.lower() == 'dcgm') or 'flops_dcgm' in metrics_needed:
             model_analyzer.add_metric_gpu_flops()
+            model_flops='dcgm'
         if 'cpu_peak_mem' in metrics_needed:
             model_analyzer.add_metric_cpu_peak_mem()
             cpu_peak_mem_enabled = True
