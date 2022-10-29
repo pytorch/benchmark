@@ -233,6 +233,7 @@ class TrainerWrapper(object):
                 got_exit = False
                 exit_code = None
                 result = None
+                start_time = time.time()
                 while time.time() < start_time + timeout_seconds and not got_exit:
                     proc.join(timeout=5)
                     if proc.exitcode is not None:
