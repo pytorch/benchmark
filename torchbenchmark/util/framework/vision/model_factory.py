@@ -1,5 +1,6 @@
 import os
 import torch
+import torch._dynamo
 import typing
 import torch.optim as optim
 import torchvision.models as models
@@ -68,7 +69,7 @@ class TorchVisionModel(BenchmarkModel):
             else:
                 pred = self.model(data)
                 self.loss_fn(pred, target).backward()
-                self.optimizer.step()
+                torch._dynamo.disable(self.optimizer.step)()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
         if not self.dynamo and self.opt_args.cudagraph:

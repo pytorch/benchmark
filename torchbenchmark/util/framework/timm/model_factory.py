@@ -1,5 +1,6 @@
 from contextlib import suppress
 import torch
+import torch._dynamo
 import typing
 import timm
 from torchbenchmark.util.model import BenchmarkModel
@@ -63,7 +64,7 @@ class TimmModel(BenchmarkModel):
             output = output[0]
         target = self._gen_target(output.shape[0])
         self.cfg.loss(output, target).backward()
-        self.cfg.optimizer.step()
+        torch._dynamo.disable(self.cfg.optimizer.step)()
 
     def _step_eval(self):
         output = self.model(self.example_inputs)
