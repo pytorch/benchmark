@@ -7,7 +7,9 @@ import dataclasses
 import io
 import json
 import multiprocessing
+import queue
 import submitit
+import time
 from datetime import datetime, timedelta
 import sys
 import torch
@@ -182,6 +184,7 @@ class TrainerWrapper(object):
     def __init__(self, job_config: JobConfig, per_experiment_args: List[Tuple[Dict, Any, Any]]):
         self.job_config = job_config
         self.per_experiment_args = per_experiment_args
+        self.timeout = timedelta(minutes=45)
 
     # this is called within a multiprocessing.Process.
     def run_once(self, args, model_args, q):
@@ -200,6 +203,7 @@ class TrainerWrapper(object):
         result = trainer.measure()
         print(f"result {result}")
         q.put(result)
+        print(f"has been placed into the queue")
         trainer.teardown()
 
     def __call__(self):
@@ -215,12 +219,49 @@ class TrainerWrapper(object):
                 q = multiprocessing.Queue()
                 proc = multiprocessing.Process(target=self.run_once, args=(args, model_args, q))
                 proc.start()
-                proc.join()
-                print(f"exit code: {proc.exitcode} and result: {result_dict}")
-                if proc.exitcode == 0:
-                    result_dict['result'] = q.get()
+
+                timeout_seconds = (self.timeout - timedelta(minutes=3)).total_seconds()
+                start_time = time.time()
+
+                # wait in a loop because:
+                # - the queue has a limited buffer size, so we need to call q.get() before proc.join() in case the
+                #   worker process is blocking when placing into the queue.
+                # - if the worker process errors out, nothing will get put into the queue when it exits early.
+                got_result = False
+                got_exit = False
+                exit_code = None
+                result = None
+                while time.time() < start_time + timeout_seconds and not got_exit:
+                    proc.join(timeout=5)
+                    if proc.exitcode is not None:
+                        got_exit = True
+                        exit_code = proc.exitcode
+                        print(f"got exit {proc.exitcode}")
+                    else:
+                        print(f"still waiting for process to exit")
+
+                    if not got_result:
+                        try:
+                            result = q.get(timeout=5)
+                            got_result = True
+                            print("got the result!")
+                        except queue.Empty as e:
+                            print("didn't get the result, queue empty")
+                            pass
+                    else:
+                        print("(already got results)")
+
+                if not got_exit:
+                    proc.kill()
+                    proc.join(timeout=60)
+
+                proc.close()
+
+                if isinstance(result, dict) and 'latency_median' in result:
+                    result_dict['result'] = result
                 else:
                     result_dict['result'] = None
+                print(f"exit code: {exit_code} and result: {result_dict}")
                 assert 'result' in result_dict
                 # wrap in <RESULT></RESULT> so we can parse partial results in the stdout logs
                 print(f"<RESULT>{json.dumps(result_dict)}</RESULT>")
@@ -243,7 +284,12 @@ class TrainerWrapper(object):
         job_env = submitit.JobEnvironment()
         rank = job_env.global_rank
         world_size = job_env.num_tasks
-        return FileBarrier(rank=rank, world_size=world_size, sync_file=self.job_config.outer_sync_path)
+        return FileBarrier(
+            rank=rank,
+            world_size=world_size,
+            sync_file=self.job_config.outer_sync_path,
+            timeout=self.timeout,
+        )
 
     def _setup_gpu_args(self, args):
         job_env = submitit.JobEnvironment()
@@ -300,13 +346,14 @@ def main():
     # print(job.results())
 
     models = [
-        # 'torchbenchmark.models.hf_Bert.Model',
+        # 'torchbenchmark.models.resnet50.Model',
+        'torchbenchmark.models.hf_Bert.Model',
         # # 'torchbenchmark.models.hf_BertLarge.Model',
-        # 'torchbenchmark.models.hf_GPT2_large.Model',
-        # 'torchbenchmark.models.hf_T5_large.Model',
-        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        'torchbenchmark.models.hf_GPT2_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
-        # 'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
@@ -324,10 +371,10 @@ def main():
         [],  # no args = pure eager baseline
         # ["--torchdynamo", "eager"],  # runs dynamo without a backend
         # ["--torchdynamo", "aot_nvfuser"],
-        # ["--torchdynamo", "inductor"],
+        ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
-    node_list = [1]
+    node_list = [2]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
@@ -344,15 +391,16 @@ def main():
                         {"has_breaks": False, "static_graph": False}
                     ]
                     if backend_name == "eager":
-                        configs.append({"has_breaks": False, "static_graph": True})
+                        # configs.append({"has_breaks": False, "static_graph": True})
+                        pass
                     else:
                         configs.append({"has_breaks": True, "static_graph": False})
                     # for has_breaks in [True, False]:
                     for cfg in configs:
                         # copy the model args so we can add more arguments without modifying
                         # the original model_args list.
-                        has_breaks = configs["has_breaks"]
-                        static_graph = configs["static_graph"]
+                        has_breaks = cfg["has_breaks"]
+                        static_graph = cfg["static_graph"]
 
                         copied_model_args = copy.copy(model_args)
                         breakname = "withbreaks" if has_breaks else "nobreaks"

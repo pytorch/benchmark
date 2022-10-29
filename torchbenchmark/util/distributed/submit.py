@@ -78,9 +78,16 @@ def parse_args(args: List[str]=None):
     parser.add_argument(
         "--distributed",
         type=str,
-        choices=["ddp", "fsdp", "deepspeed", "none"],
+        choices=["ddp", "ddp_no_static_graph", "fsdp", "deepspeed", "none"],
         default="ddp",
         help="distributed training paradigm, by default using DDP",
+    )
+
+    parser.add_argument(
+        "--nodelist",
+        type=str,
+        default="",
+        help="List of nodes for slurm to choose from during allocation",
     )
 
     try:
@@ -160,6 +167,7 @@ def main():
         # Below are cluster dependent parameters
         slurm_partition=args.partition,
         slurm_signal_delay_s=120,
+        slurm_nodelist=args.nodelist,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)

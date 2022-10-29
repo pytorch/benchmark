@@ -1,5 +1,6 @@
 from contextlib import suppress
 import torch
+import torch._dynamo
 import typing
 import timm
 from torchbenchmark.util.model import BenchmarkModel
@@ -55,6 +56,10 @@ class TimmModel(BenchmarkModel):
             (batch_size,) + self.cfg.target_shape,
             device=self.device, dtype=torch.long).random_(self.cfg.num_classes)
 
+    @torch._dynamo.disable
+    def optimizer_step(self):
+        self.cfg.optimizer.step()
+
     def _step_train(self):
         self.cfg.optimizer.zero_grad()
         with self.amp_context():
@@ -63,7 +68,7 @@ class TimmModel(BenchmarkModel):
             output = output[0]
         target = self._gen_target(output.shape[0])
         self.cfg.loss(output, target).backward()
-        self.cfg.optimizer.step()
+        self.optimizer_step()
 
     def _step_eval(self):
         output = self.model(self.example_inputs)

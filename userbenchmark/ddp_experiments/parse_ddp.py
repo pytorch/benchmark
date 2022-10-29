@@ -16,7 +16,7 @@ def parse_partial(args):
     model_data["model"]["backend"][#nodes] = result
     where "result" can be a list of results, or "error"
     """
-    model_data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
+    model_data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict( lambda: defaultdict(list)))))
     rank_id = 0
     log_path = os.path.join(args.results_dir, f"{args.job_id}_{rank_id}_log.out")
     with open(log_path, "r") as f:
@@ -30,12 +30,13 @@ def parse_partial(args):
             backend = row["backend"]
             nodes = row["nodes"]
             has_breaks = str(row["has_breaks"])
+            static_graph = str(row["static_graph"])
             if isinstance(row["result"], dict):
                 latency = float(row["result"]["latency_median"])
-                if isinstance(model_data[model][backend][nodes][has_breaks], list):
-                    model_data[model][backend][nodes][has_breaks].append(latency)
+                if isinstance(model_data[model][backend][nodes][has_breaks][static_graph], list):
+                    model_data[model][backend][nodes][has_breaks][static_graph].append(latency)
             else:
-                model_data[model][backend][nodes][has_breaks] = "error"
+                model_data[model][backend][nodes][has_breaks][static_graph] = "error"
     return model_data
 
 def model_name(model):
@@ -64,12 +65,24 @@ def print_model_table(args, model, model_data):
     node_counts = list(node_counts)
     node_counts = sorted(node_counts)
     rows = []
-    for has_breaks in [False, True]:
-        for backend in model_data:
-            row = [f"{backend} {'w/' if has_breaks else 'wo/'}breaks", ]
+    # for has_breaks in [False, True]:
+    for backend in model_data:
+        hb_sg_dict = defaultdict(lambda: defaultdict(int))
+        for node in model_data[backend]:
+            for has_breaks in model_data[backend][node]:
+                for static_graph in model_data[backend][node][has_breaks]:
+                    hb_sg_dict[has_breaks][static_graph] = 1
+        hb_sg = []
+        for has_breaks in hb_sg_dict:
+            for static_graph in hb_sg_dict[has_breaks]:
+                hb_sg.append({"has_breaks": (has_breaks == "True"), "static_graph": (static_graph == "True")})
+        for cfg in hb_sg:
+            has_breaks = cfg["has_breaks"]
+            static_graph = cfg["static_graph"]
+            row = [f"{backend} {'w/' if has_breaks else 'wo/'}gb; {'w/' if static_graph else 'wo/'}sg", ]
             for node in node_counts:
                 if node in model_data[backend]:
-                    res = model_data[backend][node][str(has_breaks)]
+                    res = model_data[backend][node][str(has_breaks)][str(static_graph)]
                     if isinstance(res, list):
                         if len(res) > 0:
                             res = f"{median(res):.3f}"

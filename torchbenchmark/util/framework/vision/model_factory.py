@@ -1,6 +1,7 @@
 import os
 import torch
 import typing
+import torch._dynamo
 import torch.optim as optim
 import torchvision.models as models
 from torchbenchmark.util.model import BenchmarkModel
@@ -58,6 +59,10 @@ class TorchVisionModel(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
+    @torch._dynamo.disable
+    def optimizer_step(self):
+        self.optimizer.step()
+
     def train(self):
         self.optimizer.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
@@ -68,7 +73,7 @@ class TorchVisionModel(BenchmarkModel):
             else:
                 pred = self.model(data)
                 self.loss_fn(pred, target).backward()
-                self.optimizer.step()
+                self.optimizer_step()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
         if not self.dynamo and self.opt_args.cudagraph:

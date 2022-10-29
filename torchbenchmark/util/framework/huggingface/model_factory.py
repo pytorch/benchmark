@@ -2,6 +2,7 @@ import math
 import random
 import os
 import torch
+import torch._dynamo
 from torch import optim
 from torchbenchmark.util.model import BenchmarkModel
 import transformers
@@ -120,11 +121,15 @@ class HuggingFaceModel(BenchmarkModel):
     def enable_fp16_half(self):
         self.model = self.model.half()
 
+    @torch._dynamo.disable
+    def optimizer_step(self):
+        self.optimizer.step()
+
     def train(self):
         outputs = self.model(**self.example_inputs)
         loss = outputs.loss
         loss.backward()
-        self.optimizer.step()
+        self.optimizer_step()
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
