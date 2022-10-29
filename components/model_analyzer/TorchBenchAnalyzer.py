@@ -57,6 +57,8 @@ class ModelAnalyzer:
         self.cpu_monitor = None
         self.cpu_monitor_started = False
         self.cpu_records = None
+        self.cpu_record_aggregator = RecordAggregator()
+        self.cpu_metric_value = {}
 
     def add_metric_gpu_peak_mem(self):
         self.gpu_metrics.append(GPUPeakMemory)
@@ -105,23 +107,34 @@ class ModelAnalyzer:
             self.cpu_records = self.cpu_monitor.stop_recording_metrics()
         # This must be called after stop_recording_metrics
         self._destory_monitor()
-        if self.gpu_monitor:
+        if self.gpu_records:
             # insert all gpu_records into record_aggregator
             self.gpu_record_aggregator.insert_all(self.gpu_records)
+        if self.cpu_records:
+            self.cpu_record_aggregator.insert_all(self.cpu_records)
 
     
     def aggregate(self):
         """
         aggregate must be called after stop_monitor.
         """
-        records_groupby_gpu = self.gpu_record_aggregator.groupby(
-            self.gpu_metrics, lambda record: record.device_uuid())
-        
-        for gpu in self.gpus:
-            self.gpu_metric_value[gpu.device_uuid()] = {}
-        for metric_type, metric in records_groupby_gpu.items():
-            for gpu_uuid, metric_value in metric.items():
-                self.gpu_metric_value[gpu_uuid][metric_type] = metric_value
+        if self.gpu_records:
+            records_groupby_gpu = self.gpu_record_aggregator.groupby(
+                self.gpu_metrics, lambda record: record.device_uuid())
+            
+            for gpu in self.gpus:
+                self.gpu_metric_value[gpu.device_uuid()] = {}
+            for metric_type, metric in records_groupby_gpu.items():
+                for gpu_uuid, metric_value in metric.items():
+                    self.gpu_metric_value[gpu_uuid][metric_type] = metric_value
+        if self.cpu_records:
+            records_groupby_cpu = self.cpu_record_aggregator.groupby(
+                self.cpu_metrics, lambda record: record.device_uuid())
+            # detault cpu id is 0x1
+            self.cpu_metric_value[0x1] = {}
+            for metric_type, metric in records_groupby_cpu.items():
+                for cpu_uuid, metric_value in metric.items():
+                    self.cpu_metric_value[cpu_uuid][metric_type] = metric_value
     
     def set_monitoring_interval(self, attempted_interval):
         """
@@ -235,6 +248,15 @@ class ModelAnalyzer:
         gpu_uuid = next(iter(self.gpu_metric_value))
         return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
 
+    def calculate_cpu_peak_mem(self, cpu_uuid=None) -> float:
+        """
+        The function to calculate CPU peak memory usage.
+        @return : a floating number representing GB.
+        """
+        if len(self.cpu_metric_value) > 1:
+            logger.warning("There are multiple available CPUs and will only return the first one's peak memory bandwidth.")
+        cpu_uuid = next(iter(self.cpu_metric_value))
+        return self.cpu_metric_value[cpu_uuid][CPUPeakMemory].value() / 1024
 
 def check_dcgm():
     try: 
