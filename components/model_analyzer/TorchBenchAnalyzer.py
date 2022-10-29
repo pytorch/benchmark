@@ -1,5 +1,7 @@
 
 from typing import OrderedDict
+
+from .dcgm.cpu_monitor import CPUMonitor
 from .dcgm.dcgm_monitor import DCGMMonitor
 from .tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 from .tb_dcgm_types.gpu_device_factory import GPUDeviceFactory
@@ -14,6 +16,7 @@ from .tb_dcgm_types.gpu_fp32active import GPUFP32Active
 from .tb_dcgm_types.gpu_dram_active import GPUDRAMActive
 from .tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
 from .tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
+from .tb_dcgm_types.cpu_peak_memory import CPUPeakMemory
 from .tb_dcgm_types.record import RecordType
 from .tb_dcgm_types.record_aggregator import RecordAggregator
 from .tb_dcgm_types.tb_logger import set_logger, LOGGER_NAME
@@ -31,7 +34,7 @@ class ModelAnalyzer:
         set_logger()
         self.gpu_factory = GPUDeviceFactory()
         self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
-        # the metrics to be collected
+        # the cpu metrics to be collected
         # self.gpu_metrics = [GPUUtilization, GPUPowerUsage,
         #                     GPUFreeMemory, GPUPeakMemory, GPUFP32Active, GPUTensorActive, GPUDRAMActive, GPUPCIERX, GPUPCIETX]
         self.gpu_metrics = []
@@ -44,17 +47,23 @@ class ModelAnalyzer:
         #  }
         self.gpu_metric_value = {}
         self.gpu_monitor = None
-        # [ ...]
+        self.gpu_monitor_started = False
         self.gpu_records = None
         self.config = AnalayzerConfig()
         self.gpu_record_aggregator = RecordAggregator()
-        self.cpu_metrics = []
         self.export_csv_name = ''
+        # the cpu metrics to be collected. available metrics are [CPUPeakMemory, ]
+        self.cpu_metrics = []
+        self.cpu_monitor = None
+        self.cpu_monitor_started = False
+        self.cpu_records = None
 
     def add_metric_gpu_peak_mem(self):
         self.gpu_metrics.append(GPUPeakMemory)
     def add_metric_gpu_flops(self):
         self.gpu_metrics.append(GPUFP32Active)
+    def add_metric_cpu_peak_mem(self):
+        self.cpu_metrics.append(CPUPeakMemory)
 
     def set_export_csv_name(self, export_csv_name=''):
         self.export_csv_name = export_csv_name
@@ -64,22 +73,42 @@ class ModelAnalyzer:
 
     def start_monitor(self):
         try:
-            self.gpu_monitor = DCGMMonitor(
-                self.gpus, self.config.monitoring_interval, self.gpu_metrics)
-            self.gpu_monitor.start_recording_metrics()
+            if self.gpu_metrics:
+                self.gpu_monitor = DCGMMonitor(
+                    self.gpus, self.config.monitoring_interval, self.gpu_metrics)
+            if self.cpu_metrics:
+                self.cpu_monitor = CPUMonitor(self.config.monitoring_interval, self.cpu_metrics)
+            if self.gpu_metrics:
+                self.gpu_monitor.start_recording_metrics()
+                self.gpu_monitor_started = True
+            if self.cpu_metrics:
+                self.cpu_monitor.start_recording_metrics()
+                self.cpu_monitor_started = True
         except TorchBenchAnalyzerException:
             self._destory_monitor()
             raise
 
     def _destory_monitor(self):
-        self.gpu_monitor.destroy()
-        self.gpu_monitor = None
+        if self.gpu_monitor:
+            self.gpu_monitor.destroy()
+            self.gpu_monitor = None
+            self.gpu_monitor_started = False
+        if self.cpu_monitor:
+            self.cpu_monitor.destroy()
+            self.cpu_monitor = None
+            self.cpu_monitor_started = False
     
     def stop_monitor(self):
-        self.gpu_records = self.gpu_monitor.stop_recording_metrics()
+        if self.gpu_monitor:
+            self.gpu_records = self.gpu_monitor.stop_recording_metrics()
+        if self.cpu_monitor:
+            self.cpu_records = self.cpu_monitor.stop_recording_metrics()
+        # This must be called after stop_recording_metrics
         self._destory_monitor()
-        # insert all gpu_records into record_aggregator
-        self.gpu_record_aggregator.insert_all(self.gpu_records)
+        if self.gpu_monitor:
+            # insert all gpu_records into record_aggregator
+            self.gpu_record_aggregator.insert_all(self.gpu_records)
+
     
     def aggregate(self):
         """

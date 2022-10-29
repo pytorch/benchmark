@@ -62,7 +62,10 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         func()
 
     result_summary = []
-    if (type(model_flops) is str and model_flops.lower() == 'dcgm') or 'gpu_peak_mem' in metrics_needed:
+    dcgm_enabled = False
+    gpu_peak_mem_enabled = False
+    cpu_peak_mem_enabled = False
+    if (type(model_flops) is str and model_flops.lower() == 'dcgm') or metrics_needed:
         dcgm_enabled = True
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
@@ -73,10 +76,11 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
             gpu_peak_mem_enabled = True
         if (type(model_flops) is str and model_flops.lower() == 'dcgm') or 'flops_dcgm' in metrics_needed:
             model_analyzer.add_metric_gpu_flops()
+        if 'cpu_peak_mem' in metrics_needed:
+            model_analyzer.add_metric_cpu_peak_mem()
+            cpu_peak_mem_enabled = True
         model_analyzer.start_monitor()
-    else:
-        dcgm_enabled = False
-        gpu_peak_mem_enabled = False
+
     if stress:
         cur_time = time.time_ns()
         start_time = cur_time
@@ -158,6 +162,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
     if gpu_peak_mem_enabled:
         gpu_peak_mem = model_analyzer.calculate_gpu_peak_mem()
         print('{:<20} {:>20}'.format("GPU Peak Memory:", "%.4f GB" % gpu_peak_mem, sep=''))
+    
     if export_dcgm_metrics_file:
         model_analyzer.export_all_records_to_csv()
 
