@@ -1,9 +1,9 @@
 from functools import total_ordering
-from .record import Record
+from .cpu_record import CPURecord
 
 
 @total_ordering
-class CPUPeakMemory(Record):
+class CPUPeakMemory(CPURecord):
     """
     The peak memory usage in the CPU.
     """
@@ -15,12 +15,13 @@ class CPUPeakMemory(Record):
         Parameters
         ----------
         value : float
-            The value of the cpu metrtic
+            The value of the CPU metrtic
         timestamp : int
             The timestamp for the record in nanoseconds
         """
 
         super().__init__(value, timestamp)
+        
 
     @staticmethod
     def header(aggregation_tag=False):

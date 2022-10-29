@@ -62,11 +62,11 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         func()
 
     result_summary = []
-    dcgm_enabled = False
+    analyzer_enabled = False
     gpu_peak_mem_enabled = False
     cpu_peak_mem_enabled = False
     if (type(model_flops) is str and model_flops.lower() == 'dcgm') or metrics_needed:
-        dcgm_enabled = True
+        analyzer_enabled = True
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
         if export_dcgm_metrics_file:
@@ -130,7 +130,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
                 last_time = cur_time
                 last_it = _i
         _i += 1
-    if dcgm_enabled:
+    if analyzer_enabled:
         model_analyzer.stop_monitor()
 
     if args.device == "cuda":
@@ -148,12 +148,12 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
 
-    if dcgm_enabled:
+    if analyzer_enabled:
         model_analyzer.aggregate()
 
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
-        if dcgm_enabled:
+        if analyzer_enabled:
             tflops = model_analyzer.calculate_flops()
         else:
             flops, batch_size = model_flops
@@ -162,7 +162,9 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
     if gpu_peak_mem_enabled:
         gpu_peak_mem = model_analyzer.calculate_gpu_peak_mem()
         print('{:<20} {:>20}'.format("GPU Peak Memory:", "%.4f GB" % gpu_peak_mem, sep=''))
-    
+    if cpu_peak_mem_enabled:
+        cpu_peak_mem = model_analyzer.calculate_cpu_peak_mem()
+        print('{:<20} {:>20}'.format("CPU Peak Memory:", "%.4f GB" % cpu_peak_mem, sep=''))
     if export_dcgm_metrics_file:
         model_analyzer.export_all_records_to_csv()
 
@@ -248,7 +250,7 @@ if __name__ == "__main__":
     parser.add_argument("--export-dcgm-metrics", action="store_true",
                         help="Export all GPU FP32 unit active ratio records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
-    parser.add_argument("--metrics", type=str, choices=['cpu_peak_mem', 'gpu_peak_mem', 'flops_dcgm'],
+    parser.add_argument("--metrics", type=str,
                         help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops_dcgm]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
     args, extra_args = parser.parse_known_args()
 
