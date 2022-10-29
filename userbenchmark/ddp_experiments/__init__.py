@@ -256,7 +256,7 @@ class TrainerWrapper(object):
                     result_dict['result'] = result
                 else:
                     result_dict['result'] = None
-                print(f"exit code: {proc.exitcode} and result: {result_dict}")
+                print(f"exit code: {exit_code} and result: {result_dict}")
                 assert 'result' in result_dict
                 # wrap in <RESULT></RESULT> so we can parse partial results in the stdout logs
                 print(f"<RESULT>{json.dumps(result_dict)}</RESULT>")
