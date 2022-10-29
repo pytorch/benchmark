@@ -391,7 +391,7 @@ def main():
                         if has_breaks:
                             copied_model_args.append("--optimize_dynamo_ddp")
                         if "inductor" in backend_name:
-                            copied_model_args.append("--torchinductor_cudagraph False")
+                            copied_model_args.extend(["--torchinductor_cudagraph", "False"])
                         batch_size = model_batch_size[model_name]
                         args_copy = copy.deepcopy(args)
                         args_copy.model = model_name
