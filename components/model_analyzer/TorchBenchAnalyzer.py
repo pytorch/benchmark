@@ -32,8 +32,9 @@ class ModelAnalyzer:
         # For debug
         # set_logger(logging.DEBUG)
         set_logger()
-        self.gpu_factory = GPUDeviceFactory()
-        self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
+        # delay the initialization to start_monitor
+        self.gpu_factory = None
+        self.gpus = None
         # the cpu metrics to be collected
         # self.gpu_metrics = [GPUUtilization, GPUPowerUsage,
         #                     GPUFreeMemory, GPUPeakMemory, GPUFP32Active, GPUTensorActive, GPUDRAMActive, GPUPCIERX, GPUPCIETX]
@@ -76,6 +77,8 @@ class ModelAnalyzer:
     def start_monitor(self):
         try:
             if self.gpu_metrics:
+                self.gpu_factory = GPUDeviceFactory()
+                self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
                 self.gpu_monitor = DCGMMonitor(
                     self.gpus, self.config.monitoring_interval, self.gpu_metrics)
             if self.cpu_metrics:
