@@ -102,7 +102,7 @@ class DCGMMonitor(Monitor):
             structs.DCGM_OPERATION_MODE_MANUAL, frequency, 3600, 0, 0)
 
     def _monitoring_iteration(self):
-        self.group_watcher.GetMore()
+        self.group_watcher.GetAllSinceLastCall()
 
     def _collect_records(self):
         records = []
