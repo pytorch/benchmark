@@ -17,14 +17,10 @@ from . import dcgm_structs
 from . import dcgm_agent
 from . import dcgm_value as dcgmvalue
 from . import dcgm_fields_internal
-
-import time
 import ctypes
 import json
 
-# @Yueming Hao: add this warpper class to make is consistent with the latest dcgm_filed_helpers.py
-
-
+# @Yueming Hao: add this warpper class to make fieldgroupid consistent with the latest dcgm_filed_helpers.py
 class DcgmFieldGroup:
     def __init__(self, dcgm_handle, field_ids, group_name, fieldGroupId):
         self.dcgm_handle = dcgm_handle
