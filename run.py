@@ -282,7 +282,7 @@ if __name__ == "__main__":
             from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
             if check_dcgm():
                 model_flops = 'dcgm'
-    metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()]
+    metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
     if 'gpu_peak_mem' in metrics_needed:
         assert args.device == 'cuda', "gpu_peak_mem is only available for cuda device."
         from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
