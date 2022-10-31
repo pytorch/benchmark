@@ -234,7 +234,7 @@ def load_gym(env_id="CartPole-v1", seed=None, normalize_action_space=True, **_):
         env = NormalizeContinuousActionSpace(env)
     if seed is None:
         seed = random.randint(1, 100000)
-    env.seed(seed)
+    env.reset(seed=seed)
     return env
 
 
@@ -292,7 +292,7 @@ def load_atari(
     env = gym.make(game_id)
     if seed is None:
         seed = random.randint(1, 100000)
-    env.seed(seed)
+    env.reset(seed=seed)
     env = gym.wrappers.AtariPreprocessing(
         env,
         noop_max=noop_max,
