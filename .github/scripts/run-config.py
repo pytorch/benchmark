@@ -28,6 +28,7 @@ NAME_MAP = {
     "backend-blade": "disc",
     "backend-blade-trt": "blade",
     "backend-torchscript": "ofi",
+    "fuser-fuser1-jit": "nnc",
     "fuser-fuser2-jit": "nvfuser",
     "torchdynamo-eager": "dynamo-eager",
     "torchdynamo-nvfuser" : "dynamo-nvfuser",
@@ -256,6 +257,7 @@ if __name__ == "__main__":
         for bm in bmconfigs:
             # could not together because profiling results is just one model
             run_bmconfig(bm, repo_path, subrun_path, args.dryrun)
-            run_bmconfig_profiling(bm, repo_path, subrun_path, args.dryrun)
+            if "cuda" in subrun:
+                run_bmconfig_profiling(bm, repo_path, subrun_path, args.dryrun)
         if not args.dryrun:
             gen_output_csv(subrun_path, base_key=bmconfigs[0].rewritten_option)
