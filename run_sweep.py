@@ -24,21 +24,6 @@ MODEL_DIR = ['torchbenchmark', 'models']
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
 import ctypes
-
-_cudart = ctypes.CDLL('libcudart.so')
-
-def cu_prof_start():
-    ret = _cudart.cudaProfilerStart()
-    #print("cu_prof_start")
-    if ret != 0:
-        raise Exception('cudaProfilerStart() returned %d' % ret)
-
-
-def cu_prof_stop():
-    ret = _cudart.cudaProfilerStop()
-    #print("cu_prof_stop")
-    if ret != 0:
-        raise Exception('cudaProfilerStop() returned %d' % ret)
         
 def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10, is_profiling=False) -> Tuple[float, Optional[Tuple[torch.Tensor]]]:
     "Run one step of the model, and return the latency in milliseconds."
@@ -46,8 +31,22 @@ def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10, is_profi
     for _i in range(nwarmup):
         func()
     result_summary = []
+    
     if is_profiling:
         num_iter = 1
+        _cudart = ctypes.CDLL('libcudart.so')
+        def cu_prof_start():
+            ret = _cudart.cudaProfilerStart()
+            #print("cu_prof_start")
+            if ret != 0:
+                raise Exception('cudaProfilerStart() returned %d' % ret)
+
+        def cu_prof_stop():
+            ret = _cudart.cudaProfilerStop()
+            #print("cu_prof_stop")
+            if ret != 0:
+                raise Exception('cudaProfilerStop() returned %d' % ret)
+
     for _i in range(num_iter):
         if device == "cuda":
             torch.cuda.synchronize()
