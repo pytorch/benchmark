@@ -220,7 +220,9 @@ class TrainerWrapper(object):
                 proc.start()
 
                 # wait for 3 minutes less than timeout, to give some buffer time so that
-                # the barrier doesn't time out
+                # the barrier doesn't time out.
+                # 3 minutes chosen based on 3x the 60s timeout for killing & joining jobs
+                # that are timing out.
                 timeout_seconds = (self.timeout - timedelta(minutes=3)).total_seconds()
 
                 # Wait in a loop because:
@@ -235,14 +237,14 @@ class TrainerWrapper(object):
                 result = None
                 start_time = time.time()
                 while time.time() < start_time + timeout_seconds and not got_exit:
-                    proc.join(timeout=5)
+                    proc.join(timeout=1)
                     if proc.exitcode is not None:
                         got_exit = True
                         exit_code = proc.exitcode
 
                     if not got_result:
                         try:
-                            result = q.get(timeout=5)
+                            result = q.get(timeout=1)
                             got_result = True
                         except queue.Empty:
                             pass
