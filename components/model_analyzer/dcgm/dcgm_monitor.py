@@ -73,11 +73,11 @@ class DCGMMonitor(Monitor):
         # Start DCGM in the embedded mode to use the shared library
         self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmStartEmbedded(
             structs.DCGM_OPERATION_MODE_MANUAL)
-
+        group_name = "torchbench-dcgm-monitor"
         # Create DCGM monitor group
         self.group_id = dcgm_agent.dcgmGroupCreate(dcgm_handle,
                                                    structs.DCGM_GROUP_EMPTY,
-                                                   "triton-monitor")
+                                                   group_name)
         # Add the GPUs to the group
         for gpu in self._gpus:
             dcgm_agent.dcgmGroupAddDevice(dcgm_handle, self.group_id,
@@ -93,15 +93,16 @@ class DCGMMonitor(Monitor):
             raise TorchBenchAnalyzerException(
                 f'{metric} is not supported by Model Analyzer DCGM Monitor')
 
-        self.dcgm_field_group_id = dcgm_agent.dcgmFieldGroupCreate(
-            dcgm_handle, fields, 'triton-monitor')
+        dcgm_field_group_id = dcgm_agent.dcgmFieldGroupCreate(
+            dcgm_handle, fields, group_name)
+        dcgm_filed_group = dcgm_field_helpers.DcgmFieldGroup(dcgm_handle, fields, group_name,  dcgm_field_group_id)
 
         self.group_watcher = dcgm_field_helpers.DcgmFieldGroupWatcher(
-            dcgm_handle, self.group_id, self.dcgm_field_group_id.value,
+            dcgm_handle, self.group_id, dcgm_filed_group,
             structs.DCGM_OPERATION_MODE_MANUAL, frequency, 3600, 0, 0)
 
     def _monitoring_iteration(self):
-        self.group_watcher.GetMore()
+        self.group_watcher.GetAllSinceLastCall()
 
     def _collect_records(self):
         records = []
