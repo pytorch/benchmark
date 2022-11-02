@@ -1,6 +1,27 @@
 import pathlib
 import sys
-from typing import Optional, List
+import os
+import dataclasses
+import torch
+import numpy
+import time
+
+from torchbenchmark import ModelTask
+from typing import Optional, List, Dict, Any, Tuple
+
+@dataclasses.dataclass
+class ModelTestResult:
+    name: str
+    test: str
+    device: str
+    extra_args: List[str]
+    status: str
+    batch_size: Optional[int]
+    precision: str
+    results: Dict[str, Any]
+
+WORKER_TIMEOUT = 600 # seconds
+MODEL_DIR = ['torchbenchmark', 'models']
 
 def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool, batch_size: Optional[int], extra_args: List[str]) -> ModelTestResult:
     assert test == "train" or test == "eval", f"Test must be either 'train' or 'eval', but get {test}."
@@ -23,15 +44,7 @@ def _run_model_test(model_path: pathlib.Path, test: str, device: str, jit: bool,
         result.precision = task.get_model_attribute("dargs", "precision")
         if batch_size and (not result.batch_size == batch_size):
             raise ValueError(f"User specify batch size {batch_size}, but model {result.name} runs with batch size {result.batch_size}. Please report a bug.")
-        result.results["latency_ms"] = run_one_step(task.invoke, device)
-        # if NUM_BATCHES is set, update to per-batch latencies
-        num_batches = task.get_model_attribute("NUM_BATCHES")
-        if num_batches:
-            result.results["latency_ms"] = result.results["latency_ms"] / num_batches
-        # if the model provides eager eval result, save it for cosine similarity
-        correctness = task.get_model_attribute(correctness_name)
-        if correctness is not None:
-            result.results[correctness_name] = str(correctness)
+        yield task
     except NotImplementedError as e:
         status = "NotImplemented"
         error_message = str(e)

@@ -26,10 +26,8 @@ def _validate_devices(devices: str) -> List[str]:
 
 def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--models", nargs='+', default=[],
+    parser.add_argument("-c", "--config", required=True, default=[],
                         help="Specify one or more models to run. If not set, trigger a sweep-run on all models.")
-    parser.add_argument("-t", "--tests", required=True, type=_validate_tests, help="Specify tests, choice of train, or eval.")
-    parser.add_argument("-d", "--devices", required=True, type=_validate_devices, help="Specify devices, choice of cpu, or cuda.")
-    parser.add_argument("-b", "--bs", type=int, help="Specify the batch size.")
-    parser.add_argument("--jit", action='store_true', help="Turn on torchscript.")
     parser.add_argument("-o", "--output", type=str, help="The default output json file.")
+    args, unknown_args = parser.parse_known_args(args)
+    return args, unknown_args
