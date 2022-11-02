@@ -19,13 +19,18 @@ if [ -e "/usr/local/cuda" ]; then
 fi
 sudo ln -sf /usr/local/cuda-${CUDA_VERSION} /usr/local/cuda
 conda uninstall -y pytorch torchvision torchtext pytorch-cuda
+conda uninstall -y pytorch torchvision torchtext cudatoolkit
 # make sure we have a clean environment without pytorch
 pip uninstall -y torch torchvision
 
 # install magma
 conda install -y -c pytorch ${MAGMA_VERSION}
 # install pytorch and pytorch-cuda
-conda install --force-reinstall pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
+if [ $PYTORCH_CHANNEL = "pytorch" ] && [ $PYTORCH_VERSION = "1.12.1" ]; then
+  conda install pytorch=${PYTORCH_VERSION} torchvision torchaudio cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c conda-forge
+else
+  conda install --force-reinstall pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
+fi
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
 ## If torchvision is not yet available, uncomment the following and 
