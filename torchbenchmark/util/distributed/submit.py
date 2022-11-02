@@ -78,7 +78,7 @@ def parse_args(args: List[str]=None):
     parser.add_argument(
         "--distributed",
         type=str,
-        choices=["ddp", "fsdp", "deepspeed", "none"],
+        choices=["ddp", "ddp_no_static_graph", "fsdp", "deepspeed", "none"],
         default="ddp",
         help="distributed training paradigm, by default using DDP",
     )

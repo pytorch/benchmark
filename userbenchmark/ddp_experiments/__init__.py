@@ -75,7 +75,7 @@ def parse_args(args: List[str]=None):
 
     parser.add_argument(
         "--distributed",
-        default="ddp",
+        default="ddp_no_static_graph",
         type=str,
         help="the distributed runner to use"
     )
@@ -392,6 +392,8 @@ def main():
                         breakname = "withbreaks" if has_breaks else "nobreaks"
                         if has_breaks:
                             copied_model_args.append("--optimize_dynamo_ddp")
+                        if "inductor" in backend_name:
+                            copied_model_args.extend(["--torchinductor_cudagraph", "False"])
                         batch_size = model_batch_size[model_name]
                         args_copy = copy.deepcopy(args)
                         args_copy.model = model_name
