@@ -8,8 +8,14 @@ from typing import List
 import torch._dynamo as torchdynamo
 from torchbenchmark.util.model import is_staged_train_test
 
-def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+def parse_torchdynamo_args(
+    model: 'torchbenchmark.util.model.BenchmarkModel',
+    dynamo_args: List[str],
+    namespace: Optional[argparse.Namespace] = None
+) -> argparse.Namespace:
+    # pass in `namespace` arg to add to an existing argparse.Namespace object
+
+    parser = argparse.ArgumentParser(namespace=namespace)
     available_backends = torchdynamo.list_backends()
     parser.add_argument(
         "--torchdynamo", choices=available_backends, help="Specify torchdynamo backends"
