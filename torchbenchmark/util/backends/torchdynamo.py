@@ -15,7 +15,7 @@ def parse_torchdynamo_args(
 ) -> argparse.Namespace:
     # pass in `namespace` arg to add to an existing argparse.Namespace object
 
-    parser = argparse.ArgumentParser(namespace=namespace)
+    parser = argparse.ArgumentParser()
     available_backends = torchdynamo.list_backends()
     parser.add_argument(
         "--torchdynamo", choices=available_backends, help="Specify torchdynamo backends"
@@ -33,7 +33,7 @@ def parse_torchdynamo_args(
         type=distutils.util.strtobool,
         default="true",
     )
-    args, extra_args = parser.parse_known_args(dynamo_args)
+    args, extra_args = parser.parse_known_args(dynamo_args, namespace=namespace)
     return args, extra_args
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
