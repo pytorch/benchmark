@@ -4,11 +4,17 @@ Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 import argparse
 import contextlib
 import distutils.util
-from typing import List
+from typing import List, Optional
 import torch._dynamo as torchdynamo
 from torchbenchmark.util.model import is_staged_train_test
 
-def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
+def parse_torchdynamo_args(
+    model: 'torchbenchmark.util.model.BenchmarkModel',
+    dynamo_args: List[str],
+    namespace: Optional[argparse.Namespace] = None
+) -> argparse.Namespace:
+    # pass in `namespace` arg to add to an existing argparse.Namespace object
+
     parser = argparse.ArgumentParser()
     available_backends = torchdynamo.list_backends()
     parser.add_argument(
@@ -27,7 +33,7 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         type=distutils.util.strtobool,
         default="true",
     )
-    args, extra_args = parser.parse_known_args(dynamo_args)
+    args, extra_args = parser.parse_known_args(dynamo_args, namespace=namespace)
     return args, extra_args
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
