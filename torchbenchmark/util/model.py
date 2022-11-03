@@ -125,7 +125,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     else:
                         copy_model = self
                     copy_model.invoke()
-                    self.eager_model_after_one_train_iteration = copy_model.model
+                    # move copy_model.model to CPU to avoid CUDA OOM during tests on the actual model.
+                    self.eager_model_after_one_train_iteration = copy_model.model.cpu()
                 except RuntimeError:
                     warnings.warn(UserWarning("Can't copy the model. Skipping train correctness check."))
                 if opt_saved:
