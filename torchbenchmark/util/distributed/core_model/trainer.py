@@ -30,9 +30,11 @@ class Trainer():
         ]
         extra_args.extend(model_args)
 
+        batch_size = args.batch_size if hasattr(args, "batch_size") else None
+
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
-        self.benchmark: BenchmarkModel = model_class(test="train", device="cuda", batch_size=None, extra_args=extra_args)
+        self.benchmark: BenchmarkModel = model_class(test="train", device="cuda", batch_size=batch_size, extra_args=extra_args)
 
         self.rank = dist.get_rank()
 
