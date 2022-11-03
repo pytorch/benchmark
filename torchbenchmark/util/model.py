@@ -10,7 +10,7 @@ from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import check_correctness_p, is_hf_model, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
-
+import torch
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
         obj = type.__call__(cls, *args, **kwargs)
@@ -261,11 +261,17 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         import intel_extension_for_pytorch as ipex
         if self.test == "eval":
             self.model.eval()
-            self.model=ipex.optimize(self.model,inplace=True)
-            print("===================ENABLE IPEX OPTIMIZE EVAL=================")
+            if self.dargs.precision == "bf16":
+                self.model=ipex.optimize(self.model,dtype=torch.bfloat16,inplace=True)
+            if self.dargs.precision == "fp32":
+                self.model = ipex.optimize(self.model, dtype=torch.float32, inplace=False)
+            print("Running Eval with IPEX {}...".format(self.dargs.precision))
         else:
             self.model.train()
-            optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9)
-            self.model, optimizer = ipex.optimize(self.model, optimizer=optimizer)
-            print("===================ENABLE IPEX OPTIMIZE TRAIN=================")
+            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9) ##
+            if self.dargs.precision == "bf16":
+                self.model, self.optimizer = ipex.optimize(self.model, optimizer=self.optimizer,dtype=torch.bfloat16)
+            if self.dargs.precision == "fp32":
+                self.model, self.optimizer = ipex.optimize(self.model, optimizer=self.optimizer,dtype=torch.float32)       
+            print("Running Train with IPEX {}...".format(self.dargs.precision))
         return self.model
