@@ -116,7 +116,8 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
                     found = True
                     # backward typically requires higher error margin.
                     # 400 times bigger may sound too big to be useful but still better than not checking at all.
-                    if not same(param_ref.grad, param.grad, cos_similarity=cos_sim, atol=atol*40, rtol=rtol*40):
+                    # param_ref has already been copied to cpu, so move param.grad to CPU as well
+                    if not same(param_ref.grad, param.grad.cpu(), cos_similarity=cos_sim, atol=atol*40, rtol=rtol*40):
                         print(f"grad of param {name} after running with dynamo doesn't have gradient matching with eager mode")
                         return False
                     break
