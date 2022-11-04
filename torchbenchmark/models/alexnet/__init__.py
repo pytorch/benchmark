@@ -1,5 +1,6 @@
 from torchbenchmark.util.framework.vision.model_factory import TorchVisionModel
 from torchbenchmark.tasks import COMPUTER_VISION
+import torchvision.models as models
 
 class Model(TorchVisionModel):
     task = COMPUTER_VISION.CLASSIFICATION
@@ -10,4 +11,5 @@ class Model(TorchVisionModel):
 
     def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
         super().__init__(model_name="alexnet", test=test, device=device, jit=jit,
-                         batch_size=batch_size, extra_args=extra_args)
+                         batch_size=batch_size, weights=models.AlexNet_Weights.IMAGENET1K_V1,
+                         extra_args=extra_args)
