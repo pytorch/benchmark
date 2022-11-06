@@ -321,7 +321,7 @@ def main():
         gpus_per_node=args.ngpus,
         # one task per GPU
         tasks_per_node=args.ngpus,
-        cpus_per_task=10,
+        cpus_per_task=12,
         nodes=args.nodes,
         timeout_min=args.timeout,
         # Below are cluster dependent parameters
@@ -414,7 +414,7 @@ def main():
         gpus_per_node=args.ngpus,
         # one task per GPU
         tasks_per_node=args.ngpus,
-        cpus_per_task=10,
+        cpus_per_task=12,
         nodes=allocation_nodes,
         timeout_min=args.timeout,
         # Below are cluster dependent parameters
