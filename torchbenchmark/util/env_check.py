@@ -185,7 +185,8 @@ def same(a, b, cos_similarity=False, atol=1e-4, rtol=1e-4, equal_nan=False):
             assert b.is_sparse
             a = a.to_dense()
             b = b.to_dense()
-        assert isinstance(b, torch.Tensor), f"type mismatch {type(a)} {type(b)}"
+        if not isinstance(b, torch.Tensor):
+            return False
         if cos_similarity:
             # TRT will bring error loss larger than current threshold. Use cosine similarity as replacement
             a = a.flatten().to(torch.float32)
