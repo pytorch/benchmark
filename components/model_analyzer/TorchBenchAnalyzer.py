@@ -3,6 +3,7 @@ from typing import OrderedDict
 
 from .dcgm.cpu_monitor import CPUMonitor
 from .dcgm.dcgm_monitor import DCGMMonitor
+from .dcgm.nvml_monitor import NVMLMonitor
 from .tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 from .tb_dcgm_types.gpu_device_factory import GPUDeviceFactory
 from .dcgm import dcgm_fields
@@ -47,6 +48,7 @@ class ModelAnalyzer:
         #   }
         #  }
         self.gpu_metric_value = {}
+        # There are two kinds of GPU monitor: DCGMMonitor and NVMLMonitor
         self.gpu_monitor = None
         self.gpu_monitor_started = False
         self.gpu_records = None
@@ -60,6 +62,8 @@ class ModelAnalyzer:
         self.cpu_records = None
         self.cpu_record_aggregator = RecordAggregator()
         self.cpu_metric_value = {}
+        # GPU Monitor Backend
+        self.gpu_monitor_backend = 'dcgm'
 
     def add_metric_gpu_peak_mem(self):
         self.gpu_metrics.append(GPUPeakMemory)
@@ -67,7 +71,8 @@ class ModelAnalyzer:
         self.gpu_metrics.append(GPUFP32Active)
     def add_metric_cpu_peak_mem(self):
         self.cpu_metrics.append(CPUPeakMemory)
-
+    def set_gpu_monitor_backend_nvml(self):
+        self.gpu_monitor_backend = 'nvml'
     def set_export_csv_name(self, export_csv_name=''):
         self.export_csv_name = export_csv_name
         # test for correct permission
@@ -79,8 +84,12 @@ class ModelAnalyzer:
             if self.gpu_metrics:
                 self.gpu_factory = GPUDeviceFactory()
                 self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
-                self.gpu_monitor = DCGMMonitor(
-                    self.gpus, self.config.monitoring_interval, self.gpu_metrics)
+                if self.gpu_monitor_backend == 'dcgm':
+                    self.gpu_monitor = DCGMMonitor(
+                        self.gpus, self.config.monitoring_interval, self.gpu_metrics)
+                elif self.gpu_monitor_backend == 'nvml':
+                    self.gpu_monitor = NVMLMonitor(
+                        self.gpus, self.config.monitoring_interval, self.gpu_metrics)
             if self.cpu_metrics:
                 self.cpu_monitor = CPUMonitor(self.config.monitoring_interval, self.cpu_metrics)
             if self.gpu_metrics:
@@ -248,6 +257,8 @@ class ModelAnalyzer:
                 raise TorchBenchAnalyzerException("No available GPU with uuid ", gpu_uuid, " found!")
         if len(self.gpu_metric_value) > 1:
             logger.warning("There are multiple available GPUs and will only return the first one's peak memory bandwidth.")
+        if len(self.gpu_metric_value) == 0:
+            raise TorchBenchAnalyzerException("No metrics collected!")
         gpu_uuid = next(iter(self.gpu_metric_value))
         return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
 
@@ -269,5 +280,15 @@ def check_dcgm():
         temp_model_analyzer.stop_monitor()
     except DCGMError as e:
         logger.error("ERROR: DCGM init failed. ", e)
+        exit(-1)
+    return True
+
+def check_nvml():
+    try:
+        import pynvml
+        pynvml.nvmlInit()
+        pynvml.nvmlShutdown()
+    except Exception as e:
+        logger.error("ERROR: NVML init failed. ", e)
         exit(-1)
     return True

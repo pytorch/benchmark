@@ -56,7 +56,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_dcgm_metrics_file=False, stress=0, metrics_needed=[]):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_dcgm_metrics_file=False, stress=0, metrics_needed=[], metrics_gpu_backend=None):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -80,6 +80,8 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         if 'cpu_peak_mem' in metrics_needed:
             model_analyzer.add_metric_cpu_peak_mem()
             cpu_peak_mem_enabled = True
+        if metrics_gpu_backend == "nvml":
+            model_analyzer.set_gpu_monitor_backend_nvml()
         model_analyzer.start_monitor()
 
     if stress:
@@ -253,6 +255,7 @@ if __name__ == "__main__":
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
     parser.add_argument("--metrics", type=str,
                         help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops_dcgm]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
+    parser.add_argument("--metrics-gpu-backend", type=str, default="dcgm", choices=["dcgm", "nvml"], help="Specify the backend to collect GPU metrics.")
     args, extra_args = parser.parse_known_args()
 
     if args.cudastreams and not args.device == "cuda":
@@ -285,10 +288,16 @@ if __name__ == "__main__":
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
     if 'gpu_peak_mem' in metrics_needed:
         assert args.device == 'cuda', "gpu_peak_mem is only available for cuda device."
-        from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
-        if not check_dcgm():
-            print("DCGM is not installed. gpu_peak_mem is not available.")
-            exit(-1)
+        if args.metrics_gpu_backend == 'dcgm':
+            from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
+            if not check_dcgm():
+                print("DCGM initialization failed. gpu_peak_mem is not available.")
+                exit(-1)
+        elif args.metrics_gpu_backend == 'nvml':
+            from components.model_analyzer.TorchBenchAnalyzer import check_nvml
+            if not check_nvml():
+                print("NVML initialization failed. gpu_peak_mem is not available.")
+                exit(-1)
 
     if args.export_dcgm_metrics:
         if not args.flops and not args.metrics:
@@ -304,6 +313,6 @@ if __name__ == "__main__":
         run_one_step_with_cudastreams(test, 10)
     else:
         run_one_step(test, model_flops=model_flops, model=m, export_dcgm_metrics_file=export_dcgm_metrics_file,
-                     stress=args.stress, metrics_needed=metrics_needed)
+                     stress=args.stress, metrics_needed=metrics_needed, metrics_gpu_backend=args.metrics_gpu_backend)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
