@@ -91,7 +91,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.run_contexts = [
             enable_profiling_executor  # force JIT profiling executor to be enabled by default
         ]
+
         set_random_seed()
+
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # parse the args
@@ -110,6 +112,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def __post__init__(self):
         should_check_correctness = check_correctness_p(self, self.opt_args)
         if should_check_correctness:
+            print("dberard check_correctness")
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
             if isinstance(self.eager_output, Tuple):
                 self.eager_output = tuple((t.detach() if isinstance(t, torch.Tensor) else t) for t in self.eager_output)

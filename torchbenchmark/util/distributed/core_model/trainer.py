@@ -2,11 +2,14 @@ from datetime import datetime
 import os
 from pathlib import Path
 from statistics import stdev
+from typing import Optional
 
+import time
 import numpy as np
 import torch
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, schedule, tensorboard_trace_handler
+from torchbenchmark.util.env_check import set_random_seed, same
 from torchbenchmark.util.model import BenchmarkModel
 import torch.distributed as dist
 
@@ -35,6 +38,14 @@ class Trainer():
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
         self.benchmark: BenchmarkModel = model_class(test="train", device="cuda", batch_size=batch_size, extra_args=extra_args)
+
+        # options: "reference" or "test"
+        self.check_correctness_distributed : Optional[str] = args.check_correctness_distributed if hasattr(args, "check_correctness_distributed") else None
+        self.reference_data_path : Optional[str] = args.reference_data_path if hasattr(args, "reference_data_path") else None
+
+        if self.check_correctness_distributed:
+            # self.benchmark.model.eval()
+            self.DEFAULT_MEASURE_ITERATIONS = 2
 
         self.rank = dist.get_rank()
 
@@ -74,6 +85,56 @@ class Trainer():
 
     def measure(self):
         niters = self.DEFAULT_MEASURE_ITERATIONS
+
+        correctness = None
+        if self.check_correctness_distributed is not None:
+            print("Running correctness iteration")
+            set_random_seed()
+            for name, param in self.benchmark.model.named_parameters():
+                if param.requires_grad:
+                    pass
+                    # print(f"B4 first run:: {name} -> {param.sum()} ; {param.grad.sum()}")
+            self.benchmark.invoke()
+            grad_params = {}
+            if self.reference_data_path is not None:
+                print("Have reference data path, so we will do some analysis...")
+                for name, param in self.benchmark.model.named_parameters():
+                    if param.requires_grad:
+                        print(f"{name} -> {param.sum()} ; {param.grad.sum()}")
+                        grad_params[name] = param.grad
+                time.sleep(10)
+                for name, param in self.benchmark.model.named_parameters():
+                    if param.requires_grad:
+                        print(f"{name} -> {param.sum()} ; {param.grad.sum()}")
+                        grad_params[name] = param.grad
+                if self.check_correctness_distributed == "reference":
+                    with open(self.reference_data_path, 'wb') as f:
+                        torch.save(grad_params, f)
+                elif self.check_correctness_distributed == "test":
+                    with open(self.reference_data_path, 'rb') as f:
+                        ref_params = torch.load(f)
+
+                    def do_correctness_check():
+                        correctness = True
+                        for ref_name, ref_param in ref_params.items():
+                            if ref_name not in grad_params:
+                                correctness = False
+                                print(f"correctness failure: {ref_name} in reference params but not in test params")
+                            test_param = grad_params[ref_name]
+                            print(f" ;; ref {ref_name} -> {ref_param.sum()} vs {test_param.sum()}")
+                            atol = rtol = 1e-4
+                            if not same(test_param, ref_param, cos_similarity=False, atol=atol*40, rtol=rtol*40):
+                                correctness=False
+                                print(f"correctness failure: Test model differs from reference model in parameter: {ref_name}")
+
+                        for test_name, test_param in grad_params.items():
+                            if test_name not in ref_params:
+                                correctness = False
+                                print(f"correctness failure: {test_name} in reference params but not in ref params")
+                        return correctness
+                            
+                    correctness = do_correctness_check()
+
 
         ######################################
         # 1. warming up CUDACachingAllocator #
@@ -136,6 +197,7 @@ class Trainer():
         return {
             "latency_median" : median_latency,
             "latency_stdev" : stdev_latency,
+            **({"correctness": correctness} if correctness is not None else {})
         }
 
 

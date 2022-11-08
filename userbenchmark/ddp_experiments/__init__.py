@@ -123,7 +123,22 @@ def parse_args(args: List[str]=None):
         default=1,
         help="number of times to repeat the experiments",
     )
-
+    parser.add_argument(
+        "--skip_correctness",
+        action="store_true",
+        help="skip correctness checks",
+    )
+    parser.add_argument(
+        "--check_correctness_distributed",
+        action="store_true", 
+        help="do distributed correctness checks",
+    )
+    parser.add_argument(
+        "--reference_data_path",
+        type=str,
+        default=None,
+        help="Where to dump the reference data for correctness check, if applicable",
+    )
 
     try:
         if args:
@@ -176,12 +191,26 @@ class JobConfig:
     outer_sync_path: str
 
 
+@dataclasses.dataclass
+class ExperimentParams:
+    config: Dict
+    args: Any
+    model_args: Any
+    is_reference: bool
+
+
+def serialize_config(config):
+    keys = ["nodes", "model_name", "backend", "has_breaks"]
+    serialized = ""
+    return '-'.join([f"{k}_{config[k]}" for k in keys])
+
+
 class TrainerWrapper(object):
     # per_experiment_args is a list of expriments.
     # Each experiment should be a tuple of (config dict, args, model_args).
     # config: configuration data to attach to the result dict.
     # args & model_args: arguments for core_model.Trainer.
-    def __init__(self, job_config: JobConfig, per_experiment_args: List[Tuple[Dict, Any, Any]]):
+    def __init__(self, job_config: JobConfig, per_experiment_args: List[ExperimentParams]):
         self.job_config = job_config
         self.per_experiment_args = per_experiment_args
         self.timeout = timedelta(45)
@@ -210,8 +239,40 @@ class TrainerWrapper(object):
         job_env = submitit.JobEnvironment()
         barrier = self._get_barrier()
         print(f"This is node {job_env.node}")
-        for (config, args, model_args) in self.per_experiment_args:
+
+        latest_reference_file = {}
+        def ref_key(config):
+            return f"{config['model_name']}-{config['nodes']}"
+
+        output_dir = self.per_experiment_args[0].args.output_dir
+        base_ref_fname = Path(output_dir) / f"{uuid.uuid4().hex}"
+
+        for experiment_args in self.per_experiment_args:
+            config = experiment_args.config
+            args = experiment_args.args
+            model_args = experiment_args.model_args
+            is_reference = experiment_args.is_reference
             try:
+                key = ref_key(config)
+                if is_reference:
+                    args.check_correctness_distributed = "reference"
+                    if self._global_rank() == 0:
+                        args.reference_data_path = f"{base_ref_fname}-{serialize_config(config)}"
+                        latest_reference_file[key] = args.reference_data_path
+                        print(f"!! -> {latest_reference_file[key]} {key}")
+                    else:
+                        args.reference_data_path = None
+                else:
+                    print(f"!! -> {latest_reference_file[key] if key in latest_reference_file else 'key not found'} {key}")
+                    args.check_correctness_distributed = "test"
+                    if (
+                        self._global_rank() == 0 
+                        and (key in latest_reference_file and latest_reference_file[key] is not None)
+                    ):
+                        args.reference_data_path = latest_reference_file[key]
+                    else:
+                        args.reference_data_path = None
+
                 if job_env.node >= args.nodes:
                     continue
                 result_dict = {**config}
@@ -258,6 +319,7 @@ class TrainerWrapper(object):
                     result_dict['result'] = result
                 else:
                     result_dict['result'] = None
+
                 print(f"exit code: {exit_code} and result: {result_dict}")
                 assert 'result' in result_dict
                 # wrap in <RESULT></RESULT> so we can parse partial results in the stdout logs
@@ -288,12 +350,17 @@ class TrainerWrapper(object):
             timeout=self.timeout
         )
 
+    def _global_rank(self):
+        job_env = submitit.JobEnvironment()
+        return job_env.global_rank
+
     def _setup_gpu_args(self, args):
         job_env = submitit.JobEnvironment()
         args.output_dir = Path(str(args.output_dir).replace("%j", str(job_env.job_id)))
         args.gpu = job_env.local_rank
         args.rank = job_env.global_rank
         args.world_size = args.ngpus * args.nodes
+
         print(f"Process group: {args.world_size} tasks, rank: {args.rank}")
 
         os.environ["LOCAL_RANK"] = str(job_env.local_rank)
@@ -321,7 +388,7 @@ def main():
         gpus_per_node=args.ngpus,
         # one task per GPU
         tasks_per_node=args.ngpus,
-        cpus_per_task=10,
+        cpus_per_task=12,
         nodes=args.nodes,
         timeout_min=args.timeout,
         # Below are cluster dependent parameters
@@ -343,20 +410,22 @@ def main():
     # print(job.results())
 
     models = [
-        # 'torchbenchmark.models.hf_Bert.Model',
+        'torchbenchmark.models.hf_Bert.Model',
         # # 'torchbenchmark.models.hf_BertLarge.Model',
-        # 'torchbenchmark.models.hf_GPT2_large.Model',
-        # 'torchbenchmark.models.hf_T5_large.Model',
-        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        'torchbenchmark.models.hf_GPT2_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
-        # 'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
     model_batch_size = {
-        'torchbenchmark.models.hf_Bert.Model': 32,
+        # 'torchbenchmark.models.hf_Bert.Model': 32,
         'torchbenchmark.models.hf_BertLarge.Model': 16,
-        'torchbenchmark.models.hf_GPT2_large.Model': 4,
+        # 'torchbenchmark.models.hf_GPT2_large.Model': 4,
+        'torchbenchmark.models.hf_Bert.Model': 1,
+        'torchbenchmark.models.hf_GPT2_large.Model': 1,
         'torchbenchmark.models.hf_T5_large.Model': 4,
         'torchbenchmark.models.timm_vision_transformer_large.Model': 16,
         'torchbenchmark.models.hf_GPT2.Model': 24,
@@ -365,12 +434,13 @@ def main():
     }
     model_args_configs = [
         [],  # no args = pure eager baseline
+        [],
         # ["--torchdynamo", "eager"],  # runs dynamo without a backend
         # ["--torchdynamo", "aot_nvfuser"],
-        # ["--torchdynamo", "inductor"],
+        ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
-    node_list = [1]
+    node_list = [2]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
@@ -381,11 +451,18 @@ def main():
     for i in range(args.repeat):
         for nodes in node_list:
             for model_name in models:
+                seen_eager = False
                 for model_args in model_args_configs:
                     for has_breaks in [True, False]:
                         backend_name = get_backend_name(model_args)
                         if backend_name == "eager" and has_breaks:
                             continue
+                        is_reference = (backend_name == "eager")
+                        if backend_name == "eager":
+                            if seen_eager:
+                                is_reference = False
+                            else:
+                                seen_eager = True
                         # copy the model args so we can add more arguments without modifying
                         # the original model_args list.
                         copied_model_args = copy.copy(model_args)
@@ -394,6 +471,8 @@ def main():
                             copied_model_args.append("--optimize_dynamo_ddp")
                         if "inductor" in backend_name:
                             copied_model_args.extend(["--torchinductor_cudagraph", "False"])
+                        copied_model_args.append("--skip_correctness")
+
                         batch_size = model_batch_size[model_name]
                         args_copy = copy.deepcopy(args)
                         args_copy.model = model_name
@@ -401,20 +480,21 @@ def main():
                         args_copy.nodes = nodes
                         args_copy.dist_url = get_init_file(args).as_uri()
                         args_copy.output_dir = args.job_dir
+                        
                         config = {
                             "nodes": nodes,
                             "model_name": model_name,
                             "backend": backend_name,
                             "has_breaks": has_breaks,
                         }
-                        experiments.append((config, args_copy, copied_model_args))
+                        experiments.append(ExperimentParams(config, args_copy, copied_model_args, is_reference))
 
     allocation_nodes = max(node_list)
     executor.update_parameters(
         gpus_per_node=args.ngpus,
         # one task per GPU
         tasks_per_node=args.ngpus,
-        cpus_per_task=10,
+        cpus_per_task=12,
         nodes=allocation_nodes,
         timeout_min=args.timeout,
         # Below are cluster dependent parameters

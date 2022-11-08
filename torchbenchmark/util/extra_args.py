@@ -14,9 +14,12 @@ def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_a
     # if the model doesn't support correctness check (like detectron2), skip it
     if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
         return False
+    if opt_args.skip_correctness:
+        return False
     is_eval_test = model.test == "eval"
     # always check correctness with torchdynamo
     if model.dynamo:
+        # return is_eval_test
         return True
     opt_args_dict = vars(opt_args)
     for k in opt_args_dict:
@@ -86,6 +89,12 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
         default=None,
         help="Enable distributed trainer",
     )
+    parser.add_argument(
+        "--distributed_correctness_path",
+        default=None,
+        type=str,
+        help="Path to dump results to for distributed correctness checking"
+    )
     parser.add_argument("--precision", choices=["fp32", "tf32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, tf32, fp16, or amp")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     dargs, opt_args = parser.parse_known_args(extra_args)
@@ -135,6 +144,7 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
     parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
+    parser.add_argument("--skip_correctness", action="store_true", help="skip correctness check")
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"

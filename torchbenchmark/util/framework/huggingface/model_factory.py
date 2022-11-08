@@ -4,7 +4,9 @@ import os
 import torch
 import torch._dynamo
 from torch import optim
+from torchbenchmark.util.env_check import set_random_seed
 from torchbenchmark.util.model import BenchmarkModel
+import functools
 import transformers
 from transformers import AutoConfig, ReformerConfig, BertConfig
 from typing import Tuple
@@ -62,6 +64,26 @@ class HuggingFaceModel(BenchmarkModel):
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
+        @functools.lru_cache(None)
+        def patch_torch_manual_seed():
+            """Make torch manual seed deterministic. Helps with accuracy testing."""
+
+            def deterministic_torch_manual_seed(*args, **kwargs):
+                from torch._C import default_generator
+
+                seed = 1337
+                import torch.cuda
+
+                if not torch.cuda._is_in_bad_fork():
+                    torch.cuda.manual_seed_all(seed)
+                print("dberard setting manual seed")
+                return default_generator.manual_seed(seed)
+
+            torch.manual_seed = deterministic_torch_manual_seed
+
+        patch_torch_manual_seed()
+        set_random_seed()
+
         self.model = class_ctor.from_config(config).to(device)
         self.optimizer = optim.Adam(
             self.model.parameters(),
@@ -77,8 +99,14 @@ class HuggingFaceModel(BenchmarkModel):
         if test == "train":
             input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
+            print(f"(inp huggingface --> {input_ids.sum()} {decoder_ids.sum()}")
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
-            self.model.train()
+            if False:
+                print("dberard Set self.model.train()")
+                self.model.train()
+            else:
+                print("dberard Set self.model.eval()")
+                self.model.eval()
         elif test == "eval":
             # Cut the length of sentence when running on CPU, to reduce test time
             if self.device == "cpu" and self.name in cpu_input_slice:
