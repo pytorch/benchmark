@@ -17,7 +17,7 @@ from . import dcgm_fields
 from . import dcgm_field_helpers
 from . import dcgm_structs as structs
 
-import pynvml
+
 
 
 class NVMLMonitor(Monitor):
@@ -47,6 +47,7 @@ class NVMLMonitor(Monitor):
         """
 
         super().__init__(frequency, metrics)
+        import pynvml
         self._nvml = pynvml
         self._nvml.nvmlInit()
         self._metrics = metrics
@@ -75,7 +76,7 @@ class NVMLMonitor(Monitor):
                 atimestamp = time.time_ns()
                 if metric == GPUPeakMemory:
                     info = self._nvml.nvmlDeviceGetMemoryInfo(handle)
-                    # @Yueming TODO: need to update with the latest nvml API
+                    # @Yueming TODO: need to update with the nvml API version 2. Because the nvml API version 1 returns the used memory including the memory allocated by the GPU driver.
                     # used_mem = info.used
                     # reserved_mem = info.reserved
                     # self._records[gpu][metric].append((atimestamp, used_mem - reserved_mem))
