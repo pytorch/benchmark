@@ -8,7 +8,7 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.utils.data import DataLoader
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import NLP
-from datasets import load_metric
+import evaluate
 from accelerate import Accelerator
 from transformers import (
     AdamW,
@@ -193,9 +193,9 @@ class Model(E2EBenchmarkModel):
         # Steup metrics
         # Get the metric function
         if hf_args.task_name is not None:
-            self.metric = load_metric("glue", hf_args.task_name)
+            self.metric = evaluate.load("glue", hf_args.task_name)
         else:
-            self.metric = load_metric("accuracy")
+            self.metric = evaluate.load("accuracy")
         # Setup class members
         self.hf_args = hf_args
         self.is_regression = is_regression
