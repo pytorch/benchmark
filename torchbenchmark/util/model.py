@@ -96,14 +96,15 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # parse the args
         self.dargs, opt_args = parse_decoration_args(self, self.extra_args)
+        self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
+
         # if the args contain "--torchdynamo", parse torchdynamo args
         if "--torchdynamo" in opt_args:
             self.dynamo = True
             from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
-            self.opt_args, self.extra_args = parse_torchdynamo_args(self, opt_args)
+            self.opt_args, self.extra_args = parse_torchdynamo_args(self, self.extra_args, namespace=self.opt_args)
         else:
             self.dynamo = False
-            self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
 
     # Run the post processing for model acceleration
     def __post__init__(self):
