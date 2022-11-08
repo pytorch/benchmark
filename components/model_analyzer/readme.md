@@ -49,3 +49,18 @@ def work():
     tflops = model_analyzer.calculate_flops()
     print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 ```
+
+# Different GPU metrics collection backend support
+
+TorchBench Analyzer supports different GPU metrics collection backend, dcgm, nvml, and fvcore. The backend priority is dcgm > nvml > fvcore. Currently, the metrics exposed to TorchBench are [cpu_peak_mem,gpu_peak_mem,flops]. The following table shows what kind of metrics are supported by different backends.
+
+| Backend | gpu_peak_mem | flops |
+| ------- | ------------ | ----- |
+| dcgm    | Yes          | Yes   |
+| nvml    | Yes          | No    |
+| fvcore  | No           | Yes   |
+
+cpu_peak_mem is always collcted by psutil.Process. More metrics will be enabled in the future.
+
+For TorchBench, we use nvml to collect gpu_peak_mem, fvcore to collect flops, and psutil.Process to collect cpu_peak_mem by default. We didn't add fvcore to backend list. If you want to use fvcore to collect flops, you can add flop metric to metric list but ignore the backend option.
+
