@@ -4,7 +4,6 @@ from pathlib import Path
 from statistics import stdev
 from typing import Optional
 
-import time
 import numpy as np
 import torch
 from torch.cuda import Event
