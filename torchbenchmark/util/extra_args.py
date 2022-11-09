@@ -9,10 +9,16 @@ from torchbenchmark.util.backends.torch_trt import enable_torchtrt
 
 TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
 
-def check_correctness_p(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: argparse.Namespace) -> bool:
+def check_correctness_p(
+    model: 'torchbenchmark.util.model.BenchmarkModel',
+    opt_args: argparse.Namespace,
+    dargs: argparse.Namespace,
+) -> bool:
     "If correctness check should be enabled."
     # if the model doesn't support correctness check (like detectron2), skip it
     if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
+        return False
+    if dargs.skip_correctness:
         return False
     is_eval_test = model.test == "eval"
     # always check correctness with torchdynamo
@@ -88,6 +94,12 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     )
     parser.add_argument("--precision", choices=["fp32", "tf32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, tf32, fp16, or amp")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
+    parser.add_argument("--skip_correctness", action='store_true', help="Skip correctness checks")
+    parser.add_argument(
+        "--move_train_models_to_eval",
+        action='store_true',
+        help="Run model.eval() for training models, for correctness - e.g. remove dropouts",
+    )
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
         raise NotImplementedError(f"precision value: {dargs.precision}, "
