@@ -8,7 +8,7 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.utils.data import DataLoader
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import NLP
-from datasets import load_metric
+import evaluate
 from accelerate import Accelerator
 from transformers import (
     AdamW,
@@ -165,8 +165,8 @@ class Model(E2EBenchmarkModel):
         ]
         optimizer = AdamW(optimizer_grouped_parameters, lr=hf_args.learning_rate)
 
-        # Prepare everything with our `accelerator`.
-        if hf_args.distributed == "deepspeed":
+        # Prepare everything with our `accelerator` with deepspeed or non-distributed environment.
+        if hf_args.distributed == "deepspeed" or hf_args.distributed == "none":
             # deepspeed will error unless all components prepared at the same time
             model, train_dataloader, eval_dataloader, optimizer = accelerator.prepare(model, train_dataloader, eval_dataloader, optimizer)
         else:
@@ -193,9 +193,9 @@ class Model(E2EBenchmarkModel):
         # Steup metrics
         # Get the metric function
         if hf_args.task_name is not None:
-            self.metric = load_metric("glue", hf_args.task_name)
+            self.metric = evaluate.load("glue", hf_args.task_name)
         else:
-            self.metric = load_metric("accuracy")
+            self.metric = evaluate.load("accuracy")
         # Setup class members
         self.hf_args = hf_args
         self.is_regression = is_regression
@@ -258,7 +258,8 @@ class Model(E2EBenchmarkModel):
     def eval(self) -> Optional[dict]:
         self.model.eval()
         for _step, batch in enumerate(self.eval_dataloader):
-            outputs = self.model(**batch)
+            with torch.no_grad():
+                outputs = self.model(**batch)
             predictions = outputs.logits.argmax(dim=-1) if not self.is_regression else outputs.logits.squeeze()
             self.metric.add_batch(
                     predictions=self.accelerator.gather(predictions),
