@@ -124,7 +124,7 @@ def parse_args(args: List[str]=None):
         help="number of times to repeat the experiments",
     )
     parser.add_argument(
-        "--check_correctness_distributed"
+        "--check_correctness_distributed",
         action='store_true',
         help="Do distributed correctness checks. Don't expect to use the same results for performance tests."
     )
@@ -176,6 +176,7 @@ class FileBarrier:
         self.store.wait(wait_for)
 
 
+@dataclasses.dataclass
 class ExperimentParams:
     config: Dict
     args: Any  # arguments to the distributed trainer
@@ -199,7 +200,7 @@ class TrainerWrapper(object):
     # Each experiment should be a tuple of (config dict, args, model_args).
     # config: configuration data to attach to the result dict.
     # args & model_args: arguments for core_model.Trainer.
-    def __init__(self, job_config: JobConfig, per_experiment_args: List[ExperimentParams])
+    def __init__(self, job_config: JobConfig, per_experiment_args: List[ExperimentParams]):
         self.job_config = job_config
         self.per_experiment_args = per_experiment_args
         self.timeout = timedelta(45)
@@ -232,12 +233,12 @@ class TrainerWrapper(object):
         # maps all configs that are expected to have the same output/gradients to the same value.
         # i.e. we should expect that for a given model_name & number of nodes, we should get the same
         #      outputs and gradients, regardless of the backend/has_breaks/etc.
-        def ref_key(config):
+        def reference_key(config):
             return f"{config['model_name']}-{config['nodes']}"
         latest_reference_file = {}
 
-        output_dir = self.per_experient_args[0].args.output_dir
-        base_ref_fname = Path(output_dir) / uuid.uuid4().hex
+        output_dir = self.per_experiment_args[0].args.output_dir
+        base_ref_name = Path(output_dir) / uuid.uuid4().hex
 
         for experiment_args in self.per_experiment_args:
             config = experiment_args.config
@@ -421,7 +422,7 @@ def main():
         [],  # no args = pure eager baseline
         # ["--torchdynamo", "eager"],  # runs dynamo without a backend
         # ["--torchdynamo", "aot_nvfuser"],
-        # ["--torchdynamo", "inductor"],
+        ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
     node_list = [1]
@@ -453,6 +454,8 @@ def main():
                         # skip non-distributed correctness checks to avoid extra iterations which can
                         # interfere with distributed correctness checks.
                         copied_model_args.append("--skip_correctness")
+                        if args.check_correctness_distributed:
+                            copied_model_args.append("--move_train_models_to_eval")
 
                         batch_size = model_batch_size[model_name]
                         args_copy = copy.deepcopy(args)

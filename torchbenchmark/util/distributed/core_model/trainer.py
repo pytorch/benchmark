@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, schedule, tensorboard_trace_handler
+from torchbenchmark.util.env_check import same, set_random_seed
 from torchbenchmark.util.model import BenchmarkModel
 import torch.distributed as dist
 
@@ -90,17 +91,21 @@ class Trainer():
         if self.check_correctness_distributed is not None:
             self.benchmark.invoke()
             if self.global_rank == 0:
-								grad_params = {}
-								for name, param in self.benchmark.model.named_parameters():
-										if param.requires_grad:
-												grad_params[name] = param.grad.cpu()
+                time.sleep(10)
+                grad_params = {}
+                for name, param in self.benchmark.model.named_parameters():
+                    if param.requires_grad:
+                        grad_params[name + ".grad"] = param.grad.cpu()
+                        grad_params[name] = param.cpu()
+                grad_params["real_input"] = self.benchmark.real_input[0].cpu()
+                grad_params["real_output"] = self.benchmark.real_output[0].cpu()
 
-								if self.check_correctness_distributed == "reference":
-										with open(self.reference_data_path, "wb") as f:
-												torch.save(grad_params, f)
-								elif self.check_correctness_distributed == "test":
-										with open(self.reference_data_path, "rb") as f:
-												ref_params = torch.load(f)
+                if self.check_correctness_distributed == "reference":
+                    with open(self.reference_data_path, "wb") as f:
+                        torch.save(grad_params, f)
+                elif self.check_correctness_distributed == "test":
+                    with open(self.reference_data_path, "rb") as f:
+                        ref_params = torch.load(f)
 
                     def do_correctness_check():
                         correctness = True
@@ -110,9 +115,12 @@ class Trainer():
                                 print(f"correctness failure: {ref_name} in reference params but not in test params")
                             test_param = grad_params[ref_name]
                             atol = rtol = 1e-4
-                            if not same(test_param, ref_param, cos_similarity=True, atol=atol*40, rtol=rtol*40):
+                            if not same(test_param, ref_param, cos_similarity=False, atol=atol*40, rtol=rtol*40):
+                                print(test_param.sum(), "vs ", ref_param.sum())
                                 correctness=False
                                 print(f"correctness failure: Test model differs from reference model in parameter: {ref_name}")
+                            else:
+                                print(f"  correctness pass {ref_name} {test_param.sum()} vs {ref_param.sum()}")
 
                         for test_name, test_param in grad_params.items():
                             if test_name not in ref_params:
@@ -183,7 +191,7 @@ class Trainer():
         return {
             "latency_median" : median_latency,
             "latency_stdev" : stdev_latency,
-						**({"correctness": correctness} if correctness is not None else {}),
+            **({"correctness": correctness} if correctness is not None else {}),
         }
 
 
