@@ -56,6 +56,32 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
+def printResultSummaryTime(result_summary, model_flops=None, model=None, analyzer_enabled=False, model_analyzer=None):
+    if args.device == "cuda":
+        gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
+        cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
+        if hasattr(model, "NUM_BATCHES"):
+            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" %
+                  (gpu_time / model.NUM_BATCHES), sep=''))
+            print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" %
+                  (cpu_walltime / model.NUM_BATCHES), sep=''))
+        else:
+            print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
+            print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
+    else:
+        cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
+        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
+
+    # if model_flops is not None, output the TFLOPs per sec
+    if model_flops:
+        if analyzer_enabled:
+            tflops = model_analyzer.calculate_flops()
+        else:
+            flops, batch_size = model_flops
+            tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
+        print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
+
+
 def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, model=None, export_dcgm_metrics_file=False, stress=0, metrics_needed=[]):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
@@ -134,44 +160,25 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
     if analyzer_enabled:
         model_analyzer.stop_monitor()
 
-    if args.device == "cuda":
-        gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
-        cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
-        if hasattr(model, "NUM_BATCHES"):
-            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" %
-                  (gpu_time / model.NUM_BATCHES), sep=''))
-            print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" %
-                  (cpu_walltime / model.NUM_BATCHES), sep=''))
-        else:
-            print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
-            print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
-    else:
-        cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
-        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
-
     if analyzer_enabled:
         model_analyzer.aggregate()
 
-    # if model_flops is not None, output the TFLOPs per sec
-    if model_flops:
-        if analyzer_enabled:
-            tflops = model_analyzer.calculate_flops()
-        else:
-            flops, batch_size = model_flops
-            tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
-        print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
+    printResultSummaryTime(result_summary, model_flops, model, analyzer_enabled, model_analyzer)
+
     if gpu_peak_mem_enabled:
         gpu_peak_mem = model_analyzer.calculate_gpu_peak_mem()
         print('{:<20} {:>20}'.format("GPU Peak Memory:", "%.4f GB" % gpu_peak_mem, sep=''))
     if cpu_peak_mem_enabled:
         cpu_peak_mem = model_analyzer.calculate_cpu_peak_mem()
         print('{:<20} {:>20}'.format("CPU Peak Memory:", "%.4f GB" % cpu_peak_mem, sep=''))
+
     if export_dcgm_metrics_file:
         model_analyzer.export_all_records_to_csv()
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     activity_groups = []
+    result_summary = []
     device_to_activity = {'cuda': profiler.ProfilerActivity.CUDA, 'cpu': profiler.ProfilerActivity.CPU}
     if args.profile_devices:
         activity_groups = [
@@ -200,7 +207,7 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         nwarmup = 0
         eg.start()
     with profiler.profile(
-        schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1),
+        schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1, repeat=1),
         activities=activity_groups,
         record_shapes=args.profile_detailed,
         profile_memory=args.profile_detailed,
@@ -208,9 +215,17 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         with_flops=args.profile_detailed,
         on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
     ) as prof:
-        for _i in range(nwarmup + 1):
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        for i in range(nwarmup + 1):
+            t0 = time.time_ns()
+            start_event.record()
             func()
             torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
+            end_event.record()
+            t1 = time.time_ns()
+            if i >= nwarmup:
+                result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
             prof.step()
     if args.profile_eg and eg:
         eg.stop()
@@ -219,6 +234,7 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
+    printResultSummaryTime(result_summary)
 
 def _validate_devices(devices: str):
     devices_list = devices.split(",")
