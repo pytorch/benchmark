@@ -89,6 +89,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
 
     result_summary = []
     analyzer_enabled = False
+    model_analyzer = None
     gpu_peak_mem_enabled = False
     cpu_peak_mem_enabled = False
     if (type(model_flops) is str and model_flops.lower() == 'dcgm') or metrics_needed:
