@@ -56,7 +56,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def printResultSummaryTime(result_summary, model_flops=None, model=None, analyzer_enabled=False, model_analyzer=None):
+def printResultSummaryTime(result_summary, model_flops=None, model=None, model_analyzer=None):
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
@@ -74,7 +74,7 @@ def printResultSummaryTime(result_summary, model_flops=None, model=None, analyze
 
     # if model_flops is not None, output the TFLOPs per sec
     if model_flops:
-        if analyzer_enabled:
+        if model_analyzer is not None:
             tflops = model_analyzer.calculate_flops()
         else:
             flops, batch_size = model_flops
@@ -88,12 +88,10 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
         func()
 
     result_summary = []
-    analyzer_enabled = False
     model_analyzer = None
     gpu_peak_mem_enabled = False
     cpu_peak_mem_enabled = False
     if (type(model_flops) is str and model_flops.lower() == 'dcgm') or metrics_needed:
-        analyzer_enabled = True
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
         model_analyzer = ModelAnalyzer()
         if export_dcgm_metrics_file:
@@ -158,13 +156,12 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, model_flops=None, num_iter=10, mod
                 last_time = cur_time
                 last_it = _i
         _i += 1
-    if analyzer_enabled:
-        model_analyzer.stop_monitor()
 
-    if analyzer_enabled:
+    if model_analyzer is not None:
+        model_analyzer.stop_monitor()
         model_analyzer.aggregate()
 
-    printResultSummaryTime(result_summary, model_flops, model, analyzer_enabled, model_analyzer)
+    printResultSummaryTime(result_summary, model_flops, model, model_analyzer)
 
     if gpu_peak_mem_enabled:
         gpu_peak_mem = model_analyzer.calculate_gpu_peak_mem()
