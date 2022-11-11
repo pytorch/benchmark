@@ -35,14 +35,16 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         dynamo_optimizer = torchdynamo.optimize(torchdynamo.optimizations.backends.fx2trt_compiler_fp16)
     else:
         dynamo_optimizer = torchdynamo.optimize(args.torchdynamo)
-    # Setup torchinductor.config.triton.mm
-    if args.tritonmm == "triton":
+
+    if args.torchdynamo == "inductor":
         import torch._inductor as torchinductor
-        torchinductor.config.triton.mm = "triton"
-        # currently can't pass correctness with use_bmm = True
-        # torchinductor.config.triton.use_bmm = True
-    import torch._inductor as torchinductor
-    torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
+        torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
+
+        # Setup torchinductor.config.triton.mm
+        if args.tritonmm == "triton":
+            torchinductor.config.triton.mm = "triton"
+            # currently can't pass correctness with use_bmm = True
+            # torchinductor.config.triton.use_bmm = True
 
     if model.test == "train":
         if is_staged_train_test(model):
