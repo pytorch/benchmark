@@ -104,7 +104,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
             model_analyzer.set_export_csv_name(export_metrics_file)
         if 'gpu_peak_mem' in metrics_needed:
             model_analyzer.add_metric_gpu_peak_mem()
-            metrics_backend_mapping['gpu_peak_mem'] = 'dcgm' if 'dcgm' in metrics_gpu_backend else 'nvml'
+            metrics_backend_mapping['gpu_peak_mem'] = 'dcgm' if metrics_gpu_backend == 'dcgm' else 'nvml'
         if 'flops' in metrics_needed:
             if metrics_gpu_backend == 'dcgm':
                 model_analyzer.add_metric_gpu_flops()
@@ -113,12 +113,12 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
                 metrics_backend_mapping['flops'] = 'fvcore'
         if 'cpu_peak_mem' in metrics_needed:
             model_analyzer.add_metric_cpu_peak_mem()
-        if metrics_gpu_backend == "nvml":
+        if metrics_gpu_backend == "default":
             model_analyzer.set_gpu_monitor_backend_nvml()
         for metric in metrics_backend_mapping:
             print(f"Metric {metric} is collected by {metrics_backend_mapping[metric]} backend")
         if 'cpu_peak_mem' in metrics_needed:
-            print("Metric cpu_peak_mem is collected by psutil backend")
+            print("Metric cpu_peak_mem is collected by psutil.Process.")
         model_analyzer.start_monitor()
 
     if stress:
@@ -176,7 +176,6 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
         model_analyzer.aggregate()
 
     printResultSummaryTime(result_summary, metrics_needed, metrics_backend_mapping, model, model_analyzer)
-
 
     if export_metrics_file:
         model_analyzer.export_all_records_to_csv()
@@ -274,13 +273,10 @@ if __name__ == "__main__":
                         help="Export all specified metrics records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
     parser.add_argument("--metrics", type=str,
-                        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops_dcgm]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
-    parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "nvml", "default"], default="default", help="""Specify the backend [dcgm, nvml, default] to collect metrics. 
-    By default, we will use nvml to collect gpu_peak_mem, fvcore to collect flops, and psutil.Process to collect cpu_peak_mem. 
-    If you specify the backend as dcgm, we will use dcgm to collect as many metrics as it can.
-    You can check more details about the backend in components/model_analyzer/readme.md""")
+                        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
+    parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "default"], default="default", help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally, 
+    \n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  \n  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.\n  - you can specify flops by --metrics flops, and it is collected by fvcore.\nIn dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,\n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().\n  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""")
     args, extra_args = parser.parse_known_args()
-
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
         exit(-1)
@@ -301,19 +297,17 @@ if __name__ == "__main__":
         if metrics_gpu_backend == 'dcgm':
             from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
             check_dcgm()
-        elif metrics_gpu_backend == 'nvml':
+        elif 'gpu_peak_mem' in metrics_needed:
             from components.model_analyzer.TorchBenchAnalyzer import check_nvml
             check_nvml()
         if 'gpu_peak_mem' in metrics_needed or ('flops' in metrics_needed and metrics_gpu_backend == 'dcgm'):
             assert args.device == 'cuda', "gpu_peak_mem and flops:dcgm are only available for cuda device."
-        if 'flops' in metrics_needed and (metrics_gpu_backend == 'default' or metrics_gpu_backend == 'nvml'):
+        if 'flops' in metrics_needed and metrics_gpu_backend == 'default':
             assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
             m.get_flops()
-
     if args.export_metrics:
-        if not args.flops and not args.metrics:
-            print(
-                "You have to specifiy --flops dcgm or --metrics metrics_needed accompany with --export-dcgm-metrics")
+        if not args.metrics:
+            print("You have to specifiy at least one metrics to export.")
             exit(-1)
         export_metrics_file = "%s_all_metrics.csv" % args.model
     else:

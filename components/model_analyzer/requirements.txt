@@ -1,1 +1,2 @@
 numba
+nvidia-ml-py

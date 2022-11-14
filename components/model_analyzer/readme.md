@@ -62,4 +62,11 @@ TorchBench Analyzer supports different GPU metrics collection backend, dcgm, nvm
 
 cpu_peak_mem is always collcted by psutil.Process. More metrics will be enabled in the future.
 
-For TorchBench, we use nvml to collect gpu_peak_mem, fvcore to collect flops, and psutil.Process to collect cpu_peak_mem by default. We didn't add fvcore to backend list. If you want to use fvcore to collect flops, you can add flop metric to metric list but ignore the backend option.
+For TorchBench, specify the backend [dcgm, default] to collect metrics. 
+In default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally, 
+  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  
+  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.
+  - you can specify flops by --metrics flops, and it is collected by fvcore.
+In dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,
+  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().
+  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.
