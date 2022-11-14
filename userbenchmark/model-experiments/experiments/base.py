@@ -1,14 +1,18 @@
 
+from .. import TorchBenchModelArgs
 
 class TBExperimentBase:
     def __init__(self):
         pass
     
-    def get_model_iter(self):
-        pass
+    @abstractmethod
+    def get_model_config_iter(self):
+        raise NotImplementedError
 
+    @abstractmethod
     def get_runner(self):
-        pass
+        raise NotImplementedError
 
+    @abstractmethod
     def get_reducer(self):
-        pass
+        raise NotImplementedError
