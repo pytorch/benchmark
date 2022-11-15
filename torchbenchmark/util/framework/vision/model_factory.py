@@ -15,12 +15,15 @@ class TorchVisionModel(BenchmarkModel):
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
-    def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
+    def __init__(self, model_name, test, device, jit=False, batch_size=None, weights=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = False
 
-        self.model = getattr(models, model_name)(pretrained=True).to(self.device)
+        if weights is None:
+            self.model = getattr(models, model_name)(pretrained=True).to(self.device)
+        else:
+            self.model = getattr(models, model_name)(weights=weights).to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
         if test == "train":
             self.example_outputs = torch.rand_like(self.model(*self.example_inputs))

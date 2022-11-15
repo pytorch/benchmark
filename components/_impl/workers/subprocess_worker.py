@@ -51,7 +51,7 @@ class SubprocessWorker(base.WorkerBase):
     _alive: bool = False
     _bootstrap_timeout: int = 10  # seconds
 
-    def __init__(self, timeout: typing.Optional[float] = None) -> None:
+    def __init__(self, timeout: typing.Optional[float] = None, extra_env: typing.Optional[typing.Dict[str, str]]=None) -> None:
         super().__init__()
 
         # Log inputs and outputs for debugging.
@@ -106,11 +106,15 @@ class SubprocessWorker(base.WorkerBase):
                 "pass_fds": child_fds,
             }
 
+        worker_env = os.environ.copy()
+        if extra_env:
+            worker_env.update(extra_env)
         self._proc = subprocess.Popen(
             args=self.args,
             stdin=subprocess.PIPE,
             stdout=self._stdout_f,
             stderr=self._stderr_f,
+            env=worker_env,
             encoding=subprocess_rpc.ENCODING,
             bufsize=1,
             cwd=os.getcwd(),

@@ -12,8 +12,9 @@ def list_benchmarks() -> Dict[str, str]:
     import userbenchmark
     bdir = Path(userbenchmark.__file__).parent.resolve()
     fb_bdir = bdir.joinpath("fb")
-    for fb_bm in filter(lambda x: x.is_dir(), fb_bdir.iterdir()):
-        benchmarks[fb_bm.name] = f"fb.{fb_bm.name}"
+    if fb_bdir.exists():
+        for fb_bm in filter(lambda x: x.is_dir(), fb_bdir.iterdir()):
+            benchmarks[fb_bm.name] = f"fb.{fb_bm.name}"
     for bm in filter(lambda x: x.is_dir() and not x.name == "fb", bdir.iterdir()):
         benchmarks[bm.name] = bm.name
     return benchmarks
