@@ -91,6 +91,20 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.run_contexts = [
             enable_profiling_executor  # force JIT profiling executor to be enabled by default
         ]
+
+        # taken from torchdynamo benchmarks, this further controls randomness settings
+        def deterministic_torch_manual_seed(*args, **kwargs):
+            from torch._C import default_generator
+
+            seed = 1337
+            import torch.cuda
+
+            if not torch.cuda._is_in_bad_fork():
+                torch.cuda.manual_seed_all(seed)
+
+            return default_generator.manual_seed(seed)
+
+        torch.manual_seed = deterministic_torch_manual_seed
         set_random_seed()
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
@@ -107,7 +121,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     # Run the post processing for model acceleration
     def __post__init__(self):
-        should_check_correctness = check_correctness_p(self, self.opt_args)
+        should_check_correctness = check_correctness_p(self, self.opt_args, self.dargs)
         if should_check_correctness:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
             if isinstance(self.eager_output, Tuple):

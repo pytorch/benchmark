@@ -2,11 +2,13 @@ from datetime import datetime
 import os
 from pathlib import Path
 from statistics import stdev
+from typing import Optional
 
 import numpy as np
 import torch
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, schedule, tensorboard_trace_handler
+from torchbenchmark.util.env_check import same
 from torchbenchmark.util.model import BenchmarkModel
 import torch.distributed as dist
 
@@ -21,6 +23,7 @@ class Trainer():
         self.mode = mode
 
         self.local_rank = int(os.getenv("LOCAL_RANK", -1))
+        self.global_rank = int(os.getenv("RANK", -1))
         self.setup()
 
         # specify the name of the distributed trainer
@@ -35,6 +38,14 @@ class Trainer():
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
         self.benchmark: BenchmarkModel = model_class(test="train", device="cuda", batch_size=batch_size, extra_args=extra_args)
+
+        # options: "reference" or "test"
+        self.check_correctness_distributed : Optional[str] = getattr(args, "check_correctness_distributed", None)
+        self.reference_data_path : Optional[str] = getattr(args, "reference_data_path", None)
+
+        # reduce iterations to speed up the tests
+        if self.check_correctness_distributed:
+            self.DEFAULT_MEASURE_ITERATIONS = 2
 
         self.rank = dist.get_rank()
 
@@ -74,6 +85,42 @@ class Trainer():
 
     def measure(self):
         niters = self.DEFAULT_MEASURE_ITERATIONS
+
+        correctness = None
+        if self.check_correctness_distributed is not None:
+            self.benchmark.invoke()
+            if self.global_rank == 0:
+                grad_params = {}
+                for name, param in self.benchmark.model.named_parameters():
+                    if param.requires_grad:
+                        grad_params[name + ".grad"] = param.grad.cpu()
+
+                if self.check_correctness_distributed == "reference":
+                    with open(self.reference_data_path, "wb") as f:
+                        torch.save(grad_params, f)
+                elif self.check_correctness_distributed == "test":
+                    with open(self.reference_data_path, "rb") as f:
+                        ref_params = torch.load(f)
+
+                    def do_correctness_check():
+                        correctness = True
+                        for ref_name, ref_param in ref_params.items():
+                            if ref_name not in grad_params:
+                                correctness = False
+                                print(f"correctness failure: {ref_name} in reference params but not in test params")
+                            test_param = grad_params[ref_name]
+                            atol = rtol = 1e-4
+                            if not same(test_param, ref_param, cos_similarity=False, atol=atol*40, rtol=rtol*40):
+                                correctness=False
+                                print(f"correctness failure: Test model differs from reference model in parameter: {ref_name}")
+
+                        for test_name, test_param in grad_params.items():
+                            if test_name not in ref_params:
+                                correctness = False
+                                print(f"correctness failure: {test_name} in reference params but not in ref params")
+                        return correctness
+
+                    correctness = do_correctness_check()
 
         ######################################
         # 1. warming up CUDACachingAllocator #
@@ -136,6 +183,7 @@ class Trainer():
         return {
             "latency_median" : median_latency,
             "latency_stdev" : stdev_latency,
+            **({"correctness": correctness} if correctness is not None else {}),
         }
 
 

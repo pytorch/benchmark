@@ -58,3 +58,4 @@ Supported options (not-exhaustive):
 * `--trainer torchbenchmark.util.distributed.core_model.trainer.Trainer` to select the trainer (e.g. can use e2e trainer)
 * `--timeout {minutes}` to reduce/increase time slurm job timeout
 * `--partition {train|scavenge|etc}` to choose the slurm job queue
+* `--check_correctness_distributed` will perform correctness checks. The results will be dumped into the stdout log files and also the final pickled result logs. See the stdout logs from rank 0 if you want to investigate what specific logs are failing. The check is implemented in torchbenchmark/util/distributed/core_models/trainer.py.
