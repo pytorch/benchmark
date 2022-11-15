@@ -230,12 +230,13 @@ class ModelTask(base_task.TaskBase):
         self,
         model_path: str,
         timeout: Optional[float] = None,
+        extra_env: Optional[Dict[str, str]] = None,
     ) -> None:
         gc.collect()  # Make sure previous task has a chance to release the lock
         assert self._lock.acquire(blocking=False), "Failed to acquire lock."
 
         self._model_path = model_path
-        self._worker = Worker(timeout=timeout)
+        self._worker = Worker(timeout=timeout, extra_env=extra_env)
         self.worker.run("import torch")
 
         self._details: ModelDetails = ModelDetails(

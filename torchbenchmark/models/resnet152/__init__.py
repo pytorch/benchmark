@@ -8,6 +8,6 @@ class Model(TorchVisionModel):
     DEFAULT_EVAL_BSIZE = 32
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(model_name="mnasnet1_0", test=test, device=device, jit=jit,
-                         batch_size=batch_size, weights=models.MNASNet1_0_Weights.IMAGENET1K_V1,
+        super().__init__(model_name="resnet152", test=test, device=device, jit=jit,
+                         batch_size=batch_size, weights=models.ResNet152_Weights.IMAGENET1K_V1,
                          extra_args=extra_args)

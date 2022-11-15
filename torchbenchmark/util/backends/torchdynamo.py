@@ -27,6 +27,11 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         type=distutils.util.strtobool,
         default="true",
     )
+    parser.add_argument(
+        "--torchinductor_fallback_random",
+        type=distutils.util.strtobool,
+        default="false",
+    )
     args, extra_args = parser.parse_known_args(dynamo_args)
     return args, extra_args
 
@@ -35,14 +40,19 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         dynamo_optimizer = torchdynamo.optimize(torchdynamo.optimizations.backends.fx2trt_compiler_fp16)
     else:
         dynamo_optimizer = torchdynamo.optimize(args.torchdynamo)
-    # Setup torchinductor.config.triton.mm
-    if args.tritonmm == "triton":
+
+    if args.torchdynamo == "inductor":
         import torch._inductor as torchinductor
-        torchinductor.config.triton.mm = "triton"
-        # currently can't pass correctness with use_bmm = True
-        # torchinductor.config.triton.use_bmm = True
-    import torch._inductor as torchinductor
-    torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
+        torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
+
+        # Setup torchinductor.config.triton.mm
+        if args.tritonmm == "triton":
+            torchinductor.config.triton.mm = "triton"
+            # currently can't pass correctness with use_bmm = True
+            # torchinductor.config.triton.use_bmm = True
+
+        # used for correctness checks, to avoid triton rand() behaving differently from torch rand().
+        torchinductor.config.fallback_random = bool(args.torchinductor_fallback_random)
 
     if model.test == "train":
         if is_staged_train_test(model):

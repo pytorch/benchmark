@@ -455,7 +455,7 @@ def main():
                         # interfere with distributed correctness checks.
                         copied_model_args.append("--skip_correctness")
                         if args.check_correctness_distributed:
-                            copied_model_args.append("--move_train_models_to_eval")
+                            copied_model_args.extend(["--torchinductor_fallback_random", "True"])
 
                         batch_size = model_batch_size[model_name]
                         args_copy = copy.deepcopy(args)

@@ -152,8 +152,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
             apply_opt_args(self, self.opt_args, self.extra_args)
-        if self.dargs.move_train_models_to_eval:
-            self.model.eval()
         if should_check_correctness:
             # tensorrt or fp16 is known to generate less-accurate results
             # in this case, use more relaxed cosine similarity instead of torch.allclose
