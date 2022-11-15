@@ -386,46 +386,31 @@ def main():
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
 
-
-    # args.dist_url = get_init_file(args).as_uri()
-    # args.output_dir = args.job_dir
-    # job = executor.submit(TrainerWrapper(args))
-    #     # print ID of the Slurm job
-    # print(job.job_id)
-
-    # # waits for completion and returns output
-    # print(job.results())
-
     models = [
-        # 'torchbenchmark.models.hf_Bert.Model',
-        # # 'torchbenchmark.models.hf_BertLarge.Model',
-        # 'torchbenchmark.models.hf_GPT2_large.Model',
-        # 'torchbenchmark.models.hf_T5_large.Model',
-        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
-        # # 'torchbenchmark.models.hf_GPT2.Model',
-        # 'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.hf_Bert.Model',
+        'torchbenchmark.models.hf_GPT2_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
+        'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
     model_batch_size = {
         'torchbenchmark.models.hf_Bert.Model': 32,
-        'torchbenchmark.models.hf_BertLarge.Model': 16,
         'torchbenchmark.models.hf_GPT2_large.Model': 4,
         'torchbenchmark.models.hf_T5_large.Model': 4,
         'torchbenchmark.models.timm_vision_transformer_large.Model': 16,
-        'torchbenchmark.models.hf_GPT2.Model': 24,
         'torchbenchmark.models.hf_T5.Model': 12,
-        'torchbenchmark.models.resnet50.Model': 32,
+        'torchbenchmark.models.resnet50.Model': 128,
     }
     # put eager first to ensure it can be used for reference values.
+    # try --torchdynamo eager or --torchdynamo aot_eager for debugging
     model_args_configs = [
         [],  # no args = pure eager baseline
-        # ["--torchdynamo", "eager"],  # runs dynamo without a backend
-        # ["--torchdynamo", "aot_nvfuser"],
-        # ["--torchdynamo", "inductor"],
+        ["--torchdynamo", "inductor"],
     ]
-    # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
-    node_list = [1]
+    # run the 8-node version first so that all the caches get warmed up at the same time.
+    node_list = [8, 4, 2, 1]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
