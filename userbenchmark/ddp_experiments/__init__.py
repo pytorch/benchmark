@@ -454,7 +454,7 @@ def main():
                         # skip non-distributed correctness checks to avoid extra iterations which can
                         # interfere with distributed correctness checks.
                         copied_model_args.append("--skip_correctness")
-                        if args.check_correctness_distributed:
+                        if args.check_correctness_distributed and "inductor" in backend_name:
                             copied_model_args.extend(["--torchinductor_fallback_random", "True"])
 
                         batch_size = model_batch_size[model_name]
