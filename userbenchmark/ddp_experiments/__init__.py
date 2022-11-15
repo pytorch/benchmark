@@ -397,13 +397,13 @@ def main():
     # print(job.results())
 
     models = [
-        # 'torchbenchmark.models.hf_Bert.Model',
+        'torchbenchmark.models.hf_Bert.Model',
         # # 'torchbenchmark.models.hf_BertLarge.Model',
-        # 'torchbenchmark.models.hf_GPT2_large.Model',
-        # 'torchbenchmark.models.hf_T5_large.Model',
-        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        'torchbenchmark.models.hf_GPT2_large.Model',
+        'torchbenchmark.models.hf_T5_large.Model',
+        'torchbenchmark.models.timm_vision_transformer_large.Model',
         # # 'torchbenchmark.models.hf_GPT2.Model',
-        # 'torchbenchmark.models.hf_T5.Model',
+        'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
@@ -415,17 +415,17 @@ def main():
         'torchbenchmark.models.timm_vision_transformer_large.Model': 16,
         'torchbenchmark.models.hf_GPT2.Model': 24,
         'torchbenchmark.models.hf_T5.Model': 12,
-        'torchbenchmark.models.resnet50.Model': 32,
+        'torchbenchmark.models.resnet50.Model': 128,
     }
     # put eager first to ensure it can be used for reference values.
     model_args_configs = [
         [],  # no args = pure eager baseline
         # ["--torchdynamo", "eager"],  # runs dynamo without a backend
-        # ["--torchdynamo", "aot_nvfuser"],
-        # ["--torchdynamo", "inductor"],
+        # ["--torchdynamo", "aot_eager"],
+        ["--torchdynamo", "inductor"],
     ]
     # node_list = [1, 2, 4, 8, 12, 16, 20, 24]
-    node_list = [1]
+    node_list = [8, 4, 2, 1]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
