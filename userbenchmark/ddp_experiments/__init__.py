@@ -435,6 +435,8 @@ def main():
                             copied_model_args.append("--optimize_dynamo_ddp")
                         if "inductor" in backend_name:
                             copied_model_args.extend(["--torchinductor_cudagraph", "False"])
+                        if backend_name != "eager":
+                            copied_model_args.extend(["--dynamo_disable_optimizer_step", "True"])
 
                         # skip non-distributed correctness checks to avoid extra iterations which can
                         # interfere with distributed correctness checks.
