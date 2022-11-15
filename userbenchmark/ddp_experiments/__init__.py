@@ -398,22 +398,18 @@ def main():
 
     models = [
         'torchbenchmark.models.hf_Bert.Model',
-        # # 'torchbenchmark.models.hf_BertLarge.Model',
         'torchbenchmark.models.hf_GPT2_large.Model',
         'torchbenchmark.models.hf_T5_large.Model',
         'torchbenchmark.models.timm_vision_transformer_large.Model',
-        # # 'torchbenchmark.models.hf_GPT2.Model',
         'torchbenchmark.models.hf_T5.Model',
         'torchbenchmark.models.resnet50.Model',
     ]
 
     model_batch_size = {
         'torchbenchmark.models.hf_Bert.Model': 32,
-        'torchbenchmark.models.hf_BertLarge.Model': 16,
         'torchbenchmark.models.hf_GPT2_large.Model': 4,
         'torchbenchmark.models.hf_T5_large.Model': 4,
         'torchbenchmark.models.timm_vision_transformer_large.Model': 16,
-        'torchbenchmark.models.hf_GPT2.Model': 24,
         'torchbenchmark.models.hf_T5.Model': 12,
         'torchbenchmark.models.resnet50.Model': 128,
     }
