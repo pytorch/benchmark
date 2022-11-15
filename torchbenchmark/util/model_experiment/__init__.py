@@ -1,5 +1,7 @@
 """
 Utilities to run experiments across models.
+Utility functions in this file don't handle exceptions.
+They expect their callers to handle exceptions themselves.
 """
 import os
 import torch
@@ -25,12 +27,11 @@ class TorchBenchModelConfig:
 
 @dataclasses.dataclass
 class TorchBenchModelMetrics:
-    config: TorchBenchModelConfig
     precision: str
     latencies: List[float] = []
     extra_metrics: Dict[str, float] = {}
 
-def run_one_step(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10) -> List[float]:
+def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10) -> List[float]:
     "Run one step of the model, and return the latency in milliseconds."
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
