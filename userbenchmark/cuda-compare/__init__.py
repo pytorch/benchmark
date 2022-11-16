@@ -10,6 +10,12 @@ from ..utils import dump_output, get_output_dir, get_output_json, REPO_PATH
 
 BM_NAME = "cuda-compare"
 
+def install_torchbench(dryrun):
+    install_cmd = [sys.executable, "install.py"]
+    print(f"Installing torchbench: {install_cmd}")
+    if not dryrun:
+        subprocess.check_call(install_cmd, cwd=REPO_PATH)
+
 def run_benchmark(output_path, config, dryrun=False):
     benchmark_script = REPO_PATH.joinpath(".github", "scripts", "run-config.py")
     benchmark_cmd = [sys.executable, str(benchmark_script), "-c", config, "-b", str(REPO_PATH), "-o", str(output_path)]
@@ -44,6 +50,7 @@ def run(args: List[str]):
         dump_result_to_json(metrics)
         return
     work_dir = get_work_dir(get_output_dir(BM_NAME))
+    install_torchbench(args.dryrun)
     run_benchmark(work_dir, args.config, dryrun=args.dryrun)
     if not args.dryrun:
         metrics = analyze(work_dir)
