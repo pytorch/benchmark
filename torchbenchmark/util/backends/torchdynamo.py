@@ -64,13 +64,13 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
     if bool(args.dynamo_disable_optimizer_step):
         found_optimizer_step = False
         try:
-            torch._dynamo.disallow_in_graph(model.cfg.optimizer.step)
+            model.cfg.optimizer.step = torch._dynamo.disable(model.cfg.optimizer.step)
             found_optimizer_step = True
         except AttributeError:
             pass
 
         try:
-            torch._dynamo.disallow_in_graph(model.optimizer.step)
+            model.optimizer.step = torch._dynamo.disable(model.optimizer.step)
             found_optimizer_step = True
         except AttributeError:
             pass
