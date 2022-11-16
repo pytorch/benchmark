@@ -83,6 +83,13 @@ def parse_args(args: List[str]=None):
         help="distributed training paradigm, by default using DDP",
     )
 
+    parser.add_argument(
+        "--exclude",
+        type=str,
+        default="",
+        help="comma-separated list of nodes to exclude from the slurm allocation",
+    )
+
     try:
         if args:
             return parser.parse_known_args(args)
@@ -160,6 +167,7 @@ def main():
         # Below are cluster dependent parameters
         slurm_partition=args.partition,
         slurm_signal_delay_s=120,
+        slurm_exclude=args.exclude,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
