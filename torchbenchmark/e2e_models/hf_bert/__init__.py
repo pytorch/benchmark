@@ -1,6 +1,5 @@
 from accelerate.utils.dataclasses import DeepSpeedPlugin
 import torch
-import torch._dynamo
 import math
 import os
 from pathlib import Path
@@ -23,6 +22,11 @@ from transformers import (
 from typing import Optional
 from torchbenchmark.util.framework.transformers.text_classification.dataset import prep_dataset, preprocess_dataset, prep_labels
 from torchbenchmark.util.framework.transformers.text_classification.args import parse_args, parse_torchbench_args
+
+try:
+    import torch._dynamo
+except ImportError:
+    pass
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
