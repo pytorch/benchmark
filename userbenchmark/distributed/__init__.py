@@ -30,6 +30,7 @@ def run(args: List[str]):
         # Below are cluster dependent parameters
         slurm_partition=args.partition,
         slurm_signal_delay_s=120,
+        slurm_exclude=args.exclude,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
