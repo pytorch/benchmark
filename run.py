@@ -18,8 +18,9 @@ import torch
 
 WARMUP_ROUNDS = 3
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
-if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
+SUPPORT_PROFILE_LIST = ["record_shapes", "profile_memory", "with_stack", "with_flops", "with_modules"]
 
 
 def run_one_step_with_cudastreams(func, streamcount):
@@ -193,6 +194,10 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         elif args.device == 'cpu':
             activity_groups = [profiler.ProfilerActivity.CPU]
 
+    profile_opts = {}
+    for opt in SUPPORT_PROFILE_LIST:
+        profile_opts[opt] = True if args.profile_options is not None and opt in args.profile_options else False
+
     if args.profile_eg:
         from datetime import datetime
         import os
@@ -209,10 +214,11 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1, repeat=1),
         activities=activity_groups,
-        record_shapes=args.profile_detailed,
-        profile_memory=args.profile_detailed,
-        with_stack=args.profile_detailed,
-        with_flops=args.profile_detailed,
+        record_shapes=args.profile_detailed if args.profile_detailed else profile_opts["record_shapes"],
+        profile_memory=args.profile_detailed if args.profile_detailed else profile_opts["profile_memory"],
+        with_stack=args.profile_detailed if args.profile_detailed else profile_opts["with_stack"],
+        with_flops=args.profile_detailed if args.profile_detailed else profile_opts["with_flops"],
+        with_modules=args.profile_detailed if args.profile_detailed else profile_opts["with_modules"],
         on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
     ) as prof:
         start_event = torch.cuda.Event(enable_timing=True)
@@ -245,6 +251,14 @@ def _validate_devices(devices: str):
     return devices_list
 
 
+def _validate_profile_options(profile_options: str):
+    profile_options_list = profile_options.split(",")
+    for opt in profile_options_list:
+        if opt not in SUPPORT_PROFILE_LIST:
+            raise ValueError(f'Invalid profile option {opt} passed into --profile-options. Expected options: {SUPPORT_PROFILE_LIST}.')
+    return profile_options_list
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
@@ -252,11 +266,12 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--mode", choices=["eager", "jit"], default="eager", help="Which mode to run.")
     parser.add_argument("-t", "--test", choices=["eval", "train"], default="eval", help="Which test to run.")
     parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
+    parser.add_argument("--profile-options", type=_validate_profile_options, help=f"Select which profile options to enable. Valid options: {SUPPORT_PROFILE_LIST}.")
     parser.add_argument("--profile-folder", default="./logs", help="Save profiling model traces to this directory.")
     parser.add_argument("--profile-detailed", action="store_true",
-                        help="Profiling includes record_shapes, profile_memory, with_stack, and with_flops.")
+                        help=f"Enable all profile options, including {SUPPORT_PROFILE_LIST}. Overrides --profile-options.")
     parser.add_argument("--profile-devices", type=_validate_devices,
-                        help="Profiling comma separated list of activities such as cpu,cuda.")
+                        help="Profile comma separated list of activities such as cpu,cuda.")
     parser.add_argument("--profile-eg", action="store_true", help="Collect execution graph by PARAM")
     parser.add_argument("--profile-eg-folder", default="./eg_logs",
                         help="Save execution graph traces to this directory.")
