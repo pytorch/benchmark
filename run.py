@@ -78,7 +78,7 @@ def printResultSummaryTime(result_summary, metrics_needed=[], metrics_backend_ma
         if metrics_backend_mapping['flops'] == 'dcgm':
             tflops = model_analyzer.calculate_flops()
         else:
-            flops, batch_size = m.get_flops()
+            flops, batch_size = model.get_flops()
             tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
 
