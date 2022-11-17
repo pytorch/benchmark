@@ -5,8 +5,10 @@ import argparse
 import contextlib
 import distutils.util
 from typing import List
+import torch
 import torch._dynamo as torchdynamo
 from torchbenchmark.util.model import is_staged_train_test
+import warnings
 
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -32,6 +34,11 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         type=distutils.util.strtobool,
         default="false",
     )
+    parser.add_argument(
+        "--dynamo_disable_optimizer_step",
+        type=distutils.util.strtobool,
+        default="false",
+    )
     args, extra_args = parser.parse_known_args(dynamo_args)
     return args, extra_args
 
@@ -53,6 +60,23 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
 
         # used for correctness checks, to avoid triton rand() behaving differently from torch rand().
         torchinductor.config.fallback_random = bool(args.torchinductor_fallback_random)
+
+    if bool(args.dynamo_disable_optimizer_step):
+        found_optimizer_step = False
+        try:
+            model.cfg.optimizer.step = torch._dynamo.disable(model.cfg.optimizer.step)
+            found_optimizer_step = True
+        except AttributeError:
+            pass
+
+        try:
+            model.optimizer.step = torch._dynamo.disable(model.optimizer.step)
+            found_optimizer_step = True
+        except AttributeError:
+            pass
+
+        if not found_optimizer_step:
+            warnings.warn("--dynamo_disable_optimizer_step is set to True, but the optimizer could not be found on this model")
 
     if model.test == "train":
         if is_staged_train_test(model):
