@@ -243,6 +243,8 @@ class Model(E2EBenchmarkModel):
                 # auto_wrap_policy=transformer_auto_wrapper_policy,
                 device_id = torch.cuda.current_device()
             )
+        elif hf_args.distributed == "none":
+            model = accelerator.prepare(model)
 
         # Optimizer
         # Split weights in two groups, one with weight decay and the other not.
