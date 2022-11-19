@@ -10,7 +10,7 @@ from typing import Tuple
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
-    DEFAULT_EVAL_BSIZE = 255
+    DEFAULT_EVAL_BSIZE = 2
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
