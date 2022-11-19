@@ -7,8 +7,17 @@ from datetime import datetime
 from .result_analyzer import analyze
 from typing import List
 from ..utils import dump_output, get_output_dir, get_output_json, REPO_PATH
+from ...utils.cuda_utils import DEFAULT_CUDA_VERSION, CUDA_VERSION_MAP
 
 BM_NAME = "cuda-compare"
+
+def install_nightlies(dryrun):
+    default_cuda_version = CUDA_VERSION_MAP[DEFAULT_CUDA_VERSION]["pytorch_url"]
+    install_cmd = ["pip", "install", "--pre", "torch", "torchvision", "torchtext", "torchaudio",
+                    "-f", f"https://download.pytorch.org/whl/nightly/{default_cuda_version}/torch_nightly.html"]
+    print(f"Installing pytorch packages: {install_cmd}")
+    if not dryrun:
+        subprocess.check_call(install_cmd, cwd=REPO_PATH)
 
 def install_torchbench(dryrun):
     install_cmd = [sys.executable, "install.py"]
@@ -50,6 +59,7 @@ def run(args: List[str]):
         dump_result_to_json(metrics)
         return
     work_dir = get_work_dir(get_output_dir(BM_NAME))
+    install_nightlies(args.dryrun)
     install_torchbench(args.dryrun)
     run_benchmark(work_dir, args.config, dryrun=args.dryrun)
     if not args.dryrun:
