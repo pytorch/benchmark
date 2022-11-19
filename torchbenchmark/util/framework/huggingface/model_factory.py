@@ -8,6 +8,10 @@ import transformers
 from transformers import AutoConfig, ReformerConfig, BertConfig
 from typing import Tuple
 
+import torch._dynamo.config
+import logging
+# torch._dynamo.config.log_level = logging.DEBUG
+
 class_models = {
     # 'name': (train_max_length, eval_max_length, config, model)
     'hf_GPT2': (512, 1024, 'AutoConfig.from_pretrained("gpt2")', 'AutoModelForCausalLM'),

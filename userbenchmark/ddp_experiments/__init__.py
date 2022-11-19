@@ -388,11 +388,11 @@ def main():
 
     models = [
         'torchbenchmark.models.hf_Bert.Model',
-        'torchbenchmark.models.hf_GPT2_large.Model',
-        'torchbenchmark.models.hf_T5_large.Model',
-        'torchbenchmark.models.timm_vision_transformer_large.Model',
-        'torchbenchmark.models.hf_T5.Model',
-        'torchbenchmark.models.resnet50.Model',
+        # 'torchbenchmark.models.hf_GPT2_large.Model',
+        # 'torchbenchmark.models.hf_T5_large.Model',
+        # 'torchbenchmark.models.timm_vision_transformer_large.Model',
+        # 'torchbenchmark.models.hf_T5.Model',
+        # 'torchbenchmark.models.resnet50.Model',
     ]
 
     model_batch_size = {
@@ -406,11 +406,12 @@ def main():
     # put eager first to ensure it can be used for reference values.
     # try --torchdynamo eager or --torchdynamo aot_eager for debugging
     model_args_configs = [
-        [],  # no args = pure eager baseline
+        # [],  # no args = pure eager baseline
         ["--torchdynamo", "inductor"],
     ]
     # run the 8-node version first so that all the caches get warmed up at the same time.
-    node_list = [8, 4, 2, 1]
+    # node_list = [8, 4, 2, 1]
+    node_list = [1]
 
     def get_backend_name(model_args):
         if "--torchdynamo" in model_args:
