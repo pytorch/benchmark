@@ -15,7 +15,7 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        self.model = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True)
+        self.model = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True).to(self.device)
         # fake document file
         input_page = (self.batch_size * np.random.rand(600, 800, 3)).astype(np.uint8)
         self.example_inputs = [ torch.from_numpy(input_page).to(self.device) ]
