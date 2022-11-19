@@ -17,8 +17,10 @@ class Model(BenchmarkModel):
 
         self.model = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True).to(self.device)
         # fake document file
-        input_page = (self.batch_size * np.random.rand(600, 800, 3)).astype(np.uint8)
-        self.example_inputs = [ input_page ]
+        self.example_inputs = []
+        for _i in range(self.batch_size):
+            input_page = (255 * np.random.rand(600, 800, 3)).astype(np.uint8)
+            self.example_inputs.append(input_page)
         if self.test == "eval":
             self.model.eval()
 
