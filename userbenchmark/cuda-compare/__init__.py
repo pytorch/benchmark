@@ -6,8 +6,10 @@ from datetime import datetime
 
 from .result_analyzer import analyze
 from typing import List
-from ..utils import dump_output, get_output_dir, get_output_json, REPO_PATH
-from ...utils.cuda_utils import DEFAULT_CUDA_VERSION, CUDA_VERSION_MAP
+from ..utils import dump_output, get_output_dir, get_output_json, add_path, REPO_PATH
+
+with add_path(REPO_PATH):
+    from utils.cuda_utils import DEFAULT_CUDA_VERSION, CUDA_VERSION_MAP
 
 BM_NAME = "cuda-compare"
 

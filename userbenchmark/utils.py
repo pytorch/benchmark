@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import datetime
 import time
 import json
@@ -6,6 +7,19 @@ import torch
 from pathlib import Path
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
+
+class add_path():
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
 
 def get_output_json(bm_name, metrics):
     return {
