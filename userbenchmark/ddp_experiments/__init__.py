@@ -527,7 +527,7 @@ def benchmark_fsdp(args, executor):
     def get_hf_T5_large_config(nodes, model_args):
         model_path = "torchbenchmark.models.hf_T5_large.Model"
         args_copy, copied_model_args = generic_setup(nodes, model_args)
-        copied_model_args.extend(["--distributed_applier", "userbenchmark.fsdp_experiments.apply_fsdp_hf_T5_large"])
+        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.fsdp_experiments.apply_fsdp_hf_T5_large"])
 
         # assuming 8 gpus per node
         # 8 sometimes passes / sometimes fails depending on config
@@ -548,7 +548,7 @@ def benchmark_fsdp(args, executor):
     def get_timm_VIT_large_config(nodes, model_args):
         model_path = "torchbenchmark.models.timm_vision_transformer_large.Model"
         args_copy, copied_model_args = generic_setup(nodes, model_args)
-        copied_model_args.extend(["--distributed_applier", "userbenchmark.fsdp_experiments.apply_fsdp_timm_VIT_large"])
+        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.fsdp_experiments.apply_fsdp_timm_VIT_large"])
 
         # assuming 8 gpus per node
         # 4, 8: tried bs = 32, and this OOMed.
