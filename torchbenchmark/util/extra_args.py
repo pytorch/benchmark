@@ -92,6 +92,12 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
         default=None,
         help="Enable distributed trainer",
     )
+    parser.add_argument(
+        "--distributed_wrap_fn",
+        type=str,
+        default=None,
+        help="Path to function that will apply distributed wrapping fn(model, dargs.distributed)",
+    )
     parser.add_argument("--precision", choices=["fp32", "tf32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, tf32, fp16, or amp")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     parser.add_argument("--skip_correctness", action='store_true', help="Skip correctness checks")
