@@ -485,6 +485,22 @@ def apply_fsdp_hf_T5_large(model, trainer):
     print(fsdp_model, "local_rank", local_rank)
     return fsdp_model
 
+def apply_fsdp_hf_GPT2_large(model, trainer):
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
+    import functools
+    assert trainer == "fsdp"
+    local_rank = int(os.getenv("LOCAL_RANK", -1))
+    from transformers.models.gpt2.modeling_gpt2 import GPT2Block
+    fsdp_model = FSDP(
+        model,
+        auto_wrap_policy=functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(GPT2Block,)),
+        device_id = torch.cuda.current_device(),
+        use_orig_params=True,
+    )
+    print(fsdp_model, "local_rank", local_rank)
+    return fsdp_model
+
 def apply_fsdp_timm_VIT_large(model, trainer):
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
@@ -532,7 +548,28 @@ def benchmark_fsdp(args, executor):
     def get_hf_T5_large_config(nodes, model_args):
         model_path = "torchbenchmark.models.hf_T5_large.Model"
         args_copy, copied_model_args = generic_setup(nodes, model_args)
-        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.fsdp_experiments.apply_fsdp_hf_T5_large"])
+        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.ddp_experiments.apply_fsdp_hf_T5_large"])
+
+        # assuming 8 gpus per node
+        # 8 sometimes passes / sometimes fails depending on config
+        batch_size_per_nodes = {1: 6, 2: 6, 4: 6, 8: 6}
+
+        assert nodes in batch_size_per_nodes
+        args_copy.batch_size = batch_size_per_nodes[nodes]
+        args_copy.model = model_path
+
+        backend_name = get_backend_name(model_args)
+        config = {
+            "nodes": nodes,
+            "model_name": model_name,
+            "backend": backend_name,
+        }
+        return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
+
+    def get_hf_GPT2_large_config(nodes, model_args):
+        model_path = "torchbenchmark.models.hf_GPT2_large.Model"
+        args_copy, copied_model_args = generic_setup(nodes, model_args)
+        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.ddp_experiments.apply_fsdp_hf_GPT2_large"])
 
         # assuming 8 gpus per node
         # 8 sometimes passes / sometimes fails depending on config
@@ -553,7 +590,7 @@ def benchmark_fsdp(args, executor):
     def get_timm_VIT_large_config(nodes, model_args):
         model_path = "torchbenchmark.models.timm_vision_transformer_large.Model"
         args_copy, copied_model_args = generic_setup(nodes, model_args)
-        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.fsdp_experiments.apply_fsdp_timm_VIT_large"])
+        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.ddp_experiments.apply_fsdp_timm_VIT_large"])
 
         # assuming 8 gpus per node
         # 4, 8: tried bs = 32, and this OOMed.
@@ -573,6 +610,7 @@ def benchmark_fsdp(args, executor):
 
     model_configs = {
         "timm_vision_transformer_large": get_timm_VIT_large_config,
+        "hf_GPT2_large": get_hf_GPT2_large_config,
         "hf_T5_large": get_hf_T5_large_config,
     }
 
