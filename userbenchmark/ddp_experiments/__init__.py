@@ -187,7 +187,7 @@ class ExperimentParams:
 # used for labeling filenames for correctness checks
 def serialize_config(config: Dict):
     keys = ["nodes", "model_name", "backend", "has_breaks"]
-    return "-".join([f"{k}_{config[k]}" for k in keys])
+    return "-".join([f"{k}_{config[k]}" for k in keys if k in config])
 
 
 @dataclasses.dataclass
@@ -515,6 +515,8 @@ def benchmark_fsdp(args, executor):
         if backend_name != "eager":
             copied_model_args.extend(["--dynamo_disable_optimizer_step", "True"])
         copied_model_args.append("--skip_correctness")
+        if args.check_correctness_distributed and "inductor" in backend_name:
+            copied_model_args.extend(["--torchinductor_fallback_random", "True"])
 
         args_copy = copy.deepcopy(args)
 
@@ -523,6 +525,9 @@ def benchmark_fsdp(args, executor):
         args_copy.output_dir = args.job_dir
 
         return args_copy, copied_model_args
+
+    def fsdp_is_reference(backend_name):
+        return backend_name == "eager"
 
     def get_hf_T5_large_config(nodes, model_args):
         model_path = "torchbenchmark.models.hf_T5_large.Model"
@@ -543,7 +548,7 @@ def benchmark_fsdp(args, executor):
             "model_name": model_name,
             "backend": backend_name,
         }
-        return ExperimentParams(config, args_copy, copied_model_args, is_reference=False)
+        return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
 
     def get_timm_VIT_large_config(nodes, model_args):
         model_path = "torchbenchmark.models.timm_vision_transformer_large.Model"
@@ -564,7 +569,7 @@ def benchmark_fsdp(args, executor):
             "model_name": model_name,
             "backend": backend_name,
         }
-        return ExperimentParams(config, args_copy, copied_model_args, is_reference=False)
+        return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
 
     model_configs = {
         "timm_vision_transformer_large": get_timm_VIT_large_config,
