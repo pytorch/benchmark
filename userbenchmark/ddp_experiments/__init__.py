@@ -443,16 +443,7 @@ def benchmark_ddp(args, executor):
 
     allocation_nodes = max(node_list)
     executor.update_parameters(
-        gpus_per_node=args.ngpus,
-        # one task per GPU
-        tasks_per_node=args.ngpus,
-        cpus_per_task=12,
         nodes=allocation_nodes,
-        timeout_min=args.timeout,
-        # Below are cluster dependent parameters
-        slurm_partition=args.partition,
-        slurm_signal_delay_s=120,
-        slurm_exclude=args.exclude,
     )
     job_config = JobConfig(
         outer_sync_path=str(get_init_file(args))
@@ -621,16 +612,7 @@ def benchmark_fsdp(args, executor):
 
     allocation_nodes = max(node_list)
     executor.update_parameters(
-        gpus_per_node=args.ngpus,
-        # one task per GPU
-        tasks_per_node=args.ngpus,
-        cpus_per_task=12,
         nodes=allocation_nodes,
-        timeout_min=args.timeout,
-        # Below are cluster dependent parameters
-        slurm_partition=args.partition,
-        slurm_signal_delay_s=120,
-        slurm_exclude=args.exclude,
     )
     job_config = JobConfig(
         outer_sync_path=str(get_init_file(args))
