@@ -4,6 +4,7 @@ import os
 import copy
 import csv
 import dataclasses
+import functools
 import io
 import json
 import multiprocessing
@@ -16,6 +17,7 @@ import torch
 import uuid
 
 from pathlib import Path
+from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 from typing import Any, Dict, List, Optional, Tuple
 
 def output_csv(filename, headers, row):
@@ -441,16 +443,7 @@ def benchmark_ddp(args, executor):
 
     allocation_nodes = max(node_list)
     executor.update_parameters(
-        gpus_per_node=args.ngpus,
-        # one task per GPU
-        tasks_per_node=args.ngpus,
-        cpus_per_task=12,
         nodes=allocation_nodes,
-        timeout_min=args.timeout,
-        # Below are cluster dependent parameters
-        slurm_partition=args.partition,
-        slurm_signal_delay_s=120,
-        slurm_exclude=args.exclude,
     )
     job_config = JobConfig(
         outer_sync_path=str(get_init_file(args))
@@ -469,53 +462,42 @@ def benchmark_ddp(args, executor):
     print(job.results())
 
 
-def apply_fsdp_hf_T5_large(model, trainer):
+def apply_fsdp(model, trainer, auto_wrap_policy):
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-    from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
-    import functools
     assert trainer == "fsdp"
-    local_rank = int(os.getenv("LOCAL_RANK", -1))
-    from transformers.models.t5.modeling_t5 import T5Block
     fsdp_model = FSDP(
         model,
-        auto_wrap_policy=functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(T5Block,)),
-        device_id = torch.cuda.current_device(),
+        auto_wrap_policy=auto_wrap_policy,
+        device_id=torch.cuda.current_device(),
         use_orig_params=True,
     )
-    print(fsdp_model, "local_rank", local_rank)
     return fsdp_model
+
+
+
+def apply_fsdp_hf_T5_large(model, trainer):
+    from transformers.models.t5.modeling_t5 import T5Block
+    return apply_fsdp(
+        model,
+        trainer,
+        functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(T5Block,)),
+    )
 
 def apply_fsdp_hf_GPT2_large(model, trainer):
-    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-    from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
-    import functools
-    assert trainer == "fsdp"
-    local_rank = int(os.getenv("LOCAL_RANK", -1))
     from transformers.models.gpt2.modeling_gpt2 import GPT2Block
-    fsdp_model = FSDP(
+    return apply_fsdp(
         model,
-        auto_wrap_policy=functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(GPT2Block,)),
-        device_id = torch.cuda.current_device(),
-        use_orig_params=True,
+        trainer,
+        functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(GPT2Block,)),
     )
-    print(fsdp_model, "local_rank", local_rank)
-    return fsdp_model
 
 def apply_fsdp_timm_VIT_large(model, trainer):
-    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-    from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
-    import functools
     from timm.models.vision_transformer import Block
-    assert trainer == "fsdp"
-    local_rank = int(os.getenv("LOCAL_RANK", -1))
-    fsdp_model = FSDP(
+    return apply_fsdp(
         model,
-        auto_wrap_policy=functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(Block,)),
-        device_id = torch.cuda.current_device(),
-        use_orig_params=True,
+        trainer,
+        functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(Block,)),
     )
-    print(fsdp_model, "local_rank", local_rank)
-    return fsdp_model
 
 def benchmark_fsdp(args, executor):
     def get_backend_name(model_args):
@@ -630,16 +612,7 @@ def benchmark_fsdp(args, executor):
 
     allocation_nodes = max(node_list)
     executor.update_parameters(
-        gpus_per_node=args.ngpus,
-        # one task per GPU
-        tasks_per_node=args.ngpus,
-        cpus_per_task=12,
         nodes=allocation_nodes,
-        timeout_min=args.timeout,
-        # Below are cluster dependent parameters
-        slurm_partition=args.partition,
-        slurm_signal_delay_s=120,
-        slurm_exclude=args.exclude,
     )
     job_config = JobConfig(
         outer_sync_path=str(get_init_file(args))
