@@ -330,7 +330,7 @@ class Model(E2EBenchmarkModel):
             for step, batch in enumerate(self.train_dataloader):
                 loss = self.run_forward(batch)
                 loss = loss / self.hf_args.gradient_accumulation_steps
-                self.accelerator.backward(loss)
+                self.run_backward(loss)
                 if step % self.hf_args.gradient_accumulation_steps == 0 or step == len(self.train_dataloader) - 1:
                     self.run_optimizer_step()
                     completed_steps += 1
