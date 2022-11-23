@@ -125,12 +125,14 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 128
     DEFAULT_EVAL_BSIZE = 128
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+    def __init__(self, test, device, jit=False, batch_size=DEFAULT_TRAIN_BSIZE, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
         self.model = ResNetModel()
         self.model.to(device)
-        self.example_inputs = torch.rand((1, 3, 32, 32), dtype=torch.float32, device=self.device)
+        self.example_inputs = (
+            torch.randn((self.batch_size, 3, 32, 32), device=self.device),
+        )
         self.example_target = torch.randint(0, 10, (self.batch_size,), device=self.device)
         dataset = data.TensorDataset(self.example_inputs[0], self.example_target)
         dummy_loader = data.DataLoader(dataset, batch_size=self.batch_size)
@@ -141,10 +143,10 @@ class Model(BenchmarkModel):
 
 
     def get_module(self):
-        return self.model, self.example_input
+        return self.model, self.example_inputs
     def train(self):
         model = self.model
-        (images, ) = self.example_input
+        (images, ) = self.example_inputs
         model.train()
         targets = self.example_target
         output = model(images)
@@ -155,7 +157,7 @@ class Model(BenchmarkModel):
     
     def eval(self):
         model = self.model
-        (images, ) = self.example_input
+        (images, ) = self.example_inputs
         model.eval()
         with torch.no_grad():
             out=model(images)
