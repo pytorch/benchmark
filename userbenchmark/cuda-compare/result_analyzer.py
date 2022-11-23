@@ -34,7 +34,8 @@ def add_test_results(runs, result_metrics, base_cuda_version):
                 base_test = list(filter(lambda x: x['name'] == test['name'] and x['test'] == test['test'], base_run['result']))[0]
                 result_metrics[test_name] = base_test['results']['latency_ms'] / test['results']['latency_ms']
             else:
-                result_metrics[test_name] = test['status']
+                # status has error
+                result_metrics[test_name] = "-1.0"
     return result_metrics
 
 def analyze(result_dir):
