@@ -1,7 +1,9 @@
+"""
+https://github.com/phlippe/uvadlc_notebooks_benchmarking/blob/main/PyTorch/Tutorial5_Inception_ResNet_DenseNet.py
+"""
 from types import SimpleNamespace
 from torchbenchmark.tasks import COMPUTER_VISION
 from torchbenchmark.util.model import BenchmarkModel
-import torchvision.models as models
 import torch.nn as nn
 import torch
 import torch.optim as optim
@@ -139,11 +141,9 @@ class Model(BenchmarkModel):
         self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4)
         self.criterion = nn.CrossEntropyLoss()
 
-
-
-
     def get_module(self):
         return self.model, self.example_inputs
+
     def train(self):
         model = self.model
         (images, ) = self.example_inputs
@@ -162,6 +162,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             out=model(images)
         return (out,)
-
-
-    
