@@ -34,7 +34,10 @@ NAME_MAP = {
     "torchdynamo-nvfuser" : "dynamo-nvfuser",
     "torchdynamo-blade_optimize_dynamo": "dynamo-disc",
     "torchdynamo-blade_optimize_dynamo-trt": "dynamo-blade",
-    "torchdynamo-cudagraphs": "dynamo-cudagraphs"
+    "torchdynamo-cudagraphs": "dynamo-cudagraphs",
+    "torchdynamo-onnxrt_cpu": "dynamo-onnxrt_cpu",
+    "torchdynamo-ipex": "dynamo-ipex",
+    "torchdynamo-ofi": "dynamo-ofi"
 }
 @dataclass
 class BenchmarkModelConfig:

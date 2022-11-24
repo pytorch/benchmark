@@ -17,8 +17,10 @@ args:
   # script based
   - "--backend blade"
   - "--backend torchscript" # ofi
-  - "--fuser fuser1 --jit" # nnc fuser
 
   # # torchdynamo based
   - "--torchdynamo eager"
   - "--torchdynamo blade_optimize_dynamo"
+  - "--torchdynamo onnxrt_cpu"
+  - "--torchdynamo ipex"
+  - "--torchdynamo ofi"
