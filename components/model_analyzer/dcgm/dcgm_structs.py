@@ -83,8 +83,8 @@ DCGM_ST_NO_DATA                     = -14  # No data is available
 DCGM_ST_STALE_DATA                  = -15
 DCGM_ST_NOT_WATCHED                 = -16  # The given field is not being updated by the cache manager
 DCGM_ST_NO_PERMISSION               = -17  # We are not permissioned to perform the desired action
-DCGM_ST_GPU_IS_LOST                 = -18  # GPU is no longer reachable 
-DCGM_ST_RESET_REQUIRED              = -19  # GPU requires a reset 
+DCGM_ST_GPU_IS_LOST                 = -18  # GPU is no longer reachable
+DCGM_ST_RESET_REQUIRED              = -19  # GPU requires a reset
 DCGM_ST_FUNCTION_NOT_FOUND          = -20  # Unable to find function
 DCGM_ST_CONNECTION_NOT_VALID        = -21  # Connection to the host engine is not valid any longer
 DCGM_ST_GPU_NOT_SUPPORTED           = -22  # This GPU is not supported by DCGM
@@ -283,7 +283,7 @@ class DCGMError(Exception):
         # Ensure we catch all exceptions, otherwise the error code will be hidden in a traceback
         except BaseException:
             msg = "DCGM Error with code %d" % self.value
-        
+
         if self.info is not None:
             if msg[-1] == ".":
                 msg = msg[:-1]
@@ -299,9 +299,9 @@ class DCGMError(Exception):
     def SetAdditionalInfo(self, msg):
         """
         Sets msg as additional information returned by the string representation of DCGMError and subclasses.
-        Example output for DCGMError_Uninitialized subclass, with msg set to 'more info msg here' is 
+        Example output for DCGMError_Uninitialized subclass, with msg set to 'more info msg here' is
         "DCGMError_Uninitialized: Object is in an undefined state: 'more info msg here'".
-        
+
         Ensure that msg is a string or an object for which the __str__() method does not throw an error
         """
         self.info = msg
@@ -529,7 +529,7 @@ def _dcgmGetFunctionPointer(name):
 
     if name in _dcgmGetFunctionPointer_cache:
         return _dcgmGetFunctionPointer_cache[name]
-    
+
     libLoadLock.acquire()
     try:
         # ensure library was loaded
@@ -578,7 +578,7 @@ def _LoadDcgmLibrary(libDcgmPath=None):
                                 lib_file = '/usr/lib64/libdcgm.so.3'
 
                     dcgmLib = CDLL(lib_file)
-                        
+
                 except OSError as ose:
                     _dcgmCheckReturn(DCGM_ST_LIBRARY_NOT_FOUND)
                 if dcgmLib is None:
@@ -704,7 +704,7 @@ DcgmMigProfileComputeInstanceSlice1 = 30 # compute instance slice 1
 DcgmMigProfileComputeInstanceSlice2 = 31 # compute instance slice 2
 DcgmMigProfileComputeInstanceSlice3 = 32 # compute instance slice 3
 DcgmMigProfileComputeInstanceSlice4 = 33 # compute instance slice 4
-DcgmMigProfileComputeInstanceSlice7 = 34 # compute instance slice 7 
+DcgmMigProfileComputeInstanceSlice7 = 34 # compute instance slice 7
 DcgmMigProfileComputeInstanceSlice8 = 35 # compute instance slice 8
 
 # /**
@@ -777,7 +777,7 @@ c_dcgmDeleteMigEntity_version1 = make_dcgm_version(c_dcgmDeleteMigEntity_v1, 1)
 # /**
 #  * Enum values for the kinds of MIG creations
 #  */
-DcgmMigCreateGpuInstance      = 0  # Create a GPU instance 
+DcgmMigCreateGpuInstance      = 0  # Create a GPU instance
 DcgmMigCreateComputeInstance  = 1  # Create a compute instance
 
 class c_dcgmCreateMigEntity_v1(_PrintableStructure):
@@ -828,17 +828,17 @@ class c_dcgmDevicePidAccountingStats_v1(_PrintableStructure):
 # /**
 #  * Represents thermal information
 #  */
-class  c_dcgmDeviceThermals_v1(_PrintableStructure): 
+class  c_dcgmDeviceThermals_v1(_PrintableStructure):
     _fields_ = [
         ('version', c_uint),
         ('slowdownTemp', c_uint),
-        ('shutdownTemp', c_uint) 
+        ('shutdownTemp', c_uint)
     ]
 
 # /**
 #  * Represents various power limits
 #  */
-class  c_dcgmDevicePowerLimits_v1(_PrintableStructure): 
+class  c_dcgmDevicePowerLimits_v1(_PrintableStructure):
     _fields_ = [
         ('version', c_uint),
         ('curPowerLimit', c_uint),
@@ -870,7 +870,7 @@ class c_dcgmDeviceIdentifiers_v1(_PrintableStructure):
 # /**
 #  * Represents memory utilization
 #  */
-class  c_dcgmDeviceMemoryUsage_v1(_PrintableStructure): 
+class  c_dcgmDeviceMemoryUsage_v1(_PrintableStructure):
     _fields_ = [
         ('version', c_uint),
         ('bar1Total', c_uint),
@@ -1384,7 +1384,7 @@ class c_dcgmPolicyConditionPci_t(_PrintableStructure):
         ("timestamp", c_longlong),  # timestamp of the error
         ("counter", c_uint)         # value of the PCIe replay counter
     ]
-    
+
 class c_dcgmPolicyConditionDbe_t(_PrintableStructure):
     LOCATIONS = {
         'L1': 0,
@@ -1393,18 +1393,18 @@ class c_dcgmPolicyConditionDbe_t(_PrintableStructure):
         'REGISTER': 3,
         'TEXTURE': 4
     }
-    
+
     _fields_ = [
-        ("timestamp", c_longlong),  # timestamp of the error 
+        ("timestamp", c_longlong),  # timestamp of the error
         ("location", c_int),        # location of the error (one of self.LOCATIONS)
-        ("numerrors", c_uint)       # number of errors       
+        ("numerrors", c_uint)       # number of errors
     ]
-    
+
 class c_dcgmPolicyConditionMpr_t(_PrintableStructure):
     _fields_ = [
-        ("timestamp", c_longlong),  # timestamp of the error             
-        ("sbepages", c_uint),       # number of pending pages due to SBE 
-        ("dbepages", c_uint)        # number of pending pages due to DBE 
+        ("timestamp", c_longlong),  # timestamp of the error
+        ("sbepages", c_uint),       # number of pending pages due to SBE
+        ("dbepages", c_uint)        # number of pending pages due to DBE
     ]
 
 class c_dcgmPolicyConditionThermal_t(_PrintableStructure):
@@ -1412,7 +1412,7 @@ class c_dcgmPolicyConditionThermal_t(_PrintableStructure):
         ("timestamp", c_longlong),      # timestamp of the error
         ("thermalViolation", c_uint)    # Temperature reached that violated policy
     ]
-    
+
 class c_dcgmPolicyConditionPower_t(_PrintableStructure):
     _fields_ = [
         ("timestamp", c_longlong),      # timestamp of the error
@@ -1434,15 +1434,15 @@ class c_dcgmPolicyCallbackResponse_v1(_PrintableStructure):
     class Value(DcgmUnion):
         # implement more of the fields when a test requires them
         _fields_ = [
-            ("dbe", c_dcgmPolicyConditionDbe_t),            #  ECC DBE return structure                   
-            ("pci", c_dcgmPolicyConditionPci_t),            #  PCI replay error return structure          
-            ("mpr", c_dcgmPolicyConditionMpr_t),            #  Max retired pages limit return structure   
-            ("thermal", c_dcgmPolicyConditionThermal_t),    #  Thermal policy violations return structure 
-            ("power", c_dcgmPolicyConditionPower_t),        #  Power policy violations return structure   
+            ("dbe", c_dcgmPolicyConditionDbe_t),            #  ECC DBE return structure
+            ("pci", c_dcgmPolicyConditionPci_t),            #  PCI replay error return structure
+            ("mpr", c_dcgmPolicyConditionMpr_t),            #  Max retired pages limit return structure
+            ("thermal", c_dcgmPolicyConditionThermal_t),    #  Thermal policy violations return structure
+            ("power", c_dcgmPolicyConditionPower_t),        #  Power policy violations return structure
             ("nvlink", c_dcgmPolicyConditionNvlink_t),      # Nvlink policy violations return structure..
             ("xid", c_dcgmPolicyConditionXID_t)             # XID policy violations return structure
         ]
-    
+
     _fields_ = [
         ("version", c_uint),
         ("condition", c_int),   # an OR'ed list of DCGM_POLICY_COND_*
@@ -1737,14 +1737,14 @@ class c_dcgmDeviceTopology_v1(_PrintableStructure):
 dcgmDeviceTopology_version1 = make_dcgm_version(c_dcgmDeviceTopology_v1, 1)
 
 class c_dcgmGroupTopology_v1(_PrintableStructure):
-    _fields_ = [ 
+    _fields_ = [
         ('version', c_uint32),
         ('groupCpuAffinityMask', c_ulong * DCGM_AFFINITY_BITMASK_ARRAY_SIZE),
         ('numaOptimalFlag', c_uint32),
         ('slowestPath', c_uint32)
-    ]   
+    ]
 
-dcgmGroupTopology_version1 = make_dcgm_version(c_dcgmGroupTopology_v1, 1) 
+dcgmGroupTopology_version1 = make_dcgm_version(c_dcgmGroupTopology_v1, 1)
 
 
 
@@ -1785,10 +1785,10 @@ dcgmIntrospectMemory_version1 = make_dcgm_version(c_dcgmIntrospectMemory_v1, 1)
 
 class c_dcgmIntrospectCpuUtil_v1(_PrintableStructure):
     _fields_ = [
-        ('version', c_uint32),  #!< version number (dcgmIntrospectCpuUtil_version)                     
-        ('total', c_double),    #!< fraction of device's CPU resources that were used                
-        ('kernel', c_double),   #!< fraction of device's CPU resources that were used in kernel mode 
-        ('user', c_double),     #!< fraction of device's CPU resources that were used in user mode   
+        ('version', c_uint32),  #!< version number (dcgmIntrospectCpuUtil_version)
+        ('total', c_double),    #!< fraction of device's CPU resources that were used
+        ('kernel', c_double),   #!< fraction of device's CPU resources that were used in kernel mode
+        ('user', c_double),     #!< fraction of device's CPU resources that were used in user mode
     ]
 
 dcgmIntrospectCpuUtil_version1 = make_dcgm_version(c_dcgmIntrospectCpuUtil_v1, 1)
@@ -1874,14 +1874,14 @@ DcgmNvLinkLinkStateDown         = 2 # This NvLink link is down (inactive)
 DcgmNvLinkLinkStateUp           = 3 # This NvLink link is up (active)
 
 
-# State of NvLink links for a GPU 
+# State of NvLink links for a GPU
 class c_dcgmNvLinkGpuLinkStatus_v1(_PrintableStructure):
     _fields_ = [
         ('entityId', c_uint32),   # Entity ID of the GPU (gpuId)
         ('linkState', c_uint32 * DCGM_NVLINK_MAX_LINKS_PER_GPU_LEGACY1),  #Link state of each link of this GPU
     ]
 
-# State of NvLink links for a GPU 
+# State of NvLink links for a GPU
 class c_dcgmNvLinkGpuLinkStatus_v2(_PrintableStructure):
     _fields_ = [
         ('entityId', c_uint32),   # Entity ID of the GPU (gpuId)
@@ -2039,4 +2039,3 @@ class c_dcgmVersionInfo_v2(_PrintableStructure):
 
 dcgmVersionInfo_version2 = make_dcgm_version(c_dcgmVersionInfo_v2, 2)
 dcgmVersionInfo_version = dcgmVersionInfo_version2
-
