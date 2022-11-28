@@ -553,76 +553,16 @@ def benchmark_fsdp(args, executor):
     def fsdp_is_reference(backend_name):
         return backend_name == "eager"
 
-    def get_hf_T5_large_config(nodes, model_args):
+    def get_model_config(
+        nodes,
+        model_args,
+        model_name,
+        wrap_fn,
+        batch_size_per_nodes,
+    ):
         model_path = MODEL_PATH_TEMPLATE.format("hf_T5_large")
         args_copy, copied_model_args = generic_setup(nodes, model_args)
-        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.ddp_experiments.apply_fsdp_hf_T5_large"])
-
-        # assuming 8 gpus per node
-        # 8 sometimes passes / sometimes fails depending on config
-        batch_size_per_nodes = {1: 6, 2: 6, 4: 6, 8: 6}
-
-        assert nodes in batch_size_per_nodes
-        args_copy.batch_size = batch_size_per_nodes[nodes]
-        args_copy.model = model_path
-
-        backend_name = get_backend_name(model_args)
-        config = {
-            "nodes": nodes,
-            "model_name": model_name,
-            "backend": backend_name,
-        }
-        return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
-
-    def get_hf_GPT2_large_config(nodes, model_args):
-        model_path = MODEL_PATH_TEMPLATE.format("hf_GPT2_large")
-        args_copy, copied_model_args = generic_setup(nodes, model_args)
-        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.ddp_experiments.apply_fsdp_hf_GPT2_large"])
-
-        # assuming 8 gpus per node
-        # 8 sometimes passes / sometimes fails depending on config
-        batch_size_per_nodes = {1: 6, 2: 6, 4: 6, 8: 6}
-
-        assert nodes in batch_size_per_nodes
-        args_copy.batch_size = batch_size_per_nodes[nodes]
-        args_copy.model = model_path
-
-        backend_name = get_backend_name(model_args)
-        config = {
-            "nodes": nodes,
-            "model_name": model_name,
-            "backend": backend_name,
-        }
-        return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
-
-    def get_hf_Bert_large_config(nodes, model_args):
-        model_path = MODEL_PATH_TEMPLATE.format("hf_Bert_large")
-        args_copy, copied_model_args = generic_setup(nodes, model_args)
-        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.ddp_experiments.apply_fsdp_hf_Bert_large"])
-
-        # assuming 8 gpus per node
-        batch_size_per_nodes = {1: 16, 2: 16, 4: 16, 8: 16}
-
-        assert nodes in batch_size_per_nodes
-        args_copy.batch_size = batch_size_per_nodes[nodes]
-        args_copy.model = model_path
-
-        backend_name = get_backend_name(model_args)
-        config = {
-            "nodes": nodes,
-            "model_name": model_name,
-            "backend": backend_name,
-        }
-        return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
-
-    def get_timm_VIT_large_config(nodes, model_args):
-        model_path = MODEL_PATH_TEMPLATE.format("timm_vision_transformer_large")
-        args_copy, copied_model_args = generic_setup(nodes, model_args)
-        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.ddp_experiments.apply_fsdp_timm_VIT_large"])
-
-        # assuming 8 gpus per node
-        # 4, 8: tried bs = 32, and this OOMed.
-        batch_size_per_nodes = {1: 24, 2: 24, 4: 24, 8: 24}
+        copied_model_args.extend(["--distributed_wrap_fn", wrap_fn])
 
         assert nodes in batch_size_per_nodes
         args_copy.batch_size = batch_size_per_nodes[nodes]
@@ -637,10 +577,30 @@ def benchmark_fsdp(args, executor):
         return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
 
     model_configs = {
-        "timm_vision_transformer_large": get_timm_VIT_large_config,
-        "hf_GPT2_large": get_hf_GPT2_large_config,
-        "hf_Bert_large": get_hf_Bert_large_config,
-        "hf_T5_large": get_hf_T5_large_config,
+        "timm_vision_transformer_large": functools.partial(
+            get_model_config,
+            model_name="timm_vision_transformer_large",
+            wrap_fn="userbenchmark.ddp_experiments.apply_fsdp_timm_VIT_large",
+            batch_size_per_nodes={1: 6, 2: 6, 4: 6, 8: 6},
+        ),
+        "hf_GPT2_large": functools.partial(
+            get_model_config,
+            model_name="hf_GPT2_large",
+            wrap_fn="userbenchmark.ddp_experiments.apply_fsdp_hf_GPT2_large",
+            batch_size_per_nodes={1: 6, 2: 6, 4: 6, 8: 6},
+        ),
+        "hf_Bert_large": functools.partial(
+            get_model_config,
+            model_name="hf_Bert_large",
+            wrap_fn="userbenchmark.ddp_experiments.apply_fsdp_hf_Bert_large",
+            batch_size_per_nodes={1: 16, 2: 16, 4: 16, 8: 16},
+        ),
+        "hf_T5_large": functools.partial(
+            get_model_config,
+            model_name="hf_T5_large",
+            wrap_fn="userbenchmark.ddp_experiments.apply_fsdp_hf_T5_large",
+            batch_size_per_nodes={1: 6, 2: 6, 4: 6, 8: 6},
+        ),
     }
 
     selected_models = filter_models(args, [k for k, _ in model_configs.items()])
