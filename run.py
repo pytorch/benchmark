@@ -272,6 +272,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--test", choices=["eval", "train"], default="eval", help="Which test to run.")
     parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
     parser.add_argument("--profile-options", type=_validate_profile_options, help=f"Select which profile options to enable. Valid options: {SUPPORT_PROFILE_LIST}.")
+    parser.add_argument("--amp", action="store_true", help="enable torch.autocast()")
     parser.add_argument("--profile-folder", default="./logs", help="Save profiling model traces to this directory.")
     parser.add_argument("--profile-detailed", action="store_true",
                         help=f"Enable all profile options, including {SUPPORT_PROFILE_LIST}. Overrides --profile-options.")
@@ -289,7 +290,7 @@ if __name__ == "__main__":
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
     parser.add_argument("--metrics", type=str,
                         help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
-    parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "default"], default="default", help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally, 
+    parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "default"], default="default", help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,
     \n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  \n  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.\n  - you can specify flops by --metrics flops, and it is collected by fvcore.\nIn dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,\n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().\n  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""")
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
@@ -306,6 +307,8 @@ if __name__ == "__main__":
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode with input batch size {m.batch_size}.")
 
     test = m.invoke
+    if args.amp:
+        test = torch.autocast("cuda")(test)
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:

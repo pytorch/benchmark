@@ -31,7 +31,7 @@ conda install -y -c pytorch magma-cuda116
 
 Then install pytorch, torchtext, and torchvision using conda:
 ```
-conda install -y pytorch torchtext torchvision cudatoolkit=11.6 -c pytorch-nightly
+conda install -y pytorch torchtext torchvision torchaudio cudatoolkit=11.6 -c pytorch-nightly
 ```
 Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
