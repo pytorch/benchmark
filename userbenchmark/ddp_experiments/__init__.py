@@ -87,6 +87,12 @@ def parse_args(args: List[str]=None):
     )
 
     parser.add_argument(
+        "--cluster",
+        default=None,
+        help="Which slurm cluster to target. Use 'local' to run jobs locally, 'debug' to run jobs in process"
+    )
+
+    parser.add_argument(
         "--distributed",
         default="ddp_no_static_graph",
         type=str,
@@ -697,6 +703,7 @@ def main():
         slurm_partition=args.partition,
         slurm_signal_delay_s=120,
         slurm_exclude=args.exclude,
+        cluster=args.cluster,
     )
 
     executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
