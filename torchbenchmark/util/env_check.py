@@ -160,6 +160,13 @@ def is_numpy_float_type(value):
         ),
     )
 
+def is_numpy_ndarray(value):
+    import numpy as np
+    return istype(
+        value,
+        (np.ndarray, ),
+    )
+
 # copied from https://github.com/pytorch/torchdynamo/blob/main/torchdynamo/utils.py#L411
 def same(a, b, cos_similarity=False, atol=1e-4, rtol=1e-4, equal_nan=False):
     """Check correctness to see if a and b match"""
@@ -203,6 +210,11 @@ def same(a, b, cos_similarity=False, atol=1e-4, rtol=1e-4, equal_nan=False):
         return math.isclose(a, b, rel_tol=rtol, abs_tol=atol)
     elif is_numpy_int_type(a) or is_numpy_float_type(a):
         return (type(a) is type(b)) and (a == b)
+    elif is_numpy_ndarray(a):
+        return (type(a) is type(b)) and same(torch.from_numpy(a),
+                                             torch.from_numpy(b),
+                                             cos_similarity,
+                                             atol, rtol, equal_nan)
     elif type(a).__name__ in (
         "MaskedLMOutput",
         "Seq2SeqLMOutput",
