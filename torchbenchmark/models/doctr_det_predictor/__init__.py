@@ -1,4 +1,4 @@
-"Doctr recognition model"
+"Doctr detection model"
 from doctr.models import ocr_predictor
 import numpy as np
 import torch
@@ -17,10 +17,9 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         predictor = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True).to(self.device)
-        # recognition model expects input (batch_size, 3, 32, 128)
-        self.model = predictor.reco_predictor.model
-        # fake document file
-        self.example_inputs = (torch.randn(self.batch_size, 3, 32, 128), )
+        # Doctr detection model expects input (batch_size, 3, 1024, 1024)
+        self.model = predictor.det_predictor.model
+        self.example_inputs = (torch.randn(self.batch_size, 3, 1024, 1024).to(self.device), )
         if self.test == "eval":
             self.model.eval()
 
@@ -32,5 +31,5 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.inference_mode():
-            out = self.model(*self.example_inputs)
+            out = self.model(self.example_inputs, return_model_output=True)
         return out
