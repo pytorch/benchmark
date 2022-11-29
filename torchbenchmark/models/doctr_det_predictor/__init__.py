@@ -19,7 +19,7 @@ class Model(BenchmarkModel):
         predictor = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True).to(self.device)
         # Doctr detection model expects input (batch_size, 3, 1024, 1024)
         self.model = predictor.det_predictor.model
-        self.example_inputs = (torch.randn(self.batch_size, 3, 1024, 1024).to(self.device), )
+        self.example_inputs = torch.randn(self.batch_size, 3, 1024, 1024).to(self.device)
         if self.test == "eval":
             self.model.eval()
 
@@ -27,7 +27,7 @@ class Model(BenchmarkModel):
         raise NotImplementedError("Train is not implemented for this model.")
 
     def get_module(self):
-        return self.model, self.example_inputs
+        return self.model, (self.example_inputs, )
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.inference_mode():
