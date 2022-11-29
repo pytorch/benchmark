@@ -1,3 +1,4 @@
+"Doctr recognition model"
 from doctr.models import ocr_predictor
 import numpy as np
 import torch
@@ -10,17 +11,16 @@ from typing import Tuple
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
-    DEFAULT_EVAL_BSIZE = 2
+    DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        self.model = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True).to(self.device)
+        predictor = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True).to(self.device)
+        # recognition model expects input (batch_size, 3, 32, 128)
+        self.model = predictor.reco_predictor.model
         # fake document file
-        self.example_inputs = []
-        for _i in range(self.batch_size):
-            input_page = (255 * np.random.rand(600, 800, 3)).astype(np.uint8)
-            self.example_inputs.append(input_page)
+        self.example_inputs = (torch.randn(self.batch_size, 3, 32, 128), )
         if self.test == "eval":
             self.model.eval()
 
@@ -32,5 +32,5 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.inference_mode():
-            out = self.model(self.example_inputs)
+            out = self.model(*self.example_inputs)
         return out
