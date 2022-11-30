@@ -571,12 +571,21 @@ def _LoadDcgmLibrary(libDcgmPath=None):
                         if libDcgmPath:
                             lib_file = os.path.join(libDcgmPath, "libdcgm.so.3")
                         else:
-                            # Try Debian-based distros
-                            lib_file = '/usr/lib/{}-linux-gnu/libdcgm.so.3'.format(platform.machine())
-                            if not os.path.isfile(lib_file):
-                                # Presume Redhat-based distros
-                                lib_file = '/usr/lib64/libdcgm.so.3'
-
+                            def check_libdcgm_version(lib_version_num):
+                                # Try Debian-based distros
+                                lib_file = '/usr/lib/{}-linux-gnu/libdcgm.so.{}'.format(
+                                    platform.machine(), lib_version_num)
+                                if not os.path.isfile(lib_file):
+                                    # Presume Redhat-based distros
+                                    lib_file = '/usr/lib64/libdcgm.so.{}'.format(lib_version_num)
+                                    if not os.path.isfile(lib_file):
+                                        return None
+                                return lib_file
+                            lib_file = check_libdcgm_version(3)
+                            if lib_file is None:
+                                lib_file = check_libdcgm_version(2)
+                                if check_libdcgm_version(2) is None:
+                                    raise DCGMError(DCGM_ST_LIBRARY_NOT_FOUND)
                     dcgmLib = CDLL(lib_file)
 
                 except OSError as ose:
