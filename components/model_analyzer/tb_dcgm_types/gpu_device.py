@@ -15,7 +15,7 @@ import logging
 from numba.cuda.cudadrv import enums
 # @Yueming Hao: TODO: Replace this with nvml API
 from numba import cuda
-from .da_exceptions import TorchBenchAnalyzerException
+from .da_exceptions import TorchBenchAnalyzerException, TorchBenchAnalyzerException_GPU_Inavailable
 
 
 
@@ -62,9 +62,8 @@ class GPUDevice(Device):
             if gpu._device.uuid == device_uuid:
                 self._device = gpu
         if self._device is None:
-            raise TorchBenchAnalyzerException(
-                f'GPU with {device_uuid} uuid is not present!'
-            )
+            raise TorchBenchAnalyzerException_GPU_Inavailable(device_uuid)
+
         self._sm_count = self._device.MULTIPROCESSOR_COUNT
         fma_count = ConvertSMVer2Cores(self._device.COMPUTE_CAPABILITY_MAJOR, self._device.COMPUTE_CAPABILITY_MINOR)
         if fma_count == 0:

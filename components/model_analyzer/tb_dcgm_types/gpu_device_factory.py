@@ -17,7 +17,7 @@ LOGGER_NAME = "model_analyzer_logger"
 from .gpu_device import GPUDevice
 from  ..dcgm import dcgm_agent as dcgm_agent
 from ..dcgm import dcgm_structs as structs
-from .da_exceptions import TorchBenchAnalyzerException
+from .da_exceptions import TorchBenchAnalyzerException, TorchBenchAnalyzerException_GPU_Inavailable
 
 import numba.cuda
 import logging
@@ -58,16 +58,18 @@ class GPUDeviceFactory:
 
             # Create a GPU device for every supported DCGM device
             dcgm_device_ids = dcgm_agent.dcgmGetAllSupportedDevices(dcgm_handle)
-
             for device_id in dcgm_device_ids:
                 device_atrributes = dcgm_agent.dcgmGetDeviceAttributes(
                     dcgm_handle, device_id).identifiers
                 pci_bus_id = device_atrributes.pciBusId.upper()
                 device_uuid = device_atrributes.uuid
                 device_name = device_atrributes.deviceName
-                gpu_device = GPUDevice(device_name, device_id, pci_bus_id,
-                                       device_uuid)
-
+                try:
+                    gpu_device = GPUDevice(device_name, device_id, pci_bus_id,
+                                           device_uuid)
+                except TorchBenchAnalyzerException_GPU_Inavailable as e:
+                    logger.warning(e)
+                    continue
                 self._devices.append(gpu_device)
                 self._devices_by_bus_id[pci_bus_id] = gpu_device
                 self._devices_by_uuid[device_uuid] = gpu_device
