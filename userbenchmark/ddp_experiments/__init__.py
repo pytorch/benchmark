@@ -560,7 +560,7 @@ def benchmark_fsdp(args, executor):
         wrap_fn,
         batch_size_per_nodes,
     ):
-        model_path = MODEL_PATH_TEMPLATE.format("hf_T5_large")
+        model_path = MODEL_PATH_TEMPLATE.format(model_name)
         args_copy, copied_model_args = generic_setup(nodes, model_args)
         copied_model_args.extend(["--distributed_wrap_fn", wrap_fn])
 
