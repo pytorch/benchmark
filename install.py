@@ -113,6 +113,7 @@ if __name__ == '__main__':
             print(errmsg)
             if not args.continue_on_fail:
                 sys.exit(-1)
+        sys.exit(0)
 
     success, errmsg = pip_install_requirements()
     if not success:
