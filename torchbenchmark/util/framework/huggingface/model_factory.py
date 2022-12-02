@@ -22,6 +22,8 @@ class_models = {
     'hf_DistilBert': (512, 512, 'AutoConfig.from_pretrained("distilbert-base-uncased")', 'AutoModelForMaskedLM'),
     'hf_Longformer': (1024, 4096, 'AutoConfig.from_pretrained("allenai/longformer-base-4096")', 'AutoModelForMaskedLM'),
     'hf_Bert': (512, 512, 'BertConfig()', 'AutoModelForMaskedLM'),
+    # see https://huggingface.co/bert-large-cased
+    'hf_Bert_large': (512, 512, 'BertConfig(hidden_size=1024, num_hidden_layers=24, num_attention_heads=16)', 'AutoModelForMaskedLM'),
 }
 
 cpu_input_slice = {

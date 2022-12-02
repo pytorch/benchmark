@@ -491,6 +491,14 @@ def apply_fsdp_hf_GPT2_large(model, trainer):
         functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(GPT2Block,)),
     )
 
+def apply_fsdp_hf_Bert_large(model, trainer):
+    from transformers.models.bert.modeling_bert import BertLayer
+    return apply_fsdp(
+        model,
+        trainer,
+        functools.partial(transformer_auto_wrap_policy, transformer_layer_cls=(BertLayer,)),
+    )
+
 def apply_fsdp_timm_VIT_large(model, trainer):
     from timm.models.vision_transformer import Block
     return apply_fsdp(
@@ -569,6 +577,26 @@ def benchmark_fsdp(args, executor):
         }
         return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
 
+    def get_hf_Bert_large_config(nodes, model_args):
+        model_path = "torchbenchmark.models.hf_Bert_large.Model"
+        args_copy, copied_model_args = generic_setup(nodes, model_args)
+        copied_model_args.extend(["--distributed_wrap_fn", "userbenchmark.ddp_experiments.apply_fsdp_hf_Bert_large"])
+
+        # assuming 8 gpus per node
+        batch_size_per_nodes = {1: 16, 2: 16, 4: 16, 8: 16}
+
+        assert nodes in batch_size_per_nodes
+        args_copy.batch_size = batch_size_per_nodes[nodes]
+        args_copy.model = model_path
+
+        backend_name = get_backend_name(model_args)
+        config = {
+            "nodes": nodes,
+            "model_name": model_name,
+            "backend": backend_name,
+        }
+        return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
+
     def get_timm_VIT_large_config(nodes, model_args):
         model_path = "torchbenchmark.models.timm_vision_transformer_large.Model"
         args_copy, copied_model_args = generic_setup(nodes, model_args)
@@ -593,6 +621,7 @@ def benchmark_fsdp(args, executor):
     model_configs = {
         "timm_vision_transformer_large": get_timm_VIT_large_config,
         "hf_GPT2_large": get_hf_GPT2_large_config,
+        "hf_Bert_large": get_hf_Bert_large_config,
         "hf_T5_large": get_hf_T5_large_config,
     }
 
