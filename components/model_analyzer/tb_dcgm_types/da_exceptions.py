@@ -5,7 +5,7 @@ class TorchBenchAnalyzerException(Exception):
     pass
 
 
-class TorchBenchAnalyzerException_GPU_Inavailable(Exception):
+class TorchBenchAnalyzerExceptionGPUUnavailable(Exception):
     """
     A warning when the GPU is not visible to the process. 
     It is benign and can be ignored when there are multiple GPUs and only a subset of them are used.
