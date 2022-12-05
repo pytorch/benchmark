@@ -29,6 +29,11 @@ from transformers.models.t5.modeling_t5 import T5Block
 from torchbenchmark.util.framework.transformers.translation.dataset import prep_dataset, preprocess_dataset
 from torchbenchmark.util.framework.transformers.translation.args import parse_args, parse_torchbench_args, task_to_keys
 
+try:
+    import torch._dynamo
+except ImportError:
+    pass
+
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 
@@ -42,7 +47,7 @@ class Model(E2EBenchmarkModel):
         self.device = "cuda"
         self.device_num = 1
         # Parse the extra arguments
-        self.tb_args = parse_torchbench_args(extra_args)
+        self.tb_args = parse_torchbench_args(self.extra_args)
         torch.manual_seed(1337)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
@@ -102,7 +107,6 @@ class Model(E2EBenchmarkModel):
             }
             hf_args.deepspeed_plugin = DeepSpeedPlugin()
             hf_args.deepspeed_plugin.deepspeed_config.update(zero_opt_cfg)
-            
 
         # setup other members
         self.prep(hf_args)
@@ -324,14 +328,11 @@ class Model(E2EBenchmarkModel):
         for epoch in range(self.hf_args.num_train_epochs):
             self.model.train()
             for step, batch in enumerate(self.train_dataloader):
-                outputs = self.model(**batch)
-                loss = outputs.loss
+                loss = self.run_forward(batch)
                 loss = loss / self.hf_args.gradient_accumulation_steps
-                self.accelerator.backward(loss)
+                self.run_backward(loss)
                 if step % self.hf_args.gradient_accumulation_steps == 0 or step == len(self.train_dataloader) - 1:
-                    self.optimizer.step()
-                    self.lr_scheduler.step()
-                    self.optimizer.zero_grad()
+                    self.run_optimizer_step()
                     completed_steps += 1
 
                 if isinstance(self.hf_args.checkpointing_steps, int):
@@ -406,11 +407,34 @@ class Model(E2EBenchmarkModel):
         """
         compute model forward and return loss
         """
+        if self.dynamo:
+            backend = self.opt_args.torchdynamo
+            return torch._dynamo.optimize(backend)(self._run_forward)(input)
+        else:
+            return self._run_forward(input)
+
+    def _run_forward(self, input):
         return self.model(**input).loss
 
     def run_backward(self, loss):
+        if self.dynamo:
+            backend = self.opt_args.torchdynamo
+            return torch._dynamo.optimize(backend)(self._run_backward)(loss)
+        else:
+            return self._run_backward(loss)
+
+    def _run_backward(self, loss):
         self.accelerator.backward(loss)
 
     def run_optimizer_step(self):
+        if self.dynamo and not self.opt_args.dynamo_disable_optimizer_step:
+            backend = self.opt_args.torchdynamo
+            return torch._dynamo.optimize(backend)(self._run_optimizer_step)()
+        else:
+            return self._run_optimizer_step()
+
+    def _run_optimizer_step(self):
         self.optimizer.step()
+        self.lr_scheduler.step()
+        self.optimizer.zero_grad()
 
