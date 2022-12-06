@@ -1,3 +1,5 @@
 deepspeed
 evaluate
 datasets
+sklearn
+tensorboard

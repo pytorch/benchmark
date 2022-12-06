@@ -93,7 +93,10 @@ class Trainer():
                 grad_params = {}
                 for name, param in self.benchmark.model.named_parameters():
                     if param.requires_grad:
-                        grad_params[name + ".grad"] = param.grad.cpu()
+                        if param.grad is not None:
+                            grad_params[name + ".grad"] = param.grad.cpu()
+                        else:
+                            grad_params[name + ".grad"] = None
 
                 if self.check_correctness_distributed == "reference":
                     with open(self.reference_data_path, "wb") as f:
@@ -128,8 +131,13 @@ class Trainer():
         for _ in range(self.DEFAULT_MEASURE_ITERATIONS):
             self.benchmark.invoke()
 
+        torch.cuda.reset_peak_memory_stats()
+        self.benchmark.invoke()
+
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
+
+        max_memory = torch.cuda.max_memory_allocated(device=self.local_rank)
 
         now = datetime.now()
         name = f"{type(self).__name__}_{now.strftime('%Y_%m_%d_%H_%M_%S')}"
@@ -183,6 +191,7 @@ class Trainer():
         return {
             "latency_median" : median_latency,
             "latency_stdev" : stdev_latency,
+            "max_memory" : max_memory,
             **({"correctness": correctness} if correctness is not None else {}),
         }
 
