@@ -30,6 +30,9 @@ from . import dcgm_fields
 from . import dcgm_field_helpers
 from . import dcgm_structs as structs
 
+NVHOSTENGINE_PORT = 5555
+NVHOSTENGINE_ADDRESS = "127.0.0.1"
+
 
 class DCGMMonitor(Monitor):
     """
@@ -65,15 +68,23 @@ class DCGMMonitor(Monitor):
         """
 
         super().__init__(frequency, metrics)
+        # @TODO
         structs._dcgmInit(dcgmPath)
         dcgm_agent.dcgmInit()
 
         self._gpus = gpus
-
-        # Start DCGM in the embedded mode to use the shared library
-        # self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmStartEmbedded(
-        #     structs.DCGM_OPERATION_MODE_MANUAL)
-        self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmConnect('127.0.0.1:5555')
+        self.dcgm_mode = None
+        try:
+            self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmConnect('%s:%d' % (NVHOSTENGINE_ADDRESS, NVHOSTENGINE_PORT))
+            self.dcgm_mode = 'standalone'
+        except structs.DCGMError_ConnectionNotValid as e:
+            print("connection to nv-hostengine is failed. Will try to use the embedded mode.")
+        except Exception as e:
+            raise e
+        if self.dcgm_mode != 'standalone':
+            # Start DCGM in the embedded mode to use the shared library
+            self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmStartEmbedded(structs.DCGM_OPERATION_MODE_MANUAL)
+            self.dcgm_mode = 'embedded'
         group_name = "torchbench-dcgm-monitor"
         # Create DCGM monitor group
         self.group_id = dcgm_agent.dcgmGroupCreate(dcgm_handle,
@@ -96,7 +107,7 @@ class DCGMMonitor(Monitor):
 
         dcgm_field_group_id = dcgm_agent.dcgmFieldGroupCreate(
             dcgm_handle, fields, group_name)
-        dcgm_filed_group = dcgm_field_helpers.DcgmFieldGroup(dcgm_handle, fields, group_name,  dcgm_field_group_id)
+        dcgm_filed_group = dcgm_field_helpers.DcgmFieldGroup(dcgm_handle, fields, group_name, dcgm_field_group_id)
 
         self.group_watcher = dcgm_field_helpers.DcgmFieldGroupWatcher(
             dcgm_handle, self.group_id, dcgm_filed_group,
