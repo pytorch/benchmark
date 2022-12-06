@@ -11,4 +11,4 @@ timm == 0.4.12
 MonkeyType
 psutil
 pyyaml
-numpy
+numpy == 1.23.5
