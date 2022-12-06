@@ -71,8 +71,9 @@ class DCGMMonitor(Monitor):
         self._gpus = gpus
 
         # Start DCGM in the embedded mode to use the shared library
-        self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmStartEmbedded(
-            structs.DCGM_OPERATION_MODE_MANUAL)
+        # self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmStartEmbedded(
+        #     structs.DCGM_OPERATION_MODE_MANUAL)
+        self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmConnect('127.0.0.1:5555')
         group_name = "torchbench-dcgm-monitor"
         # Create DCGM monitor group
         self.group_id = dcgm_agent.dcgmGroupCreate(dcgm_handle,
