@@ -32,6 +32,8 @@ jobs:
           conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
           conda install -y expecttest -c conda-forge
           pip install unittest-xml-reporting
+          pip install weasyprint
+          python -c "from weasyprint import HTML"
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
