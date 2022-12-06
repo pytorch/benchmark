@@ -2,6 +2,7 @@ import math
 import random
 import os
 import torch
+from contextlib import nullcontext
 from torch import optim
 from torchbenchmark.util.model import BenchmarkModel
 import transformers
@@ -90,6 +91,8 @@ class HuggingFaceModel(BenchmarkModel):
                 self.example_inputs['decoder_input_ids'] = eval_context
             self.model.eval()
 
+        self.amp_context = nullcontext
+
     def get_module(self, wrap_model=True):
         if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
             k = 'labels' if self.test == 'train' else 'decoder_input_ids'
@@ -123,14 +126,16 @@ class HuggingFaceModel(BenchmarkModel):
         self.model = self.model.half()
 
     def train(self):
-        outputs = self.model(**self.example_inputs)
+        with self.amp_context():
+            outputs = self.model(**self.example_inputs)
         loss = outputs.loss
         loss.backward()
         self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
-            out = self.model(**self.example_inputs)
+            with self.amp_context():
+                out = self.model(**self.example_inputs)
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
         # transformations such as fx2trt will cast the original output type to dict
@@ -140,3 +145,6 @@ class HuggingFaceModel(BenchmarkModel):
             return (out.logits, )
         else:
             return (out["logits"], )
+
+    def enable_amp(self):
+        self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
