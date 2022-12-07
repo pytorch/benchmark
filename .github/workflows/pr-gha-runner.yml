@@ -30,9 +30,8 @@ jobs:
           conda activate "${CONDA_ENV}"
           conda install -y "${MAGMA_VERSION}" -c pytorch
           conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
-          conda install -y expecttest -c conda-forge
+          conda install -y expecttest libglib -c conda-forge
           pip install unittest-xml-reporting
-          sudo apt install -y libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0 libglib2.0-0 libglib2.0-dev libpango1.0-dev
           pip install weasyprint
           python -c "from weasyprint import HTML"
       - name: Install PyTorch nightly
