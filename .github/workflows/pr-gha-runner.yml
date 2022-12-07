@@ -30,7 +30,9 @@ jobs:
           conda activate "${CONDA_ENV}"
           conda install -y "${MAGMA_VERSION}" -c pytorch
           conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
-          conda install -y expecttest -c conda-forge
+          # weasyprint requires libglib from conda
+          # doctr_reco_predictor needs weasyprint
+          conda install -y expecttest libglib -c conda-forge
           pip install unittest-xml-reporting
       - name: Install PyTorch nightly
         run: |
