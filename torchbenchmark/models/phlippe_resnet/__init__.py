@@ -137,28 +137,24 @@ class Model(BenchmarkModel):
         )
         self.example_target = torch.randint(0, 10, (self.batch_size,), device=self.device)
         dataset = data.TensorDataset(self.example_inputs[0], self.example_target)
-        dummy_loader = data.DataLoader(dataset, batch_size=self.batch_size)
         self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4)
         self.criterion = nn.CrossEntropyLoss()
+        (self.images, ) = self.example_inputs
 
     def get_module(self):
         return self.model, self.example_inputs
 
     def train(self):
-        model = self.model
-        (images, ) = self.example_inputs
-        model.train()
+        self.model.train()
         targets = self.example_target
-        output = model(images)
+        output = self.model(self.images)
         loss = self.criterion(output, targets)
         loss.backward()
         self.optimizer.step()
         self.optimizer.zero_grad()
     
     def eval(self):
-        model = self.model
-        (images, ) = self.example_inputs
-        model.eval()
+        self.model.eval()
         with torch.no_grad():
-            out=model(images)
+            out=self.model(self.images)
         return (out,)
