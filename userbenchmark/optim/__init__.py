@@ -1,34 +1,37 @@
 from typing import Any, Dict, List, Tuple
 from torchbenchmark import load_model_by_name
 import torch
+import torch.utils.benchmark as benchmark
 from userbenchmark.utils import dump_output, get_output_json
 
 
-BM_NAME = "optim"
+BM_NAME = 'optim'
 
 MODEL_NAMES = [
-    "BERT_pytorch",
-    # "hf_T5_large",
-    "resnet18",
+    'BERT_pytorch',
+    # 'hf_T5_large',
+    'resnet18',
 ]
 
 OPTIMIZERS = [
-    (torch.optim.Adadelta, {"foreach": True,}),
-    (torch.optim.Adagrad, {"foreach": True,}),
-    (torch.optim.Adam, {"foreach": True, "fused": True}),
-    (torch.optim.AdamW, {"foreach": True,}),
+    (torch.optim.Adadelta, {'foreach': True,}),
+    (torch.optim.Adagrad, {'foreach': True,}),
+    (torch.optim.Adam, {'foreach': True, 'fused': True}),
+    (torch.optim.AdamW, {'foreach': True,}),
+    (torch.optim.Adamax, {'foreach': True,}),
+    (torch.optim.ASGD, {'foreach': True,}),
+    # (torch.optim.SGD, {'foreach': True,}),
+    (torch.optim.RAdam, {'foreach': True,}),
+    (torch.optim.Rprop, {'foreach': True,}),
+    (torch.optim.RMSprop, {'foreach': True,}),
+    (torch.optim.NAdam, {'foreach': True,}),
+
+    ## don't run the below, as they don't work
     # (torch.optim.SparseAdam, {}),
-    (torch.optim.Adamax, {"foreach": True,}),
-    (torch.optim.ASGD, {"foreach": True,}),
-    # (torch.optim.SGD, {"foreach": True,}),
-    (torch.optim.RAdam, {"foreach": True,}),
-    (torch.optim.Rprop, {"foreach": True,}),
-    (torch.optim.RMSprop, {"foreach": True,}),
-    (torch.optim.NAdam, {"foreach": True,}),
     # (torch.optim.LBFGS, {}),
 ]
 
-devices = ["cuda", "cpu"]
+devices = ['cuda', 'cpu']
 
 def get_model_deets(m) -> Tuple[Any, Any, Any]: 
     model, inputs = m.get_module()
@@ -44,41 +47,50 @@ def optimizer_step(optimizer):
 
 def run_model(modelName, device, Optim, foreach, fused):
     Model = load_model_by_name(modelName)   
-    default_m, default_inputs, default_params = get_model_deets(Model(device=device, test="train"))
+    mod, inputs, params = get_model_deets(Model(device=device, test='train'))
     if foreach is None and fused is None:
-        default_o = Optim(default_params)
+        optim = Optim(params)
     elif foreach is None and fused:
-        default_o = Optim(default_params, fused=fused)
+        optim = Optim(params, fused=fused)
     elif fused is None and foreach:
-        default_o = Optim(default_params, foreach=foreach)
+        optim = Optim(params, foreach=foreach)
     else:
-        default_o = Optim(default_params, foreach=foreach, fused=fused)
-    print('Running the model!', modelName, device, Optim, foreach, fused)
-    forward_and_backward(default_m, default_inputs)
-    print('Done the forward and backward')
-    optimizer_step(default_o)
-    print('Done the optimizer step')
+        optim = Optim(params, foreach=foreach, fused=fused)
+    forward_and_backward(mod, inputs)
+    # optimizer_step(optim)
+
+    return benchmark.Timer(
+        stmt='optimizer_step(optim)',
+        globals={'optim': optim, 'optimizer_step': optimizer_step},
+        sub_label=f'{modelName} {optim.__class__.__name__}, {device}',
+        description='fused' if fused else ('foreach' if foreach else 'default')
+    ).blocked_autorange()
 
 def run_benchmarks() -> List[float]:
+    results = []
     for mn in MODEL_NAMES:
         for d in devices:
             for O, impls in OPTIMIZERS:
-                run_model(mn, d, O, None, None)
-                if 'foreach' in impls and impls["foreach"]:
-                    run_model(mn, d, O, True, None)
+                results.append(run_model(mn, d, O, None, None))
+                if 'foreach' in impls and impls['foreach']:
+                    results.append(run_model(mn, d, O, True, None))
                 # fused requires params to be floats on CUDA
-                if 'fused' in impls and impls["fused"] and d == 'cuda':
-                    run_model(mn, d, O, None, True)
+                if 'fused' in impls and impls['fused'] and d == 'cuda':
+                    results.append(run_model(mn, d, O, None, True))
+    return results
 
 
 def run(args: List[str]):
-    run_benchmarks()
+    results = run_benchmarks()
     metrics: Dict[str, float] = {} 
     # gotta output a JSON now do I
     dump_output(BM_NAME, get_output_json(BM_NAME, metrics))
+    compare = benchmark.Compare(results)
+    compare.trim_significant_figures()
+    compare.colorize(rowwise=True)
+    compare.print()
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     run([])
 
 
