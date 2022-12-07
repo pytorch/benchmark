@@ -20,7 +20,7 @@ OPTIMIZERS = [
     (torch.optim.AdamW, {'foreach': True,}),
     (torch.optim.Adamax, {'foreach': True,}),
     (torch.optim.ASGD, {'foreach': True,}),
-    # (torch.optim.SGD, {'foreach': True,}),
+    (torch.optim.SGD, {'foreach': True,}),
     (torch.optim.RAdam, {'foreach': True,}),
     (torch.optim.Rprop, {'foreach': True,}),
     (torch.optim.RMSprop, {'foreach': True,}),
@@ -48,14 +48,14 @@ def optimizer_step(optimizer):
 def run_model(modelName, device, Optim, foreach, fused):
     Model = load_model_by_name(modelName)   
     mod, inputs, params = get_model_deets(Model(device=device, test='train'))
-    if foreach is None and fused is None:
-        optim = Optim(params)
-    elif foreach is None and fused:
-        optim = Optim(params, fused=fused)
-    elif fused is None and foreach:
-        optim = Optim(params, foreach=foreach)
-    else:
-        optim = Optim(params, foreach=foreach, fused=fused)
+    defaults = {}
+    if Optim.__name__ == 'SGD':
+        defaults['lr'] = 1e-2
+    if foreach:
+        defaults['foreach'] = True
+    if fused:
+        defaults['fused'] = True
+    optim = Optim(params, **defaults)
     forward_and_backward(mod, inputs)
     # optimizer_step(optim)
 
