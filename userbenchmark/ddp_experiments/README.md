@@ -54,8 +54,11 @@ Run with the `--csv_out` flag to get this data in csv output for more convenient
 
 Supported options (not-exhaustive):
 * `--job_dir [folder]` to select the shared job folder. It must be accessible by all the child jobs that are spawned.
-* `--distributed [ddp|?]` to select the type of distributed workflow to test
+* `--distributed [ddp_no_static_graph|fsdp]` to select the type of distributed workflow to test
 * `--trainer torchbenchmark.util.distributed.core_model.trainer.Trainer` to select the trainer (e.g. can use e2e trainer)
 * `--timeout {minutes}` to reduce/increase time slurm job timeout
 * `--partition {train|scavenge|etc}` to choose the slurm job queue
 * `--check_correctness_distributed` will perform correctness checks. The results will be dumped into the stdout log files and also the final pickled result logs. See the stdout logs from rank 0 if you want to investigate what specific logs are failing. The check is implemented in torchbenchmark/util/distributed/core_models/trainer.py.
+* `--filter_models resnet50 hf_T5 hf_T5_large` to filter to only a subset of models
+* `--nodes 8 4 2 1` to set the list of nodes to benchmark on.
+* `--ngpus [n]` for the number of gpus per node (8 by default, but 2 is useful for simple tests that use less resources)
