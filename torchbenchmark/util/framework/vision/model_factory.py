@@ -3,6 +3,7 @@ import torch
 import typing
 import torch.optim as optim
 import torchvision.models as models
+from contextlib import nullcontext
 from torchbenchmark.util.model import BenchmarkModel
 from typing import Tuple, Generator, Optional
 
@@ -40,6 +41,8 @@ class TorchVisionModel(BenchmarkModel):
         elif test == "eval":
             self.model.eval()
 
+        self.amp_context = nullcontext
+
     def get_flops(self):
         return self.flops, self.batch_size
 
@@ -65,11 +68,13 @@ class TorchVisionModel(BenchmarkModel):
         self.optimizer.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
             if not self.dynamo and self.opt_args.cudagraph:
+                # see `def enable_amp()`, we ignore AMP for this.
                 self.example_inputs[0].copy_(data)
                 self.example_outputs.copy_(target)
                 self.g.replay()
             else:
-                pred = self.model(data)
+                with self.amp_context():
+                    pred = self.model(data)
                 self.loss_fn(pred, target).backward()
                 self.optimizer.step()
 
@@ -78,5 +83,11 @@ class TorchVisionModel(BenchmarkModel):
             return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.model
         example_inputs = self.example_inputs
-        result = model(*example_inputs)
+        with self.amp_context():
+            result = model(*example_inputs)
         return (result, )
+
+    def enable_amp(self):
+        if not self.dynamo and self.opt_args.cudagraph:
+            return NotImplementedError("AMP not implemented for cudagraphs")
+        self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
