@@ -218,6 +218,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     def load_metadata(self):
         relative_path = self.__class__.__module__.split(".")
+        self.name = relative_path[-1]
         metadata_loc = Path(REPO_PATH).joinpath(*relative_path).joinpath("metadata.yaml")
         if not metadata_loc.exists():
             return None
