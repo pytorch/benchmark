@@ -19,7 +19,6 @@ from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
-MODEL_PATH = os.path.join(REPO_PATH, "torchbenchmark")
 DATA_PATH = os.path.join(REPO_PATH, "torchbenchmark", "data", ".data")
 
 class add_path():
