@@ -67,7 +67,11 @@ def run(args: List[str]):
         # load the model instance within the same process
         model = load_model(cfg)
         # get the model test metrics
-        metrics: TorchBenchModelMetrics = get_model_test_metrics(model)
+        try:
+            metrics: TorchBenchModelMetrics = get_model_test_metrics(model)
+        except NotImplementedError:
+            # some models don't implement the test specified
+            pass
         latencies = metrics.latencies
         max_delta = (max(latencies) - min(latencies)) / min(latencies)
         detailed_results.append({
