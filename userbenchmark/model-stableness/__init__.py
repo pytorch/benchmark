@@ -64,10 +64,10 @@ def run(args: List[str]):
     detailed_results = []
     ub_metrics = {}
     for cfg in filter(cfg_filter, cfgs):
-        # load the model instance within the same process
-        model = load_model(cfg)
-        # get the model test metrics
         try:
+            # load the model instance within the same process
+            model = load_model(cfg)
+            # get the model test metrics
             metrics: TorchBenchModelMetrics = get_model_test_metrics(model)
         except NotImplementedError:
             # some models don't implement the test specified
