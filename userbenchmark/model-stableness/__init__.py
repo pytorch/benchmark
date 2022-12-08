@@ -69,18 +69,27 @@ def run(args: List[str]):
             model = load_model(cfg)
             # get the model test metrics
             metrics: TorchBenchModelMetrics = get_model_test_metrics(model)
+            latencies = metrics.latencies
+            max_delta = (max(latencies) - min(latencies)) / min(latencies)
+            detailed_results.append({
+                'cfg': cfg.__dict__,
+                'raw_metrics': metrics.__dict__,
+                'max_delta': max_delta,
+            })
+            metric_name = f"{cfg.name}_{cfg.device}_{cfg.test}_ootb_maxdelta"
+            ub_metrics[metric_name] = max_delta
         except NotImplementedError:
             # some models don't implement the test specified
-            pass
-        latencies = metrics.latencies
-        max_delta = (max(latencies) - min(latencies)) / min(latencies)
-        detailed_results.append({
-            'cfg': cfg.__dict__,
-            'raw_metrics': metrics.__dict__,
-            'max_delta': max_delta,
-        })
-        metric_name = f"{cfg.name}_{cfg.device}_{cfg.test}_ootb_maxdelta"
-        ub_metrics[metric_name] = max_delta
+            detailed_results.append({
+                'cfg': cfg.__dict__,
+                'raw_metrics': "NotImplemented",
+            })
+        except RuntimeError as e:
+            detailed_results.append({
+                'cfg': cfg.__dict__,
+                'raw_metrics': f"RuntimeError: {e}",
+            })
+
     print(detailed_results)
     # log detailed results in the .userbenchmark/model-stableness/logs/ directory
     output_json = get_output_json(BM_NAME, ub_metrics)
