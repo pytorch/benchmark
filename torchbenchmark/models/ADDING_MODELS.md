@@ -89,7 +89,3 @@ make sure to verify correctness by capturing the output of the non-jit model for
 version.
 
 [PyTorch Docs: Creating Torchscript Code](https://pytorch.org/docs/1.1.0/jit.html#creating-torchscript-code)
-
-### Unidash
-Update [this unidash page](https://www.internalfb.com/intern/unidash/dashboard/pytorch_benchmarks/hub_detail/) to include a view of your new model. 
-
