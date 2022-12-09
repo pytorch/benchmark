@@ -40,6 +40,28 @@ where `metric-value-1` and `metric-value-2` are floats that indicate the perform
 
 After implementing your TorchBench userbenchmark, you can easily integrate it into a series of TorchBench services.
 
+### PR-level CI
+If you would like to run A/B testing of your userbenchmark on a pytorch/pytorch GitHub PR, create the PR and add the
+following "magic word" to your PR body:
+
+```
+RUN_TORCHBENCH: <userbenchmark-name>
+```
+
+For example, to run the userbenchmark `nvfuser`, add the following to your PR:
+
+```
+RUN_TORCHBENCH: nvfuser
+```
+
+You will see the "TorchBench CI" starts to build PyTorch and run the userbenchmark you specified.
+When it succeeds, it will generate a link that points to the PyTorch HUD which shows the A/B test result dashboard.
+
+See an example of such A/B testing result below:
+```
+https://hud.pytorch.org/userbenchmark_view?url=https:%2F%2Fossci-metrics.s3.amazonaws.com%2Ftorchbench-pr-test%2Fpr84626%2Fresult.csv
+```
+
 ### Nightly CI
 
 To enroll your userbenchmark in nightly CI, create a `ci.yaml` file in your userbenchmark home directory.
