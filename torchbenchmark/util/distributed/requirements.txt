@@ -1,5 +1,5 @@
 deepspeed
 evaluate
 datasets
-sklearn
+scikit-learn
 tensorboard
