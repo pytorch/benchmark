@@ -34,16 +34,16 @@ fi
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
 ## If torchvision is not yet available, uncomment the following and 
-## find a good torchvision commit to test
-##temp workaround to buid torchvision before vision rc binary is available
-#pushd  /tmp
-#git clone https://github.com/pytorch/vision.git
-#cd vision
-## checkout 2022-10-05 nightly as the checkmarks shows green
-#git checkout nightly && git checkout 64b14dcda9e4d283819ae69f9a60a41409aee92a 
-#python setup.py install
-#rm -rf /tmp/vision
-#popd 
+# find a good torchvision commit to test
+# temp workaround to buid torchvision before vision rc binary is available
+pushd  /tmp
+git clone https://github.com/pytorch/vision.git
+cd vision
+# checkout 2022-12-09 nightly as the only error seems numerical instability
+git checkout nightly && git checkout 677fc939b21a8893f07db4c1f90482b648b6573f
+python setup.py install
+rm -rf /tmp/vision
+popd 
 
 # tune the machine
 sudo nvidia-smi -ac "${GPU_FREQUENCY}"
