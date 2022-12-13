@@ -19,7 +19,7 @@ class TorchVisionModel(BenchmarkModel):
     def __init__(self, model_name, test, device, jit=False, batch_size=None, weights=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         torch.backends.cudnn.deterministic = False
-        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.benchmark = True
 
         if weights is None:
             self.model = getattr(models, model_name)(pretrained=True).to(self.device)
