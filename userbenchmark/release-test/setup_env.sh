@@ -44,7 +44,7 @@ cd vision
 git checkout nightly && git checkout 677fc939b21a8893f07db4c1f90482b648b6573f
 python setup.py install
 rm -rf /tmp/vision
-popd 
+popd
 
 # tune the machine
 sudo nvidia-smi -ac "${GPU_FREQUENCY}"
