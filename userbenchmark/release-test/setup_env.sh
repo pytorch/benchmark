@@ -49,4 +49,7 @@ popd
 # tune the machine
 sudo nvidia-smi -ac "${GPU_FREQUENCY}"
 
+# Add bc utility for memory monitor_proc.sh
+sudo apt install -y bc
+
 pip install -U py-cpuinfo psutil distro
