@@ -9,6 +9,10 @@ RUN sudo apt-get install -y git git-lfs jq \
                             vim wget curl ninja-build cmake \
                             libgl1-mesa-glx libsndfile1-dev
 
+# get switch-cuda utility
+RUN wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
+RUN chmod +x /usr/bin/switch-cuda.sh
+
 RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 
 # Install CUDA 11.6 and cudnn 8.3.2.44

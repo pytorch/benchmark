@@ -31,8 +31,8 @@ jobs:
           conda install -y "${MAGMA_VERSION}" -c pytorch
           conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
           # weasyprint requires libglib from conda
-          # doctr_reco_predictor needs weasyprint
-          conda install -y expecttest libglib -c conda-forge
+          # doctr_reco_predictor needs weasyprint, which needs libglib and pango
+          conda install -y expecttest libglib pango -c conda-forge
           pip install unittest-xml-reporting
       - name: Install PyTorch nightly
         run: |
