@@ -5,7 +5,7 @@ FROM ${BASE_IMAGE}
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 RUN sudo apt-get -y update
-RUN sudo apt-get install -y git git-lfs jq \
+RUN sudo apt-get install -y git git-lfs jq bc \
                             vim wget curl ninja-build cmake \
                             libgl1-mesa-glx libsndfile1-dev
 
