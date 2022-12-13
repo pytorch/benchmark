@@ -8,8 +8,8 @@ EXAMPLES_DIR="${RESULT_DIR}/../examples"
 # get the directory of the current script
 CURRENT_DIR=$(dirname -- "$0")
 
-CORE_LIST="24-47"
-export GOMP_CPU_AFFINITY="24-47"
+CORE_LIST="0-11"
+export GOMP_CPU_AFFINITY="0-11"
 
 . switch-cuda.sh "${CUDA_VERSION}"
 nvcc --version
