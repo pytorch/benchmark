@@ -56,6 +56,8 @@ class Model(E2EBenchmarkModel):
             self.num_epochs = 200
             # use random init model for train
             self.model = torchvision.models.resnet50().to(self.device)
+            from .resnet import ResNet50
+            self.model = ResNet50().to(self.device)
             self.model.train()
             self.criterion = torch.nn.CrossEntropyLoss()
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr,
