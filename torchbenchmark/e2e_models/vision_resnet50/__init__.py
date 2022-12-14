@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 import os
+import tqdm
 
 from pathlib import Path
 
@@ -34,19 +35,19 @@ class Model(E2EBenchmarkModel):
         ])
         trainset = torchvision.datasets.CIFAR10(
             root=str(data_root), train=True, download=True, transform=transform_train)
-        trainloader = torch.utils.data.DataLoader(
+        self.trainloader = torch.utils.data.DataLoader(
             trainset, batch_size=self.batch_size, shuffle=True, num_workers=2)
 
         testset = torchvision.datasets.CIFAR10(
             root=str(data_root), train=False, download=True, transform=transform_test)
-        testloader = torch.utils.data.DataLoader(
+        self.testloader = torch.utils.data.DataLoader(
             testset, batch_size=self.batch_size, shuffle=False, num_workers=2)
         
         self.classes = ('plane', 'car', 'bird', 'cat', 'deer',
                         'dog', 'frog', 'horse', 'ship', 'truck')
         self.lr = 0.1
-        # initial accuracy
-        self.acc = 0
+        # initialize accuracy
+        self.accuracy = 0.0
 
         if self.test == "train":
             # by default, run 200 epochs
@@ -63,14 +64,39 @@ class Model(E2EBenchmarkModel):
             self.model = torchvision.models.resnet50(pretrained=True).to(self.device)
             self.model.eval()
 
-    def test(self):
+    def _test_loop(self):
         self.model.eval()
+        test_loss = 0
+        correct = 0
+        total = 0
         with torch.no_grad():
-            pass
+            for _batch_idx, (inputs, targets) in enumerate(self.testloader):
+                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, targets)
+
+                test_loss += loss.item()
+                _, predicted = outputs.max(1)
+                total += targets.size(0)
+                correct += predicted.eq(targets).sum().item()
+        self.accuracy = 100. * correct / total
+
+    def _train_loop(self):
+        for _batch_idx, (inputs, targets) in enumerate(self.trainloader):
+            inputs, targets = inputs.to(self.device), targets.to(self.device)
+            self.optimizer.zero_grad()
+            outputs = self.model(inputs)
+            loss = self.criterion(outputs, targets)
+            loss.backward()
+            self.optimizer.step()
 
     def train(self):
         self.model.train()
-        pass
+        # Train num_epochs
+        for _epoch in tqdm(range(self.num_epochs), desc = "Training epoch"):
+            self._train_loop()
+        # calculate total accuracy
+        self._test_loop()
 
     def eval(self):
-        pass
+        raise NotImplementedError("Eval is not yet implemented for this model.")
