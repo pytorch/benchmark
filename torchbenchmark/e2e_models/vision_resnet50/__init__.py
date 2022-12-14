@@ -20,6 +20,7 @@ class Model(E2EBenchmarkModel):
     def __init__(self, test, batch_size=None, extra_args=[]):
         super().__init__(test=test, batch_size=batch_size, extra_args=extra_args)
         self.device = "cuda"
+        self.device_num = 1
         data_root = CURRENT_DIR.joinpath(".data")
         assert torch.cuda.is_available(), f"This model requires CUDA device available."
         transform_train = transforms.Compose([
