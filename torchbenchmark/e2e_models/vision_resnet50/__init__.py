@@ -5,7 +5,7 @@ import torchvision.transforms as transforms
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 import os
-import tqdm
+from tqdm import tqdm
 
 from pathlib import Path
 
