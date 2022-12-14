@@ -18,7 +18,7 @@ class TimmModel(BenchmarkModel):
     def __init__(self, model_name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         torch.backends.cudnn.deterministic = False
-        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.benchmark = True
 
         self.model = timm.create_model(model_name, pretrained=False, scriptable=True)
         self.cfg = TimmConfig(model = self.model, device = device)
