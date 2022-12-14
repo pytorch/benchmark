@@ -16,6 +16,7 @@ class E2EBenchmarkResult:
     device_num: int
     test: str
     num_examples: int
+    num_epochs: int
     batch_size: int
     result: Dict[str, Any]
 

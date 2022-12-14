@@ -23,9 +23,12 @@ def run(func) -> Dict[str, float]:
     return result
 
 def gen_result(m, run_result):
-    r = E2EBenchmarkResult(device=m.device, device_num=m.device_num, test=m.test, num_examples=m.num_examples, batch_size=m.batch_size, result=dict())
+    num_epochs = m.num_epochs if hasattr(m, 'num_epochs') else 1
+    r = E2EBenchmarkResult(device=m.device, device_num=m.device_num,
+                           test=m.test, num_examples=m.num_examples,
+                           num_epochs=num_epochs, batch_size=m.batch_size, result=dict())
     r.result["latency"] = run_result["latency_ms"] / 1000.0
-    r.result["qps"] = r.num_examples / r.result["latency"]
+    r.result["qps"] = r.num_examples / r.result["latency"] * r.num_epochs
     # add accuracy result if available
     if hasattr(m, "accuracy"):
         r.result["accuracy"] = m.accuracy
