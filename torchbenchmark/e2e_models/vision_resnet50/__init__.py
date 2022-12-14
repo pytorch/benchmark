@@ -38,6 +38,7 @@ class Model(E2EBenchmarkModel):
             root=str(data_root), train=True, download=True, transform=transform_train)
         self.trainloader = torch.utils.data.DataLoader(
             trainset, batch_size=self.batch_size, shuffle=True, num_workers=2)
+        self.num_examples = len(self.trainloader)
 
         testset = torchvision.datasets.CIFAR10(
             root=str(data_root), train=False, download=True, transform=transform_test)
