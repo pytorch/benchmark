@@ -101,4 +101,4 @@ def run(args: List[str]):
         json.dump(detailed_results, f, indent=4)
     # output userbenchmark metrics in the .userbenchmark/model-stableness directory
     print(output_json)
-    dump_output(output_json)
+    dump_output(BM_NAME, output_json)
