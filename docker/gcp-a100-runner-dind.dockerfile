@@ -10,8 +10,8 @@ RUN sudo apt-get install -y git git-lfs jq \
                             libgl1-mesa-glx libsndfile1-dev
 
 # get switch-cuda utility
-RUN wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
-RUN chmod +x /usr/bin/switch-cuda.sh
+RUN sudo wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
+RUN sudo chmod +x /usr/bin/switch-cuda.sh
 
 RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 
