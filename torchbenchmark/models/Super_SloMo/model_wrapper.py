@@ -16,7 +16,7 @@ class Model(torch.nn.Module):
         self.ArbTimeFlowIntrp = model.UNet(20, 5).to(device)
         self.trainFlowBackWarp = model.backWarp(352, 352, device)
 
-        vgg16 = torchvision.models.vgg16(pretrained=True)
+        vgg16 = torchvision.models.vgg16(weights=torchvision.models.VGG16_Weights.IMAGENET1K_V1)
         vgg16_conv_4_3 = nn.Sequential(*list(vgg16.children())[0][:22])
         vgg16_conv_4_3.to(device)
         for param in vgg16_conv_4_3.parameters():

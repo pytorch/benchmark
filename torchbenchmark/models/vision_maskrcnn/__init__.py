@@ -56,7 +56,9 @@ class Model(BenchmarkModel):
             self.DEFAULT_EVAL_BSIZE = 1
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True).to(self.device)
+        self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(
+            weights=torchvision.models.detection.MaskRCNN_ResNet50_FPN_Weights.COCO_V1
+        ).to(self.device)
         # setup optimizer
         # optimizer parameters copied from
         # https://github.com/pytorch/vision/blob/30f4d108319b0cd28ae5662947e300aad98c32e9/references/detection/train.py#L77
