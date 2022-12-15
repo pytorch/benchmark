@@ -42,6 +42,8 @@ jobs:
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
+          conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
+          conda install -y expecttest libglib pango -c conda-forge
           conda install -y -c pytorch "${MAGMA_VERSION}"
           pip install requests bs4 argparse gitpython boto3 pyyaml numpy regex psutil
           # Check if nightly builds are available
