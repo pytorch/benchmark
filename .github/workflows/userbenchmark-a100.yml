@@ -42,6 +42,8 @@ jobs:
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
+          conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
+          conda install -y expecttest libglib pango -c conda-forge
           conda install -y -c pytorch "${MAGMA_VERSION}"
           pip install requests bs4 argparse gitpython boto3 pyyaml numpy regex psutil
           # Check if nightly builds are available
@@ -51,11 +53,17 @@ jobs:
               echo "Torch nightly build failed. Cancel the workflow."
               exit 1
           fi
-          # Install PyTorch nightly from pip
-          pip install --pre torch torchvision \
+          # Install PyTorch nightly and domain libraries from pip
+          pip install --pre torch torchtext torchvision torchaudio \
             -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
           # make sure pytorch+cuda works
           python -c "import torch; torch.cuda.init()"
+      - name: Install TorchBench
+        run: |
+          set -x
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python install.py
       - name: Run user benchmark
         run: |
           set -x
