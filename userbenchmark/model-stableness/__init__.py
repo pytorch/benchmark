@@ -48,11 +48,11 @@ def reduce_results(full_results):
         return median_latencies
     ub_metrics = {}
     latencies_by_cfg = {}
-    for round in full_results:
-        for cfg_id in full_results[round]:
-            cfg = full_results[round][cfg_id]['cfg']
+    for round_result in full_results:
+        for cfg_id in round_result.keys():
+            cfg = round_result[cfg_id]['cfg']
             cfg_name = f"{cfg['name']}_{cfg['device']}_{cfg['test']}_ootb_latencies"
-            latencies_by_cfg[cfg_name].append(full_results[round][cfg_id]['raw_metrics'])
+            latencies_by_cfg[cfg_name].append(round_result[cfg_id]['raw_metrics'])
     for cfg_name in latencies_by_cfg:
         raw_metrics = latencies_by_cfg[cfg_name]
         latencies = get_median_latencies(raw_metrics)
