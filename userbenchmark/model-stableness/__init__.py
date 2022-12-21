@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 from typing import List
 import json
+import numpy as np
 import argparse
 
 from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_output
@@ -30,12 +31,36 @@ def generate_model_config(model_name: str) -> List[TorchBenchModelConfig]:
 
 def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
+    parser.add_argument("-r", "--rounds", default=15, help="Number of rounds to run to simulate measuring max delta in workflow.")
     parser.add_argument("-m", "--models", default="", help="Specify the models to run, default (empty) runs all models.")
     parser.add_argument("-d", "--device", default="cpu", help="Specify the device.")
     parser.add_argument("-t", "--test", default="eval", help="Specify the test.")
     parser.add_argument("-o", "--output", type=str, help="The default output json file.")
     args = parser.parse_args(args)
     return args
+
+def reduce_results(full_results):
+    def get_median_latencies(raw_metrics):
+        has_all_latencies = len(filter(lambda x: hasattr(raw_metrics, 'latencies'), raw_metrics))
+        if not has_all_latencies == len(raw_metrics):
+            return None
+        median_latencies = list(map(lambda x: np.median(x['latencies']), raw_metrics))
+        return median_latencies
+    ub_metrics = {}
+    latencies_by_cfg = {}
+    for round in full_results:
+        for cfg_id in full_results[round]:
+            cfg = full_results[round][cfg_id]['cfg']
+            cfg_name = f"{cfg['name']}_{cfg['device']}_{cfg['test']}_ootb_latencies"
+            latencies_by_cfg[cfg_name].append(full_results[round][cfg_id]['raw_metrics'])
+    for cfg_name in latencies_by_cfg:
+        raw_metrics = latencies_by_cfg[cfg_name]
+        latencies = get_median_latencies(raw_metrics)
+        if latencies:
+            ub_metrics[f"{cfg_name}_maxdelta"] = (max(latencies) - min(latencies)) / min(latencies)
+        else:
+            ub_metrics[f"{cfg_name}_maxdelta"] = -1.0
+    return ub_metrics
 
 def generate_filter(args: argparse.Namespace):
     allowed_models = args.models
@@ -61,36 +86,36 @@ def run(args: List[str]):
     cfgs = list(itertools.chain(*map(generate_model_config, models)))
     cfg_filter = generate_filter(args)
     # run a model cfg and get latencies
-    detailed_results = []
-    ub_metrics = {}
-    for cfg in filter(cfg_filter, cfgs):
-        try:
-            # load the model instance within the same process
-            model = load_model(cfg)
-            # get the model test metrics
-            metrics: TorchBenchModelMetrics = get_model_test_metrics(model)
-            latencies = metrics.latencies
-            max_delta = (max(latencies) - min(latencies)) / min(latencies)
-            detailed_results.append({
-                'cfg': cfg.__dict__,
-                'raw_metrics': metrics.__dict__,
-                'max_delta': max_delta,
-            })
-            metric_name = f"{cfg.name}_{cfg.device}_{cfg.test}_ootb_maxdelta"
-            ub_metrics[metric_name] = max_delta
-        except NotImplementedError:
-            # some models don't implement the test specified
-            detailed_results.append({
-                'cfg': cfg.__dict__,
-                'raw_metrics': "NotImplemented",
-            })
-        except RuntimeError as e:
-            detailed_results.append({
-                'cfg': cfg.__dict__,
-                'raw_metrics': f"RuntimeError: {e}",
-            })
+    full_results = []
+    for _round in range(args.rounds):
+        single_round_result = []
+        for cfg in filter(cfg_filter, cfgs):
+            try:
+                # load the model instance within the same process
+                model = load_model(cfg)
+                # get the model test metrics
+                metrics: TorchBenchModelMetrics = get_model_test_metrics(model)
+                single_round_result.append({
+                    'cfg': cfg.__dict__,
+                    'raw_metrics': metrics.__dict__,
+                })
+                metric_name = f"{cfg.name}_{cfg.device}_{cfg.test}_ootb_maxdelta"
+            except NotImplementedError:
+                # some models don't implement the test specified
+                single_round_result.append({
+                    'cfg': cfg.__dict__,
+                    'raw_metrics': "NotImplemented",
+                })
+            except RuntimeError as e:
+                single_round_result.append({
+                    'cfg': cfg.__dict__,
+                    'raw_metrics': f"RuntimeError: {e}",
+                })
+        full_results.append(single_round_result)
+    print(full_results)
+    ub_metrics = reduce_results(full_results)
 
-    print(detailed_results)
+    # reduce full results to metrics
     # log detailed results in the .userbenchmark/model-stableness/logs/ directory
     output_json = get_output_json(BM_NAME, ub_metrics)
     log_dir = output_dir.joinpath("logs")
@@ -98,7 +123,7 @@ def run(args: List[str]):
     fname = "logs-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
     full_fname = log_dir.joinpath(fname)
     with open(full_fname, 'w') as f:
-        json.dump(detailed_results, f, indent=4)
+        json.dump(full_results, f, indent=4)
     # output userbenchmark metrics in the .userbenchmark/model-stableness directory
     print(output_json)
     dump_output(BM_NAME, output_json)
