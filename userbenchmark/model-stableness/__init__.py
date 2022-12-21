@@ -52,6 +52,8 @@ def reduce_results(full_results):
         for result in round_result:
             cfg = result['cfg']
             cfg_name = f"{cfg['name']}_{cfg['device']}_{cfg['test']}_ootb_latencies"
+            if not cfg_name in latencies_by_cfg:
+                latencies_by_cfg[cfg_name] = []
             latencies_by_cfg[cfg_name].append(result['raw_metrics'])
     for cfg_name in latencies_by_cfg:
         raw_metrics = latencies_by_cfg[cfg_name]
