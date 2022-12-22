@@ -41,7 +41,7 @@ def parse_args(args: List[str]):
 
 def reduce_results(full_results):
     def get_median_latencies(raw_metrics):
-        has_all_latencies = len(list(filter(lambda x: hasattr(raw_metrics, 'latencies'), raw_metrics)))
+        has_all_latencies = len(list(filter(lambda x: 'latencies' in x, raw_metrics)))
         if not has_all_latencies == len(raw_metrics):
             return None
         median_latencies = list(map(lambda x: np.median(x['latencies']), raw_metrics))
