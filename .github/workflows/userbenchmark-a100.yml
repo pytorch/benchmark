@@ -68,6 +68,8 @@ jobs:
         run: |
           set -x
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          export LC_ALL=en_US.UTF-8
+          export LANG=en_US.UTF-8
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
