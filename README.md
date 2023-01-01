@@ -39,6 +39,11 @@ Or use pip:
 pip install --pre torch torchvision torchtext torchaudio -f https://download.pytorch.org/whl/nightly/cu116/torch_nightly.html
 ```
 
+Install other necessary libraries:
+```
+pip install pyyaml
+```
+
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.
 ```
 git clone <benchmark>
