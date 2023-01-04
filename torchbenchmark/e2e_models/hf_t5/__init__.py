@@ -345,7 +345,10 @@ class Model(E2EBenchmarkModel):
                 if completed_steps >= self.hf_args.max_train_steps:
                     break
             if self.tb_args.validate_in_train:
-                eval_metric = self.eval() # run evaluation 
+                eval_metric = self.eval() # run evaluation
+        # store accuracy results
+        if self.tb_args.validate_in_train:
+            self.accuracy = eval_metric["score"]
         return eval_metric
     
     def eval(self):
