@@ -88,6 +88,7 @@ class Model(E2EBenchmarkModel):
                   "--output_dir", output_dir]
         in_arg.extend(task_args)
         hf_args = parse_args(in_arg)
+        self.num_epochs = hf_args.num_train_epochs
 
         # ideally we don't modify the model code directly, but attaching deepspeed
         # must be done before self.prep initialiazes accelerator.
