@@ -88,6 +88,7 @@ class Model(E2EBenchmarkModel):
                   "--output_dir", output_dir]
         in_arg.extend(task_args)
         hf_args = parse_args(in_arg)
+        self.num_epochs = hf_args.num_train_epochs
 
         # ideally we don't modify the model code directly, but attaching deepspeed
         # must be done before self.prep initialiazes accelerator.
@@ -345,7 +346,10 @@ class Model(E2EBenchmarkModel):
                 if completed_steps >= self.hf_args.max_train_steps:
                     break
             if self.tb_args.validate_in_train:
-                eval_metric = self.eval() # run evaluation 
+                eval_metric = self.eval() # run evaluation
+        # store accuracy results
+        if self.tb_args.validate_in_train:
+            self.accuracy = eval_metric["score"]
         return eval_metric
     
     def eval(self):
