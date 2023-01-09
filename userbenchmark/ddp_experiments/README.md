@@ -62,3 +62,4 @@ Supported options (not-exhaustive):
 * `--filter_models resnet50 hf_T5 hf_T5_large` to filter to only a subset of models
 * `--nodes 8 4 2 1` to set the list of nodes to benchmark on.
 * `--ngpus [n]` for the number of gpus per node (8 by default, but 2 is useful for simple tests that use less resources)
+* `--precision amp|fp32|fp16` for specifying precision type (fp32 default)

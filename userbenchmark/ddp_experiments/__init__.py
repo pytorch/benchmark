@@ -129,6 +129,12 @@ def parse_args(args: List[str]=None):
         action='store_true',
         help="Do distributed correctness checks. Don't expect to use the same results for performance tests."
     )
+    parser.add_argument(
+        "--precision",
+        type=str,
+        default=None,
+        help="Precision (e.g. amp, fp32, fp16)",
+    )
 
 
     try:
@@ -365,6 +371,10 @@ class TrainerWrapper(object):
         os.environ["NET_TYPE"] = 'efa'
         os.environ["ADAM_CAPTURABLE"] = str(1)
 
+def parse_precision(args, copied_model_args):
+    if args.precision is not None:
+        copied_model_args.extend(["--precision", args.precision])
+
 def get_node_list(args):
     node_list = args.nodes
     if node_list is None:
@@ -440,6 +450,7 @@ def benchmark_ddp(args, executor):
                             copied_model_args.extend(["--torchinductor_cudagraph", "False"])
                         if backend_name != "eager":
                             copied_model_args.extend(["--dynamo_disable_optimizer_step", "True"])
+                        parse_precision(args, copied_model_args)
 
                         # skip non-distributed correctness checks to avoid extra iterations which can
                         # interfere with distributed correctness checks.
@@ -563,6 +574,7 @@ def benchmark_fsdp(args, executor):
         model_path = MODEL_PATH_TEMPLATE.format(model_name)
         args_copy, copied_model_args = generic_setup(nodes, model_args)
         copied_model_args.extend(["--distributed_wrap_fn", wrap_fn])
+        parse_precision(args, copied_model_args)
 
         assert nodes in batch_size_per_nodes
         args_copy.batch_size = batch_size_per_nodes[nodes]
@@ -576,24 +588,25 @@ def benchmark_fsdp(args, executor):
         }
         return ExperimentParams(config, args_copy, copied_model_args, is_reference=fsdp_is_reference(backend_name))
 
+    is_amp = args.precision == "amp"
     model_configs = {
         "timm_vision_transformer_large": functools.partial(
             get_model_config,
             model_name="timm_vision_transformer_large",
             wrap_fn="userbenchmark.ddp_experiments.apply_fsdp_timm_VIT_large",
-            batch_size_per_nodes={1: 6, 2: 6, 4: 6, 8: 6},
+            batch_size_per_nodes={1: 16, 2: 16, 4: 16, 8: 16} if is_amp else {1: 6, 2: 6, 4: 6, 8: 6},
         ),
         "hf_GPT2_large": functools.partial(
             get_model_config,
             model_name="hf_GPT2_large",
             wrap_fn="userbenchmark.ddp_experiments.apply_fsdp_hf_GPT2_large",
-            batch_size_per_nodes={1: 6, 2: 6, 4: 6, 8: 6},
+            batch_size_per_nodes={1: 8, 2: 8, 4: 8, 8: 8} if is_amp else {1: 6, 2: 6, 4: 6, 8: 6},
         ),
         "hf_Bert_large": functools.partial(
             get_model_config,
             model_name="hf_Bert_large",
             wrap_fn="userbenchmark.ddp_experiments.apply_fsdp_hf_Bert_large",
-            batch_size_per_nodes={1: 16, 2: 16, 4: 16, 8: 16},
+            batch_size_per_nodes={1: 20, 2: 20, 4: 20, 8: 20} if is_amp else {1: 16, 2: 16, 4: 16, 8: 16},
         ),
         "hf_T5_large": functools.partial(
             get_model_config,
