@@ -29,7 +29,7 @@ def parse_partial(args):
             model = row["model_name"]
             backend = row["backend"]
             nodes = row["nodes"]
-            has_breaks = str(row["has_breaks"])
+            has_breaks = str(row["has_breaks"] if "has_breaks" in row else "False")
             if isinstance(row["result"], dict):
                 latency = float(row["result"]["latency_median"])
                 if isinstance(model_data[model][backend][nodes][has_breaks], list):
