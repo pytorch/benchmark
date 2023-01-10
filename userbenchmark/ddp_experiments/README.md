@@ -63,3 +63,4 @@ Supported options (not-exhaustive):
 * `--nodes 8 4 2 1` to set the list of nodes to benchmark on.
 * `--ngpus [n]` for the number of gpus per node (8 by default, but 2 is useful for simple tests that use less resources)
 * `--precision amp|fp32|fp16` for specifying precision type (fp32 default)
+* `--cluster local` to run locally instead of launching a new slurm job
