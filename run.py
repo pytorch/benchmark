@@ -73,7 +73,7 @@ def printResultSummaryTime(result_summary, metrics_needed=[], metrics_backend_ma
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
     if model_analyzer:
-        model_analyzer.aggregate(cpu_walltime * len(result_summary))
+        model_analyzer.aggregate()
     # if model_flops is not None, output the TFLOPs per sec
     if 'flops' in metrics_needed:
         if metrics_backend_mapping['flops'] == 'dcgm':

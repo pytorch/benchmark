@@ -22,11 +22,11 @@ from .tb_dcgm_types.record import RecordType
 from .tb_dcgm_types.record_aggregator import RecordAggregator
 from .tb_dcgm_types.tb_logger import set_logger, LOGGER_NAME
 from .tb_dcgm_types.config import *
-from .tb_dcgm_types.config import DEFAULT_MONITORING_INTERVAL
 
 import logging
 logger = logging.getLogger(LOGGER_NAME)
 import json
+from time import time_ns
 
 
 class ModelAnalyzer:
@@ -65,6 +65,7 @@ class ModelAnalyzer:
         self.cpu_metric_value = {}
         # GPU Monitor Backend
         self.gpu_monitor_backend = 'dcgm'
+        self.stop_monitor_timestamp = None
 
     def add_metric_gpu_peak_mem(self):
         self.gpu_metrics.append(GPUPeakMemory)
@@ -118,6 +119,7 @@ class ModelAnalyzer:
             self.cpu_monitor_started = False
 
     def stop_monitor(self):
+        self.stop_monitor_timestamp = time_ns()
         if self.gpu_monitor:
             self.gpu_records = self.gpu_monitor.stop_recording_metrics()
         if self.cpu_monitor:
@@ -125,18 +127,12 @@ class ModelAnalyzer:
         # This must be called after stop_recording_metrics
         self._destory_monitor()
 
-    def aggregate(self, end_measure_time=None):
+    def aggregate(self):
         """
         Aaggregate must be called after stop_monitor.
-        Args:
-            end_measure_time: the end time in ms of the measurement. Needs to be converted to ns.
         """
-        if end_measure_time:
-            end_measure_time = (end_measure_time + 1) * 1e6
         if self.gpu_records:
-            if end_measure_time:
-                end_measure_time = self.gpu_records[0]._timestamp + end_measure_time
-                self.gpu_records = [record for record in self.gpu_records if record._timestamp <= end_measure_time]
+            self.gpu_records = [record for record in self.gpu_records if record.timestamp() <= self.stop_monitor_timestamp]
             self.gpu_record_aggregator.insert_all(self.gpu_records)
             records_groupby_gpu = self.gpu_record_aggregator.groupby(
                 self.gpu_metrics, lambda record: record.device_uuid())
@@ -147,9 +143,7 @@ class ModelAnalyzer:
                 for gpu_uuid, metric_value in metric.items():
                     self.gpu_metric_value[gpu_uuid][metric_type] = metric_value
         if self.cpu_records:
-            if end_measure_time:
-                end_measure_time = self.cpu_records[0]._timestamp + end_measure_time
-                self.cpu_records = [record for record in self.cpu_records if record._timestamp <= end_measure_time]
+            self.cpu_records = [record for record in self.cpu_records if record.timestamp() <= self.stop_monitor_timestamp]
             self.cpu_record_aggregator.insert_all(self.cpu_records)
             records_groupby_cpu = self.cpu_record_aggregator.groupby(
                 self.cpu_metrics, lambda record: record.device_uuid())
@@ -174,7 +168,7 @@ class ModelAnalyzer:
             print(self.gpu_metric_value[gpu_uuid][GPUFP32Active].value())
             # TFLOPs/second = Device_SM_Count x Device_FMAs_Per_Cycle_Per_SM x 2 x Running_Frequency_KHz x DCGM_Activity / 1e+9
             print("GPU : TFLOPs/Second %.4f" % (gpu._sm_count * gpu._fma_count * 2 *
-                                                gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9))
+                  gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9))
         # @Yueming Hao: print all collected gpu records, for debug only
         logger.debug(json.dumps([_.to_dict() for _ in self.gpu_records], indent=4))
 
