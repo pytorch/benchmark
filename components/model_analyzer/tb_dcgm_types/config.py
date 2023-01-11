@@ -1,7 +1,7 @@
 
 
 # default is 100 ms.
-DEFAULT_MONITORING_INTERVAL = 0.1
+DEFAULT_MONITORING_INTERVAL = 0.01
 
 
 class AnalayzerConfig:
