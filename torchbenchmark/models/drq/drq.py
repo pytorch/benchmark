@@ -43,7 +43,7 @@ class Encoder(nn.Module):
             conv = torch.relu(self.convs[i](conv))
             self.outputs['conv%s' % (i + 1)] = conv
 
-        h = conv.view(conv.size(0), -1)
+        h = conv.reshape(conv.size(0), -1)
         return h
 
     def forward(self, obs, detach=False):
