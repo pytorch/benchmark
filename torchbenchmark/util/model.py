@@ -340,3 +340,46 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         torch._C._set_graph_executor_optimize(True)
 
         bench_allclose(base, opt)
+
+    def enable_channels_last(self):
+        model_name = inspect.getfile(self.__class__).split(os.sep)[-2]
+        try:
+            model, example_inputs = self.get_module()
+        except NotImplementedError:
+            warnings.warn(UserWarning(f"{model_name} doesn't support `channels_last` yet!"))
+            return
+        try:
+            model = model.to(memory_format=torch.channels_last).eval()
+            if isinstance(example_inputs, torch.Tensor) and example_inputs.dim()==4:
+                example_inputs = example_inputs.to(memory_format=torch.channels_last)
+            elif isinstance(example_inputs, tuple):
+                new_example_inputs = []
+                for item in example_inputs:
+                    if isinstance(item, torch.Tensor) and item.dim()==4:
+                        new_example_inputs.append(item.to(memory_format=torch.channels_last))
+                    else:
+                        new_example_inputs.append(item)
+                example_inputs = tuple(new_example_inputs)
+            elif isinstance(example_inputs, list):
+                new_example_inputs = []
+                for item in example_inputs:
+                    if isinstance(item, torch.Tensor) and item.dim()==4:
+                        new_example_inputs.append(item.to(memory_format=torch.channels_last))
+                    else:
+                        new_example_inputs.append(item)
+                example_inputs = new_example_inputs
+            elif isinstance(example_inputs, dict):
+                new_example_inputs = {}
+                for k in example_inputs.keys():
+                    if isinstance(example_inputs[k], torch.Tensor) and example_inputs[k].dim() ==4:
+                        new_example_inputs[k] = example_inputs[k].to(memory_format=torch.channels_last)
+                    else:
+                        new_example_inputs[k] = example_inputs[k]
+                example_inputs = new_example_inputs
+        except Exception:
+            pass
+        self.set_module(model)
+        if hasattr(self, 'example_inputs'):
+            self.example_inputs = example_inputs
+        else:
+            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))
