@@ -292,6 +292,7 @@ if __name__ == "__main__":
                         help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
     parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "default"], default="default", help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,
     \n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  \n  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.\n  - you can specify flops by --metrics flops, and it is collected by fvcore.\nIn dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,\n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().\n  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""")
+    parser.add_argument("--channels-last", action="store_true", help="enable torch.channels_last()")
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
@@ -305,6 +306,8 @@ if __name__ == "__main__":
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode with input batch size {m.batch_size}.")
+    if args.channels_last:
+        m.enable_channels_last()
 
     test = m.invoke
     if args.amp:
