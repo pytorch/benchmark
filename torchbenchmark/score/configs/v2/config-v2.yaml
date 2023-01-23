@@ -125,7 +125,7 @@ tests:
     stable: true
   test_eval[mnasnet1_0-cpu-jit]:
     norm: 0.02850807609502226
-    stable: true
+    stable: false
   test_eval[mnasnet1_0-cuda-eager]:
     norm: 0.024485791102051735
     stable: true
