@@ -149,6 +149,9 @@ class Model(BenchmarkModel):
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                                    with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
+        if test == "eval":
+            bert.eval()
+
         example_batch = next(iter(train_data_loader))
         self.example_inputs = example_batch['bert_input'].to(self.device)[:self.batch_size], example_batch['segment_label'].to(self.device)[:self.batch_size]
         self.is_next = example_batch['is_next'].to(self.device)[:self.batch_size]
