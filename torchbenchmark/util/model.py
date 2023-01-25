@@ -13,6 +13,7 @@ from torchbenchmark.util.extra_args import check_correctness_p, is_hf_model, par
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
                                            TEST_STAGE
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
+from torch.utils._pytree import tree_map
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -54,6 +55,23 @@ def enable_profiling_executor():
         torch._C._jit_set_profiling_mode(profiling_mode)
         torch._C._jit_set_profiling_executor(profiling_executor)
         torch._C._get_graph_executor_optimize(graph_executor)
+
+def cast_to(dtype, model, inputs):
+    if dtype == torch.float16:
+        model = model.half()
+    else:
+        model = model.to(dtype)
+
+    inputs = tree_map(
+        lambda x: x.to(dtype)
+        if isinstance(x, torch.Tensor) and x.is_floating_point()
+        else x,
+        inputs,
+    )
+    return model, inputs
+
+def cast_to_fp64(model, inputs):
+    return cast_to(torch.float64, model, inputs)
 
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
@@ -125,6 +143,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         should_check_correctness = check_correctness_p(self, self.opt_args, self.dargs)
         if should_check_correctness:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
+            self.eager_output_fp64 = None
+
             if isinstance(self.eager_output, Tuple):
                 self.eager_output = tuple((t.detach() if isinstance(t, torch.Tensor) else t) for t in self.eager_output)
             elif isinstance(self.eager_output, torch.Tensor):
@@ -141,10 +161,32 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                         copy_model = self
                     copy_model.invoke()
                     self.eager_model_after_one_train_iteration = copy_model.model
+                    if self.DEEPCOPY:
+                        del copy_model
                 except RuntimeError:
                     warnings.warn(UserWarning("Can't copy the model. Skipping train correctness check."))
                 if opt_saved:
                     self.opt = opt_saved
+
+                # The fp64 reference output is used later for accuracy checking
+                self.eager_model_fp64 = None
+                if not hasattr(self, "opt") and self.DEEPCOPY:
+                    try:
+                        model_fp64 = copy.deepcopy(self)
+                        model_orig, inputs_orig = model_fp64.get_module()
+                        model_fp64.model, model_fp64.example_inputs = cast_to_fp64(
+                            model_orig,
+                            inputs_orig,
+                        )
+                        self.eager_output_fp64 = model_fp64.invoke()
+                        self.eager_model_fp64 = model_fp64.model
+                        del model_fp64
+                    except Exception as e:
+                        print(
+                            f"fp64 golden ref were not generated. Setting accuracy check to cosine"
+                        )
+                        setattr(self.opt_args, "use_cosine_similarity", True)
+
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
@@ -154,23 +196,15 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             apply_opt_args(self, self.opt_args, self.extra_args)
         if should_check_correctness:
-            # tensorrt or fp16 is known to generate less-accurate results
-            # in this case, use more relaxed cosine similarity instead of torch.allclose
-            # for correctness testing
-            # see: https://github.com/pytorch/torchdynamo/pull/438
-            if (
-                self.dargs.precision == "fp16"
-                or self.dargs.precision == "amp"
-                or (self.dynamo and self.opt_args.torchdynamo == "fx2trt")
-                or (not self.dynamo and self.opt_args.fx2trt)
-                or (not self.dynamo and self.opt_args.use_cosine_similarity)
-            ):
-                self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
-            else:
-                # get tolerance of correctness check from os.environ
-                atol = float(os.environ.get("TORCHBENCH_ATOL", "1e-4"))
-                rtol = float(os.environ.get("TORCHBENCH_RTOL", "1e-4"))
-                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, atol=atol, rtol=rtol)
+            # get tolerance of correctness check from os.environ
+            tol = float(os.environ.get("TORCHBENCH_TOL", "1e-4"))
+            self.correctness = correctness_check(
+                self,
+                cos_sim=getattr(self.opt_args, "use_cosine_similarity", False),
+                deepcopy=self.DEEPCOPY,
+                tol=tol
+            )
+
         # setup distributed trainer
         if self.dargs.distributed:
             if self.dargs.distributed_wrap_fn:

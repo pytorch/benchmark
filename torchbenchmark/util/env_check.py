@@ -7,6 +7,9 @@ import copy
 import warnings
 from typing import List, Dict, Tuple, Optional
 
+import torch
+from torch._dynamo.utils import same, clone_inputs
+
 MAIN_RANDOM_SEED = 1337
 # rounds for stableness tests
 STABLENESS_CHECK_ROUNDS: int = 3
@@ -71,13 +74,14 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
         model.opt = opt_saved
     return previous_result
 
-def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, atol=1e-4, rtol=1e-4) -> bool:
+def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, tol=1e-4) -> bool:
     old_test = model.test
     model.test = "eval"
     opt_saved = None
     if hasattr(model, "opt"):
         opt_saved = model.opt
         model.opt = None
+
     for _i in range(rounds):
         # some models are stateful and will give different outputs
         # on the same input if called multiple times
@@ -93,7 +97,7 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
         cur_result = copy_model.invoke()
 
         equal_nan = hasattr(model, "EQUAL_NAN") and model.EQUAL_NAN
-        if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol, equal_nan=equal_nan):
+        if not same(model.eager_output, cur_result, fp64_ref=model.eager_output_fp64, cos_similarity=cos_sim, tol=tol, equal_nan=equal_nan):
             return False
 
         del cur_result
@@ -107,24 +111,26 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
         if not hasattr(model, "eager_model_after_one_train_iteration"):
             warnings.warn(UserWarning("model doesn't have eager_model_after_one_train_iteration. Skipping train correctness check."))
         model.invoke()
+        eager_named_params = dict(model.eager_model_after_one_train_iteration.named_parameters())
+        eager_fp64_named_params = dict(model.eager_model_fp64.named_parameters()) if model.eager_model_fp64 is not None else {}
+
         for name, param in model.model.named_parameters():
             if not param.requires_grad:
                 continue
-            found = False
-            for name_ref, param_ref in model.eager_model_after_one_train_iteration.named_parameters():
-                if name_ref == name:
-                    found = True
-                    # backward typically requires higher error margin.
-                    # 400 times bigger may sound too big to be useful but still better than not checking at all.
-                    if not same(param_ref.grad, param.grad, cos_similarity=cos_sim, atol=atol*40, rtol=rtol*40):
-                        import torch
-                        if not isinstance(param.grad, torch.Tensor):
-                            print(f"model with dynamo does not have grad of param {name}")
-                        else:
-                            print(f"grad of param {name} after running with dynamo doesn't have gradient matching with eager mode")
-                        return False
-                    break
-            if not found:
+
+            if name in eager_named_params:
+                fp64_grad = getattr(eager_fp64_named_params.get(name, None), "grad", None)
+                # backward typically requires higher error margin.
+                # 400 times bigger may sound too big to be useful but still better than not checking at all.
+                if not same(eager_named_params[name].grad, param.grad, fp64_ref=fp64_grad, cos_similarity=cos_sim, tol=tol):
+                    import torch
+                    if not isinstance(param.grad, torch.Tensor):
+                        print(f"model with dynamo does not have grad of param {name}")
+                    else:
+                        print(f"grad of param {name} after running with dynamo doesn't have gradient matching with eager mode")
+                    return False
+                break
+            else:
                 print(f"param {name} in model with dynamo not found in the eager model")
                 return False
 
@@ -170,72 +176,3 @@ def is_numpy_ndarray(value):
         value,
         (np.ndarray, ),
     )
-
-# copied from https://github.com/pytorch/torchdynamo/blob/main/torchdynamo/utils.py#L411
-def same(a, b, cos_similarity=False, atol=1e-4, rtol=1e-4, equal_nan=False):
-    """Check correctness to see if a and b match"""
-    import torch
-    import math
-    if isinstance(a, (list, tuple, torch.nn.ParameterList, torch.Size)):
-        assert isinstance(b, (list, tuple)), f"type mismatch {type(a)} {type(b)}"
-        return len(a) == len(b) and all(
-            same(ai, bi, cos_similarity, atol, rtol, equal_nan) for ai, bi in zip(a, b)
-        )
-    elif isinstance(a, dict):
-        assert isinstance(b, dict)
-        assert set(a.keys()) == set(
-            b.keys()
-        ), f"keys mismatch {set(a.keys())} == {set(b.keys())}"
-        for k in a.keys():
-            if not (same(a[k], b[k], cos_similarity, atol, rtol, equal_nan=equal_nan)):
-                print("Accuracy failed for key name", k)
-                return False
-        return True
-    elif isinstance(a, torch.Tensor):
-        if a.is_sparse:
-            assert b.is_sparse
-            a = a.to_dense()
-            b = b.to_dense()
-        if not isinstance(b, torch.Tensor):
-            return False
-        if cos_similarity:
-            # TRT will bring error loss larger than current threshold. Use cosine similarity as replacement
-            a = a.flatten().to(torch.float32)
-            b = b.flatten().to(torch.float32)
-            res = torch.nn.functional.cosine_similarity(a, b, dim=0, eps=1e-6)
-            if res < 0.99:
-                print(f"Similarity score={res.cpu().detach().item()}")
-            return res >= 0.99
-        else:
-            return torch.allclose(a, b, atol=atol, rtol=rtol, equal_nan=equal_nan)
-    elif isinstance(a, (str, int, type(None), bool, torch.device)):
-        return a == b
-    elif isinstance(a, float):
-        return math.isclose(a, b, rel_tol=rtol, abs_tol=atol)
-    elif is_numpy_int_type(a) or is_numpy_float_type(a):
-        return (type(a) is type(b)) and (a == b)
-    elif is_numpy_ndarray(a):
-        return (type(a) is type(b)) and same(torch.from_numpy(a),
-                                             torch.from_numpy(b),
-                                             cos_similarity,
-                                             atol, rtol, equal_nan)
-    elif type(a).__name__ in (
-        "MaskedLMOutput",
-        "Seq2SeqLMOutput",
-        "CausalLMOutputWithCrossAttentions",
-        "LongformerMaskedLMOutput",
-        "Instances",
-        "SquashedNormal",
-        "Boxes",
-        "Normal",
-        "TanhTransform",
-        "Foo",
-        "Variable",
-    ):
-        assert type(a) is type(b)
-        return all(
-            same(getattr(a, key), getattr(b, key), cos_similarity, atol, rtol, equal_nan)
-            for key in a.__dict__.keys()
-        )
-    else:
-        raise RuntimeError(f"unsupported type: {type(a).__name__}")
