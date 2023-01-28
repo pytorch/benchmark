@@ -163,13 +163,12 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
         args.cudagraph = False
     return args, extra_args
 
-def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, extra_args: List[str]):
+def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
     if args.flops == "fvcore":
         enable_fvcore_flops(model)
     if args.backend:
         model._enable_backend()
         return
-    assert not extra_args, f"Exptected no unknown args at this point, found {extra_args}"
     if args.fuser:
         import torch
         model.add_context(lambda: torch.jit.fuser(args.fuser))
