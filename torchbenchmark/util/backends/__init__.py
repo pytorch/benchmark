@@ -12,7 +12,7 @@ def create_backend(fn):
             return None
 
         try:
-            fn(model, **kwargs)
+            return fn(model, **kwargs)
         except KeyboardInterrupt:
             raise
         except Exception as e:

@@ -8,13 +8,13 @@ def parse_torchscript_args(args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     # enable ofi by default
     parser.add_argument("--no-ofi", action='store_true', help="disable optimize_for_inference")
-    args = parser.parse_args(args)
-    return args
+    args, unknown_args = parser.parse_known_args(args)
+    return args, unknown_args
 
 @create_backend
 def torchscript(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[str]):
     model.jit = True
-    backend_args, unknown_args = parse_torchscript_args(backend_args)
+    backend_args, extra_args = parse_torchscript_args(backend_args)
     def _torchscript():
         # customized jit callback function
         if hasattr(model, 'jit_callback'):
@@ -30,4 +30,4 @@ def torchscript(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args:
         if model.test == "eval" and not backend_args.no_ofi:
             module = torch.jit.optimize_for_inference(module)
         model.set_module(module)
-    return _torchscript, unknown_args
+    return _torchscript, extra_args
