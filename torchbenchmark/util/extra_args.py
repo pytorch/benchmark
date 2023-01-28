@@ -151,6 +151,9 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"
+    if args.backend:
+        backend = BACKENDS[args.backend]
+        model._enable_backend, extra_args = backend(model, backend_args=extra_args)
     if model.device == "cpu" and args.fuser:
         raise NotImplementedError("Fuser only works with GPU.")
     if not (model.device == "cuda" and model.test == "eval"):
@@ -164,9 +167,7 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
     if args.flops == "fvcore":
         enable_fvcore_flops(model)
     if args.backend:
-        backend = BACKENDS[args.backend]
-        # transform the model using the specified backend
-        backend(model, backend_args=extra_args)
+        model._enable_backend()
         return
     assert not extra_args, f"Exptected no unknown args at this point, found {extra_args}"
     if args.fuser:
