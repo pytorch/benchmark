@@ -22,11 +22,12 @@ from .tb_dcgm_types.record import RecordType
 from .tb_dcgm_types.record_aggregator import RecordAggregator
 from .tb_dcgm_types.tb_logger import set_logger, LOGGER_NAME
 from .tb_dcgm_types.config import *
-from .tb_dcgm_types.config import DEFAULT_MONITORING_INTERVAL
 
 import logging
 logger = logging.getLogger(LOGGER_NAME)
 import json
+from time import time_ns
+
 
 class ModelAnalyzer:
     def __init__(self):
@@ -42,8 +43,8 @@ class ModelAnalyzer:
         self.gpu_metrics = []
         # the final metric results. Its format is {GPU_UUID: {GPUUtilization: }}
         # Example:
-        # {'GPU-4177e846-1274-84e3-dcde': 
-        #   {<class '.tb_dcgm_types.gpu_fp32active.GPUFP32Active'>: 
+        # {'GPU-4177e846-1274-84e3-dcde':
+        #   {<class '.tb_dcgm_types.gpu_fp32active.GPUFP32Active'>:
         #      <.tb_dcgm_types.gpu_fp32active.GPUFP32Active object at 0x7f14bbae2280>
         #   }
         #  }
@@ -64,15 +65,20 @@ class ModelAnalyzer:
         self.cpu_metric_value = {}
         # GPU Monitor Backend
         self.gpu_monitor_backend = 'dcgm'
+        self.stop_monitor_timestamp = None
 
     def add_metric_gpu_peak_mem(self):
         self.gpu_metrics.append(GPUPeakMemory)
+
     def add_metric_gpu_flops(self):
         self.gpu_metrics.append(GPUFP32Active)
+
     def add_metric_cpu_peak_mem(self):
         self.cpu_metrics.append(CPUPeakMemory)
+
     def set_gpu_monitor_backend_nvml(self):
         self.gpu_monitor_backend = 'nvml'
+
     def set_export_csv_name(self, export_csv_name=''):
         self.export_csv_name = export_csv_name
         # test for correct permission
@@ -111,35 +117,34 @@ class ModelAnalyzer:
             self.cpu_monitor.destroy()
             self.cpu_monitor = None
             self.cpu_monitor_started = False
-    
+
     def stop_monitor(self):
+        self.stop_monitor_timestamp = time_ns()
         if self.gpu_monitor:
             self.gpu_records = self.gpu_monitor.stop_recording_metrics()
         if self.cpu_monitor:
             self.cpu_records = self.cpu_monitor.stop_recording_metrics()
         # This must be called after stop_recording_metrics
         self._destory_monitor()
-        if self.gpu_records:
-            # insert all gpu_records into record_aggregator
-            self.gpu_record_aggregator.insert_all(self.gpu_records)
-        if self.cpu_records:
-            self.cpu_record_aggregator.insert_all(self.cpu_records)
 
-    
     def aggregate(self):
         """
-        aggregate must be called after stop_monitor.
+        Aaggregate must be called after stop_monitor.
         """
         if self.gpu_records:
+            self.gpu_records = [record for record in self.gpu_records if record.timestamp() <= self.stop_monitor_timestamp]
+            self.gpu_record_aggregator.insert_all(self.gpu_records)
             records_groupby_gpu = self.gpu_record_aggregator.groupby(
                 self.gpu_metrics, lambda record: record.device_uuid())
-            
+
             for gpu in self.gpus:
                 self.gpu_metric_value[gpu.device_uuid()] = {}
             for metric_type, metric in records_groupby_gpu.items():
                 for gpu_uuid, metric_value in metric.items():
                     self.gpu_metric_value[gpu_uuid][metric_type] = metric_value
         if self.cpu_records:
+            self.cpu_records = [record for record in self.cpu_records if record.timestamp() <= self.stop_monitor_timestamp]
+            self.cpu_record_aggregator.insert_all(self.cpu_records)
             records_groupby_cpu = self.cpu_record_aggregator.groupby(
                 self.cpu_metrics, lambda record: record.device_uuid())
             # detault cpu id is 0x1
@@ -147,13 +152,13 @@ class ModelAnalyzer:
             for metric_type, metric in records_groupby_cpu.items():
                 for cpu_uuid, metric_value in metric.items():
                     self.cpu_metric_value[cpu_uuid][metric_type] = metric_value
-    
+
     def set_monitoring_interval(self, attempted_interval):
         """
         The default monitoring internval is DEFAULT_MONITORING_INTERVAL * 1000 ms.
         """
-        if attempted_interval < 0.1:
-            logger.warning("The attempted interval is too short, would cause untrusted profiling results.")
+        # if attempted_interval < 0.1:
+        #     logger.warning("The attempted interval is too short, would cause untrusted profiling results.")
         self.config.monitoring_interval = attempted_interval
 
     def print_flops(self):
@@ -163,10 +168,10 @@ class ModelAnalyzer:
             print(self.gpu_metric_value[gpu_uuid][GPUFP32Active].value())
             # TFLOPs/second = Device_SM_Count x Device_FMAs_Per_Cycle_Per_SM x 2 x Running_Frequency_KHz x DCGM_Activity / 1e+9
             print("GPU : TFLOPs/Second %.4f" % (gpu._sm_count * gpu._fma_count * 2 *
-                gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9))
+                  gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9))
         # @Yueming Hao: print all collected gpu records, for debug only
-        logger.debug(json.dumps([_.to_dict() for _ in self.gpu_records], indent = 4))
-    
+        logger.debug(json.dumps([_.to_dict() for _ in self.gpu_records], indent=4))
+
     def export_all_records_to_csv(self):
         records_groupby_gpu = self.gpu_record_aggregator.groupby_wo_aggregate(
             self.gpu_metrics, lambda record: record.device_uuid())
@@ -183,7 +188,7 @@ class ModelAnalyzer:
                     csv_records[gpu_uuid][record_type][record.timestamp()] = record.value()
         with open(self.export_csv_name, 'w') as fout:
             for gpu_uuid in csv_records:
-                # timestamp record in DCGM is microsecond 
+                # timestamp record in DCGM is microsecond
                 timestamps = set()
                 fout.write("timestamp(ms), ")
                 for record_type in csv_records[gpu_uuid]:
@@ -213,18 +218,17 @@ class ModelAnalyzer:
                     line = "%.2f, " % ((a_timestamp - timestamp_start) / 1000)
                     for record_type in csv_records[gpu_uuid]:
                         value = csv_records[gpu_uuid][record_type].get(a_timestamp, -1)
-                        line += "%.2f, "% value
+                        line += "%.2f, " % value
                     line += "%.2f, " % duration
                     if duration != 0 :
                         if GPUPCIERX in self.gpu_metrics:
                             pcierx_record = csv_records[gpu_uuid][GPUPCIERX].get(a_timestamp, -1)
                             if pcierx_record != -1:
-                                line += "%.2f, " % (pcierx_record / duration *1000/1024/1024/1024 )
+                                line += "%.2f, " % (pcierx_record / duration * 1000 / 1024 / 1024 / 1024)
                         if GPUPCIETX in self.gpu_metrics:
                             pcietx_record = csv_records[gpu_uuid][GPUPCIETX].get(a_timestamp, -1)
-                            line += "%.2f, " % (pcietx_record / duration *1000/1024/1024/1024 )
+                            line += "%.2f, " % (pcietx_record / duration * 1000 / 1024 / 1024 / 1024)
                     fout.write(line + "\n")
-
 
     def calculate_flops(self, gpu_uuid=None) -> float:
         """
@@ -272,8 +276,9 @@ class ModelAnalyzer:
         cpu_uuid = next(iter(self.cpu_metric_value))
         return self.cpu_metric_value[cpu_uuid][CPUPeakMemory].value() / 1024
 
+
 def check_dcgm():
-    try: 
+    try:
         temp_model_analyzer = ModelAnalyzer()
         temp_model_analyzer.add_metric_gpu_flops()
         temp_model_analyzer.start_monitor()
@@ -282,6 +287,7 @@ def check_dcgm():
         logger.error("ERROR: DCGM init failed. ", e)
         exit(-1)
     return True
+
 
 def check_nvml():
     try:

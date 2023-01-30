@@ -123,7 +123,7 @@ class DCGMMonitor(Monitor):
                                 metric_type(value=float(measurement.value),
                                             device_uuid=gpu.device_uuid(),
                                             timestamp=measurement.ts))
-
+        records.sort(key=lambda x: x._timestamp)
         return records
 
     def destroy(self):

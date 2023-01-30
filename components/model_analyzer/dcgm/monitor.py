@@ -62,6 +62,7 @@ class Monitor(ABC):
             duration = time.time() - begin
             if duration < frequency:
                 time.sleep(frequency - duration)
+        self._monitoring_iteration()
 
     @abstractmethod
     def _monitoring_iteration(self):
@@ -114,6 +115,7 @@ class Monitor(ABC):
                 "called before stop_recording_metrics")
 
         self._thread_active = False
+        self._thread.wait()
         self._thread = None
 
         return self._collect_records()
