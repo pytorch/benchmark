@@ -51,9 +51,6 @@ def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool
 def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer')
 
-def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[int]:
-    return model.max_length if is_hf_model(model) else None
-
 def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision: str) -> bool:
     if precision == "fp16":
         return model.device == 'cuda' and hasattr(model, "enable_fp16_half")
@@ -143,9 +140,7 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=list_backends(), help="enable backends")
-    parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
-    parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
     parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     args, extra_args = parser.parse_known_args(opt_args)
@@ -172,14 +167,3 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
     if args.fuser:
         import torch
         model.add_context(lambda: torch.jit.fuser(args.fuser))
-    if args.fx2trt:
-        if model.jit:
-            raise NotImplementedError("fx2trt with JIT is not available.")
-        module, exmaple_inputs = model.get_module()
-        fp16 = not (model.dargs.precision == "fp32")
-        model.set_module(enable_fx2trt(model.batch_size, fp16=fp16, model=module, example_inputs=exmaple_inputs,
-                                       is_hf_model=is_hf_model(model), hf_max_length=get_hf_maxlength(model)))
-    if args.torch_trt:
-        module, exmaple_inputs = model.get_module()
-        precision = 'fp16' if not model.dargs.precision == "fp32" else 'fp32'
-        model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
