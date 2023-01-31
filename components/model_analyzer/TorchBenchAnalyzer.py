@@ -132,7 +132,11 @@ class ModelAnalyzer:
         Aaggregate must be called after stop_monitor.
         """
         if self.gpu_records:
-            self.gpu_records = [record for record in self.gpu_records if record.timestamp() <= self.stop_monitor_timestamp]
+            new_gpu_records = [record for record in self.gpu_records if record.timestamp() <= self.stop_monitor_timestamp]
+            if len(new_gpu_records) == 0:
+                self.gpu_records = self.gpu_records[:1]
+            else:
+                self.gpu_records = new_gpu_records
             self.gpu_record_aggregator.insert_all(self.gpu_records)
             records_groupby_gpu = self.gpu_record_aggregator.groupby(
                 self.gpu_metrics, lambda record: record.device_uuid())
