@@ -143,7 +143,11 @@ class ModelAnalyzer:
                 for gpu_uuid, metric_value in metric.items():
                     self.gpu_metric_value[gpu_uuid][metric_type] = metric_value
         if self.cpu_records:
-            self.cpu_records = [record for record in self.cpu_records if record.timestamp() <= self.stop_monitor_timestamp]
+            new_cpu_records = [record for record in self.cpu_records if record.timestamp() <= self.stop_monitor_timestamp]
+            if len(new_cpu_records) == 0:
+                self.cpu_records = self.cpu_records[:1]
+            else:
+                self.cpu_records = new_cpu_records
             self.cpu_record_aggregator.insert_all(self.cpu_records)
             records_groupby_cpu = self.cpu_record_aggregator.groupby(
                 self.cpu_metrics, lambda record: record.device_uuid())
