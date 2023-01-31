@@ -135,9 +135,6 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
         model._enable_backend, extra_args = backend(model, backend_args=extra_args)
     if model.device == "cpu" and args.fuser:
         raise NotImplementedError("Fuser only works with GPU.")
-    if not (model.device == "cuda" and model.test == "eval"):
-        if args.fx2trt or args.torch_trt:
-            raise NotImplementedError("TensorRT only works for CUDA inference tests.")
     if is_torchvision_model(model):
         args.cudagraph = False
     return args, extra_args
