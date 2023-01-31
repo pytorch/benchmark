@@ -2,7 +2,7 @@ from typing import List
 import torch
 
 from torchbenchmark.util.backends import create_backend 
-from torchbenchmark.util.extra_args import is_hf_model
+from torchbenchmark.util.env_check import is_hf_model
 
 @create_backend
 def fx2trt(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[str]):

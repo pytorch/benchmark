@@ -4,8 +4,7 @@ from typing import List, Optional, Tuple
 from torchbenchmark.util.backends import list_backends, BACKENDS
 
 from torchbenchmark.util.backends.flops import enable_fvcore_flops
-from torchbenchmark.util.backends.fx2trt import enable_fx2trt
-from torchbenchmark.util.backends.torch_trt import enable_torchtrt
+from torchbenchmark.util.env_check import is_torchvision_model, is_staged_train_test
 
 TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
 
@@ -35,21 +34,6 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool
     group.add_argument('--' + name, dest=name, action='store_true')
     group.add_argument('--no-' + name, dest=name, action='store_false')
     parser.set_defaults(**{name: default_value})
-
-def is_timm_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'TIMM_MODEL') and model.TIMM_MODEL
-
-def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
-
-def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
-
-def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
-
-def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer')
 
 def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision: str) -> bool:
     if precision == "fp16":
