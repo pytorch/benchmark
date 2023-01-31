@@ -9,10 +9,10 @@ import yaml
 from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark import REPO_PATH
-from torchbenchmark.util.extra_args import check_correctness_p, is_hf_model, parse_opt_args, apply_opt_args, \
+from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
                                            TEST_STAGE
-from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
+from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
