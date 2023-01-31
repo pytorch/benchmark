@@ -33,7 +33,8 @@ jobs:
           . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
-          conda install -y pyyaml numpy ninja
+          conda install -y pyyaml numpy ninja regex gitpython setuptools beautifulsoup4 requests
+          conda install -y libglib pango expecttest -c conda-forge
           # check the machine is tuned
           pip install -U py-cpuinfo psutil distro
           sudo ${HOME}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python3 torchbenchmark/util/machine_config.py
