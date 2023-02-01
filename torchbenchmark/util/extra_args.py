@@ -19,14 +19,13 @@ def check_correctness_p(
         return False
     if dargs.skip_correctness:
         return False
-    is_eval_test = model.test == "eval"
     # always check correctness with torchdynamo
     if model.dynamo:
         return True
     opt_args_dict = vars(opt_args)
     for k in opt_args_dict:
         if opt_args_dict[k]:
-            return is_eval_test
+            return True
     return False
 
 def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool=True):
@@ -135,8 +134,6 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
         model._enable_backend, extra_args = backend(model, backend_args=extra_args)
     if model.device == "cpu" and args.fuser:
         raise NotImplementedError("Fuser only works with GPU.")
-    if is_torchvision_model(model):
-        args.cudagraph = False
     return args, extra_args
 
 def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):

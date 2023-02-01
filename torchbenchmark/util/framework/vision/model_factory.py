@@ -30,11 +30,10 @@ class TorchVisionModel(BenchmarkModel):
             self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
             self.model.train()
             # setup optimizer and loss_fn
-            self.optimizer = optim.Adam(
-                self.model.parameters(),
-                # TODO resolve https://github.com/pytorch/torchdynamo/issues/1083
-                capturable=bool(int(os.getenv("ADAM_CAPTURABLE", 0)
-            )))
+            # if backend is cudagraph, must set optimizer to be capturable
+            capturable = bool(int(os.getenv("ADAM_CAPTURABLE", 0))) \
+                if not self.opt_args.backend == "cudagraph" else True
+            self.optimizer = optim.Adam(self.model.parameters(), capturable=capturable)
             self.loss_fn = torch.nn.CrossEntropyLoss()
             self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
             self.real_output = [ torch.rand_like(self.example_outputs) ]
