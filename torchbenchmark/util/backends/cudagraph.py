@@ -19,12 +19,14 @@ def cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: L
         s.wait_stream(torch.cuda.current_stream())
         with torch.cuda.stream(s):
             for _ in range(WARMUP_ITER):
-                model.opt.zero_grad(set_to_none=True)
+                if model.test == "train":
+                    model.opt.zero_grad(set_to_none=True)
                 model.invoke()
         torch.cuda.current_stream().wait_stream(s)
         # capture
         cuda_graph = torch.cuda.CUDAGraph()
-        model.opt.zero_grad(set_to_none=True)
+        if model.test == "train":
+            model.opt.zero_grad(set_to_none=True)
         with torch.cuda.graph(cuda_graph):
             model.invoke()
         model.g = cuda_graph
