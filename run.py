@@ -117,10 +117,6 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
             model_analyzer.add_metric_cpu_peak_mem()
         if metrics_gpu_backend == "default":
             model_analyzer.set_gpu_monitor_backend_nvml()
-        for metric in metrics_backend_mapping:
-            print(f"Metric {metric} is collected by {metrics_backend_mapping[metric]} backend")
-        if 'cpu_peak_mem' in metrics_needed:
-            print("Metric cpu_peak_mem is collected by psutil.Process.")
         model_analyzer.start_monitor()
 
     if stress:
