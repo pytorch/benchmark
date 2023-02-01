@@ -15,6 +15,8 @@ class TorchVisionModel(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = None
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
+    # Whether to skip the opt zero grad
+    SKIP_ZERO_GRAD = False
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, weights=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -67,7 +69,7 @@ class TorchVisionModel(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self):
-        if self.opt:
+        if self.opt and not self.SKIP_ZERO_GRAD:
             self.opt.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
             with self.amp_context():
