@@ -40,6 +40,9 @@ class TorchVisionModel(BenchmarkModel):
             self.real_output = [ torch.rand_like(self.example_outputs) ]
         elif test == "eval":
             self.model.eval()
+            self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
+            self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
+            self.real_output = [ torch.rand_like(self.example_outputs) ]
 
         self.amp_context = nullcontext
 
