@@ -216,6 +216,8 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         eg.register_callback(f"{args.profile_eg_folder}/{eg_file}")
         nwarmup = 0
         eg.start()
+    from components.TorchExpert.torchexpert import TorchExpert
+    torchexpert = TorchExpert(model_name=args.model, output_csv_file="/tmp/torchexpert_result.csv")
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1, repeat=1),
         activities=activity_groups,
@@ -237,13 +239,17 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
             t1 = time.time_ns()
             if i >= nwarmup:
                 result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
-            prof.step()
+            if i != nwarmup:
+                prof.step()
+    torchexpert.set_profile(prof)
+    
     if args.profile_eg and eg:
         eg.stop()
         eg.unregister_callback()
         print(f"Save Exeution Graph to : {args.profile_eg_folder}/{eg_file}")
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
+    torchexpert.analyze()
 
     printResultSummaryTime(result_summary)
 
