@@ -321,6 +321,9 @@ if __name__ == "__main__":
     if args.amp:
         test = torch.autocast("cuda")(test)
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
+    # enable cpu_peak_mem and gpu_peak_mem by default
+    metrics_needed.extend(['cpu_peak_mem', 'gpu_peak_mem'])
+    metrics_needed = list(set(metrics_needed))
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
         if metrics_gpu_backend == 'dcgm':
