@@ -9,10 +9,11 @@ def fx2trt(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List
     FP16 = True if model.dargs.precision == "fp16" else False
     HF_MODEL = True if is_hf_model(model) else False
     def _fx2trt():
-        from torch_tensorrt.fx.lower import lower_to_trt
+        from torch_tensorrt.fx import compile
         from torch_tensorrt.fx.utils import LowerPrecision
         module, example_inputs = model.get_module()
         precision = LowerPrecision.FP16 if FP16 else LowerPrecision.FP32
+
         if HF_MODEL:
             from transformers.utils.fx import symbolic_trace as hf_symbolic_trace
             traced_model = hf_symbolic_trace(
@@ -20,7 +21,7 @@ def fx2trt(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List
                 batch_size = model.batch_size,
                 sequence_lenghth = model.max_length
             )
-            optimized_model = lower_to_trt(
+            trt_model = compile(
                 traced_model,
                 example_inputs,
                 max_batch_size=model.batch_size,
@@ -28,11 +29,12 @@ def fx2trt(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List
                 explicit_batch_dimension=True,
                 max_workspace_size=20 << 30,
             )
-        optimized_model = lower_to_trt(
-            module=module, input=example_inputs,
-            max_batch_size=model.batch_size, lower_precision=precision
-        )
-        model.set_module(optimized_model)
+        else:
+            trt_model = compile(module=module,
+                                input=example_inputs,
+                                max_batch_size=model.batch_size,
+                                lower_precision=precision)
+        model.set_module(trt_model)
     return _fx2trt, backend_args
 
 @create_backend
