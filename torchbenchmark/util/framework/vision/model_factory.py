@@ -67,12 +67,14 @@ class TorchVisionModel(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self):
-        self.opt.zero_grad()
+        if self.opt:
+            self.opt.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
             with self.amp_context():
                 pred = self.model(data)
             self.loss_fn(pred, target).backward()
-            self.opt.step()
+            if self.opt:
+                self.opt.step()
 
     def cudagraph_train(self):
         for data, target in zip(self.real_input, self.real_output):
