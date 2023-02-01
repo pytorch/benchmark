@@ -41,6 +41,7 @@ def fx2trt(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List
 @create_backend
 def torch_trt(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[str]):
     FP16 = True if model.dargs.precision == "fp16" else False
+    assert model.device == "cuda" and model.test == "eval", f"fx2trt only works on CUDA inference tests."
     def _torch_trt():
         import torch_tensorrt
         module, example_inputs = model.get_module()
