@@ -8,6 +8,7 @@ from torchbenchmark.util.env_check import is_hf_model
 def fx2trt(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[str]):
     FP16 = True if model.dargs.precision == "fp16" else False
     HF_MODEL = True if is_hf_model(model) else False
+    assert model.device == "cuda" and model.test == "eval", f"fx2trt only works on CUDA inference tests."
     def _fx2trt():
         from torch_tensorrt.fx import compile
         from torch_tensorrt.fx.utils import LowerPrecision
