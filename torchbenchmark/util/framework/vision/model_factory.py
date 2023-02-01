@@ -67,25 +67,34 @@ class TorchVisionModel(BenchmarkModel):
     def train(self):
         self.optimizer.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
-            if not self.dynamo and self.opt_args.cudagraph:
-                # see `def enable_amp()`, we ignore AMP for this.
-                self.example_inputs[0].copy_(data)
-                self.example_outputs.copy_(target)
-                self.g.replay()
-            else:
-                with self.amp_context():
-                    pred = self.model(data)
-                self.loss_fn(pred, target).backward()
-                self.optimizer.step()
+            with self.amp_context():
+                pred = self.model(data)
+            self.loss_fn(pred, target).backward()
+            self.optimizer.step()
+
+    def cudagraph_train(self):
+        for data, target in zip(self.real_input, self.real_output):
+            self.example_inputs[0].copy_(data)
+            self.example_outputs.copy_(target)
+            self.g.replay()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
-        if not self.dynamo and self.opt_args.cudagraph:
-            return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.model
         example_inputs = self.example_inputs
         with self.amp_context():
-            result = model(*example_inputs)
-        return (result, )
+            for data, _target in zip(self.real_input, self.real_output):
+                self.example_inputs[0].copy_(data)
+                self.example_outputs.copy_(model(*example_inputs))
+                break
+        return (self.example_outputs, )
+
+    def cudagraph_eval(self):
+        for data, target in zip(self.real_input, self.real_output):
+            self.example_inputs[0].copy_(data)
+            self.example_outputs.copy_(target)
+            self.g.replay()
+            break
+        return (self.example_outputs, )
 
     def enable_amp(self):
         if not self.dynamo and self.opt_args.cudagraph:

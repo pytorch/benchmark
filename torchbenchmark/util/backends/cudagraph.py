@@ -6,6 +6,8 @@ WARMUP_ITER = 3
 
 @create_backend
 def cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[str]):
+    cudagraph_func_name = f"cudagraph_{model.test}"
+    assert hasattr(model, cudagraph_func_name), f"CUDA Graph only works on models implement {cudagraph_func_name}()"
     def _cudagraph():
         # warmup
         s = torch.cuda.Stream()
@@ -18,7 +20,6 @@ def cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: L
         cuda_graph = torch.cuda.CUDAGraph()
         with torch.cuda.graph(cuda_graph):
             model.invoke()
-        def _run_cudagraph(g=cuda_graph):
-            g.replay()
-        model.invoke = _run_cudagraph
+        model.g = cuda_graph
+        model.invoke = getattr(model, cudagraph_func_name)
     return _cudagraph, backend_args
