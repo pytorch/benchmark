@@ -33,7 +33,7 @@ class TorchVisionModel(BenchmarkModel):
             # if backend is cudagraph, must set optimizer to be capturable
             capturable = bool(int(os.getenv("ADAM_CAPTURABLE", 0))) \
                 if not self.opt_args.backend == "cudagraph" else True
-            self.optimizer = optim.Adam(self.model.parameters(), capturable=capturable)
+            self.opt = optim.Adam(self.model.parameters(), capturable=capturable)
             self.loss_fn = torch.nn.CrossEntropyLoss()
             self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
             self.real_output = [ torch.rand_like(self.example_outputs) ]
@@ -67,12 +67,12 @@ class TorchVisionModel(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self):
-        self.optimizer.zero_grad()
+        self.opt.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
             with self.amp_context():
                 pred = self.model(data)
             self.loss_fn(pred, target).backward()
-            self.optimizer.step()
+            self.opt.step()
 
     def cudagraph_train(self):
         for data, target in zip(self.real_input, self.real_output):

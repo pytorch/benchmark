@@ -8,9 +8,9 @@ WARMUP_ITER = 3
 def cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[str]):
     cudagraph_func_name = f"cudagraph_{model.test}"
     assert hasattr(model, cudagraph_func_name), f"CUDA Graph only works on models implement {cudagraph_func_name}()"
-    # CUDAGraph can't be copied/pickled, disable copying in correctness checking
-    model.DEEPCOPY = False
     def _cudagraph():
+        # CUDAGraph can't be copied/pickled, disable copying in correctness checking
+        model.DEEPCOPY = False
         # warmup
         s = torch.cuda.Stream()
         s.wait_stream(torch.cuda.current_stream())
