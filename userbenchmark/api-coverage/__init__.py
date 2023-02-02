@@ -139,8 +139,8 @@ def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--models", default="",
                         help="Specify the models to run, default (empty) runs all models.")
-    parser.add_argument("-d", "--device", default="cuda", help="Specify the device.")
-    parser.add_argument("-t", "--test", default="eval", help="Specify the test.")
+    parser.add_argument("-d", "--device", default="cuda,cpu", help="Specify the device.")
+    parser.add_argument("-t", "--test", default="eval,train", help="Specify the test.")
     parser.add_argument("-o", "--output", type=str, help="The default output json file.")
     args = parser.parse_args(args)
     return args
