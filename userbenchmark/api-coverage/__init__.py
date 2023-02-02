@@ -13,6 +13,7 @@ from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_o
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models, load_model, TorchBenchModelConfig
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
+    import torchbenchmark.util.experiment.metrics
 
 BM_NAME = "api-coverage"
 
@@ -171,11 +172,13 @@ def run(args: List[str]):
     models = list_models()
     cfgs = list(itertools.chain(*map(generate_model_config, models)))
     cfg_filter = generate_filter(args)
+    torchbenchmark.util.experiment.metrics.BENCHMARK_ITERS = 1
+    torchbenchmark.util.experiment.metrics.WARMUP_ROUNDS = 0
     single_round_result = []
     api_used = set()
     for cfg in filter(cfg_filter, cfgs):
         try:
-            print(cfg.name)
+            # print(cfg.name)
             # if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor']:
             #     continue
             # load the model instance within the same process
