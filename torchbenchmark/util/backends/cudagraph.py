@@ -32,6 +32,8 @@ def cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: L
         model.g = cuda_graph
         if model.test == "train":
             model.train = getattr(model, cudagraph_func_name)
-        else:
+        elif model.test == "eval":
             model.eval = getattr(model, cudagraph_func_name)
+        else:
+            assert False, f"Expected model test train or eval, get {model.test}"
     return _cudagraph, backend_args
