@@ -15,6 +15,8 @@ class TorchVisionModel(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = None
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
+    # Whether to skip the opt zero grad
+    SKIP_ZERO_GRAD = False
 
     def __init__(self, model_name, test, device, jit=False, batch_size=None, weights=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -30,16 +32,18 @@ class TorchVisionModel(BenchmarkModel):
             self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
             self.model.train()
             # setup optimizer and loss_fn
-            self.optimizer = optim.Adam(
-                self.model.parameters(),
-                # TODO resolve https://github.com/pytorch/torchdynamo/issues/1083
-                capturable=bool(int(os.getenv("ADAM_CAPTURABLE", 0)
-            )))
+            # if backend is cudagraph, must set optimizer to be capturable
+            capturable = bool(int(os.getenv("ADAM_CAPTURABLE", 0))) \
+                if not self.opt_args.backend == "cudagraph" else True
+            self.opt = optim.Adam(self.model.parameters(), capturable=capturable)
             self.loss_fn = torch.nn.CrossEntropyLoss()
             self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
             self.real_output = [ torch.rand_like(self.example_outputs) ]
         elif test == "eval":
             self.model.eval()
+            self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
+            self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
+            self.real_output = [ torch.rand_like(self.example_outputs) ]
 
         self.amp_context = nullcontext
 
@@ -65,27 +69,38 @@ class TorchVisionModel(BenchmarkModel):
         return self.model, self.example_inputs
 
     def train(self):
-        self.optimizer.zero_grad()
+        if self.opt and not self.SKIP_ZERO_GRAD:
+            self.opt.zero_grad()
         for data, target in zip(self.real_input, self.real_output):
-            if not self.dynamo and self.opt_args.cudagraph:
-                # see `def enable_amp()`, we ignore AMP for this.
-                self.example_inputs[0].copy_(data)
-                self.example_outputs.copy_(target)
-                self.g.replay()
-            else:
-                with self.amp_context():
-                    pred = self.model(data)
-                self.loss_fn(pred, target).backward()
-                self.optimizer.step()
+            with self.amp_context():
+                pred = self.model(data)
+            self.loss_fn(pred, target).backward()
+            if self.opt:
+                self.opt.step()
+
+    def cudagraph_train(self):
+        for data, target in zip(self.real_input, self.real_output):
+            self.example_inputs[0].copy_(data)
+            self.example_outputs.copy_(target)
+            self.g.replay()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
-        if not self.dynamo and self.opt_args.cudagraph:
-            return NotImplementedError("CUDA Graph is not yet implemented for inference.")
         model = self.model
         example_inputs = self.example_inputs
         with self.amp_context():
-            result = model(*example_inputs)
-        return (result, )
+            for data, _target in zip(self.real_input, self.real_output):
+                self.example_inputs[0].copy_(data)
+                self.example_outputs.copy_(model(*example_inputs))
+                break
+        return (self.example_outputs, )
+
+    def cudagraph_eval(self):
+        for data, target in zip(self.real_input, self.real_output):
+            self.example_inputs[0].copy_(data)
+            self.example_outputs.copy_(target)
+            self.g.replay()
+            break
+        return (self.example_outputs, )
 
     def enable_amp(self):
         if not self.dynamo and self.opt_args.cudagraph:
