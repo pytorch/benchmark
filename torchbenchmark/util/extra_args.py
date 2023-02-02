@@ -4,8 +4,7 @@ from typing import List, Optional, Tuple
 from torchbenchmark.util.backends import list_backends, BACKENDS
 
 from torchbenchmark.util.backends.flops import enable_fvcore_flops
-from torchbenchmark.util.backends.fx2trt import enable_fx2trt
-from torchbenchmark.util.backends.torch_trt import enable_torchtrt
+from torchbenchmark.util.env_check import is_torchvision_model, is_staged_train_test
 
 TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
 
@@ -35,24 +34,6 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool
     group.add_argument('--' + name, dest=name, action='store_true')
     group.add_argument('--no-' + name, dest=name, action='store_false')
     parser.set_defaults(**{name: default_value})
-
-def is_timm_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'TIMM_MODEL') and model.TIMM_MODEL
-
-def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
-
-def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
-
-def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
-
-def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer')
-
-def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[int]:
-    return model.max_length if is_hf_model(model) else None
 
 def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision: str) -> bool:
     if precision == "fp16":
@@ -143,9 +124,7 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=list_backends(), help="enable backends")
-    parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
     parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
-    parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
     parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     args, extra_args = parser.parse_known_args(opt_args)
@@ -156,9 +135,6 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
         model._enable_backend, extra_args = backend(model, backend_args=extra_args)
     if model.device == "cpu" and args.fuser:
         raise NotImplementedError("Fuser only works with GPU.")
-    if not (model.device == "cuda" and model.test == "eval"):
-        if args.fx2trt or args.torch_trt:
-            raise NotImplementedError("TensorRT only works for CUDA inference tests.")
     if is_torchvision_model(model):
         args.cudagraph = False
     return args, extra_args
@@ -172,14 +148,3 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
     if args.fuser:
         import torch
         model.add_context(lambda: torch.jit.fuser(args.fuser))
-    if args.fx2trt:
-        if model.jit:
-            raise NotImplementedError("fx2trt with JIT is not available.")
-        module, exmaple_inputs = model.get_module()
-        fp16 = not (model.dargs.precision == "fp32")
-        model.set_module(enable_fx2trt(model.batch_size, fp16=fp16, model=module, example_inputs=exmaple_inputs,
-                                       is_hf_model=is_hf_model(model), hf_max_length=get_hf_maxlength(model)))
-    if args.torch_trt:
-        module, exmaple_inputs = model.get_module()
-        precision = 'fp16' if not model.dargs.precision == "fp32" else 'fp32'
-        model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))

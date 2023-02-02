@@ -37,6 +37,21 @@ def has_native_amp() -> bool:
         pass
     return False
 
+def is_timm_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'TIMM_MODEL') and model.TIMM_MODEL
+
+def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
+
+def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
+
+def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
+
+def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer')
+
 def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
        If the result is not stable, raise RuntimeError. """
