@@ -34,10 +34,7 @@ def list_backends():
 # register the backends
 from .jit import torchscript
 from .ait import fx2ait
-<<<<<<< HEAD
 from .trt import fx2trt, torch_trt
-=======
 from .cudagraph import cudagraph
->>>>>>> 12151c41 (Add cuda graph)
 
 __all__ = [list_backends, create_backend ]
