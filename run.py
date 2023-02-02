@@ -15,7 +15,7 @@ import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
 import torch
-
+from scripts.coverage import CoverageMode
 WARMUP_ROUNDS = 3
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
 if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -142,14 +142,22 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
             # second according to https://docs.python.org/3/library/time.html#time.time.
             t0 = time.time_ns()
             start_event.record()
-            func()
+            with CoverageMode(args.model, '/tmp/api_used.csv') as coverage:
+                try:
+                    func()
+                finally:
+                    coverage.commit()
             end_event.record()
             torch.cuda.synchronize()
             t1 = time.time_ns()
             result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
         elif args.device == "mps":
             t0 = time.time_ns()
-            func()
+            with CoverageMode(args.model, '/tmp/api_used.csv') as coverage:
+                try:
+                    func()
+                finally:
+                    coverage.commit()
             t1 = time.time_ns()
             wall_latency = t1 - t0
             # TODO: modify this to add GPU time as well
