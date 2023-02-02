@@ -19,46 +19,19 @@ BM_NAME = "api-coverage"
 
 
 def parse_func(func):
-    description = str(func)
-    reg_method = re.compile(r"method (.*) of (.*) object")
-    reg_method2 = re.compile(r"wrapper (.*) of (.*) object")
-    reg_function = re.compile(r"function (.*)[ >]")
-    reg_class = re.compile(r"class (.*)[ >]")
-    reg_generator = re.compile(r"torch._C.Generator object at (.*)")
-    result_method = reg_method.findall(description)
-    result_function = reg_function.findall(description)
-    result_method2 = reg_method2.findall(description)
-    result_class = reg_class.findall(description)
-    result_generator = reg_generator.findall(description)
-    if result_method:
-        func_name = result_method[0][0]
-        module_name = result_method[0][1]
-    elif result_function:
-        func_name = result_function[0].split("at 0x")[0].strip()
-        module_name = ''
-    elif result_method2:
-        func_name = result_method2[0][0]
-        module_name = result_method2[0][1]
-    elif result_class:
-        func_name = result_class[0].split("at 0x")[0].strip()
-        module_name = ''
-    elif result_generator:
-        func_name = 'Generator'
-        module_name = 'torch._C'
+    if hasattr(func, '__module__'):
+        module_name = func.__module__
+        func_name = func.__name__
     else:
-        # check if the func has attribute `__module__` and `__name__`
-        if hasattr(func, '__module__'):
-            module_name = func.__module__
-        else:
+        if hasattr(func, '__qualname__'):
+            func_name = func.__qualname__
             module_name = ''
-        if hasattr(func, '__name__'):
-            func_name = func.__name__
         else:
-            func_name = ''
-        if module_name != 'torch._ops.profiler':
-            print("not match: ", description)
-    module_name = module_name.replace("'", "")
-    func_name = func_name.replace("'", "")
+            if type(func) == torch._C.Generator:
+                func_name = 'torch._C.Generator'
+                module_name = ''
+            else:
+                raise RuntimeError("no matched moduel and func name: ", func, type(func))
     return module_name, func_name
 
 
@@ -179,8 +152,8 @@ def run(args: List[str]):
     for cfg in filter(cfg_filter, cfgs):
         try:
             # print(cfg.name)
-            # if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor']:
-            #     continue
+            if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor']:
+                continue
             # load the model instance within the same process
             model = load_model(cfg)
             # get the model test metrics
