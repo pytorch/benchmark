@@ -4,12 +4,7 @@ import torch
 try:
     # pyre-ignore[21]
     # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm/data:dlrm_dataloader
-    from data.dlrm_dataloader import get_dataloader
-
-    # pyre-ignore[21]
-    # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm:lr_scheduler
-    from lr_scheduler import LRPolicyScheduler
-
+    from .data.dlrm_dataloader import get_dataloader
 except ImportError:
     pass
 
@@ -38,8 +33,22 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         args = parse_args(self.extra_args)
+        # initialize example data
+        if self.test == "train":
+            args.batch_size = self.batch_size
+            train_dataloader = get_dataloader(args, backend, "train")
+            example_inputs = next(train_dataloader)
+        if self.test == "eval":
+            args.test_batch_size = self.batch_size
+            test_dataloader = get_dataloader(args, backend, "test")
+            example_inputs = next(test_dataloader)
+        # prefetch data to device
+        self.example_inputs = example_inputs.to(self.device)
 
-        train_dataloader = None
+        backend = "nccl" if self.device == "cuda" else "gloo"
+        assert args.in_memory_binary_criteo_path == None and args.synthetic_multi_hot_criteo_path == None, \
+            f"Torchbench only supports random data inputs."
+
         eb_configs = [
             EmbeddingBagConfig(
                 name=f"t_{feature_name}",
@@ -100,40 +109,41 @@ class Model(BenchmarkModel):
             train_model.model.sparse_arch.parameters(),
             {"lr": args.learning_rate},
         )
-        planner = EmbeddingShardingPlanner(
-            topology=Topology(
-                local_world_size=get_local_size(),
-                world_size=dist.get_world_size(),
-                compute_device=device.type,
-            ),
-            batch_size=args.batch_size,
-            # If experience OOM, increase the percentage. see
-            # https://pytorch.org/torchrec/torchrec.distributed.planner.html#torchrec.distributed.planner.storage_reservations.HeuristicalStorageReservation
-            storage_reservation=HeuristicalStorageReservation(percentage=0.05),
-        )
-        plan = planner.collective_plan(
-            train_model, get_default_sharders(), dist.GroupMember.WORLD
-        )
         def optimizer_with_params():
             if args.adagrad:
                 return lambda params: torch.optim.Adagrad(params, lr=args.learning_rate)
             else:
                 return lambda params: torch.optim.SGD(params, lr=args.learning_rate)
 
+        self.model = train_model
         dense_optimizer = KeyedOptimizerWrapper(
-            dict(in_backward_optimizer_filter(model.named_parameters())),
+            dict(in_backward_optimizer_filter(self.model.named_parameters())),
             optimizer_with_params(),
         )
-        optimizer = CombinedOptimizer([model.fused_optimizer, dense_optimizer])
-        self.lr_scheduler = LRPolicyScheduler(
-            optimizer, args.lr_warmup_steps, args.lr_decay_start, args.lr_decay_steps
-        )
+        opt = CombinedOptimizer([self.model.fused_optimizer, dense_optimizer])
         if args.multi_hot_sizes is not None:
             raise RuntimeError("Multi-hot is not supported in TorchBench.")
+        if self.test == "train":
+            self.opt = opt
+            self.model.train()
+        elif self.test == "eval":
+            self.model.eval()
 
+    def get_module(self):
+        return self.model, self.example_inputs
 
-    def train(self):
-        pass
+    def forward(self):
+        self.opt.zero_grad()
+        losses, output = self.model(self.example_inputs)
+        return losses
+
+    def backward(self, losses):
+        torch.sum(losses, dim=0).backward()
+
+    def optimizer(self):
+        self.opt.step()
 
     def eval(self):
-        pass
+        with torch.no_grad():
+             _loss, logits = self.model(self.example_inputs)
+        return logits
