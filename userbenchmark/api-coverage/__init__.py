@@ -31,7 +31,7 @@ def parse_func(func):
                 func_name = 'torch._C.Generator'
                 module_name = ''
             else:
-                raise RuntimeError("no matched moduel and func name: ", func, type(func))
+                raise RuntimeError("no matched module and func name: ", func, type(func))
     return module_name, func_name
 
 
@@ -152,8 +152,8 @@ def run(args: List[str]):
     for cfg in filter(cfg_filter, cfgs):
         try:
             # print(cfg.name)
-            if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor']:
-                continue
+            # if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor']:
+            #     continue
             # load the model instance within the same process
             model = load_model(cfg)
             # get the model test metrics
