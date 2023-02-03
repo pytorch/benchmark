@@ -1,6 +1,5 @@
 import torch
 
-
 # OSS import
 try:
     # pyre-ignore[21]
@@ -11,9 +10,6 @@ try:
     # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm:lr_scheduler
     from lr_scheduler import LRPolicyScheduler
 
-    # pyre-ignore[21]
-    # @manual=//ai_codesign/benchmarks/dlrm/torchrec_dlrm:multi_hot
-    from multi_hot import Multihot, RestartableMap
 except ImportError:
     pass
 
@@ -129,7 +125,7 @@ class Model(BenchmarkModel):
             optimizer_with_params(),
         )
         optimizer = CombinedOptimizer([model.fused_optimizer, dense_optimizer])
-        lr_scheduler = LRPolicyScheduler(
+        self.lr_scheduler = LRPolicyScheduler(
             optimizer, args.lr_warmup_steps, args.lr_decay_start, args.lr_decay_steps
         )
         if args.multi_hot_sizes is not None:
