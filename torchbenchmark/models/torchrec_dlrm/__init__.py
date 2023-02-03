@@ -33,19 +33,18 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         args = parse_args(self.extra_args)
+        backend = "nccl" if self.device == "cuda" else "gloo"
         # initialize example data
         if self.test == "train":
             args.batch_size = self.batch_size
-            train_dataloader = get_dataloader(args, backend, "train")
-            example_inputs = next(train_dataloader)
+            loader = get_dataloader(args, backend, "train")
         if self.test == "eval":
             args.test_batch_size = self.batch_size
-            test_dataloader = get_dataloader(args, backend, "test")
-            example_inputs = next(test_dataloader)
+            loader = get_dataloader(args, backend, "test")
         # prefetch data to device
-        self.example_inputs = example_inputs.to(self.device)
+        for data in loader:
+            self.example_inputs = data.to(self.device)
 
-        backend = "nccl" if self.device == "cuda" else "gloo"
         assert args.in_memory_binary_criteo_path == None and args.synthetic_multi_hot_criteo_path == None, \
             f"Torchbench only supports random data inputs."
 
