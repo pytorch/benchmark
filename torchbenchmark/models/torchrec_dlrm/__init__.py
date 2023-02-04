@@ -8,6 +8,7 @@ try:
 except ImportError:
     pass
 
+import itertools
 from pyre_extensions import none_throws
 from torchrec.datasets.criteo import DEFAULT_CAT_NAMES, DEFAULT_INT_NAMES
 from torchrec import EmbeddingBagCollection
@@ -41,9 +42,9 @@ class Model(BenchmarkModel):
         if self.test == "eval":
             args.test_batch_size = self.batch_size
             loader = get_dataloader(args, backend, "test")
-        # prefetch data to device
-        for data in loader:
-            self.example_inputs = data.to(self.device)
+        limit_batches = 1
+        iterator = itertools.islice(iter(loader), limit_batches)
+        self.example_inputs = next(iterator).to(self.device)
 
         assert args.in_memory_binary_criteo_path == None and args.synthetic_multi_hot_criteo_path == None, \
             f"Torchbench only supports random data inputs."
