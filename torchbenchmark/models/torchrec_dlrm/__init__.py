@@ -68,7 +68,7 @@ class Model(BenchmarkModel):
         if args.interaction_type == InteractionType.ORIGINAL:
             dlrm_model = DLRM(
                 embedding_bag_collection=EmbeddingBagCollection(
-                    tables=eb_configs, device=torch.device("meta")
+                    tables=eb_configs, device=self.device
                 ),
                 dense_in_features=len(DEFAULT_INT_NAMES),
                 dense_arch_layer_sizes=args.dense_arch_layer_sizes,
@@ -78,7 +78,7 @@ class Model(BenchmarkModel):
         elif args.interaction_type == InteractionType.DCN:
             dlrm_model = DLRM_DCN(
                 embedding_bag_collection=EmbeddingBagCollection(
-                    tables=eb_configs, device=torch.device("meta")
+                    tables=eb_configs, device=self.device
                 ),
                 dense_in_features=len(DEFAULT_INT_NAMES),
                 dense_arch_layer_sizes=args.dense_arch_layer_sizes,
@@ -90,7 +90,7 @@ class Model(BenchmarkModel):
         elif args.interaction_type == InteractionType.PROJECTION:
             dlrm_model = DLRM_Projection(
                 embedding_bag_collection=EmbeddingBagCollection(
-                    tables=eb_configs, device=torch.device("meta")
+                    tables=eb_configs, device=self.device
                 ),
                 dense_in_features=len(DEFAULT_INT_NAMES),
                 dense_arch_layer_sizes=args.dense_arch_layer_sizes,
@@ -125,7 +125,9 @@ class Model(BenchmarkModel):
             dict(in_backward_optimizer_filter(self.model.named_parameters())),
             optimizer_with_params(),
         )
-        opt = CombinedOptimizer([self.model.fused_optimizer, dense_optimizer])
+        # opt = CombinedOptimizer([self.model.fused_optimizer, dense_optimizer])
+        # Only run dense optimizer
+        opt = CombinedOptimizer([dense_optimizer])
         if args.multi_hot_sizes is not None:
             raise RuntimeError("Multi-hot is not supported in TorchBench.")
         if self.test == "train":
