@@ -45,6 +45,11 @@ class Model(BenchmarkModel):
         limit_batches = 1
         iterator = itertools.islice(iter(loader), limit_batches)
         self.example_inputs = next(iterator).to(self.device)
+        # parse the args
+        args.dense_arch_layer_sizes = [int(x) for x in args.dense_arch_layer_sizes.split(',') if x.strip().isdigit()]
+        args.over_arch_layer_sizes = [int(x) for x in args.over_arch_layer_sizes.split(',') if x.strip().isdigit()]
+        args.interaction_branch1_layer_sizes = [int(x) for x in args.interaction_branch1_layer_sizes.split(',') if x.strip().isdigit()]
+        args.interaction_branch2_layer_sizes = [int(x) for x in args.interaction_branch2_layer_sizes.split(',') if x.strip().isdigit()]
 
         assert args.in_memory_binary_criteo_path == None and args.synthetic_multi_hot_criteo_path == None, \
             f"Torchbench only supports random data inputs."
