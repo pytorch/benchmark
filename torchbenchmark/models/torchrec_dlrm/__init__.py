@@ -137,7 +137,7 @@ class Model(BenchmarkModel):
             self.model.eval()
 
     def get_module(self):
-        return self.model, self.example_inputs
+        return self.model, (self.example_inputs, )
 
     def forward(self):
         losses, output = self.model(self.example_inputs)
