@@ -1,10 +1,11 @@
 import os
 import re
+import argparse
 import subprocess
 from pathlib import Path
 
 # defines the default CUDA version to compile against
-DEFAULT_CUDA_VERSION = "11.6"
+DEFAULT_CUDA_VERSION = "11.7"
 
 CUDA_VERSION_MAP = {
     "11.3": {
@@ -69,3 +70,9 @@ def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
         print(f"Install pytorch nightly: {install_torch_cmd}")
     else:
         subprocess.check_call(install_torch_cmd, env=env)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--install-conda-pkgs", action="store_true")
+    parser.add_argument("--install-torch-nightlies")
