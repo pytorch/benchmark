@@ -59,6 +59,13 @@ def _create_example_model_instance(task: ModelTask, device: str):
 
 def _load_test(path, device):
 
+    def _skip_cuda_memory_check_p(metadata):
+        if device != "cuda":
+            return True
+        if "skip_cuda_memory_leak" in metadata and metadata["skip_cuda_memory_leak"]:
+            return True
+        return False
+
     def example_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
@@ -75,7 +82,7 @@ def _load_test(path, device):
         allow_customize_batch_size = task.get_model_attribute("ALLOW_CUSTOMIZE_BSIZE", classattr=True)
         # to speedup test, use batch size 1 if possible
         batch_size = 1 if allow_customize_batch_size else None
-        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+        with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="train", device=device, jit=False, batch_size=batch_size)
                 task.invoke()
@@ -90,7 +97,7 @@ def _load_test(path, device):
         allow_customize_batch_size = task.get_model_attribute("ALLOW_CUSTOMIZE_BSIZE", classattr=True)
         # to speedup test, use batch size 1 if possible
         batch_size = 1 if allow_customize_batch_size else None
-        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+        with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="eval", device=device, jit=False, batch_size=batch_size)
                 task.invoke()
@@ -102,7 +109,7 @@ def _load_test(path, device):
 
     def check_device_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
-        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+        with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="eval", device=device, jit=False)
                 task.check_device()

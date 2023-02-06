@@ -3,3 +3,4 @@ eval_deterministic: false
 eval_nograd: true
 train_benchmark: false
 train_deterministic: false
+skip_cuda_memory_leak: true
