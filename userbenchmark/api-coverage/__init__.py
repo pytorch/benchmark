@@ -61,12 +61,14 @@ class CoverageMode(torch.overrides.TorchFunctionMode):
         self.seen = set()
         self.api_used = set()
         self.output_file = output_file
+        self.api_need_support = set()
 
     def check_func_in_APIs(self, func):
         module_name, func_name = parse_func(func)
-        if (module_name, func_name) not in API_LIST and (module_name, func_name) not in IGNORED_API_LIST and module_name != 'torch._ops.profiler':
-            raise RuntimeError("not in APIs: (%s, %s)" % (module_name, func_name))
-            print("not in APIs: (%s, %s)" % (module_name, func_name))
+        if (module_name, func_name) not in API_LIST:
+            if (module_name, func_name) not in IGNORED_API_LIST and module_name != 'torch._ops.profiler':
+                print("not in API_LIST or IGNORED_API_LIST: (%s, %s)" % (module_name, func_name))
+                self.api_need_support.add((module_name, func_name))
         else:
             self.api_used.add((module_name, func_name))
             # debug
@@ -88,8 +90,12 @@ class CoverageMode(torch.overrides.TorchFunctionMode):
                 for api in self.api_used:
                     f.write("%s,%s\n" % (api[0], api[1]))
 
-    def update_output(self, output: set):
+    def update_api_used(self, output: set):
         for api in self.api_used:
+            output.add(api)
+    
+    def update_need_support(self, output: set):
+        for api in self.api_need_support:
             output.add(api)
 
 
@@ -113,7 +119,7 @@ def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--models", default="",
                         help="Specify the models to run, default (empty) runs all models.")
-    parser.add_argument("-d", "--device", default="cuda,cpu", help="Specify the device.")
+    parser.add_argument("-d", "--device", default="cpu", help="Specify the device.")
     parser.add_argument("-t", "--test", default="eval,train", help="Specify the test.")
     parser.add_argument("-o", "--output", type=str, help="The default output json file.")
     args = parser.parse_args(args)
@@ -149,11 +155,12 @@ def run(args: List[str]):
     torchbenchmark.util.experiment.metrics.WARMUP_ROUNDS = 0
     single_round_result = []
     api_used = set()
+    api_need_support = set()
     for cfg in filter(cfg_filter, cfgs):
         try:
-            # print(cfg.name)
-            # if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor']:
-            #     continue
+            print(cfg.name)
+            if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor', 'densenet121', 'resnet152']:
+                continue
             # load the model instance within the same process
             model = load_model(cfg)
             # get the model test metrics
@@ -161,7 +168,8 @@ def run(args: List[str]):
                 try:
                     get_model_test_metrics(model)
                 finally:
-                    coverage.update_output(api_used)
+                    coverage.update_api_used(api_used)
+                    coverage.update_need_support(api_need_support)
         except NotImplementedError:
             # some models don't implement the test specified
             single_round_result.append({
@@ -192,3 +200,10 @@ def run(args: List[str]):
         f.write("module_name,func_name\n")
         for api in missed_apis:
             f.write("%s,%s\n" % (api[0], api[1]))
+    if api_need_support:
+        api_need_support_fname = log_dir.joinpath("%s-api_need_support.csv" % fname)
+        with open(api_need_support_fname, 'w') as f:
+            f.write("APIs called but not in API_LIST and IGNORED_API_LIST\n")
+            f.write("module_name,func_name\n")
+            for api in api_need_support:
+                f.write("%s,%s\n" % (api[0], api[1]))
