@@ -68,7 +68,7 @@ def _load_test(path, device):
 
     def example_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
-        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+        with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 _create_example_model_instance(task, device)
                 task.check_example()
