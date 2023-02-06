@@ -67,8 +67,10 @@ class CoverageMode(torch.overrides.TorchFunctionMode):
         module_name, func_name = parse_func(func)
         if (module_name, func_name) not in API_LIST:
             if (module_name, func_name) not in IGNORED_API_LIST and module_name != 'torch._ops.profiler':
-                print("not in API_LIST or IGNORED_API_LIST: (%s, %s)" % (module_name, func_name))
-                self.api_need_support.add((module_name, func_name))
+                new_pair = (module_name, func_name)
+                if new_pair not in self.api_need_support:
+                    print("not in API_LIST or IGNORED_API_LIST: (%s, %s)" % (module_name, func_name))
+                    self.api_need_support.add((module_name, func_name))
         else:
             self.api_used.add((module_name, func_name))
             # debug
