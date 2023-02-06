@@ -140,8 +140,6 @@ class Model(BenchmarkModel):
         return self.model, self.example_inputs
 
     def forward(self):
-        if self.opt:
-            self.opt.zero_grad()
         losses, output = self.model(self.example_inputs)
         return losses
 
@@ -149,8 +147,7 @@ class Model(BenchmarkModel):
         torch.sum(losses, dim=0).backward()
 
     def optimizer(self):
-        if self.opt:
-            self.opt.step()
+        self.opt.step()
 
     def eval(self):
         with torch.no_grad():
