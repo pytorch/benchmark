@@ -40,8 +40,28 @@ RUN cd /workspace && wget -q https://ossci-linux.s3.amazonaws.com/cudnn-linux-x8
     sudo ldconfig && \
     cd .. && rm -rf cudnn-linux-x86_64-8.5.0.96_cuda11-archive && rm -f cudnn-linux-x86_64-8.5.0.96_cuda11-archive.tar.xz
 
-# Setup the default CUDA version to 11.6
-RUN sudo rm -f /usr/local/cuda && sudo ln -s /usr/local/cuda-11.6 /usr/local/cuda
+# Install CUDA 11.8 and cudnn 8.7 and NCCL 2.15
+RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run -O cuda_11.8.0_520.61.05_linux.run && \
+    sudo bash ./cuda_11.8.0_520.61.05_linux.run --toolkit --silent && \
+    rm -f cuda_11.8.0_520.61.05_linux.run
+RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.7.0/local_installers/11.8/cudnn-linux-x86_64-8.7.0.84_cuda11-archive.tar.xz -O cudnn-linux-x86_64-8.7.0.84_cuda11-archive.tar.xz && \
+    tar xJf cudnn-linux-x86_64-8.7.0.84_cuda11-archive.tar.xz && \
+    cd cudnn-linux-x86_64-8.7.0.84_cuda11-archive && \
+    sudo cp include/* /usr/local/cuda-11.7/include && \
+    sudo cp lib/* /usr/local/cuda-11.7/lib64 && \
+    sudo ldconfig && \
+    cd .. && rm -rf cudnn-linux-x86_64-8.7.0.84_cuda11-archive && rm -f cudnn-linux-x86_64-8.7.0.84_cuda11-archive.tar.xz
+RUN cd /workspace && mkdir tmp_nccl && cd tmp_nccl && \
+    wget -q https://developer.download.nvidia.com/compute/redist/nccl/v2.15.5/nccl_2.15.5-1+cuda11.8_x86_64.txz && \
+    tar xf nccl_2.15.5-1+cuda11.8_x86_64.txz && \
+    cp -a nccl_2.15.5-1+cuda11.8_x86_64/include/* /usr/local/cuda/include/ && \
+    cp -a nccl_2.15.5-1+cuda11.8_x86_64/lib/* /usr/local/cuda/lib64/ && \
+    cd .. && \
+    rm -rf tmp_nccl && \
+    ldconfig
+
+# Setup the default CUDA version to 11.7
+RUN sudo rm -f /usr/local/cuda && sudo ln -s /usr/local/cuda-11.7 /usr/local/cuda
 
 # Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh && \
