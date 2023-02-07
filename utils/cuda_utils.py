@@ -71,8 +71,37 @@ def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
     else:
         subprocess.check_call(install_torch_cmd, env=env)
 
+def install_torch_deps(cuda_version: str):
+    # install magma
+    magma_pkg = CUDA_VERSION_MAP[cuda_version]
+    cmd = ["conda", "install", "-y", magma_pkg, "-c", "pytorch"]
+    subprocess.check_call(cmd)
+    # install other dependencies
+    torch_deps = ["numpy", "requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
+    cmd = ["conda", "install", "-y"] + torch_deps
+    subprocess.check_call(cmd)
+    # install deps from conda-forge
+    # model doctr_reco_predictor needs weasyprint, which needs libglib and pango
+    cmd = ["conda", "install", "-y", "expecttext", "libglib", "pango", "-c", "conda-forge"]
+    subprocess.check_call(cmd)
+    # install unittest-xml-reporting
+    cmd = ["pip", "install", "unittext-xml-reporting"]
+    subprocess.check_call(cmd)
+
+def install_torch_build_deps(cuda_version: str):
+    install_torch_deps(cuda_version=cuda_version)
+    torch_build_deps = []
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--install-conda-pkgs", action="store_true")
-    parser.add_argument("--install-torch-nightlies")
+    parser.add_argument("--cudaver", default=DEFAULT_CUDA_VERSION, help="Specify the default CUDA version")
+    parser.add_argument("--install-torch-deps", action="store_true", help="Install pytorch runtime requirements")
+    parser.add_argument("--install-torch-build-deps", action="store_true", help="Install pytorch build requirements")
+    parser.add_argument("--install-torch-nightly", action="store_true", help="Install pytorch nightlies")
+    args = parser.parse_args()
+    if args.install_torch_deps:
+        install_torch_deps(cuda_version=args.cudaver)
+    if args.install_torch_build_deps:
+        install_torch_build_deps(cuda_version=args.cudaver)
+    if args.install_torch_nightly:
+        install_pytorch_nightly(cuda_version=args.cudaver, env=os.environ)

@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: "3.10"
-  CUDA_VERSION: "cu116"
   CONDA_ENV: "pr-test"
-  MAGMA_VERSION: "magma-cuda116"
   SETUP_INSTANCE_SCRIPT: "/workspace/setup_instance.sh"
 
 jobs:
@@ -26,19 +23,14 @@ jobs:
       - name: Setup Conda Env
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
-          conda create -n "${CONDA_ENV}" python="${PYTHON_VERSION}"
+          python utils/python_utils.py --install-conda-env "${CONDA_ENV}"
           conda activate "${CONDA_ENV}"
-          conda install -y "${MAGMA_VERSION}" -c pytorch
-          conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
-          # weasyprint requires libglib from conda
-          # doctr_reco_predictor needs weasyprint, which needs libglib and pango
-          conda install -y expecttest libglib pango -c conda-forge
-          pip install unittest-xml-reporting
+          python utils/cuda_utils.py --install-torch-deps
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
           conda activate "${CONDA_ENV}"
-          pip install --pre torch torchvision torchtext torchaudio -f https://download.pytorch.org/whl/nightly/cu116/torch_nightly.html
+          python utils/cuda_utils.py --install-torch-nightly
       - name: Install TorchBench
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
