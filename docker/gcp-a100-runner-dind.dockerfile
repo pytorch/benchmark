@@ -54,11 +54,11 @@ RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/redis
 RUN cd /workspace && mkdir tmp_nccl && cd tmp_nccl && \
     wget -q https://developer.download.nvidia.com/compute/redist/nccl/v2.15.5/nccl_2.15.5-1+cuda11.8_x86_64.txz && \
     tar xf nccl_2.15.5-1+cuda11.8_x86_64.txz && \
-    cp -a nccl_2.15.5-1+cuda11.8_x86_64/include/* /usr/local/cuda/include/ && \
-    cp -a nccl_2.15.5-1+cuda11.8_x86_64/lib/* /usr/local/cuda/lib64/ && \
+    sudo cp -a nccl_2.15.5-1+cuda11.8_x86_64/include/* /usr/local/cuda/include/ && \
+    sudo cp -a nccl_2.15.5-1+cuda11.8_x86_64/lib/* /usr/local/cuda/lib64/ && \
     cd .. && \
     rm -rf tmp_nccl && \
-    ldconfig
+    sudo ldconfig
 
 # Setup the default CUDA version to 11.7
 RUN sudo rm -f /usr/local/cuda && sudo ln -s /usr/local/cuda-11.7 /usr/local/cuda
