@@ -9,10 +9,7 @@ on:
       userbenchmark_options:
         description: "Option of the user benchmark to run"
 env:
-  PYTHON_VERSION: "3.8"
-  CUDA_VERSION: "cu116"
   CONDA_ENV_NAME: "userbenchmarks-ci"
-  MAGMA_VERSION: "magma-cuda116"
   PLATFORM_NAME: "aws_t4_metal"
   TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
   SETUP_SCRIPT: "/data/nvme/bin/setup_instance.sh"
@@ -27,19 +24,16 @@ jobs:
           path: benchmark
       - name: Create conda environment
         run: |
-          conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+          python benchmark/utils/python_utils.py --create-conda-env "${CONDA_ENV_NAME}"
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
-          conda install -y pyyaml numpy ninja regex gitpython setuptools beautifulsoup4 requests
-          conda install -y libglib pango expecttest -c conda-forge
+          python utils/cuda_utils.py --install-torch-deps
           # check the machine is tuned
-          pip install -U py-cpuinfo psutil distro
+          pip install -U py-cpuinfo psutil distro boto3
           sudo ${HOME}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python3 torchbenchmark/util/machine_config.py
-          conda install -y -c pytorch "${MAGMA_VERSION}"
-          pip install requests bs4 argparse gitpython boto3 regex
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -48,8 +42,7 @@ jobs:
               exit 1
           fi
           # Install PyTorch and torchvision nightly from pip
-          pip install --pre torch torchvision torchtext torchaudio \
-            -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
+          python utils/cuda_utils.py --install-torch-nightly
           # make sure pytorch+cuda works
           python -c "import torch; torch.cuda.init()"
       - name: Install TorchBench
