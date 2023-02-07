@@ -22,4 +22,4 @@ if __name__ == "__main__":
     parser.add_argument("--create-conda-env", type=str, default=None, help="Create conda environment of the default Python version.")
     args = parser.parse_args()
     if args.create_conda_env:
-        create_conda_env(args.pyver, args.install_conda_env)
+        create_conda_env(args.pyver, args.create_conda_env)
