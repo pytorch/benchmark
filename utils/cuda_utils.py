@@ -69,7 +69,7 @@ def setup_cuda_softlink(cuda_version: str):
     if current_cuda_path.exists():
         assert current_cuda_path.is_symlink(), f"Expected /usr/local/cuda to be a symlink."
         current_cuda_path.unlink()
-    os.symlink(str(current_cuda_path.resolve()), str(cuda_path.resolve()))
+    os.symlink(str(cuda_path.resolve()), str(current_cuda_path.resolve()))
 
 def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
     uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext", "torchaudio"]
