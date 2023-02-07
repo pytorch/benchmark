@@ -25,6 +25,7 @@ CUDA_VERSION_MAP = {
          "magma_version": "magma-cuda118",
     }
 }
+PIN_CMAKE_VERSION = "3.22.*"
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
     regex = 'release (.*),'
@@ -81,7 +82,7 @@ def install_torch_deps(cuda_version: str):
     cmd = ["conda", "install", "-y", magma_pkg, "-c", "pytorch"]
     subprocess.check_call(cmd)
     # install other dependencies
-    torch_deps = ["numpy", "requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
+    torch_deps = ["numpy", "requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex", "git-lfs"]
     cmd = ["conda", "install", "-y"] + torch_deps
     subprocess.check_call(cmd)
     # install deps from conda-forge
@@ -89,12 +90,17 @@ def install_torch_deps(cuda_version: str):
     cmd = ["conda", "install", "-y", "expecttest", "libglib", "pango", "-c", "conda-forge"]
     subprocess.check_call(cmd)
     # install unittest-xml-reporting
-    cmd = ["pip", "install", "unittext-xml-reporting"]
+    cmd = ["pip", "install", "unittest-xml-reporting"]
     subprocess.check_call(cmd)
 
 def install_torch_build_deps(cuda_version: str):
     install_torch_deps(cuda_version=cuda_version)
-    torch_build_deps = []
+    # Pin cmake version to stable
+    # See: https://github.com/pytorch/builder/pull/1269
+    torch_build_deps = ["cffi", "sympy", "typing_extensions", "future", "six", "dataclasses", "tabulate", "tqdm", "mkl", "mkl-include", \
+                        f"cmake={PIN_CMAKE_VERSION}"]
+    cmd = ["conda", "install", "-y"] + torch_build_deps
+    subprocess.check_call(cmd)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
