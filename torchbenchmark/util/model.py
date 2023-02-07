@@ -164,7 +164,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.dargs.precision == "fp16"
                 or self.dargs.precision == "amp"
                 or (self.dynamo and self.opt_args.torchdynamo == "fx2trt")
-                or (not self.dynamo and self.opt_args.fx2trt)
+                or (not self.dynamo and (self.device == "cuda" and self.opt_args.backend == "fx2trt"))
                 or (not self.dynamo and self.opt_args.use_cosine_similarity)
             ):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
