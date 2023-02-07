@@ -137,6 +137,7 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
                             print(f"model with dynamo does not have grad of param {name}")
                         else:
                             print(f"grad of param {name} after running with dynamo doesn't have gradient matching with eager mode")
+                            print(f"grad of param:\n{param.grad}\neager grad:\n{param_ref.grad}")
                         return False
                     break
             if not found:
