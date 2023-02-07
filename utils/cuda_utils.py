@@ -116,7 +116,7 @@ def install_torch_build_deps(cuda_version: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cudaver", default=DEFAULT_CUDA_VERSION, help="Specify the default CUDA version")
-    parser.add_argument("--setup-cuda-softlink", default=DEFAULT_CUDA_VERSION, help="Setup the softlink to /usr/local/cuda")
+    parser.add_argument("--setup-cuda-softlink", action="store_true", help="Setup the softlink to /usr/local/cuda")
     parser.add_argument("--install-torch-deps", action="store_true", help="Install pytorch runtime requirements")
     parser.add_argument("--install-torch-build-deps", action="store_true", help="Install pytorch build requirements")
     parser.add_argument("--install-torch-nightly", action="store_true", help="Install pytorch nightlies")
