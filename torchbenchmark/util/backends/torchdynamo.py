@@ -12,7 +12,7 @@ import warnings
 
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    available_backends = torchdynamo.list_backends()
+    available_backends = torchdynamo.list_backends(exclude_tags=None)
     parser.add_argument(
         "--torchdynamo", choices=available_backends, help="Specify torchdynamo backends"
     )

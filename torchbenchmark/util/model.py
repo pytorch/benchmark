@@ -82,6 +82,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.jit = jit
         self.determine_batch_size(batch_size)
         self.extra_args = extra_args
+        self.opt = None
         # contexts to run in the test function
         if self.test == "train":
             # In train test, there are run contexts that should only be applied for forward/backward/optimizer stage

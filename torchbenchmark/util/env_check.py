@@ -90,9 +90,8 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
     old_test = model.test
     model.test = "eval"
     opt_saved = None
-    if hasattr(model, "opt"):
-        opt_saved = model.opt
-        model.opt = None
+    opt_saved = model.opt
+    model.opt = None
     for _i in range(rounds):
         # some models are stateful and will give different outputs
         # on the same input if called multiple times
@@ -109,12 +108,14 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
 
         equal_nan = hasattr(model, "EQUAL_NAN") and model.EQUAL_NAN
         if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol, equal_nan=equal_nan):
+            # Restore the original model test if eval correctness doesn't pass
+            model.test = old_test
+            model.opt = opt_saved if opt_saved else model.opt
             return False
 
         del cur_result
     model.test = old_test
-    if opt_saved:
-        model.opt = opt_saved
+    model.opt = opt_saved if opt_saved else model.opt
 
     if model.test == "train":
         if not hasattr(model, "model") or not hasattr(model.model, "named_parameters"):
