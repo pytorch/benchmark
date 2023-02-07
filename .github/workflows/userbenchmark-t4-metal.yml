@@ -25,6 +25,7 @@ jobs:
       - name: Create conda environment
         run: |
           python benchmark/utils/python_utils.py --create-conda-env "${CONDA_ENV_NAME}"
+          sudo python utils/cuda_utils.py --setup-cuda-softlink
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"

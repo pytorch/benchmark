@@ -61,6 +61,17 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
     subprocess.check_call(install_magma_cmd, env=env)
     return env
 
+def setup_cuda_softlink(cuda_version: str):
+    assert cuda_version in CUDA_VERSION_MAP, f"Required CUDA version {cuda_version} doesn't exist in {CUDA_VERSION_MAP.keys()}."
+    cuda_path = Path("/").joinpath("usr", "local", f"cuda-{cuda_version}")
+    assert cuda_path.exists() and cuda_path.is_dir(), f"Expected CUDA Library path {cuda_path} doesn't exist."
+    cuda_path_str = str(cuda_path.resolve())
+    current_cuda_path = Path("/").joinpath("usr", "local", "cuda")
+    if current_cuda_path.exists():
+        assert current_cuda_path.is_symlink(), f"Expected /usr/local/cuda to be a symlink."
+        current_cuda_path.rmdir()
+    os.symlink(str(current_cuda_path.resolve()), cuda_path_str)
+
 def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
     uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext", "torchaudio"]
     if dryrun:
@@ -105,10 +116,13 @@ def install_torch_build_deps(cuda_version: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cudaver", default=DEFAULT_CUDA_VERSION, help="Specify the default CUDA version")
+    parser.add_argument("--setup-cuda-softlink", default=DEFAULT_CUDA_VERSION, help="Setup the softlink to /usr/local/cuda")
     parser.add_argument("--install-torch-deps", action="store_true", help="Install pytorch runtime requirements")
     parser.add_argument("--install-torch-build-deps", action="store_true", help="Install pytorch build requirements")
     parser.add_argument("--install-torch-nightly", action="store_true", help="Install pytorch nightlies")
     args = parser.parse_args()
+    if args.setup_cuda_softlink:
+        setup_cuda_softlink(cuda_version=args.cudaver)
     if args.install_torch_deps:
         install_torch_deps(cuda_version=args.cudaver)
     if args.install_torch_build_deps:

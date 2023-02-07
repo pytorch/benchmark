@@ -26,6 +26,7 @@ jobs:
         run: |
           . "${SETUP_SCRIPT}"
           python benchmark/utils/python_utils.py --create-conda-env "${CONDA_ENV_NAME}"
+          sudo python utils/cuda_utils.py --setup-cuda-softlink
       - name: Tune Nvidia GPU
         run: |
           . "${SETUP_SCRIPT}"
