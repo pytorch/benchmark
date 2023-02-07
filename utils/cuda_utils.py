@@ -19,6 +19,10 @@ CUDA_VERSION_MAP = {
     "11.7": {
          "pytorch_url": "cu117",
          "magma_version": "magma-cuda117",
+    },
+    "11.8": {
+         "pytorch_url": "cu118",
+         "magma_version": "magma-cuda118",
     }
 }
 
@@ -73,7 +77,7 @@ def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
 
 def install_torch_deps(cuda_version: str):
     # install magma
-    magma_pkg = CUDA_VERSION_MAP[cuda_version]
+    magma_pkg = CUDA_VERSION_MAP[cuda_version]["magma_version"]
     cmd = ["conda", "install", "-y", magma_pkg, "-c", "pytorch"]
     subprocess.check_call(cmd)
     # install other dependencies
