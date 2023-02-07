@@ -23,7 +23,7 @@ jobs:
       - name: Setup Conda Env
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
-          python utils/python_utils.py --install-conda-env "${CONDA_ENV}"
+          python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
           conda activate "${CONDA_ENV}"
           python utils/cuda_utils.py --install-torch-deps
       - name: Install PyTorch nightly
