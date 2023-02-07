@@ -65,12 +65,11 @@ def setup_cuda_softlink(cuda_version: str):
     assert cuda_version in CUDA_VERSION_MAP, f"Required CUDA version {cuda_version} doesn't exist in {CUDA_VERSION_MAP.keys()}."
     cuda_path = Path("/").joinpath("usr", "local", f"cuda-{cuda_version}")
     assert cuda_path.exists() and cuda_path.is_dir(), f"Expected CUDA Library path {cuda_path} doesn't exist."
-    cuda_path_str = str(cuda_path.resolve())
     current_cuda_path = Path("/").joinpath("usr", "local", "cuda")
     if current_cuda_path.exists():
         assert current_cuda_path.is_symlink(), f"Expected /usr/local/cuda to be a symlink."
-    current_cuda_path.unlink(missing_ok=True)
-    os.symlink(str(current_cuda_path.resolve()), cuda_path_str)
+        os.unlink(str(current_cuda_path.resolve()))
+    os.symlink(str(current_cuda_path.resolve()), str(cuda_path.resolve()))
 
 def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
     uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext", "torchaudio"]
