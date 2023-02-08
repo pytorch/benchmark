@@ -18,8 +18,8 @@ jobs:
       CONFIG_VER: "v2"
       SWEEP_DIR: ".torchbench/v2-sweep-ci"
       PYTHON_VER: "3.8"
-      CUDA_VER: "11.6"
-      MAGMA_VERSION: "magma-cuda116"
+      CUDA_VER: "11.7"
+      MAGMA_VERSION: "magma-cuda117"
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: us-east-1

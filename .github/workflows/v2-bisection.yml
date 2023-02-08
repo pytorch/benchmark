@@ -14,10 +14,10 @@ jobs:
       BISECT_DIR: ".torchbench/v2-bisection-ci"
       BISECT_BRANCH: "v2.0"
       PYTHON_VER: "3.8"
-      CUDA_VER: "11.6"
+      CUDA_VER: "11.7"
       NUMPY_VER: "1.21.2"
       MKL_VER: "2021.2.0"
-      MAGMA_VER: "magma-cuda116"
+      MAGMA_VER: "magma-cuda117"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours

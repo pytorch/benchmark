@@ -39,7 +39,6 @@ class Model(BenchmarkModel):
         if self.test == "train":
             train_args = f"--dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 " + \
                          f"--n_epochs_decay 3 {device_arg} {checkpoints_arg}"
-            print(train_args)
             self.training_loop = prepare_training_loop(train_args.split(' '))
         args = f"--dataroot {data_root}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test " + \
                f"--no_dropout {device_arg} {checkpoints_arg} {results_arg}"

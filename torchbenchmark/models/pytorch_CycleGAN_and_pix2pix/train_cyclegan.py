@@ -68,8 +68,12 @@ def prepare_training_loop(args):
                 if total_iters % opt.save_latest_freq == 0:   # cache our latest model every <save_latest_freq> iterations
                     save_suffix = 'iter_%d' % total_iters if opt.save_by_iter else 'latest'
                     model.save_networks(save_suffix)
+                # only run 1 batch in torchbench
+                break
 
                 iter_data_time = time.time()
+            # only run 1 iter in torchbench
+            break
             
             model.update_learning_rate()                     # update learning rates at the end of every epoch.
     return training_loop
