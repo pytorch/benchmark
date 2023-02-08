@@ -28,7 +28,7 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 # install pytorch and pytorch-cuda
 if [ $PYTORCH_CHANNEL = "pytorch" ] && [ $PYTORCH_VERSION = "1.12.1" ]; then
   conda install pytorch=${PYTORCH_VERSION} torchvision torchaudio cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c conda-forge
-if [ $PYTORCH_CHANNEL = "pytorch-nightly" ] ; then
+elif [ $PYTORCH_CHANNEL = "pytorch-nightly" ] ; then
   conda install pytorch torchvision torchaudio cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c conda-forge
 else
   conda install --force-reinstall pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
