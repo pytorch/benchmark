@@ -70,6 +70,8 @@ def prepare_training_loop(args):
                     model.save_networks(save_suffix)
 
                 iter_data_time = time.time()
+            # only run 1 iter in torchbench
+            break
             
             model.update_learning_rate()                     # update learning rates at the end of every epoch.
     return training_loop
