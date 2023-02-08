@@ -161,8 +161,8 @@ def run(args: List[str]):
     for cfg in filter(cfg_filter, cfgs):
         try:
             print(cfg.name)
-            if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor', 'densenet121', 'resnet152']:
-                continue
+            # if cfg.name in ['doctr_det_predictor', 'doctr_reco_predictor', 'densenet121', 'resnet152']:
+            #     continue
             # load the model instance within the same process
             model = load_model(cfg)
             # get the model test metrics
