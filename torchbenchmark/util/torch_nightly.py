@@ -100,7 +100,7 @@ def get_n_prior_nightly_wheels(packages:list, n:int,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pyver", type=str, default="cp38", help="PyTorch Python version")
+    parser.add_argument("--pyver", type=str, default="cp310", help="PyTorch Python version")
     parser.add_argument("--platform", type=str, default="linux_x86_64", help="PyTorch platform")
     parser.add_argument("--priordays", type=int, default=1, help="Number of days")
     parser.add_argument("--reverse", action="store_true", help="Return reversed result")
