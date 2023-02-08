@@ -1,0 +1,8 @@
+cuda:
+  - version: 11.7
+    magma_version: magma-cuda117
+pytorch:
+  - version: v2.0.0.dev20230208
+    conda_channel: pytorch-nightly
+  - version: 1.13.1
+    conda_channel: pytorch
