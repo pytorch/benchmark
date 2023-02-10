@@ -77,7 +77,6 @@ def timm_instantiate_train(args):
         drop_path_rate=args.drop_path,
         drop_block_rate=args.drop_block,
         global_pool=args.gp,
-        bn_tf=args.bn_tf,
         bn_momentum=args.bn_momentum,
         bn_eps=args.bn_eps,
         scriptable=args.torchscript,
