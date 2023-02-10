@@ -8,8 +8,8 @@ pytest
 pytest-benchmark
 requests
 tabulate
-git+https://github.com/rwightman/pytorch-image-models.git@6d4665b
-transformers==4.20.1
+git+https://github.com/rwightman/pytorch-image-models.git@45af496
+transformers==4.26.1
 MonkeyType
 psutil
 pyyaml
