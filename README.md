@@ -11,32 +11,32 @@ except for the torch products which are intended to be installed separately so
 different torch versions can be benchmarked.
 
 ### Using Pre-built Packages
-We support Python 3.7+, and 3.8 is recommended. Conda is optional but suggested. To start with Python 3.8 in conda:
+We support Python 3.8+, and 3.10 is recommended. Conda is optional but suggested. To start with Python 3.10 in conda:
 ```
 # Using your current conda environment:
-conda install -y python=3.8
+conda install -y python=3.10
 
 # Or, using a new conda environment:
-conda create -n torchbenchmark python=3.8
+conda create -n torchbenchmark python=3.10
 conda activate torchbenchmark
 # We depend on git lfs tool to store minimal input dataset such as images and annotations.
 # The total size of input dataset is ~20 MB
 conda install -y git-lfs
 ```
 
-If you are running NVIDIA GPU tests, we support CUDA 11.3+, and use CUDA 11.6 as default:
+If you are running NVIDIA GPU tests, we support CUDA 11.7+, and use CUDA 11.7 as default:
 ```
-conda install -y -c pytorch magma-cuda116
+conda install -y -c pytorch magma-cuda117
 ```
 
-Then install pytorch, torchtext, and torchvision using conda:
+Then install pytorch, torchtext, torchvision, and torchaudio using conda:
 ```
-conda install -y pytorch torchtext torchvision torchaudio cudatoolkit=11.6 -c pytorch-nightly
+conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch-nightly -c nvidia
 ```
 Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
 ```
-pip install --pre torch torchvision torchtext torchaudio -f https://download.pytorch.org/whl/nightly/cu116/torch_nightly.html
+pip install --pre torch torchvision torchtext torchaudio -f https://download.pytorch.org/whl/nightly/cu117/torch_nightly.html
 ```
 
 Install other necessary libraries:
@@ -65,10 +65,8 @@ python install.py
 
 ### Notes
 - Setup steps require network connectivity - make sure to enable a proxy if needed.
-- See the [CI scripts](scripts/) and their orchestration in [config.yml](.circleci/config.yml)
-for hints about how to replicate the CI environment if you have issues.
-- PyTorch versions before 1.6 are not compatible with all the models in torchbenchmark.  See branch [wconstab/compare_torch_versions](https://github.com/pytorch/benchmark/tree/wconstab/compare_torch_versions) for a set of models that worked back to torch 1.4.0.
-- torch, torchtext, and torchvision must all be installed from the same build process.  This means it isn't possible to mix conda torchtext
+- We suggest using the latest PyTorch nightly releases to run the benchmark. Stable versions are NOT tested or maintained.
+- torch, torchtext, torchvision, and torchaudio must all be installed from the same build process.  This means it isn't possible to mix conda torchtext
   with pip torch, or mix built-from-source torch with pip torchtext.  It's important to match even the conda channel (nightly vs regular).
   This is due to the differences in the compilation process used by different packaging systems producing incompatible Python binary extensions.
 
