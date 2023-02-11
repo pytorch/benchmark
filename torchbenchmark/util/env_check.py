@@ -120,8 +120,10 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
     if model.test == "train":
         if not hasattr(model, "model") or not hasattr(model.model, "named_parameters"):
             warnings.warn(UserWarning("model doesn't have model or model.named_parameters. Skipping train correctness check."))
+            return True
         if not hasattr(model, "eager_model_after_one_train_iteration"):
             warnings.warn(UserWarning("model doesn't have eager_model_after_one_train_iteration. Skipping train correctness check."))
+            return True
         model.invoke()
         for name, param in model.model.named_parameters():
             if not param.requires_grad:
