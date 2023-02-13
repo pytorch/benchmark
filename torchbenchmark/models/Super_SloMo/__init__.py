@@ -27,7 +27,7 @@ def _prefetch(data, device):
     return tuple(result)
 
 class Model(BenchmarkModel):
-    task = COMPUTER_VISION.OTHER_COMPUTER_VISION
+    task = COMPUTER_VISION.VIDEO_INTERPOLATION
     # Original code config:
     #    train batch size: 6
     #    eval batch size: 10
