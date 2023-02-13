@@ -36,7 +36,7 @@ logger.setLevel(logging.WARNING)
 
 
 class Model(BenchmarkModel):
-    task = NLP.OTHER_NLP
+    task = NLP.LANGUAGE_MODELING
     # Use the train batch size from the original CMRC2018 Q&A task
     # Source: https://fastnlp.readthedocs.io/zh/latest/tutorials/extend_1_bert_embedding.html
     DEFAULT_TRAIN_BSIZE = 6
