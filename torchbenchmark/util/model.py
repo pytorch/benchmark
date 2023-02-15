@@ -8,6 +8,7 @@ import inspect
 import yaml
 from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
+from torch.utils._pytree import tree_map
 from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
@@ -343,3 +344,25 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         torch._C._set_graph_executor_optimize(True)
 
         bench_allclose(base, opt)
+
+    def enable_channels_last(self):
+        model_name = self.name
+        try:
+            model, _ = self.get_module()
+            model = model.to(memory_format=torch.channels_last)
+        except RuntimeError:
+            warnings.warn(UserWarning(f"{model_name} doesn't support `channels_last` yet!"))
+            return
+        self.set_module(model)
+        def inputs_convert(example_inputs):
+            if isinstance(example_inputs, torch.Tensor) and example_inputs.dim()==4:
+                return example_inputs.to(memory_format=torch.channels_last)
+            elif isinstance(example_inputs, (tuple, list, dict)):
+                return tree_map(lambda x: inputs_convert(x), example_inputs)
+            else:
+                warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))
+                return example_inputs
+        if hasattr(self, 'example_inputs'):
+            self.example_inputs = inputs_convert(self.example_inputs)
+        else:
+            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))       
