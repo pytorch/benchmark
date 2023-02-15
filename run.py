@@ -226,14 +226,17 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         with_modules=args.profile_detailed if args.profile_detailed else profile_opts["with_modules"],
         on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
     ) as prof:
-        start_event = torch.cuda.Event(enable_timing=True)
-        end_event = torch.cuda.Event(enable_timing=True)
+        if args.device == "cuda":
+            start_event = torch.cuda.Event(enable_timing=True)
+            end_event = torch.cuda.Event(enable_timing=True)
         for i in range(nwarmup + 1):
             t0 = time.time_ns()
-            start_event.record()
+            if args.device == "cuda":
+                start_event.record()
             func()
-            torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
-            end_event.record()
+            if args.device == "cuda":
+                torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
+                end_event.record()
             t1 = time.time_ns()
             if i >= nwarmup:
                 result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
