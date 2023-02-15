@@ -229,18 +229,24 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         if args.device == "cuda":
             start_event = torch.cuda.Event(enable_timing=True)
             end_event = torch.cuda.Event(enable_timing=True)
-        for i in range(nwarmup + 1):
-            t0 = time.time_ns()
-            if args.device == "cuda":
+            for i in range(nwarmup + 1):
+                t0 = time.time_ns()
                 start_event.record()
-            func()
-            if args.device == "cuda":
+                func()
                 torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
                 end_event.record()
-            t1 = time.time_ns()
-            if i >= nwarmup:
-                result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
-            prof.step()
+                t1 = time.time_ns()
+                if i >= nwarmup:
+                    result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
+                prof.step()
+        else:
+             for i in range(nwarmup + 1):
+                t0 = time.time_ns()
+                func()
+                t1 = time.time_ns()
+                if i >= nwarmup:
+                    result_summary.append([(t1 - t0) / 1_000_000])
+                prof.step()
     if args.profile_eg and eg:
         eg.stop()
         eg.unregister_callback()
