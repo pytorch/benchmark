@@ -22,7 +22,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=32,
+        default=1024,
         help="batch size to use for training",
     )
     parser.add_argument(
@@ -188,20 +188,6 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         drop_last=None,
         shuffle_batches=None,
         shuffle_training_set=None,
-    )
-    parser.add_argument(
-        "--adagrad",
-        dest="adagrad",
-        action="store_true",
-        help="Flag to determine if adagrad optimizer should be used.",
-    )
-    parser.add_argument(
-        "--interaction_type",
-        type=InteractionType,
-        choices=list(InteractionType),
-        default=InteractionType.ORIGINAL,
-        help="Determine the interaction type to be used (original, dcn, or projection)"
-        " default is original DLRM with pairwise dot product",
     )
     parser.add_argument(
         "--collect_multi_hot_freqs_stats",
