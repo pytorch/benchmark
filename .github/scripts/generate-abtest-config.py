@@ -36,6 +36,12 @@ Affected Tests:
 cc @xuzhao9
 """
 
+# unstable signals, should ignore
+IGNORE_TEST_LIST = [
+    "test_eval[mnasnet1_0-cpu-jit]",
+    "test_train[timm_vision_transformer-cpu-eager]"
+]
+
 @dataclasses.dataclass
 class PyTorchVer:
     version: str
@@ -106,6 +112,9 @@ def generate_bisection_tests(base, tip):
         if base_latency is None:
             # This benchmark is new or was failing, so there is no prior point
             # of reference against which to compare.
+            continue
+        # Ignore the tests that are unstable
+        if benchmark in IGNORE_TEST_LIST:
             continue
         delta_percent = (tip_latency - base_latency) / base_latency * 100
         if abs(delta_percent) >= PERF_CHANGE_THRESHOLD:
