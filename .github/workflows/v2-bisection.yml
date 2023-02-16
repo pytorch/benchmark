@@ -59,7 +59,7 @@ jobs:
           cp -r "${BISECT_BASE}" ./bisection-result
       - name: Create the github issue
         if: env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL
-        uses: peter-evans/create-issue-from-file@v3
+        uses: peter-evans/create-issue-from-file@v4
         with:
           title: V2 Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL }}
           content-filepath: ./bisection-result/gh-issue.md
