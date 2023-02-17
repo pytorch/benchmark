@@ -30,7 +30,7 @@ from time import time_ns
 
 
 class ModelAnalyzer:
-    def __init__(self):
+    def __init__(self, export_metrics_file='', metrics_needed=[], metrics_gpu_backend='dcgm'):
         # For debug
         # set_logger(logging.DEBUG)
         set_logger()
@@ -56,6 +56,7 @@ class ModelAnalyzer:
         self.config = AnalayzerConfig()
         self.gpu_record_aggregator = RecordAggregator()
         self.export_csv_name = ''
+        self.set_export_csv_name(export_metrics_file)
         # the cpu metrics to be collected. available metrics are [CPUPeakMemory, ]
         self.cpu_metrics = []
         self.cpu_monitor = None
@@ -65,7 +66,25 @@ class ModelAnalyzer:
         self.cpu_metric_value = {}
         # GPU Monitor Backend
         self.gpu_monitor_backend = 'dcgm'
+        self.start_monitor_timestamp = None
         self.stop_monitor_timestamp = None
+        self.metrics_backend_mapping = {}
+        self.process_metrics(metrics_needed, metrics_gpu_backend)
+    
+    def process_metrics(self, metrics_needed, metrics_gpu_backend):
+        if 'gpu_peak_mem' in metrics_needed:
+            self.add_metric_gpu_peak_mem()
+            self.metrics_backend_mapping['gpu_peak_mem'] = 'dcgm' if metrics_gpu_backend == 'dcgm' else 'nvml'
+        if 'flops' in metrics_needed:
+            if metrics_gpu_backend == 'dcgm':
+                self.add_metric_gpu_flops()
+                self.metrics_backend_mapping['flops'] = 'dcgm'
+            else:
+                self.metrics_backend_mapping['flops'] = 'fvcore'
+        if 'cpu_peak_mem' in metrics_needed:
+            self.add_metric_cpu_peak_mem()
+        if metrics_gpu_backend == "default":
+            self.set_gpu_monitor_backend_nvml()
 
     def add_metric_gpu_peak_mem(self):
         self.gpu_metrics.append(GPUPeakMemory)
@@ -80,13 +99,21 @@ class ModelAnalyzer:
         self.gpu_monitor_backend = 'nvml'
 
     def set_export_csv_name(self, export_csv_name=''):
+        if export_csv_name == '':
+            return
         self.export_csv_name = export_csv_name
         # test for correct permission
         with open(export_csv_name, 'w') as fout:
             fout.write('')
 
+    def update_export_name(self, insert_str=''):
+        index = self.export_csv_name.find('.csv')
+        if index != -1:
+            self.export_csv_name = self.export_csv_name[:index] + insert_str + self.export_csv_name[index:]
+
     def start_monitor(self):
         try:
+            self.start_monitor_timestamp = time_ns()
             if self.gpu_metrics:
                 self.gpu_factory = GPUDeviceFactory()
                 self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
@@ -221,7 +248,7 @@ class ModelAnalyzer:
                 fout.write('\n')
                 last_timestamp = timestamp_start
                 for a_timestamp in timestamps:
-                    duration = (a_timestamp - last_timestamp) / 1000.0
+                    duration = (a_timestamp - last_timestamp) / 1e3
                     last_timestamp = a_timestamp
                     line = "%.2f, " % ((a_timestamp - timestamp_start) / 1000)
                     for record_type in csv_records[gpu_uuid]:
@@ -263,7 +290,6 @@ class ModelAnalyzer:
         """
         if gpu_uuid:
             if gpu_uuid in self.gpu_metric_value:
-                gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
                 return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
             else:
                 raise TorchBenchAnalyzerException("No available GPU with uuid ", gpu_uuid, " found!")
@@ -283,6 +309,9 @@ class ModelAnalyzer:
             logger.warning("There are multiple available CPUs and will only return the first one's peak memory bandwidth.")
         cpu_uuid = next(iter(self.cpu_metric_value))
         return self.cpu_metric_value[cpu_uuid][CPUPeakMemory].value() / 1024
+    
+
+
 
 
 def check_dcgm():

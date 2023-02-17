@@ -73,7 +73,8 @@ class NVMLMonitor(Monitor):
             handle = self._nvml.nvmlDeviceGetHandleByUUID(gpu.device_uuid())
             for metric in self._metrics:
                 nvml_field = self.model_analyzer_to_nvml_field[metric]
-                atimestamp = time.time_ns()
+                # convert to microseconds to keep consistency with the dcgm monitor
+                atimestamp = time.time_ns() // 1000
                 if metric == GPUPeakMemory:
                     info = self._nvml.nvmlDeviceGetMemoryInfo(handle)
                     # @Yueming TODO: need to update with the nvml API version 2. Because the nvml API version 1 returns the used memory including the memory allocated by the GPU driver.

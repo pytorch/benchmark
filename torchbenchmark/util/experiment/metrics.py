@@ -6,7 +6,7 @@ import time
 import dataclasses
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark import ModelTask
-from typing import List, Union
+from typing import List, Union, Tuple
 
 WARMUP_ROUNDS = 10
 BENCHMARK_ITERS = 15
@@ -15,6 +15,8 @@ NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 @dataclasses.dataclass
 class TorchBenchModelMetrics:
     latencies: List[float]
+    cpu_peak_mem: float
+    gpu_peak_mem: float
 
 def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS) -> List[float]:
     "Run one step of the model, and return the latency in milliseconds."
@@ -38,19 +40,58 @@ def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_I
         result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
     return result_summary
 
+def get_peak_memory(func, device: str, num_iter=BENCHMARK_ITERS, export_metrics_file='', metrics_needed=[], metrics_gpu_backend='dcgm') -> Tuple[float, float]:
+    "Run one step of the model, and return the peak memory in MB."
+    from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
+    new_metrics_needed = [_ for _ in metrics_needed if _ in ['cpu_peak_mem', 'gpu_peak_mem']]
+    if not new_metrics_needed:
+        raise ValueError(f"Expected metrics_needed to be non-empty, get: {metrics_needed}")
+    mem_model_analyzer = ModelAnalyzer(export_metrics_file, new_metrics_needed, metrics_gpu_backend)
+    mem_model_analyzer.start_monitor()
+    for _i in range(num_iter):
+        if device == "cuda":
+            torch.cuda.synchronize()
+            func()
+            torch.cuda.synchronize()
+        else:
+            func()
+    mem_model_analyzer.stop_monitor()
+    mem_model_analyzer.aggregate()
+    if 'gpu_peak_mem' in metrics_needed:
+        gpu_peak_mem = mem_model_analyzer.calculate_gpu_peak_mem()
+    else:
+        gpu_peak_mem = None
+    if 'cpu_peak_mem' in metrics_needed:
+        cpu_peak_mem = mem_model_analyzer.calculate_cpu_peak_mem()
+    else:
+        cpu_peak_mem = None
+    if export_metrics_file:
+        mem_model_analyzer.update_export_name("_peak_memory")
+        mem_model_analyzer.export_all_records_to_csv()
+    return cpu_peak_mem, gpu_peak_mem
+
+
 def _get_model_test_metrics(model: BenchmarkModel) -> TorchBenchModelMetrics:
-    latencies = get_latencies(model.invoke, model.device)
-    return TorchBenchModelMetrics(latencies=latencies)
+    return get_latencies(model.invoke, model.device)
 
 def _get_model_test_metrics_isolated(model: ModelTask) -> TorchBenchModelMetrics:
     device = model.get_model_attribute("device")
     latencies = get_latencies(model.invoke, device)
-    return TorchBenchModelMetrics(latencies=latencies)
+    return latencies
 
-def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask]) -> TorchBenchModelMetrics:
-    if isinstance(model, BenchmarkModel):
-        return _get_model_test_metrics(model)
-    elif isinstance(model, ModelTask):
-        return _get_model_test_metrics_isolated(model)
-    else:
-        raise ValueError(f"Expected BenchmarkModel or ModelTask, get type: {type(model)}")
+
+def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics= [], export_metrics_file= False, metrics_gpu_backend='dcgm') -> TorchBenchModelMetrics:
+    latencies = None
+    cpu_peak_mem = None
+    gpu_peak_mem = None
+    if 'latencies' in metrics:
+        if isinstance(model, BenchmarkModel):
+            latencies = _get_model_test_metrics(model)
+        elif isinstance(model, ModelTask):
+            latencies = _get_model_test_metrics_isolated(model)
+        else:
+            raise ValueError(f"Expected BenchmarkModel or ModelTask, get type: {type(model)}")
+    if 'cpu_peak_mem' in metrics or 'gpu_peak_mem' in metrics:
+        cpu_peak_mem, gpu_peak_mem = get_peak_memory(model.invoke, model.device, export_metrics_file=export_metrics_file, metrics_needed=metrics, metrics_gpu_backend=metrics_gpu_backend)
+    return TorchBenchModelMetrics(latencies, cpu_peak_mem, gpu_peak_mem)
+    
