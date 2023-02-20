@@ -24,8 +24,9 @@ def train():
 
     print("Loading Vocab", args.vocab_path)
     vocab = WordVocab.load_vocab(args.vocab_path)
-    print("Vocab Size: ", len(vocab))
-
+    vocab_size = 40000
+    print("Vocab Size: ", len(vocab), vocab_size)
+ 
     print("Loading Train Dataset", args.train_dataset)
     train_dataset = BERTDataset(args.train_dataset, vocab, seq_len=args.seq_len,
                                 corpus_lines=args.corpus_lines, on_memory=args.on_memory)
@@ -40,14 +41,14 @@ def train():
         if test_dataset is not None else None
 
     print("Building BERT model")
-    bert = BERT(len(vocab), hidden=args.hidden, n_layers=args.layers, attn_heads=args.attn_heads)
+    bert = BERT(vocab_size, hidden=args.hidden, n_layers=args.layers, attn_heads=args.attn_heads)
 
     if args.script:
         print("Scripting BERT model")
         bert = torch.jit.script(bert)
 
     print("Creating BERT Trainer")
-    trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
+    trainer = BERTTrainer(bert, vocab_size, train_dataloader=train_data_loader, test_dataloader=test_data_loader,
                           lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                           with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
