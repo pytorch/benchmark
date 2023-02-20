@@ -422,7 +422,7 @@ class ModelTask(base_task.TaskBase):
         model = globals()["model"]
         module, example_inputs = model.get_module()
         if isinstance(example_inputs, dict):
-            # Huggingface models pass **kwargs as arguments, not *args
+            # Huggingface and GNN models pass **kwargs as arguments, not *args
             module(**example_inputs)
         elif isinstance(example_inputs, tuple) or isinstance(example_inputs, list):
             module(*example_inputs)

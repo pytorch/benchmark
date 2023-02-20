@@ -1,0 +1,4 @@
+# pyg_lib # pyg-lib has no build wheel to download, will support this when ready.
+torch_scatter
+torch_sparse
+pyg-nightly
