@@ -1,3 +1,4 @@
+import intel_extension_for_pytorch
 import copy
 import importlib
 import os
@@ -205,6 +206,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
                 elif self.device == "cpu":
                     current_device_name = "cpu"
+                elif self.device == "xpu":
+                    current_device_name = "xpu"
                 if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"]:
                     self.batch_size = self.metadata["devices"][current_device_name]["eval_batch_size"]
             # If the model doesn't implement test or eval test

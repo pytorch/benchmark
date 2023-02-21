@@ -3,7 +3,8 @@ import sys
 from urllib import request
 from typing import List, Dict
 
-TORCH_DEPS = ['torch', 'torchvision', 'torchtext', 'torchaudio']
+#TORCH_DEPS = ['torch', 'torchvision', 'torchtext', 'torchaudio']
+TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
 
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \

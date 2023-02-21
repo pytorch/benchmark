@@ -15,9 +15,10 @@ import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
 import torch
+#import intel_extension_for_pytorch
 
 WARMUP_ROUNDS = 3
-SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
+SUPPORT_DEVICE_LIST = ["cpu", "cuda", "xpu"]
 if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
 SUPPORT_PROFILE_LIST = ["record_shapes", "profile_memory", "with_stack", "with_flops", "with_modules"]
@@ -58,7 +59,7 @@ def run_one_step_with_cudastreams(func, streamcount):
 
 
 def printResultSummaryTime(result_summary, metrics_needed=[], metrics_backend_mapping={}, model=None, model_analyzer=None):
-    if args.device == "cuda":
+    if args.device in ["cuda", "xpu"]:
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
         if hasattr(model, "NUM_BATCHES"):
@@ -122,7 +123,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
         if 'cpu_peak_mem' in metrics_needed:
             print("Metric cpu_peak_mem is collected by psutil.Process.")
         model_analyzer.start_monitor()
-
+    
     if stress:
         cur_time = time.time_ns()
         start_time = cur_time
@@ -145,6 +146,20 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
             func()
             end_event.record()
             torch.cuda.synchronize()
+            t1 = time.time_ns()
+            result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
+        if args.device == "xpu":
+            torch.xpu.synchronize()
+            start_event = torch.xpu.Event(enable_timing=True)
+            end_event = torch.xpu.Event(enable_timing=True)
+
+            # Collect time_ns() instead of time() which does not provide better precision than 1
+            # second according to https://docs.python.org/3/library/time.html#time.time.
+            t0 = time.time_ns()
+            start_event.record()
+            func()
+            end_event.record()
+            torch.xpu.synchronize()
             t1 = time.time_ns()
             result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
         elif args.device == "mps":
@@ -311,7 +326,7 @@ if __name__ == "__main__":
     if not Model:
         print(f"Unable to find model matching {args.model}.")
         exit(-1)
-
+    
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode with input batch size {m.batch_size}.")
     if args.channels_last:
