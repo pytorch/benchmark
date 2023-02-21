@@ -30,10 +30,11 @@ class GPUDeviceFactory:
     Factory class for creating GPUDevices
     """
 
-    def __init__(self):
+    def __init__(self, model_analyzer_backend='nvml'):
         self._devices = []
         self._devices_by_bus_id = {}
         self._devices_by_uuid = {}
+        self._model_analyzer_backend = model_analyzer_backend
         self.init_all_devices()
 
     def init_all_devices(self, dcgmPath=None):
@@ -47,26 +48,50 @@ class GPUDeviceFactory:
             Absolute path to dcgm shared library
         """
 
-        if numba.cuda.is_available():
-            logger.info("Initiliazing GPUDevice handles")
-            structs._dcgmInit(dcgmPath)
-            dcgm_agent.dcgmInit()
+        if self._model_analyzer_backend == 'dcgm':
+            if numba.cuda.is_available():
+                logger.info("Initiliazing GPUDevice handles using DCGM")
+                structs._dcgmInit(dcgmPath)
+                dcgm_agent.dcgmInit()
 
-            # Start DCGM in the embedded mode to use the shared library
-            dcgm_handle = dcgm_agent.dcgmStartEmbedded(
-                structs.DCGM_OPERATION_MODE_MANUAL)
+                # Start DCGM in the embedded mode to use the shared library
+                dcgm_handle = dcgm_agent.dcgmStartEmbedded(
+                    structs.DCGM_OPERATION_MODE_MANUAL)
 
-            # Create a GPU device for every supported DCGM device
-            dcgm_device_ids = dcgm_agent.dcgmGetAllSupportedDevices(dcgm_handle)
-            for device_id in dcgm_device_ids:
-                device_atrributes = dcgm_agent.dcgmGetDeviceAttributes(
-                    dcgm_handle, device_id).identifiers
-                pci_bus_id = device_atrributes.pciBusId.upper()
-                device_uuid = device_atrributes.uuid
-                device_name = device_atrributes.deviceName
+                # Create a GPU device for every supported DCGM device
+                dcgm_device_ids = dcgm_agent.dcgmGetAllSupportedDevices(dcgm_handle)
+                for device_id in dcgm_device_ids:
+                    device_atrributes = dcgm_agent.dcgmGetDeviceAttributes(
+                        dcgm_handle, device_id).identifiers
+                    pci_bus_id = device_atrributes.pciBusId.upper()
+                    device_uuid = device_atrributes.uuid
+                    device_name = device_atrributes.deviceName
+                    try:
+                        gpu_device = GPUDevice(device_name, device_id, pci_bus_id,
+                                            device_uuid)
+                    except TorchBenchAnalyzerExceptionGPUUnavailable as e:
+                        logger.warning(e)
+                        continue
+                    self._devices.append(gpu_device)
+                    self._devices_by_bus_id[pci_bus_id] = gpu_device
+                    self._devices_by_uuid[device_uuid] = gpu_device
+
+                dcgm_agent.dcgmShutdown()
+        else:
+            import pynvml
+
+            logger.info("Initializing GPUDevice handles using NVML")
+            pynvml.nvmlInit()
+
+            # Create a GPU device for every supported NVML device
+            nvml_device_count = pynvml.nvmlDeviceGetCount()
+            for device_id in range(nvml_device_count):
+                handle = pynvml.nvmlDeviceGetHandleByIndex(device_id)
+                device_name = pynvml.nvmlDeviceGetName(handle)
+                pci_bus_id = pynvml.nvmlDeviceGetPciInfo(handle).busId
+                device_uuid = pynvml.nvmlDeviceGetUUID(handle)
                 try:
-                    gpu_device = GPUDevice(device_name, device_id, pci_bus_id,
-                                           device_uuid)
+                    gpu_device = GPUDevice(device_name, device_id, pci_bus_id, device_uuid)
                 except TorchBenchAnalyzerExceptionGPUUnavailable as e:
                     logger.warning(e)
                     continue
@@ -74,7 +99,7 @@ class GPUDeviceFactory:
                 self._devices_by_bus_id[pci_bus_id] = gpu_device
                 self._devices_by_uuid[device_uuid] = gpu_device
 
-            dcgm_agent.dcgmShutdown()
+            pynvml.nvmlShutdown()
 
     def get_device_by_bus_id(self, bus_id, dcgmPath=None):
         """
@@ -181,8 +206,10 @@ class GPUDeviceFactory:
         ------
         TorchBenchAnalyzerException
         """
-
-        cuda_visible_gpus = self.get_cuda_visible_gpus()
+        if self._model_analyzer_backend == 'dcgm':
+            cuda_visible_gpus = self.get_cuda_visible_gpus()
+        else:
+            cuda_visible_gpus = self._devices
 
         if len(requested_gpus) == 1:
             if requested_gpus[0] == 'all':
@@ -210,11 +237,13 @@ class GPUDeviceFactory:
                 self.get_device_by_uuid(uuid) for uuid in requested_gpus
             ]
             pass
-
+        
         # Return the intersection of CUDA visible UUIDs and requested/supported UUIDs.
-        available_gpus = list(set(cuda_visible_gpus) & set(requested_gpus))
+        if self._model_analyzer_backend == 'dcgm':
+            available_gpus = list(set(cuda_visible_gpus) & set(requested_gpus))
+        else:
+            available_gpus = set(requested_gpus)
         self._log_gpus_used(available_gpus)
-
         return available_gpus
 
     def get_cuda_visible_gpus(self):

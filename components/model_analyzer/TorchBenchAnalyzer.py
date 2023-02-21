@@ -115,8 +115,10 @@ class ModelAnalyzer:
         try:
             self.start_monitor_timestamp = time_ns()
             if self.gpu_metrics:
-                self.gpu_factory = GPUDeviceFactory()
+                self.gpu_factory = GPUDeviceFactory(self.gpu_monitor_backend)
                 self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
+                if not self.gpus:
+                    raise TorchBenchAnalyzerException('No GPU found')
                 if self.gpu_monitor_backend == 'dcgm':
                     self.gpu_monitor = DCGMMonitor(
                         self.gpus, self.config.monitoring_interval, self.gpu_metrics)
