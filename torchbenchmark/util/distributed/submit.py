@@ -123,6 +123,7 @@ class TrainerWrapper(object):
 
     def _setup_gpu_args(self):
         job_env = submitit.JobEnvironment()
+        print(submitit.helpers.CommandFunction(["env"]))
         self.args.output_dir = Path(str(self.args.output_dir).replace("%j", str(job_env.job_id)))
         self.args.gpu = job_env.local_rank
         self.args.rank = job_env.global_rank
@@ -173,17 +174,18 @@ def main():
     # # waits for completion and returns output
     # print(job.results())
 
-    models = ['torchbenchmark.models.hf_Bert.Model', 'torchbenchmark.models.hf_BertLarge.Model', \
-        'torchbenchmark.models.hf_GPT2_large.Model', 'torchbenchmark.models.hf_T5_large.Model', \
-            'torchbenchmark.models.timm_vision_transformer_large.Model', 'torchbenchmark.models.hf_GPT2.Model', \
-                'torchbenchmark.models.hf_T5.Model']
+    models = ['torchbenchmark.models.hf_T5_large.Model']
+    # models = ['torchbenchmark.models.hf_Bert.Model', 'torchbenchmark.models.hf_BertLarge.Model', \
+    #     'torchbenchmark.models.hf_GPT2_large.Model', 'torchbenchmark.models.hf_T5_large.Model', \
+    #         'torchbenchmark.models.timm_vision_transformer_large.Model', 'torchbenchmark.models.hf_GPT2.Model', \
+    #             'torchbenchmark.models.hf_T5.Model']
 
     model_batch_size = {'torchbenchmark.models.hf_Bert.Model': 32, 'torchbenchmark.models.hf_BertLarge.Model': 16, \
         'torchbenchmark.models.hf_GPT2_large.Model': 4, 'torchbenchmark.models.hf_T5_large.Model': 4, \
             'torchbenchmark.models.timm_vision_transformer_large.Model': 16, 'torchbenchmark.models.hf_GPT2.Model': 24, \
                 'torchbenchmark.models.hf_T5.Model': 12}
 
-    node_list = [i for i in range(24, 25)]
+    node_list = [i for i in range(1, 9)]
     args.ngpus = 8
     for nodes in node_list:
         for model_name in models:

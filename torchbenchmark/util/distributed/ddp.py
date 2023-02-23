@@ -70,7 +70,7 @@ class DDPTrainer(Trainer):
             # Set gradient as bucket view to avoid unnecessary copies
             gradient_as_bucket_view=True,
             # TODO: tune bucket_cap_mb
-            bucket_cap_mb=200,
+            bucket_cap_mb=25,
             static_graph=True,
         )
         opt_cls = type(self.optimizer)
@@ -304,7 +304,7 @@ class DDPTrainer(Trainer):
         stdev_opt = stdev(delays_opt)
 
         # write results
-        delay_dir = f"{self.args.job_dir}/ddp_latency"
+        delay_dir = f"{self.args.job_dir}/ddp_latency_reproduce"
         Path(delay_dir).mkdir(parents=True, exist_ok=True)
         fout = open(f"{delay_dir}/{name}.data", "w")
         fout.write(

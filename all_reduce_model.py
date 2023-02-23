@@ -20,7 +20,9 @@ for i in range(45):
     data_sizes.append(size_in_mb)
 
 network_types = ['efa', 'ena']
-nodes = [i for i in range(1,25)]
+nodes = [i for i in range(1,33)]
+nodes.remove(27)
+nodes.remove(28)
 dir_name = '/shared/sanket/logs/all_reduce/'
 #------------BOX PLOTS -------------------------------
 # nodes = [1,2,4,8,16,24,32]
@@ -65,52 +67,52 @@ dir_name = '/shared/sanket/logs/all_reduce/'
 #         fig.savefig(f"all_red_box_{num_nodes}_{net_type}_straggle.png")
 
 #-------------- SCATTER LINE PLOTS
-markers = ["d", "v", "s", "*", "^", "o"]
-colors= ['blue', 'orange', 'green', 'red', 'purple', 'brown']
-nodes = [2,4,9,14,20,32]
-for net_type in network_types:
-    fig, ax = plt.subplots(figsize=(6,4))
-    for num_nodes,marker,color in zip(nodes,markers,colors):
+# markers = ["d", "v", "s", "*", "^", "o"]
+# colors= ['blue', 'orange', 'green', 'red', 'purple', 'brown']
+# nodes = [2,4,9,14,20,32]
+# for net_type in network_types:
+#     fig, ax = plt.subplots(figsize=(6,4))
+#     for num_nodes,marker,color in zip(nodes,markers,colors):
 
-        num_tasks = num_nodes * 8
-        rank_latencies = defaultdict(lambda: defaultdict(list))
-        for rank in range(num_tasks):
-            latencies = defaultdict(list)
-            filename = f"{dir_name}all_red_{net_type}_{num_tasks}_{rank}.data"
-            print(filename)
-            with open(filename, 'r', encoding='UTF-8') as file:
-                while (line := file.readline().rstrip()):
-                    vals = [x for x in line.split(",")]
-                    data_size = int(vals[0])
-                    latency = float(vals[1])
-                    latencies[data_size].append(latency)
-            rank_latencies[rank] = latencies
-        c_latencies = []
-        for d_size in data_sizes:
-            meta_list = []
-            for rank in range(num_tasks):
-                meta_list.append(rank_latencies[rank][d_size])
-            t_meta_list = list(map(list, zip(*meta_list)))
-            if(d_size == 5):
-                t_meta_list.pop(0)
-            comm_latency = [min(l) for l in t_meta_list]
-            straggle_latency = [max(l) for l in t_meta_list]
-            print(f"Data Size: {d_size}")
-            print(f"Comm Latency: {comm_latency}")
-            print(f"Straggle Latency: {straggle_latency}")
-            # straggle_latency = [a - b for a,b in zip(straggle_latency, comm_latency)]
-            print(f"Straggle Latency Diff: {straggle_latency}")
-            c_latencies.append(mean(straggle_latency))
-        ax.scatter(data_sizes[:20], c_latencies[:20], s=12, marker=marker, label=f"{num_nodes}  Nodes")
-        z = np.polyfit(data_sizes[:20], c_latencies[:20], 2)
-        p = np.poly1d(z)
-        plt.plot(data_sizes[:20],p(data_sizes[:20]),ls="--", lw=0.5, color=color)
-        plt.legend()
-        plt.xlabel("Tensor Size (MBs)")
-        plt.ylabel("All Reduce Latency (ms)")
-        # ax.set_xticks([r+1 for r in range(0,45) if(r%5==4)])
-        # ax.set_xticklabels([data_sizes[r] for r in range(0,45) if(r%5==4)])
-    fig.savefig(f"all_red_line_straggle_lower_25_{net_type}.png")
+#         num_tasks = num_nodes * 8
+#         rank_latencies = defaultdict(lambda: defaultdict(list))
+#         for rank in range(num_tasks):
+#             latencies = defaultdict(list)
+#             filename = f"{dir_name}all_red_{net_type}_{num_tasks}_{rank}.data"
+#             print(filename)
+#             with open(filename, 'r', encoding='UTF-8') as file:
+#                 while (line := file.readline().rstrip()):
+#                     vals = [x for x in line.split(",")]
+#                     data_size = int(vals[0])
+#                     latency = float(vals[1])
+#                     latencies[data_size].append(latency)
+#             rank_latencies[rank] = latencies
+#         c_latencies = []
+#         for d_size in data_sizes:
+#             meta_list = []
+#             for rank in range(num_tasks):
+#                 meta_list.append(rank_latencies[rank][d_size])
+#             t_meta_list = list(map(list, zip(*meta_list)))
+#             if(d_size == 5):
+#                 t_meta_list.pop(0)
+#             comm_latency = [min(l) for l in t_meta_list]
+#             straggle_latency = [max(l) for l in t_meta_list]
+#             print(f"Data Size: {d_size}")
+#             print(f"Comm Latency: {comm_latency}")
+#             print(f"Straggle Latency: {straggle_latency}")
+#             # straggle_latency = [a - b for a,b in zip(straggle_latency, comm_latency)]
+#             print(f"Straggle Latency Diff: {straggle_latency}")
+#             c_latencies.append(mean(straggle_latency))
+#         ax.scatter(data_sizes[:20], c_latencies[:20], s=12, marker=marker, label=f"{num_nodes}  Nodes")
+#         z = np.polyfit(data_sizes[:20], c_latencies[:20], 2)
+#         p = np.poly1d(z)
+#         plt.plot(data_sizes[:20],p(data_sizes[:20]),ls="--", lw=0.5, color=color)
+#         plt.legend()
+#         plt.xlabel("Tensor Size (MBs)")
+#         plt.ylabel("All Reduce Latency (ms)")
+#         # ax.set_xticks([r+1 for r in range(0,45) if(r%5==4)])
+#         # ax.set_xticklabels([data_sizes[r] for r in range(0,45) if(r%5==4)])
+#     fig.savefig(f"all_red_line_straggle_lower_25_{net_type}.png")
 #------------HISTOGRAMS -------------------------------
 # hist_data_sizes = [25, 100, 500, 1000]
 # hist_nodes = [2, 8, 16, 32]
@@ -174,3 +176,65 @@ for net_type in network_types:
 #             c_latencies.append(comm_latency)
         
 
+# ------------ALL RED DICTIONARIES -------------------------------
+#all_red_model[net_type][num_nodes][data_size][comm/straggle]
+import json
+# print(nodes)
+# print(data_sizes)
+# print(network_types)
+# all_red_model =  defaultdict(lambda: defaultdict(lambda: defaultdict (lambda: defaultdict(float))))
+# for net_type in network_types:
+#     for num_nodes in nodes:
+#         num_tasks = num_nodes * 8
+#         rank_latencies = defaultdict(lambda: defaultdict(list))
+#         for rank in range(num_tasks):
+#             latencies = defaultdict(list)
+#             filename = f"{dir_name}all_red_{net_type}_{num_tasks}_{rank}.data"
+
+#             with open(filename, 'r', encoding='UTF-8') as file:
+#                 while (line := file.readline().rstrip()):
+#                     vals = [x for x in line.split(",")]
+#                     data_size = int(vals[0])
+#                     latency = float(vals[1])
+#                     latencies[data_size].append(latency)
+#             rank_latencies[rank] = latencies
+#         for d_size in data_sizes:
+#             meta_list = []
+#             for rank in range(num_tasks):
+#                 meta_list.append(rank_latencies[rank][d_size])
+#             t_meta_list = list(map(list, zip(*meta_list)))
+#             if(d_size == 5):
+#                 t_meta_list.pop(0)
+#             comm_latency = [min(l) for l in t_meta_list]
+#             straggle_latency = [max(l) for l in t_meta_list]
+#             straggle_latency = [a - b for a,b in zip(straggle_latency, comm_latency)]
+#             # print(f"Data Size: {d_size}")
+#             # print(f"Comm Latency: {comm_latency}")
+#             # print(f"Straggle Latency: {straggle_latency}")
+#             all_red_model[net_type][num_nodes][d_size]['comm'] = mean(comm_latency)
+#             all_red_model[net_type][num_nodes][d_size]['straggle'] = mean(straggle_latency)
+
+# print(all_red_model['efa'][5])
+
+# with open('all_red_model.dict','w') as all_red_model_file:
+#     json.dump(all_red_model, all_red_model_file)
+# with open('data_sizes.list','w') as data_sizes_file:
+#     json.dump(data_sizes, data_sizes_file)    
+# with open('nodes.list','w') as nodes_file:
+#     json.dump(nodes, nodes_file)
+# with open('network_types.list','w') as network_types_file:
+#     json.dump(network_types, network_types_file)
+
+with open('all_red_model.dict','r') as all_red_model_file:
+    all_red_model = json.load(all_red_model_file)
+with open('data_sizes.list','r') as data_sizes_file:
+    data_sizes = json.load(data_sizes_file)    
+with open('nodes.list','r') as nodes_file:
+    nodes = json.load(nodes_file)
+with open('network_types.list','r') as network_types_file:
+    network_types = json.load(network_types_file)
+
+print(nodes)
+print(data_sizes)
+print(network_types)
+print(all_red_model['efa']['5']['5']['comm'])

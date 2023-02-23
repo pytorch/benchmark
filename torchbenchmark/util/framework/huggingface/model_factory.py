@@ -9,6 +9,7 @@ from typing import Tuple
 
 class_models = {
     # 'name': (train_max_length, eval_max_length, config, model)
+    'hf_GPT2_small': (512, 1024, 'AutoConfig.from_pretrained("gpt2", n_embd=512, n_head=8, n_layer=6)', 'AutoModelForCausalLM'),
     'hf_GPT2': (512, 1024, 'AutoConfig.from_pretrained("gpt2")', 'AutoModelForCausalLM'),
     'hf_GPT2_large': (512, 1024, 'AutoConfig.from_pretrained("gpt2-large")', 'AutoModelForCausalLM'),
     'hf_GPT2_xl': (512, 1024, 'AutoConfig.from_pretrained("gpt2-xl")', 'AutoModelForCausalLM'),
@@ -23,6 +24,7 @@ class_models = {
     'hf_DistilBert': (512, 512, 'AutoConfig.from_pretrained("distilbert-base-uncased")', 'AutoModelForMaskedLM'),
     'hf_Longformer': (1024, 4096, 'AutoConfig.from_pretrained("allenai/longformer-base-4096")', 'AutoModelForMaskedLM'),
     'hf_Bert': (512, 512, 'BertConfig()', 'AutoModelForMaskedLM'),
+    'hf_Bert_small': (512, 512, 'BertConfig(hidden_size=512, num_hidden_layers=4, num_attention_heads=8)', 'AutoModelForMaskedLM'),
     'hf_BertLarge': (512, 512, 'BertConfig(hidden_size=1024, num_hidden_layers=24, num_attention_heads=16)', 'AutoModelForMaskedLM'),
 }
 

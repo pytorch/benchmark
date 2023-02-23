@@ -1,0 +1,2508 @@
+
+{
+  "schemaVersion": 1,
+  "deviceProperties": [
+    {
+      "id": 0, "name": "NVIDIA A100-SXM4-40GB", "totalGlobalMem": 42314694656,
+      "computeMajor": 8, "computeMinor": 0,
+      "maxThreadsPerBlock": 1024, "maxThreadsPerMultiprocessor": 2048,
+      "regsPerBlock": 65536, "regsPerMultiprocessor": 65536, "warpSize": 32,
+      "sharedMemPerBlock": 49152, "sharedMemPerMultiprocessor": 167936,
+      "numSms": 108, "sharedMemPerBlockOptin": 166912
+    },
+    {
+      "id": 1, "name": "NVIDIA A100-SXM4-40GB", "totalGlobalMem": 42314694656,
+      "computeMajor": 8, "computeMinor": 0,
+      "maxThreadsPerBlock": 1024, "maxThreadsPerMultiprocessor": 2048,
+      "regsPerBlock": 65536, "regsPerMultiprocessor": 65536, "warpSize": 32,
+      "sharedMemPerBlock": 49152, "sharedMemPerMultiprocessor": 167936,
+      "numSms": 108, "sharedMemPerBlockOptin": 166912
+    },
+    {
+      "id": 2, "name": "NVIDIA A100-SXM4-40GB", "totalGlobalMem": 42314694656,
+      "computeMajor": 8, "computeMinor": 0,
+      "maxThreadsPerBlock": 1024, "maxThreadsPerMultiprocessor": 2048,
+      "regsPerBlock": 65536, "regsPerMultiprocessor": 65536, "warpSize": 32,
+      "sharedMemPerBlock": 49152, "sharedMemPerMultiprocessor": 167936,
+      "numSms": 108, "sharedMemPerBlockOptin": 166912
+    },
+    {
+      "id": 3, "name": "NVIDIA A100-SXM4-40GB", "totalGlobalMem": 42314694656,
+      "computeMajor": 8, "computeMinor": 0,
+      "maxThreadsPerBlock": 1024, "maxThreadsPerMultiprocessor": 2048,
+      "regsPerBlock": 65536, "regsPerMultiprocessor": 65536, "warpSize": 32,
+      "sharedMemPerBlock": 49152, "sharedMemPerMultiprocessor": 167936,
+      "numSms": 108, "sharedMemPerBlockOptin": 166912
+    },
+    {
+      "id": 4, "name": "NVIDIA A100-SXM4-40GB", "totalGlobalMem": 42314694656,
+      "computeMajor": 8, "computeMinor": 0,
+      "maxThreadsPerBlock": 1024, "maxThreadsPerMultiprocessor": 2048,
+      "regsPerBlock": 65536, "regsPerMultiprocessor": 65536, "warpSize": 32,
+      "sharedMemPerBlock": 49152, "sharedMemPerMultiprocessor": 167936,
+      "numSms": 108, "sharedMemPerBlockOptin": 166912
+    },
+    {
+      "id": 5, "name": "NVIDIA A100-SXM4-40GB", "totalGlobalMem": 42314694656,
+      "computeMajor": 8, "computeMinor": 0,
+      "maxThreadsPerBlock": 1024, "maxThreadsPerMultiprocessor": 2048,
+      "regsPerBlock": 65536, "regsPerMultiprocessor": 65536, "warpSize": 32,
+      "sharedMemPerBlock": 49152, "sharedMemPerMultiprocessor": 167936,
+      "numSms": 108, "sharedMemPerBlockOptin": 166912
+    },
+    {
+      "id": 6, "name": "NVIDIA A100-SXM4-40GB", "totalGlobalMem": 42314694656,
+      "computeMajor": 8, "computeMinor": 0,
+      "maxThreadsPerBlock": 1024, "maxThreadsPerMultiprocessor": 2048,
+      "regsPerBlock": 65536, "regsPerMultiprocessor": 65536, "warpSize": 32,
+      "sharedMemPerBlock": 49152, "sharedMemPerMultiprocessor": 167936,
+      "numSms": 108, "sharedMemPerBlockOptin": 166912
+    },
+    {
+      "id": 7, "name": "NVIDIA A100-SXM4-40GB", "totalGlobalMem": 42314694656,
+      "computeMajor": 8, "computeMinor": 0,
+      "maxThreadsPerBlock": 1024, "maxThreadsPerMultiprocessor": 2048,
+      "regsPerBlock": 65536, "regsPerMultiprocessor": 65536, "warpSize": 32,
+      "sharedMemPerBlock": 49152, "sharedMemPerMultiprocessor": 167936,
+      "numSms": 108, "sharedMemPerBlockOptin": 166912
+    }
+  ],
+  "traceEvents": [
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297451, "dur": 40,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 1,
+      "Profiler Event Index": 0, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297462, "dur": 4,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 2,
+      "Profiler Event Index": 1, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297490, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 3,
+      "Profiler Event Index": 2, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#5", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297504, "dur": 68255,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 4,
+      "Profiler Event Index": 3
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297505, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 5,
+      "Profiler Event Index": 4, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297513, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 6,
+      "Profiler Event Index": 5, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297514, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 7,
+      "Profiler Event Index": 6, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297515, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 8,
+      "Profiler Event Index": 7, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297519, "dur": 32792,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 9,
+      "Profiler Event Index": 8
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297520, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 10,
+      "Profiler Event Index": 9, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297562, "dur": 32716,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 11,
+      "Profiler Event Index": 10, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444330329, "dur": 9,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 12,
+      "Profiler Event Index": 11, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444330332, "dur": 4,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 13,
+      "Profiler Event Index": 12, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444330337, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 14,
+      "Profiler Event Index": 13, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444330347, "dur": 35372,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 15,
+      "Profiler Event Index": 14
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444330348, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 16,
+      "Profiler Event Index": 15, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444330389, "dur": 35303,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 17,
+      "Profiler Event Index": 16, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365785, "dur": 8,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 18,
+      "Profiler Event Index": 17, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365788, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 19,
+      "Profiler Event Index": 18, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365792, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 20,
+      "Profiler Event Index": 19, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#6", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365802, "dur": 71878,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 21,
+      "Profiler Event Index": 20
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365802, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 22,
+      "Profiler Event Index": 21, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365814, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 23,
+      "Profiler Event Index": 22, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365815, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 24,
+      "Profiler Event Index": 23, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365816, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 25,
+      "Profiler Event Index": 24, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365819, "dur": 32519,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 26,
+      "Profiler Event Index": 25
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365820, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 27,
+      "Profiler Event Index": 26, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365849, "dur": 32463,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 28,
+      "Profiler Event Index": 27, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444398353, "dur": 8,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 29,
+      "Profiler Event Index": 28, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444398356, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 30,
+      "Profiler Event Index": 29, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444398360, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 31,
+      "Profiler Event Index": 30, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444398369, "dur": 39259,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 32,
+      "Profiler Event Index": 31
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444398370, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 33,
+      "Profiler Event Index": 32, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444398405, "dur": 39191,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 34,
+      "Profiler Event Index": 33, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437703, "dur": 9,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 35,
+      "Profiler Event Index": 34, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437707, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 36,
+      "Profiler Event Index": 35, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437711, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 37,
+      "Profiler Event Index": 36, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#7", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437720, "dur": 67916,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 38,
+      "Profiler Event Index": 37
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437721, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 39,
+      "Profiler Event Index": 38, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437727, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 40,
+      "Profiler Event Index": 39, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437727, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 41,
+      "Profiler Event Index": 40, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437728, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 42,
+      "Profiler Event Index": 41, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437732, "dur": 32494,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 43,
+      "Profiler Event Index": 42
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437732, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 44,
+      "Profiler Event Index": 43, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437759, "dur": 32441,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 45,
+      "Profiler Event Index": 44, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444470239, "dur": 8,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 46,
+      "Profiler Event Index": 45, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444470242, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 47,
+      "Profiler Event Index": 46, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444470246, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 48,
+      "Profiler Event Index": 47, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444470254, "dur": 35340,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 49,
+      "Profiler Event Index": 48
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444470255, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 50,
+      "Profiler Event Index": 49, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444470289, "dur": 35283,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 51,
+      "Profiler Event Index": 50, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505676, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 52,
+      "Profiler Event Index": 51, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505678, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 53,
+      "Profiler Event Index": 52, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505683, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 54,
+      "Profiler Event Index": 53, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#8", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505691, "dur": 67898,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 55,
+      "Profiler Event Index": 54
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505692, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 56,
+      "Profiler Event Index": 55, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505698, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 57,
+      "Profiler Event Index": 56, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505698, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 58,
+      "Profiler Event Index": 57, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505699, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 59,
+      "Profiler Event Index": 58, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505703, "dur": 32583,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 60,
+      "Profiler Event Index": 59
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505704, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 61,
+      "Profiler Event Index": 60, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505730, "dur": 32530,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 62,
+      "Profiler Event Index": 61, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444538300, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 63,
+      "Profiler Event Index": 62, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444538302, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 64,
+      "Profiler Event Index": 63, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444538306, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 65,
+      "Profiler Event Index": 64, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444538314, "dur": 35241,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 66,
+      "Profiler Event Index": 65
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444538315, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 67,
+      "Profiler Event Index": 66, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444538349, "dur": 35184,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 68,
+      "Profiler Event Index": 67, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573618, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 69,
+      "Profiler Event Index": 68, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573620, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 70,
+      "Profiler Event Index": 69, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573624, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 71,
+      "Profiler Event Index": 70, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#9", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573633, "dur": 67911,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 72,
+      "Profiler Event Index": 71
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573633, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 73,
+      "Profiler Event Index": 72, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573639, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 74,
+      "Profiler Event Index": 73, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573639, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 75,
+      "Profiler Event Index": 74, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573640, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 76,
+      "Profiler Event Index": 75, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573644, "dur": 32503,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 77,
+      "Profiler Event Index": 76
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573644, "dur": 22,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 78,
+      "Profiler Event Index": 77, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573694, "dur": 32429,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 79,
+      "Profiler Event Index": 78, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444606160, "dur": 8,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 80,
+      "Profiler Event Index": 79, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444606163, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 81,
+      "Profiler Event Index": 80, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444606167, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 82,
+      "Profiler Event Index": 81, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444606177, "dur": 35333,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 83,
+      "Profiler Event Index": 82
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444606177, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 84,
+      "Profiler Event Index": 83, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444606211, "dur": 35279,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 85,
+      "Profiler Event Index": 84, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641564, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 86,
+      "Profiler Event Index": 85, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641566, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 87,
+      "Profiler Event Index": 86, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641570, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 88,
+      "Profiler Event Index": 87, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#10", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641578, "dur": 67909,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 89,
+      "Profiler Event Index": 88
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641579, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 90,
+      "Profiler Event Index": 89, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641584, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 91,
+      "Profiler Event Index": 90, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641585, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 92,
+      "Profiler Event Index": 91, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641586, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 93,
+      "Profiler Event Index": 92, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641589, "dur": 32499,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 94,
+      "Profiler Event Index": 93
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641589, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 95,
+      "Profiler Event Index": 94, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641622, "dur": 32442,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 96,
+      "Profiler Event Index": 95, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444674101, "dur": 8,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 97,
+      "Profiler Event Index": 96, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444674103, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 98,
+      "Profiler Event Index": 97, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444674108, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 99,
+      "Profiler Event Index": 98, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444674116, "dur": 35335,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 100,
+      "Profiler Event Index": 99
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444674117, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 101,
+      "Profiler Event Index": 100, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444674150, "dur": 35279,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 102,
+      "Profiler Event Index": 101, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709508, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 103,
+      "Profiler Event Index": 102, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709510, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 104,
+      "Profiler Event Index": 103, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709514, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 105,
+      "Profiler Event Index": 104, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#11", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709523, "dur": 67869,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 106,
+      "Profiler Event Index": 105
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709524, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 107,
+      "Profiler Event Index": 106, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709530, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 108,
+      "Profiler Event Index": 107, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709530, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 109,
+      "Profiler Event Index": 108, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709531, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 110,
+      "Profiler Event Index": 109, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709535, "dur": 32539,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 111,
+      "Profiler Event Index": 110
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709535, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 112,
+      "Profiler Event Index": 111, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709560, "dur": 32490,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 113,
+      "Profiler Event Index": 112, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444742087, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 114,
+      "Profiler Event Index": 113, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444742089, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 115,
+      "Profiler Event Index": 114, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444742093, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 116,
+      "Profiler Event Index": 115, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444742102, "dur": 35257,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 117,
+      "Profiler Event Index": 116
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444742102, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 118,
+      "Profiler Event Index": 117, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444742136, "dur": 35203,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 119,
+      "Profiler Event Index": 118, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777413, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 120,
+      "Profiler Event Index": 119, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777415, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 121,
+      "Profiler Event Index": 120, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777419, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 122,
+      "Profiler Event Index": 121, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#12", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777427, "dur": 67871,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 123,
+      "Profiler Event Index": 122
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777428, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 124,
+      "Profiler Event Index": 123, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777433, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 125,
+      "Profiler Event Index": 124, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777433, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 126,
+      "Profiler Event Index": 125, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777434, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 127,
+      "Profiler Event Index": 126, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777438, "dur": 32504,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 128,
+      "Profiler Event Index": 127
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777438, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 129,
+      "Profiler Event Index": 128, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777462, "dur": 32456,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 130,
+      "Profiler Event Index": 129, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444809955, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 131,
+      "Profiler Event Index": 130, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444809957, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 132,
+      "Profiler Event Index": 131, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444809961, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 133,
+      "Profiler Event Index": 132, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444809969, "dur": 35296,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 134,
+      "Profiler Event Index": 133
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444809970, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 135,
+      "Profiler Event Index": 134, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444810010, "dur": 35235,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 136,
+      "Profiler Event Index": 135, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845317, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 137,
+      "Profiler Event Index": 136, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845319, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 138,
+      "Profiler Event Index": 137, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845323, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 139,
+      "Profiler Event Index": 138, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#13", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845331, "dur": 67963,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 140,
+      "Profiler Event Index": 139
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845332, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 141,
+      "Profiler Event Index": 140, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845337, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 142,
+      "Profiler Event Index": 141, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845338, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 143,
+      "Profiler Event Index": 142, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845339, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 144,
+      "Profiler Event Index": 143, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845342, "dur": 32503,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 145,
+      "Profiler Event Index": 144
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845343, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 146,
+      "Profiler Event Index": 145, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845367, "dur": 32454,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 147,
+      "Profiler Event Index": 146, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444877857, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 148,
+      "Profiler Event Index": 147, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444877860, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 149,
+      "Profiler Event Index": 148, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444877864, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 150,
+      "Profiler Event Index": 149, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444877871, "dur": 35390,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 151,
+      "Profiler Event Index": 150
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444877872, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 152,
+      "Profiler Event Index": 151, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444877905, "dur": 35336,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 153,
+      "Profiler Event Index": 152, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913314, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 154,
+      "Profiler Event Index": 153, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913316, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 155,
+      "Profiler Event Index": 154, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913320, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 156,
+      "Profiler Event Index": 155, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "ProfilerStep#14", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913328, "dur": 67850,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 157,
+      "Profiler Event Index": 156
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913329, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 158,
+      "Profiler Event Index": 157, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913334, "dur": 2,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 159,
+      "Profiler Event Index": 158, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913335, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 160,
+      "Profiler Event Index": 159, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913336, "dur": 0,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 161,
+      "Profiler Event Index": 160, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "CPU->GPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913339, "dur": 32535,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 162,
+      "Profiler Event Index": 161
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913340, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 163,
+      "Profiler Event Index": 162, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913364, "dur": 32486,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 164,
+      "Profiler Event Index": 163, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zeros", "pid": 71312, "tid": 71312,
+    "ts": 1661542444945888, "dur": 7,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 165,
+      "Profiler Event Index": 164, "Input Dims": [[], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar"]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444945890, "dur": 3,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 166,
+      "Profiler Event Index": 165, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "Scalar", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::zero_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444945894, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 167,
+      "Profiler Event Index": 166, "Input Dims": [[1]], "Input type": ["float"]
+    }
+  },
+  {
+    "ph": "X", "cat": "user_annotation", "name": "GPU->CPU", "pid": 71312, "tid": 71312,
+    "ts": 1661542444945902, "dur": 35243,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 168,
+      "Profiler Event Index": 167
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::empty", "pid": 71312, "tid": 71312,
+    "ts": 1661542444945903, "dur": 1,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 169,
+      "Profiler Event Index": 168, "Input Dims": [[], [], [], [], [], []], "Input type": ["", "Scalar", "", "", "", ""]
+    }
+  },
+  {
+    "ph": "X", "cat": "cpu_op", "name": "aten::copy_", "pid": 71312, "tid": 71312,
+    "ts": 1661542444945935, "dur": 35189,
+    "args": {
+      "Trace name": "PyTorch Profiler", "Trace iteration": 0,
+      "External id": 170,
+      "Profiler Event Index": 169, "Input Dims": [[256, 3, 224, 224], [256, 3, 224, 224], []], "Input type": ["float", "float", "Scalar"], "Fwd thread id": 0, "Sequence number": 0
+    }
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444297846, "dur": 32513,
+    "args": {
+      "External id": 54,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 54,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.740763923995681
+    }
+  },
+  {
+    "ph": "f", "id": 54, "pid": 0, "tid": 22, "ts": 1661542444297846,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444297579, "dur": 32683,
+    "args": {
+      "External id": 54,
+      "cbid": 41, "correlation": 54
+    }
+  },
+  {
+    "ph": "s", "id": 54, "pid": 71312, "tid": 71312, "ts": 1661542444297579,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444330435, "dur": 34867,
+    "args": {
+      "External id": 64,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 64,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.4207536471632185
+    }
+  },
+  {
+    "ph": "f", "id": 64, "pid": 0, "tid": 20, "ts": 1661542444330435,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444330404, "dur": 35274,
+    "args": {
+      "External id": 64,
+      "cbid": 41, "correlation": 64
+    }
+  },
+  {
+    "ph": "s", "id": 64, "pid": 71312, "tid": 71312, "ts": 1661542444330404,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365742, "dur": 11,
+    "args": {
+      "External id": 69,
+      "cbid": 165, "correlation": 69
+    }
+  },
+  {
+    "ph": "f", "id": 69, "pid": 71312, "tid": 71312, "ts": 1661542444365742,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444366097, "dur": 32304,
+    "args": {
+      "External id": 77,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 77,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.7715089594487585
+    }
+  },
+  {
+    "ph": "f", "id": 77, "pid": 0, "tid": 22, "ts": 1661542444366097,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444365862, "dur": 32436,
+    "args": {
+      "External id": 77,
+      "cbid": 41, "correlation": 77
+    }
+  },
+  {
+    "ph": "s", "id": 77, "pid": 71312, "tid": 71312, "ts": 1661542444365862,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444398448, "dur": 38788,
+    "args": {
+      "External id": 87,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 87,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 3.97384451384076
+    }
+  },
+  {
+    "ph": "f", "id": 87, "pid": 0, "tid": 20, "ts": 1661542444398448,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444398432, "dur": 39153,
+    "args": {
+      "External id": 87,
+      "cbid": 41, "correlation": 87
+    }
+  },
+  {
+    "ph": "s", "id": 87, "pid": 71312, "tid": 71312, "ts": 1661542444398432,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437664, "dur": 11,
+    "args": {
+      "External id": 92,
+      "cbid": 165, "correlation": 92
+    }
+  },
+  {
+    "ph": "f", "id": 92, "pid": 71312, "tid": 71312, "ts": 1661542444437664,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444438011, "dur": 32273,
+    "args": {
+      "External id": 100,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 100,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.776117064740273
+    }
+  },
+  {
+    "ph": "f", "id": 100, "pid": 0, "tid": 22, "ts": 1661542444438011,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444437772, "dur": 32415,
+    "args": {
+      "External id": 100,
+      "cbid": 41, "correlation": 100
+    }
+  },
+  {
+    "ph": "s", "id": 100, "pid": 71312, "tid": 71312, "ts": 1661542444437772,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444470320, "dur": 34892,
+    "args": {
+      "External id": 110,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 110,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.417554840462883
+    }
+  },
+  {
+    "ph": "f", "id": 110, "pid": 0, "tid": 20, "ts": 1661542444470320,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444470304, "dur": 35257,
+    "args": {
+      "External id": 110,
+      "cbid": 41, "correlation": 110
+    }
+  },
+  {
+    "ph": "s", "id": 110, "pid": 71312, "tid": 71312, "ts": 1661542444470304,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505621, "dur": 10,
+    "args": {
+      "External id": 115,
+      "cbid": 165, "correlation": 115
+    }
+  },
+  {
+    "ph": "f", "id": 115, "pid": 71312, "tid": 71312, "ts": 1661542444505621,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444505972, "dur": 32373,
+    "args": {
+      "External id": 123,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 123,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.761378034531239
+    }
+  },
+  {
+    "ph": "f", "id": 123, "pid": 0, "tid": 22, "ts": 1661542444505972,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444505743, "dur": 32505,
+    "args": {
+      "External id": 123,
+      "cbid": 41, "correlation": 123
+    }
+  },
+  {
+    "ph": "s", "id": 123, "pid": 71312, "tid": 71312, "ts": 1661542444505743,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444538377, "dur": 34800,
+    "args": {
+      "External id": 133,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 133,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.429245270413382
+    }
+  },
+  {
+    "ph": "f", "id": 133, "pid": 0, "tid": 20, "ts": 1661542444538377,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444538363, "dur": 35161,
+    "args": {
+      "External id": 133,
+      "cbid": 41, "correlation": 133
+    }
+  },
+  {
+    "ph": "s", "id": 133, "pid": 71312, "tid": 71312, "ts": 1661542444538363,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573575, "dur": 10,
+    "args": {
+      "External id": 138,
+      "cbid": 165, "correlation": 138
+    }
+  },
+  {
+    "ph": "f", "id": 138, "pid": 71312, "tid": 71312, "ts": 1661542444573575,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444573941, "dur": 32282,
+    "args": {
+      "External id": 146,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 146,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.774739378396323
+    }
+  },
+  {
+    "ph": "f", "id": 146, "pid": 0, "tid": 22, "ts": 1661542444573941,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444573707, "dur": 32404,
+    "args": {
+      "External id": 146,
+      "cbid": 41, "correlation": 146
+    }
+  },
+  {
+    "ph": "s", "id": 146, "pid": 71312, "tid": 71312, "ts": 1661542444573707,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444606239, "dur": 34896,
+    "args": {
+      "External id": 156,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 156,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.417137720417837
+    }
+  },
+  {
+    "ph": "f", "id": 156, "pid": 0, "tid": 20, "ts": 1661542444606239,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444606224, "dur": 35256,
+    "args": {
+      "External id": 156,
+      "cbid": 41, "correlation": 156
+    }
+  },
+  {
+    "ph": "s", "id": 156, "pid": 71312, "tid": 71312, "ts": 1661542444606224,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641529, "dur": 10,
+    "args": {
+      "External id": 161,
+      "cbid": 165, "correlation": 161
+    }
+  },
+  {
+    "ph": "f", "id": 161, "pid": 71312, "tid": 71312, "ts": 1661542444641529,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444641880, "dur": 32270,
+    "args": {
+      "External id": 169,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 169,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.776477003799132
+    }
+  },
+  {
+    "ph": "f", "id": 169, "pid": 0, "tid": 22, "ts": 1661542444641880,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444641634, "dur": 32418,
+    "args": {
+      "External id": 169,
+      "cbid": 41, "correlation": 169
+    }
+  },
+  {
+    "ph": "s", "id": 169, "pid": 71312, "tid": 71312, "ts": 1661542444641634,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444674178, "dur": 34893,
+    "args": {
+      "External id": 179,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 179,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.417485969083694
+    }
+  },
+  {
+    "ph": "f", "id": 179, "pid": 0, "tid": 20, "ts": 1661542444674178,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444674163, "dur": 35255,
+    "args": {
+      "External id": 179,
+      "cbid": 41, "correlation": 179
+    }
+  },
+  {
+    "ph": "s", "id": 179, "pid": 71312, "tid": 71312, "ts": 1661542444674163,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709472, "dur": 10,
+    "args": {
+      "External id": 184,
+      "cbid": 165, "correlation": 184
+    }
+  },
+  {
+    "ph": "f", "id": 184, "pid": 71312, "tid": 71312, "ts": 1661542444709472,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444709833, "dur": 32324,
+    "args": {
+      "External id": 192,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 192,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.76860404876045
+    }
+  },
+  {
+    "ph": "f", "id": 192, "pid": 0, "tid": 22, "ts": 1661542444709833,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444709590, "dur": 32449,
+    "args": {
+      "External id": 192,
+      "cbid": 41, "correlation": 192
+    }
+  },
+  {
+    "ph": "s", "id": 192, "pid": 71312, "tid": 71312, "ts": 1661542444709590,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444742163, "dur": 34812,
+    "args": {
+      "External id": 202,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 202,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.427783747915599
+    }
+  },
+  {
+    "ph": "f", "id": 202, "pid": 0, "tid": 20, "ts": 1661542444742163,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444742148, "dur": 35181,
+    "args": {
+      "External id": 202,
+      "cbid": 41, "correlation": 202
+    }
+  },
+  {
+    "ph": "s", "id": 202, "pid": 71312, "tid": 71312, "ts": 1661542444742148,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777378, "dur": 10,
+    "args": {
+      "External id": 207,
+      "cbid": 165, "correlation": 207
+    }
+  },
+  {
+    "ph": "f", "id": 207, "pid": 71312, "tid": 71312, "ts": 1661542444777378,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444777732, "dur": 32283,
+    "args": {
+      "External id": 215,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 215,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.774649601906729
+    }
+  },
+  {
+    "ph": "f", "id": 215, "pid": 0, "tid": 22, "ts": 1661542444777732,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444777475, "dur": 32432,
+    "args": {
+      "External id": 215,
+      "cbid": 41, "correlation": 215
+    }
+  },
+  {
+    "ph": "s", "id": 215, "pid": 71312, "tid": 71312, "ts": 1661542444777475,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444810037, "dur": 34854,
+    "args": {
+      "External id": 225,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 225,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.422417721268397
+    }
+  },
+  {
+    "ph": "f", "id": 225, "pid": 0, "tid": 20, "ts": 1661542444810037,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444810022, "dur": 35212,
+    "args": {
+      "External id": 225,
+      "cbid": 41, "correlation": 225
+    }
+  },
+  {
+    "ph": "s", "id": 225, "pid": 71312, "tid": 71312, "ts": 1661542444810022,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845283, "dur": 10,
+    "args": {
+      "External id": 230,
+      "cbid": 165, "correlation": 230
+    }
+  },
+  {
+    "ph": "f", "id": 230, "pid": 71312, "tid": 71312, "ts": 1661542444845283,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444845615, "dur": 32293,
+    "args": {
+      "External id": 238,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 238,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.773163825546237
+    }
+  },
+  {
+    "ph": "f", "id": 238, "pid": 0, "tid": 22, "ts": 1661542444845615,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444845379, "dur": 32431,
+    "args": {
+      "External id": 238,
+      "cbid": 41, "correlation": 238
+    }
+  },
+  {
+    "ph": "s", "id": 238, "pid": 71312, "tid": 71312, "ts": 1661542444845379,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444877932, "dur": 34951,
+    "args": {
+      "External id": 248,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 248,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.410177571961487
+    }
+  },
+  {
+    "ph": "f", "id": 248, "pid": 0, "tid": 20, "ts": 1661542444877932,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444877918, "dur": 35314,
+    "args": {
+      "External id": 248,
+      "cbid": 41, "correlation": 248
+    }
+  },
+  {
+    "ph": "s", "id": 248, "pid": 71312, "tid": 71312, "ts": 1661542444877918,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913279, "dur": 10,
+    "args": {
+      "External id": 253,
+      "cbid": 165, "correlation": 253
+    }
+  },
+  {
+    "ph": "f", "id": 253, "pid": 71312, "tid": 71312, "ts": 1661542444913279,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy HtoD (Pageable -> Device)", "pid": 0, "tid": 22,
+    "ts": 1661542444913605, "dur": 32343,
+    "args": {
+      "External id": 261,
+      
+      "device": 0, "context": 1,
+      "stream": 22, "correlation": 261,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.765806259040198
+    }
+  },
+  {
+    "ph": "f", "id": 261, "pid": 0, "tid": 22, "ts": 1661542444913605,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444913376, "dur": 32463,
+    "args": {
+      "External id": 261,
+      "cbid": 41, "correlation": 261
+    }
+  },
+  {
+    "ph": "s", "id": 261, "pid": 71312, "tid": 71312, "ts": 1661542444913376,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "gpu_memcpy", "name": "Memcpy DtoH (Device -> Pageable)", "pid": 0, "tid": 20,
+    "ts": 1661542444945962, "dur": 34811,
+    "args": {
+      "External id": 271,
+      
+      "device": 0, "context": 1,
+      "stream": 20, "correlation": 271,
+      "bytes": 154140672, "memory bandwidth (GB/s)": 4.427840730108514
+    }
+  },
+  {
+    "ph": "f", "id": 271, "pid": 0, "tid": 20, "ts": 1661542444945962,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaMemcpyAsync", "pid": 71312, "tid": 71312,
+    "ts": 1661542444945948, "dur": 35166,
+    "args": {
+      "External id": 271,
+      "cbid": 41, "correlation": 271
+    }
+  },
+  {
+    "ph": "s", "id": 271, "pid": 71312, "tid": 71312, "ts": 1661542444945948,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444981163, "dur": 10,
+    "args": {
+      "External id": 276,
+      "cbid": 165, "correlation": 276
+    }
+  },
+  {
+    "ph": "f", "id": 276, "pid": 71312, "tid": 71312, "ts": 1661542444981163,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "ph": "X", "cat": "cuda_runtime", "name": "cudaDeviceSynchronize", "pid": 71312, "tid": 71312,
+    "ts": 1661542444981201, "dur": 3,
+    "args": {
+      "External id": 279,
+      "cbid": 165, "correlation": 279
+    }
+  },
+  {
+    "ph": "f", "id": 279, "pid": 71312, "tid": 71312, "ts": 1661542444981201,
+    "cat": "async_cpu_to_gpu", "name": "async_gpu", "bp": "e"
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 71312, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 71312, "tid": 0,
+    "args": {
+      "labels": "CPU"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 71312, "tid": 0,
+    "args": {
+      "sort_index": 71312
+    }
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 0, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 0, "tid": 0,
+    "args": {
+      "labels": "GPU 0"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 0, "tid": 0,
+    "args": {
+      "sort_index": 16777216
+    }
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 1, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 1, "tid": 0,
+    "args": {
+      "labels": "GPU 1"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 1, "tid": 0,
+    "args": {
+      "sort_index": 16777217
+    }
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 2, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 2, "tid": 0,
+    "args": {
+      "labels": "GPU 2"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 2, "tid": 0,
+    "args": {
+      "sort_index": 16777218
+    }
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 3, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 3, "tid": 0,
+    "args": {
+      "labels": "GPU 3"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 3, "tid": 0,
+    "args": {
+      "sort_index": 16777219
+    }
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 4, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 4, "tid": 0,
+    "args": {
+      "labels": "GPU 4"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 4, "tid": 0,
+    "args": {
+      "sort_index": 16777220
+    }
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 5, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 5, "tid": 0,
+    "args": {
+      "labels": "GPU 5"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 5, "tid": 0,
+    "args": {
+      "sort_index": 16777221
+    }
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 6, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 6, "tid": 0,
+    "args": {
+      "labels": "GPU 6"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 6, "tid": 0,
+    "args": {
+      "sort_index": 16777222
+    }
+  },
+  {
+    "name": "process_name", "ph": "M", "ts": 1661542444297313, "pid": 7, "tid": 0,
+    "args": {
+      "name": "python"
+    }
+  },
+  {
+    "name": "process_labels", "ph": "M", "ts": 1661542444297313, "pid": 7, "tid": 0,
+    "args": {
+      "labels": "GPU 7"
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 7, "tid": 0,
+    "args": {
+      "sort_index": 16777223
+    }
+  },
+  {
+    "name": "thread_name", "ph": "M", "ts": 1661542444297313, "pid": 0, "tid": 20,
+    "args": {
+      "name": "stream 20 "
+    }
+  },
+  {
+    "name": "thread_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 0, "tid": 20,
+    "args": {
+      "sort_index": 20
+    }
+  },
+  {
+    "name": "thread_name", "ph": "M", "ts": 1661542444297313, "pid": 0, "tid": 22,
+    "args": {
+      "name": "stream 22 "
+    }
+  },
+  {
+    "name": "thread_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 0, "tid": 22,
+    "args": {
+      "sort_index": 22
+    }
+  },
+  {
+    "name": "thread_name", "ph": "M", "ts": 1661542444297313, "pid": 71312, "tid": 71312,
+    "args": {
+      "name": "thread 71312 (python)"
+    }
+  },
+  {
+    "name": "thread_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 71312, "tid": 71312,
+    "args": {
+      "sort_index": 71312
+    }
+  },
+  {
+    "name": "thread_name", "ph": "M", "ts": 1661542444297313, "pid": 71312, "tid": 71312,
+    "args": {
+      "name": "thread 71312 (python)"
+    }
+  },
+  {
+    "name": "thread_sort_index", "ph": "M", "ts": 1661542444297313, "pid": 71312, "tid": 71312,
+    "args": {
+      "sort_index": 71312
+    }
+  },
+  {
+    "ph": "X", "cat": "Trace", "ts": 1661542444297228, "dur": 683983,
+    "pid": "Spans", "tid": "PyTorch Profiler",
+    "name": "PyTorch Profiler (0)",
+    "args": {
+      "Op count": 0
+    }
+  },
+  {
+    "name": "process_sort_index", "ph": "M", "ts": 1661542444297228,
+    "pid": "Spans", "tid": 0,
+    "args": {
+      "sort_index": 536870912
+    }
+  },
+  {
+    "name": "Iteration Start: PyTorch Profiler", "ph": "i", "s": "g",
+    "pid": "Traces", "tid": "Trace PyTorch Profiler", "ts": 1661542444297228
+  },
+  {
+    "name": "Record Window End", "ph": "i", "s": "g",
+    "pid": "", "tid": "", "ts": 1661542444981549
+  }
+  ],
+  "traceName": "trace3.json"
+}
