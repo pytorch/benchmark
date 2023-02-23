@@ -31,9 +31,6 @@ class TimmModel(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             self.model.eval()
-
-        if device == 'cuda':
-            torch.cuda.empty_cache()
         self.amp_context = suppress
 
     def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
