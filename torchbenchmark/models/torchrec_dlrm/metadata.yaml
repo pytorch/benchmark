@@ -4,3 +4,5 @@ eval_nograd: true
 train_benchmark: false
 train_deterministic: false
 skip_cuda_memory_leak: true
+not_implemented:
+  - test: train
