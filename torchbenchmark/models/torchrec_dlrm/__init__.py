@@ -51,8 +51,7 @@ class Model(BenchmarkModel):
         if self.test == "eval":
             args.test_batch_size = self.batch_size
             loader = get_dataloader(args, backend, "test")
-        limit_batches = 1
-        self.iterator = itertools.islice(iter(loader), limit_batches)
+        self.iterator = itertools.cycle(iter(loader))
         self.example_inputs = next(self.iterator).to(device)
         # parse the args
         args.dense_arch_layer_sizes = [int(x) for x in args.dense_arch_layer_sizes.split(',') if x.strip().isdigit()]
