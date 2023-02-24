@@ -1,0 +1,7 @@
+ci:
+  - gpu-nightly:
+      platform: "gcp-a100"
+      schedule:   "nightly"
+  - cpu-nightly:
+      platform: "aws_t4_metal"
+      schedule: "nightly"
