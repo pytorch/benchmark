@@ -167,7 +167,8 @@ class DRQAgent(object):
         # tie conv layers between actor and critic
         self.actor.encoder.copy_conv_weights_from(self.critic.encoder)
 
-        self.log_alpha = torch.tensor(np.log(cfg.init_temperature)).to(device)
+        self.log_alpha = torch.tensor(np.log(cfg.init_temperature,
+                                             dtype=np.float32)).to(device)
         self.log_alpha.requires_grad = True
         # set target entropy to -|A|
         self.target_entropy = -action_shape[0]
