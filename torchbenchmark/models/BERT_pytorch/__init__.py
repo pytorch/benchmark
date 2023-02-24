@@ -86,7 +86,7 @@ class Model(BenchmarkModel):
             '--vocab_path', f'{root}/data/vocab.small',
             '--output_path', 'bert.model',
         ]) # Avoid reading sys.argv here
-        args.with_cuda = self.device == 'cuda'
+        args.with_cuda = self.device == 'cuda' or self.device == 'mps'
         args.script = self.jit
         args.on_memory = True
 
