@@ -17,6 +17,7 @@ from . import dcgm_fields
 from . import dcgm_field_helpers
 from . import dcgm_structs as structs
 
+from packaging import version
 
 
 
@@ -56,11 +57,24 @@ class NVMLMonitor(Monitor):
         self._gpus = gpus
         # gpu handles: {gpu: handle}
         self._gpu_handles = {}
+        self.check_nvml_compatibility()
         for gpu in self._gpus:
-            self._gpu_handles[gpu] = self._nvml.nvmlDeviceGetHandleByUUID(gpu.device_uuid())
+            self._gpu_handles[gpu] = self._nvmlDeviceGetHandleByUUID(gpu.device_uuid())
             self._records[gpu] = {}
             for metric in self._metrics:
                 self._records[gpu][metric] = []
+
+    def check_nvml_compatibility(self):
+        # check pynvml version, if it is less than 11.5.0, convert uuid to bytes
+        import pynvml
+        current_version = version.parse(pynvml.__version__)
+        if current_version < version.parse("11.5.0"):
+            self._nvmlDeviceGetHandleByUUID=self._nvmlDeviceGetHandleByUUID_for_older_pynvml
+        else:
+            self._nvmlDeviceGetHandleByUUID=self._nvml.nvmlDeviceGetHandleByUUID
+
+    def _nvmlDeviceGetHandleByUUID_for_older_pynvml(self, uuid):
+        return self._nvml.nvmlDeviceGetHandleByUUID(uuid.encode("ascii"))
 
     def _monitoring_iteration(self):
         self._get_gpu_metrics()
@@ -70,7 +84,7 @@ class NVMLMonitor(Monitor):
         Get the metrics of all the GPUs
         """
         for gpu in self._gpus:
-            handle = self._nvml.nvmlDeviceGetHandleByUUID(gpu.device_uuid())
+            handle = self._nvmlDeviceGetHandleByUUID(gpu.device_uuid())
             for metric in self._metrics:
                 nvml_field = self.model_analyzer_to_nvml_field[metric]
                 # convert to microseconds to keep consistency with the dcgm monitor
