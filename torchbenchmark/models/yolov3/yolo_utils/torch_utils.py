@@ -25,6 +25,10 @@ def init_seeds(seed=0):
 
 def select_device(device='', apex=False, batch_size=None):
     # device = 'cpu' or '0' or '0,1,2,3'
+
+    if (torch.backends.mps.is_available()):
+        return torch.device("mps")
+
     cpu_request = device.lower() == 'cpu'
     if device and not cpu_request:  # if device requested other than 'cpu'
         os.environ['CUDA_VISIBLE_DEVICES'] = device  # set environment variable
@@ -52,6 +56,7 @@ def select_device(device='', apex=False, batch_size=None):
 
 def time_synchronized():
     torch.cuda.synchronize() if torch.cuda.is_available() else None
+    torch.mps.synchronize() if torch.backends.mps.is_available() else None
     return time.time()
 
 
