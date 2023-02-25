@@ -99,7 +99,7 @@ class ModelAnalyzer:
         self.gpu_monitor_backend = 'nvml'
 
     def set_export_csv_name(self, export_csv_name=''):
-        if export_csv_name == '':
+        if not export_csv_name:
             return
         self.export_csv_name = export_csv_name
         # test for correct permission
@@ -108,7 +108,7 @@ class ModelAnalyzer:
 
     def update_export_name(self, insert_str=''):
         index = self.export_csv_name.find('.csv')
-        if index != -1:
+        if not index == -1:
             self.export_csv_name = self.export_csv_name[:index] + insert_str + self.export_csv_name[index:]
 
     def start_monitor(self):

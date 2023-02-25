@@ -10,13 +10,14 @@ from typing import List, Union, Tuple, Optional
 
 WARMUP_ROUNDS = 10
 BENCHMARK_ITERS = 15
+MEMPROF_ITER = 2
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
 @dataclasses.dataclass
 class TorchBenchModelMetrics:
     latencies: List[float]
     cpu_peak_mem: Optional[float]
-    gpu_peak_mem: float
+    gpu_peak_mem: Optional[float]
 
 def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS) -> List[float]:
     "Run one step of the model, and return the latency in milliseconds."
@@ -40,7 +41,7 @@ def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_I
         result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
     return result_summary
 
-def get_peak_memory(func, device: str, num_iter=BENCHMARK_ITERS, export_metrics_file='', metrics_needed=[], metrics_gpu_backend='dcgm') -> Tuple[float, float]:
+def get_peak_memory(func, device: str, num_iter=MEMPROF_ITER, export_metrics_file='', metrics_needed=[], metrics_gpu_backend='dcgm') -> Tuple[float, float]:
     "Run one step of the model, and return the peak memory in MB."
     from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
     new_metrics_needed = [_ for _ in metrics_needed if _ in ['cpu_peak_mem', 'gpu_peak_mem']]
@@ -57,6 +58,7 @@ def get_peak_memory(func, device: str, num_iter=BENCHMARK_ITERS, export_metrics_
             func()
     mem_model_analyzer.stop_monitor()
     mem_model_analyzer.aggregate()
+    device_id = None
     if 'gpu_peak_mem' in metrics_needed:
         device_id, gpu_peak_mem = mem_model_analyzer.calculate_gpu_peak_mem()
     else:

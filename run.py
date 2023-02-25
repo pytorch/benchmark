@@ -301,7 +301,9 @@ if __name__ == "__main__":
         test = torch.autocast("cuda")(test)
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
     # enable cpu_peak_mem and gpu_peak_mem by default
-    metrics_needed.extend(['cpu_peak_mem', 'gpu_peak_mem'])
+    metrics_needed.append('cpu_peak_mem')
+    if args.device == 'cuda':
+        metrics_needed.append('gpu_peak_mem')
     metrics_needed = list(set(metrics_needed))
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
@@ -322,7 +324,7 @@ if __name__ == "__main__":
             exit(-1)
         export_metrics_file = "%s_all_metrics.csv" % args.model
     else:
-        export_metrics_file = ''
+        export_metrics_file = None
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:
