@@ -6,7 +6,7 @@ import time
 import dataclasses
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark import ModelTask
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 
 WARMUP_ROUNDS = 10
 BENCHMARK_ITERS = 15
@@ -15,7 +15,7 @@ NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 @dataclasses.dataclass
 class TorchBenchModelMetrics:
     latencies: List[float]
-    cpu_peak_mem: float
+    cpu_peak_mem: Optional[float]
     gpu_peak_mem: float
 
 def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS) -> List[float]:
