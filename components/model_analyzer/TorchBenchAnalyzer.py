@@ -279,11 +279,11 @@ class ModelAnalyzer:
             else:
                 raise TorchBenchAnalyzerException("No available GPU with uuid ", gpu_uuid, " found!")
         else:
-            if len(self.gpu_metric_value) > 1:
-                logger.warning("There are multiple available GPUs and will only return the first one's flops.")
+            # Will only return the first one's peak memory bandwidth. So please use CUDA_VISIBLE_DEVICES to specify the GPU.
             gpu_uuid = next(iter(self.gpu_metric_value))
             gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
-            return gpu._sm_count * gpu._fma_count * 2 * gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9
+            device_id = self.gpu_factory.get_device_by_uuid(gpu_uuid).device_id()
+            return device_id, gpu._sm_count * gpu._fma_count * 2 * gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9
 
     def calculate_gpu_peak_mem(self, gpu_uuid=None) -> float:
         """
@@ -295,12 +295,12 @@ class ModelAnalyzer:
                 return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
             else:
                 raise TorchBenchAnalyzerException("No available GPU with uuid ", gpu_uuid, " found!")
-        if len(self.gpu_metric_value) > 1:
-            logger.warning("There are multiple available GPUs and will only return the first one's peak memory bandwidth.")
         if len(self.gpu_metric_value) == 0:
             raise TorchBenchAnalyzerException("No metrics collected!")
+        # Will only return the first one's peak memory bandwidth. So please use CUDA_VISIBLE_DEVICES to specify the GPU.
         gpu_uuid = next(iter(self.gpu_metric_value))
-        return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
+        device_id = self.gpu_factory.get_device_by_uuid(gpu_uuid).device_id()
+        return device_id, self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
 
     def calculate_cpu_peak_mem(self, cpu_uuid=None) -> float:
         """

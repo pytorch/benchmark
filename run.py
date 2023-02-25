@@ -58,7 +58,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_model_analyzer=None, cpu_peak_mem=None, gpu_peak_mem=None):
+def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_model_analyzer=None, cpu_peak_mem=None, device_id=None, gpu_peak_mem=None):
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
@@ -76,13 +76,13 @@ def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_
     # if model_flops is not None, output the TFLOPs per sec
     if 'flops' in metrics_needed:
         if flops_model_analyzer.metrics_backend_mapping['flops'] == 'dcgm':
-            tflops = flops_model_analyzer.calculate_flops()
+            tflops_device_id, tflops = flops_model_analyzer.calculate_flops()
         else:
             flops, batch_size = model.get_flops()
             tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
     if gpu_peak_mem is not None:
-        print('{:<20} {:>20}'.format("GPU Peak Memory:", "%.4f GB" % gpu_peak_mem, sep=''))
+        print('{:<20} {:>20}'.format("GPU %d Peak Memory:" % device_id, "%.4f GB" % gpu_peak_mem, sep=''))
     if cpu_peak_mem is not None:
         print('{:<20} {:>20}'.format("CPU Peak Memory:", "%.4f GB" % cpu_peak_mem, sep=''))
 
@@ -155,9 +155,9 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
     cpu_peak_mem = None
     gpu_peak_mem = None
     if 'cpu_peak_mem' or 'gpu_peak_mem' in metrics_needed:
-        cpu_peak_mem, gpu_peak_mem = get_peak_memory(func, model.device, export_metrics_file=export_metrics_file, metrics_needed=metrics_needed, metrics_gpu_backend=metrics_gpu_backend)
+        cpu_peak_mem, device_id, gpu_peak_mem = get_peak_memory(func, model.device, export_metrics_file=export_metrics_file, metrics_needed=metrics_needed, metrics_gpu_backend=metrics_gpu_backend)
 
-    printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, cpu_peak_mem, gpu_peak_mem)
+    printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, cpu_peak_mem, device_id, gpu_peak_mem)
 
 
 

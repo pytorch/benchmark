@@ -58,7 +58,7 @@ def get_peak_memory(func, device: str, num_iter=BENCHMARK_ITERS, export_metrics_
     mem_model_analyzer.stop_monitor()
     mem_model_analyzer.aggregate()
     if 'gpu_peak_mem' in metrics_needed:
-        gpu_peak_mem = mem_model_analyzer.calculate_gpu_peak_mem()
+        device_id, gpu_peak_mem = mem_model_analyzer.calculate_gpu_peak_mem()
     else:
         gpu_peak_mem = None
     if 'cpu_peak_mem' in metrics_needed:
@@ -68,7 +68,7 @@ def get_peak_memory(func, device: str, num_iter=BENCHMARK_ITERS, export_metrics_
     if export_metrics_file:
         mem_model_analyzer.update_export_name("_peak_memory")
         mem_model_analyzer.export_all_records_to_csv()
-    return cpu_peak_mem, gpu_peak_mem
+    return cpu_peak_mem, device_id, gpu_peak_mem
 
 
 def _get_model_test_metrics(model: BenchmarkModel) -> TorchBenchModelMetrics:
