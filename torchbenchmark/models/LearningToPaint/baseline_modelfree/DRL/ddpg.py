@@ -9,7 +9,13 @@ from DRL.actor import *
 from DRL.critic import *
 from DRL.wgan import *
 from utils.util import *
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+if (torch.cuda.is_available()):
+    device = torch.device("cuda")
+elif (torch.backends.mps.is_available()):
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
 
 coord = torch.zeros([1, 2, 128, 128])
 for i in range(128):

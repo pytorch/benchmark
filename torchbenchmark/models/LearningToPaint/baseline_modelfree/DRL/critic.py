@@ -9,7 +9,12 @@ import sys
 def conv3x3(in_planes, out_planes, stride=1):
     return weightNorm(nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=True))
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if (torch.cuda.is_available()):
+    device = torch.device("cuda")
+elif (torch.backends.mps.is_available()):
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
 coord = torch.zeros([1, 2, 64, 64])
 for i in range(64):
     for j in range(64):

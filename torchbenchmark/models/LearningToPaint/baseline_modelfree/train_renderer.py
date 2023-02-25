@@ -17,6 +17,7 @@ optimizer = optim.Adam(net.parameters(), lr=3e-6)
 batch_size = 64
 
 use_cuda = torch.cuda.is_available()
+use_mps = torch.backends.mps.is_available()
 step = 0
 
 
@@ -26,6 +27,8 @@ def save_model():
     torch.save(net.state_dict(), "../renderer.pkl")
     if use_cuda:
         net.cuda()
+    if use_mps:
+        net.to("mps")
 
 
 def load_weights():
@@ -52,6 +55,10 @@ while step < 500000:
         net = net.cuda()
         train_batch = train_batch.cuda()
         ground_truth = ground_truth.cuda()
+    if use_mps:
+        net = net.to("mps")
+        train_batch = train_batch.to("mps")
+        ground_truth = ground_truth.to("mps")
     gen = net(train_batch)
     optimizer.zero_grad()
     loss = criterion(gen, ground_truth)

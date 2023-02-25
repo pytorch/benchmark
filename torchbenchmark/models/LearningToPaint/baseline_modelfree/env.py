@@ -9,7 +9,13 @@ from DRL.ddpg import decode
 from utils.util import *
 from PIL import Image
 from torchvision import transforms, utils
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+if (torch.cuda.is_available()):
+    device = torch.device("cuda")
+elif (torch.backends.mps.is_available()):
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
 
 aug = transforms.Compose(
             [transforms.ToPILImage(),
