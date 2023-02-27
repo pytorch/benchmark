@@ -6,4 +6,5 @@ from typing import Optional
 
 def detect_regression(a, b) -> Optional[str]:
     """Detect if result b regresses from result a. If so, return a userbenchmark arg str for bisection. Otherwise, return None."""
+    # Check the two regression results are from the same config
     return None
