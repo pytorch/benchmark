@@ -1,5 +1,5 @@
 
-from typing import OrderedDict
+from typing import Optional, OrderedDict, Tuple
 
 from .dcgm.cpu_monitor import CPUMonitor
 from .dcgm.dcgm_monitor import DCGMMonitor
@@ -30,7 +30,7 @@ from time import time_ns
 
 
 class ModelAnalyzer:
-    def __init__(self, export_metrics_file='', metrics_needed=[], metrics_gpu_backend='dcgm'):
+    def __init__(self, export_metrics_file=None, metrics_needed=[], metrics_gpu_backend='dcgm'):
         # For debug
         # set_logger(logging.DEBUG)
         set_logger()
@@ -55,7 +55,7 @@ class ModelAnalyzer:
         self.gpu_records = None
         self.config = AnalayzerConfig()
         self.gpu_record_aggregator = RecordAggregator()
-        self.export_csv_name = ''
+        self.export_csv_name = None
         self.set_export_csv_name(export_metrics_file)
         # the cpu metrics to be collected. available metrics are [CPUPeakMemory, ]
         self.cpu_metrics = []
@@ -65,7 +65,7 @@ class ModelAnalyzer:
         self.cpu_record_aggregator = RecordAggregator()
         self.cpu_metric_value = {}
         # GPU Monitor Backend
-        self.gpu_monitor_backend = 'dcgm'
+        self.gpu_monitor_backend = metrics_gpu_backend
         self.start_monitor_timestamp = None
         self.stop_monitor_timestamp = None
         self.metrics_backend_mapping = {}
@@ -98,7 +98,7 @@ class ModelAnalyzer:
     def set_gpu_monitor_backend_nvml(self):
         self.gpu_monitor_backend = 'nvml'
 
-    def set_export_csv_name(self, export_csv_name=''):
+    def set_export_csv_name(self, export_csv_name=None):
         if not export_csv_name:
             return
         self.export_csv_name = export_csv_name
@@ -285,7 +285,7 @@ class ModelAnalyzer:
             device_id = self.gpu_factory.get_device_by_uuid(gpu_uuid).device_id()
             return device_id, gpu._sm_count * gpu._fma_count * 2 * gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9
 
-    def calculate_gpu_peak_mem(self, gpu_uuid=None) -> float:
+    def calculate_gpu_peak_mem(self, gpu_uuid=None) -> Tuple[Optional[str], float]:
         """
         The function to calculate GPU peak memory usage for the first available GPU.
         @return : a floating number representing GB.

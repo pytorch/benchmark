@@ -80,14 +80,14 @@ def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_
         else:
             flops, batch_size = model.get_flops()
             tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
-        print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
+        print('{:<20} {:>20}'.format("GPU %d FLOPS:" % tflops_device_id, "%.4f TFLOPs per second" % tflops, sep=''))
     if gpu_peak_mem is not None:
         print('{:<20} {:>20}'.format("GPU %d Peak Memory:" % device_id, "%.4f GB" % gpu_peak_mem, sep=''))
     if cpu_peak_mem is not None:
         print('{:<20} {:>20}'.format("CPU Peak Memory:", "%.4f GB" % cpu_peak_mem, sep=''))
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file='', stress=0, metrics_needed=[], metrics_gpu_backend=None):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file=None, stress=0, metrics_needed=[], metrics_gpu_backend=None):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
