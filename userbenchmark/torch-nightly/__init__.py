@@ -7,11 +7,12 @@ import argparse
 from typing import List
 from ..utils import REPO_PATH, get_output_dir
 
-BM_NAME = "devinfra-nightly"
+BM_NAME = "torch-nightly"
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--device", default="cuda", help="The name of the config to run.")
+    parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"], help="The name of the config to run.")
+    parser.add_argument("--model", "-m", default=None, help="Only run the specifice models, model names splited by comma.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     return parser.parse_args(args)
 
