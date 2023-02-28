@@ -334,6 +334,6 @@ def check_nvml():
         pynvml.nvmlInit()
         pynvml.nvmlShutdown()
     except Exception as e:
-        logger.error("ERROR: NVML init failed. Please check the installation of nvidia-ml-py.", e)
+        logger.error("ERROR: NVML init failed. Please check the installation of pynvml.", e)
         exit(-1)
     return True
