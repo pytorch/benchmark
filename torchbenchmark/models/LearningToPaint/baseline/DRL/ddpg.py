@@ -164,10 +164,10 @@ class DDPG(object):
         return -policy_loss, value_loss
 
     def observe(self, reward, state, done, step, device):
-        s0 = self.state.clone().detach().requires_grad_(True)
+        s0 = self.state.clone().detach()
         a = to_tensor(self.action, device)
         r = to_tensor(reward, device)
-        s1 = self.state.clone().detach().requires_grad_(True)
+        s1 = self.state.clone().detach()
         d = to_tensor(done.astype('float32'), device)
         for i in range(self.env_batch):
             self.memory.append([s0[i], a[i], r[i], s1[i], d[i]])
