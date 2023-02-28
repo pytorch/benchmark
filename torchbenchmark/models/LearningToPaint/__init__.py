@@ -81,7 +81,7 @@ class Model(BenchmarkModel):
             self.agent.reset(self.observation, self.args.noise_factor)
         action = self.agent.select_action(self.observation, noise_factor=self.args.noise_factor)
         self.observation, reward, done, _ = self.env.step(action)
-        self.agent.observe(reward, self.observation, done, self.step)
+        self.agent.observe(reward, self.observation, done, self.step, self.device)
         if (episode_steps >= self.args.max_step and self.args.max_step):
             # [optional] evaluate
             if episode > 0 and self.args.validate_interval > 0 and \

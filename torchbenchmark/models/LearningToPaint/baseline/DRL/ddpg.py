@@ -163,12 +163,12 @@ class DDPG(object):
 
         return -policy_loss, value_loss
 
-    def observe(self, reward, state, done, step):
-        s0 = torch.tensor(self.state, device='cpu')
-        a = to_tensor(self.action, "cpu")
-        r = to_tensor(reward, "cpu")
-        s1 = torch.tensor(state, device='cpu')
-        d = to_tensor(done.astype('float32'), "cpu")
+    def observe(self, reward, state, done, step, device):
+        s0 = torch.tensor(self.state, device=device)
+        a = to_tensor(self.action, device)
+        r = to_tensor(reward, device)
+        s1 = torch.tensor(state, device=device)
+        d = to_tensor(done.astype('float32'), device)
         for i in range(self.env_batch):
             self.memory.append([s0[i], a[i], r[i], s1[i], d[i]])
         self.state = state
