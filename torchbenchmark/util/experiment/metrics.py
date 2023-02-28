@@ -49,14 +49,24 @@ def get_peak_memory(func, device: str, num_iter=MEMPROF_ITER, export_metrics_fil
     if not new_metrics_needed:
         raise ValueError(f"Expected metrics_needed to be non-empty, get: {metrics_needed}")
     mem_model_analyzer = ModelAnalyzer(export_metrics_file, new_metrics_needed, metrics_gpu_backend)
-    mem_model_analyzer.start_monitor()
-    for _i in range(num_iter):
+    continue_num_iter = BENCHMARK_ITERS - num_iter
+    def work_func():
         if device == "cuda":
             torch.cuda.synchronize()
             func()
             torch.cuda.synchronize()
         else:
             func()
+    mem_model_analyzer.start_monitor()
+    t0 = time.time_ns()
+    for _i in range(num_iter):
+        work_func()
+    t1 = time.time_ns()
+    # if execution time is less than 30ms, we will run the model again with more iterations
+    # to get more accurate memory usage
+    if (t1 - t0) < 30 * NANOSECONDS_PER_MILLISECONDS:
+        for _i in range(continue_num_iter):
+            work_func()
     mem_model_analyzer.stop_monitor()
     mem_model_analyzer.aggregate()
     device_id = None
