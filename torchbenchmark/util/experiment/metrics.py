@@ -57,16 +57,20 @@ def get_peak_memory(func, device: str, num_iter=MEMPROF_ITER, export_metrics_fil
             torch.cuda.synchronize()
         else:
             func()
-    mem_model_analyzer.start_monitor()
+    
     t0 = time.time_ns()
+    work_func()
+    t1 = time.time_ns()
+    # if total execution time is less than 15ms, we run the model for BENCHMARK_ITERS times
+    #  to get more accurate peak memory
+    if (t1 - t0) < 15 * NANOSECONDS_PER_MILLISECONDS:
+        num_iter = BENCHMARK_ITERS
+    else:
+        num_iter = MEMPROF_ITER
+    mem_model_analyzer.start_monitor()
+
     for _i in range(num_iter):
         work_func()
-    t1 = time.time_ns()
-    # if execution time is less than 30ms, we will run the model again with more iterations
-    # to get more accurate memory usage
-    if (t1 - t0) < 30 * NANOSECONDS_PER_MILLISECONDS:
-        for _i in range(continue_num_iter):
-            work_func()
     mem_model_analyzer.stop_monitor()
     mem_model_analyzer.aggregate()
     device_id = None
