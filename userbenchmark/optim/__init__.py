@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Tuple
 from torchbenchmark import load_model_by_name
 import torch
 from torch.optim import Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam
+import torch._dynamo as torchdynamo
 import torch.utils.benchmark as benchmark
 from userbenchmark.utils import dump_output, get_output_json
 import argparse
@@ -12,7 +13,7 @@ import itertools
 BM_NAME = 'optim'
 
 MODEL_NAMES = [
-    'BERT_pytorch',
+    # 'BERT_pytorch',
     # 'hf_T5_large',
     'resnet18',
 ]
@@ -24,7 +25,7 @@ OPTIMIZERS = [
     #          maximize: bool = False, differentiable: bool = False)
     (Adadelta, {}),
     (Adadelta, {'maximize': True}),
-    # (Adadelta, {'foreach': True,}),
+    (Adadelta, {'foreach': True,}),
     # (Adadelta, {'foreach': True, 'maximize': True}),
     # # Adagrad(self, params, lr=1e-2, lr_decay=0, weight_decay=0, eps=1e-10, foreach: Optional[bool] = None, 
     # #         maximize: bool = False, differentiable: bool = False)
@@ -84,7 +85,7 @@ OPTIMIZERS = [
     # (torch.optim.LBFGS, {}),
 ]
 
-devices = ['cuda', 'cpu']
+devices = ['cuda']  #, 'cpu']
 
 def get_model_deets(m) -> Tuple[Any, Any, Any]: 
     model, inputs = m.get_module()
@@ -98,6 +99,12 @@ def forward_and_backward(mod, inputs):
 def optimizer_step(optimizer):
     optimizer.step()
 
+def pt2_optimizer_step(optimizer):
+    @torchdynamo.optimize("inductor")
+    def f():
+        optimizer.step()
+    f()
+
 def defaults_to_str(defaults: Dict[str, Any]) -> str:
     def entry_to_str(k, v) -> str:
         if isinstance(v, bool):
@@ -105,7 +112,7 @@ def defaults_to_str(defaults: Dict[str, Any]) -> str:
         return f'{k}={v}'
     return ', '.join([entry_to_str(k, v) for k, v in defaults.items()])
 
-def run_model(modelName, device, Optim, defaults):
+def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     Model = load_model_by_name(modelName)   
     mod, inputs, params = get_model_deets(Model(device=device, test='train'))
     
@@ -114,11 +121,13 @@ def run_model(modelName, device, Optim, defaults):
     optim = Optim(params, **defaults)
     forward_and_backward(mod, inputs)
 
+    print(device, defaults)
+
     return benchmark.Timer(
-        stmt='optimizer_step(optim)',
-        globals={'optim': optim, 'optimizer_step': optimizer_step},
+        stmt=f'{maybe_pt2_}optimizer_step(optim)',
+        globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
         sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
-        description='default' if len(defaults) == 0 else defaults_to_str(defaults)
+        description=maybe_pt2_ + ' ' + ('default' if len(defaults) == 0 else defaults_to_str(defaults))
     ).blocked_autorange()
 
 def run_benchmarks(optims: str) -> List[float]:
@@ -126,11 +135,12 @@ def run_benchmarks(optims: str) -> List[float]:
     for mn in MODEL_NAMES:
         for d in devices:
             for O, defaults in OPTIMIZERS:
-                # fused/capturable requires params to be floats on CUDA
-                if ('fused' in defaults and defaults['fused'] or 'capturable' in defaults and defaults['capturable']) and d != 'cuda':
-                    continue
-                if O.__name__ in optims:
-                    results.append(run_model(mn, d, O, defaults))
+                for func_str in ['pt2_' , '']:
+                    # fused/capturable requires params to be floats on CUDA
+                    if ('fused' in defaults and defaults['fused'] or 'capturable' in defaults and defaults['capturable']) and d != 'cuda':
+                        continue
+                    if O.__name__ in optims:
+                        results.append(run_model(mn, d, O, defaults, func_str))
     return results
 
 
