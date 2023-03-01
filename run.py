@@ -203,8 +203,8 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     for opt in SUPPORT_PROFILE_LIST:
         profile_opts[opt] = True if args.profile_options is not None and opt in args.profile_options else False
 
+    from datetime import datetime
     if args.profile_eg:
-        from datetime import datetime
         import os
         from torch.profiler import ExecutionGraphObserver
         start_time = datetime.now()
@@ -217,7 +217,8 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         nwarmup = 0
         eg.start()
     from components.TorchExpert.torchexpert import TorchExpert
-    torchexpert = TorchExpert(model_name=args.model, output_csv_file="/tmp/torchexpert_result.csv")
+    torchexpert = TorchExpert(model_name=args.model,
+                              output_csv_file="/tmp/torchexpert_result_%s.csv" % datetime.now().strftime("%Y%m%d%H%M"))
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1, repeat=1),
         activities=activity_groups,
