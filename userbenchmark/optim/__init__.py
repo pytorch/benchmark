@@ -24,60 +24,60 @@ OPTIMIZERS = [
     #          maximize: bool = False, differentiable: bool = False)
     (Adadelta, {}),
     (Adadelta, {'maximize': True}),
-    (Adadelta, {'foreach': True,}),
-    (Adadelta, {'foreach': True, 'maximize': True}),
-    # Adagrad(self, params, lr=1e-2, lr_decay=0, weight_decay=0, eps=1e-10, foreach: Optional[bool] = None, 
-    #         maximize: bool = False, differentiable: bool = False)
-    (Adagrad, {}),
-    (Adagrad, {'maximize': True}),
-    (Adagrad, {'foreach': True,}),
-    (Adagrad, {'foreach': True, 'maximize': True}),
+    # (Adadelta, {'foreach': True,}),
+    # (Adadelta, {'foreach': True, 'maximize': True}),
+    # # Adagrad(self, params, lr=1e-2, lr_decay=0, weight_decay=0, eps=1e-10, foreach: Optional[bool] = None, 
+    # #         maximize: bool = False, differentiable: bool = False)
+    # (Adagrad, {}),
+    # (Adagrad, {'maximize': True}),
+    # (Adagrad, {'foreach': True,}),
+    # (Adagrad, {'foreach': True, 'maximize': True}),
     # Adam(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
     #      weight_decay=0, amsgrad=False, *, foreach: Optional[bool] = None,
     #      maximize: bool = False, capturable: bool = False,
     #      differentiable: bool = False, fused: bool = False):
-    (Adam, {}),
-    (Adam, {'amsgrad': True}),
-    (Adam, {'maximize': True}),
-    (Adam, {'foreach': True}),
-    (Adam, {'foreach': True, 'maximize': True}),
-    (Adam, {'foreach': True, 'amsgrad': True}),
-    (Adam, {'foreach': True, 'capturable': True}),
-    (Adam, {'fused': True}),
-    (Adam, {'fused': True, 'amsgrad': True}),
-    (Adam, {'fused': True, 'maximize': True}),
-    (Adam, {'fused': True, 'capturable': True}),
+    # (Adam, {}),
+    # (Adam, {'amsgrad': True}),
+    # (Adam, {'maximize': True}),
+    # (Adam, {'foreach': True}),
+    # (Adam, {'foreach': True, 'maximize': True}),
+    # (Adam, {'foreach': True, 'amsgrad': True}),
+    # (Adam, {'foreach': True, 'capturable': True}),
+    # (Adam, {'fused': True}),
+    # (Adam, {'fused': True, 'amsgrad': True}),
+    # (Adam, {'fused': True, 'maximize': True}),
+    # (Adam, {'fused': True, 'capturable': True}),
 
-    (AdamW, {}),
-    (AdamW, {'maximize': True}),
-    (AdamW, {'foreach': True}),
-    (AdamW, {'foreach': True, 'maximize': True, 'capturable': True}),
-    (Adamax, {}),
-    (Adamax, {'maximize': True}),
-    (Adamax, {'foreach': True,}),
-    (Adamax, {'foreach': True, 'maximize': True}),
-    (ASGD, {}),
-    (ASGD, {'maximize': True}),
-    (ASGD, {'foreach': True,}),
-    (ASGD, {'foreach': True, 'maximize': True}),
-    (SGD, {}),
-    (SGD, {'maximize': True}),
-    (SGD, {'foreach': True,}),
-    (SGD, {'foreach': True, 'momentum': 0.9, 'nesterov': True}),
-    (SGD, {'foreach': True, 'momentum': 0.9, }),
-    (SGD, {'foreach': True, 'maximize': True}),
-    (RAdam, {}),
-    (RAdam, {'foreach': True,}),
-    (Rprop, {}),
-    (Rprop, {'maximize': True}),
-    (Rprop, {'foreach': True,}),
-    (Rprop, {'foreach': True, 'maximize': True}),
-    (RMSprop, {}),
-    (RMSprop, {'maximize': True}),
-    (RMSprop, {'foreach': True,}),
-    (RMSprop, {'foreach': True, 'maximize': True}),
-    (NAdam, {}),
-    (NAdam, {'foreach': True,}),
+    # (AdamW, {}),
+    # (AdamW, {'maximize': True}),
+    # (AdamW, {'foreach': True}),
+    # (AdamW, {'foreach': True, 'maximize': True, 'capturable': True}),
+    # (Adamax, {}),
+    # (Adamax, {'maximize': True}),
+    # (Adamax, {'foreach': True,}),
+    # (Adamax, {'foreach': True, 'maximize': True}),
+    # (ASGD, {}),
+    # (ASGD, {'maximize': True}),
+    # (ASGD, {'foreach': True,}),
+    # (ASGD, {'foreach': True, 'maximize': True}),
+    # (SGD, {}),
+    # (SGD, {'maximize': True}),
+    # (SGD, {'foreach': True,}),
+    # (SGD, {'foreach': True, 'momentum': 0.9, 'nesterov': True}),
+    # (SGD, {'foreach': True, 'momentum': 0.9, }),
+    # (SGD, {'foreach': True, 'maximize': True}),
+    # (RAdam, {}),
+    # (RAdam, {'foreach': True,}),
+    # (Rprop, {}),
+    # (Rprop, {'maximize': True}),
+    # (Rprop, {'foreach': True,}),
+    # (Rprop, {'foreach': True, 'maximize': True}),
+    # (RMSprop, {}),
+    # (RMSprop, {'maximize': True}),
+    # (RMSprop, {'foreach': True,}),
+    # (RMSprop, {'foreach': True, 'maximize': True}),
+    # (NAdam, {}),
+    # (NAdam, {'foreach': True,}),
 
     ## don't run the below, as they don't work
     # (torch.optim.SparseAdam, {}),
@@ -117,12 +117,11 @@ def run_model(modelName, device, Optim, defaults):
     return benchmark.Timer(
         stmt='optimizer_step(optim)',
         globals={'optim': optim, 'optimizer_step': optimizer_step},
-        sub_label=f'{modelName} {optim.__class__.__name__}, {device}',
+        sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
         description='default' if len(defaults) == 0 else defaults_to_str(defaults)
     ).blocked_autorange()
 
 def run_benchmarks(optims: str) -> List[float]:
-    print(optims)
     results = []
     for mn in MODEL_NAMES:
         for d in devices:
@@ -138,7 +137,7 @@ def run_benchmarks(optims: str) -> List[float]:
 def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--optim",
+        "--optim", "-o",
         nargs="*",
         default=OPTIM_NAMES,
         choices=OPTIM_NAMES,
@@ -146,11 +145,18 @@ def parse_args(args: List[str]):
     args = parser.parse_args(args)
     return args
 
+# convert results into a JSON of description to mean time in seconds
+def get_metrics(results: List[torch.utils.benchmark.utils.common.Measurement]) -> Dict[str, float]:
+    metrics = {}
+    for r in results:
+        ts: torch.utils.benchmark.utils.common.TaskSpec = r.task_spec
+        metrics[f'{ts.sub_label}, {ts.description}'] = r.mean
+    return metrics
+
 def run(args: List[str]):
     args = parse_args(args)
     results = run_benchmarks(args.optim)
-    metrics: Dict[str, float] = {} 
-    # gotta output a JSON now do I
+    metrics: Dict[str, float] = get_metrics(results) 
     dump_output(BM_NAME, get_output_json(BM_NAME, metrics))
     compare = benchmark.Compare(results)
     compare.trim_significant_figures()
