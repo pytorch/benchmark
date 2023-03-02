@@ -91,7 +91,9 @@ class Detectron2Model(BenchmarkModel):
 
         cfg = setup(args)
         if hasattr(cfg, "MODEL") and cfg.MODEL.DEVICE != self.device:
+            cfg.defrost()
             cfg.MODEL.DEVICE = self.device
+            cfg.freeze()
         if args.config_file.endswith(".yaml"):
             self.model = build_model(cfg).to(self.device)
         else:
