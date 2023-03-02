@@ -83,7 +83,8 @@ class GPUDeviceFactory:
                     try :
                         gpu_device = GPUDevice(device_name, device_id, pci_bus_id,device_uuid)
                     except TorchBenchAnalyzerException as e:
-                        logger.warning("Skipping device %s due to %s", device_name, e)
+                        # logger.warning("Skipping device %s due to %s", device_name, e)
+                        continue
                     self._devices.append(gpu_device)
                     self._devices_by_bus_id[pci_bus_id] = gpu_device
                     self._devices_by_uuid[device_uuid] = gpu_device
@@ -101,7 +102,7 @@ class GPUDeviceFactory:
                 try:
                     gpu_device = GPUDevice(device_name, device_id, pci_bus_id, device_uuid)
                 except TorchBenchAnalyzerException as e:
-                    logger.warning("Skipping device %s due to %s", device_name, e)
+                    # logger.warning("Skipping device %s due to %s", device_name, e)
                     continue
                 self._devices.append(gpu_device)
                 self._devices_by_bus_id[pci_bus_id] = gpu_device
