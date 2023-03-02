@@ -17,12 +17,24 @@ LOGGER_NAME = "model_analyzer_logger"
 from .gpu_device import GPUDevice
 from  ..dcgm import dcgm_agent as dcgm_agent
 from ..dcgm import dcgm_structs as structs
-from .da_exceptions import TorchBenchAnalyzerException, TorchBenchAnalyzerExceptionGPUUnavailable
-
+from .da_exceptions import TorchBenchAnalyzerException
+import pynvml
 import numba.cuda
 import logging
 
 logger = logging.getLogger(LOGGER_NAME)
+
+def type_convert_for_pynvml(original_input):
+    """For pynvml 11.5.0+, most arguments and return values have been changed to strings.
+    This function converts the original bytes input to string for pynvml less than 11.5.0.
+    """
+    if isinstance(original_input, bytes):
+        return original_input.decode('utf-8')
+    elif isinstance(original_input, str):
+        return original_input
+    elif isinstance(original_input, int):
+        return str(original_input)
+    raise TorchBenchAnalyzerException('Unsupported type for pynvml conversion: {}'.format(type(original_input)))
 
 
 class GPUDeviceFactory:
@@ -35,6 +47,8 @@ class GPUDeviceFactory:
         self._devices_by_bus_id = {}
         self._devices_by_uuid = {}
         self._model_analyzer_backend = model_analyzer_backend
+        self._nvml = pynvml
+        self._nvml.nvmlInit()
         self.init_all_devices()
 
     def init_all_devices(self, dcgmPath=None):
@@ -66,40 +80,34 @@ class GPUDeviceFactory:
                     pci_bus_id = device_atrributes.pciBusId.upper()
                     device_uuid = device_atrributes.uuid
                     device_name = device_atrributes.deviceName
-                    try:
-                        gpu_device = GPUDevice(device_name, device_id, pci_bus_id,
-                                            device_uuid)
-                    except TorchBenchAnalyzerExceptionGPUUnavailable as e:
-                        logger.info(e)
-                        continue
+                    try :
+                        gpu_device = GPUDevice(device_name, device_id, pci_bus_id,device_uuid)
+                    except TorchBenchAnalyzerException as e:
+                        logger.warning("Skipping device %s due to %s", device_name, e)
                     self._devices.append(gpu_device)
                     self._devices_by_bus_id[pci_bus_id] = gpu_device
                     self._devices_by_uuid[device_uuid] = gpu_device
 
-                dcgm_agent.dcgmShutdown()
+            dcgm_agent.dcgmShutdown()
         else:
-            import pynvml
-
             logger.info("Initializing GPUDevice handles using NVML")
-            pynvml.nvmlInit()
-
             # Create a GPU device for every supported NVML device
-            nvml_device_count = pynvml.nvmlDeviceGetCount()
+            nvml_device_count = self._nvml.nvmlDeviceGetCount()
             for device_id in range(nvml_device_count):
-                handle = pynvml.nvmlDeviceGetHandleByIndex(device_id)
-                device_name = pynvml.nvmlDeviceGetName(handle)
-                pci_bus_id = pynvml.nvmlDeviceGetPciInfo(handle).busId
-                device_uuid = pynvml.nvmlDeviceGetUUID(handle)
+                handle = self._nvml.nvmlDeviceGetHandleByIndex(device_id)
+                device_name = type_convert_for_pynvml(self._nvml.nvmlDeviceGetName(handle))
+                pci_bus_id = type_convert_for_pynvml(self._nvml.nvmlDeviceGetPciInfo(handle).busId)
+                device_uuid = type_convert_for_pynvml(self._nvml.nvmlDeviceGetUUID(handle))
                 try:
                     gpu_device = GPUDevice(device_name, device_id, pci_bus_id, device_uuid)
-                except TorchBenchAnalyzerExceptionGPUUnavailable as e:
-                    logger.info(e)
+                except TorchBenchAnalyzerException as e:
+                    logger.warning("Skipping device %s due to %s", device_name, e)
                     continue
                 self._devices.append(gpu_device)
                 self._devices_by_bus_id[pci_bus_id] = gpu_device
                 self._devices_by_uuid[device_uuid] = gpu_device
 
-            pynvml.nvmlShutdown()
+            self._nvml.nvmlShutdown()
 
     def get_device_by_bus_id(self, bus_id, dcgmPath=None):
         """
