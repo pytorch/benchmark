@@ -64,7 +64,7 @@ class GPUDeviceFactory:
 
         if self._model_analyzer_backend == 'dcgm':
             if numba.cuda.is_available():
-                logger.info("Initiliazing GPUDevice handles using DCGM")
+                logger.debug("Initiliazing GPUDevice handles using DCGM")
                 structs._dcgmInit(dcgmPath)
                 dcgm_agent.dcgmInit()
 
@@ -83,7 +83,7 @@ class GPUDeviceFactory:
                     try :
                         gpu_device = GPUDevice(device_name, device_id, pci_bus_id,device_uuid)
                     except TorchBenchAnalyzerException as e:
-                        # logger.warning("Skipping device %s due to %s", device_name, e)
+                        logger.debug("Skipping device %s due to %s", device_name, e)
                         continue
                     self._devices.append(gpu_device)
                     self._devices_by_bus_id[pci_bus_id] = gpu_device
@@ -91,7 +91,7 @@ class GPUDeviceFactory:
 
             dcgm_agent.dcgmShutdown()
         else:
-            logger.info("Initializing GPUDevice handles using NVML")
+            logger.debug("Initializing GPUDevice handles using NVML")
             # Create a GPU device for every supported NVML device
             nvml_device_count = self._nvml.nvmlDeviceGetCount()
             for device_id in range(nvml_device_count):
@@ -102,7 +102,7 @@ class GPUDeviceFactory:
                 try:
                     gpu_device = GPUDevice(device_name, device_id, pci_bus_id, device_uuid)
                 except TorchBenchAnalyzerException as e:
-                    # logger.warning("Skipping device %s due to %s", device_name, e)
+                    logger.debug("Skipping device %s due to %s", device_name, e)
                     continue
                 self._devices.append(gpu_device)
                 self._devices_by_bus_id[pci_bus_id] = gpu_device
@@ -225,7 +225,7 @@ class GPUDeviceFactory:
                 self._log_gpus_used(cuda_visible_gpus)
                 return cuda_visible_gpus
             elif requested_gpus[0] == '[]':
-                logger.info("No GPUs requested")
+                logger.debug("No GPUs requested")
                 return []
 
         try:
@@ -271,7 +271,7 @@ class GPUDeviceFactory:
                         self.get_device_by_cuda_index(cuda_device.id))
                 except TorchBenchAnalyzerException:
                     # Device not supported by DCGM, log warning
-                    logger.warning(
+                    logger.debug(
                         f"Device '{str(cuda_device.name, encoding='ascii')}' with "
                         f"cuda device id {cuda_device.id} is not supported by DCGM."
                     )
@@ -283,6 +283,6 @@ class GPUDeviceFactory:
         """
 
         for gpu in gpus:
-            logger.info(
+            logger.debug(
                 f"Using GPU {gpu.device_id()} {gpu.device_name()} with UUID {gpu.device_uuid()}"
             )

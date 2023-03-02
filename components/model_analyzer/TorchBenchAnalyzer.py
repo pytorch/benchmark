@@ -308,7 +308,7 @@ class ModelAnalyzer:
         @return : a floating number representing GB.
         """
         if len(self.cpu_metric_value) > 1:
-            logger.warning("There are multiple available CPUs and will only return the first one's peak memory bandwidth.")
+            logger.debug("There are multiple available CPUs and will only return the first one's peak memory bandwidth.")
         cpu_uuid = next(iter(self.cpu_metric_value))
         return self.cpu_metric_value[cpu_uuid][CPUPeakMemory].value() / 1024
     
