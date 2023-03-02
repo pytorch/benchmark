@@ -46,8 +46,8 @@ pip install pyyaml
 
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.
 ```
-git clone <benchmark>
-cd <benchmark>
+git clone https://github.com/pytorch/benchmark
+cd benchmark
 python install.py
 ```
 
@@ -58,8 +58,8 @@ See detailed instructions to install torchtext [here](https://github.com/pytorch
 Make sure to enable CUDA (by `FORCE_CUDA=1`) if using CUDA.
 Then,
 ```
-git clone <benchmark>
-cd <benchmark>
+git clone https://github.com/pytorch/benchmark
+cd benchmark
 python install.py
 ```
 
