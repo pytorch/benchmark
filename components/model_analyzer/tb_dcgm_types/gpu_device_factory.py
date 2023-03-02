@@ -20,6 +20,7 @@ from ..dcgm import dcgm_structs as structs
 from .da_exceptions import TorchBenchAnalyzerException
 import pynvml
 import numba.cuda
+numba.cuda.config.CUDA_LOG_LEVEL = "ERROR"
 import logging
 
 logger = logging.getLogger(LOGGER_NAME)
