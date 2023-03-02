@@ -182,7 +182,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
         model_analyzer.export_all_records_to_csv()
 
 
-def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
+def profile_one_step(func, nwarmup=WARMUP_ROUNDS, output_csv_file="/tmp/torchexpert_result.csv"):
     activity_groups = []
     result_summary = []
     device_to_activity = {'cuda': profiler.ProfilerActivity.CUDA, 'cpu': profiler.ProfilerActivity.CPU}
@@ -218,7 +218,7 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         eg.start()
     from components.TorchExpert.torchexpert import TorchExpert
     torchexpert = TorchExpert(model_name=args.model,
-                              output_csv_file="/tmp/torchexpert_result_%s.csv" % datetime.now().strftime("%Y%m%d%H%M"))
+                              output_csv_file=output_csv_file)
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1, repeat=1),
         activities=activity_groups,
@@ -298,6 +298,7 @@ if __name__ == "__main__":
                         help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
     parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "default"], default="default", help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,
     \n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  \n  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.\n  - you can specify flops by --metrics flops, and it is collected by fvcore.\nIn dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,\n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().\n  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""")
+    parser.add_argument("--torchexpert_output", type=str, default="torchexpert_output", help="Specify the output folder for torchexpert analysis.")
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
@@ -337,7 +338,7 @@ if __name__ == "__main__":
     else:
         export_metrics_file = False
     if args.profile:
-        profile_one_step(test)
+        profile_one_step(test, output_csv_file=args.torchexpert_output)
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
