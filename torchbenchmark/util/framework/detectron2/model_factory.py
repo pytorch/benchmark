@@ -90,7 +90,7 @@ class Detectron2Model(BenchmarkModel):
             args.fcos_use_bn = True
 
         cfg = setup(args)
-        if cfg.MODEL.DEVICE != self.device:
+        if getattr(cfg, "MODEL", None) and cfg.MODEL.DEVICE != self.device:
             cfg.MODEL.DEVICE == self.device
         if args.config_file.endswith(".yaml"):
             self.model = build_model(cfg).to(self.device)
