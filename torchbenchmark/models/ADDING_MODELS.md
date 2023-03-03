@@ -92,10 +92,10 @@ version.
 
 ### Test
 
-After you've submitted your new model, suppose it was called `new_model` make sure the tests pass locally
+After you've submitted your new model, suppose it was called `new_model` make sure the tests pass locally. Your model name is equivalent to the new folder you'd have created in `torchbenchmark/models`
 
 1. `cd benchmark`
-2. python install.py
-3. python test.py -f "test_new_model"
+2. `python install.py`
+3. `python test.py -f "test_new_model"`
 
 And thank you for contributing to torchbench!
