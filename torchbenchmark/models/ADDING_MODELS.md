@@ -89,3 +89,13 @@ make sure to verify correctness by capturing the output of the non-jit model for
 version.
 
 [PyTorch Docs: Creating Torchscript Code](https://pytorch.org/docs/1.1.0/jit.html#creating-torchscript-code)
+
+### Test
+
+After you've submitted your new model, suppose it was called `new_model` make sure the tests pass locally
+
+1. `cd benchmark`
+2. python install.py
+3. python test.py -f "test_new_model"
+
+And thank you for contributing to torchbench!
