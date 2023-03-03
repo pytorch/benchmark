@@ -14,6 +14,7 @@ import numpy as np
 import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
+from torchbenchmark.util.experiment.metrics import get_peak_memory
 import torch
 
 WARMUP_ROUNDS = 3
@@ -57,7 +58,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def printResultSummaryTime(result_summary, metrics_needed=[], metrics_backend_mapping={}, model=None, model_analyzer=None):
+def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_model_analyzer=None, cpu_peak_mem=None, mem_device_id=None, gpu_peak_mem=None):
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
@@ -72,56 +73,31 @@ def printResultSummaryTime(result_summary, metrics_needed=[], metrics_backend_ma
     else:
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
-    if model_analyzer:
-        model_analyzer.aggregate()
     # if model_flops is not None, output the TFLOPs per sec
     if 'flops' in metrics_needed:
-        if metrics_backend_mapping['flops'] == 'dcgm':
-            tflops = model_analyzer.calculate_flops()
+        if flops_model_analyzer.metrics_backend_mapping['flops'] == 'dcgm':
+            tflops_device_id, tflops = flops_model_analyzer.calculate_flops()
         else:
             flops, batch_size = model.get_flops()
             tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
-        print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
-
-    if 'gpu_peak_mem' in metrics_needed:
-        gpu_peak_mem = model_analyzer.calculate_gpu_peak_mem()
-        print('{:<20} {:>20}'.format("GPU Peak Memory:", "%.4f GB" % gpu_peak_mem, sep=''))
-    if 'cpu_peak_mem' in metrics_needed:
-        cpu_peak_mem = model_analyzer.calculate_cpu_peak_mem()
+        print('{:<20} {:>20}'.format("GPU %d FLOPS:" % tflops_device_id, "%.4f TFLOPs per second" % tflops, sep=''))
+    if gpu_peak_mem is not None:
+        print('{:<20} {:>20}'.format("GPU %d Peak Memory:" % mem_device_id, "%.4f GB" % gpu_peak_mem, sep=''))
+    if cpu_peak_mem is not None:
         print('{:<20} {:>20}'.format("CPU Peak Memory:", "%.4f GB" % cpu_peak_mem, sep=''))
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file=False, stress=0, metrics_needed=[], metrics_gpu_backend=None):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file=None, stress=0, metrics_needed=[], metrics_gpu_backend=None):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
 
     result_summary = []
-    metrics_backend_mapping = {}
-    model_analyzer = None
-    if metrics_needed:
+    flops_model_analyzer = None
+    if 'flops' in metrics_needed:
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
-        model_analyzer = ModelAnalyzer()
-        if export_metrics_file:
-            model_analyzer.set_export_csv_name(export_metrics_file)
-        if 'gpu_peak_mem' in metrics_needed:
-            model_analyzer.add_metric_gpu_peak_mem()
-            metrics_backend_mapping['gpu_peak_mem'] = 'dcgm' if metrics_gpu_backend == 'dcgm' else 'nvml'
-        if 'flops' in metrics_needed:
-            if metrics_gpu_backend == 'dcgm':
-                model_analyzer.add_metric_gpu_flops()
-                metrics_backend_mapping['flops'] = 'dcgm'
-            else:
-                metrics_backend_mapping['flops'] = 'fvcore'
-        if 'cpu_peak_mem' in metrics_needed:
-            model_analyzer.add_metric_cpu_peak_mem()
-        if metrics_gpu_backend == "default":
-            model_analyzer.set_gpu_monitor_backend_nvml()
-        for metric in metrics_backend_mapping:
-            print(f"Metric {metric} is collected by {metrics_backend_mapping[metric]} backend")
-        if 'cpu_peak_mem' in metrics_needed:
-            print("Metric cpu_peak_mem is collected by psutil.Process.")
-        model_analyzer.start_monitor()
+        flops_model_analyzer = ModelAnalyzer(export_metrics_file, ['flops'], metrics_gpu_backend)
+        flops_model_analyzer.start_monitor()
 
     if stress:
         cur_time = time.time_ns()
@@ -173,13 +149,17 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
                 last_it = _i
         _i += 1
 
-    if model_analyzer is not None:
-        model_analyzer.stop_monitor()
+    if flops_model_analyzer is not None:
+        flops_model_analyzer.stop_monitor()
+        flops_model_analyzer.aggregate()
+    cpu_peak_mem = None
+    gpu_peak_mem = None
+    mem_device_id = None
+    if 'cpu_peak_mem' or 'gpu_peak_mem' in metrics_needed:
+        cpu_peak_mem, mem_device_id, gpu_peak_mem = get_peak_memory(func, model.device, export_metrics_file=export_metrics_file, metrics_needed=metrics_needed, metrics_gpu_backend=metrics_gpu_backend)
 
-    printResultSummaryTime(result_summary, metrics_needed, metrics_backend_mapping, model, model_analyzer)
+    printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, cpu_peak_mem, mem_device_id, gpu_peak_mem)
 
-    if export_metrics_file:
-        model_analyzer.export_all_records_to_csv()
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
@@ -321,6 +301,11 @@ if __name__ == "__main__":
     if args.amp:
         test = torch.autocast("cuda")(test)
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
+    # enable cpu_peak_mem and gpu_peak_mem by default
+    metrics_needed.append('cpu_peak_mem')
+    if args.device == 'cuda':
+        metrics_needed.append('gpu_peak_mem')
+    metrics_needed = list(set(metrics_needed))
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
         if metrics_gpu_backend == 'dcgm':
@@ -340,7 +325,7 @@ if __name__ == "__main__":
             exit(-1)
         export_metrics_file = "%s_all_metrics.csv" % args.model
     else:
-        export_metrics_file = False
+        export_metrics_file = None
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:

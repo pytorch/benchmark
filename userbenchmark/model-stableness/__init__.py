@@ -96,7 +96,7 @@ def run(args: List[str]):
                 # load the model instance within the same process
                 model = load_model(cfg)
                 # get the model test metrics
-                metrics: TorchBenchModelMetrics = get_model_test_metrics(model)
+                metrics: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=["latencies"])
                 single_round_result.append({
                     'cfg': cfg.__dict__,
                     'raw_metrics': metrics.__dict__,

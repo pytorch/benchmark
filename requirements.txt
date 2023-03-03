@@ -20,3 +20,4 @@ numpy==1.21.2
 git+https://github.com/kornia/kornia.git@b7050c3
 scipy # for lazy_bench.py
 submitit
+pynvml

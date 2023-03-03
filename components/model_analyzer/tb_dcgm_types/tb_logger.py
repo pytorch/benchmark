@@ -5,7 +5,7 @@ import logging
 LOGGER_NAME = 'TorchBenchLogger'
 
 
-def set_logger(logger_level=logging.INFO):
+def set_logger(logger_level=logging.WARNING):
     formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)

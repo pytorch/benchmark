@@ -1,2 +1,2 @@
 numba
-nvidia-ml-py
+pynvml
