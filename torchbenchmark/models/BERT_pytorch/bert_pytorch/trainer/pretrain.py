@@ -54,12 +54,20 @@ class BERTTrainer:
         # Setting the Adam optimizer with hyper-param
         self.optim = Adam(self.model.parameters(), lr=lr, betas=betas, weight_decay=weight_decay)
         self.optim_schedule = ScheduledOptim(self.optim, self.bert.hidden, n_warmup_steps=warmup_steps)
+        self.warmup_steps = warmup_steps
 
         # Using Negative Log Likelihood Loss function for predicting the masked_token
         self.criterion = nn.NLLLoss(ignore_index=0)
 
         self.log_freq = log_freq
         self.debug = debug
+
+    def get_optimizer(self):
+        return self.optim
+    
+    def set_optimizer(self, optimizer: torch.optim.Optimizer):
+        self.optim = optimizer
+        self.optim_schedule = ScheduledOptim(optimizer, self.bert.hidden, n_warmup_steps=self.warmup_steps)
 
     def train(self, epoch):
         self.iteration(epoch, self.train_data)

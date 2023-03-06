@@ -28,6 +28,7 @@ class Model(BenchmarkModel):
         self.prep_qat_train()  # config+prepare steps are required for both train and eval
         if self.test == "eval":
             self.prep_qat_eval()
+        self.optimizer = optim.Adam(self.model.parameters())
 
     def prep_qat_train(self):
         qconfig_dict = {"": torch.quantization.get_default_qat_qconfig('fbgemm')}
@@ -35,13 +36,12 @@ class Model(BenchmarkModel):
         self.model = quantize_fx.prepare_qat_fx(self.model, qconfig_dict, self.example_inputs)
 
     def train(self):
-        optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
-        optimizer.zero_grad()
+        self.optimizer.zero_grad()
         pred = self.model(*self.example_inputs)
         y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
         loss(pred, y).backward()
-        optimizer.step()
+        self.optimizer.step()
 
     def prep_qat_eval(self):
         self.model = quantize_fx.convert_fx(self.model)
@@ -54,3 +54,9 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         return self.model, self.example_inputs
+
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer

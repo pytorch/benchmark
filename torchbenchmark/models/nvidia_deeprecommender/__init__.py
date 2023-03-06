@@ -51,6 +51,12 @@ class Model(BenchmarkModel):
   def set_train(self):
     self.eval_mode = False
 
+  def get_optimizer(self):
+    return self.model.get_optimizer()
+
+  def set_optimizer(self, optimizer) -> None:
+    self.model.set_optimizer(optimizer)
+
   def train(self):
     self.model.train()
 

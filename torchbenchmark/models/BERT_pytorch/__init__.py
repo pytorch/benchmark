@@ -193,3 +193,13 @@ class Model(BenchmarkModel):
         trainer.optim_schedule.zero_grad()
         loss.backward()
         trainer.optim_schedule.step_and_update_lr()
+
+    # self.model is a Trainer that has a raw and a scheduled optimizer. Return the raw, since the scheduled is
+    # derived.
+    def get_optimizer(self):
+        return self.model.get_optimizer()
+
+    # self.model is a Trainer that has a raw and a scheduled optimizer. This function updates both by taking
+    # in a new raw optimizer.
+    def set_optimizer(self, optimizer: torch.optim.Optimizer) -> None:
+        self.model.set_optimizer(optimizer)

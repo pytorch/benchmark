@@ -65,3 +65,9 @@ class Model(E2EBenchmarkModel):
         prog_args = [sys.executable, f"{self.name}/{self.implementation}/{self.name}.py"]
         prog_args.extend(self.config.config_flags)
         subprocess.check_call(prog_args, cwd=self.code_root)
+
+    def get_optimizer(self):
+        return None
+
+    def set_optimizer(self):
+        pass

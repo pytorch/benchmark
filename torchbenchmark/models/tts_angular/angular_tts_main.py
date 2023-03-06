@@ -259,6 +259,12 @@ class TTSModel:
         result = self.model(self.SYNTHETIC_DATA[0])
         return result
 
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+
     def __call__(self, *things):
         return self
 

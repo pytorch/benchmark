@@ -103,3 +103,11 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             out = model(example_input)
         return (out, )
+
+    # There _should_ be a way to plug in an optim here, but this
+    # can be a next step. For now, the optim is not customizable.
+    def get_optimizer(self):
+        return None
+    
+    def set_optimizer(self, optimizer) -> None:
+        pass

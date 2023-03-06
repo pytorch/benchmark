@@ -92,6 +92,12 @@ class Model(BenchmarkModel):
                                     multi_label=False, classes=None, agnostic=False)
         return (out[0],) + out[1]
 
+    def get_optimizer(self):
+        return None
+
+    def set_optimizer(self, optimizer) -> None:
+        pass
+
     @property
     def device_str(self):
         """YoloV3 uses individual GPU indices."""
