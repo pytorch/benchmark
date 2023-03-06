@@ -12,30 +12,29 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
 class Model(BenchmarkModel):
-    def __init__(self, temperature: float = 0.8, top_p: float = 0.95):
+    def __init__(self):
         self.model_args = ModelArgs()
-        self.generator = Transformer(self.model_args)
-        self.temperature = temperature
-        self.top_p = top_p
+        self.model = Transformer(self.model_args)
+        self.example_inputs = torch.tensor([[1, 1], [1,1]], dtype=torch.int)
 
         
-
-    # def inference(self, prompts : str):
-    #     prompts = ["The capital of Germany is the city of", "Here is my sonnet in the style of Shakespeare about an artificial intelligence:"]
-    #     results = self.generator.generate(prompts, max_gen_len=256, temperature=self.temperature, top_p=self.top_p)
-
-    #     for result in results:
-    #         print(result)
-    #         print("\n==================================\n")
-    
     def get_module(self):
-        return self.generator, 
+        return self.transformer, self.example_inputs
     
     def train(self):
-        return NotImplementedError
+        error_msg = """
+            As of March 6, 2023
+            The weights for this model are not publicly available and require a valid research reason to use
+            The publicly available github repo is inference only
+            https://github.com/facebookresearch/llama
+        """
+        return NotImplementedError(error_msg)
 
     def eval(self):
-        return NotImplementedError
+        self.model.eval()
+        with torch.no_grad():
+            out=self.model(self.example_inputs, 1)
+        return (out,)
 
 
 
