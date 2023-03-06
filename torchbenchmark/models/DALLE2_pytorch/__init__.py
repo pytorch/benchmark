@@ -109,5 +109,5 @@ class Model(BenchmarkModel):
     def get_optimizer(self):
         return None
 
-    def set_optimizer(self, _) -> None:
+    def set_optimizer(self, optimizer) -> None:
         pass
