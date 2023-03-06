@@ -19,7 +19,7 @@ class Model(BenchmarkModel):
 
         
     def get_module(self):
-        return self.transformer, self.example_inputs
+        return self.model, self.example_inputs
     
     def train(self):
         error_msg = """
