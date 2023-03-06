@@ -17,7 +17,7 @@ class DiffuserModel(BenchmarkModel):
         self.pipe = pipe
         # use the same size as the example image
         # https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg
-        self.example_inputs = torch.randn(self.batch_size, 3, 512, 512).to(self.device)
+        self.example_inputs = torch.randn(self.batch_size, 3, 128, 128).to(self.device)
 
     def train(self):
         raise NotImplementedError(f"Train is not implemented for model {self.name}")

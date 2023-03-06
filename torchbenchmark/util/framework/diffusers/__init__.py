@@ -10,4 +10,4 @@ def pip_install_requirements():
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', requirements_file])
 
 def install_diffusers():
-    pass
+    pip_install_requirements()
