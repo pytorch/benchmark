@@ -1,9 +1,4 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# This software may be used and distributed according to the terms of the GNU General Public License version 3.
 
-
-
-from ...util.model import BenchmarkModel
 import torch
 from llama import ModelArgs, Transformer, Tokenizer, LLaMA
 import torch
@@ -11,7 +6,7 @@ import torch
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
-class Model(BenchmarkModel):
+class Model:
     def __init__(self, temperature: float = 0.8, top_p: float = 0.95):
         self.model_args = ModelArgs()
         self.generator = Transformer(self.model_args)
@@ -29,7 +24,7 @@ class Model(BenchmarkModel):
     #         print("\n==================================\n")
     
     def get_module(self):
-        return self.generator, 
+        return self.generator 
     
     def train(self):
         return NotImplementedError
@@ -37,7 +32,6 @@ class Model(BenchmarkModel):
     def eval(self):
         return NotImplementedError
 
-
-
-
-
+if __name__ == "__main__":
+    model = Model()
+    model.get_module().generate((torch.randn(1,1,1,1)))
