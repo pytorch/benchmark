@@ -11,7 +11,7 @@ class DiffuserModel(BenchmarkModel):
         super().__init__(test, device, jit, batch_size, extra_args)
         if self.device == "cpu":
             raise NotImplementedError(f"Model {self.name} does not support CPU device.")
-        if not self.precision == "fp16":
+        if not self.dargs.precision == "fp16":
             raise NotImplementedError(f"Model {self.name} only supports fp16 precision.")
         pipe = StableDiffusionInstructPix2PixPipeline.from_pretrained(name, torch_dtype=torch.float16, safety_checker=None)
         pipe.to(self.device)
