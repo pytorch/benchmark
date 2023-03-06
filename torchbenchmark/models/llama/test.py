@@ -25,6 +25,6 @@ class Model:
 if __name__ == "__main__":
     model = Model()
     module = model.get_module()
-    input_tensor = torch.tensor([[1, 1], [1,1]], dtype=torch.int)
+    input_tensor = torch.tensor([[5, 1, 1], [1,1]], dtype=torch.int)
 
     module(input_tensor, 1)
