@@ -6,13 +6,13 @@
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 import torch
-from llama import ModelArgs, Transformer, Tokenizer, LLaMA
+from llama import ModelArgs, Transformer
 import torch
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
-class Model(BenchmarkModel):
+class LLAMA(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 128
     task = NLP.LANGUAGE_MODELING
 
