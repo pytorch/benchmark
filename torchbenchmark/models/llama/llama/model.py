@@ -15,7 +15,7 @@ class ModelArgs:
     dim: int = 512
     n_layers: int = 8
     n_heads: int = 8
-    vocab_size: int = -1  # defined later by tokenizer
+    vocab_size: int = 32  # TODO: This was -1 I changed it to make things work
     multiple_of: int = 256  # make SwiGLU hidden layer size multiple of large power of 2
     norm_eps: float = 1e-5
 
@@ -128,8 +128,10 @@ class Attention(nn.Module):
         keys = keys.transpose(1, 2)
         values = values.transpose(1, 2)
         scores = torch.matmul(xq, keys.transpose(2, 3)) / math.sqrt(self.head_dim)
-        if mask is not None:
-            scores = scores + mask  # (bs, n_local_heads, slen, cache_len + slen)
+        
+        # TODO: RuntimeError: The size of tensor a (3) must match the size of tensor b (2) at non-singleton dimension 3
+        # if mask is not None:
+        #     scores = scores + mask  # (bs, n_local_heads, slen, cache_len + slen)
         scores = F.softmax(scores.float(), dim=-1).type_as(xq)
         output = torch.matmul(scores, values)  # (bs, n_local_heads, slen, head_dim)
         output = output.transpose(
@@ -191,10 +193,10 @@ class Transformer(nn.Module):
         self.vocab_size = params.vocab_size
         self.n_layers = params.n_layers
 
-        ## Commenting otherwise I get a model parallel group is not initialized error
-        # self.tok_embeddings = ParallelEmbedding(
-        #     params.vocab_size, params.dim, init_method=lambda x: x
-        # )
+        self.tok_embeddings = nn.Embedding(
+            params.vocab_size + 1, params.dim
+        )
+
 
         self.layers = torch.nn.ModuleList()
         for layer_id in range(params.n_layers):
@@ -209,16 +211,17 @@ class Transformer(nn.Module):
             self.params.dim // self.params.n_heads, self.params.max_seq_len * 2
         )
 
-    # TODO: Not sure if we should keep or remove inference mode
-    # But OP is using it
-    # @torch.inference_mode()
     def forward(self, tokens: torch.Tensor, start_pos: int):
-        _bsz, seqlen = tokens.shape
+        _ , seqlen = tokens.shape
+   
+
         h = self.tok_embeddings(tokens)
+
         self.freqs_cis = self.freqs_cis.to(h.device)
         freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
 
         mask = None
+
         if seqlen > 1:
             mask = torch.full((1, 1, seqlen, seqlen), float("-inf"), device=tokens.device)
             mask = torch.triu(mask, diagonal=start_pos + 1).type_as(h)

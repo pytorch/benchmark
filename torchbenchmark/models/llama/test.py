@@ -12,16 +12,6 @@ class Model:
         self.generator = Transformer(self.model_args)
         self.temperature = temperature
         self.top_p = top_p
-
-        
-
-    # def inference(self, prompts : str):
-    #     prompts = ["The capital of Germany is the city of", "Here is my sonnet in the style of Shakespeare about an artificial intelligence:"]
-    #     results = self.generator.generate(prompts, max_gen_len=256, temperature=self.temperature, top_p=self.top_p)
-
-    #     for result in results:
-    #         print(result)
-    #         print("\n==================================\n")
     
     def get_module(self):
         return self.generator 
@@ -34,4 +24,7 @@ class Model:
 
 if __name__ == "__main__":
     model = Model()
-    model.get_module().generate((torch.randn(1,1,1,1)))
+    module = model.get_module()
+    input_tensor = torch.tensor([[1, 1], [1,1]], dtype=torch.int)
+
+    module(input_tensor, 1)
