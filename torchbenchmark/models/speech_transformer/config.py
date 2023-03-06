@@ -152,6 +152,17 @@ class SpeechTransformerTrainConfig:
         if val_loss < self.best_val_loss:
             self.best_val_loss = val_loss
 
+    # speech transformer has a TransformerOptimizer wrapping an Adam. This returns the TransformerOptimizer.
+    def get_optimizer(self):
+        return self.optimizer
+    
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+
+    # Takes in a raw optimizer and wraps the optimizer in a TransformerOptimizer
+    def set_raw_optimizer(self, optimizer) -> None:
+        self.optimizer = TransformerOptimizer(optimizer, self.k, self.d_model, self.warmup_steps)
+
 @dataclasses.dataclass
 class SpeechTransformerEvalConfig:
     beam_size = 5

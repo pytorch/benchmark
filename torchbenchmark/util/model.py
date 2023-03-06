@@ -126,7 +126,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     # Run the post processing for model acceleration
     def __post__init__(self):
         # All arguments should be parsed at this point.
-        assert not self.extra_args, f"Exptected no unknown args at this point, found {self.extra_args}"
+        assert not self.extra_args, f"Expected no unknown args at this point, found {self.extra_args}"
         should_check_correctness = check_correctness_p(self, self.opt_args, self.dargs)
         if should_check_correctness:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
@@ -135,10 +135,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif isinstance(self.eager_output, torch.Tensor):
                 self.eager_output = self.eager_output.detach()
             if self.test == "train":
-                opt_saved = None
-                if hasattr(self, "opt"):
-                    opt_saved = self.opt
-                    self.opt = None
+                current_optimizer = self.get_optimizer()
+                if current_optimizer is not None:
+                    self.set_optimizer(None)
                 try:
                     if self.DEEPCOPY:
                         copy_model = copy.deepcopy(self)
@@ -148,8 +147,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     self.eager_model_after_one_train_iteration = copy_model.model
                 except RuntimeError:
                     warnings.warn(UserWarning("Can't copy the model. Skipping train correctness check."))
-                if opt_saved:
-                    self.opt = opt_saved
+                if current_optimizer is not None:
+                    self.set_optimizer(current_optimizer)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
@@ -248,6 +247,34 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         elif stage == TEST_STAGE.OPTIMIZER:
             self.optimizer_contexts.append(context_fn)
 
+
+    # Common interface for all models extending BenchmarkModel to access the optimizer.
+    # Some models have an opt attribute, others have an optimizer attribute; this
+    # implementation handles both. This function should not error! Simply return None
+    # if there's no optimizer in sight.
+    def get_optimizer(self):
+        if hasattr(self, "optimizer"):
+            return self.optimizer
+        if hasattr(self, "opt"):
+            return self.opt
+        warnings.warn("The optimizer for this model is not stored in self.opt nor self.optimizer. "
+                      "Currently returning None! Please override this implementation with your own "
+                      "if there is an optimizer this should be returning instead.")
+        return None
+
+    # Takes in an optimizer and sets that to be the optimizer used from now on.
+    # There are special models like dcgan that would update multiple optimizers at once,
+    # so optimizer here is not always strictly a, say, torch.optim.Optimizer.
+    def set_optimizer(self, optimizer) -> None:
+        if hasattr(self, "optimizer"):
+            self.optimizer = optimizer
+            return
+        if hasattr(self, "opt"):
+            self.opt = optimizer
+            return
+        raise NotImplementedError("The optimizer for this model is not stored in self.opt nor self.optimizer. "
+                                  "Please override this implementation with your own.")
+
     # Default implementation for replacing the model
     def set_module(self, new_model):
         if hasattr(self, 'model') and isinstance(self.model, torch.nn.Module):
@@ -262,8 +289,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                                   "Please submit an issue if you need input iterator implementation for the model.")
 
     def invoke_staged_train_test(self) -> None:
-        if hasattr(self, "opt") and self.opt:
-            self.opt.zero_grad()
+        optimizer = self.get_optimizer()
+        if optimizer is not None:
+            optimizer.zero_grad()
 
         with nested(*self.forward_contexts):
             losses = self.forward()
@@ -271,7 +299,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         with nested(*self.backward_contexts):
             self.backward(losses)
 
-        if hasattr(self, "opt") and self.opt:
+        if optimizer is not None:
             with nested(*self.optimizer_contexts):
                 self.optimizer_step()
 

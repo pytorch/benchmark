@@ -66,6 +66,12 @@ class TimmModel(BenchmarkModel):
         output = self.model(self.example_inputs)
         return output
 
+    def get_optimizer(self):
+        return self.cfg.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.cfg.optimizer = optimizer
+
     def enable_fp16_half(self):
         self.model = self.model.half()
         self.example_inputs = self.example_inputs.half()

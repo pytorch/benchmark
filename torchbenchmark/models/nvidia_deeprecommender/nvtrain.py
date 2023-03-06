@@ -312,6 +312,12 @@ class DeepRecommenderTrainBenchmark:
     if self.args.noise_prob > 0.0:
       self.dp = nn.Dropout(p=self.args.noise_prob)
 
+  def get_optimizer(self):
+    return self.optimizer
+
+  def set_optimizer(self, optimizer):
+    self.optimizer = optimizer
+    
   def DoTrain(self):
   
     self.rencoder.train()

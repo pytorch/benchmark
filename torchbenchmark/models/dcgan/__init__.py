@@ -6,6 +6,7 @@ from __future__ import print_function
 import argparse
 import os
 import random
+from typing import Any, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -315,3 +316,13 @@ class Model(BenchmarkModel):
                 D_G_z2 = output.mean().item()
                 # Update G
                 optimizerG.step()
+
+
+    # This model has TWO optimizers! Try returning both.
+    def get_optimizer(self):
+        return (self.optimizerD, self.optimizerG)
+    
+    # `optimizer` has type Tuple but we want this function to override the parent's
+    # so keep the name and schema the same.
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizerD, self.optimizerG = optimizer

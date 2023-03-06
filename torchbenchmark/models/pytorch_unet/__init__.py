@@ -41,6 +41,7 @@ class Model(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             self.model.eval()
+        self.optimizer = optim.RMSprop(self.model.parameters(), lr=self.args.lr, weight_decay=1e-8, momentum=0.9)
 
     def get_module(self):
         return self.model, (self.example_inputs,)
@@ -49,7 +50,6 @@ class Model(BenchmarkModel):
         self.args.amp = True
 
     def train(self):
-        optimizer = optim.RMSprop(self.model.parameters(), lr=self.args.lr, weight_decay=1e-8, momentum=0.9)
         grad_scaler = torch.cuda.amp.GradScaler(enabled=self.args.amp)
         criterion = nn.CrossEntropyLoss()
 
@@ -65,9 +65,9 @@ class Model(BenchmarkModel):
                         F.one_hot(masks_true, self.model.n_classes).permute(0, 3, 1, 2).float(),
                         multiclass=True)
 
-            optimizer.zero_grad(set_to_none=True)
+            self.optimizer.zero_grad(set_to_none=True)
             grad_scaler.scale(loss).backward()
-            grad_scaler.step(optimizer)
+            grad_scaler.step(self.optimizer)
             grad_scaler.update()
 
     def jit_callback(self):
