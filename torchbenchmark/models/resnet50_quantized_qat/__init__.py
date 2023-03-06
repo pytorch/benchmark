@@ -28,6 +28,7 @@ class Model(BenchmarkModel):
         self.prep_qat_train()
         if self.test == "eval":
             self.prep_qat_eval()
+        self.optimizer = optim.Adam(self.model.parameters())
 
     def prep_qat_train(self):
         qconfig_dict = {"": torch.quantization.get_default_qat_qconfig('fbgemm')}
@@ -42,13 +43,12 @@ class Model(BenchmarkModel):
         self.model.eval()
 
     def train(self):
-        optimizer = optim.Adam(self.model.parameters())
         loss = torch.nn.CrossEntropyLoss()
-        optimizer.zero_grad()
+        self.optimizer.zero_grad()
         pred = self.model(*self.example_inputs)
         y = torch.empty(pred.shape[0], dtype=torch.long, device=self.device).random_(pred.shape[1])
         loss(pred, y).backward()
-        optimizer.step()
+        self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
         model = self.model

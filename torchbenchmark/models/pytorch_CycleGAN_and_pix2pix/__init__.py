@@ -65,3 +65,10 @@ class Model(BenchmarkModel):
         model, example_inputs = self.get_module()
         out = model(*example_inputs)
         return (out, )
+
+    # Customizing the optimizer is nontrivial, perhaps a next step.
+    def get_optimizer(self):
+        return None
+
+    def set_optimizer(self, optimizer) -> None:
+        pass

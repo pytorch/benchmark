@@ -59,3 +59,12 @@ class Model(BenchmarkModel):
         # only the first element of model output is a tensor
         out = tuple(itertools.chain(*list(map(lambda x: x.values(), out))))
         return (out[0], )
+
+    def get_optimizer(self):
+        return self.traincfg.get_optimizer()
+
+    def set_optimizer(self, optimizer) -> None:
+        return self.traincfg.set_optimizer(optimizer)
+
+    def set_raw_optimizer(self, optimizer) -> None:
+        return self.traincfg.set_raw_optimizer(optimizer)
