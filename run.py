@@ -13,7 +13,7 @@ import time
 import numpy as np
 import torch.profiler as profiler
 
-from torchbenchmark import load_model_by_name
+from torchbenchmark import load_model_by_name, load_canary_model_by_name
 from torchbenchmark.util.experiment.metrics import get_peak_memory
 import torch
 
@@ -289,8 +289,11 @@ if __name__ == "__main__":
     found = False
     Model = load_model_by_name(args.model)
     if not Model:
-        print(f"Unable to find model matching {args.model}.")
-        exit(-1)
+        # try load model from canary
+        Model = load_canary_model_by_name(args.model)
+        if not Model:
+            print(f"Unable to find model matching {args.model}.")
+            exit(-1)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
     print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode with input batch size {m.batch_size}.")
