@@ -14,71 +14,77 @@ BM_NAME = 'optim'
 
 MODEL_NAMES = [
     # 'BERT_pytorch',
-    # 'hf_T5_large',
-    'resnet18',
+    'hf_T5_large',
+    # 'resnet18',
 ]
 
 OPTIM_NAMES = [o.__name__ for o in [Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam]]
+
+FUNC_STRS = ['pt2_' , '']
 
 OPTIMIZERS = [
     # Adadelta(self, params, lr=1.0, rho=0.9, eps=1e-6, weight_decay=0, foreach: Optional[bool] = None,
     #          maximize: bool = False, differentiable: bool = False)
     (Adadelta, {}),
-    (Adadelta, {'maximize': True}),
+    # (Adadelta, {'maximize': True}),
     (Adadelta, {'foreach': True,}),
     # (Adadelta, {'foreach': True, 'maximize': True}),
-    # # Adagrad(self, params, lr=1e-2, lr_decay=0, weight_decay=0, eps=1e-10, foreach: Optional[bool] = None, 
-    # #         maximize: bool = False, differentiable: bool = False)
-    # (Adagrad, {}),
+    # Adagrad(self, params, lr=1e-2, lr_decay=0, weight_decay=0, eps=1e-10, foreach: Optional[bool] = None, 
+    #         maximize: bool = False, differentiable: bool = False)
+    (Adagrad, {}),
     # (Adagrad, {'maximize': True}),
-    # (Adagrad, {'foreach': True,}),
+    (Adagrad, {'foreach': True,}),
     # (Adagrad, {'foreach': True, 'maximize': True}),
     # Adam(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
     #      weight_decay=0, amsgrad=False, *, foreach: Optional[bool] = None,
     #      maximize: bool = False, capturable: bool = False,
     #      differentiable: bool = False, fused: bool = False):
-    # (Adam, {}),
+    (Adam, {}),
     # (Adam, {'amsgrad': True}),
     # (Adam, {'maximize': True}),
-    # (Adam, {'foreach': True}),
+    (Adam, {'foreach': True}),
     # (Adam, {'foreach': True, 'maximize': True}),
     # (Adam, {'foreach': True, 'amsgrad': True}),
     # (Adam, {'foreach': True, 'capturable': True}),
-    # (Adam, {'fused': True}),
+    (Adam, {'fused': True}),
     # (Adam, {'fused': True, 'amsgrad': True}),
     # (Adam, {'fused': True, 'maximize': True}),
     # (Adam, {'fused': True, 'capturable': True}),
 
-    # (AdamW, {}),
+    (AdamW, {}),
     # (AdamW, {'maximize': True}),
-    # (AdamW, {'foreach': True}),
+    (AdamW, {'foreach': True}),
     # (AdamW, {'foreach': True, 'maximize': True, 'capturable': True}),
-    # (Adamax, {}),
+    (AdamW, {'fused': True}),
+    # (AdamW, {'fused': True, 'amsgrad': True}),
+    # (AdamW, {'fused': True, 'maximize': True}),
+    # (AdamW, {'fused': True, 'capturable': True}),
+    (Adamax, {}),
     # (Adamax, {'maximize': True}),
-    # (Adamax, {'foreach': True,}),
+    (Adamax, {'foreach': True,}),
     # (Adamax, {'foreach': True, 'maximize': True}),
-    # (ASGD, {}),
+    (ASGD, {}),
     # (ASGD, {'maximize': True}),
-    # (ASGD, {'foreach': True,}),
+    (ASGD, {'foreach': True,}),
     # (ASGD, {'foreach': True, 'maximize': True}),
-    # (SGD, {}),
+    (SGD, {}),
     # (SGD, {'maximize': True}),
-    # (SGD, {'foreach': True,}),
+    (SGD, {'foreach': True,}),
     # (SGD, {'foreach': True, 'momentum': 0.9, 'nesterov': True}),
     # (SGD, {'foreach': True, 'momentum': 0.9, }),
     # (SGD, {'foreach': True, 'maximize': True}),
-    # (RAdam, {}),
-    # (RAdam, {'foreach': True,}),
-    # (Rprop, {}),
+    (RAdam, {}),
+    (RAdam, {'foreach': True,}),
+    (Rprop, {}),
     # (Rprop, {'maximize': True}),
-    # (Rprop, {'foreach': True,}),
+    (Rprop, {'foreach': True,}),
     # (Rprop, {'foreach': True, 'maximize': True}),
-    # (RMSprop, {}),
+    (RMSprop, {}),
     # (RMSprop, {'maximize': True}),
-    # (RMSprop, {'foreach': True,}),
+    (RMSprop, {'foreach': True,}),
     # (RMSprop, {'foreach': True, 'maximize': True}),
-    # (NAdam, {}),
-    # (NAdam, {'foreach': True,}),
+    (NAdam, {}),
+    (NAdam, {'foreach': True,}),
 
     ## don't run the below, as they don't work
     # (torch.optim.SparseAdam, {}),
@@ -92,7 +98,13 @@ def get_model_deets(m) -> Tuple[Any, Any, Any]:
     return model, inputs, model.parameters()
 
 def forward_and_backward(mod, inputs):
-    pred = mod(*inputs)
+    if isinstance(inputs, dict):
+        # Huggingface models pass **kwargs as arguments, not *args
+        pred = mod(**inputs)
+    elif isinstance(inputs, tuple) or isinstance(inputs, list):
+        pred = mod(*inputs)
+    else:
+        raise RuntimeError(f"Inputs must be dict, tuple, or list typed but are type {type(inputs)}")
     loss = torch.sum(pred)
     loss.backward()
 
@@ -130,12 +142,12 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         description=maybe_pt2_ + ' ' + ('default' if len(defaults) == 0 else defaults_to_str(defaults))
     ).blocked_autorange()
 
-def run_benchmarks(optims: str) -> List[float]:
+def run_benchmarks(optims: str, func_strs: List[str]) -> List[float]:
     results = []
     for mn in MODEL_NAMES:
         for d in devices:
             for O, defaults in OPTIMIZERS:
-                for func_str in ['pt2_' , '']:
+                for func_str in func_strs:
                     # fused/capturable requires params to be floats on CUDA
                     if ('fused' in defaults and defaults['fused'] or 'capturable' in defaults and defaults['capturable']) and d != 'cuda':
                         continue
@@ -152,6 +164,13 @@ def parse_args(args: List[str]):
         default=OPTIM_NAMES,
         choices=OPTIM_NAMES,
         help="List of optimizers to run tests on")
+    parser.add_argument(
+        "--funcs", "-f",
+        nargs="*",
+        default=FUNC_STRS,
+        choices=FUNC_STRS,
+        help="What optimizer.step() function variations to benchmark"
+    )
     args = parser.parse_args(args)
     return args
 
@@ -165,7 +184,7 @@ def get_metrics(results: List[torch.utils.benchmark.utils.common.Measurement]) -
 
 def run(args: List[str]):
     args = parse_args(args)
-    results = run_benchmarks(args.optim)
+    results = run_benchmarks(args.optim, args.funcs)
     metrics: Dict[str, float] = get_metrics(results) 
     dump_output(BM_NAME, get_output_json(BM_NAME, metrics))
     compare = benchmark.Compare(results)
@@ -192,3 +211,45 @@ if __name__ == '__main__':
 
 # How do I get parameters from these models
 # use get_module to 
+
+"""
+the following are just the forward/backward passes found in pytorch/benchmarks/dynamo for inspo
+
+def hf_forward_and_backward_pass(self, mod, inputs, collect_outputs=True):
+    cloned_inputs = clone_inputs(inputs)
+    self.optimizer_zero_grad(mod)
+    with self.autocast():
+        pred = mod(**cloned_inputs)
+        loss = self.compute_loss(pred)
+    self.grad_scaler.scale(loss).backward()
+    self.optimizer_step()
+    if collect_outputs:
+        return collect_results(mod, pred, loss, cloned_inputs)
+    return None
+
+def timm_forward_and_backward_pass(self, mod, inputs, collect_outputs=True):
+    cloned_inputs = clone_inputs(inputs)
+    self.optimizer_zero_grad(mod)
+    with self.autocast():
+        pred = mod(*cloned_inputs)
+        if isinstance(pred, tuple):
+            pred = pred[0]
+        loss = self.compute_loss(pred)
+    self.grad_scaler.scale(loss).backward()
+    self.optimizer_step()
+    if collect_outputs:
+        return collect_results(mod, pred, loss, cloned_inputs)
+    return None
+
+def torchbench_forward_and_backward_pass(self, mod, inputs, collect_outputs=True):
+    cloned_inputs = clone_inputs(inputs)
+    self.optimizer_zero_grad(mod)
+    with self.autocast():
+        pred = mod(*cloned_inputs)
+        loss = self.compute_loss(pred)
+    self.grad_scaler.scale(loss).backward()
+    self.optimizer_step()
+    if collect_outputs:
+        return collect_results(mod, pred, loss, cloned_inputs)
+    return None
+"""
