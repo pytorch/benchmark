@@ -104,3 +104,9 @@ class Model(E2EBenchmarkModel):
 
     def eval(self):
         raise NotImplementedError("Eval is not yet implemented for this model.")
+
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
