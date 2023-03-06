@@ -20,7 +20,7 @@ class DiffuserModel(BenchmarkModel):
         prompt = "turn him into cyborg"
         # use the same size as the example image
         # https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg
-        self.example_inputs = (prompt, torch.randn(self.batch_size, 3, 128, 128).to(self.device))
+        self.example_inputs = (prompt, torch.randn(self.batch_size, 3, 32, 32).to(self.device))
 
     def enable_fp16_half(self):
         pass
