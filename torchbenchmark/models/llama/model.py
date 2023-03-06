@@ -214,7 +214,6 @@ class Transformer(nn.Module):
     def forward(self, tokens: torch.Tensor, start_pos: int):
         _ , seqlen = tokens.shape
    
-
         h = self.tok_embeddings(tokens)
 
         self.freqs_cis = self.freqs_cis.to(h.device)

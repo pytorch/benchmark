@@ -1,6 +1,6 @@
 
 import torch
-from llama import ModelArgs, Transformer, Tokenizer, LLaMA
+from .model import ModelArgs, Transformer
 import torch
 
 torch.backends.cudnn.deterministic = False
