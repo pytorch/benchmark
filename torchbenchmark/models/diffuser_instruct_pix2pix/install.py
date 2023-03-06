@@ -1,4 +1,4 @@
-from torchbenchmark.util.framework.diffusers import install_diffuser
+from torchbenchmark.util.framework.diffusers import install_diffusers
 from diffusers import StableDiffusionInstructPix2PixPipeline
 import torch
 
@@ -8,4 +8,4 @@ def load_model_checkpoint():
     StableDiffusionInstructPix2PixPipeline.from_pretrained(MODEL_NAME, torch_dtype=torch.float32, safety_checker=None)
 
 if __name__ == '__main__':
-    install_diffuser()
+    install_diffusers()
