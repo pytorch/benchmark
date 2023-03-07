@@ -430,6 +430,12 @@ class Model(E2EBenchmarkModel):
     def _run_backward(self, loss):
         self.accelerator.backward(loss)
 
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+
     def run_optimizer_step(self):
         if self.dynamo and not self.opt_args.dynamo_disable_optimizer_step:
             backend = self.opt_args.torchdynamo
