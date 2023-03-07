@@ -34,9 +34,9 @@ class Model(BenchmarkModel):
         self.example_target = torch.randint(0, 10, (self.batch_size,), device=self.device)
         dataset = data.TensorDataset(self.example_inputs[0], self.example_target)
         self.dummy_loader = data.DataLoader(dataset, batch_size=self.batch_size)
-        self.noise_multiplier: float=1.0,
-        self.max_grad_norm: float=1.0,
-        self.poisson_sampling: bool=False,
+        self.noise_multiplier: float=1.0
+        self.max_grad_norm: float=1.0
+        self.poisson_sampling: bool=False
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.CrossEntropyLoss()
