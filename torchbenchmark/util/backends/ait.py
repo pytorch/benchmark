@@ -47,6 +47,7 @@ def fx2ait(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List
                 torch.float16,
                 1,  # num_runtimes
             ),
+            interp_result,
         )
 
         ait_mod.engine.use_cuda_graph = ait_options.use_cuda_graph

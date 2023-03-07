@@ -13,7 +13,7 @@ PYTHON_VERSION_MAP = {
 }
 
 def create_conda_env(pyver: str, name: str):
-    command = [ "conda", "create", "-n", name, f"python={pyver}" ]
+    command = [ "conda", "create", "-n", name, "-y", f"python={pyver}" ]
     subprocess.check_call(command)
  
 if __name__ == "__main__":

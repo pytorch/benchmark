@@ -69,7 +69,11 @@ jobs:
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
             python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
-            cp -r ./.userbenchmark ../benchmark-output
+            if [ -d ./.userbenchmark ]; then
+              cp -r ./.userbenchmark ../benchmark-output
+            else
+              mkdir ../benchmark-output
+            fi
           else
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
@@ -84,7 +88,7 @@ jobs:
             python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
           done
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: TorchBench result
           path: benchmark-output/

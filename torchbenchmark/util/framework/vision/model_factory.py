@@ -34,7 +34,7 @@ class TorchVisionModel(BenchmarkModel):
             # setup optimizer and loss_fn
             # if backend is cudagraph, must set optimizer to be capturable
             capturable = bool(int(os.getenv("ADAM_CAPTURABLE", 0))) \
-                if not self.opt_args.backend == "cudagraph" else True
+                if not (hasattr(self.opt_args, 'backend') and self.opt_args.backend == "cudagraph") else True
             self.opt = optim.Adam(self.model.parameters(), capturable=capturable)
             self.loss_fn = torch.nn.CrossEntropyLoss()
             self.real_input = [ torch.rand_like(self.example_inputs[0]) ]

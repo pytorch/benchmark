@@ -7,6 +7,8 @@ class COMPUTER_VISION(Enum):
     CLASSIFICATION = "classification"
     DETECTION = "detection"
     GENERATION = "generation"
+    PATTERN_RECOGNITION = "pattern recognition"
+    VIDEO_INTERPOLATION = "video interpolation"
     OTHER_COMPUTER_VISION = "other computer vision"
 
 class NLP(Enum):

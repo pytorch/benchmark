@@ -31,7 +31,7 @@ def generate_model_config(model_name: str) -> List[TorchBenchModelConfig]:
 
 def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--rounds", default=15, help="Number of rounds to run to simulate measuring max delta in workflow.")
+    parser.add_argument("-r", "--rounds", default=15, type=int, help="Number of rounds to run to simulate measuring max delta in workflow.")
     parser.add_argument("-m", "--models", default="", help="Specify the models to run, default (empty) runs all models.")
     parser.add_argument("-d", "--device", default="cpu", help="Specify the device.")
     parser.add_argument("-t", "--test", default="eval", help="Specify the test.")
@@ -96,7 +96,7 @@ def run(args: List[str]):
                 # load the model instance within the same process
                 model = load_model(cfg)
                 # get the model test metrics
-                metrics: TorchBenchModelMetrics = get_model_test_metrics(model)
+                metrics: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=["latencies"])
                 single_round_result.append({
                     'cfg': cfg.__dict__,
                     'raw_metrics': metrics.__dict__,

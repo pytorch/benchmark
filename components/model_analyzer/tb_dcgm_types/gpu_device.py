@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from numba.cuda.cudadrv import enums
 # @Yueming Hao: TODO: Replace this with nvml API
+from .da_exceptions import TorchBenchAnalyzerException
 from numba import cuda
-from .da_exceptions import TorchBenchAnalyzerException, TorchBenchAnalyzerExceptionGPUUnavailable
-
-
 
 class Device:
     """
@@ -47,23 +44,16 @@ class GPUDevice(Device):
                 Device UUID
         """
 
-        assert type(device_name) is str
-        assert type(device_id) is int
-        assert type(pci_bus_id) is str
-        assert type(device_uuid) is str
-
         self._device_name = device_name
         self._device_id = device_id
         self._pci_bus_id = pci_bus_id
         self._device_uuid = device_uuid
         self._device = None
-        self._sm_count = 0
         for gpu in cuda.gpus:
             if gpu._device.uuid == device_uuid:
                 self._device = gpu
         if self._device is None:
-            raise TorchBenchAnalyzerExceptionGPUUnavailable(device_uuid)
-
+            raise TorchBenchAnalyzerException('Failed to find GPU with UUID: {}'.format(device_uuid))
         self._sm_count = self._device.MULTIPROCESSOR_COUNT
         fma_count = ConvertSMVer2Cores(self._device.COMPUTE_CAPABILITY_MAJOR, self._device.COMPUTE_CAPABILITY_MINOR)
         if fma_count == 0:
