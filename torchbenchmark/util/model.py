@@ -286,6 +286,32 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 out = self.eval()
         return out
 
+    def get_module(self):
+        raise NotImplementedError("To enroll into more granular benchmarking, every BenchmarkModel is exhorted "
+                                  "to implement a way to retrieve a torch module from it. It is okay if this "
+                                  "remains unimplemented for models that have vastly different architectures.")
+
+    # Should return loss
+    def forward(self):
+        raise NotImplementedError("To enroll into more granular benchmarking, every BenchmarkModel is exhorted "
+                                  "to implement a modular forward step.")
+
+    def backward(self, loss) -> None:
+        raise NotImplementedError("To enroll into more granular benchmarking, every BenchmarkModel is exhorted "
+                                  "to implement a modular backward step.")
+
+    def optimizer_step(self) -> None:
+        raise NotImplementedError("To enroll into more granular benchmarking, every BenchmarkModel is exhorted "
+                                  "to implement a modular optimizer step.")
+
+    def train(self):
+        raise NotImplementedError("Every BenchmarkModel should implement a train() representing a training loop. "
+                                  "Note that train() should be equivalent to chaining forward(), backward(loss) "
+                                  "and optimizer_step() and can be implemented as such.")
+
+    def eval(self):
+        raise NotImplementedError("Every BenchmarkModel should implement a eval() representing an inference loop.")
+
     def eval_in_nograd(self):
         return True
 
