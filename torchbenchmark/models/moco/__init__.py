@@ -97,6 +97,14 @@ class Model(BenchmarkModel):
             images = (i[0], i[1])
         return self.model, images
 
+    def get_optimizer(self):
+        """ Returns the current optimizer """
+        return self.optimizer
+
+    def get_optimizer(self, optimizer) -> None:
+        """ Sets the optimizer for future training """
+        self.optimizer = optimizer
+
     def train(self):
         """ Recommended
         Runs training on model for one epoch.

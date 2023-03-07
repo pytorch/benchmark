@@ -147,6 +147,18 @@ class Model(BenchmarkModel):
     def get_module(self):
         raise NotImplementedError("get_module is not supported by this model")
 
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+        self.lr_scheduler = get_scheduler(
+            name=self.training_args.lr_scheduler_type,
+            optimizer=optimizer,
+            num_warmup_steps=self.training_args.warmup_steps,
+            num_training_steps=self.training_args.max_steps,
+        )
+
     def train(self):
         if self.jit:
             raise NotImplementedError("JIT is not supported by this model")

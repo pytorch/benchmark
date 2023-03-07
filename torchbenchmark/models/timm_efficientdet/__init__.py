@@ -146,6 +146,13 @@ class Model(BenchmarkModel):
         for _, (input, target) in zip(range(self.NUM_OF_BATCHES), self.loader):
             return self.model, (input, target)
 
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+        self.lr_scheduler, self.num_epochs = create_scheduler(args, self.optimizer)
+
     def enable_amp(self):
         self.amp_autocast = torch.cuda.amp.autocast
         self.loss_scaler = NativeScaler()

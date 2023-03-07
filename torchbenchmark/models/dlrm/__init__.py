@@ -196,6 +196,18 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
+    def get_optimizer(self):
+        if hasattr(self, "optimizer"):
+            return self.optimizer
+        return None
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+        self.lr_scheduler = LRPolicyScheduler(self.optimizer,
+                                              self.opt.lr_num_warmup_steps,
+                                              self.opt.lr_decay_start_step,
+                                              self.opt.lr_num_decay_steps)
+
     def eval(self) -> Tuple[torch.Tensor]:
         out = self.model(*self.example_inputs)
         return (out, )
