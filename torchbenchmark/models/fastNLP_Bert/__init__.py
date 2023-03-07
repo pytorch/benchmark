@@ -213,3 +213,13 @@ class Model(BenchmarkModel):
         :return: a scalar
         """
         return self.losser(predict, truth)
+
+    def get_optimizer(self):
+        r"""Gets the optimizer if initiated"""
+        if hasattr(self, "optimizer"):
+            return self.optimizer
+        return None
+
+    def set_optimizer(self, optimizer) -> None:
+        r"""Sets the optimizer regardless of whether it's been initiated"""
+        self.optimizer = optimizer

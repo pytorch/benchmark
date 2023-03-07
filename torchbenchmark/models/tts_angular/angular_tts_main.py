@@ -243,6 +243,8 @@ class TTSModel:
             self.model = self.model.cuda()
             self.criterion.cuda()
 
+        # If scheduler in the future needs to depend on the optimizer, be sure to update
+        # self.scheduler in set_optimizer as well!
         self.scheduler = None
         self.global_step = 0
 
