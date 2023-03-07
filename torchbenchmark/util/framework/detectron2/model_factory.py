@@ -101,6 +101,9 @@ class Detectron2Model(BenchmarkModel):
 
         # setup model and return the dataloader
         if self.test == "train":
+            if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
+                raise NotImplementedError("FCOS train is not supported by upstream detectron2. " \
+                                          "See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.")
             self.optimizer = build_optimizer(cfg, self.model)
             loader = self.setup_train()
         elif self.test == "eval":
