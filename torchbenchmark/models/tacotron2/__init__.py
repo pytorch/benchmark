@@ -22,16 +22,16 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        if device == 'cpu' or jit:
+        if device in ['cpu', 'ipex_cpu'] or jit:
             # TODO - currently load_model assumes cuda
             raise NotImplementedError("Tacotron2 doesn't support CPU or JIT because load_model assumes CUDA")
 
         self.hparams = self.create_hparams(batch_size=self.batch_size)
-        self.model = load_model(self.hparams).to(device=device)
+        self.model = load_model(self.hparams).to(device=self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=self.hparams.learning_rate,
                                           weight_decay=self.hparams.weight_decay)
-        self.criterion = Tacotron2Loss().to(device=device)
+        self.criterion = Tacotron2Loss().to(device=self.device)
         loader, valset, collate_fn = prepare_dataloaders(self.hparams)
         self.example_inputs, self.target = self.model.parse_batch(next(iter(loader)), device=self.device)
 

@@ -39,8 +39,7 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-
-        self.model = ModelWrapper(device)
+        self.model = ModelWrapper(self.device)
         root = os.path.join(DATA_PATH, "Super_SloMo_inputs")
         self.args = args = Namespace(**{
             'dataset_root': f'{root}/dataset',

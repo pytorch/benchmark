@@ -44,12 +44,11 @@ class Model(BenchmarkModel):
         if device == "cpu":
             self.DEFAULT_EVAL_BSIZE = max(1, int(self.DEFAULT_EVAL_BSIZE / 8))
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-
         self.parser = get_parser()
         self.args = self.parser.parse_args([])
         args = self.args
         model = Demucs(channels=64)
-        model.to(device)
+        model.to(self.device)
         samples = 80000
 
         self.duration = Fraction(samples + args.data_stride, args.samplerate)
@@ -62,7 +61,7 @@ class Model(BenchmarkModel):
 
         if args.augment:
             self.augment = torch.nn.Sequential(FlipSign(), FlipChannels(), Shift(args.data_stride),
-                                    Remix(group_size=args.remix_group_size)).to(device)
+                                    Remix(group_size=args.remix_group_size)).to(self.device)
         else:
             self.augment = Shift(args.data_stride)
 
@@ -74,7 +73,7 @@ class Model(BenchmarkModel):
         elif test == "eval":
             self.model.eval()
 
-        self.example_inputs = (torch.rand([self.batch_size, 5, 2, 426888], device=device),)
+        self.example_inputs = (torch.rand([self.batch_size, 5, 2, 426888], device=self.device),)
 
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
         return self.model, self.example_inputs

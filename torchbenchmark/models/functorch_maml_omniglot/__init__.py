@@ -61,7 +61,7 @@ class Model(BenchmarkModel):
             nn.ReLU(inplace=inplace_relu),
             nn.MaxPool2d(2, 2),
             nn.Flatten(),
-            nn.Linear(64, n_way)).to(device)
+            nn.Linear(64, n_way)).to(self.device)
 
         self.model = net
 

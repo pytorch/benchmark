@@ -230,7 +230,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
             elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
-    
+
     def load_metadata(self):
         relative_path = self.__class__.__module__.split(".")
         self.name = relative_path[-1]

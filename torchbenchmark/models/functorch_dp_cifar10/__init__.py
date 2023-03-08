@@ -56,7 +56,7 @@ class Model(BenchmarkModel):
             # https://github.com/pytorch/opacus/blob/6a3e9bd99dca314596bc0313bb4241eac7c9a5d0/opacus/validators/batch_norm.py#L84-L86
             pretrained=False, norm_layer=(lambda c: nn.GroupNorm(min(c, 32), c))
         )
-        self.model = self.model.to(device)
+        self.model = self.model.to(self.device)
 
         # Cifar10 images are 32x32 and have 10 classes
         self.example_inputs = (

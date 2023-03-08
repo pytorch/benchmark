@@ -25,7 +25,7 @@ class Model(BenchmarkModel):
 
         self.model = models.resnet18(num_classes=10)
         self.model = ModuleValidator.fix(self.model)
-        self.model = self.model.to(device)
+        self.model = self.model.to(self.device)
 
         # Cifar10 images are 32x32 and have 10 classes
         self.example_inputs = (

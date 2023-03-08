@@ -130,11 +130,11 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
-        self.model = IsoneutralMixing().to(device=device)
+        self.model = IsoneutralMixing().to(device=self.device)
         input_size = self.batch_size
         raw_inputs = _generate_inputs(input_size)
         if hasattr(isoneutral_pytorch, "prepare_inputs"):
-            inputs = isoneutral_pytorch.prepare_inputs(*raw_inputs, device=device)
+            inputs = isoneutral_pytorch.prepare_inputs(*raw_inputs, device=self.device)
         self.example_inputs = inputs
 
     def get_module(self):

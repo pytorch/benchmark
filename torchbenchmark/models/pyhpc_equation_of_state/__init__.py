@@ -41,7 +41,7 @@ class Model(BenchmarkModel):
         input_size = self.batch_size
         raw_inputs = _generate_inputs(input_size)
         if hasattr(eos_pytorch, "prepare_inputs"):
-            inputs = eos_pytorch.prepare_inputs(*raw_inputs, device=device)
+            inputs = eos_pytorch.prepare_inputs(*raw_inputs, device=self.device)
         self.example_inputs = inputs
 
     def get_module(self):

@@ -17,7 +17,7 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 96
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        if test == "eval" and device != "cpu":
+        if test == "eval" and device not in [ "cpu", "ipex_cpu"]:
             raise NotImplementedError("The eval test only supports CPU.")
         if jit and test == "train":
             raise NotImplementedError("torchscript operations should only be applied after quantization operations")

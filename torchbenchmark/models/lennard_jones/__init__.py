@@ -58,13 +58,13 @@ class Model(BenchmarkModel):
             nn.Tanh(),
             nn.Linear(16, 1)
         )
-        self.model = self.model.to(device)
+        self.model = self.model.to(self.device)
 
         r = torch.linspace(0.5, 2 * sigma, steps=self.batch_size)
 
         # Create a bunch of vectors that point along positive-x.
         # These are the dummy inputs to the model.
-        self.drs = torch.outer(r, torch.tensor([1.0, 0, 0])).to(device=device)
+        self.drs = torch.outer(r, torch.tensor([1.0, 0, 0])).to(device=self.device)
 
         # Generate some dummy targets based off of some interpretation of the lennard_jones force.
         norms = torch.norm(self.drs, dim=1).reshape(-1, 1)

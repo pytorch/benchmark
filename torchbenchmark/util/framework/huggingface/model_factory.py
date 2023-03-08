@@ -50,7 +50,7 @@ class HuggingFaceModel(BenchmarkModel):
 
     def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-        
+
         self.name = name
         if test == "train":
             self.max_length = class_models[name][0]

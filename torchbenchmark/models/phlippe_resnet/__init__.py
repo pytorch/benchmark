@@ -131,7 +131,7 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
         self.model = ResNetModel()
-        self.model.to(device)
+        self.model.to(self.device)
         self.example_inputs = (
             torch.randn((self.batch_size, 3, 32, 32), device=self.device),
         )

@@ -58,7 +58,7 @@ class Model(BenchmarkModel):
         except RuntimeError:
             pass  # already initialized?
 
-        if device == "cpu":
+        if device in ["cpu", "ipex_cpu"]:
             raise NotImplementedError("DistributedDataParallel/allgather requires cuda")
         
         self.model = MoCo(
