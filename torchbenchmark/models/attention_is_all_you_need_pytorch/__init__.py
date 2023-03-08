@@ -124,3 +124,24 @@ class Model(BenchmarkModel):
                 pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
             self.optimizer.step_and_update_lr()
+
+    def optimizer_zero_grad(self):
+        for _ in zip(range(self.NUM_OF_BATCHES), self.example_inputs):
+            self.optimizer.zero_grad()
+
+    def forward(self):
+        losses = []
+        for _, (src_seq, trg_seq, gold) in zip(range(self.NUM_OF_BATCHES), self.example_inputs):
+            example_inputs = (src_seq, trg_seq)
+            pred = self.model(*example_inputs)
+            loss, n_correct, n_word = cal_performance(
+                pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
+            losses.append(loss)
+
+    def backward(self, losses):
+        for loss in losses:
+            loss.backward()
+
+    def optimizer_step(self):
+        for _ in zip(range(self.NUM_OF_BATCHES), self.example_inputs):
+            self.optimizer.step_and_update_lr()
