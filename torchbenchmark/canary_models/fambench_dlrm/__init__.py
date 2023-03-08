@@ -249,6 +249,43 @@ class Model(BenchmarkModel):
             self.optimizer.step()
             self.lr_scheduler.step()
 
+    def optimizer_zero_grad(self):
+        self.optimizer.zero_grad()
+
+    def forward(self):
+        args = self.fambench_args
+        losses = []
+        for _, inputBatch in enumerate(self.ld):
+            X, lS_o, lS_i, T, _, _ = unpack_batch(inputBatch, self.device)
+            mbs = T.shape[0]  # = args.mini_batch_size except maybe for last
+            # forward pass
+            Z = dlrm_wrap(
+                self.model,
+                X,
+                lS_o,
+                lS_i,
+                args.use_gpu,
+                self.device,
+                ndevices=args.ndevices,
+            )
+            # loss
+            E = loss_fn_wrap(self.model, self.fambench_args, Z, T, args.use_gpu, self.device)
+
+            # compute loss and accuracy
+            E.detach().cpu().numpy()  # numpy array
+            losses.append(E)
+        
+        return losses
+
+    def backward(self, losses) -> None:
+        for l in losses:
+            l.backward()
+
+    def optimizer_step(self) -> None:
+        for _ in enumerate(self.ld):
+            self.optimizer.step()
+            self.lr_scheduler.step()
+
     def eval(self) -> Tuple[torch.Tensor]:
         result = []
         args = self.fambench_args
