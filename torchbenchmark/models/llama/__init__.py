@@ -23,9 +23,9 @@ class Model(BenchmarkModel):
 
         # TODO: Implement batching
 
-        # if torch.cuda.is_available():
-        #     torch.set_default_device('cuda')
-        self.example_inputs = torch.tensor([[1, 1], [1,1]], dtype=torch.int)
+        if device == "cuda":
+            torch.set_default_device("cuda")
+        self.example_inputs = [torch.tensor([[1, 1], [1,1]], dtype=torch.int)]
 
         
     def get_module(self):
@@ -43,7 +43,8 @@ class Model(BenchmarkModel):
     def eval(self):
         self.model.eval()
         with torch.no_grad():
-            out=self.model(self.example_inputs, 1)
+            for example_input in self.example_inputs:
+                out=self.model(example_input, 1)
         return (out,)
 
 
