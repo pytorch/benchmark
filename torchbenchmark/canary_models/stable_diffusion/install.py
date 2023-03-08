@@ -5,7 +5,7 @@ import torch
 MODEL_NAME = "stabilityai/stable-diffusion-2"
 
 def load_model_checkpoint():
-    StableDiffusionPipeline.from_pretrained(MODEL_NAME, torch_dtype=torch.float32, safety_checker=None)
+    StableDiffusionPipeline.from_pretrained(MODEL_NAME, torch_dtype=torch.float16, safety_checker=None)
 
 if __name__ == '__main__':
     install_diffusers()
