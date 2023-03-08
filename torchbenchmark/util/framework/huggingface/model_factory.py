@@ -50,7 +50,7 @@ class HuggingFaceModel(BenchmarkModel):
 
     def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-
+        
         self.name = name
         if test == "train":
             self.max_length = class_models[name][0]
@@ -64,7 +64,7 @@ class HuggingFaceModel(BenchmarkModel):
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
-        self.model = class_ctor.from_config(config).to(device)
+        self.model = class_ctor.from_config(config).to(self.device)
         self.optimizer = optim.Adam(
             self.model.parameters(),
             lr=0.001,
@@ -77,15 +77,15 @@ class HuggingFaceModel(BenchmarkModel):
         self.dynamic_example_inputs = None
 
         if test == "train":
-            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
-            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
+            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(self.device)
+            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(self.device)
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
             self.model.train()
         elif test == "eval":
             # Cut the length of sentence when running on CPU, to reduce test time
             if self.device == "cpu" and self.name in cpu_input_slice:
                 self.max_length = int(self.max_length / cpu_input_slice[self.name])
-            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
+            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(self.device)
             self.example_inputs = {'input_ids': eval_context, }
             if class_models[name][3] == 'AutoModelForSeq2SeqLM':
                 self.example_inputs['decoder_input_ids'] = eval_context

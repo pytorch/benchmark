@@ -1,4 +1,3 @@
-import intel_extension_for_pytorch
 import copy
 import importlib
 import os
@@ -81,6 +80,15 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert self.test == "train" or self.test == "eval", \
             f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device
+
+        if self.device == "xpu":
+            import intel_extension_for_pytorch
+            print("import IPEX, device is %s"% self.device)
+        elif self.device == "ipex_cpu":
+            import intel_extension_for_pytorch
+            self.device = "cpu"
+            print("import IPEX, device is %s"% self.device)
+
         self.jit = jit
         self.determine_batch_size(batch_size)
         self.extra_args = extra_args
@@ -222,7 +230,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
             elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
-
+    
     def load_metadata(self):
         relative_path = self.__class__.__module__.split(".")
         self.name = relative_path[-1]

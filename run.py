@@ -15,10 +15,9 @@ import torch.profiler as profiler
 
 from torchbenchmark import load_model_by_name
 import torch
-#import intel_extension_for_pytorch
 
 WARMUP_ROUNDS = 3
-SUPPORT_DEVICE_LIST = ["cpu", "cuda", "xpu"]
+SUPPORT_DEVICE_LIST = ["cpu", "cuda", "xpu", "ipex_cpu"]
 if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
 SUPPORT_PROFILE_LIST = ["record_shapes", "profile_memory", "with_stack", "with_flops", "with_modules"]
@@ -59,7 +58,7 @@ def run_one_step_with_cudastreams(func, streamcount):
 
 
 def printResultSummaryTime(result_summary, metrics_needed=[], metrics_backend_mapping={}, model=None, model_analyzer=None):
-    if args.device in ["cuda", "xpu"]:
+    if args.device in ["cuda", "xpu", "ipex_cpu"]:
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
         if hasattr(model, "NUM_BATCHES"):
@@ -96,6 +95,9 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
+    if args.device == "ipex_cpu":
+        args.device = "cpu"
+    #print("run_one_step, args.device is %s" % args.device)
 
     result_summary = []
     metrics_backend_mapping = {}
