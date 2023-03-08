@@ -116,11 +116,11 @@ class Model(BenchmarkModel):
         return (result, )
 
     def train(self):
+        self.optimizer.zero_grad()
         for _, (src_seq, trg_seq, gold) in zip(range(self.NUM_OF_BATCHES), self.example_inputs):
-            self.optimizer.zero_grad()
             example_inputs = (src_seq, trg_seq)
             pred = self.model(*example_inputs)
             loss, n_correct, n_word = cal_performance(
                 pred, gold, self.opt.trg_pad_idx, smoothing=self.opt.label_smoothing)
             loss.backward()
-            self.optimizer.step_and_update_lr()
+        self.optimizer.step_and_update_lr()
