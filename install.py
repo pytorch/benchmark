@@ -29,22 +29,6 @@ def s3_checkout():
             print(f"Checking out {s3_url} to {model_dir.joinpath(model_file)}")
             output.write(r.content)
 
-def git_lfs_checkout():
-    tb_dir = os.path.dirname(os.path.realpath(__file__))
-    try:
-        # forcefully install git-lfs to the repo
-        subprocess.check_call(['git', 'lfs', 'install', '--force'], stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, cwd=tb_dir)
-        subprocess.check_call(['git', 'lfs', 'fetch'], stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, cwd=tb_dir)
-        subprocess.check_call(['git', 'lfs', 'checkout', '.'], stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, cwd=tb_dir)
-    except subprocess.CalledProcessError as e:
-        return (False, e.output)
-    except Exception as e:
-        return (False, e)
-    return True, None
-
 def decompress_input():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(tb_dir, "torchbenchmark", "data")
@@ -95,15 +79,9 @@ if __name__ == '__main__':
         sys.exit(-1)
     print("OK")
 
-    print("checking out Git LFS files...", end="", flush=True)
-    success, errmsg = git_lfs_checkout()
-    if success:
-        print("OK")
-    else:
-        print("FAIL")
-        print("git lfs failed. checking out input files from S3...", end="", flush=True)
-        s3_checkout()
-        print("OK")
+    print("checking out input files from Amazon S3 ...", end="", flush=True)
+    s3_checkout()
+    print("OK")
 
     decompress_input()
 
