@@ -4,19 +4,27 @@ import torch
 from torch.optim import Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam, SparseAdam, LBFGS
 import torch._dynamo as torchdynamo
 import torch.utils.benchmark as benchmark
-from userbenchmark.utils import dump_output, get_output_json
+from userbenchmark.utils import REPO_PATH, add_path, dump_output, get_output_json
 import argparse
 import sys
 import itertools
+import datetime
+
+with add_path(REPO_PATH):
+    from torchbenchmark.util.experiment.instantiator import list_models
 
 
 BM_NAME = 'optim'
 
-MODEL_NAMES = [
+MODEL_NAMES = list_models()
+"""
+the OG
+[
     'BERT_pytorch',
-    'hf_T5_large',
-    'resnet18',
+    # 'hf_T5_large',
+    # 'resnet18',
 ]
+"""
 
 OPTIM_NAMES = [o.__name__ for o in [Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam, SparseAdam]]
 
@@ -45,6 +53,7 @@ OPTIMIZERS = [
     # (Adam, {'amsgrad': True}),
     # (Adam, {'maximize': True}),
     (Adam, {'foreach': False}),
+    (Adam, {'differentiable': True}),
     (Adam, {'foreach': True}),
     # (Adam, {'foreach': True, 'maximize': True}),
     # (Adam, {'foreach': True, 'amsgrad': True}),
@@ -104,9 +113,13 @@ OPTIMIZERS = [
 
 devices = ['cuda', 'cpu']
 
+# Returns clones of params and not a generator.
 def get_model_params(m) -> Any:
     model, _ = m.get_module()
-    return model.parameters()
+    params_clone = []
+    for p in model.parameters():
+        params_clone.append(p.clone().detach())
+    return params_clone
 
 # This fakes a model forward & backward--we are not concerned about
 # accuracy here, but about the perf of optim on particular shapes and
@@ -127,7 +140,7 @@ def pt2_optimizer_step(optimizer):
 def defaults_to_str(defaults: Dict[str, Any]) -> str:
     def entry_to_str(k, v) -> str:
         if isinstance(v, bool):
-            return '' if not v else k
+            return 'no_' + k if not v else k
         return f'{k}={v}'
     return ', '.join([entry_to_str(k, v) for k, v in defaults.items()])
 
@@ -136,20 +149,24 @@ def defaults_require_cuda(defaults: Dict[str, Any]) -> bool:
     return 'fused' in defaults and defaults['fused'] or 'capturable' in defaults and defaults['capturable']
 
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
-    Model = load_model_by_name(modelName)   
-    params = get_model_params(Model(device=device, test='train'))
-    
-    if Optim.__name__ == 'SGD':
-        defaults['lr'] = 1e-2
-    optim = Optim(params, **defaults)
-    generate_random_gradients(params)
+    try:
+        Model = load_model_by_name(modelName)   
+        params = get_model_params(Model(device=device, test='train'))
+        if Optim.__name__ == 'SGD':
+            defaults['lr'] = 1e-2
+        optim = Optim(params, **defaults)
+        generate_random_gradients(params)
+        pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
 
-    return benchmark.Timer(
-        stmt=f'{maybe_pt2_}optimizer_step(optim)',
-        globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
-        sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
-        description=maybe_pt2_ + ' ' + ('default' if len(defaults) == 0 else defaults_to_str(defaults))
-    ).blocked_autorange()
+        return benchmark.Timer(
+            stmt=f'{maybe_pt2_}optimizer_step(optim)',
+            globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
+            sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
+            description=pt2_description + ('default' if len(defaults) == 0 else defaults_to_str(defaults))
+        ).blocked_autorange()
+    except Exception: 
+        with open("errors.txt", "a") as f:
+            f.write(f"{datetime.datetime.now()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}\n")
 
 
 def run_benchmarks(optims: str, func_strs: List[str]) -> List[float]:
@@ -158,7 +175,9 @@ def run_benchmarks(optims: str, func_strs: List[str]) -> List[float]:
         if defaults_require_cuda(defaults) and d != 'cuda':
             continue
         if O.__name__ in optims:
-            results.append(run_model(mn, d, O, defaults, func_str))
+            bm = run_model(mn, d, O, defaults, func_str)
+            if bm is not None:
+                results.append(bm)
     return results
 
 
