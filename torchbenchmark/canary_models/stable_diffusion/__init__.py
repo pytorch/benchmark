@@ -8,7 +8,7 @@ from torchbenchmark.util.model import BenchmarkModel
 
 import torch
 import os
-from diffusers import StableDiffusionPipeline
+from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 
 from typing import Tuple
 
@@ -18,23 +18,25 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
+    # Default eval precision on CUDA device is fp16
+    DEFAULT_EVAL_CUDA_PRECISION = "fp16"
+
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
-        assert "HUGGINGFACE_AUTH_TOKEN" in os.environ, f"Please use HUGGINFACE_AUTH_TOKEN to specify your token."
-        pipe = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4", \
-            use_auth_token=os.environ["HUGGINGFACE_AUTH_TOKEN"])
-        self.model = pipe.to(self.device)
+        assert self.dargs.precision == "fp16", f"Stable Diffusion model only supports fp16 precision."
+        model_id = "stabilityai/stable-diffusion-2"
+        scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
+        self.pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler, torch_dtype=torch.float16)
         self.prompt = ("a photo of an astronaut riding a horse on mars", )
 
     def get_module(self):
         return (self.model, self.prompt)
 
     def train(self):
-        raise NotImplementedError("Train test is not implemented for stable diffusion.")
+        raise NotImplementedError("Train test is not implemented for the stable diffusion model.")
 
     def eval(self) -> Tuple[torch.Tensor]:
-        with torch.inference_mode(), torch.autocast(self.device):
-            image = self.model(*self.prompt).images[0]
+        image = self.pipe(self.prompt)
         return (image, )

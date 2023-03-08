@@ -1,9 +1,12 @@
+from torchbenchmark.util.framework.diffusers import install_diffusers
+from diffusers import StableDiffusionPipeline
+import torch
 
-import subprocess
-import sys
+MODEL_NAME = "stabilityai/stable-diffusion-2"
 
-def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
+def load_model_checkpoint():
+    StableDiffusionPipeline.from_pretrained(MODEL_NAME, torch_dtype=torch.float32, safety_checker=None)
 
 if __name__ == '__main__':
-    pip_install_requirements()
+    install_diffusers()
+    load_model_checkpoint()
