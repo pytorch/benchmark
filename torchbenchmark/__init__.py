@@ -55,7 +55,7 @@ def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> b
 def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
     from .util.env_check import get_pkg_versions
     run_args = [
-        [sys.executable, INSTALL_FILE],
+        [sys.executable, install_file],
     ]
     run_env = os.environ.copy()
     run_env["PYTHONPATH"] = this_dir.parent
@@ -70,7 +70,7 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
 
     try:
         output_buffer = io.FileIO(stdout_fpath, mode="w")
-        if os.path.exists(os.path.join(model_path, INSTALL_FILE)):
+        if os.path.exists(os.path.join(model_path, install_file)):
             if not verbose:
                 run_kwargs['stderr'] = subprocess.STDOUT
                 run_kwargs['stdout'] = output_buffer
@@ -94,22 +94,22 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
     return (True, None, None)
 
 
-def _list_model_paths(model_dir: str=REGULAR_MODEL_DIR) -> List[str]:
+def _list_model_paths() -> List[str]:
     def dir_contains_file(dir, file_name) -> bool:
         names = map(lambda x: x.name, filter(lambda x: x.is_file(), dir.iterdir()))
         return file_name in names
-    p = this_dir.joinpath(model_dir)
+    p = pathlib.Path(__file__).parent.joinpath(model_dir)
     # Only load the model directories that contain a "__init.py__" file
     models = sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and \
-                        (not child.name == INTERNAL_MODEL_DIR) and dir_contains_file(child, "__init__.py"))
-    p = p.joinpath(INTERNAL_MODEL_DIR)
+                        (not child.name == internal_model_dir) and dir_contains_file(child, "__init__.py"))
+    p = p.joinpath(internal_model_dir)
     if p.exists():
         m = sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and dir_contains_file(child, "__init__.py"))
         models.extend(m)
     return models
 
 def _is_internal_model(model_name: str) -> bool:
-    p = pathlib.Path(__file__).parent.joinpath(REGULAR_MODEL_DIR).joinpath(INTERNAL_MODEL_DIR).joinpath(model_name)
+    p = pathlib.Path(__file__).parent.joinpath(model_dir).joinpath(internal_model_dir).joinpath(model_name)
     if p.exists() and p.joinpath("__init__.py").exists():
         return True
     return False
@@ -127,7 +127,7 @@ def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool =
 
     failures = {}
     models = list(map(lambda p: p.lower(), models))
-    model_paths = filter(lambda p: True if not models else os.path.basename(p).lower() in models, _list_model_paths(model_dir=model_dir))
+    model_paths = filter(lambda p: True if not models else os.path.basename(p).lower() in models, _list_model_paths())
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         if test_mode:
@@ -556,7 +556,7 @@ def list_models(model_match=None):
     models = []
     for model_path in _list_model_paths():
         model_name = os.path.basename(model_path)
-        model_pkg = model_name if not _is_internal_model(model_name) else f"{INTERNAL_MODEL_DIR}.{model_name}"
+        model_pkg = model_name if not _is_internal_model(model_name) else f"{internal_model_dir}.{model_name}"
         try:
             module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
         except ModuleNotFoundError as e:
@@ -585,7 +585,7 @@ def load_model_by_name(model):
         return None
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
-    model_pkg = model_name if not _is_internal_model(model_name) else f"{INTERNAL_MODEL_DIR}.{model_name}"
+    model_pkg = model_name if not _is_internal_model(model_name) else f"{internal_model_dir}.{model_name}"
     try:
         module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
     except ModuleNotFoundError as e:
