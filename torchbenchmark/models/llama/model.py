@@ -194,7 +194,7 @@ class Transformer(nn.Module):
         self.n_layers = params.n_layers
 
         self.tok_embeddings = nn.Embedding(
-            params.vocab_size + 1, params.dim
+            params.vocab_size + 1, params.dim,
         )
 
 
