@@ -28,8 +28,8 @@ def select_device(device='', apex=False, batch_size=None):
     cpu_request = device.lower() == 'cpu'
     if device and not cpu_request:  # if device requested other than 'cpu'
         os.environ['CUDA_VISIBLE_DEVICES'] = device  # set environment variable
-        assert torch.cuda.is_available(), 'CUDA unavailable, invalid device %s requested' % device  # check availablity
-
+        assert torch.cuda.is_available() or torch.xpu.is_available(), 'CUDA or XPU unavailable, invalid device %s requested' % device  # check availablity
+   
     cuda = False if cpu_request else torch.cuda.is_available()
     if cuda:
         c = 1024 ** 2  # bytes to MB
