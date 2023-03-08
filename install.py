@@ -80,10 +80,24 @@ if __name__ == '__main__':
     parser.add_argument("--test-mode", action="store_true", help="Run in test mode and check package versions")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
-    parser.add_argument("--component", choices=["distributed"], help="Install requirements for optional components.")
+    parser.add_argument("--component", choices=["distributed", "canary"], help="Install requirements for optional components.")
     args = parser.parse_args()
 
     os.chdir(os.path.realpath(os.path.dirname(__file__)))
+
+    if args.component == "distributed":
+        success, errmsg = pip_install_requirements(requirements_txt="torchbenchmark/util/distributed/requirements.txt")
+        if not success:
+            print("Failed to install torchbenchmark distributed requirements:")
+            print(errmsg)
+            if not args.continue_on_fail:
+                sys.exit(-1)
+        else:
+            sys.exit(0)
+    elif args.component == "canary":
+        from torchbenchmark.canary_models import install_models
+        install_models(args.models, args.continue_on_fail)
+        sys.exit(0)
 
     print(f"checking packages {', '.join(TORCH_DEPS)} are installed...", end="", flush=True)
     try:

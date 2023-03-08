@@ -1,7 +1,13 @@
+"""
+HuggingFace Stable Diffusion model.
+It requires users to specify "HUGGINGFACE_AUTH_TOKEN" in environment variable
+to authorize login and agree HuggingFace terms and conditions.
+"""
 from torchbenchmark.tasks import COMPUTER_VISION
 from torchbenchmark.util.model import BenchmarkModel
 
 import torch
+import os
 from diffusers import StableDiffusionPipeline
 
 from typing import Tuple
@@ -16,7 +22,9 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
-        pipe = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4", use_auth_token=True)
+        assert "HUGGINGFACE_AUTH_TOKEN" in os.environ, f"Please use HUGGINFACE_AUTH_TOKEN to specify your token."
+        pipe = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4", \
+            use_auth_token=os.environ["HUGGINGFACE_AUTH_TOKEN"])
         self.model = pipe.to(self.device)
         self.prompt = ("a photo of an astronaut riding a horse on mars", )
 

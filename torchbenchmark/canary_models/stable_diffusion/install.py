@@ -7,4 +7,3 @@ def pip_install_requirements():
 
 if __name__ == '__main__':
     pip_install_requirements()
-
