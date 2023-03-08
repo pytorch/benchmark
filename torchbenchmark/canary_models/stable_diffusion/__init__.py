@@ -7,10 +7,8 @@ from torchbenchmark.tasks import COMPUTER_VISION
 from torchbenchmark.util.model import BenchmarkModel
 
 import torch
-import os
 from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 
-from typing import Tuple
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
@@ -29,14 +27,17 @@ class Model(BenchmarkModel):
         model_id = "stabilityai/stable-diffusion-2"
         scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
         self.pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler, torch_dtype=torch.float16)
-        self.prompt = ("a photo of an astronaut riding a horse on mars", )
+        self.example_inputs = ("a photo of an astronaut riding a horse on mars", )
+
+    def enable_fp16_half(self):
+        pass
 
     def get_module(self):
-        return (self.model, self.prompt)
+        return self.model, self.example_inputs
 
     def train(self):
         raise NotImplementedError("Train test is not implemented for the stable diffusion model.")
 
-    def eval(self) -> Tuple[torch.Tensor]:
-        image = self.pipe(self.prompt)
+    def eval(self):
+        image = self.pipe(self.example_inputs)
         return (image, )
