@@ -30,74 +30,74 @@ OPTIMIZERS = [
     # Adadelta(self, params, lr=1.0, rho=0.9, eps=1e-6, weight_decay=0, foreach: Optional[bool] = None,
     #          maximize: bool = False, differentiable: bool = False)
     (Adadelta, {}),
-    # (Adadelta, {'maximize': True}),
+    (Adadelta, {'maximize': True}),
     (Adadelta, {'foreach': False,}),
     (Adadelta, {'foreach': True,}),
-    # (Adadelta, {'foreach': True, 'maximize': True}),
+    (Adadelta, {'foreach': True, 'maximize': True}),
     # Adagrad(self, params, lr=1e-2, lr_decay=0, weight_decay=0, eps=1e-10, foreach: Optional[bool] = None, 
     #         maximize: bool = False, differentiable: bool = False)
     (Adagrad, {}),
-    # (Adagrad, {'maximize': True}),
+    (Adagrad, {'maximize': True}),
     (Adagrad, {'foreach': False,}),
     (Adagrad, {'foreach': True,}),
-    # (Adagrad, {'foreach': True, 'maximize': True}),
+    (Adagrad, {'foreach': True, 'maximize': True}),
     # Adam(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
     #      weight_decay=0, amsgrad=False, *, foreach: Optional[bool] = None,
     #      maximize: bool = False, capturable: bool = False,
     #      differentiable: bool = False, fused: bool = False):
     (Adam, {}),
-    # (Adam, {'amsgrad': True}),
-    # (Adam, {'maximize': True}),
+    (Adam, {'amsgrad': True}),
+    (Adam, {'maximize': True}),
     (Adam, {'foreach': False}),
     (Adam, {'differentiable': True}),
     (Adam, {'foreach': True}),
-    # (Adam, {'foreach': True, 'maximize': True}),
-    # (Adam, {'foreach': True, 'amsgrad': True}),
-    # (Adam, {'foreach': True, 'capturable': True}),
+    (Adam, {'foreach': True, 'maximize': True}),
+    (Adam, {'foreach': True, 'amsgrad': True}),
+    (Adam, {'foreach': True, 'capturable': True}),
     (Adam, {'fused': True}),
-    # (Adam, {'fused': True, 'amsgrad': True}),
-    # (Adam, {'fused': True, 'maximize': True}),
-    # (Adam, {'fused': True, 'capturable': True}),
+    (Adam, {'fused': True, 'amsgrad': True}),
+    (Adam, {'fused': True, 'maximize': True}),
+    (Adam, {'fused': True, 'capturable': True}),
 
     (AdamW, {}),
-    # (AdamW, {'maximize': True}),
+    (AdamW, {'maximize': True}),
     (AdamW, {'foreach': False}),
     (AdamW, {'foreach': True}),
-    # (AdamW, {'foreach': True, 'maximize': True, 'capturable': True}),
+    (AdamW, {'foreach': True, 'maximize': True, 'capturable': True}),
     (AdamW, {'fused': True}),
-    # (AdamW, {'fused': True, 'amsgrad': True}),
-    # (AdamW, {'fused': True, 'maximize': True}),
-    # (AdamW, {'fused': True, 'capturable': True}),
+    (AdamW, {'fused': True, 'amsgrad': True}),
+    (AdamW, {'fused': True, 'maximize': True}),
+    (AdamW, {'fused': True, 'capturable': True}),
     (Adamax, {}),
-    # (Adamax, {'maximize': True}),
+    (Adamax, {'maximize': True}),
     (Adamax, {'foreach': False,}),
     (Adamax, {'foreach': True,}),
-    # (Adamax, {'foreach': True, 'maximize': True}),
+    (Adamax, {'foreach': True, 'maximize': True}),
     (ASGD, {}),
-    # (ASGD, {'maximize': True}),
+    (ASGD, {'maximize': True}),
     (ASGD, {'foreach': False,}),
     (ASGD, {'foreach': True,}),
-    # (ASGD, {'foreach': True, 'maximize': True}),
+    (ASGD, {'foreach': True, 'maximize': True}),
     (SGD, {}),
-    # (SGD, {'maximize': True}),
+    (SGD, {'maximize': True}),
     (SGD, {'foreach': False,}),
     (SGD, {'foreach': True,}),
-    # (SGD, {'foreach': True, 'momentum': 0.9, 'nesterov': True}),
-    # (SGD, {'foreach': True, 'momentum': 0.9, }),
-    # (SGD, {'foreach': True, 'maximize': True}),
+    (SGD, {'foreach': True, 'momentum': 0.9, 'nesterov': True}),
+    (SGD, {'foreach': True, 'momentum': 0.9, }),
+    (SGD, {'foreach': True, 'maximize': True}),
     (RAdam, {}),
     (RAdam, {'foreach': False,}),
     (RAdam, {'foreach': True,}),
     (Rprop, {}),
-    # (Rprop, {'maximize': True}),
+    (Rprop, {'maximize': True}),
     (Rprop, {'foreach': False,}),
     (Rprop, {'foreach': True,}),
-    # (Rprop, {'foreach': True, 'maximize': True}),
+    (Rprop, {'foreach': True, 'maximize': True}),
     (RMSprop, {}),
-    # (RMSprop, {'maximize': True}),
+    (RMSprop, {'maximize': True}),
     (RMSprop, {'foreach': False,}),
     (RMSprop, {'foreach': True,}),
-    # (RMSprop, {'foreach': True, 'maximize': True}),
+    (RMSprop, {'foreach': True, 'maximize': True}),
     (NAdam, {}),
     (NAdam, {'foreach': False,}),
     (NAdam, {'foreach': True,}),
@@ -214,7 +214,7 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         if not continue_on_error:
             raise e
         with open('errors.txt', 'a') as f:
-            f.write(f'{datetime.datetime.now()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {e.__str__}\n')
+            f.write(f'{datetime.datetime.now()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {str(e)}\n')
         return None
 
 
@@ -283,7 +283,9 @@ def run(args: List[str]):
     compare.trim_significant_figures()
     compare.colorize(rowwise=True)
     compare.print()
-    print(DENSE_MODELS)
+    import json
+    with open('errors.txt', 'a') as f:
+        json.dump(list(DENSE_MODELS), f, indent=4)
 
 if __name__ == '__main__':
     run(sys.argv[1:])
