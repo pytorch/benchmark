@@ -44,7 +44,7 @@ jobs:
           python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
           cp -r ./.userbenchmark ../benchmark-output
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: TorchBench result
           path: benchmark-output/

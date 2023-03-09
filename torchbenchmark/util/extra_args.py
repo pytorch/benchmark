@@ -123,7 +123,6 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=list_backends(), help="enable backends")
-    parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
     parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
     parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     args, extra_args = parser.parse_known_args(opt_args)
@@ -132,8 +131,6 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     if args.backend:
         backend = BACKENDS[args.backend]
         model._enable_backend, extra_args = backend(model, backend_args=extra_args)
-    if model.device == "cpu" and args.fuser:
-        raise NotImplementedError("Fuser only works with GPU.")
     return args, extra_args
 
 def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
@@ -141,7 +138,3 @@ def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argp
         enable_fvcore_flops(model)
     if args.backend:
         model._enable_backend()
-        return
-    if args.fuser:
-        import torch
-        model.add_context(lambda: torch.jit.fuser(args.fuser))

@@ -2,6 +2,9 @@ name: TorchBench PR Test
 on:
   pull_request:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 env:
   CONDA_ENV: "pr-test"

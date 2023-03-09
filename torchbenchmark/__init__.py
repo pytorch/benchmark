@@ -40,6 +40,7 @@ with add_path(str(REPO_PATH)):
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = 'models'
 internal_model_dir = "fb"
+canary_model_dir = "canary_models"
 install_file = 'install.py'
 
 
@@ -109,6 +110,12 @@ def _list_model_paths() -> List[str]:
 
 def _is_internal_model(model_name: str) -> bool:
     p = pathlib.Path(__file__).parent.joinpath(model_dir).joinpath(internal_model_dir).joinpath(model_name)
+    if p.exists() and p.joinpath("__init__.py").exists():
+        return True
+    return False
+
+def _is_canary_model(model_name: str) -> bool:
+    p = pathlib.Path(__file__).parent.joinpath(canary_model_dir).joinpath(model_name)
     if p.exists() and p.joinpath("__init__.py").exists():
         return True
     return False
@@ -590,6 +597,21 @@ def load_model_by_name(model):
         return None
     if not hasattr(Model, 'name'):
         Model.name = model_name
+    return Model
+
+def load_canary_model_by_name(model: str):
+    assert _is_canary_model(model), f"Canary model {model} is not found in the {canary_model_dir} path."
+    try:
+        module = importlib.import_module(f'.canary_models.{model}', package=__name__)
+    except ModuleNotFoundError as e:
+        print(f"Warning: Could not find dependent module {e.name} for Model {model}, skip it. \n {e}")
+        return None
+    Model = getattr(module, 'Model', None)
+    if Model is None:
+        print(f"Warning: {module} does not define attribute Model, skip it")
+        return None
+    if not hasattr(Model, 'name'):
+        Model.name = model
     return Model
 
 def get_metadata_from_yaml(path):

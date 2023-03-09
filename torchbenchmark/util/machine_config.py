@@ -115,6 +115,8 @@ def has_nvidia_smi():
 
 def get_nvidia_gpu_clocks(device_ids: typing.List[int] = None):
     clocks = nvidia_smi_query("clocks.applications.graphics", device_ids)
+    for clock in range(len(clocks)):
+        clocks[clock] = 0 if clocks[clock] == '[N/A]' else clocks[clock]
     return [int(clock) for clock in clocks]
 
 def get_nvidia_gpu_temps(device_ids: typing.List[int] = None):
