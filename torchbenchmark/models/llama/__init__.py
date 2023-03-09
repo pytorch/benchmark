@@ -9,9 +9,6 @@ import torch
 from .model import ModelArgs, Transformer
 import torch
 
-torch.backends.cudnn.deterministic = False
-torch.backends.cudnn.benchmark = True
-
 class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 32
     task = NLP.LANGUAGE_MODELING
@@ -26,7 +23,7 @@ class Model(BenchmarkModel):
         if device == "cuda":
             torch.set_default_device("cuda")
             self.model.to(torch.device("cuda"))
-        self.example_inputs = [torch.tensor([[1, 1], [1,1]], dtype=torch.int)]
+        self.example_inputs = [(torch.tensor([[1, 1], [1,1]], dtype=torch.int), 1)]
 
         
     def get_module(self):
@@ -45,7 +42,7 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for example_input in self.example_inputs:
-                out=self.model(example_input, 1)
+                out=self.model(*example_input)
         return (out,)
 
 
