@@ -10,7 +10,7 @@ RUN ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ${HOME}/.bashrc
 
 RUN apt-get update
-RUN apt-get install -y git git-lfs jq
+RUN apt-get install -y git jq
 
 RUN git clone https://github.com/pytorch/benchmark /workspace/benchmark
 

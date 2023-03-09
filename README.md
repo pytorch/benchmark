@@ -19,9 +19,6 @@ conda install -y python=3.10
 # Or, using a new conda environment:
 conda create -n torchbenchmark python=3.10
 conda activate torchbenchmark
-# We depend on git lfs tool to store minimal input dataset such as images and annotations.
-# The total size of input dataset is ~20 MB
-conda install -y git-lfs
 ```
 
 If you are running NVIDIA GPU tests, we support CUDA 11.7+, and use CUDA 11.7 as default:
