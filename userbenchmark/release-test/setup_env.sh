@@ -13,6 +13,7 @@ GPU_FREQUENCY="1215,1410"
 # get the directory of the current script
 CURRENT_DIR=$(dirname -- "$0")
 
+wget https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh 
 . switch-cuda.sh ${CUDA_VERSION}
 # re-setup the cuda soft link
 if [ -e "/usr/local/cuda" ]; then
