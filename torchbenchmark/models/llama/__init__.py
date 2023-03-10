@@ -11,13 +11,13 @@ import torch
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
-
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    
+    # TODO: Implement batching
+    def __init__(self, test, device, jit=False, batch_size=32, extra_args=[]):
+        super().__init__(test=test, device=device, jit=jit, batch_size=32, extra_args=extra_args)
         self.model_args = ModelArgs(vocab_size=32)
         self.model = Transformer(self.model_args)
 
-        # TODO: Implement batching
 
         if device == "cuda":
             torch.set_default_device("cuda")
@@ -41,7 +41,9 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for example_input in self.example_inputs:
-                out=self.model(*example_input)
+                tokens, start_pos = example_input
+                out=self.model(tokens, start_pos)
+                breakpoint()
         return (out,)
 
 
