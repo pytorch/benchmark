@@ -17,10 +17,15 @@ jobs:
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
+      - name: Install NVIDIA Driver
+        run: |
+          bash scripts/setup_nvda_11.7.sh
+      - name: Install Conda and basic packages
+        run: |
+          bash scripts/install_basics.sh
       - name: GPU Tuning
         run: |
-          nvidia-smi -pm 1
-          nvidia-smi
+          sudo nvidia-smi -pm 1
       - name: Setup Conda Env
         run: |
           python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
