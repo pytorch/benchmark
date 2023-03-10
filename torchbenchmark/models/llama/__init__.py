@@ -20,7 +20,8 @@ class Model(BenchmarkModel):
 
         if device == "cuda":
             torch.set_default_device("cuda")
-            self.model.to(torch.device("cuda"))
+        
+        self.model.to(torch.device(device))
         self.example_inputs = (torch.tensor([[1, 1], [1,1]], dtype=torch.int), 1)
 
         
