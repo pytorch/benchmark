@@ -16,10 +16,6 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         self.model_args = ModelArgs(vocab_size=32)
         self.model = Transformer(self.model_args)
-
-
-        if device == "cuda":
-            torch.set_default_device("cuda")
         
         self.model.to(torch.device(device))
         self.example_inputs = (torch.tensor([[1, 1], [1,1]], dtype=torch.int), 1)
@@ -42,8 +38,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             out=self.model(*self.example_inputs)
         return (out,)
-
-
-
-
-
