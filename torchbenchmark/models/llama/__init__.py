@@ -26,7 +26,7 @@ class Model(BenchmarkModel):
 
         
     def get_module(self):
-        return self.model, self.example_inputs
+        return self.model, *self.example_inputs
     
     def train(self):
         error_msg = """
@@ -41,8 +41,7 @@ class Model(BenchmarkModel):
         self.model.eval()
         with torch.no_grad():
             for example_input in self.example_inputs:
-                tokens, start_pos = example_input
-                out=self.model(tokens, start_pos)
+                out=self.model(*example_input)
         return (out,)
 
 
