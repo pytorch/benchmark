@@ -43,7 +43,6 @@ class Model(BenchmarkModel):
             for example_input in self.example_inputs:
                 tokens, start_pos = example_input
                 out=self.model(tokens, start_pos)
-                breakpoint()
         return (out,)
 
 
