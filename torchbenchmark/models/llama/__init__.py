@@ -12,7 +12,7 @@ import torch
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     
-    # TODO: Implement batching
+    # TODO: Implement batching, right if I set as None I get NotImplementedError: Test eval is not implemented.
     def __init__(self, test, device, jit=False, batch_size=32, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=32, extra_args=extra_args)
         self.model_args = ModelArgs(vocab_size=32)
