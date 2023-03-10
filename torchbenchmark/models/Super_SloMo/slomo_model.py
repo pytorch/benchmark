@@ -246,6 +246,9 @@ class backWarp(nn.Module):
         # create a grid
         self.W = W
         self.H = H
+        
+        # Use torch.meshgrid instead of np.meshgrid to imrpove performance
+        # https://github.com/avinashpaliwal/Super-SloMo/pull/111
         self.gridX, self.gridY = torch.meshgrid(torch.arange(W, requires_grad=False, device=device), 
                                                 torch.arange(H, requires_grad=False, device=device), indexing='xy')
         
