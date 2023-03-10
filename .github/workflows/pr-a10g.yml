@@ -33,7 +33,6 @@ jobs:
           conda activate
           python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
           conda activate "${CONDA_ENV}"
-          sudo python utils/cuda_utils.py --setup-cuda-softlink
           python utils/cuda_utils.py --install-torch-deps
       - name: Install PyTorch nightly
         run: |
