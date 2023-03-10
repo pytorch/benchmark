@@ -15,10 +15,9 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         self.model_args = ModelArgs(vocab_size=32)
-        self.model = Transformer(self.model_args)
-        
-        torch.set_default_device(device)
-        self.example_inputs = (torch.tensor([[1, 1], [1,1]], dtype=torch.int), 1)
+        torch.set_default_device(self.device)
+        self.model = Transformer(self.model_args).to(self.device)
+        self.example_inputs = (torch.tensor([[1, 1], [1,1]], dtype=torch.int).to(self.device), 1)
 
         
     def get_module(self):
