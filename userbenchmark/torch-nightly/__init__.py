@@ -34,9 +34,9 @@ def parse_str_to_list(tests: str):
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--devices", default="cuda", choices=["cuda", "cpu"], help="The name of the config to run.")
-    parser.add_argument("--tests", choices=["train", "eval", "train,eval", "eval,train"], help="Tests to run.")
-    parser.add_argument("--models", "-m", default=None, nargs="+", help="Only run the specifice models, model names splited with space.")
+    parser.add_argument("--device", "-d", default="cuda", choices=["cuda", "cpu"], help="The name of the config to run.")
+    parser.add_argument("--test", "-t", choices=["train", "eval", "train,eval", "eval,train"], help="Tests to run.")
+    parser.add_argument("--model", "-m", default=None, nargs="+", help="Only run the specifice models, model names splited with space.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     return parser.parse_args(args)
 
