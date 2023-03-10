@@ -164,6 +164,7 @@ class Model(E2EBenchmarkModel):
             self.metric = evaluate.load("accuracy")
 
         # Setup class members (model and the dataloaders will be updated in _prep_optimizer_and_scheduler() below)
+        self.hf_args = hf_args
         self.is_regression = is_regression
         self.accelerator = accelerator
         self.model = model
