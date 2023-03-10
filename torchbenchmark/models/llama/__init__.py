@@ -22,11 +22,11 @@ class Model(BenchmarkModel):
         if device == "cuda":
             torch.set_default_device("cuda")
             self.model.to(torch.device("cuda"))
-        self.example_inputs = [(torch.tensor([[1, 1], [1,1]], dtype=torch.int), 1)]
+        self.example_inputs = (torch.tensor([[1, 1], [1,1]], dtype=torch.int), 1)
 
         
     def get_module(self):
-        return self.model, *self.example_inputs
+        return self.model, self.example_inputs
     
     def train(self):
         error_msg = """
@@ -40,8 +40,7 @@ class Model(BenchmarkModel):
     def eval(self):
         self.model.eval()
         with torch.no_grad():
-            for example_input in self.example_inputs:
-                out=self.model(*example_input)
+            out=self.model(*self.example_inputs)
         return (out,)
 
 
