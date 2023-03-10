@@ -29,7 +29,7 @@ jobs:
           sudo nvidia-smi -pm 1
       - name: Setup Conda Env
         run: |
-          . ${HOME}/minicionda3/etc/profile.d/conda.sh
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda activate
           python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
           conda activate "${CONDA_ENV}"
@@ -37,23 +37,23 @@ jobs:
           python utils/cuda_utils.py --install-torch-deps
       - name: Install PyTorch nightly
         run: |
-          . ${HOME}/minicionda3/etc/profile.d/conda.sh
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda activate "${CONDA_ENV}"
           python utils/cuda_utils.py --install-torch-nightly
       - name: Install TorchBench
         run: |
-          . ${HOME}/minicionda3/etc/profile.d/conda.sh
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda activate "${CONDA_ENV}"
           python install.py
       - name: Validate benchmark components (Worker)
         run: |
-          . ${HOME}/minicionda3/etc/profile.d/conda.sh
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda activate "${CONDA_ENV}"
           python -m components.test.test_subprocess
           python -m components.test.test_worker
       - name: Validate benchmark components (Model)
         run: |
-          . ${HOME}/minicionda3/etc/profile.d/conda.sh
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda activate "${CONDA_ENV}"
           python test.py
 
