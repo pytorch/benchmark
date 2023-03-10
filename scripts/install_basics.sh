@@ -6,8 +6,8 @@ chmod +x "$filename"
 
 sudo apt-get -y update
 sudo apt-get install -y git jq \
-                            vim wget curl ninja-build cmake \
-                            libgl1-mesa-glx libsndfile1-dev
+                vim wget curl ninja-build cmake \
+                libgl1-mesa-glx libsndfile1-dev
 
 # Install gcc-11, needed by the latest fbgemm
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && \

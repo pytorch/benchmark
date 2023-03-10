@@ -19,6 +19,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Install NVIDIA Driver
         run: |
+          cat /etc/os-release
+          sudo yum
           bash scripts/setup_nvda_11.7.sh
       - name: Install Conda and basic packages
         run: |
