@@ -9,6 +9,7 @@ import argparse
 import sys
 import itertools
 import datetime
+import functools
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models
@@ -46,18 +47,18 @@ OPTIMIZERS = [
     #      maximize: bool = False, capturable: bool = False,
     #      differentiable: bool = False, fused: bool = False):
     (Adam, {}),
-    (Adam, {'amsgrad': True}),
-    (Adam, {'maximize': True}),
-    (Adam, {'foreach': False}),
-    (Adam, {'differentiable': True}),
-    (Adam, {'foreach': True}),
-    (Adam, {'foreach': True, 'maximize': True}),
-    (Adam, {'foreach': True, 'amsgrad': True}),
-    (Adam, {'foreach': True, 'capturable': True}),
-    (Adam, {'fused': True}),
-    (Adam, {'fused': True, 'amsgrad': True}),
-    (Adam, {'fused': True, 'maximize': True}),
-    (Adam, {'fused': True, 'capturable': True}),
+    # (Adam, {'amsgrad': True}),
+    # (Adam, {'maximize': True}),
+    # (Adam, {'foreach': False}),
+    # (Adam, {'differentiable': True}),
+    # (Adam, {'foreach': True}),
+    # (Adam, {'foreach': True, 'maximize': True}),
+    # (Adam, {'foreach': True, 'amsgrad': True}),
+    # (Adam, {'foreach': True, 'capturable': True}),
+    # (Adam, {'fused': True}),
+    # (Adam, {'fused': True, 'amsgrad': True}),
+    # (Adam, {'fused': True, 'maximize': True}),
+    # (Adam, {'fused': True, 'capturable': True}),
 
     (AdamW, {}),
     (AdamW, {'maximize': True}),
@@ -107,17 +108,84 @@ OPTIMIZERS = [
     # (torch.optim.LBFGS, {}),
 ]
 
-DENSE_MODELS = set()
-"""
-collected so far, but we should have something else collect it for us
-               ['BERT_pytorch', 'Background_Matting', 'DALLE2_pytorch', 'LearningToPaint', 'Super_SloMo', 'alexnet',
-                'attention_is_all_you_need_pytorch', 'dcgan', 'demucs', 'densenet121', 'detectron2_fasterrcnn_r_101_c4',
-                'detectron2_fasterrcnn_r_101_dc5', 'detectron2_fasterrcnn_r_101_fpn', 'detectron2_fasterrcnn_r_50_c4',
-                'detectron2_fasterrcnn_r_50_dc5', 'detectron2_fasterrcnn_r_50_fpn', 'detectron2_maskrcnn',
-                'detectron2_maskrcnn_r_101_c4', 'detectron2_maskrcnn_r_101_fpn', 'detectron2_maskrcnn_r_50_c4',
-                'detectron2_maskrcnn_r_50_fpn', 'fambench_xlmr', 'fastNLP_Bert', 'functorch_dp_cifar10']
+DENSE_MODELS = [
+    'BERT_pytorch',
+    'Background_Matting',
+    'DALLE2_pytorch',
+    'LearningToPaint',
+    'Super_SloMo',
+    'alexnet',
+    'attention_is_all_you_need_pytorch',
+    'dcgan',
+    'demucs',
+    'densenet121',
+    'detectron2_fasterrcnn_r_101_c4',
+    'detectron2_fasterrcnn_r_101_dc5',
+    'detectron2_fasterrcnn_r_101_fpn',
+    'detectron2_fasterrcnn_r_50_c4',
+    'detectron2_fasterrcnn_r_50_dc5',
+    'detectron2_fasterrcnn_r_50_fpn',
+    'detectron2_maskrcnn',
+    'detectron2_maskrcnn_r_101_c4',
+    'detectron2_maskrcnn_r_101_fpn',
+    'detectron2_maskrcnn_r_50_c4',
+    'detectron2_maskrcnn_r_50_fpn',
+    'doctr_det_predictor',
+    'doctr_reco_predictor',
+    'fambench_xlmr',
+    'fastNLP_Bert',
+    'functorch_dp_cifar10',
+    'hf_Albert',
+    'hf_Bart',
+    'hf_Bert',
+    'hf_Bert_large',
+    'hf_BigBird',
+    'hf_DistilBert',
+    'hf_GPT2',
+    'hf_GPT2_large',
+    'hf_Longformer',
+    'hf_Reformer',
+    'hf_T5',
+    'hf_T5_base',
+    'hf_T5_large',
+    'lennard_jones',
+    'maml',
+    'mnasnet1_0',
+    'mobilenet_v2',
+    'mobilenet_v2_quantized_qat',
+    'mobilenet_v3_large',
+    'moco',
+    'nvidia_deeprecommender',
+    'opacus_cifar10',
+    'phlippe_densenet',
+    'phlippe_resnet',
+    'pytorch_CycleGAN_and_pix2pix',
+    'pytorch_stargan',
+    'pytorch_struct',
+    'pytorch_unet',
+    'resnet152',
+    'resnet18',
+    'resnet50',
+    'resnet50_quantized_qat',
+    'resnext50_32x4d',
+    'shufflenet_v2_x1_0',
+    'soft_actor_critic',
+    'speech_transformer',
+    'squeezenet1_1',
+    'timm_efficientdet',
+    'timm_efficientnet',
+    'timm_nfnet',
+    'timm_regnet',
+    'timm_resnest',
+    'timm_vision_transformer',
+    'timm_vision_transformer_large',
+    'timm_vovnet',
+    'tts_angular',
+    'vgg16',
+    'vision_maskrcnn',
+    'yolov3'
+]
 
-"""
 # Skips! Exclusions are represented by a dictionary of incompatible configs, where
 # optim => optimizer name
 # model => model name
@@ -145,12 +213,21 @@ EXCLUSIONS: List[Dict[str, Any]] = [
 ] 
 
 # Returns clones of params and not a generator.
-def get_model_params(m) -> Any:
+def _get_model_params(m) -> Any:
     model, _ = m.get_module()
     params_clone = []
     for p in model.parameters():
         params_clone.append(p.clone().detach())
     return params_clone
+
+# Returns clones of params and not a generator from a model name
+@functools.lru_cache()
+def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
+    Model = load_model_by_name(modelName)   
+    try:
+        return _get_model_params(Model(device=device, test='train'))
+    except NotImplementedError:
+        return _get_model_params(Model(device=device, test='eval'))
 
 # This fakes a model forward & backward--we are not concerned about
 # accuracy here, but about the perf of optim on particular shapes and
@@ -187,23 +264,24 @@ def is_excluded(mn: str, d: str, on: str, func_str: str) -> bool:
     
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     try:
-        Model = load_model_by_name(modelName)   
-        try: 
-            params = get_model_params(Model(device=device, test='train'))
-        except NotImplementedError:
-            params = get_model_params(Model(device=device, test='eval'))
+        ta = datetime.datetime.now().timestamp()
+        params = get_model_params(modelName, device)   
+        tc = datetime.datetime.now().timestamp()
+        print('getting params: ', tc - ta)
         if Optim.__name__ == 'SGD':
             defaults['lr'] = 1e-2
-        if len(params) > 0 and params[0].layout == torch.strided and 'Sparse' in Optim.__name__:
-            # don't run Sparse optimizers on dense gradients
-            DENSE_MODELS.add(modelName)
-            return None
         optim = Optim(params, **defaults)
+        td = datetime.datetime.now().timestamp()
+        print('making optim: ', td - tc)
         generate_random_gradients(params)
+        te = datetime.datetime.now().timestamp()
+        print('generating gradients: ', te - td)
         pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
 
         print(f'{datetime.datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
 
+        tf = datetime.datetime.now().timestamp()
+        print('just printing: ', tf - te)
         return benchmark.Timer(
             stmt=f'{maybe_pt2_}optimizer_step(optim)',
             globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
@@ -214,7 +292,7 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         if not continue_on_error:
             raise e
         with open('errors.txt', 'a') as f:
-            f.write(f'{datetime.datetime.now()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {str(e)}\n')
+            f.write(f'{datetime.datetime.now().timestamp()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {str(e)}\n')
         return None
 
 
@@ -222,11 +300,16 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
     results = []
     optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims]
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
+        ta = datetime.datetime.now().timestamp()
         if is_excluded(mn, d, O.__name__, func_str) or (defaults_require_cuda(defaults) and d != 'cuda'):
             continue
+        tb = datetime.datetime.now().timestamp()
+        print('checking for exclusion: ', tb - ta)
         bm = run_model(mn, d, O, defaults, func_str)
         if bm is not None:
             results.append(bm)
+        tc = datetime.datetime.now().timestamp()
+        print('TOTAL RUNNING MODEL: ', tc - tb)
     return results
 
 
@@ -283,9 +366,6 @@ def run(args: List[str]):
     compare.trim_significant_figures()
     compare.colorize(rowwise=True)
     compare.print()
-    import json
-    with open('errors.txt', 'a') as f:
-        json.dump(list(DENSE_MODELS), f, indent=4)
 
 if __name__ == '__main__':
     run(sys.argv[1:])
