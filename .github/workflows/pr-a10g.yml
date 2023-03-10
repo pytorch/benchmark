@@ -29,7 +29,7 @@ jobs:
           sudo nvidia-smi -pm 1
       - name: Setup Conda Env
         run: |
-          python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
+          python3 utils/python_utils.py --create-conda-env "${CONDA_ENV}"
           conda activate "${CONDA_ENV}"
           sudo python utils/cuda_utils.py --setup-cuda-softlink
           python utils/cuda_utils.py --install-torch-deps
