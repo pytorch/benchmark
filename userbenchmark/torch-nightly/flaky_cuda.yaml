@@ -1,20 +1,21 @@
-# Unstable GPU test on branch 3.0
+# Unstable CUDA GPU test on branch 3.0
 # See https://github.com/pytorch/benchmark/issues/1409
-- model: DALLE2_pytorch
-  test: eval
-- model: dense121
-  test: eval
-- model: detectron2_fasterrcnn_r_50_c4
-  test: eval
-- model: dlrm
-  test: eval
-- model: mnasnet1_0
-  test: train
-- model: phlippe_densenet
-  test: train
-- model: pytorch_CycleGAN_and_pix2pix
-  test: eval
-- model: resnext50_32x4d
-  test: train
-- model: shufflenet_v2_x1_0
-  test: eval
+cuda:
+  - model: DALLE2_pytorch
+    test: eval
+  - model: dense121
+    test: eval
+  - model: detectron2_fasterrcnn_r_50_c4
+    test: eval
+  - model: dlrm
+    test: eval
+  - model: mnasnet1_0
+    test: train
+  - model: phlippe_densenet
+    test: train
+  - model: pytorch_CycleGAN_and_pix2pix
+    test: eval
+  - model: resnext50_32x4d
+    test: train
+  - model: shufflenet_v2_x1_0
+    test: eval
