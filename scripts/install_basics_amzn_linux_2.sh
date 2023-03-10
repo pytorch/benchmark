@@ -9,3 +9,5 @@ sudo yum install -y git jq \
                 vim wget curl ninja-build cmake \
                 libglvnd-glx libsndfile
 
+. ${HOME}/minicionda3/etc/profile.d/conda.sh
+conda activate
