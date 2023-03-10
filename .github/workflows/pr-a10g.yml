@@ -12,19 +12,18 @@ env:
 jobs:
   pr-test:
     # AWS A10G GPU instance label: linux.g5.4xlarge.nvidia.gpu
+    # OS version: Amazon Linux 2
     runs-on: [self-hosted, linux.g5.4xlarge.nvidia.gpu]
     timeout-minutes: 1440 # 24 hours
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-      - name: Install NVIDIA Driver
-        run: |
-          cat /etc/os-release
-          sudo yum
-          bash scripts/setup_nvda_11.7.sh
       - name: Install Conda and basic packages
         run: |
-          bash scripts/install_basics.sh
+          bash scripts/install_basics_amzn_linux_2.sh
+      - name: Install NVIDIA Driver
+        run: |
+          bash scripts/setup_nvda_11.7.sh
       - name: GPU Tuning
         run: |
           sudo nvidia-smi -pm 1
