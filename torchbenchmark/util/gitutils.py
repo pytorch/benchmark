@@ -5,6 +5,7 @@ Utils for getting git-related information.
 
 import os
 import subprocess
+import time
 from datetime import datetime
 from typing import Optional, List
 
@@ -106,10 +107,13 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
         assert len(commit) != 0
         command = f"git checkout {commit}"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(3)
         command = "git submodule sync"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(3)
         command = "git submodule update --init --recursive"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(3)
         return True
     except subprocess.CalledProcessError:
         print(f"Failed to checkout commit {commit} in repo {repo}")
