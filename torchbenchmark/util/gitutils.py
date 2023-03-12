@@ -4,6 +4,7 @@ Utils for getting git-related information.
 """
 
 import os
+import time
 import subprocess
 from datetime import datetime
 from typing import Optional, List
@@ -106,10 +107,13 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
         assert len(commit) != 0
         command = f"git checkout {commit}"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
         command = "git submodule sync"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
         command = "git submodule update --init --recursive"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
         return True
     except subprocess.CalledProcessError:
         print(f"Failed to checkout commit {commit} in repo {repo}")
@@ -120,10 +124,13 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
         assert len(branch) != 0
         command = f"git checkout {branch}"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
         command = "git submodule sync"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
         command = "git submodule update --init --recursive"
         subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(5)
         return True
     except subprocess.CalledProcessError:
         print(f"Failed to update git repo {repo}")
