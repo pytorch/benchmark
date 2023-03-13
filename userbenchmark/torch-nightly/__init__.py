@@ -33,12 +33,7 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
     return result
 
 def get_metrics(config: TorchBenchModelConfig) -> List[str]:
-    if config.device == "cpu":
-        return ["latencies", "cpu_peak_mem"]
-    elif config.device == "cuda":
-        return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
-    else:
-        return ["latencies"]
+    return ["latencies"]
 
 def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]) -> Dict[str, float]:
     # metrics name examples:
