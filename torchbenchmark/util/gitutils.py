@@ -105,11 +105,11 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
         command = f"git checkout {commit}"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(command, cwd=repo, shell=True)
         command = "git submodule sync"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(command, cwd=repo, shell=True)
         command = "git submodule update --init --recursive"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(command, cwd=repo, shell=True)
         return True
     except subprocess.CalledProcessError:
         print(f"Failed to checkout commit {commit} in repo {repo}")
@@ -119,11 +119,11 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
         assert len(branch) != 0
         command = f"git checkout {branch}"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(command, cwd=repo, shell=True)
         command = "git submodule sync"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(command, cwd=repo, shell=True)
         command = "git submodule update --init --recursive"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(command, cwd=repo, shell=True)
         return True
     except subprocess.CalledProcessError:
         print(f"Failed to update git repo {repo}")
