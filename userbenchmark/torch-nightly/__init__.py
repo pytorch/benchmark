@@ -4,12 +4,13 @@ Run PyTorch nightly benchmarking.
 import argparse
 import itertools
 import yaml
+import numpy
 
 from typing import List, Tuple, Dict
 from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_output
 
 with add_path(REPO_PATH):
-    from torchbenchmark.util.experiment.instantiator import list_models, load_model, TorchBenchModelConfig, \
+    from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig, \
                                                             list_devices, list_tests
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
@@ -40,7 +41,27 @@ def get_metrics(config: TorchBenchModelConfig) -> List[str]:
         return ["latencies"]
 
 def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]) -> Dict[str, float]:
-    pass
+    # metrics name examples:
+    # test_eval[timm_regnet-cuda-eager]_latency
+    # test_eval[timm_regnet-cuda-eager]_cmem
+    # test_eval[timm_regnet-cuda-eager]_gmem
+    metrics = {}
+    for config, metrics in results:
+        metrics_base = f"test_{config.test}[{config.name}-{config.device}-eager]"
+        latency_metric = f"{metrics_base}_latency"
+        median_latency = numpy.median(metrics.latencies)
+        if median_latency:
+            metrics[latency_metric] = median_latency
+        else:
+            # The run has failed
+            metrics[latency_metric] = -1.0
+        if metrics.cpu_peak_mem:
+            cpu_peak_mem = f"{metrics_base}_cmem"
+            metrics[cpu_peak_mem] = metrics.cpu_peak_mem
+        if metrics.gpu_peak_mem:
+            gpu_peak_mem = f"{metrics_base}_gmem"
+            metrics[gpu_peak_mem] = metrics.gpu_peak_mem
+    return metrics
 
 def dump_result_to_json(metrics):
     result = get_output_json(BM_NAME, metrics)
@@ -76,6 +97,17 @@ def parse_str_to_list(candidates: str):
 
 def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> TorchBenchModelMetrics:
     metrics = get_metrics(config)
+    try:
+        # load the model instance within the same process
+        model = load_model_isolated(config)
+        # get the model test metrics
+        metrics: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
+        return metrics
+    except NotImplementedError:
+        return None
+    except RuntimeError as e:
+        # TODO: dump the error output to a directory and fail
+        return None
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
@@ -102,5 +134,6 @@ def run(args: List[str]):
     for config in configs:
         metrics = run_config(config, dryrun=args.dryrun)
         results.append([config, metrics])
-    metrics = result_to_output_metrics(results)
-    dump_result_to_json(metrics, args.output)
+    if not args.dryrun:
+        metrics = result_to_output_metrics(results)
+        dump_result_to_json(metrics, args.output)
