@@ -96,6 +96,7 @@ def reduce_results_by_device(full_results):
                 continue
             max_delta = (max(latencies) - min(latencies)) / min(latencies)
             stable_obj = key.clone()
+            stable_obj["max_delta"] = max_delta
             if max_delta < STABLE_THRESHOLD:
                 stable_obj["stable"] = True
             else:
