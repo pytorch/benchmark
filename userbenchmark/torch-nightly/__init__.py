@@ -127,7 +127,7 @@ def run(args: List[str]):
     configs = generate_model_configs(devices, tests, model_names=models)
     if args.filter:
         filters = filter_yaml_to_configs(args.filter)
-    configs = list(filter(lambda x: not x in filters, configs))
+    configs = list(filter(lambda x: not x in filters if filters else True, configs))
     results = []
     try:
         for config in configs:
