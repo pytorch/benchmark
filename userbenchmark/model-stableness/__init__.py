@@ -16,6 +16,8 @@ with add_path(REPO_PATH):
 BM_NAME = "model-stableness"
 # By default, use 10 percent as the threshold for stableness checking
 STABLE_THRESHOLD = 10
+# By default, run 15 iterations
+DEFAULT_ITERATIONS = 15
 
 def generate_model_config(model_name: str) -> List[TorchBenchModelConfig]:
     devices = ["cpu", "cuda"]
@@ -34,12 +36,12 @@ def generate_model_config(model_name: str) -> List[TorchBenchModelConfig]:
 
 def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--rounds", default=15, type=int, help="Number of rounds to run to simulate measuring max delta in workflow.")
+    parser.add_argument("-r", "--rounds", default=DEFAULT_ITERATIONS, type=int, help="Number of rounds to run to simulate measuring max delta in workflow.")
     parser.add_argument("-m", "--models", default="", help="Specify the models to run, default (empty) runs all models.")
     parser.add_argument("-d", "--device", default="cpu", help="Specify the device.")
     parser.add_argument("-t", "--test", default="eval", help="Specify the test.")
     parser.add_argument("-o", "--output", type=str, help="The default output json file.")
-    parser.add_argument("--output-yaml", actions="store_true", help="Output the model test filter yaml used by userbenchmark torch-nightly.")
+    parser.add_argument("--output-yaml", action="store_true", help="Output the model test filter yaml used by userbenchmark torch-nightly.")
     args = parser.parse_args(args)
     return args
 
