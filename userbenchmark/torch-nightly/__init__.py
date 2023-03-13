@@ -134,4 +134,4 @@ def run(args: List[str]):
         print("User keyboard interrupted!")
     if not args.dryrun:
         metrics = result_to_output_metrics(results)
-        dump_result_to_json(metrics, args.output)
+        dump_result_to_json(metrics)
