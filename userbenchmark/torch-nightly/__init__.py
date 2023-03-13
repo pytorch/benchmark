@@ -45,23 +45,20 @@ def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBen
     # test_eval[timm_regnet-cuda-eager]_latency
     # test_eval[timm_regnet-cuda-eager]_cmem
     # test_eval[timm_regnet-cuda-eager]_gmem
-    metrics = {}
+    result_metrics = {}
     for config, metrics in results:
         metrics_base = f"test_{config.test}[{config.name}-{config.device}-eager]"
         latency_metric = f"{metrics_base}_latency"
         median_latency = numpy.median(metrics.latencies)
-        if median_latency:
-            metrics[latency_metric] = median_latency
-        else:
-            # The run has failed
-            metrics[latency_metric] = -1.0
+        assert median_latency, f"Run failed for metric {latency_metric}"
+        result_metrics[latency_metric] = median_latency
         if metrics.cpu_peak_mem:
             cpu_peak_mem = f"{metrics_base}_cmem"
-            metrics[cpu_peak_mem] = metrics.cpu_peak_mem
+            result_metrics[cpu_peak_mem] = metrics.cpu_peak_mem
         if metrics.gpu_peak_mem:
             gpu_peak_mem = f"{metrics_base}_gmem"
-            metrics[gpu_peak_mem] = metrics.gpu_peak_mem
-    return metrics
+            result_metrics[gpu_peak_mem] = metrics.gpu_peak_mem
+    return result_metrics
 
 def dump_result_to_json(metrics):
     result = get_output_json(BM_NAME, metrics)
