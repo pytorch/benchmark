@@ -6,8 +6,8 @@ import itertools
 import yaml
 import numpy
 
-from typing import List, Tuple, Dict
-from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_output
+from typing import List, Tuple, Dict, Optional
+from ..utils import REPO_PATH, add_path, get_output_json, dump_output
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig, \
@@ -95,19 +95,17 @@ def parse_str_to_list(candidates: str):
     candidates = list(map(lambda x: x.strip(), candidates.split(",")))
     return candidates
 
-def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> TorchBenchModelMetrics:
+def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
+    """This function only handles NotImplementedError, all other errors will fail."""
     metrics = get_metrics(config)
     try:
         # load the model instance within the same process
         model = load_model_isolated(config)
         # get the model test metrics
-        metrics: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
-        return metrics
-    except NotImplementedError:
+        result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
+    except NotImplementedError as e:
         return None
-    except RuntimeError as e:
-        # TODO: dump the error output to a directory and fail
-        return None
+    return result
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
@@ -131,9 +129,13 @@ def run(args: List[str]):
         filters = filter_yaml_to_configs(args.filter)
     configs = list(filter(lambda x: not x in filters, configs))
     results = []
-    for config in configs:
-        metrics = run_config(config, dryrun=args.dryrun)
-        results.append([config, metrics])
+    try:
+        for config in configs:
+            metrics = run_config(config, dryrun=args.dryrun)
+            if metrics:
+                results.append([config, metrics])
+    except KeyboardInterrupt:
+        print("User keyboard interrupted!")
     if not args.dryrun:
         metrics = result_to_output_metrics(results)
         dump_result_to_json(metrics, args.output)
