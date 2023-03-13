@@ -5,7 +5,7 @@ import argparse
 import itertools
 import yaml
 
-from typing import List
+from typing import List, Tuple, Dict
 from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_output
 
 with add_path(REPO_PATH):
@@ -39,14 +39,36 @@ def get_metrics(config: TorchBenchModelConfig) -> List[str]:
     else:
         return ["latencies"]
 
+def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]) -> Dict[str, float]:
+    pass
+
+def dump_result_to_json(metrics):
+    result = get_output_json(BM_NAME, metrics)
+    dump_output(BM_NAME, result)
+
 def validate(candidates: List[str], choices: List[str]) -> List[str]:
     """Validate the candidates provided by the user is valid"""
     for candidate in candidates:
         assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
     return candidates
 
-def filter_yaml_to_configs(filter: str) -> List[TorchBenchModelConfig]:
-    pass
+def filter_yaml_to_configs(filter_config_file: str) -> List[TorchBenchModelConfig]:
+    filter_obj = yaml.safe_load(filter_config_file)
+    devices = filter_obj.keys()
+    configs = []
+    for device in devices:
+        c = filter_obj[device]
+        config = TorchBenchModelConfig(
+            name=c["model"],
+            device=device,
+            test=c["test"],
+            batch_size=c["batch_size"] if "batch_size" in c else None,
+            jit=c["jit"] if "jit" in c else False,
+            extra_args=[],
+            extra_env=None,
+        )
+        configs.append(config)
+    return configs
 
 def parse_str_to_list(candidates: str):
     candidates = list(map(lambda x: x.strip(), candidates.split(",")))
@@ -76,5 +98,9 @@ def run(args: List[str]):
     if args.filter:
         filters = filter_yaml_to_configs(args.filter)
     configs = list(filter(lambda x: not x in filters, configs))
+    results = []
     for config in configs:
-        run_config(config)
+        metrics = run_config(config, dryrun=args.dryrun)
+        results.append([config, metrics])
+    metrics = result_to_output_metrics(results)
+    dump_result_to_json(metrics, args.output)
