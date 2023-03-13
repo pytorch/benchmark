@@ -76,6 +76,7 @@ def reduce_results_by_device(full_results):
         key = {}
         key["model"] = cfg["name"]
         key["test"] = cfg["test"]
+        return key
     result_by_device = {}
     result_yaml_obj = {}
     for round_result in full_results:
