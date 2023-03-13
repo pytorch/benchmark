@@ -111,7 +111,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", "-d", default="cuda", help="Devices to run, splited by comma.")
     parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
-    parser.add_argument("--model", "-m", default=None, nargs="+", help="Only run the specifice models, splited by comma.")
+    parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice models, splited by comma.")
     parser.add_argument("--filter", default=None, help="YAML config to filter unstable tests.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     return parser.parse_args(args)
