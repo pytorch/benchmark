@@ -125,8 +125,7 @@ def run(args: List[str]):
     tests = validate(parse_str_to_list(args.test), list_tests())
     models = validate(parse_str_to_list(args.model), list_models())
     configs = generate_model_configs(devices, tests, model_names=models)
-    if args.filter:
-        filters = filter_yaml_to_configs(args.filter)
+    filters = filter_yaml_to_configs(args.filter) if args.filter else None
     configs = list(filter(lambda x: not x in filters if filters else True, configs))
     results = []
     try:
