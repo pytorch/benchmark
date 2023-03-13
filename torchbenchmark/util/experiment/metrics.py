@@ -85,16 +85,6 @@ def get_peak_memory(func, device: str, num_iter=MEMPROF_ITER, export_metrics_fil
         mem_model_analyzer.export_all_records_to_csv()
     return cpu_peak_mem, device_id, gpu_peak_mem
 
-
-def _get_model_test_metrics(model: BenchmarkModel) -> TorchBenchModelMetrics:
-    return get_latencies(model.invoke, model.device)
-
-def _get_model_test_metrics_isolated(model: ModelTask) -> TorchBenchModelMetrics:
-    device = model.get_model_attribute("device")
-    latencies = get_latencies(model.invoke, device)
-    return latencies
-
-
 def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics= [], export_metrics_file= False, metrics_gpu_backend='dcgm') -> TorchBenchModelMetrics:
     latencies = None
     cpu_peak_mem = None
@@ -105,6 +95,6 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics= [],
     if 'latencies' in metrics:
         latencies = get_latencies(model.invoke, device)
     if 'cpu_peak_mem' in metrics or 'gpu_peak_mem' in metrics:
-        cpu_peak_mem, gpu_peak_mem = get_peak_memory(model.invoke, device, export_metrics_file=export_metrics_file, metrics_needed=metrics, metrics_gpu_backend=metrics_gpu_backend)
+        cpu_peak_mem, _device_id, gpu_peak_mem = get_peak_memory(model.invoke, device, export_metrics_file=export_metrics_file, metrics_needed=metrics, metrics_gpu_backend=metrics_gpu_backend)
     return TorchBenchModelMetrics(latencies, cpu_peak_mem, gpu_peak_mem)
     
