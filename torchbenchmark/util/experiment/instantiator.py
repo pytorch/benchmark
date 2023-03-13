@@ -60,6 +60,18 @@ def load_model(config: TorchBenchModelConfig) -> BenchmarkModel:
     _set_extra_env(config.extra_env)
     return model_instance
 
+def list_devices() -> List[str]:
+    """Return a list of available devices."""
+    devices = ["cpu"]
+    import torch
+    if torch.cuda.is_available():
+        devices.append("cuda")
+    return devices
+
+def list_tests() -> List[str]:
+    """Return a list of available tests."""
+    return ["train", "eval"]
+
 def list_models() -> List[str]:
     """Return a list of names of all TorchBench models"""
     model_paths = _list_model_paths()
