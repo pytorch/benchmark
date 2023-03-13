@@ -9,7 +9,6 @@ import argparse
 import sys
 import itertools
 import datetime
-import functools
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models
@@ -18,8 +17,12 @@ with add_path(REPO_PATH):
 BM_NAME: str = 'optim'
 
 continue_on_error: bool = False
+run_on_subset: bool = False
 
 MODEL_NAMES: List[str] = list_models()
+SUBSET_OF_MODEL_NAMES: List[str] = [
+    'BERT_pytorch', 'DALLE2_pytorch', 'hf_GPT2_large', 'hf_T5_large', 'resnet50', 'timm_vision_transformer', 'yolov3'
+]
 
 DEVICES: str = ['cuda', 'cpu']
 
@@ -47,18 +50,18 @@ OPTIMIZERS = [
     #      maximize: bool = False, capturable: bool = False,
     #      differentiable: bool = False, fused: bool = False):
     (Adam, {}),
-    # (Adam, {'amsgrad': True}),
-    # (Adam, {'maximize': True}),
-    # (Adam, {'foreach': False}),
-    # (Adam, {'differentiable': True}),
-    # (Adam, {'foreach': True}),
-    # (Adam, {'foreach': True, 'maximize': True}),
-    # (Adam, {'foreach': True, 'amsgrad': True}),
-    # (Adam, {'foreach': True, 'capturable': True}),
-    # (Adam, {'fused': True}),
-    # (Adam, {'fused': True, 'amsgrad': True}),
-    # (Adam, {'fused': True, 'maximize': True}),
-    # (Adam, {'fused': True, 'capturable': True}),
+    (Adam, {'amsgrad': True}),
+    (Adam, {'maximize': True}),
+    (Adam, {'foreach': False}),
+    (Adam, {'differentiable': True}),
+    (Adam, {'foreach': True}),
+    (Adam, {'foreach': True, 'maximize': True}),
+    (Adam, {'foreach': True, 'amsgrad': True}),
+    (Adam, {'foreach': True, 'capturable': True}),
+    (Adam, {'fused': True}),
+    (Adam, {'fused': True, 'amsgrad': True}),
+    (Adam, {'fused': True, 'maximize': True}),
+    (Adam, {'fused': True, 'capturable': True}),
 
     (AdamW, {}),
     (AdamW, {'maximize': True}),
@@ -213,21 +216,29 @@ EXCLUSIONS: List[Dict[str, Any]] = [
 ] 
 
 # Returns clones of params and not a generator.
-def _get_model_params(m) -> Any:
+def _get_model_params(m) -> List[torch.nn.Parameter]:
     model, _ = m.get_module()
     params_clone = []
     for p in model.parameters():
         params_clone.append(p.clone().detach())
     return params_clone
 
+lil_cache = ('', [])
+
 # Returns clones of params and not a generator from a model name
-@functools.lru_cache()
 def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
-    Model = load_model_by_name(modelName)   
+    global lil_cache
+    if modelName == lil_cache[0]:
+        return lil_cache[1]
+
+    Model = load_model_by_name(modelName)
     try:
-        return _get_model_params(Model(device=device, test='train'))
+        params = _get_model_params(Model(device=device, test='train'))
     except NotImplementedError:
-        return _get_model_params(Model(device=device, test='eval'))
+        params = _get_model_params(Model(device=device, test='eval'))
+    
+    lil_cache = (modelName, params)
+    return params
 
 # This fakes a model forward & backward--we are not concerned about
 # accuracy here, but about the perf of optim on particular shapes and
@@ -246,6 +257,11 @@ def pt2_optimizer_step(optimizer):
     f()
 
 def defaults_to_str(defaults: Dict[str, Any]) -> str:
+    # We define lr for SGD, but we don't currently vary lr so it is effectively the default.
+    defaults.pop('lr', None)
+    if len(defaults) == 0:
+        return 'default'
+
     def entry_to_str(k, v) -> str:
         if isinstance(v, bool):
             return 'no_' + k if not v else k
@@ -286,7 +302,7 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
             stmt=f'{maybe_pt2_}optimizer_step(optim)',
             globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
             sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
-            description=pt2_description + ('default' if len(defaults) == 0 else defaults_to_str(defaults))
+            description=pt2_description + defaults_to_str(defaults),
         ).blocked_autorange()
     except Exception as e: 
         if not continue_on_error:
@@ -299,6 +315,11 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
 def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str]) -> List[float]:
     results = []
     optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims]
+
+    if run_on_subset:
+        models = SUBSET_OF_MODEL_NAMES
+        optim_cfgs = [(O, defaults) for (O, defaults) in optim_cfgs if (all([x in ['foreach', 'fused', 'lr'] for x in defaults.keys()]))]
+    
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
         ta = datetime.datetime.now().timestamp()
         if is_excluded(mn, d, O.__name__, func_str) or (defaults_require_cuda(defaults) and d != 'cuda'):
@@ -335,6 +356,11 @@ def parse_args(args: List[str]):
         choices=MODEL_NAMES,
         help='List of models to run tests on')
     parser.add_argument(
+        '--subset', '-s',
+        action='store_true',
+        help='Run benchmarks on a standard subset of models'
+    )
+    parser.add_argument(
         '--devices', '-d',
         nargs='*',
         default=DEVICES,
@@ -342,7 +368,8 @@ def parse_args(args: List[str]):
         help='List of devices to run tests on')
     parser.add_argument(
         '--continue-on-error', '-c',
-        action='store_true'
+        action='store_true',
+        help='Continue running benchmarks on failure, errors will be written to errors.txt'
     )
     args = parser.parse_args(args)
     return args
@@ -357,8 +384,9 @@ def get_metrics(results: List[torch.utils.benchmark.utils.common.Measurement]) -
 
 def run(args: List[str]):
     args = parse_args(args)
-    global continue_on_error
+    global continue_on_error, run_on_subset
     continue_on_error = args.continue_on_error
+    run_on_subset = args.subset
     results = run_benchmarks(args.optims, args.funcs, args.models, args.devices)
     metrics: Dict[str, float] = get_metrics(results) 
     dump_output(BM_NAME, get_output_json(BM_NAME, metrics))
