@@ -1,0 +1,61 @@
+name: TorchBench PR Test on A10G
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  CONDA_ENV: "pr-test"
+
+jobs:
+  pr-test:
+    # AWS A10G GPU instance label: linux.g5.4xlarge.nvidia.gpu
+    # OS version: Amazon Linux 2
+    runs-on: [self-hosted, linux.g5.4xlarge.nvidia.gpu]
+    timeout-minutes: 1440 # 24 hours
+    steps:
+      - name: Checkout TorchBench
+        uses: actions/checkout@v3
+      - name: Install Conda and basic packages
+        run: |
+          bash scripts/install_basics_amzn_linux_2.sh
+      - name: Install NVIDIA Driver
+        run: |
+          bash scripts/setup_nvda_11.7.sh
+      - name: GPU Tuning
+        run: |
+          sudo nvidia-smi -pm 1
+      - name: Setup Conda Env
+        run: |
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate
+          python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
+          conda activate "${CONDA_ENV}"
+          python utils/cuda_utils.py --install-torch-deps
+      - name: Install PyTorch nightly
+        run: |
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
+          python utils/cuda_utils.py --install-torch-nightly
+      - name: Install TorchBench
+        run: |
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
+          python install.py
+      - name: Validate benchmark components (Worker)
+        run: |
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
+          python -m components.test.test_subprocess
+          python -m components.test.test_worker
+      - name: Validate benchmark components (Model)
+        run: |
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
+          python test.py
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true
