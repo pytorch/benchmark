@@ -2,6 +2,7 @@ import itertools
 import time
 from datetime import datetime
 from typing import List
+import yaml
 import json
 import numpy as np
 import argparse
@@ -13,6 +14,10 @@ with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
 BM_NAME = "model-stableness"
+# By default, use 7 percent as the threshold for stableness checking
+STABLE_THRESHOLD = 0.07
+# By default, run 15 iterations
+DEFAULT_ITERATIONS = 15
 
 def generate_model_config(model_name: str) -> List[TorchBenchModelConfig]:
     devices = ["cpu", "cuda"]
@@ -31,21 +36,23 @@ def generate_model_config(model_name: str) -> List[TorchBenchModelConfig]:
 
 def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--rounds", default=15, type=int, help="Number of rounds to run to simulate measuring max delta in workflow.")
+    parser.add_argument("-r", "--rounds", default=DEFAULT_ITERATIONS, type=int, help="Number of rounds to run to simulate measuring max delta in workflow.")
     parser.add_argument("-m", "--models", default="", help="Specify the models to run, default (empty) runs all models.")
     parser.add_argument("-d", "--device", default="cpu", help="Specify the device.")
     parser.add_argument("-t", "--test", default="eval", help="Specify the test.")
     parser.add_argument("-o", "--output", type=str, help="The default output json file.")
+    parser.add_argument("--output-yaml", action="store_true", help="Output the model test filter yaml used by userbenchmark torch-nightly.")
     args = parser.parse_args(args)
     return args
 
+def _get_median_latencies(raw_metrics):
+    has_all_latencies = len(list(filter(lambda x: 'latencies' in x, raw_metrics)))
+    if not has_all_latencies == len(raw_metrics):
+        return None
+    median_latencies = list(map(lambda x: np.median(x['latencies']), raw_metrics))
+    return median_latencies
+
 def reduce_results(full_results):
-    def get_median_latencies(raw_metrics):
-        has_all_latencies = len(list(filter(lambda x: 'latencies' in x, raw_metrics)))
-        if not has_all_latencies == len(raw_metrics):
-            return None
-        median_latencies = list(map(lambda x: np.median(x['latencies']), raw_metrics))
-        return median_latencies
     ub_metrics = {}
     latencies_by_cfg = {}
     for round_result in full_results:
@@ -57,12 +64,46 @@ def reduce_results(full_results):
             latencies_by_cfg[cfg_name].append(result['raw_metrics'])
     for cfg_name in latencies_by_cfg:
         raw_metrics = latencies_by_cfg[cfg_name]
-        latencies = get_median_latencies(raw_metrics)
+        latencies = _get_median_latencies(raw_metrics)
         if latencies:
             ub_metrics[f"{cfg_name}_maxdelta"] = (max(latencies) - min(latencies)) / min(latencies)
         else:
             ub_metrics[f"{cfg_name}_maxdelta"] = -1.0
     return ub_metrics
+
+def reduce_results_by_device(full_results):
+    def _cfg_to_key(cfg):
+        key = {}
+        key["model"] = cfg["name"]
+        key["test"] = cfg["test"]
+        return frozenset(key.items())
+    result_by_device = {}
+    result_yaml_obj = {}
+    for round_result in full_results:
+        for result in round_result:
+            cfg = result['cfg']
+            device = cfg['device']
+            raw_metrics = result['raw_metrics']
+            result_by_device[device] = {} if not device in result_by_device else result_by_device[device]
+            key = _cfg_to_key(cfg)
+            result_by_device[device][key] = [] if not key in result_by_device[device] else result_by_device[device][key]
+            result_by_device[device][key].append(raw_metrics)
+
+    for device in result_by_device:
+        result_yaml_obj[device] = []
+        for key in result_by_device[device]:
+            latencies = _get_median_latencies(result_by_device[device][key])
+            if not latencies:
+                continue
+            max_delta = (max(latencies) - min(latencies)) / min(latencies)
+            stable_obj = dict(key)
+            stable_obj["max_delta"] = str(max_delta)
+            if max_delta < STABLE_THRESHOLD:
+                stable_obj["stable"] = True
+            else:
+                stable_obj["stable"] = False
+            result_yaml_obj[device].append(stable_obj)
+    return result_yaml_obj
 
 def generate_filter(args: argparse.Namespace):
     allowed_models = args.models
@@ -129,3 +170,11 @@ def run(args: List[str]):
     # output userbenchmark metrics in the .userbenchmark/model-stableness directory
     print(output_json)
     dump_output(BM_NAME, output_json)
+    # output the stableness result yaml, if required
+    if args.output_yaml:
+        yaml_dicts = reduce_results_by_device(full_results)
+        for device in yaml_dicts:
+            fname = f"summary-{device}.yaml"
+            full_fname = log_dir.joinpath(fname)
+            with open(full_fname, "w") as f:
+                f.write(yaml.safe_dump(yaml_dicts[device]))
