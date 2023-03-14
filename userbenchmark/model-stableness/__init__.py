@@ -177,4 +177,4 @@ def run(args: List[str]):
             fname = f"summary-{device}.yaml"
             full_fname = log_dir.joinpath(fname)
             with open(full_fname, "w") as f:
-                yaml.safe_dump(yaml_dicts[device])
+                f.write(yaml.safe_dump(yaml_dicts[device]))
