@@ -7,6 +7,7 @@ chmod +x "$filename"
 sudo yum makecache --refresh
 sudo yum install -y git jq \
                 vim wget curl ninja-build cmake \
+                gcc \
                 libglvnd-glx libsndfile
 
 . ${HOME}/miniconda3/etc/profile.d/conda.sh
