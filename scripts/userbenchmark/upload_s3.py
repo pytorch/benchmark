@@ -1,9 +1,25 @@
 import argparse
 import json
+import sys
 from pathlib import Path
 from datetime import datetime
 
-from utils.s3_utils import S3Client
+REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
+class add_path():
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
+
+with add_path(str(REPO_ROOT)):
+    from utils.s3_utils import S3Client
 
 USERBENCHMARK_S3_BUCKET = "ossci-metrics"
 USERBENCHMARK_S3_OBJECT = "torchbench-userbenchmark"
