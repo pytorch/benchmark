@@ -76,7 +76,7 @@ def reduce_results_by_device(full_results):
         key = {}
         key["model"] = cfg["name"]
         key["test"] = cfg["test"]
-        return key
+        return frozenset(key.items())
     result_by_device = {}
     result_yaml_obj = {}
     for round_result in full_results:
@@ -96,7 +96,7 @@ def reduce_results_by_device(full_results):
             if not latencies:
                 continue
             max_delta = (max(latencies) - min(latencies)) / min(latencies)
-            stable_obj = key.clone()
+            stable_obj = dict(key)
             stable_obj["max_delta"] = max_delta
             if max_delta < STABLE_THRESHOLD:
                 stable_obj["stable"] = True
