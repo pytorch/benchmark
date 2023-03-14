@@ -1,9 +1,5 @@
 ci:
   - gpu-nightly:
-      platform: "gcp-a100"
+      platform: "gcp_a100"
       schedule: "nightly"
-      args: "--device cuda"
-  - cpu-nightly:
-      platform: "aws_t4_metal"
-      schedule: "nightly"
-      args: "--device cpu"
+      args: "--device cuda --filter summary-cuda-tests.yaml"
