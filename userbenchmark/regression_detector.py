@@ -5,10 +5,14 @@ import sys
 import argparse
 import importlib
 from typing import List, Tuple, Optional
+from .utils import PLATFORMS
+from .utils import add_path, REPO_PATH
 
+with add_path(REPO_PATH):
+    from utils.s3_utils import S3Client
 
-def get_available_dates(userbenchmark: str) -> List[str]:
-    """s3://ossci-metrics/torchbench/userbenchmark/<userbenchmark-name>/<date>/metrics-time.json"""
+def get_available_dates(userbenchmark: str, platform: str) -> List[str]:
+    """s3://ossci-metrics/torchbench/userbenchmark/<userbenchmark-name>/<platform>/<date>/metrics-time.json"""
     pass
 
 
@@ -25,13 +29,14 @@ def call_userbenchmark_detector(detector, start_file: str, end_file: str) -> Opt
 
 
 def upload_detection_result():
-    """s3://ossci-metrics/torchbench/userbenchmark/<userbenchmark-name>/<date>/regression-detector.yaml"""
+    """s3://ossci-metrics/torchbench/userbenchmark/<userbenchmark-name>/<platform>/<date>/regression-detector.yaml"""
     pass
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("userbenchmark", help="Name of the userbenchmark to detect regression.")
+    parser.add_argument("--platform", choices=PLATFORMS, help="The name of platform of the regression.")
     parser.add_argument("--start-date", default=None, help="The start date to detect regression.")
     parser.add_argument("--end-date", default="latest", help="The latest date to detect regression.")
     args = parser.parse_args()

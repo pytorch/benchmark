@@ -8,6 +8,12 @@ from pathlib import Path
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 
+PLATFORMS = [
+    "gcp_a100",
+    "aws_t4_metal",
+]
+
+
 class add_path():
     def __init__(self, path):
         self.path = path
