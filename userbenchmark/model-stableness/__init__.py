@@ -15,7 +15,7 @@ with add_path(REPO_PATH):
 
 BM_NAME = "model-stableness"
 # By default, use 10 percent as the threshold for stableness checking
-STABLE_THRESHOLD = 10
+STABLE_THRESHOLD = 0.10
 # By default, run 15 iterations
 DEFAULT_ITERATIONS = 15
 
