@@ -3,6 +3,11 @@ import json
 from pathlib import Path
 from datetime import datetime
 
+from utils.s3_utils import S3Client
+
+USERBENCHMARK_S3_BUCKET = "ossci-metrics"
+USERBENCHMARK_S3_OBJECT = "torchbench-userbenchmark"
+
 def get_date_from_metrics(metrics_file: str):
     datetime_obj = datetime.strptime(metrics_file, "metrics-%Y%m%d%H%M%S")
     return datetime.strftime(datetime_obj, "%Y-%m-%d")
@@ -15,7 +20,9 @@ def get_ub_name(metrics_file_path: str):
 def upload_s3(ub_name: str, platform_name: str, date_str: str, file_path: Path):
     """S3 path:
         s3://ossci-metrics/torchbench_userbenchmark/<userbenchmark-name>/<platform-name>/<date>/metrics-<time>.json"""
-    pass
+    s3client = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
+    prefix = f"{ub_name}/{platform_name}/{date_str}"
+    s3client.upload_file(prefix=prefix, file_path=file_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
