@@ -4,6 +4,7 @@ The regression detector of TorchBench Userbenchmark.
 import sys
 import argparse
 import importlib
+from pathlib import Path
 from typing import List, Tuple, Optional
 from .utils import PLATFORMS
 from .utils import add_path, REPO_PATH
@@ -12,7 +13,7 @@ with add_path(REPO_PATH):
     from utils.s3_utils import S3Client
 
 def get_available_dates(userbenchmark: str, platform: str) -> List[str]:
-    """s3://ossci-metrics/torchbench/userbenchmark/<userbenchmark-name>/<platform>/<date>/metrics-time.json"""
+    """s3://ossci-metrics/torchbench/userbenchmark/<userbenchmark-name>/<platform>/<date>/metrics-<time>.json"""
     pass
 
 
@@ -28,8 +29,9 @@ def call_userbenchmark_detector(detector, start_file: str, end_file: str) -> Opt
     return detector(start_file, end_file)
 
 
-def upload_detection_result():
-    """s3://ossci-metrics/torchbench/userbenchmark/<userbenchmark-name>/<platform>/<date>/regression-detector.yaml"""
+def upload_detection_result(userbenchmark: str, platform: str, start_date: str, end_date: str, file_path: Path):
+    """s3://ossci-metrics/torchbench/userbenchmark/<userbenchmark-name>/<platform>/<end_date>/regression-detector-<start_date>-<end_date>.yaml"""
+    # check the file path format is correct
     pass
 
 
@@ -51,5 +53,5 @@ if __name__ == "__main__":
     if not result:
         # No regression detected
         sys.exit(0)
-    # detected regression, upload
+    # detected regression, upload the result
     upload_detection_result(result)
