@@ -3,6 +3,7 @@ Run PyTorch nightly benchmarking.
 """
 import argparse
 import itertools
+import os
 import yaml
 import numpy
 
@@ -15,6 +16,7 @@ with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
 BM_NAME = "torch-nightly"
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 def generate_model_configs(devices: List[str], tests: List[str], model_names: List[str]) -> List[TorchBenchModelConfig]:
     """Use the default batch size and default mode."""
@@ -66,23 +68,25 @@ def validate(candidates: List[str], choices: List[str]) -> List[str]:
     return candidates
 
 def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConfig]:
-    filter_obj = yaml.safe_load(yaml_file)
-    devices = filter_obj.keys()
+    yaml_file_path = os.path.join(CURRENT_DIR, yaml_file)
+    with open(yaml_file_path, "r") as yf:
+        config_obj = yaml.safe_load(yf)
+    devices = config_obj.keys()
     configs = []
     for device in devices:
-        c = filter_obj[device]
-        if not c["stable"]:
-            continue
-        config = TorchBenchModelConfig(
-            name=c["model"],
-            device=device,
-            test=c["test"],
-            batch_size=c["batch_size"] if "batch_size" in c else None,
-            jit=c["jit"] if "jit" in c else False,
-            extra_args=[],
-            extra_env=None,
-        )
-        configs.append(config)
+        for c in config_obj[device]:
+            if not c["stable"]:
+                continue
+            config = TorchBenchModelConfig(
+                name=c["model"],
+                device=device,
+                test=c["test"],
+                batch_size=c["batch_size"] if "batch_size" in c else None,
+                jit=c["jit"] if "jit" in c else False,
+                extra_args=[],
+                extra_env=None,
+            )
+            configs.append(config)
     return configs
 
 def parse_str_to_list(candidates: str):
@@ -92,6 +96,9 @@ def parse_str_to_list(candidates: str):
 def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
     """This function only handles NotImplementedError, all other errors will fail."""
     metrics = get_metrics(config)
+    if dryrun:
+        print(config)
+        return None
     # We do not allow RuntimeError in this test
     try:
         # load the model instance within the same process
@@ -107,7 +114,7 @@ def parse_args(args):
     parser.add_argument("--device", "-d", default="cuda", help="Devices to run, splited by comma.")
     parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
     parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice models, splited by comma.")
-    parser.add_argument("--config", default=None, help="YAML config to specify tests to run.")
+    parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     return parser.parse_args(args)
 

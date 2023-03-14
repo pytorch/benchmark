@@ -2,4 +2,4 @@ ci:
   - gpu-nightly:
       platform: "gcp_a100"
       schedule: "nightly"
-      args: "--device cuda --filter summary-cuda-tests.yaml"
+      args: "--device cuda --config v3-cuda-tests.yaml"
