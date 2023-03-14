@@ -350,4 +350,3 @@ cuda:
   model: yolov3
   stable: false
   test: eval
-

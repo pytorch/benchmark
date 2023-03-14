@@ -32,7 +32,7 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
     ) for device, test, model_name in cfgs]
     return result
 
-def get_metrics(config: TorchBenchModelConfig) -> List[str]:
+def get_metrics(_config: TorchBenchModelConfig) -> List[str]:
     return ["latencies"]
 
 def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]) -> Dict[str, float]:
@@ -65,12 +65,14 @@ def validate(candidates: List[str], choices: List[str]) -> List[str]:
         assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
     return candidates
 
-def filter_yaml_to_configs(filter_config_file: str) -> List[TorchBenchModelConfig]:
-    filter_obj = yaml.safe_load(filter_config_file)
+def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConfig]:
+    filter_obj = yaml.safe_load(yaml_file)
     devices = filter_obj.keys()
     configs = []
     for device in devices:
         c = filter_obj[device]
+        if not c["stable"]:
+            continue
         config = TorchBenchModelConfig(
             name=c["model"],
             device=device,
@@ -90,6 +92,7 @@ def parse_str_to_list(candidates: str):
 def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
     """This function only handles NotImplementedError, all other errors will fail."""
     metrics = get_metrics(config)
+    # We do not allow RuntimeError in this test
     try:
         # load the model instance within the same process
         model = load_model_isolated(config)
@@ -104,21 +107,22 @@ def parse_args(args):
     parser.add_argument("--device", "-d", default="cuda", help="Devices to run, splited by comma.")
     parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
     parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice models, splited by comma.")
-    parser.add_argument("--filter", default=None, help="YAML config to filter unstable tests.")
+    parser.add_argument("--config", default=None, help="YAML config to specify tests to run.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     return parser.parse_args(args)
 
 def run(args: List[str]):
     args = parse_args(args)
-    # If not specified, use the entire model set
-    if not args.model:
-        args.model = list_models()
-    devices = validate(parse_str_to_list(args.device), list_devices())
-    tests = validate(parse_str_to_list(args.test), list_tests())
-    models = validate(parse_str_to_list(args.model), list_models())
-    configs = generate_model_configs(devices, tests, model_names=models)
-    filters = filter_yaml_to_configs(args.filter) if args.filter else None
-    configs = list(filter(lambda x: not x in filters if filters else True, configs))
+    if args.config:
+        configs = generate_model_configs_from_yaml(args.config)
+    else:
+        # If not specified, use the entire model set
+        if not args.model:
+            args.model = list_models()
+        devices = validate(parse_str_to_list(args.device), list_devices())
+        tests = validate(parse_str_to_list(args.test), list_tests())
+        models = validate(parse_str_to_list(args.model), list_models())
+        configs = generate_model_configs(devices, tests, model_names=models)
     results = []
     try:
         for config in configs:
