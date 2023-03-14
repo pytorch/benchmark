@@ -14,8 +14,8 @@ with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
 BM_NAME = "model-stableness"
-# By default, use 10 percent as the threshold for stableness checking
-STABLE_THRESHOLD = 0.10
+# By default, use 7 percent as the threshold for stableness checking
+STABLE_THRESHOLD = 0.07
 # By default, run 15 iterations
 DEFAULT_ITERATIONS = 15
 
