@@ -128,6 +128,9 @@ class SubprocessWorker(base.WorkerBase):
         self._bootstrap_worker()
         self._alive = True
 
+    def proc_pid(self):
+        return self._proc.pid
+
     @property
     def working_dir(self) -> str:
         # A subclass might need to access `self.working_dir` before calling

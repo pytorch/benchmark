@@ -30,7 +30,7 @@ from time import time_ns
 
 
 class ModelAnalyzer:
-    def __init__(self, export_metrics_file=None, metrics_needed=[], metrics_gpu_backend='dcgm'):
+    def __init__(self, export_metrics_file=None, metrics_needed=[], metrics_gpu_backend='nvml', cpu_monitored_pid=None):
         # For debug
         # set_logger(logging.DEBUG)
         set_logger()
@@ -64,6 +64,7 @@ class ModelAnalyzer:
         self.cpu_records = None
         self.cpu_record_aggregator = RecordAggregator()
         self.cpu_metric_value = {}
+        self.cpu_monitored_pid = cpu_monitored_pid
         # GPU Monitor Backend
         self.gpu_monitor_backend = metrics_gpu_backend
         self.start_monitor_timestamp = None
@@ -126,7 +127,7 @@ class ModelAnalyzer:
                     self.gpu_monitor = NVMLMonitor(
                         self.gpus, self.config.monitoring_interval, self.gpu_metrics)
             if self.cpu_metrics:
-                self.cpu_monitor = CPUMonitor(self.config.monitoring_interval, self.cpu_metrics)
+                self.cpu_monitor = CPUMonitor(self.config.monitoring_interval, self.cpu_metrics, self.cpu_monitored_pid)
             if self.gpu_metrics:
                 self.gpu_monitor.start_recording_metrics()
                 self.gpu_monitor_started = True
