@@ -4,7 +4,9 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(TimmModel):
     task = COMPUTER_VISION.GENERATION
 
-    DEFAULT_TRAIN_BSIZE = 32
+    # Upstream bs=32
+    # Downscale to 32 to fit on 1xA100
+    DEFAULT_TRAIN_BSIZE = 16
     DEFAULT_EVAL_BSIZE = 32
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
