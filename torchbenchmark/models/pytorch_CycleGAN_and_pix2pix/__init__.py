@@ -37,7 +37,7 @@ class Model(BenchmarkModel):
         elif self.device == "cuda":
             device_arg = "--gpu_ids 0"
         if self.test == "train":
-            train_args = f"--dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 " + \
+            train_args = f"--device {self.device} --dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 " + \
                          f"--n_epochs_decay 3 {device_arg} {checkpoints_arg}"
             self.training_loop = prepare_training_loop(train_args.split(' '))
         args = f"--dataroot {data_root}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test " + \
@@ -46,11 +46,6 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         return self.model, self.input
-
-    def set_train(self):
-        # another model instance is used for training
-        # and the train mode is on by default
-        pass
 
     def train(self):
         # the training process is not patched to use scripted models
