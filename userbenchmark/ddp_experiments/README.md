@@ -64,3 +64,4 @@ Supported options (not-exhaustive):
 * `--ngpus [n]` for the number of gpus per node (8 by default, but 2 is useful for simple tests that use less resources)
 * `--precision amp|fp32|fp16` for specifying precision type (fp32 default)
 * `--cluster local` to run locally instead of launching a new slurm job
+* `--nccl-socket-ifname ens` to specify the `NCCL_SOCKET_IFNAME` environment variable (ens by default). Note that most of these environment variables are explicitly set in the script, to reduce variation due to differences in user environment.
