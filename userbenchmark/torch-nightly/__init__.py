@@ -35,7 +35,7 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
     return result
 
 def get_metrics(_config: TorchBenchModelConfig) -> List[str]:
-    return ["latencies"]
+    return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
 
 def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]) -> Dict[str, float]:
     # metrics name examples:
