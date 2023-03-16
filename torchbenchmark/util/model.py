@@ -368,4 +368,4 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if hasattr(self, 'example_inputs'):
             self.example_inputs = inputs_convert(self.example_inputs)
         else:
-            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))       
+            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))

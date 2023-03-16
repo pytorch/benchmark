@@ -296,7 +296,13 @@ if __name__ == "__main__":
             exit(-1)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
-    print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode with input batch size {m.batch_size}.")
+    if m.dynamo:
+        mode = f"dynamo {m.opt_args.torchdynamo}"
+    elif m.opt_args.backend:
+        mode = f"{m.opt_args.backend}"
+    else:
+        mode = "eager"
+    print(f"Running {args.test} method from {Model.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}.")
     if args.channels_last:
         m.enable_channels_last()
 
