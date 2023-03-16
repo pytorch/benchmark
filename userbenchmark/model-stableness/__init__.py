@@ -133,6 +133,7 @@ def run(args: List[str]):
     for _round in range(args.rounds):
         single_round_result = []
         for cfg in filter(cfg_filter, cfgs):
+            print(f"Running cfg {cfg}")
             try:
                 # load the model instance within the same process
                 model = load_model(cfg)
@@ -142,7 +143,6 @@ def run(args: List[str]):
                     'cfg': cfg.__dict__,
                     'raw_metrics': metrics.__dict__,
                 })
-                metric_name = f"{cfg.name}_{cfg.device}_{cfg.test}_ootb_maxdelta"
             except NotImplementedError:
                 # some models don't implement the test specified
                 single_round_result.append({
