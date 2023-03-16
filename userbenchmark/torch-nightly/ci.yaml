@@ -1,5 +1,0 @@
-ci:
-  - gpu-nightly:
-      platform: "gcp_a100"
-      schedule: "nightly"
-      args: "--device cuda --config v3-cuda-tests.yaml"
