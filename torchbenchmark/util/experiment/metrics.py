@@ -95,5 +95,5 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics= [],
     if 'latencies' in metrics:
         latencies = get_latencies(model.invoke, device)
     if 'cpu_peak_mem' in metrics or 'gpu_peak_mem' in metrics:
-        cpu_peak_mem, _device_id, gpu_peak_mem = get_peak_memory(model.invoke, device, export_metrics_file=export_metrics_file, metrics_needed=metrics, metrics_gpu_backend=metrics_gpu_backend, cpu_monitored_pid=model.worker._proc.pid)
+        cpu_peak_mem, _device_id, gpu_peak_mem = get_peak_memory(model.invoke, device, export_metrics_file=export_metrics_file, metrics_needed=metrics, metrics_gpu_backend=metrics_gpu_backend, cpu_monitored_pid=model.worker.proc_pid())
     return TorchBenchModelMetrics(latencies, cpu_peak_mem, gpu_peak_mem)
