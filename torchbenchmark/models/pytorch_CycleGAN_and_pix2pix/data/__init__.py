@@ -77,7 +77,7 @@ class CustomDatasetDataLoader():
             shuffle=not opt.serial_batches,
             num_workers=int(opt.num_threads),
             # expected cpu generator here no matter which device
-            generator=torch.Generator(device='cpu')
+            generator=torch.Generator(device=opt.tb_device),
         )
 
     def load_data(self):
