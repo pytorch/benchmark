@@ -46,9 +46,14 @@ class Model(BenchmarkModel):
         config.prefetch = True
 
         makedirs(config)
-        self.data_loader = self.get_data_loader(config)
-        if config.prefetch:
-            self.data_loader = _prefetch(self.data_loader, size=config.num_iters, collate_fn=lambda item: tuple([m.to(self.device) for m in item]))
+        try:
+            self.data_loader = self.get_data_loader(config, device=self.device)
+            if config.prefetch:
+                self.data_loader = _prefetch(self.data_loader, size=config.num_iters, collate_fn=lambda item: tuple([m.to(self.device) for m in item]))
+        except RuntimeError:
+            self.data_loader = self.get_data_loader(config, device="cpu")
+            if config.prefetch:
+                self.data_loader = _prefetch(self.data_loader, size=config.num_iters, collate_fn=lambda item: tuple([m.to(self.device) for m in item]))
         self.solver = Solver(celeba_loader=self.data_loader,
                              rafd_loader=None,
                              config=config,
@@ -61,10 +66,10 @@ class Model(BenchmarkModel):
 
         self.example_inputs = self.generate_example_inputs()
 
-    def get_data_loader(self, config):
+    def get_data_loader(self, config, device="cpu"):
         celeba_loader = get_loader(config.celeba_image_dir, config.attr_path, config.selected_attrs,
                                    config.celeba_crop_size, config.image_size, config.batch_size,
-                                   'CelebA', config.mode, config.num_workers)
+                                   'CelebA', config.mode, config.num_workers, device=device)
         return celeba_loader
 
     def generate_example_inputs(self):
