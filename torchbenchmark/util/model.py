@@ -96,6 +96,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             enable_profiling_executor  # force JIT profiling executor to be enabled by default
         ]
 
+        # Set the default device of tensors
+        if hasattr(torch, 'set_default_device'):
+            torch.set_default_device(self.device)
+
         # taken from torchdynamo benchmarks, this further controls randomness settings
         def deterministic_torch_manual_seed(*args, **kwargs):
             from torch._C import default_generator
