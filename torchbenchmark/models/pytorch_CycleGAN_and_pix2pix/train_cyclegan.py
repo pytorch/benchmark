@@ -31,7 +31,7 @@ def prefetch_device(example_inputs, device):
     if isinstance(example_inputs, torch.Tensor):
         return example_inputs.to(device=device)
     elif isinstance(example_inputs, (tuple, list, dict)):
-        return tree_map(lambda x: prefetch_device(x), example_inputs)
+        return tree_map(lambda x: prefetch_device(x, device), example_inputs)
     assert False, f"Unsupported data type: {type(example_inputs)}"
 
 def prepare_training_loop(args):
@@ -41,7 +41,7 @@ def prepare_training_loop(args):
     # prefetch the dataset to a single batch
     new_dataset = []
     for data in dataset:
-        new_dataset.append(prefetch_device(data))
+        new_dataset.append(prefetch_device(data, opt.tb_device))
     dataset = new_dataset
 
     model = create_model(opt)      # create a model given opt.model and other options
