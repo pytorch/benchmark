@@ -1,36 +1,18 @@
-# default base image: summerwind/actions-runner-dind:latest
-ARG BASE_IMAGE=summerwind/actions-runner-dind:latest
+# default base image: summerwind/actions-runner-dind:ubuntu-22.04
+ARG BASE_IMAGE=summerwind/actions-runner-dind:ubuntu-22.04
 FROM ${BASE_IMAGE}
-
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 RUN sudo apt-get -y update
 RUN sudo apt-get install -y git jq \
                             vim wget curl ninja-build cmake \
-                            libgl1-mesa-glx libsndfile1-dev
-
-# Install gcc-11, needed by the latest fbgemm
-RUN sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
-    sudo apt install -y g++-11
+                            libgl1-mesa-glx libsndfile1-dev \
+                            gcc
 
 # get switch-cuda utility
 RUN sudo wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
 RUN sudo chmod +x /usr/bin/switch-cuda.sh
 
 RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
-
-# Install CUDA 11.6 and cudnn 8.3.2.44
-RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/cuda/11.6.2/local_installers/cuda_11.6.2_510.47.03_linux.run -O cuda_11.6.2_510.47.03_linux.run && \
-    sudo bash ./cuda_11.6.2_510.47.03_linux.run --toolkit --silent && \
-    rm -f cuda_11.6.2_510.47.03_linux.run
-RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.3.2/local_installers/11.5/cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive.tar.xz \
-    -O /workspace/cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive.tar.xz && \
-    tar xJf cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive.tar.xz && \
-    cd cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive && \
-    sudo cp include/* /usr/local/cuda/include && \
-    sudo cp lib/* /usr/local/cuda/lib64 && \
-    sudo ldconfig && \
-    cd .. && rm -rf cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive && rm -rf cudnn-linux-x86_64-8.3.2.44_cuda11.5-archive.tar.xz
 
 # Install CUDA 11.7 and cudnn 8.5.0.96
 RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/cuda/11.7.0/local_installers/cuda_11.7.0_515.43.04_linux.run -O cuda_11.7.0_515.43.04_linux.run && \
