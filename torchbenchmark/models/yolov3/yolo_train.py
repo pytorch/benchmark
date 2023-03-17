@@ -213,6 +213,8 @@ def prepare_training_loop(args):
         # Dataloader
         batch_size = min(batch_size, len(dataset))
         nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
+        # load with single process
+        nw = 0
         torch.set_default_device(device)
         dataloader = torch.utils.data.DataLoader(dataset,
                                                 batch_size=batch_size,
