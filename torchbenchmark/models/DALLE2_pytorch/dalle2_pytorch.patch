@@ -1,15 +1,8 @@
 diff --git a/dalle2_pytorch/dalle2_pytorch.py b/dalle2_pytorch/dalle2_pytorch.py
-index 5c6d610..220c0e2 100644
+index c0211fc..42728d0 100644
 --- a/dalle2_pytorch/dalle2_pytorch.py
 +++ b/dalle2_pytorch/dalle2_pytorch.py
-@@ -1,6 +1,5 @@
- import math
- import random
--from tqdm.auto import tqdm
- from functools import partial, wraps
- from contextlib import contextmanager
- from collections import namedtuple
-@@ -1244,7 +1243,7 @@ class DiffusionPrior(nn.Module):
+@@ -1278,7 +1278,7 @@ class DiffusionPrior(nn.Module):
          if self.init_image_embed_l2norm:
              image_embed = l2norm(image_embed) * self.image_embed_scale
  
@@ -18,7 +11,7 @@ index 5c6d610..220c0e2 100644
              times = torch.full((batch,), i, device = device, dtype = torch.long)
  
              self_cond = x_start if self.net.self_cond else None
-@@ -1271,7 +1270,7 @@ class DiffusionPrior(nn.Module):
+@@ -1305,7 +1305,7 @@ class DiffusionPrior(nn.Module):
          if self.init_image_embed_l2norm:
              image_embed = l2norm(image_embed) * self.image_embed_scale
  
@@ -27,7 +20,7 @@ index 5c6d610..220c0e2 100644
              alpha = alphas[time]
              alpha_next = alphas[time_next]
  
-@@ -1369,7 +1368,7 @@ class DiffusionPrior(nn.Module):
+@@ -1407,7 +1407,7 @@ class DiffusionPrior(nn.Module):
  
          img = torch.randn(shape, device = device)
  
@@ -36,7 +29,7 @@ index 5c6d610..220c0e2 100644
              img = self.p_sample(img, torch.full((batch_size,), i, device = device, dtype = torch.long), text_cond = text_cond, cond_scale = cond_scale)
          return img
  
-@@ -2795,7 +2794,7 @@ class Decoder(nn.Module):
+@@ -2848,7 +2848,7 @@ class Decoder(nn.Module):
          if not is_latent_diffusion:
              lowres_cond_img = maybe(self.normalize_img)(lowres_cond_img)
  
@@ -45,7 +38,7 @@ index 5c6d610..220c0e2 100644
              is_last_timestep = time == 0
  
              for r in reversed(range(0, resample_times)):
-@@ -2883,7 +2882,7 @@ class Decoder(nn.Module):
+@@ -2938,7 +2938,7 @@ class Decoder(nn.Module):
          if not is_latent_diffusion:
              lowres_cond_img = maybe(self.normalize_img)(lowres_cond_img)
  
@@ -54,12 +47,21 @@ index 5c6d610..220c0e2 100644
              is_last_timestep = time_next == 0
  
              for r in reversed(range(0, resample_times)):
-@@ -3088,7 +3087,7 @@ class Decoder(nn.Module):
+@@ -3120,7 +3120,7 @@ class Decoder(nn.Module):
+         inpaint_image = None,
+         inpaint_mask = None,
+         inpaint_resample_times = 5,
+-        one_unet_in_gpu_at_time = True
++        one_unet_in_gpu_at_time = False
+     ):
+         assert self.unconditional or exists(image_embed), 'image embed must be present on sampling from decoder unless if trained unconditionally'
+ 
+@@ -3149,7 +3149,7 @@ class Decoder(nn.Module):
          num_unets = self.num_unets
          cond_scale = cast_tuple(cond_scale, num_unets)
  
--        for unet_number, unet, vae, channel, image_size, predict_x_start, learned_variance, noise_scheduler, lowres_cond, sample_timesteps, unet_cond_scale in tqdm(zip(range(1, num_unets + 1), self.unets, self.vaes, self.sample_channels, self.image_sizes, self.predict_x_start, self.learned_variance, self.noise_schedulers, self.lowres_conds, self.sample_timesteps, cond_scale)):
-+        for unet_number, unet, vae, channel, image_size, predict_x_start, learned_variance, noise_scheduler, lowres_cond, sample_timesteps, unet_cond_scale in zip(range(1, num_unets + 1), self.unets, self.vaes, self.sample_channels, self.image_sizes, self.predict_x_start, self.learned_variance, self.noise_schedulers, self.lowres_conds, self.sample_timesteps, cond_scale):
+-        for unet_number, unet, vae, channel, image_size, predict_x_start, predict_v, learned_variance, noise_scheduler, lowres_cond, sample_timesteps, unet_cond_scale in tqdm(zip(range(1, num_unets + 1), self.unets, self.vaes, self.sample_channels, self.image_sizes, self.predict_x_start, self.predict_v, self.learned_variance, self.noise_schedulers, self.lowres_conds, self.sample_timesteps, cond_scale)):
++        for unet_number, unet, vae, channel, image_size, predict_x_start, predict_v, learned_variance, noise_scheduler, lowres_cond, sample_timesteps, unet_cond_scale in zip(range(1, num_unets + 1), self.unets, self.vaes, self.sample_channels, self.image_sizes, self.predict_x_start, self.predict_v, self.learned_variance, self.noise_schedulers, self.lowres_conds, self.sample_timesteps, cond_scale):
              if unet_number < start_at_unet_number:
                  continue  # It's the easiest way to do it
  
