@@ -32,6 +32,8 @@ def prefetch_device(example_inputs, device):
         return example_inputs.to(device=device)
     elif isinstance(example_inputs, (tuple, list, dict)):
         return tree_map(lambda x: prefetch_device(x, device), example_inputs)
+    elif isinstance(example_inputs, (str, int, float)):
+        return example_inputs
     assert False, f"Unsupported data type: {type(example_inputs)}"
 
 def prepare_training_loop(args):
