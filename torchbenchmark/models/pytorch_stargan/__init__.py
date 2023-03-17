@@ -38,6 +38,7 @@ class Model(BenchmarkModel):
         config.celeba_image_dir = os.path.join(DATA_PATH, 'pytorch_stargan_inputs/data/celeba/images')
         config.attr_path = os.path.join(DATA_PATH, 'pytorch_stargan_inputs/data/celeba/list_attr_celeba.txt')
         config.num_iters = 1
+        config.num_workers = 0
         config.batch_size = self.batch_size
         config.use_tensorboard = False
         config.device = device
