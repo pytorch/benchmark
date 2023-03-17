@@ -213,12 +213,14 @@ def prepare_training_loop(args):
         # Dataloader
         batch_size = min(batch_size, len(dataset))
         nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
+        torch.set_default_device(device)
         dataloader = torch.utils.data.DataLoader(dataset,
                                                 batch_size=batch_size,
                                                 num_workers=nw,
                                                 shuffle=not opt.rect,  # Shuffle=True unless rectangular training is used
                                                 pin_memory=True,
-                                                collate_fn=dataset.collate_fn)
+                                                collate_fn=dataset.collate_fn,
+                                                generator=torch.Generator(device))
 
         # Testloader
         testloader = torch.utils.data.DataLoader(LoadImagesAndLabels(test_path, imgsz_test, batch_size,
@@ -229,7 +231,8 @@ def prepare_training_loop(args):
                                                 batch_size=batch_size,
                                                 num_workers=nw,
                                                 pin_memory=True,
-                                                collate_fn=dataset.collate_fn)
+                                                collate_fn=dataset.collate_fn,
+                                                generator=torch.Generator(device))
 
         # TorchBench: prefetch the dataloader
         if opt.prefetch:
