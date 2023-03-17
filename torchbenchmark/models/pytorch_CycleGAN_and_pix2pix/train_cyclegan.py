@@ -28,6 +28,11 @@ def prepare_training_loop(args):
     opt = TrainOptions().parse(args)   # get training options
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
     dataset_size = len(dataset)    # get the number of images in the dataset.
+    # prefetch the dataset to a single batch
+    new_dataset = []
+    for data in dataset:
+        new_dataset.append(data.to(opt.tb_device))
+    dataset = new_dataset
 
     model = create_model(opt)      # create a model given opt.model and other options
     model.setup(opt)               # regular setup: load and print networks; create schedulers
