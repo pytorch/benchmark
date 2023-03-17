@@ -33,15 +33,15 @@ RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/cuda/
 RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/redist/cudnn/v8.7.0/local_installers/11.8/cudnn-linux-x86_64-8.7.0.84_cuda11-archive.tar.xz -O cudnn-linux-x86_64-8.7.0.84_cuda11-archive.tar.xz && \
     tar xJf cudnn-linux-x86_64-8.7.0.84_cuda11-archive.tar.xz && \
     cd cudnn-linux-x86_64-8.7.0.84_cuda11-archive && \
-    sudo cp include/* /usr/local/cuda-11.7/include && \
-    sudo cp lib/* /usr/local/cuda-11.7/lib64 && \
+    sudo cp include/* /usr/local/cuda-11.8/include/ && \
+    sudo cp lib/* /usr/local/cuda-11.8/lib64/ && \
     sudo ldconfig && \
     cd .. && rm -rf cudnn-linux-x86_64-8.7.0.84_cuda11-archive && rm -f cudnn-linux-x86_64-8.7.0.84_cuda11-archive.tar.xz
 RUN cd /workspace && mkdir tmp_nccl && cd tmp_nccl && \
     wget -q https://developer.download.nvidia.com/compute/redist/nccl/v2.15.5/nccl_2.15.5-1+cuda11.8_x86_64.txz && \
     tar xf nccl_2.15.5-1+cuda11.8_x86_64.txz && \
-    sudo cp -a nccl_2.15.5-1+cuda11.8_x86_64/include/* /usr/local/cuda/include/ && \
-    sudo cp -a nccl_2.15.5-1+cuda11.8_x86_64/lib/* /usr/local/cuda/lib64/ && \
+    sudo cp -a nccl_2.15.5-1+cuda11.8_x86_64/include/* /usr/local/cuda-11.8/include/ && \
+    sudo cp -a nccl_2.15.5-1+cuda11.8_x86_64/lib/* /usr/local/cuda-11.8/lib64/ && \
     cd .. && \
     rm -rf tmp_nccl && \
     sudo ldconfig
