@@ -149,6 +149,11 @@ def run(args: List[str]):
                     'cfg': cfg.__dict__,
                     'raw_metrics': "NotImplemented",
                 })
+            except RuntimeError as e:
+                single_round_result.append({
+                    'cfg': cfg.__dict__,
+                    'raw_metrics': f"RuntimeError: {e}",
+                })
         full_results.append(single_round_result)
     print(full_results)
     ub_metrics = reduce_results(full_results)
