@@ -296,7 +296,7 @@ class ReplayBuffer:
         if self._storage is None:
             self._storage = ReplayBufferStorage(
                 self._maxsize,
-                self.device,
+                device=self.device,
                 obs_shape=self.state_shape,
                 act_shape=self.action_shape,
                 obs_dtype=self.state_dtype,
