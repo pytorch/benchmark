@@ -8,11 +8,11 @@ from opacus.validators.module_validator import ModuleValidator
 from typing import Tuple
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import OTHER
+from torchbenchmark.tasks import COMPUTER_VISION
 
 
 class Model(BenchmarkModel):
-    task = OTHER.OTHER_TASKS
+    task = COMPUTER_VISION.CLASSIFICATION
     DEFAULT_TRAIN_BSIZE = 64
     DEFAULT_EVAL_BSIZE = 64
 
