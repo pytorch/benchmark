@@ -54,7 +54,13 @@ def create_dataset(opt):
         >>> from data import create_dataset
         >>> dataset = create_dataset(opt)
     """
-    data_loader = CustomDatasetDataLoader(opt)
+    try:
+        data_loader = CustomDatasetDataLoader(opt)
+    except RuntimeError:
+        old_device = opt.tb_device
+        opt.tb_device = "cpu"
+        data_loader = CustomDatasetDataLoader(opt)
+        opt.tb_device = old_device
     dataset = data_loader.load_data()
     return dataset
 
