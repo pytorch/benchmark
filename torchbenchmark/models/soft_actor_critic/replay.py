@@ -220,6 +220,13 @@ class ReplayBufferStorage:
             s_1 = s_1.cpu()
             d = d.int().cpu()
 
+        # torchbench: move to cpu anyway
+        s = s.cpu()
+        a = a.cpu()
+        r = r.cpu()
+        s_1 = s_1.cpu()
+        d = d.int().cpu()
+
         # Store at end of buffer. Wrap around if past end.
         R = np.arange(self._next_idx, self._next_idx + num_samples) % self.size
         self.s_stack[R] = s
