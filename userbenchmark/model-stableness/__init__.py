@@ -178,3 +178,6 @@ def run(args: List[str]):
             full_fname = log_dir.joinpath(fname)
             with open(full_fname, "w") as f:
                 f.write(yaml.safe_dump(yaml_dicts[device]))
+    # Debugging: sleep for 24 hours for debugging
+    print("Job is done, sleeping for 24 hours...")
+    time.sleep(60 * 60 * 24)
