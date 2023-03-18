@@ -110,13 +110,8 @@ def delete_git_file_lock(repo: str):
 def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
-        delete_git_file_lock(repo)
-        command = f"git checkout {commit}"
-        subprocess.check_call(command, cwd=repo, shell=True)
-        command = "git submodule sync"
-        subprocess.check_call(command, cwd=repo, shell=True)
-        command = "git submodule update --init --recursive"
-        subprocess.check_call(command, cwd=repo, shell=True)
+        command = f"git checkout --recurse-submodules {commit}"
+        subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
         print(f"Failed to checkout commit {commit} in repo {repo}")
@@ -126,12 +121,8 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
         assert len(branch) != 0
         delete_git_file_lock(repo)
-        command = f"git checkout {branch}"
-        subprocess.check_call(command, cwd=repo, shell=True)
-        command = "git submodule sync"
-        subprocess.check_call(command, cwd=repo, shell=True)
-        command = "git submodule update --init --recursive"
-        subprocess.check_call(command, cwd=repo, shell=True)
+        command = f"git checkout --recurse-submodules {branch}"
+        subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
         print(f"Failed to update git repo {repo}")
