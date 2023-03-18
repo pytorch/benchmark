@@ -4,6 +4,7 @@ Utils for getting git-related information.
 """
 
 import os
+from pathlib import Path
 import subprocess
 from datetime import datetime
 from typing import Optional, List
@@ -101,9 +102,15 @@ def get_current_commit(repo: str) -> Optional[str]:
         print(f"Failed to get the current commit in repo {repo}")
         return None
 
+def delete_git_file_lock(repo: str):
+    git_file_lock_path = os.path.join(repo, ".git", "index.lock")
+    if os.path.exists(git_file_lock_path):
+        os.remove(git_file_lock_path)
+
 def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
+        delete_git_file_lock(repo)
         command = f"git checkout {commit}"
         subprocess.check_call(command, cwd=repo, shell=True)
         command = "git submodule sync"
@@ -118,6 +125,7 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
 def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
         assert len(branch) != 0
+        delete_git_file_lock(repo)
         command = f"git checkout {branch}"
         subprocess.check_call(command, cwd=repo, shell=True)
         command = "git submodule sync"
