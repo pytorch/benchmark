@@ -102,15 +102,10 @@ def get_current_commit(repo: str) -> Optional[str]:
         print(f"Failed to get the current commit in repo {repo}")
         return None
 
-def delete_git_file_lock(repo: str):
-    git_file_lock_path = os.path.join(repo, ".git", "index.lock")
-    if os.path.exists(git_file_lock_path):
-        os.remove(git_file_lock_path)
-
 def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
-        command = f"git checkout --recurse-submodules {commit}"
+        command = ["git", "checkout", "--recurse-submodules", commit]
         subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
@@ -120,8 +115,11 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
 def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
         assert len(branch) != 0
-        delete_git_file_lock(repo)
-        command = f"git checkout --recurse-submodules {branch}"
+        command = ["git", "checkout", "--recurse-submodules", branch]
+        subprocess.check_call(command, cwd=repo, shell=False)
+        command = ["git", "pull"]
+        subprocess.check_call(command, cwd=repo, shell=False)
+        command = ["git", "checkout", "--recurse-submodules", branch]
         subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
