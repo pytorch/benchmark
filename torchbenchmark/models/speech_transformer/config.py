@@ -70,7 +70,7 @@ class SpeechTransformerTrainConfig:
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
         self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
         self.vocab_size = len(self.char_list)
-        torch.set_default_device(device)
+        torch.set_default_device("cpu")
         self.tr_dataset = AudioDataset(self.train_json, train_bs,
                                        self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
@@ -81,13 +81,11 @@ class SpeechTransformerTrainConfig:
                                          num_workers=self.num_workers,
                                          shuffle=self.shuffle,
                                          LFR_m=self.LFR_m,
-                                         LFR_n=self.LFR_n,
-                                         generator=torch.Generator(device=device))
+                                         LFR_n=self.LFR_n)
         self.cv_loader = AudioDataLoader(self.cv_dataset, batch_size=train_bs,
                                          num_workers=self.num_workers,
                                          LFR_m=self.LFR_m,
-                                         LFR_n=self.LFR_n,
-                                         generator=torch.Generator(device=device))
+                                         LFR_n=self.LFR_n)
         self.data = {'tr_loader': self.tr_loader, 'cv_loader': self.cv_loader}
         self.encoder = Encoder(self.d_input * self.LFR_m,
                                self.n_layers_enc,
