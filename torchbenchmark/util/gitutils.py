@@ -112,7 +112,7 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
     except subprocess.CalledProcessError:
         # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
         try:
-            time.sleep(3)
+            time.sleep(5)
             index_lock = os.path.join(repo, ".git", "index.lock")
             if os.path.exists(index_lock):
                 os.remove(index_lock)
@@ -135,7 +135,7 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
     except subprocess.CalledProcessError:
         # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
         try:
-            time.sleep(3)
+            time.sleep(5)
             index_lock = os.path.join(repo, ".git", "index.lock")
             if os.path.exists(index_lock):
                 os.remove(index_lock)
