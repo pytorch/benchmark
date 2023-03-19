@@ -59,8 +59,10 @@ class Model(BenchmarkModel):
             'reso': (self.opt.resolution, self.opt.resolution)}
         traindata = VideoData(csv_file=csv_file_path,
                               data_config=data_config_train, transform=None)
+        torch.set_default_device("cpu")
         train_loader = torch.utils.data.DataLoader(
             traindata, batch_size=self.opt.batch_size, shuffle=True, num_workers=0, collate_fn=_collate_filter_none)
+        torch.set_default_device(self.device)
         self.train_data = []
         for data in train_loader:
             self.train_data.append(data)
