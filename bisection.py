@@ -203,7 +203,7 @@ class TorchSource:
             dep_commit = gitutils.get_git_commit_on_date(pkg_path, cdate)
             print(f"Checking out {pkg} commit {dep_commit} ...", end="", flush=True)
             assert dep_commit, "Failed to find the commit on {cdate} of {pkg}"
-            assert gitutils.checkout_git_commit(pkg_path, dep_commit), "Failed to checkout commit {commit} of {pkg}"
+            assert gitutils.checkout_git_commit(pkg_path, dep_commit), f"Failed to checkout commit {dep_commit} of {pkg}"
             print("done.")
     
     # Install dependencies such as torchtext and torchvision

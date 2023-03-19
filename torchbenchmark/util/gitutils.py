@@ -118,6 +118,7 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
                 os.remove(index_lock)
             command = ["git", "checkout", "--recurse-submodules", commit]
             subprocess.check_call(command, cwd=repo, shell=False)
+            return True
         except subprocess.CalledProcessError:
             print(f"Failed to checkout commit {commit} in repo {repo}")
             return False
@@ -145,6 +146,7 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
             subprocess.check_call(command, cwd=repo, shell=False)
             command = ["git", "checkout", "--recurse-submodules", branch]
             subprocess.check_call(command, cwd=repo, shell=False)
+            return True
         except subprocess.CalledProcessError:
             print(f"Failed to update to branch {branch} in repo {repo}")
             return False
