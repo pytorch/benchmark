@@ -39,18 +39,11 @@ def prefetch_device(example_inputs, device):
 def prepare_training_loop(args):
     new_dataset = []
     opt = TrainOptions().parse(args)   # get training options
+    torch.set_default_device("cpu")
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
     # prefetch the dataset to a single batch
-    try:
-        for data in dataset:
-            new_dataset.append(prefetch_device(data, opt.tb_device))
-    except RuntimeError:
-        old_device = opt.tb_device
-        opt.tb_device = "cpu"
-        dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
-        for data in dataset:
-            new_dataset.append(prefetch_device(data, old_device))
-        opt.tb_device = old_device
+    for data in dataset:
+        new_dataset.append(prefetch_device(data, opt.tb_device))
     dataset = new_dataset
     dataset_size = len(dataset)    # get the number of images in the dataset.
 
