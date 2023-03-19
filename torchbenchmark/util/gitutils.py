@@ -114,7 +114,8 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
         try:
             time.sleep(3)
             index_lock = os.path.join(repo, ".git", "index.lock")
-            os.remove(index_lock)
+            if os.path.exists(index_lock):
+                os.remove(index_lock)
             command = ["git", "checkout", "--recurse-submodules", commit]
             subprocess.check_call(command, cwd=repo, shell=False)
         except subprocess.CalledProcessError:
@@ -136,7 +137,8 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
         try:
             time.sleep(3)
             index_lock = os.path.join(repo, ".git", "index.lock")
-            os.remove(index_lock)
+            if os.path.exists(index_lock):
+                os.remove(index_lock)
             command = ["git", "checkout", "--recurse-submodules", branch]
             subprocess.check_call(command, cwd=repo, shell=False)
             command = ["git", "pull"]
