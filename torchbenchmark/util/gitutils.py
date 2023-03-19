@@ -4,6 +4,7 @@ Utils for getting git-related information.
 """
 
 import os
+import time
 from pathlib import Path
 import subprocess
 from datetime import datetime
@@ -109,8 +110,16 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
         subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
-        print(f"Failed to checkout commit {commit} in repo {repo}")
-        return False
+        # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
+        try:
+            time.sleep(3)
+            index_lock = os.path.join(repo, ".git", "index.lock")
+            os.remove(index_lock)
+            command = ["git", "checkout", "--recurse-submodules", commit]
+            subprocess.check_call(command, cwd=repo, shell=False)
+        except subprocess.CalledProcessError:
+            print(f"Failed to checkout commit {commit} in repo {repo}")
+            return False
 
 def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
@@ -123,5 +132,17 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
         subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
-        print(f"Failed to update git repo {repo}")
-        return False
+        # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
+        try:
+            time.sleep(3)
+            index_lock = os.path.join(repo, ".git", "index.lock")
+            os.remove(index_lock)
+            command = ["git", "checkout", "--recurse-submodules", branch]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            command = ["git", "pull"]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            command = ["git", "checkout", "--recurse-submodules", branch]
+            subprocess.check_call(command, cwd=repo, shell=False)
+        except subprocess.CalledProcessError:
+            print(f"Failed to update to branch {branch} in repo {repo}")
+            return False
