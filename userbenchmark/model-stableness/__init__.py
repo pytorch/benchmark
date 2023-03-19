@@ -150,7 +150,7 @@ def run(args: List[str]):
                     'raw_metrics': "NotImplemented",
                 })
             except RuntimeError as exception:
-                if "CUDA out of memory" in str(exception):
+                if "out of memory" in str(exception):
                     # some models don't implement the test specified
                     single_round_result.append({
                         'cfg': cfg.__dict__,
