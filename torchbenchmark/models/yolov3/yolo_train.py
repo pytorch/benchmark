@@ -235,8 +235,8 @@ def prepare_training_loop(args):
         # TorchBench: prefetch the dataloader
         if opt.prefetch:
             dataloader = _prefetch_loader(dataloader, size=opt.train_num_batch*batch_size,
-                                        fields=[0, 1],
-                                        collate_fn=lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
+                                          fields=[0, 1],
+                                          collate_fn=lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
 
         # Model parameters
         model.nc = nc  # attach number of classes to model
