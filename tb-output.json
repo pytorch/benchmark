@@ -1,0 +1,26 @@
+[
+    {
+        "name": "BERT_pytorch",
+        "test": "eval",
+        "device": "cpu",
+        "extra_args": [],
+        "status": "OK",
+        "batch_size": 2,
+        "precision": "fp32",
+        "results": {
+            "latency_ms": 693.5065
+        }
+    },
+    {
+        "name": "hf_Bert",
+        "test": "eval",
+        "device": "cpu",
+        "extra_args": [],
+        "status": "OK",
+        "batch_size": 1,
+        "precision": "fp32",
+        "results": {
+            "latency_ms": 1360.271
+        }
+    }
+]
