@@ -1,0 +1,3 @@
+ci:
+  - platform: "gcp_a100"
+    args: "-d cuda -t train,eval "
