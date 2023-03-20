@@ -192,6 +192,7 @@ class TorchSource:
         env["USE_MKLDNN"] = "1"
         env["USE_MKL"] = "1"
         env["USE_CUDNN"] = "1"
+        env["USE_FFMPEG"] = "1"
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
         return env
 
@@ -224,7 +225,7 @@ class TorchSource:
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"][0], env=build_env, shell=True)
         # Build torchaudio
         print(f"Building torchaudio ...", end="", flush=True)
-        command = "python setup.py clean install"
+        command = "python setup.py clean develop"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchaudio"][0], env=build_env, shell=True)
         print("done")
 
