@@ -35,7 +35,8 @@ class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
     # Original train batch size: 64
     # Source: https://github.com/facebookresearch/demucs/blob/3e5ea549ba921316c587e5f03c0afc0be47a0ced/conf/config.yaml#L37
-    DEFAULT_TRAIN_BSIZE = 64
+    # Downscale to 32 because it doesn't fit on 1xA100 40GB
+    DEFAULT_TRAIN_BSIZE = 32
     DEFAULT_EVAL_BSIZE = 8
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]) -> None:
