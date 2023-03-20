@@ -38,7 +38,7 @@ def init_distributed(hparams, n_gpus, rank, group_name):
     print("Done initializing distributed")
 
 
-def prepare_dataloaders(hparams, device):
+def prepare_dataloaders(hparams):
     # Get data, data loaders and collate function ready
     trainset = TextMelLoader(hparams.training_files, hparams)
     valset = TextMelLoader(hparams.validation_files, hparams)
@@ -54,7 +54,7 @@ def prepare_dataloaders(hparams, device):
     train_loader = DataLoader(trainset, num_workers=0, shuffle=shuffle,
                               sampler=train_sampler,
                               batch_size=hparams.batch_size, pin_memory=False,
-                              drop_last=True, collate_fn=collate_fn, generator=torch.Generator(device=device))
+                              drop_last=True, collate_fn=collate_fn)
     return train_loader, valset, collate_fn
 
 

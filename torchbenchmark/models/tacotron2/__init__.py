@@ -31,11 +31,9 @@ class Model(BenchmarkModel):
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=self.hparams.learning_rate,
                                           weight_decay=self.hparams.weight_decay)
-        torch.set_default_device("cpu")
         self.criterion = Tacotron2Loss().to(device=device)
-        loader, valset, collate_fn = prepare_dataloaders(self.hparams, "cpu")
-        next_iter = next(iter(loader))
-        self.example_inputs, self.target = self.model.parse_batch(next_iter, device=self.device)
+        loader, valset, collate_fn = prepare_dataloaders(self.hparams)
+        self.example_inputs, self.target = self.model.parse_batch(next(iter(loader)), device=self.device)
 
     # Parameters were obtained from the source code.
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L5

@@ -215,7 +215,6 @@ def prepare_training_loop(args):
         nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
         # load with single process
         nw = 0
-        torch.set_default_device("cpu")
         dataloader = torch.utils.data.DataLoader(dataset,
                                                 batch_size=batch_size,
                                                 num_workers=nw,
@@ -238,7 +237,6 @@ def prepare_training_loop(args):
             dataloader = _prefetch_loader(dataloader, size=opt.train_num_batch*batch_size,
                                         fields=[0, 1],
                                         collate_fn=lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
-        torch.set_default_device(device)
 
         # Model parameters
         model.nc = nc  # attach number of classes to model

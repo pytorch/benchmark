@@ -46,8 +46,6 @@ class Model(BenchmarkModel):
         config.prefetch = True
 
         makedirs(config)
-        # Load the data to CPU, then prefetch to the device
-        torch.set_default_device("cpu")
         self.data_loader = self.get_data_loader(config)
         if config.prefetch:
             self.data_loader = _prefetch(self.data_loader, size=config.num_iters, collate_fn=lambda item: tuple([m.to(self.device) for m in item]))

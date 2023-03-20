@@ -70,7 +70,6 @@ class SpeechTransformerTrainConfig:
         self.dict_txt = os.path.join(dir_path, self.dict_txt)
         self.char_list, self.sos_id, self.eos_id = process_dict(self.dict_txt)
         self.vocab_size = len(self.char_list)
-        torch.set_default_device("cpu")
         self.tr_dataset = AudioDataset(self.train_json, train_bs,
                                        self.maxlen_in, self.maxlen_out,
                                        batch_frames=self.batch_frames)
