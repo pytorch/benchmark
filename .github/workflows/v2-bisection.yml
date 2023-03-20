@@ -33,7 +33,7 @@ jobs:
           . activate "${BISECT_CONDA_ENV}"
           . /data/nvme/bin/setup_instance.sh
           conda install -y numpy="${NUMPY_VER}"  mkl="${MKL_VER}" mkl-include="${MKL_VER}" \
-                           requests ninja pyyaml setuptools cmake cffi sympy \
+                           requests ninja pyyaml setuptools cmake cffi sympy ffmpeg \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm regex
           # Install magma
           conda install -y -c pytorch "${MAGMA_VER}"
