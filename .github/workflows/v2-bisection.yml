@@ -16,6 +16,7 @@ jobs:
       PYTHON_VER: "3.8"
       CUDA_VER: "11.7"
       NUMPY_VER: "1.21.2"
+      CMAke_VER: "3.26"
       MKL_VER: "2021.2.0"
       MAGMA_VER: "magma-cuda117"
     if: ${{ github.repository_owner == 'pytorch' }}
@@ -33,8 +34,10 @@ jobs:
           . activate "${BISECT_CONDA_ENV}"
           . /data/nvme/bin/setup_instance.sh
           conda install -y numpy="${NUMPY_VER}"  mkl="${MKL_VER}" mkl-include="${MKL_VER}" \
-                           requests ninja pyyaml setuptools cmake cffi sympy ffmpeg \
+                           requests ninja pyyaml setuptools cffi sympy ffmpeg \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm regex
+          # install cmake 3.26 from conda-forge, cmake > 3.24 is required by torchaudio
+          conda install -y cmake="${CMAKE_VER}" -c conda-forge
           # Install magma
           conda install -y -c pytorch "${MAGMA_VER}"
       - name: Bisection
