@@ -58,20 +58,23 @@ OPTIMIZERS = [
     (Adam, {'foreach': True, 'maximize': True}),
     (Adam, {'foreach': True, 'amsgrad': True}),
     (Adam, {'foreach': True, 'capturable': True}),
+    (Adam, {'foreach': True, 'capturable': True, 'amsgrad': True}),
     (Adam, {'fused': True}),
     (Adam, {'fused': True, 'amsgrad': True}),
     (Adam, {'fused': True, 'maximize': True}),
     (Adam, {'fused': True, 'capturable': True}),
-
+    (Adam, {'fused': True, 'capturable': True, 'amsgrad': True}),
     (AdamW, {}),
     (AdamW, {'maximize': True}),
     (AdamW, {'foreach': False}),
     (AdamW, {'foreach': True}),
     (AdamW, {'foreach': True, 'maximize': True, 'capturable': True}),
+    (AdamW, {'foreach': True, 'maximize': True, 'capturable': True, 'amsgrad': True}),
     (AdamW, {'fused': True}),
     (AdamW, {'fused': True, 'amsgrad': True}),
     (AdamW, {'fused': True, 'maximize': True}),
     (AdamW, {'fused': True, 'capturable': True}),
+    (AdamW, {'fused': True, 'capturable': True, 'amsgrad': True}),
     (Adamax, {}),
     (Adamax, {'maximize': True}),
     (Adamax, {'foreach': False,}),
@@ -223,13 +226,14 @@ def _get_model_params(m) -> List[torch.nn.Parameter]:
         params_clone.append(p.clone().detach())
     return params_clone
 
-lil_cache = ('', [])
+lil_cache = ('', '', [])
 
-# Returns clones of params and not a generator from a model name
+# Returns clones of params given a model name
 def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
     global lil_cache
-    if modelName == lil_cache[0]:
-        return lil_cache[1]
+    cached_mn, cached_d, cached_params = lil_cache
+    if modelName == cached_mn and device == cached_d:
+        return cached_params
 
     Model = load_model_by_name(modelName)
     try:
@@ -237,7 +241,7 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
     except NotImplementedError:
         params = _get_model_params(Model(device=device, test='eval'))
     
-    lil_cache = (modelName, params)
+    lil_cache = (modelName, device, params)
     return params
 
 # This fakes a model forward & backward--we are not concerned about
@@ -283,7 +287,7 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         ta = datetime.datetime.now().timestamp()
         params = get_model_params(modelName, device)   
         tc = datetime.datetime.now().timestamp()
-        print('getting params: ', tc - ta)
+        print('getting params: ', tc - ta, params[0].size(), params[0].dtype, len(params), params[0].device)
         if Optim.__name__ == 'SGD':
             defaults['lr'] = 1e-2
         optim = Optim(params, **defaults)
@@ -291,7 +295,7 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         print('making optim: ', td - tc)
         generate_random_gradients(params)
         te = datetime.datetime.now().timestamp()
-        print('generating gradients: ', te - td)
+        print('generating gradients: ', te - td, params[0].grad.size(), params[0].grad.dtype, params[0].grad.device)
         pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
 
         print(f'{datetime.datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
@@ -322,7 +326,10 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
     
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
         ta = datetime.datetime.now().timestamp()
-        if is_excluded(mn, d, O.__name__, func_str) or (defaults_require_cuda(defaults) and d != 'cuda'):
+        if (is_excluded(mn, d, O.__name__, func_str) or
+            (defaults_require_cuda(defaults) and d != 'cuda') or
+            # run pt2 only on defaults
+            (func_str != '' and defaults_to_str(defaults) != 'default')):
             continue
         tb = datetime.datetime.now().timestamp()
         print('checking for exclusion: ', tb - ta)
