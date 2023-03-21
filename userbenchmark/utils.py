@@ -7,6 +7,7 @@ import torch
 from pathlib import Path
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
+USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
 
 PLATFORMS = [
     "gcp_a100",
@@ -36,7 +37,7 @@ def get_output_json(bm_name, metrics):
 
 def dump_output(bm_name, output):
     current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-    target_dir = current_dir.parent.joinpath(".userbenchmark", bm_name)
+    target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
     target_dir.mkdir(exist_ok=True, parents=True)
     fname = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
     full_fname = os.path.join(target_dir, fname)
