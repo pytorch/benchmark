@@ -43,7 +43,10 @@ class Model(BenchmarkModel):
         os.environ["WORLD_SIZE"] = "1"
         os.environ["MASTER_ADDR"] = "localhost"
         os.environ["MASTER_PORT"] = "29500"
-        dist.init_process_group(backend=backend)
+
+        if not dist.is_initialized():
+            dist.init_process_group(backend=backend)
+        
         # initialize example data
         if self.test == "train":
             args.batch_size = self.batch_size
