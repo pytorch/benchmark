@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Tuple
 from torchbenchmark import load_model_by_name
 import torch
 from torch.optim import Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam, SparseAdam, LBFGS
-import torch._dynamo as torchdynamo
 import torch.utils.benchmark as benchmark
 from userbenchmark.utils import REPO_PATH, add_path, dump_output, get_output_json
 import argparse
@@ -136,11 +135,14 @@ DENSE_MODELS = [
     'detectron2_maskrcnn_r_101_fpn',
     'detectron2_maskrcnn_r_50_c4',
     'detectron2_maskrcnn_r_50_fpn',
+    'dlrm',
     'doctr_det_predictor',
     'doctr_reco_predictor',
+    'drq',
     'fambench_xlmr',
     'fastNLP_Bert',
     'functorch_dp_cifar10',
+    'functorch_maml_omniglot',
     'hf_Albert',
     'hf_Bart',
     'hf_Bert',
@@ -155,7 +157,9 @@ DENSE_MODELS = [
     'hf_T5_base',
     'hf_T5_large',
     'lennard_jones',
+    'llama',
     'maml',
+    'maml_omniglot',
     'mnasnet1_0',
     'mobilenet_v2',
     'mobilenet_v2_quantized_qat',
@@ -178,6 +182,7 @@ DENSE_MODELS = [
     'soft_actor_critic',
     'speech_transformer',
     'squeezenet1_1',
+    'tacotron2',
     'timm_efficientdet',
     'timm_efficientnet',
     'timm_nfnet',
@@ -186,6 +191,7 @@ DENSE_MODELS = [
     'timm_vision_transformer',
     'timm_vision_transformer_large',
     'timm_vovnet',
+    'torchrec_dlrm',
     'tts_angular',
     'vgg16',
     'vision_maskrcnn',
@@ -197,6 +203,7 @@ DENSE_MODELS = [
 # model => model name
 # func_str => func string (e.g., pt2_)
 # device => device name
+# defaults => list of flags (strings) that cannot be True
 # Exclusions are general and will try to match on everything. For an exclusion
 # {'optim': 'SparseAdam', 'model': 'BERT_pytorch'}, any configuration with
 # SparseAdam on BERT_pytorch will be skipped.
@@ -204,11 +211,27 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # SparseAdam does not support dense gradients
     {'optim': 'SparseAdam', 'model': m} for m in DENSE_MODELS
 ] + [
+    # torch.compile()'d optimizer.step() has too many arguments in C++
+    # See GH issue: https://github.com/pytorch/pytorch/issues/97361
+    {'model': m, 'device': 'cpu', 'func_str': 'pt2_', 'defaults': []} for m in [
+        "BERT_pytorch", "Background_Matting", "Super_SloMo", "attention_is_all_you_need_pytorch",
+        "densenet121", "detectron2_fasterrcnn_r_101_c4", "detectron2_fasterrcnn_r_101_dc5",
+        "detectron2_fasterrcnn_r_101_fpn", "detectron2_fasterrcnn_r_50_fpn", "detectron2_maskrcnn",
+        "detectron2_maskrcnn_r_101_c4", "detectron2_maskrcnn_r_101_fpn",
+        "detectron2_maskrcnn_r_50_fpn", "doctr_det_predictor", "fambench_xlmr", "fastNLP_Bert",
+        "hf_Bart", "hf_Bert", "hf_Bert_large", "hf_BigBird", "hf_DistilBert", "hf_GPT2",
+        "hf_GPT2_large", "hf_Longformer", "hf_Reformer", "hf_T5", "hf_T5_base", "hf_T5_large",
+        "mnasnet1_0", "mobilenet_v2", "mobilenet_v2_quantized_qat", "mobilenet_v3_large",
+        "phlippe_densenet", "resnet152", "resnet50", "resnet50_quantized_qat", "resnext50_32x4d",
+        "shufflenet_v2_x1_0", "timm_efficientnet", "timm_nfnet", "timm_regnet",
+        "timm_vision_transformer"
+    ]
+] + [
     # DALL-E 2, timm_efficientdet Not Supported on CPU
     {'model': 'DALLE2_pytorch', 'device': 'cpu'},
     {'model': 'timm_efficientdet', 'device': 'cpu'},
     # FCOS train is not supported by upstream detectron2.
-    # See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.
+    # See GH issue: https://github.com/facebookresearch/detectron2/issues/4369.
     {'model': 'detectron2_fcos_r_50_fpn'},
     # moco uses DDP and DistributedDataParallel/allgather requires cuda
     {'model': 'moco', 'device': 'cpu'},
@@ -216,6 +239,9 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     {'model': 'pyhpc_equation_of_state'},
     {'model': 'pyhpc_isoneutral_mixing'},
     {'model': 'pyhpc_turbulent_kinetic_energy'},
+    # fused/capturable requires params to be floats on CUDA
+    {'defaults': ['fused'], 'device': 'cpu'},
+    {'defaults': ['capturable'], 'device': 'cpu'},
 ] 
 
 # Returns clones of params and not a generator.
@@ -226,7 +252,7 @@ def _get_model_params(m) -> List[torch.nn.Parameter]:
         params_clone.append(p.clone().detach())
     return params_clone
 
-lil_cache = ('', '', [])
+lil_cache: Tuple[str, str, List[torch.nn.Parameter]] = ('', '', [])
 
 # Returns clones of params given a model name
 def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
@@ -255,7 +281,7 @@ def optimizer_step(optimizer):
     optimizer.step()
 
 def pt2_optimizer_step(optimizer):
-    @torchdynamo.optimize('inductor')
+    @torch.compile()
     def f():
         optimizer.step()
     f()
@@ -272,15 +298,12 @@ def defaults_to_str(defaults: Dict[str, Any]) -> str:
         return f'{k}={v}'
     return ', '.join([entry_to_str(k, v) for k, v in defaults.items()])
 
-# fused/capturable requires params to be floats on CUDA
-def defaults_require_cuda(defaults: Dict[str, Any]) -> bool:
-    return 'fused' in defaults and defaults['fused'] or 'capturable' in defaults and defaults['capturable']
-
-def is_excluded(mn: str, d: str, on: str, func_str: str) -> bool:
+def is_excluded(mn: str, d: str, on: str, func_str: str, defaults: Dict[str, Any]) -> bool:
     return any([('model' not in e or e['model'] == mn) and
                 ('device' not in e or e['device'] == d) and
                 ('optim' not in e or e['optim'] == on) and
-                ('funct_str' not in e or e['func_str'] == func_str) for e in EXCLUSIONS])
+                ('funct_str' not in e or e['func_str'] == func_str) and
+                ('defaults' not in e or all(f in defaults and defaults[f] for f in e['defaults'])) for e in EXCLUSIONS])
     
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     try:
@@ -311,25 +334,23 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     except Exception as e: 
         if not continue_on_error:
             raise e
+        print(e)
         with open('errors.txt', 'a') as f:
             f.write(f'{datetime.datetime.now().timestamp()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {str(e)}\n')
         return None
 
 
-def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str]) -> List[float]:
+def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str], flags: List[str]) -> List[float]:
     results = []
-    optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims]
+    optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults for f in flags)]
 
     if run_on_subset:
         models = SUBSET_OF_MODEL_NAMES
-        optim_cfgs = [(O, defaults) for (O, defaults) in optim_cfgs if (all([x in ['foreach', 'fused', 'lr'] for x in defaults.keys()]))]
+        optim_cfgs = [(O, defaults) for (O, defaults) in optim_cfgs if (all([x in ['foreach', 'fused', 'lr'] for x in defaults]))]
     
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
         ta = datetime.datetime.now().timestamp()
-        if (is_excluded(mn, d, O.__name__, func_str) or
-            (defaults_require_cuda(defaults) and d != 'cuda') or
-            # run pt2 only on defaults
-            (func_str != '' and defaults_to_str(defaults) != 'default')):
+        if (is_excluded(mn, d, O.__name__, func_str, defaults)):
             continue
         tb = datetime.datetime.now().timestamp()
         print('checking for exclusion: ', tb - ta)
@@ -365,7 +386,7 @@ def parse_args(args: List[str]):
     parser.add_argument(
         '--subset', '-s',
         action='store_true',
-        help='Run benchmarks on a standard subset of models'
+        help='Run benchmarks on a standard subset of models. Will overwrite the --models (-m) setting.'
     )
     parser.add_argument(
         '--devices', '-d',
@@ -373,6 +394,15 @@ def parse_args(args: List[str]):
         default=DEVICES,
         choices=DEVICES,
         help='List of devices to run tests on')
+    parser.add_argument(
+        '--default-flags', '-df',
+        nargs='*',
+        default=[],
+        choices=['foreach', 'fused', 'maximize', 'capturable', 'differentiable', 'amsgrad', 'momentum', 'nesterov'],
+        help='List of flags to run tests on. For any flag specified, only configs with the flag ' +
+             'set to a value will be run. The value can be anything, including False. Passing in ' +
+             '"foreach" will enable all default configs with "foreach", including those with ' +
+             'other flags. Passing in more flags will further limit the default configs run.')
     parser.add_argument(
         '--continue-on-error', '-c',
         action='store_true',
@@ -394,7 +424,7 @@ def run(args: List[str]):
     global continue_on_error, run_on_subset
     continue_on_error = args.continue_on_error
     run_on_subset = args.subset
-    results = run_benchmarks(args.optims, args.funcs, args.models, args.devices)
+    results = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
     metrics: Dict[str, float] = get_metrics(results) 
     dump_output(BM_NAME, get_output_json(BM_NAME, metrics))
     compare = benchmark.Compare(results)

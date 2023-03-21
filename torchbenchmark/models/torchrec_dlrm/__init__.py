@@ -46,7 +46,7 @@ class Model(BenchmarkModel):
 
         if not dist.is_initialized():
             dist.init_process_group(backend=backend)
-        
+
         # initialize example data
         if self.test == "train":
             args.batch_size = self.batch_size
