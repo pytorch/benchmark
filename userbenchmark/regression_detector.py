@@ -25,8 +25,8 @@ class TorchBenchABTestMetric:
 
 @dataclass
 class TorchBenchABTestResult:
-    start_pytorch_commit: str
-    end_pytorch_commit: str
+    control_env: Dict[str, str]
+    treatment_env: Dict[str, str]
     details: Dict[str, TorchBenchABTestMetric]
     bisection: Optional[str]
 
