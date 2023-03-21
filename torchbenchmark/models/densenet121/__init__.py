@@ -6,7 +6,8 @@ class Model(TorchVisionModel):
     task = COMPUTER_VISION.CLASSIFICATION
     # Train batch size: use the training batch in paper.
     # Source: https://arxiv.org/pdf/1608.06993.pdf
-    DEFAULT_TRAIN_BSIZE = 256
+    # Downscale to 128 because 256 doesn't fit on A100 40GB
+    DEFAULT_TRAIN_BSIZE = 128
     DEFAULT_EVAL_BSIZE = 64
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
