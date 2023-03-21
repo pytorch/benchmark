@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("--end-date", default=None, help="The latest date to detect regression.")
     # output file path
     parser.add_argument("--output", default=None, help="Output path to print the regression detection file.")
-    args = parser.parse_args()    
+    args = parser.parse_args()
 
     if args.control and args.treatment:
         with open(args.control, "r") as cfptr:
