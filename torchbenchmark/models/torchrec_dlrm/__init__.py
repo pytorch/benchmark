@@ -34,7 +34,7 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1024
     DEFAULT_EVAL_BSIZE = 1024
 
-    def __init__(self, test, device, jit, batch_size=None, extra_args=[]):
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         args = parse_args(self.extra_args)
         backend = "nccl" if self.device == "cuda" else "gloo"
