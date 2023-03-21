@@ -7,6 +7,8 @@ from torchbenchmark.util.backends.flops import enable_fvcore_flops
 from torchbenchmark.util.env_check import is_torchvision_model, is_staged_train_test
 
 TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
+AVAILABLE_PRECISIONS = ["fp32", "tf32", "fp16", "amp", "fx_int8"]
+QUANT_ENGINES = ["x86", "fbgemm", "qnnpack", "onednn"]
 
 def check_correctness_p(
     model: 'torchbenchmark.util.model.BenchmarkModel',
@@ -44,7 +46,9 @@ def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision
             return True
         if model.test == 'train' and model.device == 'cuda':
             return hasattr(model, 'enable_amp') or is_staged_train_test(model)
-    assert precision == "fp32", f"Expected precision to be one of fp32, tf32, fp16, or amp, but get {precision}"
+    if precision == "fx_int8":
+        return model.device == 'cpu' and hasattr(model, "enable_fx_int8")
+    assert precision == "fp32", f"Expected precision to be one of {AVAILABLE_PRECISIONS}, but get {precision}"
     return True
 
 def check_memory_layout(model: 'torchbenchmark.util.model.BenchmakModel', channels_last: bool) -> bool:
@@ -78,9 +82,10 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
         default=None,
         help="Path to function that will apply distributed wrapping fn(model, dargs.distributed)",
     )
-    parser.add_argument("--precision", choices=["fp32", "tf32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, tf32, fp16, or amp")
+    parser.add_argument("--precision", choices=AVAILABLE_PRECISIONS, default=get_precision_default(model), help=f"choose precisions from {AVAILABLE_PRECISIONS}")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     parser.add_argument("--skip_correctness", action='store_true', help="Skip correctness checks")
+    parser.add_argument("--quant-engine", choices=QUANT_ENGINES, default='x86', help=f"choose quantization engine for fx_int8 precision from {QUANT_ENGINES}")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
         raise NotImplementedError(f"precision value: {dargs.precision}, "
@@ -116,6 +121,9 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
             assert is_staged_train_test(model), f"Expected model implements staged train test (forward, backward, optimizer)."
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16), stage=TEST_STAGE.FORWARD)
+    elif dargs.precision == "fx_int8":
+        assert model.device == "cpu" and model.test == "eval", f"fx_int8 only work for eval mode on cpu device."
+        model.enable_fx_int8(dargs.quant_engine)
     elif not dargs.precision == "fp32":
         assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
 

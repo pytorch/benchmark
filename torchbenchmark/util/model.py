@@ -14,6 +14,7 @@ from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, 
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
                                            TEST_STAGE
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model
+from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -168,6 +169,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 or (self.dynamo and self.opt_args.torchdynamo == "fx2trt")
                 or (not self.dynamo and (self.device == "cuda" and self.opt_args.backend == "fx2trt"))
                 or (not self.dynamo and self.opt_args.use_cosine_similarity)
+                or self.dargs.precision == "fx_int8"
             ):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
@@ -369,3 +371,22 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.example_inputs = inputs_convert(self.example_inputs)
         else:
             warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))
+
+    def enable_fx_int8(self, quant_engine:str='x86'):
+        torch.backends.quantized.engine = quant_engine
+        try:
+            model, _ = self.get_module()
+            # Get sub modules
+            model, sub_module_list = get_sub_module(model, dict(model.named_modules()), '')
+            if not len(sub_module_list):
+                warnings.warn(UserWarning(f"{self.name} doesn't have submodule can ben quantized!"))
+            model = prepare_sub_module(sub_module_list, model, '', quant_engine)
+            self.set_module(model)
+            # Calibration
+            self.eval()
+            model, _ = self.get_module()
+            model = convert_sub_module(sub_module_list, model, '')
+            self.set_module(model)
+        except Exception as e:
+            print(e)
+            raise RuntimeError(f"{self.name} doesn't support `fx_int8` yet!")
