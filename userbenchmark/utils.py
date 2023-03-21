@@ -3,8 +3,9 @@ import sys
 from datetime import datetime
 import time
 import json
-import torch
 from pathlib import Path
+from dataclasses import dataclass
+from typing import Dict, Optional
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
@@ -28,7 +29,24 @@ class add_path():
         except ValueError:
             pass
 
+
+@dataclass
+class TorchBenchABTestMetric:
+    control: float
+    treatment: float
+    delta: float
+
+
+@dataclass
+class TorchBenchABTestResult:
+    control_env: Dict[str, str]
+    treatment_env: Dict[str, str]
+    bisection: Optional[str]
+    details: Dict[str, TorchBenchABTestMetric]
+
+
 def get_output_json(bm_name, metrics):
+    import torch
     return {
         "name": bm_name,
         "environ": {"pytorch_git_version": torch.version.git_version},
