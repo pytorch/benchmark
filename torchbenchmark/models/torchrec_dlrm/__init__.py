@@ -37,6 +37,8 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         args = parse_args(self.extra_args)
+        if self.device == "cpu":
+            raise NotImplementedError("CPU is not supported by this model. See issue https://github.com/pytorch/pytorch/issues/97308.")
         backend = "nccl" if self.device == "cuda" else "gloo"
         device = torch.device(self.device)
         os.environ["RANK"] = "0"
