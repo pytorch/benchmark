@@ -16,7 +16,7 @@ jobs:
       PYTHON_VER: "3.8"
       CUDA_VER: "11.7"
       NUMPY_VER: "1.21.2"
-      CMAke_VER: "3.26"
+      CMAKE_VER: "3.26"
       MKL_VER: "2021.2.0"
       MAGMA_VER: "magma-cuda117"
     if: ${{ github.repository_owner == 'pytorch' }}
