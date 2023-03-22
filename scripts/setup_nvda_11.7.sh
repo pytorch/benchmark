@@ -2,10 +2,12 @@
 set -ex -o pipefail
 
 # Setup NVIDIA Driver
-DRIVER_FN="NVIDIA-Linux-x86_64-515.76.run"
-wget "https://s3.amazonaws.com/ossci-linux/nvidia_driver/$DRIVER_FN"
-sudo /bin/bash "$DRIVER_FN" -s --no-drm || (sudo cat /var/log/nvidia-installer.log && false)
-nvidia-smi
+if ! lsmod | grep -q nvidia; then
+  DRIVER_FN="NVIDIA-Linux-x86_64-515.76.run"
+  wget "https://s3.amazonaws.com/ossci-linux/nvidia_driver/$DRIVER_FN"
+  sudo /bin/bash "$DRIVER_FN" -s --no-drm || (sudo cat /var/log/nvidia-installer.log && false)
+  nvidia-smi
+fi
 
 # Setup CUDA 11.7 and cuDNN 8.5.0.96
 wget -q https://developer.download.nvidia.com/compute/cuda/11.7.0/local_installers/cuda_11.7.0_515.43.04_linux.run -O cuda_11.7.0_515.43.04_linux.run
