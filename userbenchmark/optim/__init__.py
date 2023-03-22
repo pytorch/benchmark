@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Tuple
 from torchbenchmark import load_model_by_name
 import torch
+from torch import _dynamo as torchdynamo
 from torch.optim import Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam, SparseAdam, LBFGS
 import torch.utils.benchmark as benchmark
 from userbenchmark.utils import REPO_PATH, add_path, dump_output, get_output_json
@@ -261,11 +262,19 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
     if modelName == cached_mn and device == cached_d:
         return cached_params
 
+    # free the old params before initializing a model to conserve memory
+    lil_cache = ('', '', [])
+
     Model = load_model_by_name(modelName)
     try:
-        params = _get_model_params(Model(device=device, test='train'))
+        # eval mode is sufficient for just pulling out the params, train mode is necessary
+        # if you're also interested in getting the gradients
+        params = _get_model_params(Model(device=device, test='eval', batch_size=1))
     except NotImplementedError:
+        # models may not allow custom batch sizes (ALLOW_CUSTOMIZE_BSIZE = False)
         params = _get_model_params(Model(device=device, test='eval'))
+    
+    del Model
     
     lil_cache = (modelName, device, params)
     return params
@@ -281,7 +290,7 @@ def optimizer_step(optimizer):
     optimizer.step()
 
 def pt2_optimizer_step(optimizer):
-    @torch.compile()
+    @torchdynamo.optimize('inductor')
     def f():
         optimizer.step()
     f()
