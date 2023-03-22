@@ -28,3 +28,6 @@ class REINFORCEMENT_LEARNING(Enum):
 
 class OTHER(Enum):
     OTHER_TASKS = "other tasks"
+
+class GNN(Enum):
+    CLASSIFICATION = "classification"

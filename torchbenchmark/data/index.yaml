@@ -10,6 +10,7 @@ INPUT_TARBALLS:
   - pytorch_CycleGAN_and_pix2pix_inputs.tar.gz
   - Super_SloMo_inputs.tar.gz
   - speech_transformer_inputs.tar.gz
+  - Reddit_minimal.tar.gz
 MODEL_PKLS:
   - drq/obs.pkl
   - maml_omniglot/batch.pt
