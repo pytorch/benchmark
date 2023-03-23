@@ -3,7 +3,8 @@ from torchbenchmark.util.framework.huggingface.model_factory import HuggingFaceM
 
 class Model(HuggingFaceModel):
     task = NLP.LANGUAGE_MODELING
-    DEFAULT_TRAIN_BSIZE = 4
+    # Downscale train batch size because it failed on 1xA100 40GB
+    DEFAULT_TRAIN_BSIZE = 2
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
