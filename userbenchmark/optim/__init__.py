@@ -31,87 +31,77 @@ OPTIM_NAMES = [o.__name__ for o in [Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD
 FUNC_STRS = ['pt2_' , '']
 
 OPTIMIZERS = [
-    # Adadelta(self, params, lr=1.0, rho=0.9, eps=1e-6, weight_decay=0, foreach: Optional[bool] = None,
-    #          maximize: bool = False, differentiable: bool = False)
     (Adadelta, {}),
     (Adadelta, {'maximize': True}),
-    (Adadelta, {'foreach': False,}),
-    (Adadelta, {'foreach': True,}),
-    (Adadelta, {'foreach': True, 'maximize': True}),
-    # Adagrad(self, params, lr=1e-2, lr_decay=0, weight_decay=0, eps=1e-10, foreach: Optional[bool] = None, 
-    #         maximize: bool = False, differentiable: bool = False)
+    (Adadelta, {'foreach': False}),
+    (Adadelta, {'differentiable': True}),
+    (Adadelta, {'foreach': True}),
     (Adagrad, {}),
     (Adagrad, {'maximize': True}),
-    (Adagrad, {'foreach': False,}),
+    (Adagrad, {'foreach': False}),
+    (Adagrad, {'differentiable': True}),
     (Adagrad, {'foreach': True,}),
-    (Adagrad, {'foreach': True, 'maximize': True}),
-    # Adam(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-    #      weight_decay=0, amsgrad=False, *, foreach: Optional[bool] = None,
-    #      maximize: bool = False, capturable: bool = False,
-    #      differentiable: bool = False, fused: bool = False):
     (Adam, {}),
-    (Adam, {'amsgrad': True}),
-    (Adam, {'maximize': True}),
+    (Adam, {'amsgrad': True, 'maximize': True}),
     (Adam, {'foreach': False}),
     (Adam, {'differentiable': True}),
     (Adam, {'foreach': True}),
-    (Adam, {'foreach': True, 'maximize': True}),
-    (Adam, {'foreach': True, 'amsgrad': True}),
-    (Adam, {'foreach': True, 'capturable': True}),
-    (Adam, {'foreach': True, 'capturable': True, 'amsgrad': True}),
+    (Adam, {'foreach': True, 'maximize': True, 'capturable': True}),
+    (Adam, {'foreach': True, 'maximize': True, 'capturable': True, 'amsgrad': True}),
     (Adam, {'fused': True}),
-    (Adam, {'fused': True, 'amsgrad': True}),
-    (Adam, {'fused': True, 'maximize': True}),
+    (Adam, {'fused': True, 'amsgrad': True, 'maximize': True}),
     (Adam, {'fused': True, 'capturable': True}),
     (Adam, {'fused': True, 'capturable': True, 'amsgrad': True}),
     (AdamW, {}),
-    (AdamW, {'maximize': True}),
+    (AdamW, {'amsgrad': True, 'maximize': True}),
     (AdamW, {'foreach': False}),
+    (AdamW, {'differentiable': True}),
     (AdamW, {'foreach': True}),
     (AdamW, {'foreach': True, 'maximize': True, 'capturable': True}),
     (AdamW, {'foreach': True, 'maximize': True, 'capturable': True, 'amsgrad': True}),
     (AdamW, {'fused': True}),
-    (AdamW, {'fused': True, 'amsgrad': True}),
-    (AdamW, {'fused': True, 'maximize': True}),
+    (AdamW, {'fused': True, 'amsgrad': True, 'maximize': True}),
     (AdamW, {'fused': True, 'capturable': True}),
     (AdamW, {'fused': True, 'capturable': True, 'amsgrad': True}),
     (Adamax, {}),
     (Adamax, {'maximize': True}),
-    (Adamax, {'foreach': False,}),
+    (Adamax, {'foreach': False}),
+    (Adamax, {'differentiable': True}),
     (Adamax, {'foreach': True,}),
-    (Adamax, {'foreach': True, 'maximize': True}),
     (ASGD, {}),
     (ASGD, {'maximize': True}),
-    (ASGD, {'foreach': False,}),
-    (ASGD, {'foreach': True,}),
-    (ASGD, {'foreach': True, 'maximize': True}),
+    (ASGD, {'foreach': False}),
+    (ASGD, {'differentiable': True}),
+    (ASGD, {'foreach': True}),
     (SGD, {}),
     (SGD, {'maximize': True}),
-    (SGD, {'foreach': False,}),
+    (SGD, {'foreach': False}),
+    (SGD, {'differentiable': True}),
     (SGD, {'foreach': True,}),
     (SGD, {'foreach': True, 'momentum': 0.9, 'nesterov': True}),
     (SGD, {'foreach': True, 'momentum': 0.9, }),
-    (SGD, {'foreach': True, 'maximize': True}),
     (RAdam, {}),
-    (RAdam, {'foreach': False,}),
+    (RAdam, {'foreach': False}),
+    (RAdam, {'differentiable': True}),
     (RAdam, {'foreach': True,}),
     (Rprop, {}),
     (Rprop, {'maximize': True}),
-    (Rprop, {'foreach': False,}),
-    (Rprop, {'foreach': True,}),
-    (Rprop, {'foreach': True, 'maximize': True}),
+    (Rprop, {'foreach': False}),
+    (Rprop, {'differentiable': True}),
+    (Rprop, {'foreach': True}),
     (RMSprop, {}),
     (RMSprop, {'maximize': True}),
-    (RMSprop, {'foreach': False,}),
-    (RMSprop, {'foreach': True,}),
-    (RMSprop, {'foreach': True, 'maximize': True}),
+    (RMSprop, {'foreach': False}),
+    (RMSprop, {'differentiable': True}),
+    (RMSprop, {'foreach': True}),
     (NAdam, {}),
-    (NAdam, {'foreach': False,}),
-    (NAdam, {'foreach': True,}),
+    (NAdam, {'foreach': False}),
+    (NAdam, {'differentiable': True}),
+    (NAdam, {'foreach': True}),
     (SparseAdam, {}),
 
     # LBFGS requires a closure
-    # (torch.optim.LBFGS, {}),
+    # (LBFGS, {}),
 ]
 
 DENSE_MODELS = [
@@ -204,7 +194,7 @@ DENSE_MODELS = [
 # model => model name
 # func_str => func string (e.g., pt2_)
 # device => device name
-# defaults => list of flags (strings) that cannot be True
+# defaults => list of flag descriptions (strings) to exclude, e.g. no_foreach
 # Exclusions are general and will try to match on everything. For an exclusion
 # {'optim': 'SparseAdam', 'model': 'BERT_pytorch'}, any configuration with
 # SparseAdam on BERT_pytorch will be skipped.
@@ -237,18 +227,18 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
     # C++ kernel even when params are on CUDA for single tensor implementations on NAdam.
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
-    {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach'], 'optim': 'NAdam'} for m in [
+    {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': [df], 'optim': 'NAdam'} for m in [
        'densenet121', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large', 'hf_Longformer',
        'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152'
-    ]
+    ] for df in ['no_foreach', 'differentiable']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
     # C++ kernel even when params are on CUDA for single tensor implementations on ASGD.
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
-    # {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach'], 'optim': 'ASGD'} for m in [
-    #    'densenet121', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large', 'hf_Longformer',
-    #    'hf_T5_base', 'hf_T5_large', 'moco'
-    # ]
+    {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': [df], 'optim': 'ASGD'} for m in [
+       'densenet121', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large', 'hf_Longformer',
+       'hf_T5_base', 'hf_T5_large', 'moco'
+    ] for df in ['no_foreach', 'differentiable']
 ] + [
     # DALL-E 2, timm_efficientdet, tacotron2 Not Supported on CPU
     {'model': 'DALLE2_pytorch', 'device': 'cpu'},
@@ -292,16 +282,9 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
     try:
         # some (usually quantized) models do not support eval on CPU, but since we
         # only care about params + randomly generate grads, eval vs train doesn't matter
-        params = _get_model_params(Model(device=device, test='train', batch_size=1))
-    except (NotImplementedError, ValueError):
-        try:
-            params = _get_model_params(Model(device=device, test='eval', batch_size=1))
-        except (NotImplementedError, ValueError):
-            # models may not allow custom batch sizes (ALLOW_CUSTOMIZE_BSIZE = False)
-            try:
-                params = params = _get_model_params(Model(device=device, test='train'))
-            except (NotImplementedError, ValueError):
-                params = _get_model_params(Model(device=device, test='eval'))
+        params = _get_model_params(Model(device=device, test='train'))
+    except NotImplementedError:
+        params = _get_model_params(Model(device=device, test='eval'))
     
     del Model
     
@@ -345,24 +328,15 @@ def is_excluded(mn: str, d: str, on: str, func_str: str, defaults: Dict[str, Any
     
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     try:
-        ta = datetime.datetime.now().timestamp()
         params = get_model_params(modelName, device)   
-        tc = datetime.datetime.now().timestamp()
-        print('getting params: ', tc - ta, params[0].size(), params[0].dtype, len(params), params[0].device)
+        print('getting params: ', params[0].size(), params[0].dtype, len(params), params[0].device)
         if Optim.__name__ == 'SGD':
             defaults['lr'] = 1e-2
         optim = Optim(params, **defaults)
-        td = datetime.datetime.now().timestamp()
-        print('making optim: ', td - tc)
         generate_random_gradients(params)
-        te = datetime.datetime.now().timestamp()
-        print('generating gradients: ', te - td, params[0].grad.size(), params[0].grad.dtype, params[0].grad.device)
         pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
 
         print(f'{datetime.datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
-
-        tf = datetime.datetime.now().timestamp()
-        print('just printing: ', tf - te)
         return benchmark.Timer(
             stmt=f'{maybe_pt2_}optimizer_step(optim)',
             globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
@@ -387,16 +361,11 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
         optim_cfgs = [(O, defaults) for (O, defaults) in optim_cfgs if (all([x in ['foreach', 'fused', 'lr'] for x in defaults]))]
     
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
-        ta = datetime.datetime.now().timestamp()
         if (is_excluded(mn, d, O.__name__, func_str, defaults)):
             continue
-        tb = datetime.datetime.now().timestamp()
-        print('checking for exclusion: ', tb - ta)
         bm = run_model(mn, d, O, defaults, func_str)
         if bm is not None:
             results.append(bm)
-        tc = datetime.datetime.now().timestamp()
-        print('TOTAL RUNNING MODEL: ', tc - tb)
     return results
 
 
