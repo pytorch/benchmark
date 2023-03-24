@@ -10,7 +10,7 @@ import argparse
 from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_output
 
 with add_path(REPO_PATH):
-    from torchbenchmark.util.experiment.instantiator import list_models, load_model, TorchBenchModelConfig
+    from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
 BM_NAME = "model-stableness"
@@ -133,27 +133,33 @@ def run(args: List[str]):
     for _round in range(args.rounds):
         single_round_result = []
         for cfg in filter(cfg_filter, cfgs):
+            print(f"Running {cfg}")
             try:
-                # load the model instance within the same process
-                model = load_model(cfg)
+                task = load_model_isolated(cfg)
                 # get the model test metrics
-                metrics: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=["latencies"])
+                metrics: TorchBenchModelMetrics = get_model_test_metrics(task, metrics=["latencies"])
                 single_round_result.append({
                     'cfg': cfg.__dict__,
                     'raw_metrics': metrics.__dict__,
                 })
-                metric_name = f"{cfg.name}_{cfg.device}_{cfg.test}_ootb_maxdelta"
             except NotImplementedError:
                 # some models don't implement the test specified
                 single_round_result.append({
                     'cfg': cfg.__dict__,
                     'raw_metrics': "NotImplemented",
                 })
-            except RuntimeError as e:
-                single_round_result.append({
-                    'cfg': cfg.__dict__,
-                    'raw_metrics': f"RuntimeError: {e}",
-                })
+            except RuntimeError as exception:
+                if "out of memory" in str(exception):
+                    # some models don't implement the test specified
+                    single_round_result.append({
+                        'cfg': cfg.__dict__,
+                        'raw_metrics': "CUDA out of memory",
+                    })
+                else:
+                    raise exception
+            finally:
+                # Remove task reference to trigger deletion in gc
+                task = None
         full_results.append(single_round_result)
     print(full_results)
     ub_metrics = reduce_results(full_results)

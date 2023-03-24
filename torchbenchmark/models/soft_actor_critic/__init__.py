@@ -140,6 +140,7 @@ class Model(BenchmarkModel):
             buffer_t = ReplayBuffer
         self.buffer = buffer_t(
             self.args.buffer_size,
+            device=self.device,
             state_shape=self.train_env.observation_space.shape,
             state_dtype=float,
             action_shape=(1,),

@@ -27,9 +27,10 @@ class TorchVisionModel(BenchmarkModel):
             self.model = getattr(models, model_name)(pretrained=True).to(self.device)
         else:
             self.model = getattr(models, model_name)(weights=weights).to(self.device)
-        self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)
+        self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device), )
         if test == "train":
-            self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
+            # compute loss
+            self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )
             self.model.train()
             # setup optimizer and loss_fn
             # if backend is cudagraph, must set optimizer to be capturable
@@ -37,15 +38,13 @@ class TorchVisionModel(BenchmarkModel):
                 if not (hasattr(self.opt_args, 'backend') and self.opt_args.backend == "cudagraph") else True
             self.opt = optim.Adam(self.model.parameters(), capturable=capturable)
             self.loss_fn = torch.nn.CrossEntropyLoss()
-            self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
-            self.real_output = [ torch.rand_like(self.example_outputs) ]
         elif test == "eval":
             self.model.eval()
-            self.example_outputs = torch.rand_like(self.model(*self.example_inputs))
-            self.real_input = [ torch.rand_like(self.example_inputs[0]) ]
-            self.real_output = [ torch.rand_like(self.example_outputs) ]
 
         self.amp_context = nullcontext
+        if self.opt_args.backend == "cudagraph":
+            self.real_input = ( torch.rand_like(self.example_inputs[0]), )
+            self.real_output = ( torch.rand_like(self.example_outputs), )
 
     def get_flops(self):
         return self.flops, self.batch_size
@@ -71,7 +70,7 @@ class TorchVisionModel(BenchmarkModel):
     def train(self):
         if self.opt and not self.SKIP_ZERO_GRAD:
             self.opt.zero_grad()
-        for data, target in zip(self.real_input, self.real_output):
+        for data, target in zip(self.example_inputs, self.example_outputs):
             with self.amp_context():
                 pred = self.model(data)
             self.loss_fn(pred, target).backward()
@@ -85,14 +84,8 @@ class TorchVisionModel(BenchmarkModel):
             self.g.replay()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
-        model = self.model
-        example_inputs = self.example_inputs
         with self.amp_context():
-            for data, _target in zip(self.real_input, self.real_output):
-                self.example_inputs[0].copy_(data)
-                self.example_outputs.copy_(model(*example_inputs))
-                break
-        return (self.example_outputs, )
+            return self.model(*self.example_inputs)
 
     def cudagraph_eval(self):
         for data, target in zip(self.real_input, self.real_output):

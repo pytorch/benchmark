@@ -166,15 +166,16 @@ class MinSegmentTree(SegmentTree):
 
 
 class ReplayBufferStorage:
-    def __init__(self, size, obs_shape, act_shape, obs_dtype=torch.float32):
+    def __init__(self, size, obs_shape, act_shape, device, obs_dtype=torch.float32):
         self.s_dtype = obs_dtype
+        self.device = device
 
         # buffer arrays
-        self.s_stack = torch.zeros((size,) + obs_shape, dtype=self.s_dtype)
-        self.action_stack = torch.zeros((size,) + act_shape, dtype=torch.float32)
-        self.reward_stack = torch.zeros((size, 1), dtype=torch.float32)
-        self.s1_stack = torch.zeros((size,) + obs_shape, dtype=self.s_dtype)
-        self.done_stack = torch.zeros((size, 1), dtype=torch.int)
+        self.s_stack = torch.zeros((size,) + obs_shape, dtype=self.s_dtype, device=device)
+        self.action_stack = torch.zeros((size,) + act_shape, dtype=torch.float32, device=device)
+        self.reward_stack = torch.zeros((size, 1), dtype=torch.float32, device=device)
+        self.s1_stack = torch.zeros((size,) + obs_shape, dtype=self.s_dtype, device=device)
+        self.done_stack = torch.zeros((size, 1), dtype=torch.int, device=device)
 
         self.obs_shape = obs_shape
         self.size = size
@@ -212,13 +213,11 @@ class ReplayBufferStorage:
                 s = s.float()
                 s_1 = s_1.float()
 
-        else:
-            # move to cpu
-            s = s.cpu()
-            a = a.cpu()
-            r = r.cpu()
-            s_1 = s_1.cpu()
-            d = d.int().cpu()
+        s = s.to(self.device)
+        a = a.to(self.device)
+        r = r.to(self.device)
+        s_1 = s_1.to(self.device)
+        d = d.int().to(self.device)
 
         # Store at end of buffer. Wrap around if past end.
         R = np.arange(self._next_idx, self._next_idx + num_samples) % self.size
@@ -270,7 +269,8 @@ class ReplayBufferStorage:
 
 
 class ReplayBuffer:
-    def __init__(self, size, state_shape=None, action_shape=None, state_dtype=float):
+    def __init__(self, size, device, state_shape=None, action_shape=None, state_dtype=float):
+        self.device=device
         self._maxsize = size
         self.state_shape = state_shape
         self.state_dtype = self._convert_dtype(state_dtype)
@@ -296,6 +296,7 @@ class ReplayBuffer:
         if self._storage is None:
             self._storage = ReplayBufferStorage(
                 self._maxsize,
+                device=self.device,
                 obs_shape=self.state_shape,
                 act_shape=self.action_shape,
                 obs_dtype=self.state_dtype,
@@ -303,7 +304,7 @@ class ReplayBuffer:
         return self._storage.add(state, action, reward, next_state, done)
 
     def sample(self, batch_size, get_idxs=False):
-        random_idxs = torch.randint(len(self._storage), (batch_size,))
+        random_idxs = torch.randint(len(self._storage), (batch_size,)).to(self.device)
         if get_idxs:
             return self._storage[random_idxs], random_idxs.cpu().numpy()
         else:

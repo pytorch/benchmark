@@ -22,11 +22,28 @@ import time
 from .options.train_options import TrainOptions
 from .data import create_dataset
 from .models import create_model
+import torch
+from torch.utils._pytree import tree_map
 from .util.visualizer import Visualizer
 
+
+def prefetch_device(example_inputs, device):
+    if isinstance(example_inputs, torch.Tensor):
+        return example_inputs.to(device=device)
+    elif isinstance(example_inputs, (tuple, list, dict)):
+        return tree_map(lambda x: prefetch_device(x, device), example_inputs)
+    elif isinstance(example_inputs, (str, int, float)):
+        return example_inputs
+    assert False, f"Unsupported data type: {type(example_inputs)}"
+
 def prepare_training_loop(args):
+    new_dataset = []
     opt = TrainOptions().parse(args)   # get training options
     dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
+    # prefetch the dataset to the device
+    for data in dataset:
+        new_dataset.append(prefetch_device(data, opt.tb_device))
+    dataset = new_dataset
     dataset_size = len(dataset)    # get the number of images in the dataset.
 
     model = create_model(opt)      # create a model given opt.model and other options

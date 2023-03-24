@@ -91,7 +91,7 @@ def _create_dir_if_nonexist(dirpath):
     pathlib.Path(dirpath).mkdir(parents=True, exist_ok=True)
 
 def _dump_data(data, path):
-    with open(path, "w") as dp:
+    with open(path, "w", encoding='utf8') as dp:
         json.dump(data, dp, indent=4, ensure_ascii=False)
 
 def _generate_dev(batch_size):

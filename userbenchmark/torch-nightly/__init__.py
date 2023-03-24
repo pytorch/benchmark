@@ -89,7 +89,9 @@ def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConf
             configs.append(config)
     return configs
 
-def parse_str_to_list(candidates: str):
+def parse_str_to_list(candidates):
+    if isinstance(candidates, list):
+        return candidates
     candidates = list(map(lambda x: x.strip(), candidates.split(",")))
     return candidates
 
