@@ -4,9 +4,7 @@ from torchbenchmark.tasks import COMPUTER_VISION
 class Model(TimmModel):
     task = COMPUTER_VISION.GENERATION
 
-    # Original batch size: 32
-    # CUDA OOM on A100 40GB, downscale to 16
-    DEFAULT_TRAIN_BSIZE = 16
+    DEFAULT_TRAIN_BSIZE = 32
     DEFAULT_EVAL_BSIZE = 32
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
