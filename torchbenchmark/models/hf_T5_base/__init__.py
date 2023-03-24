@@ -5,8 +5,7 @@ class Model(HuggingFaceModel):
     task = NLP.LANGUAGE_MODELING
     # Original train batch size per device: 8
     # Source: https://github.com/huggingface/transformers/blob/master/examples/flax/language-modeling/run_t5_mlm_flax.py#L83
-    # Downscale to 4 to fit on 1xA100 40GB
-    DEFAULT_TRAIN_BSIZE = 4
+    DEFAULT_TRAIN_BSIZE = 8
     # Original eval batch size per device: 8
     # Downscale to 1 to fit in Nvidia T4 of the infra
     DEFAULT_EVAL_BSIZE = 1
