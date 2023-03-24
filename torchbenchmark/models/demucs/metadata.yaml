@@ -1,4 +1,6 @@
 devices:
+  Tesla T4:
+    train_batch_size: 32
   NVIDIA A100-SXM4-40GB:
     eval_batch_size: 32
 eval_benchmark: true
