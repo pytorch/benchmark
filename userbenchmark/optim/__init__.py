@@ -215,21 +215,44 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # torch.compile()'d optimizer.step() has too many arguments in C++
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
     {'model': m, 'device': 'cpu', 'func_str': 'pt2_', 'defaults': []} for m in [
-        "BERT_pytorch", "Background_Matting", "Super_SloMo", "attention_is_all_you_need_pytorch",
-        "densenet121", "detectron2_fasterrcnn_r_101_c4", "detectron2_fasterrcnn_r_101_dc5",
-        "detectron2_fasterrcnn_r_101_fpn", "detectron2_fasterrcnn_r_50_fpn", "detectron2_maskrcnn",
-        "detectron2_maskrcnn_r_101_c4", "detectron2_maskrcnn_r_101_fpn",
-        "detectron2_maskrcnn_r_50_fpn", "doctr_det_predictor", "fambench_xlmr", "fastNLP_Bert",
-        "hf_Bart", "hf_Bert", "hf_Bert_large", "hf_BigBird", "hf_DistilBert", "hf_GPT2",
-        "hf_GPT2_large", "hf_Longformer", "hf_Reformer", "hf_T5", "hf_T5_base", "hf_T5_large",
-        "mnasnet1_0", "mobilenet_v2", "mobilenet_v2_quantized_qat", "mobilenet_v3_large",
-        "phlippe_densenet", "resnet152", "resnet50", "resnet50_quantized_qat", "resnext50_32x4d",
-        "shufflenet_v2_x1_0", "timm_efficientnet", "timm_nfnet", "timm_regnet",
-        "timm_vision_transformer"
+        'BERT_pytorch', 'Background_Matting', 'Super_SloMo', 'attention_is_all_you_need_pytorch',
+        'densenet121', 'detectron2_fasterrcnn_r_101_c4', 'detectron2_fasterrcnn_r_101_dc5',
+        'detectron2_fasterrcnn_r_101_fpn', 'detectron2_fasterrcnn_r_50_fpn', 'detectron2_maskrcnn',
+        'detectron2_maskrcnn_r_101_c4', 'detectron2_maskrcnn_r_101_fpn',
+        'detectron2_maskrcnn_r_50_fpn', 'doctr_det_predictor', 'fambench_xlmr', 'fastNLP_Bert',
+        'hf_Bart', 'hf_Bert', 'hf_Bert_large', 'hf_BigBird', 'hf_DistilBert', 'hf_GPT2',
+        'hf_GPT2_large', 'hf_Longformer', 'hf_Reformer', 'hf_T5', 'hf_T5_base', 'hf_T5_large',
+        'mnasnet1_0', 'mobilenet_v2', 'mobilenet_v2_quantized_qat', 'mobilenet_v3_large',
+        'phlippe_densenet', 'pytorch_unet', 'resnet152', 'resnet50', 'resnet50_quantized_qat', 'resnext50_32x4d',
+        'shufflenet_v2_x1_0', 'timm_efficientnet', 'timm_nfnet', 'timm_regnet',
+        'timm_vision_transformer'
     ]
 ] + [
-    # DALL-E 2, timm_efficientdet Not Supported on CPU
+    # torch.compile()'d optimizer.step() has too many arguments in the generated
+    # C++ kernel even when params are on CUDA for single tensor implementations.
+    # See GH issue: https://github.com/pytorch/pytorch/issues/97361
+    {'model': 'DALLE2_pytorch', 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach']},
+    {'model': 'DALLE2_pytorch', 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['differentiable']}
+] + [
+    # torch.compile()'d optimizer.step() has too many arguments in the generated
+    # C++ kernel even when params are on CUDA for single tensor implementations on NAdam.
+    # See GH issue: https://github.com/pytorch/pytorch/issues/97361
+    {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach'], 'optim': 'NAdam'} for m in [
+       'densenet121', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large', 'hf_Longformer',
+       'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152'
+    ]
+] + [
+    # torch.compile()'d optimizer.step() has too many arguments in the generated
+    # C++ kernel even when params are on CUDA for single tensor implementations on ASGD.
+    # See GH issue: https://github.com/pytorch/pytorch/issues/97361
+    # {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach'], 'optim': 'ASGD'} for m in [
+    #    'densenet121', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large', 'hf_Longformer',
+    #    'hf_T5_base', 'hf_T5_large', 'moco'
+    # ]
+] + [
+    # DALL-E 2, timm_efficientdet, tacotron2 Not Supported on CPU
     {'model': 'DALLE2_pytorch', 'device': 'cpu'},
+    {'model': 'tacotron2', 'device': 'cpu'},
     {'model': 'timm_efficientdet', 'device': 'cpu'},
     # FCOS train is not supported by upstream detectron2.
     # See GH issue: https://github.com/facebookresearch/detectron2/issues/4369.
@@ -267,12 +290,18 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
 
     Model = load_model_by_name(modelName)
     try:
-        # eval mode is sufficient for just pulling out the params, train mode is necessary
-        # if you're also interested in getting the gradients
-        params = _get_model_params(Model(device=device, test='eval', batch_size=1))
-    except NotImplementedError:
-        # models may not allow custom batch sizes (ALLOW_CUSTOMIZE_BSIZE = False)
-        params = _get_model_params(Model(device=device, test='eval'))
+        # some (usually quantized) models do not support eval on CPU, but since we
+        # only care about params + randomly generate grads, eval vs train doesn't matter
+        params = _get_model_params(Model(device=device, test='train', batch_size=1))
+    except (NotImplementedError, ValueError):
+        try:
+            params = _get_model_params(Model(device=device, test='eval', batch_size=1))
+        except (NotImplementedError, ValueError):
+            # models may not allow custom batch sizes (ALLOW_CUSTOMIZE_BSIZE = False)
+            try:
+                params = params = _get_model_params(Model(device=device, test='train'))
+            except (NotImplementedError, ValueError):
+                params = _get_model_params(Model(device=device, test='eval'))
     
     del Model
     
@@ -312,7 +341,7 @@ def is_excluded(mn: str, d: str, on: str, func_str: str, defaults: Dict[str, Any
                 ('device' not in e or e['device'] == d) and
                 ('optim' not in e or e['optim'] == on) and
                 ('funct_str' not in e or e['func_str'] == func_str) and
-                ('defaults' not in e or all(f in defaults and defaults[f] for f in e['defaults'])) for e in EXCLUSIONS])
+                ('defaults' not in e or all(f in defaults_to_str(defaults) for f in e['defaults'])) for e in EXCLUSIONS])
     
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     try:
@@ -351,7 +380,7 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
 
 def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str], flags: List[str]) -> List[float]:
     results = []
-    optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults for f in flags)]
+    optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults_to_str(defaults) for f in flags)]
 
     if run_on_subset:
         models = SUBSET_OF_MODEL_NAMES
@@ -407,11 +436,13 @@ def parse_args(args: List[str]):
         '--default-flags', '-df',
         nargs='*',
         default=[],
-        choices=['foreach', 'fused', 'maximize', 'capturable', 'differentiable', 'amsgrad', 'momentum', 'nesterov'],
-        help='List of flags to run tests on. For any flag specified, only configs with the flag ' +
-             'set to a value will be run. The value can be anything, including False. Passing in ' +
-             '"foreach" will enable all default configs with "foreach", including those with ' +
-             'other flags. Passing in more flags will further limit the default configs run.')
+        choices=['foreach', 'no_foreach', 'fused', 'maximize', 'capturable', 'differentiable', 'amsgrad', 'momentum', 'nesterov'],
+        help='List of flag descriptions to run tests on. We serialize the configs to a string (see ' +
+             'defaults_to_str()) and test for inclusion of the flag description in the string. ' +
+             'For example, "foreach" will enable all default configs with "foreach", including ' +
+             'those with other flags and also "no_foreach". Effectually, passing in more flags ' + 
+             'will further limit the default configs run.\n'
+    )
     parser.add_argument(
         '--continue-on-error', '-c',
         action='store_true',
