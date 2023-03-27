@@ -109,6 +109,14 @@ class Stats:
     def aot_summary(cls):
         return [cls.totals["aot_autograd"]["total"], cls.totals["aot_autograd"]["ok"]]
 
+def print_dynamo_stats():
+    print(collections.Counter({
+            "calls_captured": torch._dynamo.utils.counters["stats"]["calls_captured"],
+            "unique_graphs": torch._dynamo.utils.counters["stats"]["unique_graphs"],
+            "graph_breaks": sum(torch._dynamo.utils.counters["graph_break"].values()),
+            # NB: The plus removes zero counts
+            "unique_graph_breaks": len(+torch._dynamo.utils.counters["graph_break"]),
+        }))
 
 def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file=None, stress=0, metrics_needed=[], metrics_gpu_backend=None):
     # Warm-up `nwarmup` rounds
@@ -131,22 +139,10 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
     _i = 0
     last_it = 0
     first_print_out = True
-    print(collections.Counter({
-            "calls_captured": torch._dynamo.utils.counters["stats"]["calls_captured"],
-            "unique_graphs": torch._dynamo.utils.counters["stats"]["unique_graphs"],
-            "graph_breaks": sum(torch._dynamo.utils.counters["graph_break"].values()),
-            # NB: The plus removes zero counts
-            "unique_graph_breaks": len(+torch._dynamo.utils.counters["graph_break"]),
-        }))
+    print_dynamo_stats()
     while (not stress and _i < num_iter) or (stress and cur_time < target_time) :
         Stats.reset_counters()
-        print(collections.Counter({
-            "calls_captured": torch._dynamo.utils.counters["stats"]["calls_captured"],
-            "unique_graphs": torch._dynamo.utils.counters["stats"]["unique_graphs"],
-            "graph_breaks": sum(torch._dynamo.utils.counters["graph_break"].values()),
-            # NB: The plus removes zero counts
-            "unique_graph_breaks": len(+torch._dynamo.utils.counters["graph_break"]),
-        }))
+        print_dynamo_stats()
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
@@ -186,14 +182,8 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
                 last_time = cur_time
                 last_it = _i
         _i += 1
-        print("after")
-        print(collections.Counter({
-            "calls_captured": torch._dynamo.utils.counters["stats"]["calls_captured"],
-            "unique_graphs": torch._dynamo.utils.counters["stats"]["unique_graphs"],
-            "graph_breaks": sum(torch._dynamo.utils.counters["graph_break"].values()),
-            # NB: The plus removes zero counts
-            "unique_graph_breaks": len(+torch._dynamo.utils.counters["graph_break"]),
-        }))
+        print("one step done")
+        print_dynamo_stats()
 
     if flops_model_analyzer is not None:
         flops_model_analyzer.stop_monitor()
