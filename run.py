@@ -9,6 +9,7 @@ DANGER: make sure to `python install.py` first or otherwise make sure the benchm
 Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
+import collections
 import time
 import numpy as np
 import torch.profiler as profiler
@@ -86,6 +87,28 @@ def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_
     if cpu_peak_mem is not None:
         print('{:<20} {:>20}'.format("CPU Peak Memory:", "%.4f GB" % cpu_peak_mem, sep=''))
 
+class Stats:
+    totals = collections.defaultdict(collections.Counter)
+
+    @classmethod
+    def reset_counters(cls):
+        for k, v in torch._dynamo.utils.counters.items():
+            cls.totals[k].update(v)
+        ok = torch._dynamo.utils.counters["frames"]["ok"]
+        total = torch._dynamo.utils.counters["frames"]["total"]
+        torch._dynamo.utils.counters.clear()
+        return ok, total
+
+    @classmethod
+    def print_summary(cls):
+        for k, v in sorted(cls.totals.items()):
+            lines = "\n  ".join(map(str, v.most_common(50)))
+            print(f"STATS {k}\n  {lines}")
+
+    @classmethod
+    def aot_summary(cls):
+        return [cls.totals["aot_autograd"]["total"], cls.totals["aot_autograd"]["ok"]]
+
 
 def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file=None, stress=0, metrics_needed=[], metrics_gpu_backend=None):
     # Warm-up `nwarmup` rounds
@@ -108,7 +131,22 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
     _i = 0
     last_it = 0
     first_print_out = True
+    print(collections.Counter({
+            "calls_captured": torch._dynamo.utils.counters["stats"]["calls_captured"],
+            "unique_graphs": torch._dynamo.utils.counters["stats"]["unique_graphs"],
+            "graph_breaks": sum(torch._dynamo.utils.counters["graph_break"].values()),
+            # NB: The plus removes zero counts
+            "unique_graph_breaks": len(+torch._dynamo.utils.counters["graph_break"]),
+        }))
     while (not stress and _i < num_iter) or (stress and cur_time < target_time) :
+        Stats.reset_counters()
+        print(collections.Counter({
+            "calls_captured": torch._dynamo.utils.counters["stats"]["calls_captured"],
+            "unique_graphs": torch._dynamo.utils.counters["stats"]["unique_graphs"],
+            "graph_breaks": sum(torch._dynamo.utils.counters["graph_break"].values()),
+            # NB: The plus removes zero counts
+            "unique_graph_breaks": len(+torch._dynamo.utils.counters["graph_break"]),
+        }))
         if args.device == "cuda":
             torch.cuda.synchronize()
             start_event = torch.cuda.Event(enable_timing=True)
@@ -148,6 +186,14 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
                 last_time = cur_time
                 last_it = _i
         _i += 1
+        print("after")
+        print(collections.Counter({
+            "calls_captured": torch._dynamo.utils.counters["stats"]["calls_captured"],
+            "unique_graphs": torch._dynamo.utils.counters["stats"]["unique_graphs"],
+            "graph_breaks": sum(torch._dynamo.utils.counters["graph_break"].values()),
+            # NB: The plus removes zero counts
+            "unique_graph_breaks": len(+torch._dynamo.utils.counters["graph_break"]),
+        }))
 
     if flops_model_analyzer is not None:
         flops_model_analyzer.stop_monitor()
@@ -155,7 +201,7 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
     cpu_peak_mem = None
     gpu_peak_mem = None
     mem_device_id = None
-    if 'cpu_peak_mem' or 'gpu_peak_mem' in metrics_needed:
+    if 'cpu_peak_mem' in metrics_needed or 'gpu_peak_mem' in metrics_needed:
         cpu_peak_mem, mem_device_id, gpu_peak_mem = get_peak_memory(func, model.device, export_metrics_file=export_metrics_file, metrics_needed=metrics_needed, metrics_gpu_backend=metrics_gpu_backend)
 
     printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, cpu_peak_mem, mem_device_id, gpu_peak_mem)
@@ -311,9 +357,9 @@ if __name__ == "__main__":
         test = torch.autocast("cuda")(test)
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
     # enable cpu_peak_mem and gpu_peak_mem by default
-    metrics_needed.append('cpu_peak_mem')
-    if args.device == 'cuda':
-        metrics_needed.append('gpu_peak_mem')
+    # metrics_needed.append('cpu_peak_mem')
+    # if args.device == 'cuda':
+    #     metrics_needed.append('gpu_peak_mem')
     metrics_needed = list(set(metrics_needed))
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
