@@ -204,7 +204,7 @@ EXCLUSIONS: List[Dict[str, Any]] = [
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in C++
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
-    {'model': m, 'device': 'cpu', 'func_str': 'pt2_', 'defaults': []} for m in [
+    {'model': m, 'device': 'cpu', 'func_str': 'pt2_', 'defaults': df} for m in [
         'BERT_pytorch', 'Background_Matting', 'Super_SloMo', 'attention_is_all_you_need_pytorch',
         'densenet121', 'detectron2_fasterrcnn_r_101_c4', 'detectron2_fasterrcnn_r_101_dc5',
         'detectron2_fasterrcnn_r_101_fpn', 'detectron2_fasterrcnn_r_50_fpn', 'detectron2_maskrcnn',
@@ -216,19 +216,19 @@ EXCLUSIONS: List[Dict[str, Any]] = [
         'phlippe_densenet', 'pytorch_unet', 'resnet152', 'resnet50', 'resnet50_quantized_qat', 'resnext50_32x4d',
         'shufflenet_v2_x1_0', 'timm_efficientnet', 'timm_nfnet', 'timm_regnet',
         'timm_vision_transformer'
-    ]
+    ] for df in [[], ['differentiable']]
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
     # C++ kernel even when params are on CUDA for single tensor implementations.
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
-    {'model': 'DALLE2_pytorch', 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach']},
-    {'model': 'DALLE2_pytorch', 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['differentiable']}
+    {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach']} for m in [
+        'DALLE2_pytorch', 'fambench_xlmr'] for df in ['no_foreach', 'differentiable']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
     # C++ kernel even when params are on CUDA for single tensor implementations on NAdam.
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
     {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': [df], 'optim': 'NAdam'} for m in [
-       'densenet121', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large', 'hf_Longformer',
+       'densenet121', 'doctr_reco_predictor', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large','hf_Longformer',
        'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152'
     ] for df in ['no_foreach', 'differentiable']
 ] + [
@@ -282,9 +282,14 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
     try:
         # some (usually quantized) models do not support eval on CPU, but since we
         # only care about params + randomly generate grads, eval vs train doesn't matter
-        params = _get_model_params(Model(device=device, test='train'))
+        params = _get_model_params(Model(device=device, test='train', batch_size=1))
     except NotImplementedError:
-        params = _get_model_params(Model(device=device, test='eval'))
+        try:
+            params = _get_model_params(Model(device=device, test='eval', batch_size=1))
+        except ValueError:
+            params = _get_model_params(Model(device=device, test='eval'))
+    except ValueError:
+        params = _get_model_params(Model(device=device, test='train'))
     
     del Model
     
