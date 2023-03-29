@@ -51,31 +51,32 @@ if __name__ == "__main__":
 
         # Process control and treatment to include only shared keys
         filtered_control_metrics = {}
-        no_longer_run_metrics = {}
+        control_only_metrics = {}
         filtered_treatment_metrics = {}
-        newly_run_metrics = {}
+        treatment_only_metrics = {}
         for control_name, control_metric in control["metrics"].items():
             if control_name in treatment["metrics"]:
                 filtered_control_metrics[control_name] = control_metric
             else:
-                no_longer_run_metrics[control_name] = control_metric
+                control_only_metrics[control_name] = control_metric
         for treatment_name, treatment_metric in treatment["metrics"].items():
             if treatment_name in control["metrics"]:
                 filtered_treatment_metrics[treatment_name] = treatment_metric
             else:
-                newly_run_metrics[treatment_name] = treatment_metric
+                treatment_only_metrics[treatment_name] = treatment_metric
         control["metrics"] = filtered_control_metrics
         treatment["metrics"] = filtered_treatment_metrics
+        assert filtered_control_metrics.keys() == filtered_treatment_metrics.keys()
 
         # Local file comparison, return the regression detection object
         result = call_userbenchmark_detector(detector, control, treatment)
-        if result or no_longer_run_metrics or newly_run_metrics:
+        if result or control_only_metrics or treatment_only_metrics:
             if not args.output:
                 args.output = get_default_output_path(bm_name)
             # dump result to yaml file
             result_dict = asdict(result)
-            result_dict["no_longer_run_in_treatment"] = no_longer_run_metrics
-            result_dict["newly_run_in_treatment"] = newly_run_metrics
+            result_dict["control_only_metrics"] = control_only_metrics
+            result_dict["treatment_only_metrics"] = treatment_only_metrics
             # create the output directory if doesn't exist
             output_dir = Path(os.path.dirname(args.output))
             output_dir.mkdir(parents=True, exist_ok=True)
