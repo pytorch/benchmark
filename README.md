@@ -81,11 +81,13 @@ When running pytest (see below), the machine_config script is invoked to assert 
 
 
 ## Running Model Benchmarks
-There are currently two top-level scripts for running the models.
+There are multiple ways for running the model benchmarks.
 
 `test.py` offers the simplest wrapper around the infrastructure for iterating through each model and installing and executing it.
 
 `test_bench.py` is a pytest-benchmark script that leverages the same infrastructure but collects benchmark statistics and supports pytest filtering.
+
+`userbenchmark` allows to develop and run customized benchmarks.
 
 In each model repo, the assumption is that the user would already have all of the torch family of packages installed (torch, torchtext, torchvision,...) but it installs the rest of the dependencies for the model.
 
@@ -111,6 +113,12 @@ Some useful options include:
 - `-k <filter expression>` standard pytest filtering
 - `--collect-only` only show what tests would run, useful to see what models there are or debug your filter expression
 - `--cpu_only` if running on a local CPU machine and ignoring machine configuration checks
+
+Note that `test_bench.py` will eventually be deprecated as the `userbenchmark` work evolve. Users are encouraged to explore and consider using [userbenchmark](#using-userbenchmark).
+
+### Using userbenchmark
+
+The `userbenchmark` allows you to develop your customized benchmarks with TorchBench models. Refer to the [userbenchamrk instructions](https://github.com/pytorch/benchmark/blob/main/userbenchmark/ADDING_USERBENCHMARKS.md) to learn more on how you can create a new `userbenchmark`. You can then use the `run_benchmark.py` driver to drive the benchmark. e.g. `python run_benchmark.py <benchmark_name>`. Run `python run_benchmark.py —help` to find out available options.
 
 ### Using `run.py` for simple debugging or profiling
 Sometimes you may want to just run train or eval on a particular model, e.g. for debugging or profiling.  Rather than relying on __main__ implementations inside each model, `run.py` provides a lightweight CLI for this purpose, building on top of the standard BenchmarkModel API.
