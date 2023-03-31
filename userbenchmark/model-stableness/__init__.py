@@ -149,15 +149,10 @@ def run(args: List[str]):
                     'raw_metrics': "NotImplemented",
                 })
             except UnserializableException as exception:
-                type_repr = exception.type_repr
-                if "torch.cuda.OutOfMemoryError" in type_repr:
-                    # some models don't implement the test specified
-                    single_round_result.append({
+                single_round_result.append({
                         'cfg': cfg.__dict__,
-                        'raw_metrics': "CUDA out of memory",
-                    })
-                else:
-                    raise exception
+                        'raw_metrics': exception.args_repr,
+                })
             finally:
                 # Remove task reference to trigger deletion in gc
                 task = None
