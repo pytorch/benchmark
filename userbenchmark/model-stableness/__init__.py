@@ -10,6 +10,7 @@ import argparse
 from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_output
 
 with add_path(REPO_PATH):
+    from components._impl.workers.subprocess_rpc import UnserializableException
     from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
@@ -148,8 +149,9 @@ def run(args: List[str]):
                     'cfg': cfg.__dict__,
                     'raw_metrics': "NotImplemented",
                 })
-            except RuntimeError as exception:
-                if "out of memory" in str(exception):
+            except UnserializableException as exception:
+                type_repr = exception[0]
+                if "torch.cuda.OutOfMemoryError" in type_repr:
                     # some models don't implement the test specified
                     single_round_result.append({
                         'cfg': cfg.__dict__,
