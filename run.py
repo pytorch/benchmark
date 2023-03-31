@@ -9,19 +9,27 @@ DANGER: make sure to `python install.py` first or otherwise make sure the benchm
 Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
+import logging
 import time
+
 import numpy as np
+import torch
 import torch.profiler as profiler
 
-from torchbenchmark import load_model_by_name, load_canary_model_by_name
+from torchbenchmark import load_canary_model_by_name, load_model_by_name
 from torchbenchmark.util.experiment.metrics import get_peak_memory
-import torch
 
 WARMUP_ROUNDS = 3
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
 if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
-SUPPORT_PROFILE_LIST = ["record_shapes", "profile_memory", "with_stack", "with_flops", "with_modules"]
+SUPPORT_PROFILE_LIST = [
+    "record_shapes",
+    "profile_memory",
+    "with_stack",
+    "with_flops",
+    "with_modules",
+]
 
 
 def run_one_step_with_cudastreams(func, streamcount):
