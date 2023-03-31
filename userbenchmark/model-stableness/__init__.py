@@ -133,7 +133,7 @@ def run(args: List[str]):
     for _round in range(args.rounds):
         single_round_result = []
         for cfg in filter(cfg_filter, cfgs):
-            print(f"Running {cfg}")
+            print(f"[Round {_round}/{args.rounds}] Running {cfg}")
             try:
                 task = load_model_isolated(cfg)
                 # get the model test metrics
