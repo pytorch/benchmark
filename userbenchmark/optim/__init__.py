@@ -219,9 +219,9 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     ] for df in [[], ['differentiable']]
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
-    # C++ kernel even when params are on CUDA for single tensor implementations.
+    # C++ kernel for both CUDA and CPU for single tensor implementations.
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
-    {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach']} for m in [
+    {'model': m, 'func_str': 'pt2_', 'defaults': [df]} for m in [
         'DALLE2_pytorch', 'fambench_xlmr'] for df in ['no_foreach', 'differentiable']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
