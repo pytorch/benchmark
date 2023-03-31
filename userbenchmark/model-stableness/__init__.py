@@ -42,7 +42,6 @@ def parse_args(args: List[str]):
     parser.add_argument("-d", "--device", default="cpu", help="Specify the device.")
     parser.add_argument("-t", "--test", default="eval", help="Specify the test.")
     parser.add_argument("-o", "--output", type=str, help="The default output json file.")
-    parser.add_argument("--output-yaml", action="store_true", help="Output the model test filter yaml used by userbenchmark torch-nightly.")
     args = parser.parse_args(args)
     return args
 
@@ -178,11 +177,10 @@ def run(args: List[str]):
     # output userbenchmark metrics in the .userbenchmark/model-stableness directory
     print(output_json)
     dump_output(BM_NAME, output_json)
-    # output the stableness result yaml, if required
-    if args.output_yaml:
-        yaml_dicts = reduce_results_by_device(full_results)
-        for device in yaml_dicts:
-            fname = f"summary-{device}.yaml"
-            full_fname = log_dir.joinpath(fname)
-            with open(full_fname, "w") as f:
-                f.write(yaml.safe_dump(yaml_dicts[device]))
+    # output the stableness result yaml
+    yaml_dicts = reduce_results_by_device(full_results)
+    for device in yaml_dicts:
+        fname = f"summary-{device}.yaml"
+        full_fname = log_dir.joinpath(fname)
+        with open(full_fname, "w") as f:
+            f.write(yaml.safe_dump(yaml_dicts[device]))
