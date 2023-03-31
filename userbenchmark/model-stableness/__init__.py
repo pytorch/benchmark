@@ -149,7 +149,7 @@ def run(args: List[str]):
                     'raw_metrics': "NotImplemented",
                 })
             except UnserializableException as exception:
-                type_repr = exception[0]
+                type_repr = exception.type_repr
                 if "torch.cuda.OutOfMemoryError" in type_repr:
                     # some models don't implement the test specified
                     single_round_result.append({
