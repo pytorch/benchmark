@@ -191,7 +191,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             else:
                 module, _inputs = self.get_module()
             self.set_module(apply_trainer(module, self.dargs.distributed))
-        if self.test == "cuda":
+        # Need to clean up the cache because we run deep copy within correceness check
+        if self.device == "cuda":
             torch.cuda.empty_cache()
 
     def determine_batch_size(self, batch_size=None):

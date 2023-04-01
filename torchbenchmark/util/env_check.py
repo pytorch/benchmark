@@ -87,33 +87,40 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
     return previous_result
 
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, atol=1e-4, rtol=1e-4) -> bool:
+    import torch
+
     old_test = model.test
     model.test = "eval"
     opt_saved = None
     opt_saved = model.opt
     model.opt = None
-    for _i in range(rounds):
-        # some models are stateful and will give different outputs
-        # on the same input if called multiple times
-        set_random_seed()
-        try:
-            if deepcopy:
-                copy_model = copy.deepcopy(model)
-            else:
+
+    # It looks we don't run backward here and also dynamo may have
+    # an issue with memory usage: https://fburl.com/workplace/cgxzsdhz
+    with torch.no_grad():
+        for _i in range(rounds):
+            # some models are stateful and will give different outputs
+            # on the same input if called multiple times
+            set_random_seed()
+            try:
+                if deepcopy:
+                    copy_model = copy.deepcopy(model)
+                else:
+                    copy_model = model
+            except RuntimeError:
+                # if the model is not copy-able, don't copy it
                 copy_model = model
-        except RuntimeError:
-            # if the model is not copy-able, don't copy it
-            copy_model = model
-        cur_result = copy_model.invoke()
+            cur_result = copy_model.invoke()
 
-        equal_nan = hasattr(model, "EQUAL_NAN") and model.EQUAL_NAN
-        if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol, equal_nan=equal_nan):
-            # Restore the original model test if eval correctness doesn't pass
-            model.test = old_test
-            model.opt = opt_saved if opt_saved else model.opt
-            return False
+            equal_nan = hasattr(model, "EQUAL_NAN") and model.EQUAL_NAN
+            if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol, equal_nan=equal_nan):
+                # Restore the original model test if eval correctness doesn't pass
+                model.test = old_test
+                model.opt = opt_saved if opt_saved else model.opt
+                return False
 
-        del cur_result
+            del cur_result
+
     model.test = old_test
     model.opt = opt_saved if opt_saved else model.opt
 
