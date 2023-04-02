@@ -10,7 +10,7 @@ import argparse
 from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_output
 
 with add_path(REPO_PATH):
-    from components._impl.workers.subprocess_rpc import UnserializableException
+    from components._impl.workers.subprocess_rpc import UnserializableException, ChildTraceException
     from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
@@ -147,6 +147,11 @@ def run(args: List[str]):
                 single_round_result.append({
                     'cfg': cfg.__dict__,
                     'raw_metrics': "NotImplemented",
+                })
+            except ChildTraceException as exception:
+                single_round_result.append({
+                        'cfg': cfg.__dict__,
+                        'raw_metrics': str(exception),
                 })
             except UnserializableException as exception:
                 single_round_result.append({
