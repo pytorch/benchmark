@@ -19,19 +19,8 @@ class add_path():
             pass
 
 with add_path(str(REPO_ROOT)):
-    from utils.s3_utils import S3Client
-
-USERBENCHMARK_S3_BUCKET = "ossci-metrics"
-USERBENCHMARK_S3_OBJECT = "torchbench-userbenchmark"
-
-def get_date_from_metrics(metrics_file: str):
-    datetime_obj = datetime.strptime(metrics_file, "metrics-%Y%m%d%H%M%S")
-    return datetime.strftime(datetime_obj, "%Y-%m-%d")
-
-def get_ub_name(metrics_file_path: str):
-    with open(metrics_file_path, "r") as mf:
-        metrics = json.load(mf)
-    return metrics["name"]
+    from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT
+    from userbenchmark.utils import get_date_from_metrics, get_ub_name
 
 def upload_s3(ub_name: str, platform_name: str, date_str: str, file_path: Path):
     """S3 path:
