@@ -10,6 +10,7 @@ import argparse
 from ..utils import REPO_PATH, add_path, get_output_dir, get_output_json, dump_output
 
 with add_path(REPO_PATH):
+    from components._impl.workers.subprocess_rpc import UnserializableException, ChildTraceException
     from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
@@ -41,7 +42,6 @@ def parse_args(args: List[str]):
     parser.add_argument("-d", "--device", default="cpu", help="Specify the device.")
     parser.add_argument("-t", "--test", default="eval", help="Specify the test.")
     parser.add_argument("-o", "--output", type=str, help="The default output json file.")
-    parser.add_argument("--output-yaml", action="store_true", help="Output the model test filter yaml used by userbenchmark torch-nightly.")
     args = parser.parse_args(args)
     return args
 
@@ -133,7 +133,7 @@ def run(args: List[str]):
     for _round in range(args.rounds):
         single_round_result = []
         for cfg in filter(cfg_filter, cfgs):
-            print(f"Running {cfg}")
+            print(f"[Round {_round}/{args.rounds}] Running {cfg}")
             try:
                 task = load_model_isolated(cfg)
                 # get the model test metrics
@@ -148,15 +148,16 @@ def run(args: List[str]):
                     'cfg': cfg.__dict__,
                     'raw_metrics': "NotImplemented",
                 })
-            except RuntimeError as exception:
-                if "out of memory" in str(exception):
-                    # some models don't implement the test specified
-                    single_round_result.append({
+            except ChildTraceException as exception:
+                single_round_result.append({
                         'cfg': cfg.__dict__,
-                        'raw_metrics': "CUDA out of memory",
-                    })
-                else:
-                    raise exception
+                        'raw_metrics': str(exception),
+                })
+            except UnserializableException as exception:
+                single_round_result.append({
+                        'cfg': cfg.__dict__,
+                        'raw_metrics': exception.args_repr,
+                })
             finally:
                 # Remove task reference to trigger deletion in gc
                 task = None
@@ -176,11 +177,10 @@ def run(args: List[str]):
     # output userbenchmark metrics in the .userbenchmark/model-stableness directory
     print(output_json)
     dump_output(BM_NAME, output_json)
-    # output the stableness result yaml, if required
-    if args.output_yaml:
-        yaml_dicts = reduce_results_by_device(full_results)
-        for device in yaml_dicts:
-            fname = f"summary-{device}.yaml"
-            full_fname = log_dir.joinpath(fname)
-            with open(full_fname, "w") as f:
-                f.write(yaml.safe_dump(yaml_dicts[device]))
+    # output the stableness result yaml
+    yaml_dicts = reduce_results_by_device(full_results)
+    for device in yaml_dicts:
+        fname = f"summary-{device}.yaml"
+        full_fname = log_dir.joinpath(fname)
+        with open(full_fname, "w") as f:
+            f.write(yaml.safe_dump(yaml_dicts[device]))
