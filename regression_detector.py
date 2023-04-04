@@ -73,13 +73,11 @@ def generate_regression_yaml(control, treatment) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Local metrics file comparison
-    parser.add_argument("--control", default=None, help="The control group metrics file for comparison.")
+    parser.add_argument("--control", default=None, help="The control group metrics file for comparison. "
+                        "If unprovided, will attempt to download and compare the previous JSON from S3 "
+                        "within the past week. The platform flag must be specified in this case.")
     parser.add_argument("--treatment", default=None, help="The treatment metrics file for comparison.")
-
     # S3 metrics file comparison
-    parser.add_argument("--file", "-f", help="Name of the control metrics JSON file. When provided with "
-                        "the platform flag, will download and compare against the previous JSON from within "
-                        "the past week.")
     parser.add_argument("--name", help="Name of the userbenchmark to detect regression.")
     parser.add_argument("--platform", choices=PLATFORMS, default=None, help="The name of platform of the regression.")
     parser.add_argument("--start-date", default=None, help="The start date to detect regression.")
@@ -94,21 +92,25 @@ if __name__ == "__main__":
         with open(args.treatment, "r") as tfptr:
             treatment = json.load(tfptr)
         generate_regression_yaml(control, treatment)
-    elif args.name or args.start_date or args.end_date:
-        # S3 path
-        print("Comparison for metrics from Amazon S3 given a userbenchmark name is WIP.")
-    else:
-        json_path = Path(args.file)
-        assert json_path.exists(), f"Specified result json path {args.file} does not exist."
+    elif not args.control and args.treatment:
+        if not args.platform:
+            raise ValueError("A platform must be specified with the --platform flag to retrieve the "
+                             "previous metrics JSONs as control from S3.")
+        # Download control from S3
+        json_path = Path(args.treatment)
+        assert json_path.exists(), f"Specified result json path {args.treatment} does not exist."
         date: str = get_date_from_metrics(json_path.stem)
-        userbenchmark_name: str = get_ub_name(args.file)
+        userbenchmark_name: str = get_ub_name(args.treatment)
         latest_metrics_jsons = get_latest_n_jsons_from_s3(1, userbenchmark_name, args.platform, date)
 
         if len(latest_metrics_jsons) == 0:
-            raise RuntimeWarning("No previous JSONS found to compare against. No regression information has been generated.")
+            raise RuntimeWarning("No previous JSONS found to compare against. No regression info has been generated.")
 
         s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
         control = s3.get_file_as_json(latest_metrics_jsons[0])
         with open(json_path, "r") as cfptr:
             treatment = json.load(cfptr)
         generate_regression_yaml(control, treatment)
+    else:
+        # S3 path
+        print("Comparison for metrics from Amazon S3 given a userbenchmark name is WIP.")
