@@ -1,6 +1,10 @@
+from typing import List
 import boto3
 import os
 from pathlib import Path
+
+USERBENCHMARK_S3_BUCKET = "ossci-metrics"
+USERBENCHMARK_S3_OBJECT = "torchbench-userbenchmark"
 
 class S3Client:
     def __init__(self, bucket, object):
