@@ -1,3 +1,0 @@
-ci:
-  - platform: "gcp_a100"
-    args: "-c v3-cuda-tests.yaml"
