@@ -19,8 +19,8 @@ from torchbenchmark.util.metadata_utils import skip_by_metadata
 
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
-# a single test encounters an extreme failure, so we give up after 5 a test
-# is unresponsive to 5 minutes. (Note: this does not require that the entire
+# a single test encounters an extreme failure, so we give up after a test is
+# unresponsive to 5 minutes. (Note: this does not require that the entire
 # test case completes in 5 minutes. It requires that if the worker is
 # unresponsive for 5 minutes the parent will presume it dead / incapacitated.)
 TIMEOUT = 300  # Seconds
