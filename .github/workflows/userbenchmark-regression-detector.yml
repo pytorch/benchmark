@@ -1,4 +1,4 @@
-name: TorchBench Userbenchmark Regression Detector on A100
+name: TorchBench Optim Regression Detector on A100
 on:
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC = midnight ET
@@ -77,8 +77,7 @@ jobs:
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           for r in ${RESULTS[@]}; do
-            previous_metrics_json=$(python ./scripts/userbenchmark/download_previous_metrics.py -f "${r}" -p "${PLATFORM_NAME}")
-            python regression_detector.py --control "${previous_metrics_json}" --treatment "${r}"
+            python regression_detector.py --platform "${PLATFORM_NAME}") --file "${r}"
           done
       - name: Upload result jsons to Scribe and S3
         run: |
