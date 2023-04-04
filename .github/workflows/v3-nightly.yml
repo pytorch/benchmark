@@ -1,0 +1,86 @@
+name: TorchBench V3 nightly (A100)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *' # run at 2 PM UTC
+
+jobs:
+  run-benchmark:
+    env:
+      CONDA_ENV_NAME:  "torchbench-v3-nightly-ci"
+      PLATFORM_NAME: "gcp_a100"
+      SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      IS_GHA: 1
+      BUILD_ENVIRONMENT: benchmark-nightly
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, a100-runner]
+    steps:
+      - name: Checkout TorchBench v3.0 branch
+        uses: actions/checkout@v3
+        with:
+          ref: v3.0
+      - name: Create conda environment
+        run: |
+          . "${SETUP_SCRIPT}"
+          python benchmark/utils/python_utils.py --create-conda-env "${CONDA_ENV_NAME}"
+          sudo python benchmark/utils/cuda_utils.py --setup-cuda-softlink
+      - name: Tune Nvidia GPU
+        run: |
+          . "${SETUP_SCRIPT}"
+          # Copy the NVIDIA libraries to the default libraries path
+          sudo cp -r /usr/local/nvidia/lib64/* /lib/x86_64-linux-gnu/
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
+          nvidia-smi
+      - name: Install PyTorch nightly
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python utils/cuda_utils.py --install-torch-deps
+          # Check if nightly builds are available
+          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+          # If failed, the script will generate empty result
+          if [ -z $NIGHTLIES ]; then
+              echo "Torch nightly build failed. Cancel the workflow."
+              exit 1
+          fi
+          # Install PyTorch nightly and domain libraries from pip
+          python utils/cuda_utils.py --install-torch-nightly
+          # make sure pytorch+cuda works
+          python -c "import torch; torch.cuda.init()"
+      - name: Install TorchBench
+        run: |
+          set -x
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python install.py
+      - name: Run the torch-nightly userbenchmark
+        run: |
+          . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
+          # remove old results
+          if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
+          pushd benchmark
+          if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
+          python run_benchmark.py torch-nightly -c v3-cuda-tests.yaml
+          cp -r ./.userbenchmark/torch-nightly ../benchmark-output
+      - name: Copy artifact and upload to scribe and Amazon S3
+        run: |
+          . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
+          TODAY=$(date "+%Y%m%d%H%M%S")
+          LATEST_RESULT=$(find ./benchmark-output/ -name "metrics-*.json" | sort -r | head -1)
+          echo "Benchmark result file: ${LATEST_RESULT}"
+          # Upload the result json to Scribe
+          python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
+          # Upload the result json to Amazon S3
+          python ./scripts/userbenchmark/upload_s3.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
+      - name: Upload result to GH Actions Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: TorchBench V3 result
+          path: benchmark-output/
+      - name: Destroy conda env
+        run: |
+          conda env remove --name "${CONDA_ENV_NAME}"
