@@ -70,7 +70,7 @@ jobs:
 
           # TODO: scale this to run other benchmarks, but let's start with optim
           python run_benchmark.py optim -c ${{ github.event.inputs.userbenchmark_options }}
-          cat errors.txt
+          if [ -e errors.txt ]; then cat errors.txt; fi
           cp -r ./.userbenchmark/optim ../benchmark-output
       - name: Detect potential regressions
         continue-on-error: true
