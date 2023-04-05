@@ -79,7 +79,7 @@ jobs:
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           for r in ${RESULTS[@]}; do
-            python regression_detector.py --platform "${PLATFORM_NAME}") --treatment "${r}" --owner @janeyx99
+            python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @janeyx99
           done
       - name: Upload result jsons to Scribe and S3
         run: |
