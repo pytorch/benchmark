@@ -32,8 +32,10 @@ jobs:
       - name: Tune Nvidia GPU
         run: |
           . "${SETUP_SCRIPT}"
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
+          # Copy the NVIDIA libraries to the default libraries path
+          sudo cp -r /usr/local/nvidia/lib64/* /lib/x86_64-linux-gnu/
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
           nvidia-smi
       - name: Install PyTorch nightly
         run: |
@@ -67,7 +69,7 @@ jobs:
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
 
           # TODO: scale this to run other benchmarks, but let's start with optim
-          python run_benchmark.py optim -c
+          python run_benchmark.py optim -c ${{ github.event.inputs.userbenchmark_options }}
           cat errors.txt
           cp -r ./.userbenchmark/optim ../benchmark-output
       - name: Detect potential regressions
