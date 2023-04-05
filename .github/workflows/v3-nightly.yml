@@ -60,7 +60,7 @@ jobs:
           python install.py
       - name: Run the torch-nightly userbenchmark
         run: |
-          . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
@@ -69,7 +69,7 @@ jobs:
           cp -r ./.userbenchmark/torch-nightly ../benchmark-output
       - name: Copy artifact and upload to scribe and Amazon S3
         run: |
-          . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           TODAY=$(date "+%Y%m%d%H%M%S")
           pushd benchmark
           LATEST_RESULT=$(find ../benchmark-output/ -name "metrics-*.json" | sort -r | head -1)
@@ -85,4 +85,5 @@ jobs:
           path: benchmark-output/
       - name: Destroy conda env
         run: |
+          . "${SETUP_SCRIPT}"
           conda env remove --name "${CONDA_ENV_NAME}"
