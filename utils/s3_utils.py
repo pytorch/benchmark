@@ -1,6 +1,7 @@
 from typing import List
 import boto3
 import os
+import json
 from pathlib import Path
 
 USERBENCHMARK_S3_BUCKET = "ossci-metrics"
@@ -23,6 +24,10 @@ class S3Client:
         s3_key = f"{self.object}/{prefix}/{file_name}" if prefix else f"{self.object}/{file_name}"
         response = self.s3.upload_file(str(file_path), self.bucket, s3_key)
         print(f"S3 client response: {response}")
+
+    def get_file_as_json(self, key: str):
+        obj = self.s3.get_object(Bucket=self.bucket, Key=key)
+        return json.loads(obj['Body'].read().decode('utf-8'))
 
     def exists(self, prefix: str, file_name: str):
         """Test if the key object/prefix/file_name exists in the S3 bucket.

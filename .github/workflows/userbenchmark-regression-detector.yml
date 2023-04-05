@@ -1,0 +1,100 @@
+name: TorchBench Optim Regression Detector on A100
+on:
+  schedule:
+    - cron: '0 4 * * *' # run at 4 AM UTC = midnight ET
+  workflow_dispatch:
+    inputs:
+      userbenchmark_name:
+        description: "Name of the user benchmark to run"
+      userbenchmark_options:
+        description: "Option of the user benchmark to run"
+env:
+  CONDA_ENV_NAME: "userbenchmarks-ci"
+  PLATFORM_NAME: "gcp_a100"
+  TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  SETUP_SCRIPT: "/workspace/setup_instance.sh"
+jobs:
+  run-userbenchmark:
+    runs-on: [self-hosted, a100-runner]
+    timeout-minutes: 1440 # 24 hours
+    steps:
+      - name: Checkout TorchBench
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Create conda environment
+        run: |
+          . "${SETUP_SCRIPT}"
+          python benchmark/utils/python_utils.py --create-conda-env "${CONDA_ENV_NAME}"
+          sudo python benchmark/utils/cuda_utils.py --setup-cuda-softlink
+      - name: Tune Nvidia GPU
+        run: |
+          . "${SETUP_SCRIPT}"
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
+          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
+          nvidia-smi
+      - name: Install PyTorch nightly
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python utils/cuda_utils.py --install-torch-deps
+          # Check if nightly builds are available
+          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+          # If failed, the script will generate empty result
+          if [ -z $NIGHTLIES ]; then
+              echo "Torch nightly build failed. Cancel the workflow."
+              exit 1
+          fi
+          # Install PyTorch nightly and domain libraries from pip
+          python utils/cuda_utils.py --install-torch-nightly
+          # make sure pytorch+cuda works
+          python -c "import torch; torch.cuda.init()"
+      - name: Install TorchBench
+        run: |
+          set -x
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python install.py
+      - name: Run optim user benchmark
+        run: |
+          set -x
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          # remove old results
+          if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
+          pushd benchmark
+          if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
+
+          # TODO: scale this to run other benchmarks, but let's start with optim
+          python run_benchmark.py optim -c
+          cat errors.txt
+          cp -r ./.userbenchmark/optim ../benchmark-output
+      - name: Detect potential regressions
+        continue-on-error: true
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
+          for r in ${RESULTS[@]}; do
+            python regression_detector.py --platform "${PLATFORM_NAME}") --treatment "${r}" --owner @janeyx99
+          done
+      - name: Upload result jsons to Scribe and S3
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
+          echo "Uploading result jsons: ${RESULTS}"
+          for r in ${RESULTS[@]}; do
+            python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
+            python ./scripts/userbenchmark/upload_s3.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
+          done
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: TorchBench result
+          path: benchmark-output/
+      - name: Remove conda environment
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda env remove --name "${CONDA_ENV_NAME}"
