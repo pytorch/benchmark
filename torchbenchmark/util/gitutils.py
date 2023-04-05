@@ -19,15 +19,6 @@ def clean_git_repo(repo: str) -> bool:
         print(f"Failed to cleanup git repo {repo}")
         return None
 
-def update_git_repo_branch(repo: str, branch: str) -> bool:
-    try:
-        command = f"git pull origin {branch}"
-        out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
-        return out
-    except subprocess.CalledProcessError:
-        print(f"Failed to update git repo {repo}, branch {branch}")
-        return None
-
 def get_git_commit_on_date(repo: str, date: datetime) -> Optional[str]:
     try:
         # Get the first commit since date
@@ -56,9 +47,9 @@ def get_git_commit_date(repo: str, commit: str) -> str:
 def checkout_git_branch(repo: str, branch: str) -> bool:
     try:
         if check_git_exist_local_branch(repo, branch):
-            command = f"git checkout {branch} &> /dev/null "
+            command = f"git checkout --recurse-submodules {branch} &> /dev/null "
         else:
-            command = f"git checkout --track origin/{branch} &> /dev/null"
+            command = f"git checkout --recurse-submodules --track origin/{branch} &> /dev/null"
         retcode = subprocess.call(command, cwd=repo, shell=True)
         return (retcode == 0)
     except subprocess.CalledProcessError:
@@ -128,7 +119,7 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
         assert len(branch) != 0
         command = ["git", "checkout", "--recurse-submodules", branch]
         subprocess.check_call(command, cwd=repo, shell=False)
-        command = ["git", "pull"]
+        command = ["git", "pull", "--recurse-submodules"]
         subprocess.check_call(command, cwd=repo, shell=False)
         command = ["git", "checkout", "--recurse-submodules", branch]
         subprocess.check_call(command, cwd=repo, shell=False)
@@ -142,7 +133,7 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
                 os.remove(index_lock)
             command = ["git", "checkout", "--recurse-submodules", branch]
             subprocess.check_call(command, cwd=repo, shell=False)
-            command = ["git", "pull"]
+            command = ["git", "pull", "--recurse-submodules"]
             subprocess.check_call(command, cwd=repo, shell=False)
             command = ["git", "checkout", "--recurse-submodules", branch]
             subprocess.check_call(command, cwd=repo, shell=False)
