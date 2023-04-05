@@ -71,10 +71,10 @@ jobs:
         run: |
           . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
           TODAY=$(date "+%Y%m%d%H%M%S")
-          LATEST_RESULT=$(find ./benchmark-output/ -name "metrics-*.json" | sort -r | head -1)
+          pushd benchmark
+          LATEST_RESULT=$(find ../benchmark-output/ -name "metrics-*.json" | sort -r | head -1)
           echo "Benchmark result file: ${LATEST_RESULT}"
           # Upload the result json to Scribe
-          pushd benchmark
           python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
           # Upload the result json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
