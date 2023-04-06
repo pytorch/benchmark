@@ -20,6 +20,16 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         "--tritonmm", type=str, help="torchinductor.config.triton.mm configuration"
     )
     parser.add_argument(
+        "--dynamic_shapes",
+        action='store_true',
+        help="dynamic shape and symbolic tracing",
+    )
+    parser.add_argument(
+        "--full_graph",
+        action='store_true',
+        help="capture full graph and no python",
+    )
+    parser.add_argument(
         "--optimize_dynamo_ddp",
         action='store_true',
         help="enable extra optimizations for DDP + dynamo"
@@ -46,7 +56,12 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
     if args.torchdynamo == "fx2trt" and precision == "fp16":
         dynamo_optimizer = torchdynamo.optimize(torchdynamo.optimizations.backends.fx2trt_compiler_fp16)
     else:
-        dynamo_optimizer = torchdynamo.optimize(args.torchdynamo)
+        dynamo_kwargs = {}
+        if args.dynamic_shapes:
+            dynamo_kwargs["dynamic"] = True
+        if args.full_graph:
+            dynamo_kwargs["nopython"] = True
+        dynamo_optimizer = torchdynamo.optimize(args.torchdynamo, **dynamo_kwargs)
 
     if args.torchdynamo == "inductor":
         import torch._inductor as torchinductor
