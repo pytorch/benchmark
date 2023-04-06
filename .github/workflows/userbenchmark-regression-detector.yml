@@ -70,8 +70,6 @@ jobs:
 
           # TODO: scale this to run other benchmarks, but let's start with optim
           python run_benchmark.py optim -c ${{ github.event.inputs.userbenchmark_options }}
-          # TODO: potentially move errors.txt to benchmark-output so it gets uploaded to S3
-          if [ -e errors.txt ]; then cat errors.txt; fi
           cp -r ./.userbenchmark/optim ../benchmark-output
       - name: Detect potential regressions
         continue-on-error: true
@@ -105,7 +103,13 @@ jobs:
         with:
           name: TorchBench result
           path: benchmark-output/
+      - name: Finally, error if errors.txt exists
+        run: |
+          # Do not error earlier as we want all artifacts and regressions to be reported first
+          # TODO: potentially move errors.txt to benchmark-output so it gets uploaded to S3
+          if [ -e errors.txt ]; then cat errors.txt && exit 1; fi
       - name: Remove conda environment
+        if: always()
         run: |
           . "${SETUP_SCRIPT}"
           conda env remove --name "${CONDA_ENV_NAME}"
