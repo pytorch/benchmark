@@ -3,6 +3,8 @@ Run PyTorch nightly benchmarking.
 """
 import argparse
 import itertools
+import json
+import math
 import os
 import yaml
 import numpy
@@ -40,21 +42,34 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
 def get_metrics(_config: TorchBenchModelConfig) -> List[str]:
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
 
+def compute_score(results, reference_latencies: Dict[str, float]) -> float:
+    # sanity checks
+    latency_results = {k: v for k, v in results.items() if k.endswith("_latency")}
+    test_set = set(latency_results.keys())
+    reference_set = set(reference_latencies.keys())
+    test_only_set = test_set.difference(reference_set)
+    assert not test_only_set, f"Tests {test_only_set} only appears in result json, not in reference yaml."
+    reference_only_set = reference_set.difference(test_only_set)
+    assert not reference_only_set, f"Tests {reference_only_set} only appears in reference yaml, not in result json."
+    # check that for every test in reference_latencies, we can find the corresponding tests in latency_results
+    total_score = 0.0
+    weight = 1.0 / len(reference_latencies)
+    for key, ref_latency in reference_latencies:
+        test_latency = latency_results[key]
+        delta = (test_latency - ref_latency) / test_latency
+        # If less than threshold, treat it as noise
+        if abs(delta) <= DEFAULT_DELTA_THRESHOLD:
+            reference_latency = test_latency
+        total_score += weight * math.log(test_latency / reference_latency)
+    v3_score = math.exp(total_score) * DEFAULT_TARGET_SCORE
+    return v3_score
 
-def compute_score(results, reference_latencies: List[float]=None) -> float:
-    pass
-
-def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]],
-                             reference_latencies: List[float]=None) -> Dict[str, float]:
+def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]) -> Dict[str, float]:
     # metrics name examples:
     # test_eval[timm_regnet-cuda-eager]_latency
     # test_eval[timm_regnet-cuda-eager]_cmem
     # test_eval[timm_regnet-cuda-eager]_gmem
     result_metrics = {}
-    v3_score = 0.0
-    if reference_latencies:
-        assert len(results) == len(reference_latencies), f"Reference latency length {reference_latencies}, but benchmark run has only {len(results)}. Check logs and make sure all benchmark tests succeed."
-    weight = 1.0 / len(reference_latencies)
     for config_id, (config, metrics) in enumerate(results):
         metrics_base = f"test_{config.test}[{config.name}-{config.device}-eager]"
         latency_metric = f"{metrics_base}_latency"
@@ -67,15 +82,6 @@ def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBen
         if metrics.gpu_peak_mem:
             gpu_peak_mem = f"{metrics_base}_gmem"
             result_metrics[gpu_peak_mem] = metrics.gpu_peak_mem
-        if reference_latencies:
-            reference_latency = reference_latencies[config_id]
-            delta = (median_latency - reference_latency) / median_latency
-            # If less than threshold, treat it as noise
-            if abs(delta) <= DEFAULT_DELTA_THRESHOLD:
-                reference_latency = median_latency
-            total_score += weight * math.log(median_latency / reference_latency)
-    if v3_score:
-        result_metrics["v3_score"] = math.exp(total_score) * DEFAULT_TARGET_SCORE
     return result_metrics
 
 def dump_result_to_json(metrics):
@@ -94,7 +100,7 @@ def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelCon
         config_obj = yaml.safe_load(yf)
     devices = config_obj.keys()
     configs = []
-    median_latency_list = []
+    reference_latencies = {}
     for device in devices:
         for c in config_obj[device]:
             if not c["stable"]:
@@ -109,8 +115,10 @@ def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelCon
                 extra_env=None,
             )
             configs.append(config)
-            median_latency_list.append(c["median_latency"])
-    return configs, median_latency_list
+            metrics_base = f"test_{config.test}[{config.name}-{config.device}-eager]"
+            latency_metric_key = f"{metrics_base}_latency"
+            reference_latencies[latency_metric_key] = c["median_latency"]
+    return configs, reference_latencies
 
 def parse_str_to_list(candidates):
     if isinstance(candidates, list):
@@ -152,7 +160,8 @@ def run(args: List[str]):
         assert args.config, f"To compute score, you must specify the config YAML using --config."
         configs, reference_latencies = generate_model_configs_from_yaml(args.config)
         with open(args.score, "r") as sp:
-            input_metrics = json.read(sp)
+            run_result = json.read(sp)
+        input_metrics = run_result["metrics"]
         score = compute_score(input_metrics, reference_latencies)
         print(f"TorchBench score: {score}.")
         exit(0)
@@ -176,5 +185,8 @@ def run(args: List[str]):
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
     if not args.dryrun:
-        metrics = result_to_output_metrics(results, reference_latencies)
+        metrics = result_to_output_metrics(results)
+        if reference_latencies:
+            score = compute_score(metrics, reference_latencies)
+            metrics["v3_score"] = score
         dump_result_to_json(metrics)
