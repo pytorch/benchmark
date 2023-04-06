@@ -40,6 +40,10 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
 def get_metrics(_config: TorchBenchModelConfig) -> List[str]:
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
 
+
+def compute_score(results, reference_latencies: List[float]=None) -> float:
+    pass
+
 def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]],
                              reference_latencies: List[float]=None) -> Dict[str, float]:
     # metrics name examples:
@@ -139,11 +143,20 @@ def parse_args(args):
     parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice models, splited by comma.")
     parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
+    parser.add_argument("--score", default=None, help="Generate score from the past run json.")
     return parser.parse_args(args)
 
 def run(args: List[str]):
     args = parse_args(args)
-    if args.config:
+    if args.score:
+        assert args.config, f"To compute score, you must specify the config YAML using --config."
+        configs, reference_latencies = generate_model_configs_from_yaml(args.config)
+        with open(args.score, "r") as sp:
+            input_metrics = json.read(sp)
+        score = compute_score(input_metrics, reference_latencies)
+        print(f"TorchBench score: {score}.")
+        exit(0)
+    elif args.config:
         configs, reference_latencies = generate_model_configs_from_yaml(args.config)
     else:
         # If not specified, use the entire model set
