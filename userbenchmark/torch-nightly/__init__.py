@@ -18,6 +18,7 @@ with add_path(REPO_PATH):
 BM_NAME = "torch-nightly"
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
+
 def generate_model_configs(devices: List[str], tests: List[str], model_names: List[str]) -> List[TorchBenchModelConfig]:
     """Use the default batch size and default mode."""
     if not model_names:
@@ -37,12 +38,14 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
 def get_metrics(_config: TorchBenchModelConfig) -> List[str]:
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
 
-def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]) -> Dict[str, float]:
+def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]],
+                             reference_latencies: List[float]=None) -> Dict[str, float]:
     # metrics name examples:
     # test_eval[timm_regnet-cuda-eager]_latency
     # test_eval[timm_regnet-cuda-eager]_cmem
     # test_eval[timm_regnet-cuda-eager]_gmem
     result_metrics = {}
+    v3_score = 0.0
     for config, metrics in results:
         metrics_base = f"test_{config.test}[{config.name}-{config.device}-eager]"
         latency_metric = f"{metrics_base}_latency"
@@ -55,6 +58,8 @@ def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBen
         if metrics.gpu_peak_mem:
             gpu_peak_mem = f"{metrics_base}_gmem"
             result_metrics[gpu_peak_mem] = metrics.gpu_peak_mem
+    if v3_score:
+        result_metrics["v3_score"] = v3_score
     return result_metrics
 
 def dump_result_to_json(metrics):
@@ -67,12 +72,13 @@ def validate(candidates: List[str], choices: List[str]) -> List[str]:
         assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
     return candidates
 
-def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConfig]:
+def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelConfig, List[float]]:
     yaml_file_path = os.path.join(CURRENT_DIR, yaml_file)
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
     devices = config_obj.keys()
     configs = []
+    median_latency_list = []
     for device in devices:
         for c in config_obj[device]:
             if not c["stable"]:
@@ -87,7 +93,8 @@ def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConf
                 extra_env=None,
             )
             configs.append(config)
-    return configs
+            median_latency_list.append(c["median_latency"])
+    return configs, median_latency_list
 
 def parse_str_to_list(candidates):
     if isinstance(candidates, list):
@@ -125,7 +132,7 @@ def parse_args(args):
 def run(args: List[str]):
     args = parse_args(args)
     if args.config:
-        configs = generate_model_configs_from_yaml(args.config)
+        configs, reference_latencies = generate_model_configs_from_yaml(args.config)
     else:
         # If not specified, use the entire model set
         if not args.model:
@@ -134,14 +141,15 @@ def run(args: List[str]):
         tests = validate(parse_str_to_list(args.test), list_tests())
         models = validate(parse_str_to_list(args.model), list_models())
         configs = generate_model_configs(devices, tests, model_names=models)
+        reference_latencies = None
     results = []
     try:
-        for config in configs:
+        for cid, config in enumerate(configs):
             metrics = run_config(config, dryrun=args.dryrun)
             if metrics:
                 results.append([config, metrics])
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
     if not args.dryrun:
-        metrics = result_to_output_metrics(results)
+        metrics = result_to_output_metrics(results, reference_latencies)
         dump_result_to_json(metrics)
