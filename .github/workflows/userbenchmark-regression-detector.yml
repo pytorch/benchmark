@@ -32,8 +32,10 @@ jobs:
       - name: Tune Nvidia GPU
         run: |
           . "${SETUP_SCRIPT}"
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
+          # Copy the NVIDIA libraries to the default libraries path
+          sudo cp -r /usr/local/nvidia/lib64/* /lib/x86_64-linux-gnu/
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
           nvidia-smi
       - name: Install PyTorch nightly
         run: |
@@ -67,8 +69,8 @@ jobs:
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
 
           # TODO: scale this to run other benchmarks, but let's start with optim
-          python run_benchmark.py optim -c
-          cat errors.txt
+          python run_benchmark.py optim -c ${{ github.event.inputs.userbenchmark_options }}
+          if [ -e errors.txt ]; then cat errors.txt; fi
           cp -r ./.userbenchmark/optim ../benchmark-output
       - name: Detect potential regressions
         continue-on-error: true
@@ -77,7 +79,7 @@ jobs:
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           for r in ${RESULTS[@]}; do
-            python regression_detector.py --platform "${PLATFORM_NAME}") --treatment "${r}" --owner @janeyx99
+            python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @janeyx99
           done
       - name: Upload result jsons to Scribe and S3
         run: |
