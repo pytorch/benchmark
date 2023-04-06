@@ -117,6 +117,11 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         print(f"No regressions found between {control_commit} and {treatment_commit}.")
         return
 
+    fname = os.environ["GITHUB_ENV"]
+    content = f"TORCHBENCH_REGRESSION_DETECTED='{treatment_commit}'\n"
+    with open(fname, 'a') as fo:
+        fo.write(content)
+
     issue_config: Dict[str, str] = {
         "start": control_commit,
         "end": treatment_commit,
