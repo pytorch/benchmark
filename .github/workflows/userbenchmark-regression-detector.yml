@@ -70,6 +70,7 @@ jobs:
 
           # TODO: scale this to run other benchmarks, but let's start with optim
           python run_benchmark.py optim -c ${{ github.event.inputs.userbenchmark_options }}
+          # TODO: potentially move errors.txt to benchmark-output so it gets uploaded to S3
           if [ -e errors.txt ]; then cat errors.txt; fi
           cp -r ./.userbenchmark/optim ../benchmark-output
       - name: Detect potential regressions
@@ -79,8 +80,16 @@ jobs:
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           for r in ${RESULTS[@]}; do
-            python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @janeyx99
+            python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @janeyx99 --gh-issue-path gh-issue.md
           done
+      - name: Create the github issue
+        if: env.TORCHBENCH_REGRESSION_DETECTED
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: V2 Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_REGRESSION_DETECTED }}
+          content-filepath: ./benchmark/gh-issue.md
+          labels: |
+            torchbench-perf-report
       - name: Upload result jsons to Scribe and S3
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
