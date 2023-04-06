@@ -17,6 +17,8 @@ with add_path(REPO_PATH):
 
 BM_NAME = "torch-nightly"
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+DEFAULT_DELTA_THRESHOLD = 0.07
+DEFAULT_TARGET_SCORE = 1000.0
 
 
 def generate_model_configs(devices: List[str], tests: List[str], model_names: List[str]) -> List[TorchBenchModelConfig]:
@@ -46,7 +48,10 @@ def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBen
     # test_eval[timm_regnet-cuda-eager]_gmem
     result_metrics = {}
     v3_score = 0.0
-    for config, metrics in results:
+    if reference_latencies:
+        assert len(results) == len(reference_latencies), f"Reference latency length {reference_latencies}, but benchmark run has only {len(results)}. Check logs and make sure all benchmark tests succeed."
+    weight = 1.0 / len(reference_latencies)
+    for config_id, (config, metrics) in enumerate(results):
         metrics_base = f"test_{config.test}[{config.name}-{config.device}-eager]"
         latency_metric = f"{metrics_base}_latency"
         median_latency = numpy.median(metrics.latencies)
@@ -58,8 +63,15 @@ def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBen
         if metrics.gpu_peak_mem:
             gpu_peak_mem = f"{metrics_base}_gmem"
             result_metrics[gpu_peak_mem] = metrics.gpu_peak_mem
+        if reference_latencies:
+            reference_latency = reference_latencies[config_id]
+            delta = (median_latency - reference_latency) / median_latency
+            # If less than threshold, treat it as noise
+            if abs(delta) <= DEFAULT_DELTA_THRESHOLD:
+                reference_latency = median_latency
+            total_score += weight * math.log(median_latency / reference_latency)
     if v3_score:
-        result_metrics["v3_score"] = v3_score
+        result_metrics["v3_score"] = math.exp(total_score) * DEFAULT_TARGET_SCORE
     return result_metrics
 
 def dump_result_to_json(metrics):
