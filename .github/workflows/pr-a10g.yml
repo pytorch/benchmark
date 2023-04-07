@@ -21,12 +21,9 @@ jobs:
       - name: Install Conda and basic packages
         run: |
           bash scripts/install_basics_amzn_linux_2.sh
-      - name: Install NVIDIA Driver
-        run: |
-          bash scripts/setup_nvda_11.7.sh
-      - name: GPU Tuning
-        run: |
-          sudo nvidia-smi -pm 1
+      - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
+        id: install-nvidia-driver
+        uses: pytorch/test-infra/.github/actions/setup-nvidia@main
       - name: Setup Conda Env
         run: |
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
