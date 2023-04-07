@@ -194,7 +194,11 @@ class TorchSource:
         env["USE_CUDNN"] = "1"
         env["USE_FFMPEG"] = "1"
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
+        if not "LD_LIBRARY_PATH" in env:
+            env["LIBRARY_PATH"] = ""
         env["LD_LIBRARY_PATH"] = f'{env["CONDA_PREFIX"]}/envs/{env["BISECT_CONDA_ENV"]}/lib/:{env["LD_LIBRARY_PATH"]}'
+        if not "LIBRARY_PATH" in env:
+            env["LIBRARY_PATH"] = ""
         env["LIBRARY_PATH"] = f'{env["CONDA_PREFIX"]}/envs/{env["BISECT_CONDA_ENV"]}/lib/:{env["LIBRARY_PATH"]}'
         print(env["LD_LIBRARY_PATH"])
         print(env["LIBRARY_PATH"])
