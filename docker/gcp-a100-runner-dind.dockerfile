@@ -25,7 +25,7 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 # Do not compile the kernel modules, which is provided by the host GKE environment
 RUN cd /workspace && mkdir tmp_nvidia && cd tmp_nvidia && \
     wget -q https://storage.googleapis.com/nvidia-drivers-us-public/tesla/525.60.13/NVIDIA-Linux-x86_64-525.60.13.run && \
-    bash ./NVIDIA-Linux-x86_64-525.60.13.run --no-kernel-modules
+    sudo bash ./NVIDIA-Linux-x86_64-525.60.13.run --no-kernel-modules -s --no-systemd --no-kernel-module-source --no-nvidia-modprobe
 
 # Source of the CUDA installation scripts:
 # https://github.com/pytorch/builder/blob/main/common/install_cuda.sh
@@ -65,28 +65,28 @@ RUN cd /workspace && mkdir tmp_nccl && cd tmp_nccl && \
 RUN cd /workspace && mkdir tmp_cuda && cd tmp_cuda && \
     wget -q https://developer.download.nvidia.com/compute/cuda/12.1.0/local_installers/cuda_12.1.0_530.30.02_linux.run && \
     chmod +x cuda_12.1.0_530.30.02_linux.run && \
-    ./cuda_12.1.0_530.30.02_linux.run --toolkit --silent && \
+    sudo ./cuda_12.1.0_530.30.02_linux.run --toolkit --silent && \
     cd .. && \
     rm -rf tmp_cuda && \
-    ldconfig
+    sudo ldconfig
 # cuDNN license: https://developer.nvidia.com/cudnn/license_agreement
 RUN cd /workspace && mkdir tmp_cudnn && cd tmp_cudnn && \
     wget -q https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/linux-x86_64/cudnn-linux-x86_64-8.8.1.3_cuda12-archive.tar.xz -O cudnn-linux-x86_64-8.8.1.3_cuda12-archive.tar.xz && \
     tar xf cudnn-linux-x86_64-8.8.1.3_cuda12-archive.tar.xz && \
-    cp -a cudnn-linux-x86_64-8.8.1.3_cuda12-archive/include/* /usr/local/cuda/include/ && \
-    cp -a cudnn-linux-x86_64-8.8.1.3_cuda12-archive/lib/* /usr/local/cuda/lib64/ && \
+    sudo cp -a cudnn-linux-x86_64-8.8.1.3_cuda12-archive/include/* /usr/local/cuda/include/ && \
+    sudo cp -a cudnn-linux-x86_64-8.8.1.3_cuda12-archive/lib/* /usr/local/cuda/lib64/ && \
     cd .. && \
     rm -rf tmp_cudnn && \
-    ldconfig
+    sudo ldconfig
 # NCCL license: https://docs.nvidia.com/deeplearning/nccl/#licenses
 RUN cd /workspace && mkdir tmp_nccl && cd tmp_nccl && \
     wget -q https://developer.download.nvidia.com/compute/redist/nccl/v2.17.1/nccl_2.17.1-1+cuda12.1_x86_64.txz && \
     tar xf nccl_2.17.1-1+cuda12.1_x86_64.txz && \
-    cp -a nccl_2.17.1-1+cuda12.1_x86_64/include/* /usr/local/cuda/include/ && \
-    cp -a nccl_2.17.1-1+cuda12.1_x86_64/lib/* /usr/local/cuda/lib64/ && \
+    sudo cp -a nccl_2.17.1-1+cuda12.1_x86_64/include/* /usr/local/cuda/include/ && \
+    sudo cp -a nccl_2.17.1-1+cuda12.1_x86_64/lib/* /usr/local/cuda/lib64/ && \
     cd .. && \
     rm -rf tmp_nccl && \
-    ldconfig
+    sudo ldconfig
 
 # Setup the default CUDA version to 11.7
 RUN sudo rm -f /usr/local/cuda && sudo ln -s /usr/local/cuda-11.7 /usr/local/cuda
