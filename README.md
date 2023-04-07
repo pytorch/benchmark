@@ -10,6 +10,12 @@ The benchmark suite should be self contained in terms of dependencies,
 except for the torch products which are intended to be installed separately so
 different torch versions can be benchmarked.
 
+### Required system packages
+On Ubuntu, the installation requires python3-dev and build-essential packages preinstalled.
+```
+sudo apt-get install build-essential python3-dev
+```
+
 ### Using Pre-built Packages
 We support Python 3.8+, and 3.10 is recommended. Conda is optional but suggested. To start with Python 3.10 in conda:
 ```
