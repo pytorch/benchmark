@@ -194,6 +194,10 @@ class TorchSource:
         env["USE_CUDNN"] = "1"
         env["USE_FFMPEG"] = "1"
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
+        env["LD_LIBRARY_PATH"] = f'{env["CONDA_PREFIX"]}/envs/{env["BISECT_CONDA_ENV"]}/lib/:{env["LD_LIBRARY_PATH"]}'
+        env["LIBRARY_PATH"] = f'{env["CONDA_PREFIX"]}/envs/{env["BISECT_CONDA_ENV"]}/lib/:{env["LIBRARY_PATH"]}'
+        print(env["LD_LIBRARY_PATH"])
+        print(env["LIBRARY_PATH"])
         return env
 
     # Checkout the last commit of dependencies on date
