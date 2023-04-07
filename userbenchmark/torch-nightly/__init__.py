@@ -49,13 +49,14 @@ def compute_score(results, reference_latencies: Dict[str, float]) -> float:
     reference_set = set(reference_latencies.keys())
     test_only_set = test_set.difference(reference_set)
     assert not test_only_set, f"Tests {test_only_set} only appears in result json, not in reference yaml."
-    reference_only_set = reference_set.difference(test_only_set)
+    reference_only_set = reference_set.difference(test_set)
     assert not reference_only_set, f"Tests {reference_only_set} only appears in reference yaml, not in result json."
     # check that for every test in reference_latencies, we can find the corresponding tests in latency_results
     total_score = 0.0
     weight = 1.0 / len(reference_latencies)
-    for key, ref_latency in reference_latencies:
+    for key, ref_latency in reference_latencies.items():
         test_latency = latency_results[key]
+        ref_latency = float(ref_latency)
         delta = (test_latency - ref_latency) / test_latency
         # If less than threshold, treat it as noise
         if abs(delta) <= DEFAULT_DELTA_THRESHOLD:
@@ -160,7 +161,7 @@ def run(args: List[str]):
         assert args.config, f"To compute score, you must specify the config YAML using --config."
         configs, reference_latencies = generate_model_configs_from_yaml(args.config)
         with open(args.score, "r") as sp:
-            run_result = json.read(sp)
+            run_result = json.load(sp)
         input_metrics = run_result["metrics"]
         score = compute_score(input_metrics, reference_latencies)
         print(f"TorchBench score: {score}.")
