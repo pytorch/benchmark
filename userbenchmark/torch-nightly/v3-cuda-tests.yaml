@@ -1,788 +1,794 @@
 # Unstable CUDA GPU test on branch v3.0
 # Variance threshold: 0.07
 # Tracking unstable tests in https://github.com/pytorch/benchmark/issues/1409
-- model: BERT_pytorch
-  test: train
-  max_delta: '0.0045722922019210115'
-  median_latency: '103.586542'
-  stable: true
-- model: BERT_pytorch
-  test: eval
-  max_delta: '0.0038847021093511144'
-  median_latency: '60.102406'
-  stable: true
-- model: Background_Matting
-  test: train
-  max_delta: '0.05425879233275458'
-  median_latency: '1369.542935'
-  stable: true
-- model: DALLE2_pytorch
-  test: train
-  max_delta: '0.02062939660125087'
-  median_latency: '424.628383'
-  stable: true
-- model: DALLE2_pytorch
-  test: eval
-  max_delta: '0.022050414356562322'
-  median_latency: '149.678071'
-  stable: true
-- model: LearningToPaint
-  test: train
-  max_delta: '0.14913008374401296'
-  median_latency: '26.507619'
-  stable: false
-- model: LearningToPaint
-  test: eval
-  max_delta: '0.01623967006603702'
-  median_latency: '4680.438158'
-  stable: true
-- model: Super_SloMo
-  test: train
-  max_delta: '0.003524760481132586'
-  median_latency: '121.425249'
-  stable: true
-- model: Super_SloMo
-  test: eval
-  max_delta: '0.008952569180114917'
-  median_latency: '64.309313'
-  stable: true
-- model: alexnet
-  test: train
-  max_delta: '0.02498112387849367'
-  median_latency: '18.058299'
-  stable: true
-- model: alexnet
-  test: eval
-  max_delta: '0.012089359212515648'
-  median_latency: '22.492651'
-  stable: true
-- test: train
-  model: attention_is_all_you_need_pytorch
-  max_delta: '0.004131861627093704'
-  median_latency: '191.760708'
-  stable: true
-- model: attention_is_all_you_need_pytorch
-  test: eval
-  max_delta: '0.01359911643442069'
-  median_latency: '61.616649'
-  stable: true
-- model: dcgan
-  test: train
-  max_delta: '0.034624491767270525'
-  median_latency: '43.43808'
-  stable: true
-- model: dcgan
-  test: eval
-  max_delta: '0.011787863736257443'
-  median_latency: '4.962533'
-  stable: true
-- model: demucs
-  test: eval
-  max_delta: '0.004320825606768029'
-  median_latency: '96.781816'
-  stable: true
-- model: densenet121
-  test: train
-  max_delta: '0.0015904589991954906'
-  median_latency: '363.467008'
-  stable: true
-- model: densenet121
-  test: eval
-  max_delta: '0.10273165024867592'
-  median_latency: '22.186981'
-  stable: false
-- model: detectron2_fasterrcnn_r_101_c4
-  test: train
-  max_delta: '0.0476184684079677'
-  median_latency: '117.897548'
-  stable: true
-- model: detectron2_fasterrcnn_r_101_c4
-  test: eval
-  max_delta: '0.11190652399532759'
-  median_latency: '47.615886'
-  stable: false
-- test: train
-  model: detectron2_fasterrcnn_r_101_dc5
-  max_delta: '0.037462001107167756'
-  median_latency: '115.081285'
-  stable: true
-- test: eval
-  model: detectron2_fasterrcnn_r_101_dc5
-  max_delta: '0.011837870057998554'
-  median_latency: '136.519088'
-  stable: true
-- test: train
-  model: detectron2_fasterrcnn_r_101_fpn
-  max_delta: '0.026259888613161746'
-  median_latency: '88.119058'
-  stable: true
-- test: eval
-  model: detectron2_fasterrcnn_r_101_fpn
-  max_delta: '0.07076459245129205'
-  median_latency: '74.021159'
-  stable: false
-- model: detectron2_fasterrcnn_r_50_c4
-  test: train
-  max_delta: '0.0726588929363764'
-  median_latency: '94.543995'
-  stable: false
-- model: detectron2_fasterrcnn_r_50_c4
-  test: eval
-  max_delta: '0.1289110754818769'
-  median_latency: '40.000423'
-  stable: false
-- test: train
-  model: detectron2_fasterrcnn_r_50_dc5
-  max_delta: '0.032694676896423816'
-  median_latency: '91.893555'
-  stable: true
-- test: eval
-  model: detectron2_fasterrcnn_r_50_dc5
-  max_delta: '0.051509465431307806'
-  median_latency: '23.033376'
-  stable: true
-- model: detectron2_fasterrcnn_r_50_fpn
-  test: train
-  max_delta: '0.05234106022746793'
-  median_latency: '62.816238'
-  stable: true
-- model: detectron2_fasterrcnn_r_50_fpn
-  test: eval
-  max_delta: '0.021641466546489765'
-  median_latency: '60.131355'
-  stable: true
-- model: detectron2_fcos_r_50_fpn
-  test: eval
-  max_delta: '0.08163684145111938'
-  median_latency: '68.095036'
-  stable: false
-- model: detectron2_maskrcnn
-  test: train
-  max_delta: '0.011746428988980592'
-  median_latency: '6274.958415'
-  stable: true
-- model: detectron2_maskrcnn
-  test: eval
-  max_delta: '0.009609989088557971'
-  median_latency: '2263.312669'
-  stable: true
-- model: detectron2_maskrcnn_r_101_c4
-  test: train
-  max_delta: '0.01840064391285551'
-  median_latency: '132.275837'
-  stable: true
-- model: detectron2_maskrcnn_r_101_c4
-  test: eval
-  max_delta: '0.06551634759558306'
-  median_latency: '81.750751'
-  stable: true
-- model: detectron2_maskrcnn_r_101_fpn
-  test: train
-  max_delta: '0.03809045759607773'
-  median_latency: '109.949531'
-  stable: true
-- model: detectron2_maskrcnn_r_101_fpn
-  test: eval
-  max_delta: '0.013897149308766626'
-  median_latency: '81.168598'
-  stable: true
-- model: detectron2_maskrcnn_r_50_c4
-  test: train
-  max_delta: '0.055582828887269765'
-  median_latency: '108.973434'
-  stable: true
-- model: detectron2_maskrcnn_r_50_c4
-  test: eval
-  max_delta: '0.13450693944227055'
-  median_latency: '42.262898'
-  stable: false
-- model: detectron2_maskrcnn_r_50_fpn
-  test: train
-  max_delta: '0.08151205674247264'
-  median_latency: '84.799193'
-  stable: false
-- model: detectron2_maskrcnn_r_50_fpn
-  test: eval
-  max_delta: '0.06411359726538551'
-  median_latency: '67.45196'
-  stable: true
-- model: dlrm
-  test: train
-  max_delta: '0.014881027039322033'
-  median_latency: '7.164685'
-  stable: true
-- model: dlrm
-  test: eval
-  max_delta: '0.0582089414684948'
-  median_latency: '1.326925'
-  stable: true
-- model: doctr_det_predictor
-  test: eval
-  max_delta: '0.034865611479801405'
-  median_latency: '49.358875'
-  stable: true
-- model: doctr_reco_predictor
-  test: eval
-  max_delta: '0.009131802883650363'
-  median_latency: '7.147663'
-  stable: true
-- model: drq
-  test: train
-  max_delta: '0.022185071653546894'
-  median_latency: '145.914236'
-  stable: true
-- model: drq
-  test: eval
-  max_delta: '3.369349176462307'
-  median_latency: '2.328034'
-  stable: false
-- model: fambench_xlmr
-  test: train
-  max_delta: '0.0005999296529231454'
-  median_latency: '717.635068'
-  stable: true
-- model: fambench_xlmr
-  test: eval
-  max_delta: '0.031054978032257746'
-  median_latency: '26.735623'
-  stable: true
-- model: fastNLP_Bert
-  test: train
-  max_delta: '0.004716880677698651'
-  median_latency: '715.103655'
-  stable: true
-- model: fastNLP_Bert
-  test: eval
-  max_delta: '0.00231648547431794'
-  median_latency: '484.563655'
-  stable: true
-- model: functorch_dp_cifar10
-  test: train
-  max_delta: '0.07433800319333662'
-  median_latency: '57.064905'
-  stable: false
-- model: functorch_dp_cifar10
-  test: eval
-  max_delta: '0.018798966476659375'
-  median_latency: '4.015296'
-  stable: true
-- model: functorch_maml_omniglot
-  test: train
-  max_delta: '0.024550696017525537'
-  median_latency: '236.869899'
-  stable: true
-- model: functorch_maml_omniglot
-  test: eval
-  max_delta: '0.09791985033005919'
-  median_latency: '0.989512'
-  stable: false
-- model: hf_Albert
-  test: train
-  max_delta: '0.006155966164561535'
-  median_latency: '204.004346'
-  stable: true
-- model: hf_Albert
-  test: eval
-  max_delta: '0.005404040229071171'
-  median_latency: '29.187337'
-  stable: true
-- test: train
-  model: hf_Bart
-  max_delta: '0.007720453104699319'
-  median_latency: '154.428021'
-  stable: true
-- model: hf_Bart
-  test: eval
-  max_delta: '0.01569664730788755'
-  median_latency: '22.891132'
-  stable: true
-- model: hf_Bert
-  test: train
-  max_delta: '0.005091141059566168'
-  median_latency: '118.138727'
-  stable: true
-- model: hf_Bert
-  test: eval
-  max_delta: '0.03921706928216099'
-  median_latency: '14.195607'
-  stable: true
-- test: train
-  model: hf_Bert_large
-  max_delta: '0.0015082641775461803'
-  median_latency: '299.99731'
-  stable: true
-- test: eval
-  model: hf_Bert_large
-  max_delta: '0.035778181860596205'
-  median_latency: '25.461046'
-  stable: true
-- model: hf_BigBird
-  test: train
-  max_delta: '0.014493057698232286'
-  median_latency: '279.914772'
-  stable: true
-- model: hf_BigBird
-  test: eval
-  max_delta: '0.007746975642308608'
-  median_latency: '123.513438'
-  stable: true
-- model: hf_DistilBert
-  test: train
-  max_delta: '0.007672205303075891'
-  median_latency: '132.922936'
-  stable: true
-- model: hf_DistilBert
-  test: eval
-  max_delta: '0.004571088372221225'
-  median_latency: '13.964672'
-  stable: true
-- test: train
-  model: hf_GPT2
-  max_delta: '0.005178232065273201'
-  median_latency: '140.212873'
-  stable: true
-- model: hf_GPT2
-  test: eval
-  max_delta: '0.004610787655652283'
-  median_latency: '93.851391'
-  stable: true
-- model: hf_GPT2_large
-  test: train
-  max_delta: '0.0012202334572438095'
-  median_latency: '766.940278'
-  stable: true
-- model: hf_GPT2_large
-  test: eval
-  max_delta: '0.052612052105826666'
-  median_latency: '42.82765'
-  stable: true
-- model: hf_Longformer
-  test: train
-  max_delta: '0.00566911735261803'
-  median_latency: '222.24958'
-  stable: true
-- model: hf_Longformer
-  test: eval
-  max_delta: '0.0026844138128811253'
-  median_latency: '141.878841'
-  stable: true
-- test: train
-  model: hf_Reformer
-  max_delta: '0.0019169312746408302'
-  median_latency: '260.839683'
-  stable: true
-- test: eval
-  model: hf_Reformer
-  max_delta: '0.003574872549963059'
-  median_latency: '27.251291'
-  stable: true
-- test: train
-  model: hf_T5
-  max_delta: '0.004125503909882094'
-  median_latency: '391.888518'
-  stable: true
-- model: hf_T5
-  test: eval
-  max_delta: '0.005767742734360643'
-  median_latency: '101.153592'
-  stable: true
-- model: hf_T5_base
-  test: eval
-  max_delta: '0.012950732382189726'
-  median_latency: '106.42637'
-  stable: true
-- model: hf_T5_large
-  test: train
-  max_delta: '0.0034745393985750406'
-  median_latency: '460.630132'
-  stable: true
-- model: hf_T5_large
-  test: eval
-  max_delta: '0.03637643724703744'
-  median_latency: '89.890096'
-  stable: true
-- model: lennard_jones
-  test: train
-  max_delta: '0.03423593729859486'
-  median_latency: '5.586791'
-  stable: true
-- model: lennard_jones
-  test: eval
-  max_delta: '0.07240061093758564'
-  median_latency: '2.641289'
-  stable: false
-- model: llama
-  test: eval
-  max_delta: '0.03045614590861238'
-  median_latency: '12.335219'
-  stable: true
-- test: eval
-  model: maml
-  max_delta: '0.024201112251164485'
-  median_latency: '604.310861'
-  stable: true
-- model: maml_omniglot
-  test: train
-  max_delta: '0.02222928028644918'
-  median_latency: '1363.676965'
-  stable: true
-- model: maml_omniglot
-  test: eval
-  max_delta: '0.05389385283921674'
-  median_latency: '0.940251'
-  stable: true
-- model: mnasnet1_0
-  test: train
-  max_delta: '0.06047818577240339'
-  median_latency: '27.824042'
-  stable: true
-- model: mnasnet1_0
-  test: eval
-  max_delta: '0.007589130521565754'
-  median_latency: '11.736283'
-  stable: true
-- test: train
-  model: mobilenet_v2
-  max_delta: '0.005433615065210578'
-  median_latency: '70.342317'
-  stable: true
-- model: mobilenet_v2
-  test: eval
-  max_delta: '0.010847034578060607'
-  median_latency: '14.670986'
-  stable: true
-- model: mobilenet_v2_quantized_qat
-  test: train
-  max_delta: '0.018991368230142375'
-  median_latency: '148.821829'
-  stable: true
-- model: mobilenet_v3_large
-  test: train
-  max_delta: '0.047619885198085826'
-  median_latency: '30.352066'
-  stable: true
-- model: mobilenet_v3_large
-  test: eval
-  max_delta: '0.008715030746263288'
-  median_latency: '10.927471'
-  stable: true
-- model: moco
-  test: train
-  max_delta: '0.029630527028834966'
-  median_latency: '123.215036'
-  stable: true
-- model: moco
-  test: eval
-  max_delta: '0.009749499689268054'
-  median_latency: '113.885694'
-  stable: true
-- model: nvidia_deeprecommender
-  test: train
-  max_delta: '0.0024306362517293153'
-  median_latency: '24.102332'
-  stable: true
-- model: nvidia_deeprecommender
-  test: eval
-  max_delta: '0.030351575924047615'
-  median_latency: '12.236169'
-  stable: true
-- test: train
-  model: opacus_cifar10
-  max_delta: '0.05241102396027658'
-  median_latency: '55.557103'
-  stable: true
-- test: eval
-  model: opacus_cifar10
-  max_delta: '0.034594557379138705'
-  median_latency: '4.357351'
-  stable: true
-- test: train
-  model: phlippe_densenet
-  max_delta: '0.051129615591101324'
-  median_latency: '28.628401'
-  stable: true
-- model: phlippe_densenet
-  test: eval
-  max_delta: '0.04716616799289636'
-  median_latency: '8.586318'
-  stable: true
-- test: train
-  model: phlippe_resnet
-  max_delta: '0.02975838408910142'
-  median_latency: '9.244343'
-  stable: true
-- test: eval
-  model: phlippe_resnet
-  max_delta: '0.0331415105547403'
-  median_latency: '3.003853'
-  stable: true
-- model: pyhpc_equation_of_state
-  test: eval
-  max_delta: '0.016360488155705004'
-  median_latency: '6.293009'
-  stable: true
-- model: pyhpc_isoneutral_mixing
-  test: eval
-  max_delta: '0.01718402313687783'
-  median_latency: '9.913685'
-  stable: true
-- model: pyhpc_turbulent_kinetic_energy
-  test: eval
-  max_delta: '0.06294942521845161'
-  median_latency: '9.657278'
-  stable: true
-- model: pytorch_CycleGAN_and_pix2pix
-  test: train
-  max_delta: '0.06261367474487657'
-  median_latency: '89.856189'
-  stable: true
-- model: pytorch_CycleGAN_and_pix2pix
-  test: eval
-  max_delta: '0.04787449603008713'
-  median_latency: '5.250605'
-  stable: true
-- model: pytorch_stargan
-  test: train
-  max_delta: '0.02220515384358886'
-  median_latency: '26.536122'
-  stable: true
-- model: pytorch_stargan
-  test: eval
-  max_delta: '0.00703204537212217'
-  median_latency: '7.344804'
-  stable: true
-- test: train
-  model: pytorch_struct
-  max_delta: '0.0220314709699338'
-  median_latency: '103.433532'
-  stable: true
-- model: pytorch_unet
-  test: train
-  max_delta: '0.020044930100385636'
-  median_latency: '45.80476'
-  stable: true
-- model: pytorch_unet
-  test: eval
-  max_delta: '0.0030012636647810576'
-  median_latency: '46.030021'
-  stable: true
-- model: resnet152
-  test: train
-  max_delta: '0.016909627366086828'
-  median_latency: '92.805875'
-  stable: true
-- model: resnet152
-  test: eval
-  max_delta: '0.0052511332055229995'
-  median_latency: '32.026292'
-  stable: true
-- model: resnet18
-  test: train
-  max_delta: '0.023392269134645444'
-  median_latency: '10.89047'
-  stable: true
-- model: resnet18
-  test: eval
-  max_delta: '0.02015825023892176'
-  median_latency: '16.714352'
-  stable: true
-- model: resnet50
-  test: train
-  max_delta: '0.01689203912893119'
-  median_latency: '40.417665'
-  stable: true
-- model: resnet50
-  test: eval
-  max_delta: '0.005999554084357583'
-  median_latency: '14.296497'
-  stable: true
-- model: resnet50_quantized_qat
-  test: train
-  max_delta: '0.01635229315436238'
-  median_latency: '95.707844'
-  stable: true
-- model: resnext50_32x4d
-  test: train
-  max_delta: '0.11364080025101286'
-  median_latency: '25.581428'
-  stable: false
-- model: resnext50_32x4d
-  test: eval
-  max_delta: '0.01098658496725882'
-  median_latency: '18.407468'
-  stable: true
-- model: shufflenet_v2_x1_0
-  test: train
-  max_delta: '0.034560040074295514'
-  median_latency: '35.898142'
-  stable: true
-- model: shufflenet_v2_x1_0
-  test: eval
-  max_delta: '0.03334933305819786'
-  median_latency: '9.949513'
-  stable: true
-- model: soft_actor_critic
-  test: train
-  max_delta: '0.08230638880040077'
-  median_latency: '11.849702'
-  stable: false
-- model: soft_actor_critic
-  test: eval
-  max_delta: '0.031890022178184166'
-  median_latency: '8.956492'
-  stable: true
-- test: train
-  model: speech_transformer
-  max_delta: '0.04797333505802351'
-  median_latency: '117.971794'
-  stable: true
-- test: eval
-  model: speech_transformer
-  max_delta: '0.012515410783130424'
-  median_latency: '5502.56876'
-  stable: true
-- test: train
-  model: squeezenet1_1
-  max_delta: '0.01509975225203317'
-  median_latency: '144.871739'
-  stable: true
-- test: eval
-  model: squeezenet1_1
-  max_delta: '0.00546752341323513'
-  median_latency: '14.391388'
-  stable: true
-- model: tacotron2
-  test: train
-  max_delta: '0.013235448303791125'
-  median_latency: '2886.419344'
-  stable: true
-- model: tacotron2
-  test: eval
-  max_delta: '0.017854043286907435'
-  median_latency: '1280.749545'
-  stable: true
-- model: timm_efficientdet
-  test: train
-  max_delta: '0.009953521778282166'
-  median_latency: '290.353232'
-  stable: true
-- model: timm_efficientdet
-  test: eval
-  max_delta: '0.09689055668811972'
-  median_latency: '687.760072'
-  stable: false
-- model: timm_efficientnet
-  test: train
-  max_delta: '0.019120491287471886'
-  median_latency: '39.435316'
-  stable: true
-- model: timm_efficientnet
-  test: eval
-  max_delta: '0.004850028100670762'
-  median_latency: '16.572062'
-  stable: true
-- model: timm_nfnet
-  test: train
-  max_delta: '0.005378299208709852'
-  median_latency: '195.174542'
-  stable: true
-- model: timm_nfnet
-  test: eval
-  max_delta: '0.040640629907516795'
-  median_latency: '42.577822'
-  stable: true
-- model: timm_regnet
-  test: train
-  max_delta: '0.011470423157069996'
-  median_latency: '93.428573'
-  stable: true
-- model: timm_regnet
-  test: eval
-  max_delta: '0.023245800566286615'
-  median_latency: '18.017356'
-  stable: true
-- model: timm_resnest
-  test: train
-  max_delta: '0.0038408658468644147'
-  median_latency: '32.166174'
-  stable: true
-- model: timm_resnest
-  test: eval
-  max_delta: '0.004401285996279868'
-  median_latency: '39.515286'
-  stable: true
-- model: timm_vision_transformer
-  test: train
-  max_delta: '0.007102608543033246'
-  median_latency: '74.203416'
-  stable: true
-- model: timm_vision_transformer
-  test: eval
-  max_delta: '0.015101858751573312'
-  median_latency: '21.502178'
-  stable: true
-- test: eval
-  model: timm_vision_transformer_large
-  max_delta: '0.0031132153724129663'
-  median_latency: '141.879536'
-  stable: true
-- model: timm_vovnet
-  test: train
-  max_delta: '0.004814813032985627'
-  median_latency: '39.553938'
-  stable: true
-- model: timm_vovnet
-  test: eval
-  max_delta: '0.00445213870660801'
-  median_latency: '24.037421'
-  stable: true
-- model: torchrec_dlrm
-  test: train
-  max_delta: '0.03276520580419736'
-  median_latency: '7.917619'
-  stable: true
-- model: torchrec_dlrm
-  test: eval
-  max_delta: '0.024227634838419037'
-  median_latency: '2.884723'
-  stable: true
-- model: tts_angular
-  test: train
-  max_delta: '0.03198045460567618'
-  median_latency: '13.115488'
-  stable: true
-- model: tts_angular
-  test: eval
-  max_delta: '0.010418597437132568'
-  median_latency: '10.723443'
-  stable: true
-- model: vgg16
-  test: train
-  max_delta: '0.005561447432597052'
-  median_latency: '117.67741'
-  stable: true
-- model: vgg16
-  test: eval
-  max_delta: '0.012996860118152223'
-  median_latency: '3.605949'
-  stable: true
-- model: vision_maskrcnn
-  test: train
-  max_delta: '0.010845414576940394'
-  median_latency: '226.355197'
-  stable: true
-- model: vision_maskrcnn
-  test: eval
-  max_delta: '0.01940755161762634'
-  median_latency: '175.78836'
-  stable: true
-- model: yolov3
-  test: train
-  max_delta: '0.008582159005980089'
-  median_latency: '115.271513'
-  stable: true
-- model: yolov3
-  test: eval
-  max_delta: '0.056987589748850896'
-  median_latency: '16.761296'
-  stable: true
+metadata:
+  score_version: "v3"
+  platform: "gcp_a100"
+  devices:
+    - cuda
+cuda:
+  - model: BERT_pytorch
+    test: train
+    max_delta: '0.0045722922019210115'
+    median_latency: '103.586542'
+    stable: true
+  - model: BERT_pytorch
+    test: eval
+    max_delta: '0.0038847021093511144'
+    median_latency: '60.102406'
+    stable: true
+  - model: Background_Matting
+    test: train
+    max_delta: '0.05425879233275458'
+    median_latency: '1369.542935'
+    stable: true
+  - model: DALLE2_pytorch
+    test: train
+    max_delta: '0.02062939660125087'
+    median_latency: '424.628383'
+    stable: true
+  - model: DALLE2_pytorch
+    test: eval
+    max_delta: '0.022050414356562322'
+    median_latency: '149.678071'
+    stable: true
+  - model: LearningToPaint
+    test: train
+    max_delta: '0.14913008374401296'
+    median_latency: '26.507619'
+    stable: false
+  - model: LearningToPaint
+    test: eval
+    max_delta: '0.01623967006603702'
+    median_latency: '4680.438158'
+    stable: true
+  - model: Super_SloMo
+    test: train
+    max_delta: '0.003524760481132586'
+    median_latency: '121.425249'
+    stable: true
+  - model: Super_SloMo
+    test: eval
+    max_delta: '0.008952569180114917'
+    median_latency: '64.309313'
+    stable: true
+  - model: alexnet
+    test: train
+    max_delta: '0.02498112387849367'
+    median_latency: '18.058299'
+    stable: true
+  - model: alexnet
+    test: eval
+    max_delta: '0.012089359212515648'
+    median_latency: '22.492651'
+    stable: true
+  - test: train
+    model: attention_is_all_you_need_pytorch
+    max_delta: '0.004131861627093704'
+    median_latency: '191.760708'
+    stable: true
+  - model: attention_is_all_you_need_pytorch
+    test: eval
+    max_delta: '0.01359911643442069'
+    median_latency: '61.616649'
+    stable: true
+  - model: dcgan
+    test: train
+    max_delta: '0.034624491767270525'
+    median_latency: '43.43808'
+    stable: true
+  - model: dcgan
+    test: eval
+    max_delta: '0.011787863736257443'
+    median_latency: '4.962533'
+    stable: true
+  - model: demucs
+    test: eval
+    max_delta: '0.004320825606768029'
+    median_latency: '96.781816'
+    stable: true
+  - model: densenet121
+    test: train
+    max_delta: '0.0015904589991954906'
+    median_latency: '363.467008'
+    stable: true
+  - model: densenet121
+    test: eval
+    max_delta: '0.10273165024867592'
+    median_latency: '22.186981'
+    stable: false
+  - model: detectron2_fasterrcnn_r_101_c4
+    test: train
+    max_delta: '0.0476184684079677'
+    median_latency: '117.897548'
+    stable: true
+  - model: detectron2_fasterrcnn_r_101_c4
+    test: eval
+    max_delta: '0.11190652399532759'
+    median_latency: '47.615886'
+    stable: false
+  - test: train
+    model: detectron2_fasterrcnn_r_101_dc5
+    max_delta: '0.037462001107167756'
+    median_latency: '115.081285'
+    stable: true
+  - test: eval
+    model: detectron2_fasterrcnn_r_101_dc5
+    max_delta: '0.011837870057998554'
+    median_latency: '136.519088'
+    stable: true
+  - test: train
+    model: detectron2_fasterrcnn_r_101_fpn
+    max_delta: '0.026259888613161746'
+    median_latency: '88.119058'
+    stable: true
+  - test: eval
+    model: detectron2_fasterrcnn_r_101_fpn
+    max_delta: '0.07076459245129205'
+    median_latency: '74.021159'
+    stable: false
+  - model: detectron2_fasterrcnn_r_50_c4
+    test: train
+    max_delta: '0.0726588929363764'
+    median_latency: '94.543995'
+    stable: false
+  - model: detectron2_fasterrcnn_r_50_c4
+    test: eval
+    max_delta: '0.1289110754818769'
+    median_latency: '40.000423'
+    stable: false
+  - test: train
+    model: detectron2_fasterrcnn_r_50_dc5
+    max_delta: '0.032694676896423816'
+    median_latency: '91.893555'
+    stable: true
+  - test: eval
+    model: detectron2_fasterrcnn_r_50_dc5
+    max_delta: '0.051509465431307806'
+    median_latency: '23.033376'
+    stable: true
+  - model: detectron2_fasterrcnn_r_50_fpn
+    test: train
+    max_delta: '0.05234106022746793'
+    median_latency: '62.816238'
+    stable: true
+  - model: detectron2_fasterrcnn_r_50_fpn
+    test: eval
+    max_delta: '0.021641466546489765'
+    median_latency: '60.131355'
+    stable: true
+  - model: detectron2_fcos_r_50_fpn
+    test: eval
+    max_delta: '0.08163684145111938'
+    median_latency: '68.095036'
+    stable: false
+  - model: detectron2_maskrcnn
+    test: train
+    max_delta: '0.011746428988980592'
+    median_latency: '6274.958415'
+    stable: true
+  - model: detectron2_maskrcnn
+    test: eval
+    max_delta: '0.009609989088557971'
+    median_latency: '2263.312669'
+    stable: true
+  - model: detectron2_maskrcnn_r_101_c4
+    test: train
+    max_delta: '0.01840064391285551'
+    median_latency: '132.275837'
+    stable: true
+  - model: detectron2_maskrcnn_r_101_c4
+    test: eval
+    max_delta: '0.06551634759558306'
+    median_latency: '81.750751'
+    stable: true
+  - model: detectron2_maskrcnn_r_101_fpn
+    test: train
+    max_delta: '0.03809045759607773'
+    median_latency: '109.949531'
+    stable: true
+  - model: detectron2_maskrcnn_r_101_fpn
+    test: eval
+    max_delta: '0.013897149308766626'
+    median_latency: '81.168598'
+    stable: true
+  - model: detectron2_maskrcnn_r_50_c4
+    test: train
+    max_delta: '0.055582828887269765'
+    median_latency: '108.973434'
+    stable: true
+  - model: detectron2_maskrcnn_r_50_c4
+    test: eval
+    max_delta: '0.13450693944227055'
+    median_latency: '42.262898'
+    stable: false
+  - model: detectron2_maskrcnn_r_50_fpn
+    test: train
+    max_delta: '0.08151205674247264'
+    median_latency: '84.799193'
+    stable: false
+  - model: detectron2_maskrcnn_r_50_fpn
+    test: eval
+    max_delta: '0.06411359726538551'
+    median_latency: '67.45196'
+    stable: true
+  - model: dlrm
+    test: train
+    max_delta: '0.014881027039322033'
+    median_latency: '7.164685'
+    stable: true
+  - model: dlrm
+    test: eval
+    max_delta: '0.0582089414684948'
+    median_latency: '1.326925'
+    stable: true
+  - model: doctr_det_predictor
+    test: eval
+    max_delta: '0.034865611479801405'
+    median_latency: '49.358875'
+    stable: true
+  - model: doctr_reco_predictor
+    test: eval
+    max_delta: '0.009131802883650363'
+    median_latency: '7.147663'
+    stable: true
+  - model: drq
+    test: train
+    max_delta: '0.022185071653546894'
+    median_latency: '145.914236'
+    stable: true
+  - model: drq
+    test: eval
+    max_delta: '3.369349176462307'
+    median_latency: '2.328034'
+    stable: false
+  - model: fambench_xlmr
+    test: train
+    max_delta: '0.0005999296529231454'
+    median_latency: '717.635068'
+    stable: true
+  - model: fambench_xlmr
+    test: eval
+    max_delta: '0.031054978032257746'
+    median_latency: '26.735623'
+    stable: true
+  - model: fastNLP_Bert
+    test: train
+    max_delta: '0.004716880677698651'
+    median_latency: '715.103655'
+    stable: true
+  - model: fastNLP_Bert
+    test: eval
+    max_delta: '0.00231648547431794'
+    median_latency: '484.563655'
+    stable: true
+  - model: functorch_dp_cifar10
+    test: train
+    max_delta: '0.07433800319333662'
+    median_latency: '57.064905'
+    stable: false
+  - model: functorch_dp_cifar10
+    test: eval
+    max_delta: '0.018798966476659375'
+    median_latency: '4.015296'
+    stable: true
+  - model: functorch_maml_omniglot
+    test: train
+    max_delta: '0.024550696017525537'
+    median_latency: '236.869899'
+    stable: true
+  - model: functorch_maml_omniglot
+    test: eval
+    max_delta: '0.09791985033005919'
+    median_latency: '0.989512'
+    stable: false
+  - model: hf_Albert
+    test: train
+    max_delta: '0.006155966164561535'
+    median_latency: '204.004346'
+    stable: true
+  - model: hf_Albert
+    test: eval
+    max_delta: '0.005404040229071171'
+    median_latency: '29.187337'
+    stable: true
+  - test: train
+    model: hf_Bart
+    max_delta: '0.007720453104699319'
+    median_latency: '154.428021'
+    stable: true
+  - model: hf_Bart
+    test: eval
+    max_delta: '0.01569664730788755'
+    median_latency: '22.891132'
+    stable: true
+  - model: hf_Bert
+    test: train
+    max_delta: '0.005091141059566168'
+    median_latency: '118.138727'
+    stable: true
+  - model: hf_Bert
+    test: eval
+    max_delta: '0.03921706928216099'
+    median_latency: '14.195607'
+    stable: true
+  - test: train
+    model: hf_Bert_large
+    max_delta: '0.0015082641775461803'
+    median_latency: '299.99731'
+    stable: true
+  - test: eval
+    model: hf_Bert_large
+    max_delta: '0.035778181860596205'
+    median_latency: '25.461046'
+    stable: true
+  - model: hf_BigBird
+    test: train
+    max_delta: '0.014493057698232286'
+    median_latency: '279.914772'
+    stable: true
+  - model: hf_BigBird
+    test: eval
+    max_delta: '0.007746975642308608'
+    median_latency: '123.513438'
+    stable: true
+  - model: hf_DistilBert
+    test: train
+    max_delta: '0.007672205303075891'
+    median_latency: '132.922936'
+    stable: true
+  - model: hf_DistilBert
+    test: eval
+    max_delta: '0.004571088372221225'
+    median_latency: '13.964672'
+    stable: true
+  - test: train
+    model: hf_GPT2
+    max_delta: '0.005178232065273201'
+    median_latency: '140.212873'
+    stable: true
+  - model: hf_GPT2
+    test: eval
+    max_delta: '0.004610787655652283'
+    median_latency: '93.851391'
+    stable: true
+  - model: hf_GPT2_large
+    test: train
+    max_delta: '0.0012202334572438095'
+    median_latency: '766.940278'
+    stable: true
+  - model: hf_GPT2_large
+    test: eval
+    max_delta: '0.052612052105826666'
+    median_latency: '42.82765'
+    stable: true
+  - model: hf_Longformer
+    test: train
+    max_delta: '0.00566911735261803'
+    median_latency: '222.24958'
+    stable: true
+  - model: hf_Longformer
+    test: eval
+    max_delta: '0.0026844138128811253'
+    median_latency: '141.878841'
+    stable: true
+  - test: train
+    model: hf_Reformer
+    max_delta: '0.0019169312746408302'
+    median_latency: '260.839683'
+    stable: true
+  - test: eval
+    model: hf_Reformer
+    max_delta: '0.003574872549963059'
+    median_latency: '27.251291'
+    stable: true
+  - test: train
+    model: hf_T5
+    max_delta: '0.004125503909882094'
+    median_latency: '391.888518'
+    stable: true
+  - model: hf_T5
+    test: eval
+    max_delta: '0.005767742734360643'
+    median_latency: '101.153592'
+    stable: true
+  - model: hf_T5_base
+    test: eval
+    max_delta: '0.012950732382189726'
+    median_latency: '106.42637'
+    stable: true
+  - model: hf_T5_large
+    test: train
+    max_delta: '0.0034745393985750406'
+    median_latency: '460.630132'
+    stable: true
+  - model: hf_T5_large
+    test: eval
+    max_delta: '0.03637643724703744'
+    median_latency: '89.890096'
+    stable: true
+  - model: lennard_jones
+    test: train
+    max_delta: '0.03423593729859486'
+    median_latency: '5.586791'
+    stable: true
+  - model: lennard_jones
+    test: eval
+    max_delta: '0.07240061093758564'
+    median_latency: '2.641289'
+    stable: false
+  - model: llama
+    test: eval
+    max_delta: '0.03045614590861238'
+    median_latency: '12.335219'
+    stable: true
+  - test: eval
+    model: maml
+    max_delta: '0.024201112251164485'
+    median_latency: '604.310861'
+    stable: true
+  - model: maml_omniglot
+    test: train
+    max_delta: '0.02222928028644918'
+    median_latency: '1363.676965'
+    stable: true
+  - model: maml_omniglot
+    test: eval
+    max_delta: '0.05389385283921674'
+    median_latency: '0.940251'
+    stable: true
+  - model: mnasnet1_0
+    test: train
+    max_delta: '0.06047818577240339'
+    median_latency: '27.824042'
+    stable: true
+  - model: mnasnet1_0
+    test: eval
+    max_delta: '0.007589130521565754'
+    median_latency: '11.736283'
+    stable: true
+  - test: train
+    model: mobilenet_v2
+    max_delta: '0.005433615065210578'
+    median_latency: '70.342317'
+    stable: true
+  - model: mobilenet_v2
+    test: eval
+    max_delta: '0.010847034578060607'
+    median_latency: '14.670986'
+    stable: true
+  - model: mobilenet_v2_quantized_qat
+    test: train
+    max_delta: '0.018991368230142375'
+    median_latency: '148.821829'
+    stable: true
+  - model: mobilenet_v3_large
+    test: train
+    max_delta: '0.047619885198085826'
+    median_latency: '30.352066'
+    stable: true
+  - model: mobilenet_v3_large
+    test: eval
+    max_delta: '0.008715030746263288'
+    median_latency: '10.927471'
+    stable: true
+  - model: moco
+    test: train
+    max_delta: '0.029630527028834966'
+    median_latency: '123.215036'
+    stable: true
+  - model: moco
+    test: eval
+    max_delta: '0.009749499689268054'
+    median_latency: '113.885694'
+    stable: true
+  - model: nvidia_deeprecommender
+    test: train
+    max_delta: '0.0024306362517293153'
+    median_latency: '24.102332'
+    stable: true
+  - model: nvidia_deeprecommender
+    test: eval
+    max_delta: '0.030351575924047615'
+    median_latency: '12.236169'
+    stable: true
+  - test: train
+    model: opacus_cifar10
+    max_delta: '0.05241102396027658'
+    median_latency: '55.557103'
+    stable: true
+  - test: eval
+    model: opacus_cifar10
+    max_delta: '0.034594557379138705'
+    median_latency: '4.357351'
+    stable: true
+  - test: train
+    model: phlippe_densenet
+    max_delta: '0.051129615591101324'
+    median_latency: '28.628401'
+    stable: true
+  - model: phlippe_densenet
+    test: eval
+    max_delta: '0.04716616799289636'
+    median_latency: '8.586318'
+    stable: true
+  - test: train
+    model: phlippe_resnet
+    max_delta: '0.02975838408910142'
+    median_latency: '9.244343'
+    stable: true
+  - test: eval
+    model: phlippe_resnet
+    max_delta: '0.0331415105547403'
+    median_latency: '3.003853'
+    stable: true
+  - model: pyhpc_equation_of_state
+    test: eval
+    max_delta: '0.016360488155705004'
+    median_latency: '6.293009'
+    stable: true
+  - model: pyhpc_isoneutral_mixing
+    test: eval
+    max_delta: '0.01718402313687783'
+    median_latency: '9.913685'
+    stable: true
+  - model: pyhpc_turbulent_kinetic_energy
+    test: eval
+    max_delta: '0.06294942521845161'
+    median_latency: '9.657278'
+    stable: true
+  - model: pytorch_CycleGAN_and_pix2pix
+    test: train
+    max_delta: '0.06261367474487657'
+    median_latency: '89.856189'
+    stable: true
+  - model: pytorch_CycleGAN_and_pix2pix
+    test: eval
+    max_delta: '0.04787449603008713'
+    median_latency: '5.250605'
+    stable: true
+  - model: pytorch_stargan
+    test: train
+    max_delta: '0.02220515384358886'
+    median_latency: '26.536122'
+    stable: true
+  - model: pytorch_stargan
+    test: eval
+    max_delta: '0.00703204537212217'
+    median_latency: '7.344804'
+    stable: true
+  - test: train
+    model: pytorch_struct
+    max_delta: '0.0220314709699338'
+    median_latency: '103.433532'
+    stable: true
+  - model: pytorch_unet
+    test: train
+    max_delta: '0.020044930100385636'
+    median_latency: '45.80476'
+    stable: true
+  - model: pytorch_unet
+    test: eval
+    max_delta: '0.0030012636647810576'
+    median_latency: '46.030021'
+    stable: true
+  - model: resnet152
+    test: train
+    max_delta: '0.016909627366086828'
+    median_latency: '92.805875'
+    stable: true
+  - model: resnet152
+    test: eval
+    max_delta: '0.0052511332055229995'
+    median_latency: '32.026292'
+    stable: true
+  - model: resnet18
+    test: train
+    max_delta: '0.023392269134645444'
+    median_latency: '10.89047'
+    stable: true
+  - model: resnet18
+    test: eval
+    max_delta: '0.02015825023892176'
+    median_latency: '16.714352'
+    stable: true
+  - model: resnet50
+    test: train
+    max_delta: '0.01689203912893119'
+    median_latency: '40.417665'
+    stable: true
+  - model: resnet50
+    test: eval
+    max_delta: '0.005999554084357583'
+    median_latency: '14.296497'
+    stable: true
+  - model: resnet50_quantized_qat
+    test: train
+    max_delta: '0.01635229315436238'
+    median_latency: '95.707844'
+    stable: true
+  - model: resnext50_32x4d
+    test: train
+    max_delta: '0.11364080025101286'
+    median_latency: '25.581428'
+    stable: false
+  - model: resnext50_32x4d
+    test: eval
+    max_delta: '0.01098658496725882'
+    median_latency: '18.407468'
+    stable: true
+  - model: shufflenet_v2_x1_0
+    test: train
+    max_delta: '0.034560040074295514'
+    median_latency: '35.898142'
+    stable: true
+  - model: shufflenet_v2_x1_0
+    test: eval
+    max_delta: '0.03334933305819786'
+    median_latency: '9.949513'
+    stable: true
+  - model: soft_actor_critic
+    test: train
+    max_delta: '0.08230638880040077'
+    median_latency: '11.849702'
+    stable: false
+  - model: soft_actor_critic
+    test: eval
+    max_delta: '0.031890022178184166'
+    median_latency: '8.956492'
+    stable: true
+  - test: train
+    model: speech_transformer
+    max_delta: '0.04797333505802351'
+    median_latency: '117.971794'
+    stable: true
+  - test: eval
+    model: speech_transformer
+    max_delta: '0.012515410783130424'
+    median_latency: '5502.56876'
+    stable: true
+  - test: train
+    model: squeezenet1_1
+    max_delta: '0.01509975225203317'
+    median_latency: '144.871739'
+    stable: true
+  - test: eval
+    model: squeezenet1_1
+    max_delta: '0.00546752341323513'
+    median_latency: '14.391388'
+    stable: true
+  - model: tacotron2
+    test: train
+    max_delta: '0.013235448303791125'
+    median_latency: '2886.419344'
+    stable: true
+  - model: tacotron2
+    test: eval
+    max_delta: '0.017854043286907435'
+    median_latency: '1280.749545'
+    stable: true
+  - model: timm_efficientdet
+    test: train
+    max_delta: '0.009953521778282166'
+    median_latency: '290.353232'
+    stable: true
+  - model: timm_efficientdet
+    test: eval
+    max_delta: '0.09689055668811972'
+    median_latency: '687.760072'
+    stable: false
+  - model: timm_efficientnet
+    test: train
+    max_delta: '0.019120491287471886'
+    median_latency: '39.435316'
+    stable: true
+  - model: timm_efficientnet
+    test: eval
+    max_delta: '0.004850028100670762'
+    median_latency: '16.572062'
+    stable: true
+  - model: timm_nfnet
+    test: train
+    max_delta: '0.005378299208709852'
+    median_latency: '195.174542'
+    stable: true
+  - model: timm_nfnet
+    test: eval
+    max_delta: '0.040640629907516795'
+    median_latency: '42.577822'
+    stable: true
+  - model: timm_regnet
+    test: train
+    max_delta: '0.011470423157069996'
+    median_latency: '93.428573'
+    stable: true
+  - model: timm_regnet
+    test: eval
+    max_delta: '0.023245800566286615'
+    median_latency: '18.017356'
+    stable: true
+  - model: timm_resnest
+    test: train
+    max_delta: '0.0038408658468644147'
+    median_latency: '32.166174'
+    stable: true
+  - model: timm_resnest
+    test: eval
+    max_delta: '0.004401285996279868'
+    median_latency: '39.515286'
+    stable: true
+  - model: timm_vision_transformer
+    test: train
+    max_delta: '0.007102608543033246'
+    median_latency: '74.203416'
+    stable: true
+  - model: timm_vision_transformer
+    test: eval
+    max_delta: '0.015101858751573312'
+    median_latency: '21.502178'
+    stable: true
+  - test: eval
+    model: timm_vision_transformer_large
+    max_delta: '0.0031132153724129663'
+    median_latency: '141.879536'
+    stable: true
+  - model: timm_vovnet
+    test: train
+    max_delta: '0.004814813032985627'
+    median_latency: '39.553938'
+    stable: true
+  - model: timm_vovnet
+    test: eval
+    max_delta: '0.00445213870660801'
+    median_latency: '24.037421'
+    stable: true
+  - model: torchrec_dlrm
+    test: train
+    max_delta: '0.03276520580419736'
+    median_latency: '7.917619'
+    stable: true
+  - model: torchrec_dlrm
+    test: eval
+    max_delta: '0.024227634838419037'
+    median_latency: '2.884723'
+    stable: true
+  - model: tts_angular
+    test: train
+    max_delta: '0.03198045460567618'
+    median_latency: '13.115488'
+    stable: true
+  - model: tts_angular
+    test: eval
+    max_delta: '0.010418597437132568'
+    median_latency: '10.723443'
+    stable: true
+  - model: vgg16
+    test: train
+    max_delta: '0.005561447432597052'
+    median_latency: '117.67741'
+    stable: true
+  - model: vgg16
+    test: eval
+    max_delta: '0.012996860118152223'
+    median_latency: '3.605949'
+    stable: true
+  - model: vision_maskrcnn
+    test: train
+    max_delta: '0.010845414576940394'
+    median_latency: '226.355197'
+    stable: true
+  - model: vision_maskrcnn
+    test: eval
+    max_delta: '0.01940755161762634'
+    median_latency: '175.78836'
+    stable: true
+  - model: yolov3
+    test: train
+    max_delta: '0.008582159005980089'
+    median_latency: '115.271513'
+    stable: true
+  - model: yolov3
+    test: eval
+    max_delta: '0.056987589748850896'
+    median_latency: '16.761296'
+    stable: true
