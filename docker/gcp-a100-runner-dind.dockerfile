@@ -4,10 +4,10 @@ FROM ${BASE_IMAGE}
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
-RUN sudo apt-get -y update
+RUN sudo apt-get -y update && sudo apt -y update
 RUN sudo apt-get install -y git jq \
                             vim wget curl ninja-build cmake \
-                            libgl1-mesa-glx libsndfile1-dev
+                            libgl1-mesa-glx libsndfile1-dev kmod
 
 # Install gcc-11, needed by the latest fbgemm
 RUN sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
