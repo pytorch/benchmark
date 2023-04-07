@@ -134,6 +134,8 @@ DENSE_MODELS = [
     'fastNLP_Bert',
     'functorch_dp_cifar10',
     'functorch_maml_omniglot',
+    'gat',
+    'gcn',
     'hf_Albert',
     'hf_Bart',
     'hf_Bert',
@@ -169,6 +171,7 @@ DENSE_MODELS = [
     'resnet50',
     'resnet50_quantized_qat',
     'resnext50_32x4d',
+    'sage',
     'shufflenet_v2_x1_0',
     'soft_actor_critic',
     'speech_transformer',
@@ -195,6 +198,7 @@ DENSE_MODELS = [
 # func_str => func string (e.g., pt2_)
 # device => device name
 # defaults => list of flag descriptions (strings) to exclude, e.g. no_foreach
+#             if empty list, will exclude all configurations
 # Exclusions are general and will try to match on everything. For an exclusion
 # {'optim': 'SparseAdam', 'model': 'BERT_pytorch'}, any configuration with
 # SparseAdam on BERT_pytorch will be skipped.
@@ -204,24 +208,23 @@ EXCLUSIONS: List[Dict[str, Any]] = [
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in C++
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
-    {'model': m, 'device': 'cpu', 'func_str': 'pt2_', 'defaults': df} for m in [
+    {'model': m, 'device': 'cpu', 'func_str': 'pt2_', 'defaults': []} for m in [
         'BERT_pytorch', 'Background_Matting', 'Super_SloMo', 'attention_is_all_you_need_pytorch',
         'densenet121', 'detectron2_fasterrcnn_r_101_c4', 'detectron2_fasterrcnn_r_101_dc5',
         'detectron2_fasterrcnn_r_101_fpn', 'detectron2_fasterrcnn_r_50_fpn', 'detectron2_maskrcnn',
         'detectron2_maskrcnn_r_101_c4', 'detectron2_maskrcnn_r_101_fpn',
-        'detectron2_maskrcnn_r_50_fpn', 'doctr_det_predictor', 'fambench_xlmr', 'fastNLP_Bert',
-        'hf_Bart', 'hf_Bert', 'hf_Bert_large', 'hf_BigBird', 'hf_DistilBert', 'hf_GPT2',
+        'detectron2_maskrcnn_r_50_fpn', 'doctr_det_predictor', 'doctr_reco_predictor', 'fambench_xlmr',
+        'fastNLP_Bert', 'hf_Bart', 'hf_Bert', 'hf_Bert_large', 'hf_BigBird', 'hf_DistilBert', 'hf_GPT2',
         'hf_GPT2_large', 'hf_Longformer', 'hf_Reformer', 'hf_T5', 'hf_T5_base', 'hf_T5_large',
         'mnasnet1_0', 'mobilenet_v2', 'mobilenet_v2_quantized_qat', 'mobilenet_v3_large',
         'phlippe_densenet', 'pytorch_unet', 'resnet152', 'resnet50', 'resnet50_quantized_qat', 'resnext50_32x4d',
         'shufflenet_v2_x1_0', 'timm_efficientnet', 'timm_nfnet', 'timm_regnet',
-        'timm_vision_transformer'
-    ] for df in [[], ['differentiable']]
+        'timm_vision_transformer']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
-    # C++ kernel even when params are on CUDA for single tensor implementations.
+    # C++ kernel for both CUDA and CPU for single tensor implementations.
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
-    {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': ['no_foreach']} for m in [
+    {'model': m, 'func_str': 'pt2_', 'defaults': [df]} for m in [
         'DALLE2_pytorch', 'fambench_xlmr'] for df in ['no_foreach', 'differentiable']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
@@ -277,6 +280,7 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
 
     # free the old params before initializing a model to conserve memory
     lil_cache = ('', '', [])
+    torch.cuda.empty_cache()
 
     Model = load_model_by_name(modelName)
     try:
@@ -410,7 +414,8 @@ def parse_args(args: List[str]):
         '--default-flags', '-df',
         nargs='*',
         default=[],
-        choices=['foreach', 'no_foreach', 'fused', 'maximize', 'capturable', 'differentiable', 'amsgrad', 'momentum', 'nesterov'],
+        choices=['foreach', 'no_foreach', 'fused', 'maximize', 'capturable', 'differentiable', 'default',
+                 'amsgrad', 'momentum', 'nesterov'],
         help='List of flag descriptions to run tests on. We serialize the configs to a string (see ' +
              'defaults_to_str()) and test for inclusion of the flag description in the string. ' +
              'For example, "foreach" will enable all default configs with "foreach", including ' +
