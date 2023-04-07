@@ -9,7 +9,7 @@ import os
 import yaml
 import numpy
 
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Any
 from ..utils import REPO_PATH, add_path, get_output_json, dump_output
 
 with add_path(REPO_PATH):
@@ -62,8 +62,8 @@ def compute_score(results, reference_latencies: Dict[str, float]) -> float:
         if abs(delta) <= DEFAULT_DELTA_THRESHOLD:
             test_latency = ref_latency
         total_score += weight * math.log(ref_latency / test_latency)
-    v3_score = math.exp(total_score) * DEFAULT_TARGET_SCORE
-    return v3_score
+    score = math.exp(total_score) * DEFAULT_TARGET_SCORE
+    return score
 
 def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]) -> Dict[str, float]:
     # metrics name examples:
@@ -95,7 +95,7 @@ def validate(candidates: List[str], choices: List[str]) -> List[str]:
         assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
     return candidates
 
-def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelConfig, List[float]]:
+def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelConfig, List[float], Any]:
     yaml_file_path = os.path.join(CURRENT_DIR, yaml_file)
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
@@ -119,7 +119,7 @@ def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelCon
             metrics_base = f"test_{config.test}[{config.name}-{config.device}-eager]"
             latency_metric_key = f"{metrics_base}_latency"
             reference_latencies[latency_metric_key] = c["median_latency"]
-    return configs, reference_latencies
+    return configs, reference_latencies, config_obj
 
 def parse_str_to_list(candidates):
     if isinstance(candidates, list):
@@ -159,12 +159,14 @@ def run(args: List[str]):
     args = parse_args(args)
     if args.score:
         assert args.config, f"To compute score, you must specify the config YAML using --config."
-        configs, reference_latencies = generate_model_configs_from_yaml(args.config)
+        configs, reference_latencies, config_obj = generate_model_configs_from_yaml(args.config)
         with open(args.score, "r") as sp:
             run_result = json.load(sp)
         input_metrics = run_result["metrics"]
         score = compute_score(input_metrics, reference_latencies)
-        print(f"TorchBench score: {score}.")
+        score_version = config_obj["metadata"]["score_version"]
+        score_name = f"{score_version}_score"
+        print(f"TorchBench {score_name}: {score}.")
         exit(0)
     elif args.config:
         configs, reference_latencies = generate_model_configs_from_yaml(args.config)
@@ -179,7 +181,7 @@ def run(args: List[str]):
         reference_latencies = None
     results = []
     try:
-        for cid, config in enumerate(configs):
+        for config in configs:
             metrics = run_config(config, dryrun=args.dryrun)
             if metrics:
                 results.append([config, metrics])
@@ -189,5 +191,7 @@ def run(args: List[str]):
         metrics = result_to_output_metrics(results)
         if reference_latencies:
             score = compute_score(metrics, reference_latencies)
-            metrics["v3_score"] = score
+            score_version = config_obj["metadata"]["score_version"]
+            score_name = f"{score_version}_score"
+            metrics[score_name] = score
         dump_result_to_json(metrics)
