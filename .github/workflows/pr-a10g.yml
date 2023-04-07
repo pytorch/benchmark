@@ -24,10 +24,6 @@ jobs:
       - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
         id: install-nvidia-driver
         uses: pytorch/test-infra/.github/actions/setup-nvidia@main
-      - name: GPU Tuning
-        run: |
-          sudo nvidia-smi -pm 1
-          nvidia-smi
       - name: Setup Conda Env
         run: |
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
