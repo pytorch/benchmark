@@ -169,6 +169,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 or (not self.dynamo and (self.device == "cuda" and self.opt_args.backend == "fx2trt"))
                 or (not self.dynamo and self.opt_args.use_cosine_similarity)
                 or self.dargs.precision == "fx_int8"
+                or self.dargs.precision == "bf16"
             ):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
@@ -419,3 +420,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         except Exception as e:
             print(e)
             raise RuntimeError(f"{self.name} doesn't support `fx_int8` yet!")
+
+    def enable_bf16(self):
+        self.model = self.model.to(torch.bfloat16)
+        self.example_inputs = (self.example_inputs[0].to(torch.bfloat16), )

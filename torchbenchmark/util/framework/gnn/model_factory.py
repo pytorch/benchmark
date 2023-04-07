@@ -88,6 +88,13 @@ class GNNModel(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs[0]
 
+    def enable_bf16(self):
+        self.model = self.model.to(torch.bfloat16)
+        tmp_example_inputs = []
+        for batch in self.example_inputs:
+            tmp_example_inputs.append({"x": batch['x'].to(torch.bfloat16), "edge_index": batch['edge_index']})
+        self.example_inputs = tmp_example_inputs
+
     def train(self):
         for batch_id in range(self.num_batch):
             self.optimizer.zero_grad()

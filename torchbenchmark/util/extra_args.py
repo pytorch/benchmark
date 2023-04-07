@@ -7,7 +7,7 @@ from torchbenchmark.util.backends.flops import enable_fvcore_flops
 from torchbenchmark.util.env_check import is_torchvision_model, is_staged_train_test
 
 TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
-AVAILABLE_PRECISIONS = ["fp32", "tf32", "fp16", "amp", "fx_int8"]
+AVAILABLE_PRECISIONS = ["fp32", "tf32", "fp16", "amp", "fx_int8", "bf16"]
 QUANT_ENGINES = ["x86", "fbgemm", "qnnpack", "onednn"]
 
 def check_correctness_p(
@@ -46,8 +46,12 @@ def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision
             return True
         if model.test == 'train' and model.device == 'cuda':
             return hasattr(model, 'enable_amp') or is_staged_train_test(model)
+        if model.device == 'cpu':
+            return True
     if precision == "fx_int8":
         return model.device == 'cpu' and hasattr(model, "enable_fx_int8")
+    if precision == "bf16":
+        return model.device == 'cpu' and hasattr(model, "enable_bf16")
     assert precision == "fp32", f"Expected precision to be one of {AVAILABLE_PRECISIONS}, but get {precision}"
     return True
 
@@ -110,8 +114,11 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
     elif dargs.precision == "amp":
+        if model.device == "cpu":
+            import torch
+            model.add_context(lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16))
         # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
-        if hasattr(model, "enable_amp"):
+        elif hasattr(model, "enable_amp"):
             model.enable_amp()
         elif model.test == "eval":
             import torch
@@ -124,6 +131,9 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
     elif dargs.precision == "fx_int8":
         assert model.device == "cpu" and model.test == "eval", f"fx_int8 only work for eval mode on cpu device."
         model.enable_fx_int8(dargs.quant_engine)
+    elif dargs.precision == "bf16":
+        assert model.device == "cpu", f"bf16 only work on cpu device."
+        model.enable_bf16()
     elif not dargs.precision == "fp32":
         assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
 
