@@ -32,8 +32,6 @@ jobs:
       - name: Tune Nvidia GPU
         run: |
           . "${SETUP_SCRIPT}"
-          # Copy the NVIDIA libraries to the default libraries path
-          sudo cp -r /usr/local/nvidia/lib64/* /lib/x86_64-linux-gnu/
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
