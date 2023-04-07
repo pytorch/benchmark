@@ -1,6 +1,11 @@
 # Unstable CUDA GPU test on branch v3.0
 # Variance threshold: 0.07
 # Tracking unstable tests in https://github.com/pytorch/benchmark/issues/1409
+metadata:
+  score_version: "v3"
+  platform: "gcp_a100"
+  devices:
+    - cuda
 cuda:
   - model: BERT_pytorch
     test: train

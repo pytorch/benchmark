@@ -60,8 +60,8 @@ def compute_score(results, reference_latencies: Dict[str, float]) -> float:
         delta = (test_latency - ref_latency) / test_latency
         # If less than threshold, treat it as noise
         if abs(delta) <= DEFAULT_DELTA_THRESHOLD:
-            reference_latency = test_latency
-        total_score += weight * math.log(test_latency / reference_latency)
+            test_latency = ref_latency
+        total_score += weight * math.log(ref_latency / test_latency)
     v3_score = math.exp(total_score) * DEFAULT_TARGET_SCORE
     return v3_score
 
@@ -99,7 +99,7 @@ def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelCon
     yaml_file_path = os.path.join(CURRENT_DIR, yaml_file)
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
-    devices = config_obj.keys()
+    devices = config_obj["metadata"]["devices"]
     configs = []
     reference_latencies = {}
     for device in devices:
