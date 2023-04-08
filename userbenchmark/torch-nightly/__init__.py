@@ -169,7 +169,7 @@ def run(args: List[str]):
         print(f"TorchBench {score_name}: {score}.")
         exit(0)
     elif args.config:
-        configs, reference_latencies = generate_model_configs_from_yaml(args.config)
+        configs, reference_latencies, config_obj = generate_model_configs_from_yaml(args.config)
     else:
         # If not specified, use the entire model set
         if not args.model:
