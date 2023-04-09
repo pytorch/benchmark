@@ -193,6 +193,8 @@ class TorchSource:
         env["USE_MKL"] = "1"
         env["USE_CUDNN"] = "1"
         env["USE_FFMPEG"] = "1"
+        # Torchaudio SOX build has failures, skip it
+        env["BUILD_SOX"] = "0"
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
         if not "LD_LIBRARY_PATH" in env:
             env["LIBRARY_PATH"] = ""
