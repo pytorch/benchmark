@@ -65,7 +65,7 @@ def warmup(model: 'torchbenchmark.util.model.BenchmarkModel', niters=DEFAULT_WAR
         for _ in range(niters):
             model.invoke()
         t1 = time.perf_counter()
-        latency = (t1 - t0) * 1000.0
+        latency = t1 - t0
         return latency
     except Exception as e:
         print(f"Model {model.name} failed in warmup(): {str(e)}")

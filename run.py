@@ -353,4 +353,4 @@ if __name__ == "__main__":
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
     if hasattr(m, 'dynamo_compilation_time'):
-        print('{:<20} {:>20}'.format("PT2 Compilation time: ", "%.3f milliseconds" % m.dynamo_compilation_time), sep='')
+        print('{:<20} {:>20}'.format("PT2 Compilation time: ", "%.3f seconds" % m.dynamo_compilation_time), sep='')
