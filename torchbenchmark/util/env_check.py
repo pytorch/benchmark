@@ -67,8 +67,8 @@ def warmup(model: 'torchbenchmark.util.model.BenchmarkModel', niters=DEFAULT_WAR
         t1 = time.perf_counter()
         latency = (t1 - t0) * 1000.0
         return latency
-    except Exception:
-        print(f"Model {model.name} failed in warmup()")
+    except Exception as e:
+        print(f"Model {model.name} failed in warmup(): {str(e)}")
         exit(-1)
 
 def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
