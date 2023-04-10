@@ -352,3 +352,5 @@ if __name__ == "__main__":
                      stress=args.stress, metrics_needed=metrics_needed, metrics_gpu_backend=args.metrics_gpu_backend)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
+    if hasattr(m, 'dynamo_compilation_time'):
+        print('{:<20} {:>20}'.format("PT2 Compilation time: ", "%.3f milliseconds" % m.dynamo_compilation_time), sep='')
