@@ -88,6 +88,7 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
+    CANNOT_SET_CUSTOM_OPTIMIZER = True
     # this model will cause infinite loop if deep-copied
     DEEPCOPY = False
 
@@ -167,6 +168,3 @@ class Model(BenchmarkModel):
 
     def get_optimizer(self):
         return None
-    
-    def set_optimizer(self, optimizer) -> None:
-        pass

@@ -37,8 +37,15 @@ A bare miminum example you can follow is https://github.com/pytorch/benchmark/tr
 The functions you specifically need to implement are 
 1. `__init__()` which is responsible for initalizing your `nn.Module`
 2. `get_module()` which is responsible for returning the initialized `nn.Module` and an example input
-3. `train()` which is a training loop, you can return a `NotImplementedError()` if your example is inference only
+3. `train()` which is a training loop, you can return a `NotImplementedError()` if your example is inference only. If your
+   training loop can be encapsulated by a `forward()`, `backward()`, and `optimizer_step()`, you need not redefine `train()`.
+   Instead, please make sure your model provides functions `forward()`, `backward()`, and `optimizer_step()` along with an
+   attribute `self.optimizer` which will be chained together for testing, see `invoke_staged_train_test()` for details. 
 4. `eval()` which showcases a simple inference
+
+Optionally, if you would like to be able to customize different optimizers for your model, feel free 
+to override the BenchmarkModel's base class' default `get_optimizer()` and `set_optimizer(optimizer)`
+methods.  
 
 ### Preparing install.py and dependencies
 Simply put, install.py should be a one stop shop to install all the dependencies

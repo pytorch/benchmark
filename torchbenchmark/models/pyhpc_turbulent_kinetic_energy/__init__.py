@@ -125,6 +125,7 @@ class Model(BenchmarkModel):
     # Source: https://github.com/dionhaefner/pyhpc-benchmarks/blob/650ecc650e394df829944ffcf09e9d646ec69691/run.py#L25
     # Pick data-point when i = 20, size = 1048576
     DEFAULT_EVAL_BSIZE = 1048576
+    CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -150,5 +151,3 @@ class Model(BenchmarkModel):
     def get_optimizer(self):
         return None
 
-    def set_optimizer(self, optimizer) -> None:
-        pass

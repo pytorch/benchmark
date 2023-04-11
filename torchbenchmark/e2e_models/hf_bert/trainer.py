@@ -110,39 +110,43 @@ class Model(BenchmarkModel):
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=training_args.learning_rate)
 
-        # Prepare everything with our `accelerator`.
-        model, optimizer, train_dataloader, eval_dataloader = accelerator.prepare(
-            model, optimizer, train_dataloader, eval_dataloader
-        )
-
-        # Note -> the training dataloader needs to be prepared before we grab his length below (cause its length will be
-        # shorter in multiprocess)
-
-        # Scheduler and math around the number of training steps.
-        num_update_steps_per_epoch = math.ceil(len(train_dataloader) / training_args.gradient_accumulation_steps)
-        if training_args.max_steps is None or training_args.max_steps == -1:
-            training_args.max_steps = training_args.num_train_epochs * num_update_steps_per_epoch
-        else:
-            training_args.num_train_epochs = math.ceil(training_args.max_steps / num_update_steps_per_epoch)
-        training_args.num_train_epochs = int(training_args.num_train_epochs)
-
-        lr_scheduler = get_scheduler(
-            name=training_args.lr_scheduler_type,
-            optimizer=optimizer,
-            num_warmup_steps=training_args.warmup_steps,
-            num_training_steps=training_args.max_steps,
-        )
-        # Setup class members
+        # Set class members
+        self.optimizer = AdamW(optimizer_grouped_parameters, lr=training_args.learning_rate)
         self.training_args = training_args
         self.is_regression = is_regression
         self.model = model
-        self.optimizer = optimizer
         self.train_dataloader = train_dataloader
         self.eval_dataloader = eval_dataloader
-        self.lr_scheduler = lr_scheduler
         self.accelerator = accelerator
+
+        # Will set self.lr_scheduler
+        self._prepare_accelerator()
+
+
+    # Prepare everything with our `accelerator` and set the lr_scheduler
+    def _prepare_accelerator(self):
+        self.model, self.optimizer, self.train_dataloader, self.eval_dataloader = self.accelerator.prepare(
+            self.model, self.optimizer, self.train_dataloader, self.eval_dataloader
+        )
+
+        # Note -> the training dataloader needs to be prepared before we grab its length below (since its length will be
+        # shorter in multiprocess)
+
+        # Scheduler and math around the number of training steps.
+        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / self.training_args.gradient_accumulation_steps)
+        if self.training_args.max_steps is None or self.training_args.max_steps == -1:
+            self.training_args.max_steps = self.training_args.num_train_epochs * num_update_steps_per_epoch
+        else:
+            self.training_args.num_train_epochs = math.ceil(self.training_args.max_steps / num_update_steps_per_epoch)
+        self.training_args.num_train_epochs = int(self.training_args.num_train_epochs)
+
+        self.lr_scheduler = get_scheduler(
+            name=self.training_args.lr_scheduler_type,
+            optimizer=self.optimizer,
+            num_warmup_steps=self.training_args.warmup_steps,
+            num_training_steps=self.training_args.max_steps,
+        )
 
     def get_module(self):
         raise NotImplementedError("get_module is not supported by this model")
@@ -152,12 +156,7 @@ class Model(BenchmarkModel):
 
     def set_optimizer(self, optimizer) -> None:
         self.optimizer = optimizer
-        self.lr_scheduler = get_scheduler(
-            name=self.training_args.lr_scheduler_type,
-            optimizer=optimizer,
-            num_warmup_steps=self.training_args.warmup_steps,
-            num_training_steps=self.training_args.max_steps,
-        )
+        self._prepare_accelerator()
 
     def train(self):
         if self.jit:
