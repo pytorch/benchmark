@@ -156,6 +156,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
+            cache_entries = {}
+            from torch._inductor.utils import fresh_inductor_cache
+            fresh_inductor_cache(cache_entries)
             opt_latency = warmup(self)
             self.dynamo_compilation_time = (opt_latency - eager_latency)
         else:
