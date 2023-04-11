@@ -57,19 +57,15 @@ def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> b
 
 def warmup(model: 'torchbenchmark.util.model.BenchmarkModel', niters=DEFAULT_WARMUP_NITERS):
     import torch
-    try:
-        if model.device == "cuda":
-            torch.cuda.reset_peak_memory_stats()
-            torch.cuda.empty_cache()
-        t0 = time.perf_counter()
-        for _ in range(niters):
-            model.invoke()
-        t1 = time.perf_counter()
-        latency = t1 - t0
-        return latency
-    except Exception as e:
-        print(f"Model {model.name} failed in warmup(): {str(e)}")
-        exit(-1)
+    if model.device == "cuda":
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.empty_cache()
+    t0 = time.perf_counter()
+    for _ in range(niters):
+        model.invoke()
+    t1 = time.perf_counter()
+    latency = t1 - t0
+    return latency
 
 def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
