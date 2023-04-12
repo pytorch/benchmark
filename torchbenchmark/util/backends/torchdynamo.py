@@ -8,7 +8,6 @@ from typing import List
 import torch
 import torch._dynamo as torchdynamo
 from torchbenchmark.util.model import is_staged_train_test
-import warnings
 
 def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -23,6 +22,11 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         "--dynamic_shapes",
         action='store_true',
         help="dynamic shape and symbolic tracing",
+    )
+    parser.add_argument(
+        "--pt2_debug_log",
+        action='store_true',
+        help="enable debug log for PT2 (dynamo, inductor, AOTAutograd)",
     )
     parser.add_argument(
         "--full_graph",
@@ -62,6 +66,9 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         if args.full_graph:
             dynamo_kwargs["nopython"] = True
         dynamo_optimizer = torchdynamo.optimize(args.torchdynamo, **dynamo_kwargs)
+        if args.pt2_debug_log:
+            import logging
+            torch._logging.set_logs(dynamo=logging.DEBUG, inductor=logging.DEBUG, aot=logging.DEBUG)
 
     if args.torchdynamo == "inductor":
         import torch._inductor as torchinductor
