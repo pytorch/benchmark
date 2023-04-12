@@ -33,7 +33,7 @@ class Trainer():
         ]
         extra_args.extend(model_args)
 
-        batch_size = args.batch_size if hasattr(args, "batch_size") else None
+        batch_size = getattr(args, "batch_size", None)
 
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
