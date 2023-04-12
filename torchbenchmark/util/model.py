@@ -273,7 +273,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
         if hasattr(self, "opt") and self.opt:
             with nested(*self.optimizer_contexts):
-                self.optimizer()
+                self.optimizer_step()
 
         return None
 
