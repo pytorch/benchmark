@@ -22,7 +22,7 @@ class ModelArgs:
     max_batch_size: int = 32
     max_seq_len: int = 1024
 
-    device: str = "cuda"
+    device: Optional[str] = None
 
 
 class RMSNorm(torch.nn.Module):

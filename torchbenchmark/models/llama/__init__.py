@@ -18,7 +18,8 @@ class Model(BenchmarkModel):
         self.model_args = ModelArgs(vocab_size=32,device=self.device)
         torch.set_default_device(self.device)
         self.model = Transformer(self.model_args).to(self.device)
-        self.example_inputs = (torch.tensor([[self.batch_size, 1], [1,1]], dtype=torch.int).to(self.device), 1)
+        self.seq_len = 32
+        self.example_inputs = (torch.ones([self.batch_size, self.seq_len], dtype=torch.int).to(self.device), 1)
 
         
     def get_module(self):
