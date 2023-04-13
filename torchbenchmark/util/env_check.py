@@ -50,7 +50,7 @@ def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool
     return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
 
 def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer')
+    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer_step')
 
 def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
