@@ -89,6 +89,3 @@ class Model(BenchmarkModel):
 
     def eval_in_nograd(self):
         return False
-
-    def get_optimizer(self):
-        return None

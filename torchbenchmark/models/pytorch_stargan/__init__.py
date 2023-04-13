@@ -29,6 +29,8 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 16
     DEFAULT_EVAL_BSIZE = 16
     ALLOW_CUSTOMIZE_BSIZE = False
+
+    # TODO: Customizing the optimizer is nontrivial, perhaps a next step.
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
@@ -83,7 +85,3 @@ class Model(BenchmarkModel):
         example_inputs = self.example_inputs
         out = model(*example_inputs)
         return (out, )
-    
-    # TODO: Customizing the optimizer is nontrivial, perhaps a next step.
-    def get_optimizer(self):
-        return None

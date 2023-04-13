@@ -165,6 +165,3 @@ class Model(BenchmarkModel):
             steps += 1
         average_episode_reward /= float(steps)
         return (torch.Tensor(action), )
-
-    def get_optimizer(self):
-        return None

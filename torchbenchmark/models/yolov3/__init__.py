@@ -33,6 +33,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 8
     # yolov3 CUDA inference test uses amp precision
     DEFAULT_EVAL_CUDA_PRECISION = "amp"
+
+    # TODO: yolov3 does use an optimizer, but it is inaccessible from this file.
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
@@ -92,10 +94,6 @@ class Model(BenchmarkModel):
         pred = non_max_suppression(pred, 0.3, 0.6,
                                     multi_label=False, classes=None, agnostic=False)
         return (out[0],) + out[1]
-
-    # TODO: yolov3 does use an optimizer, but it is inaccessible from this file.
-    def get_optimizer(self):
-        return None
 
     @property
     def device_str(self):

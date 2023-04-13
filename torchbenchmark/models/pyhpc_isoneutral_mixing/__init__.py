@@ -149,6 +149,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             out = model(*example_inputs)
         return out
-
-    def get_optimizer(self):
-        return None

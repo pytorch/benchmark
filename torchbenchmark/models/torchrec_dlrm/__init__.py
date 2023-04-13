@@ -133,6 +133,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             _loss, logits = self.model(self.example_inputs)
         return logits
-    
-    def get_optimizer(self):
-        return None

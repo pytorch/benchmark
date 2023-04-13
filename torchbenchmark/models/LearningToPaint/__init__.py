@@ -104,6 +104,3 @@ class Model(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         reward, dist = self.evaluate(self.env, self.agent.select_action)
         return (torch.tensor(reward), torch.tensor(dist))
-
-    def get_optimizer(self):
-        return None

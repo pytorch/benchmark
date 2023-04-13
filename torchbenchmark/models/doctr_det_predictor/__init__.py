@@ -34,6 +34,3 @@ class Model(BenchmarkModel):
         with torch.inference_mode():
             out = self.model(self.example_inputs, return_model_output=True)
         return (out["out_map"], )
-
-    def get_optimizer(self):
-        return None

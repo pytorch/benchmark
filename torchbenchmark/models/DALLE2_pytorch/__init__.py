@@ -106,7 +106,3 @@ class Model(BenchmarkModel):
 
         loss = decoder(self.sample_images, self.sample_text, unet_number=2)
         loss.backward()
-
-    def get_optimizer(self):
-        return None
-

@@ -41,6 +41,9 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
+
+    # TODO: There _should_ be a way to plug in an optim here, but this
+    # can be a next step. For now, the optim is not customizable.
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
@@ -104,9 +107,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             out = model(example_input)
         return (out, )
-
-    # TODO: There _should_ be a way to plug in an optim here, but this
-    # can be a next step. For now, the optim is not customizable.
-    def get_optimizer(self):
-        return None
-
