@@ -22,6 +22,8 @@ class ModelArgs:
     max_batch_size: int = 32
     max_seq_len: int = 1024
 
+    device: Optional[str] = None
+
 
 class RMSNorm(torch.nn.Module):
     def __init__(self, dim: int, eps: float = 1e-6):
@@ -72,6 +74,7 @@ class Attention(nn.Module):
 
         self.n_local_heads = args.n_heads # Basically we just assume world size of 1 // fs_init.get_model_parallel_world_size()
         self.head_dim = args.dim // args.n_heads
+        self.device = args.device
 
         self.wq = nn.Linear(
             args.dim,
@@ -99,11 +102,11 @@ class Attention(nn.Module):
         )
 
         self.cache_k = torch.zeros(
-            (args.max_batch_size, args.max_seq_len, self.n_local_heads, self.head_dim)
-        ).cuda()
+            (args.max_batch_size, args.max_seq_len, self.n_local_heads, self.head_dim),device=self.device
+        )
         self.cache_v = torch.zeros(
-            (args.max_batch_size, args.max_seq_len, self.n_local_heads, self.head_dim)
-        ).cuda()
+            (args.max_batch_size, args.max_seq_len, self.n_local_heads, self.head_dim),device=self.device
+        )
 
     def forward(self, x: torch.Tensor, start_pos: int, freqs_cis: torch.Tensor, mask: Optional[torch.Tensor]):
         bsz, seqlen, _ = x.shape
