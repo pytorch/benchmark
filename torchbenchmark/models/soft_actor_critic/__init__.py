@@ -255,3 +255,9 @@ class Model(BenchmarkModel):
                 episode_return_history.append(episode_return)
             retval = torch.tensor(episode_return_history)
         return (torch.tensor(action), )
+
+    def get_optimizer(self):
+        return (self.actor_optimizer, self.critic_optimizer, self.log_alpha_optimizer)
+
+    def set_optimizer(self, optimizer) -> None:
+        self.actor_optimizer, self.critic_optimizer, self.log_alpha_optimizer = optimizer

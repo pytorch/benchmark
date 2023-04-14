@@ -18,6 +18,7 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
+    CANNOT_SET_CUSTOM_OPTIMIZER = True
     # Skip correctness check, because maml runs backward and optimizer in eval()
     # Which will return non-deterministic results
     SKIP_CORRECTNESS_CHECK = True

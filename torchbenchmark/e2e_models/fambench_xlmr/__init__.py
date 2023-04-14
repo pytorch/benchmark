@@ -43,6 +43,8 @@ class FAMBenchXLMREvalConfig:
 
 class Model(E2EBenchmarkModel):
     DEFAULT_EVAL_BSIZE = FAMBenchXLMREvalConfig.batchsize
+    CANNOT_SET_CUSTOM_OPTIMIZER = True
+    
     def __init__(self, test: str, batch_size: Optional[int]=None, extra_args: List[str]=[]):
         super().__init__(test=test, batch_size=batch_size, extra_args=extra_args)
         if not torch.cuda.is_available():
