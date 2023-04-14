@@ -17,7 +17,7 @@ def check_correctness_p(
 ) -> bool:
     "If correctness check should be enabled."
     # if the model doesn't support correctness check (like detectron2), skip it
-    if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
+    if getattr(model, 'SKIP_CORRECTNESS_CHECK', False) or getattr(model, 'CANNOT_SET_CUSTOM_OPTIMIZER', False):
         return False
     if dargs.skip_correctness:
         return False

@@ -257,10 +257,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             return self.optimizer
         if hasattr(self, "opt"):
             return self.opt
-        warnings.warn("The optimizer for this model is not stored in self.opt nor self.optimizer. "
-                      "Currently returning None! Please override this implementation with your own "
-                      "if there is an optimizer this should be returning instead.")
-        return None
+        raise NotImplementedError("The optimizer for this model is not stored in self.opt nor self.optimizer. "
+                                  "Please override this implementation with your own.")
 
     # Takes in an optimizer and sets that to be the optimizer used from now on.
     # There are special models like dcgan that would update multiple optimizers at once,
