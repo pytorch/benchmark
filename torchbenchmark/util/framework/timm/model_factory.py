@@ -80,12 +80,6 @@ class TimmModel(BenchmarkModel):
         self.model = self.model.to(memory_format=torch.channels_last)
         self.example_inputs = self.example_inputs.contiguous(memory_format=torch.channels_last)
 
-    def enable_amp(self):
-        if self.device == "cuda":
-            self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
-        elif self.device == "cpu":
-            self.amp_context = lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16)
-
     def get_module(self):
         return self.model, (self.example_inputs,)
 

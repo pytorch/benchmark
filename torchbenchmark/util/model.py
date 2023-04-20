@@ -444,3 +444,13 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.example_inputs = inputs_convert(self.example_inputs)
         else:
             warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
+
+    def enable_amp(self):
+        if not self.dynamo and self.opt_args.backend == 'cudagraph':
+            return NotImplementedError("AMP not implemented for cudagraphs")
+        if self.device == "cuda":
+            self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
+        elif self.device == "cpu":
+            self.amp_context = lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16)
+        if not hasattr(self, "amp_context"):
+            raise RuntimeError(f"{self.name} doesn't have amp_context support!")

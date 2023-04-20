@@ -146,8 +146,3 @@ class HuggingFaceModel(BenchmarkModel):
         else:
             return (out["logits"], )
 
-    def enable_amp(self):
-        if self.device == "cuda":
-            self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
-        elif self.device == "cpu":
-            self.amp_context = lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16)

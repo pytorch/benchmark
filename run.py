@@ -316,7 +316,7 @@ if __name__ == "__main__":
 
     test = m.invoke
     if args.amp:
-        test = torch.autocast("cuda")(test)
+        test = torch.autocast(m.device)(test)
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
     # enable cpu_peak_mem and gpu_peak_mem by default
     metrics_needed.append('cpu_peak_mem')

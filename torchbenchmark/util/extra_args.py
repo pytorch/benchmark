@@ -119,9 +119,9 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
         # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
         if hasattr(model, "enable_amp"):
             model.enable_amp()
-        else:
+        if not hasattr(model, "amp_context"):
             import torch
-            model = torch.autocast(model.device)(model)
+            model.amp_context = lambda: torch.autocast(model.device)
     elif dargs.precision == "fx_int8":
         assert model.device == "cpu" and model.test == "eval", f"fx_int8 only work for eval mode on cpu device."
         model.enable_fx_int8(dargs.quant_engine)
@@ -139,7 +139,6 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16), stage=TEST_STAGE.FORWARD)
     elif dargs.precision == "amp_bf16":
-        assert model.device == "cpu", f"{model.device} has no bf16 autocast."
         import torch
         model.add_context(lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16))
     elif not dargs.precision == "fp32":

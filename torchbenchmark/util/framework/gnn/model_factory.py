@@ -88,13 +88,6 @@ class GNNModel(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs[0]
 
-    def enable_bf16(self):
-        self.model = self.model.to(torch.bfloat16)
-        tmp_example_inputs = []
-        for batch in self.example_inputs:
-            tmp_example_inputs.append({"x": batch['x'].to(torch.bfloat16), "edge_index": batch['edge_index']})
-        self.example_inputs = tmp_example_inputs
-
     def train(self):
         for batch_id in range(self.num_batch):
             self.optimizer.zero_grad()
@@ -114,10 +107,3 @@ class GNNModel(BenchmarkModel):
             result = torch.cat(xs, dim=0)
         return (result, )
 
-    def enable_amp(self):
-        if not self.dynamo and self.opt_args.backend == 'cudagraph':
-            return NotImplementedError("AMP not implemented for cudagraphs")
-        if self.device == "cuda":
-            self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
-        elif self.device == "cpu":
-            self.amp_context = lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16)
