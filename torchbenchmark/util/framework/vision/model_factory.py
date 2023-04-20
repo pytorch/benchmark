@@ -30,7 +30,8 @@ class TorchVisionModel(BenchmarkModel):
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device), )
         if test == "train":
             # compute loss
-            self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )
+            with torch.no_grad():
+                self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )
             self.model.train()
             # setup optimizer and loss_fn
             # if backend is cudagraph, must set optimizer to be capturable
