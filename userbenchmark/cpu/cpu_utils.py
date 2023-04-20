@@ -3,18 +3,18 @@ Run PyTorch cpu benchmarking.
 """
 import json
 import os
-from datetime import datetime
-from pathlib import Path
 import re
 import time
+from datetime import datetime
+from pathlib import Path
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
 USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
 
-def get_output_dir(bm_name):
+def get_output_dir(bm_name, test_date=None):
     current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
     bm_out_dir = current_dir.parent.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
-    test_date = datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
+    test_date = test_date if test_date else datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
     output_dir = bm_out_dir.joinpath("cpu-" + test_date)
     output_dir.mkdir(exist_ok=True, parents=True)
     return output_dir

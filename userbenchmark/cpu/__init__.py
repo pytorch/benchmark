@@ -6,17 +6,18 @@ import itertools
 import os
 import subprocess
 import sys
+import time
 import yaml
-import numpy
 
-from typing import List, Tuple, Dict
+from datetime import datetime
+from pathlib import Path
+from typing import List
 from .cpu_utils import REPO_PATH, get_output_dir, get_output_json, dump_output, analyze
 from ..utils import add_path
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models, TorchBenchModelConfig, \
                                                             list_devices, list_tests
-    from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics
 
 BM_NAME = 'cpu'
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -51,22 +52,21 @@ def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConf
     yaml_file_path = os.path.join(CURRENT_DIR, yaml_file)
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
-    devices = config_obj.keys()
+    models = config_obj["model"] if "model" in config_obj else None
+    models = validate(parse_str_to_list(models), list_models()) if models else list_models()
+    extra_args = config_obj["extra_args"].split(' ') if config_obj["extra_args"] else []
     configs = []
-    for device in devices:
-        for c in config_obj[device]:
-            if not c["stable"]:
-                continue
-            config = TorchBenchModelConfig(
-                name=c["model"],
-                device=device,
-                test=c["test"],
-                batch_size=c["batch_size"] if "batch_size" in c else None,
-                jit=c["jit"] if "jit" in c else False,
-                extra_args=[],
-                extra_env=None,
-            )
-            configs.append(config)
+    for model in models:
+        config = TorchBenchModelConfig(
+            name=model,
+            device="cpu",
+            test=config_obj["test"],
+            batch_size=config_obj["batch_size"] if "batch_size" in config_obj else None,
+            jit=config_obj["jit"] if "jit" in config_obj else False,
+            extra_args=extra_args,
+            extra_env=None,
+        )
+        configs.append(config)
     return configs
 
 def parse_str_to_list(candidates):
@@ -87,11 +87,11 @@ def parse_args(args):
     parser.add_argument("--launcher", action="store_true", help="Use torch.backends.xeon.run_cpu to get the peak performance on Intel(R) Xeon(R) Scalable Processors.")
     parser.add_argument("--launcher-args", default=None, help="Provide the args of torch.backends.xeon.run_cpu. See `python -m torch.backends.xeon.run_cpu --help`")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
-    return parser.parse_known_args()
+    return parser.parse_known_args(args)
 
 def run(args: List[str]):
     args, extra_args = parse_args(args)
-    extra_args.remove(BM_NAME)
+    test_date = datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
     if args.config:
         configs = generate_model_configs_from_yaml(args.config)
     else:
@@ -102,14 +102,14 @@ def run(args: List[str]):
         tests = validate(parse_str_to_list(args.test), list_tests())
         models = validate(parse_str_to_list(args.model), list_models())
         configs = generate_model_configs(devices, tests, model_names=models, batch_size=args.batch_size, jit=args.jit, extra_args=extra_args)
-    args.output = args.output if args.output else get_output_dir(BM_NAME)
+    args.output = args.output if args.output else get_output_dir(BM_NAME, test_date)
     try:
         for config in configs:
             run_benchmark(config, args)
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
     result_metrics = analyze(args.output)
-    dump_result_to_json(result_metrics, args.output, "cpu_res.json")
+    dump_result_to_json(result_metrics, Path(args.output).parent, f"metrics-{test_date}.json")
 
 def run_benchmark(config, args):
     benchmark_script = REPO_PATH.joinpath("userbenchmark", "cpu", "run_config.py")

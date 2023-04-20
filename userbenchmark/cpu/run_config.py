@@ -15,7 +15,7 @@ sys.path.append(REPO_DIR)
 
 from utils import add_path
 with add_path(REPO_DIR):
-    from userbenchmark.cpu.cpu_utils import REPO_PATH, get_output_json, dump_output
+    from userbenchmark.cpu.cpu_utils import REPO_PATH, get_output_dir, get_output_json, dump_output
     from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig, \
                                                             list_devices, list_tests
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
@@ -87,6 +87,7 @@ def run(args: List[str], extra_args: List[str]):
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
     if not args.dryrun:
+        args.output = args.output if args.output else get_output_dir(BM_NAME)
         target_dir = Path(args.output).joinpath(get_output_subdir(config))
         target_dir.mkdir(exist_ok=True, parents=True)
         metrics_dict = result_to_output_metrics(metrics)
