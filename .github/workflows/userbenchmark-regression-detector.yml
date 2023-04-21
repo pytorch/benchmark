@@ -75,6 +75,8 @@ jobs:
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
+          # TODO: the following assumes only one metrics-*.json is found. It will keep 
+          # overwriting gh-issue.md if multiple are found. Scaling this up is a potential next step.
           for r in ${RESULTS[@]}; do
             python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @janeyx99 \
             --gh-issue-path gh-issue.md --errors-path errors.txt

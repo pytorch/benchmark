@@ -35,7 +35,7 @@ Tests that were newly added on affected commit:
 Runtime regressions found?
 {runtime_regressions_msg}
 
-GitHub workflow that triggered this issue: https://github.com/pytorch/benchmark/actions/runs/{github_run_id}
+GitHub workflow that triggered this issue: {github_run_url}
 
 cc {owner}
 """
@@ -135,6 +135,12 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
     with open(fname, 'a') as fo:
         fo.write(content)
 
+    github_run_id = os.environ.get("GITHUB_RUN_ID", None)
+    github_run_url = "No URL found, please look for the failing action in " + \
+                     "https://github.com/pytorch/benchmark/actions"
+    if github_run_id is not None:
+        github_run_url = f"https://github.com/pytorch/benchmark/actions/runs/{github_run_id}"
+
     issue_config: Dict[str, str] = {
         "start": control_commit,
         "end": treatment_commit,
@@ -142,7 +148,7 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         "control_only_tests": control_only_tests,
         "treatment_only_tests": treatment_only_tests,
         "runtime_regressions_msg": runtime_regressions_msg,
-        "github_run_id": os.environ.get("GITHUB_RUN_ID", ""),
+        "github_run_url": github_run_url,
         "owner": owner
     }
     
