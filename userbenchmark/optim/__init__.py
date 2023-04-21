@@ -294,8 +294,8 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
             params = _get_model_params(Model(device=device, test='eval'))
     except ValueError:
         params = _get_model_params(Model(device=device, test='train'))
-    
-    del Model
+    finally:
+        del Model
     
     lil_cache = (modelName, device, params)
     return params
