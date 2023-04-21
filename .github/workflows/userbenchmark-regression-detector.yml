@@ -76,7 +76,8 @@ jobs:
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           for r in ${RESULTS[@]}; do
-            python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @janeyx99 --gh-issue-path gh-issue.md
+            python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @janeyx99 \
+            --gh-issue-path gh-issue.md --errors-path errors.txt
           done
       - name: Create the github issue
         if: env.TORCHBENCH_REGRESSION_DETECTED
