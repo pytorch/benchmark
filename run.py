@@ -284,8 +284,8 @@ if __name__ == "__main__":
     parser.add_argument("--export-metrics", action="store_true",
                         help="Export all specified metrics records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
-    parser.add_argument("--metrics", type=str,
-                        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
+    parser.add_argument("--metrics", type=str, default="cpu_peak_mem,gpu_peak_mem",
+                        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. You can also set `none` to disable all metrics. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
     parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "default"], default="default", help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,
     \n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  \n  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.\n  - you can specify flops by --metrics flops, and it is collected by fvcore.\nIn dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,\n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().\n  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""")
     parser.add_argument("--channels-last", action="store_true", help="enable torch.channels_last()")
@@ -318,10 +318,11 @@ if __name__ == "__main__":
     if args.amp:
         test = torch.autocast("cuda")(test)
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
-    # enable cpu_peak_mem and gpu_peak_mem by default
-    metrics_needed.append('cpu_peak_mem')
-    if args.device == 'cuda':
-        metrics_needed.append('gpu_peak_mem')
+    if 'none' in metrics_needed:
+        metrics_needed = []
+    # only enabled gpu_peak_mem for cuda device
+    if args.device != 'cuda' and 'gpu_peak_mem' in metrics_needed:
+        metrics_needed.remove('gpu_peak_mem')
     metrics_needed = list(set(metrics_needed))
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
