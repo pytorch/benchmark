@@ -45,8 +45,8 @@ class Model(BenchmarkModel):
     # K-shot means that each task only sees K data points.
     #
     # We've set the following variables to be equal to the task number.
-    DEFAULT_TRAIN_BSIZE = 32
-    DEFAULT_EVAL_BSIZE = 32
+    DEFAULT_TRAIN_BSIZE = 5
+    DEFAULT_EVAL_BSIZE = 5
     ALLOW_CUSTOMIZE_BSIZE = False
 
     # TODO: There _should_ be a way to plug in an optim here, but this
@@ -77,7 +77,6 @@ class Model(BenchmarkModel):
         root = str(Path(__file__).parent)
         self.meta_inputs = torch.load(f'{root}/batch.pt')
         self.meta_inputs = tuple([torch.from_numpy(i).to(self.device) for i in self.meta_inputs])
-
         self.example_inputs = (self.meta_inputs[0][0],)
 
     def get_module(self):
