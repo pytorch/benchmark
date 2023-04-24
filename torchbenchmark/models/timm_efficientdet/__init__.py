@@ -147,7 +147,10 @@ class Model(BenchmarkModel):
             return self.model, (input, target)
 
     def enable_amp(self):
-        self.amp_autocast = torch.cuda.amp.autocast
+        if self.device == "cuda":
+            self.amp_autocast = torch.cuda.amp.autocast
+        elif self.device == "cpu":
+            self.amp_autocast = torch.cpu.amp.autocast
         self.loss_scaler = NativeScaler()
 
     def train(self):

@@ -146,5 +146,3 @@ class HuggingFaceModel(BenchmarkModel):
         else:
             return (out["logits"], )
 
-    def enable_amp(self):
-        self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)

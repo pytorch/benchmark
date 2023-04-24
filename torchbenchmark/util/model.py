@@ -170,6 +170,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 or (not self.dynamo and (self.device == "cuda" and self.opt_args.backend == "fx2trt"))
                 or (not self.dynamo and self.opt_args.use_cosine_similarity)
                 or self.dargs.precision == "fx_int8"
+                or self.dargs.precision == "bf16"
+                or self.dargs.precision == "amp_fp16"
+                or self.dargs.precision == "amp_bf16"
             ):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
@@ -391,3 +394,35 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         except Exception as e:
             print(e)
             raise RuntimeError(f"{self.name} doesn't support `fx_int8` yet!")
+
+    def enable_bf16(self):
+        model_name = self.name
+        try:
+            model, _ = self.get_module()
+            model = model.to(torch.bfloat16)
+        except RuntimeError:
+            warnings.warn(UserWarning(f"{model_name} doesn't support `to(torch.bfloat16)` yet!"))
+            return
+        self.set_module(model)
+        def inputs_convert(example_inputs):
+            if isinstance(example_inputs, torch.Tensor) and example_inputs.dtype == torch.float32:
+                return example_inputs.to(torch.bfloat16)
+            elif isinstance(example_inputs, (tuple, list, dict)):
+                return tree_map(lambda x: inputs_convert(x), example_inputs)
+            else:
+                warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
+                return example_inputs
+        if hasattr(self, 'example_inputs'):
+            self.example_inputs = inputs_convert(self.example_inputs)
+        else:
+            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
+
+    def enable_amp(self):
+        if not self.dynamo and self.opt_args.backend == 'cudagraph':
+            return NotImplementedError("AMP not implemented for cudagraphs")
+        if not hasattr(self, "amp_context"):
+            raise RuntimeError(f"{self.name} doesn't have amp_context support!")
+        if self.device == "cpu":
+            self.amp_context = lambda: torch.cpu.amp.autocast()
+        elif self.device == "cuda":
+            self.amp_context = lambda: torch.cuda.amp.autocast()
