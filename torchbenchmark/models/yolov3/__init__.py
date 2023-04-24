@@ -6,6 +6,7 @@ import argparse
 import torch
 import os
 import numpy as np
+from contextlib import nullcontext
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
@@ -51,6 +52,7 @@ class Model(BenchmarkModel):
             self.training_loop, self.model, self.example_inputs = prepare_training_loop(train_args)
         elif test == "eval":
             self.model, self.example_inputs = self.prep_eval()
+        self.amp_context = nullcontext
 
     def prep_eval(self):
         parser = argparse.ArgumentParser()
