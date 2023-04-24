@@ -215,7 +215,7 @@ EXCLUSIONS: List[Dict[str, Any]] = [
         'detectron2_maskrcnn_r_101_c4', 'detectron2_maskrcnn_r_101_fpn',
         'detectron2_maskrcnn_r_50_fpn', 'doctr_det_predictor', 'doctr_reco_predictor', 'fambench_xlmr',
         'fastNLP_Bert', 'hf_Bart', 'hf_Bert', 'hf_Bert_large', 'hf_BigBird', 'hf_DistilBert', 'hf_GPT2',
-        'hf_GPT2_large', 'hf_Longformer', 'hf_Reformer', 'hf_T5', 'hf_T5_base', 'hf_T5_large',
+        'hf_GPT2_large', 'hf_Longformer', 'hf_Reformer', 'hf_T5', 'hf_T5_base', 'hf_T5_large', 'llama',
         'mnasnet1_0', 'mobilenet_v2', 'mobilenet_v2_quantized_qat', 'mobilenet_v3_large',
         'phlippe_densenet', 'pytorch_unet', 'resnet152', 'resnet50', 'resnet50_quantized_qat', 'resnext50_32x4d',
         'shufflenet_v2_x1_0', 'timm_efficientnet', 'timm_nfnet', 'timm_regnet',
@@ -283,19 +283,23 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
     torch.cuda.empty_cache()
 
     Model = load_model_by_name(modelName)
-    try:
-        # some (usually quantized) models do not support eval on CPU, but since we
-        # only care about params + randomly generate grads, eval vs train doesn't matter
-        params = _get_model_params(Model(device=device, test='train', batch_size=1))
-    except NotImplementedError:
+
+    # some (usually quantized) models do not support eval on CPU, but since we
+    # only care about params + randomly generate grads, eval vs train doesn't matter
+    if getattr(Model, 'ALLOW_CUSTOMIZE_BSIZE', True):
         try:
+            params = _get_model_params(Model(device=device, test='train', batch_size=1))
+        except NotImplementedError:
             params = _get_model_params(Model(device=device, test='eval', batch_size=1))
-        except ValueError:
+        finally:
+            del Model
+    else:
+        try:
+            params = _get_model_params(Model(device=device, test='train'))
+        except NotImplementedError:
             params = _get_model_params(Model(device=device, test='eval'))
-    except ValueError:
-        params = _get_model_params(Model(device=device, test='train'))
-    finally:
-        del Model
+        finally:
+            del Model
     
     lil_cache = (modelName, device, params)
     return params
