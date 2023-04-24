@@ -131,6 +131,8 @@ def ConvertSMVer2Cores(major, minor):
             (7, 5): 64,   # Turing
             (8, 0): 64,   # Ampere
             (8, 6): 128,
-            (8, 7): 128
+            (8, 7): 128,
+            (8, 9): 128,  # Ada
+            (9, 0): 128,  # Hopper
             }.get((major, minor), 0)
 
