@@ -107,7 +107,3 @@ class GNNModel(BenchmarkModel):
             result = torch.cat(xs, dim=0)
         return (result, )
 
-    def enable_amp(self):
-        if not self.dynamo and self.opt_args.backend == 'cudagraph':
-            return NotImplementedError("AMP not implemented for cudagraphs")
-        self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)

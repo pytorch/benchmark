@@ -154,7 +154,10 @@ class Model(BenchmarkModel):
         self.lr_scheduler, self.num_epochs = create_scheduler(args, self.optimizer)
 
     def enable_amp(self):
-        self.amp_autocast = torch.cuda.amp.autocast
+        if self.device == "cuda":
+            self.amp_autocast = torch.cuda.amp.autocast
+        elif self.device == "cpu":
+            self.amp_autocast = torch.cpu.amp.autocast
         self.loss_scaler = NativeScaler()
 
     def train(self):

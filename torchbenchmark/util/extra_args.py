@@ -7,7 +7,7 @@ from torchbenchmark.util.backends.flops import enable_fvcore_flops
 from torchbenchmark.util.env_check import is_torchvision_model, is_staged_train_test
 
 TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
-AVAILABLE_PRECISIONS = ["fp32", "tf32", "fp16", "amp", "fx_int8"]
+AVAILABLE_PRECISIONS = ["fp32", "tf32", "fp16", "amp", "fx_int8", "bf16","amp_fp16", "amp_bf16"]
 QUANT_ENGINES = ["x86", "fbgemm", "qnnpack", "onednn"]
 
 def check_correctness_p(
@@ -42,12 +42,18 @@ def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision
     if precision == "tf32":
         return model.device == "cuda"
     if precision == "amp":
+        return True
+    if precision == "fx_int8":
+        return model.device == 'cpu' and hasattr(model, "enable_fx_int8")
+    if precision == "bf16":
+        return model.device == 'cpu' and hasattr(model, "enable_bf16")
+    if precision == "amp_fp16":
         if model.test == 'eval' and model.device == 'cuda':
             return True
         if model.test == 'train' and model.device == 'cuda':
             return hasattr(model, 'enable_amp') or is_staged_train_test(model)
-    if precision == "fx_int8":
-        return model.device == 'cpu' and hasattr(model, "enable_fx_int8")
+    if precision == "amp_bf16":
+        return model.device == 'cpu'
     assert precision == "fp32", f"Expected precision to be one of {AVAILABLE_PRECISIONS}, but get {precision}"
     return True
 
@@ -113,7 +119,15 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
         # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
         if hasattr(model, "enable_amp"):
             model.enable_amp()
-        elif model.test == "eval":
+    elif dargs.precision == "fx_int8":
+        assert model.device == "cpu" and model.test == "eval", f"fx_int8 only work for eval mode on cpu device."
+        model.enable_fx_int8(dargs.quant_engine)
+    elif dargs.precision == "bf16":
+        assert model.device == "cpu", f"bf16 only work on cpu device."
+        model.enable_bf16()
+    elif dargs.precision == "amp_fp16":
+        assert model.device == "cuda", f"{model.device} has no fp16 autocast."
+        if model.test == "eval":
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
         elif model.test == "train":
@@ -121,9 +135,9 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
             assert is_staged_train_test(model), f"Expected model implements staged train test (forward, backward, optimizer)."
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16), stage=TEST_STAGE.FORWARD)
-    elif dargs.precision == "fx_int8":
-        assert model.device == "cpu" and model.test == "eval", f"fx_int8 only work for eval mode on cpu device."
-        model.enable_fx_int8(dargs.quant_engine)
+    elif dargs.precision == "amp_bf16":
+        import torch
+        model.add_context(lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16))
     elif not dargs.precision == "fp32":
         assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
 

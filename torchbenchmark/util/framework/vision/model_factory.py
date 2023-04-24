@@ -96,7 +96,3 @@ class TorchVisionModel(BenchmarkModel):
             break
         return (self.example_outputs, )
 
-    def enable_amp(self):
-        if hasattr(self.opt_args, 'backend') and self.opt_args.backend == "cudagraph":
-            return NotImplementedError("AMP not implemented for cudagraphs")
-        self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
