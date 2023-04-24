@@ -13,7 +13,7 @@ from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
                                            TEST_STAGE
-from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model
+from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model, warmup
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
 
 class PostInitProcessor(type):
@@ -151,10 +151,16 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     self.set_optimizer(current_optimizer)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
+        eager_latency = warmup(self)
         # apply optimization args
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
+            cache_entries = {}
+            from torch._inductor.utils import fresh_inductor_cache
+            fresh_inductor_cache(cache_entries)
+            opt_latency = warmup(self)
+            self.dynamo_compilation_time = (opt_latency - eager_latency)
         else:
             apply_opt_args(self, self.opt_args)
         if should_check_correctness:

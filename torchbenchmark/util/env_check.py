@@ -3,6 +3,7 @@ PyTorch benchmark env check utils.
 This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 import importlib
+import time
 import copy
 import warnings
 from typing import List, Dict, Tuple, Optional
@@ -12,6 +13,8 @@ MAIN_RANDOM_SEED = 1337
 STABLENESS_CHECK_ROUNDS: int = 3
 # rounds for correctness tests
 CORRECTNESS_CHECK_ROUNDS: int = 2
+# default warmup iterations
+DEFAULT_WARMUP_NITERS = 5
 
 def set_random_seed():
     import torch
@@ -51,6 +54,18 @@ def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool
 
 def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer_step')
+
+def warmup(model: 'torchbenchmark.util.model.BenchmarkModel', niters=DEFAULT_WARMUP_NITERS):
+    import torch
+    if model.device == "cuda":
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.empty_cache()
+    t0 = time.perf_counter()
+    for _ in range(niters):
+        model.invoke()
+    t1 = time.perf_counter()
+    latency = t1 - t0
+    return latency
 
 def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
