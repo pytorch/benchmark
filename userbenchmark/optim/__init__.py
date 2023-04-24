@@ -283,20 +283,23 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
     torch.cuda.empty_cache()
 
     Model = load_model_by_name(modelName)
-    try:
-        # some (usually quantized) models do not support eval on CPU, but since we
-        # only care about params + randomly generate grads, eval vs train doesn't matter
-        params = _get_model_params(Model(device=device, test='train', batch_size=1))
-    except NotImplementedError:
+
+    # some (usually quantized) models do not support eval on CPU, but since we
+    # only care about params + randomly generate grads, eval vs train doesn't matter
+    if getattr(Model, 'ALLOW_CUSTOMIZE_BSIZE', True):
         try:
-            params = _get_model_params(Model(device=device, test='eval', batch_size=1))
+            params = _get_model_params(Model(device=device, test='train', batch_size=1))
         except NotImplementedError:
-            try:
-                params = _get_model_params(Model(device=device, test='train'))
-            except NotImplementedError:
-                params = _get_model_params(Model(device=device, test='eval'))
-    finally:
-        del Model
+            params = _get_model_params(Model(device=device, test='eval', batch_size=1))
+        finally:
+            del Model
+    else:
+        try:
+            params = _get_model_params(Model(device=device, test='train'))
+        except NotImplementedError:
+            params = _get_model_params(Model(device=device, test='eval'))
+        finally:
+            del Model
     
     lil_cache = (modelName, device, params)
     return params
