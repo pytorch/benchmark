@@ -155,7 +155,7 @@ class TorchSource:
 
     # Update pytorch, torchtext, torchvision, and torchaudio repo
     def update_repos(self):
-        repos = [(self.srcpath, "master")]
+        repos = [(self.srcpath, "main")]
         repos.extend(TORCHBENCH_DEPS.values())
         for (repo, branch) in repos:
             gitutils.clean_git_repo(repo)
