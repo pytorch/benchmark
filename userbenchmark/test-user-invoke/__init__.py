@@ -12,19 +12,20 @@ with add_path(REPO_PATH):
 
 from typing import Optional
 
-def user_defined_invoke(model):
-    print(f"Model {model.name} invoke has been replaced!")
+def user_defined_invoke(self):
+    print(f"Model {self.name} invoke has been replaced!")
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", "-d", default="cuda", help="Devices to run, splited by comma.")
     parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
+    parser.add_argument("--bs", type=int, default=1, help="Test batch size")
     parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice models, splited by comma.")
     parser.add_argument("--inject", action="store_true", help="Inject user defined invoke function to the model.")
     return parser.parse_args(args)
 
 def get_metrics(_config: TorchBenchModelConfig) -> List[str]:
-    return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
+    return ["latencies"]
 
 def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
     """This function only handles NotImplementedError, all other errors will fail."""
@@ -51,7 +52,7 @@ def run(args: List[str]):
         name=args.model,
         device=args.device,
         test=args.test,
-        batch_size=None,
+        batch_size=args.bs,
         jit=False,
         extra_args=[],
         extra_env=None,

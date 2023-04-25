@@ -341,6 +341,7 @@ class ModelTask(base_task.TaskBase):
     @base_task.run_in_worker(scoped=True)
     @staticmethod
     def replace_invoke(module_name: str, func_name: str) -> None:
+        import importlib
         # import function from pkg
         model = globals()["model"]
         try:
@@ -350,7 +351,7 @@ class ModelTask(base_task.TaskBase):
                 diagnostic_msg = f"Warning: {module} does not define attribute {func_name}, skip it"
         except ModuleNotFoundError as e:
             diagnostic_msg = f"Warning: Could not find dependent module {e.name} for Model {model.name}, skip it"
-        model.invoke = inject_func
+        model.invoke = inject_func.__get__(model)
 
     # =========================================================================
     # == Get Model attribute in the child process =============================
