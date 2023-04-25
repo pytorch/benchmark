@@ -8,12 +8,12 @@ PYTORCH_VERSION="$3"
 PYTORCH_CHANNEL="$4"
 WORK_DIR="$5"
 
-#GPU_FREQUENCY="5001,900"
-GPU_FREQUENCY="1215,1410"
+GPU_FREQUENCY="5001,900"
+#GPU_FREQUENCY="1215,1410"
 # get the directory of the current script
 CURRENT_DIR=$(dirname -- "$0")
 
-wget https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh 
+wget https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh
 . switch-cuda.sh ${CUDA_VERSION}
 # re-setup the cuda soft link
 if [ -e "/usr/local/cuda" ]; then
@@ -37,7 +37,7 @@ else
 fi
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
-# If torchvision is not yet available, uncomment the following and 
+# If torchvision is not yet available, uncomment the following and
 # find a good torchvision commit to test
 #temp workaround to buid torchvision before vision rc binary is available
 #pushd  /tmp
@@ -47,7 +47,7 @@ python -c 'import torch; print(torch.__version__); print(torch.version.git_versi
 #git checkout nightly && git checkout 9c365bd9b1d500a6e2a9e22d59fcfac27db83320
 #python setup.py install
 #rm -rf /tmp/vision
-#popd 
+#popd
 
 # tune the machine
 sudo nvidia-smi -ac "${GPU_FREQUENCY}"
