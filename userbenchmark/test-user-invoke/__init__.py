@@ -14,6 +14,12 @@ from typing import Optional
 
 def user_defined_invoke(self):
     print(f"Model {self.name} invoke has been replaced!")
+    self.output_metrics_list = [1.0, 2.0, 3.0, 4.0]
+    self.output_metrics_dict ={
+        "m1": 1.0,
+        "m2": 2.0,
+        "m3": 3.0,
+    }
 
 def parse_args(args):
     parser = argparse.ArgumentParser()
@@ -34,12 +40,15 @@ def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> Optional[To
     if dryrun:
         return None
     # We do not allow RuntimeError in this test
+    result ={}
     try:
         # load the model instance within the same process
         model = load_model_isolated(config)
         inject_model_invoke(model, user_defined_invoke)
         # get the model test metrics
-        result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
+        model.invoke()
+        result["list_result"] = model.get_model_attribute("output_metrics_list")
+        result["dict_output"] = model.get_model_attribute("output_metrics_dict")
     except NotImplementedError as e:
         print(" [NotImplemented]")
         return None
