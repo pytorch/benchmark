@@ -49,9 +49,9 @@ python install.py
 ```
 
 ### Building From Source
-Note that when building PyTorch from source, torchtext and torchvision must also be built from source to make sure the C APIs match.
+Note that when building PyTorch from source, torchtext, torchvision and torchaudio must also be built from source to make sure the C APIs match.
 
-See detailed instructions to install torchtext [here](https://github.com/pytorch/text), and torchvision [here](https://github.com/pytorch/vision).
+See detailed instructions to install torchtext [here](https://github.com/pytorch/text), torchvision [here](https://github.com/pytorch/vision) and torchaudio [here](https://github.com/pytorch/audio).
 Make sure to enable CUDA (by `FORCE_CUDA=1`) if using CUDA.
 Then,
 ```
