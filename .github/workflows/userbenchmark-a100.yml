@@ -24,6 +24,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: benchmark
+      - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
+        uses: seemethere/add-github-ssh-key@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create conda environment
         run: |
           . "${SETUP_SCRIPT}"
@@ -93,7 +97,13 @@ jobs:
         with:
           name: TorchBench result
           path: benchmark-output/
+      - name: Hold runner for 2 hours or until ssh sessions have drained
+        # Always hold for active ssh sessions
+        if: always()
+        run: .github/scripts/wait_for_ssh_to_drain.sh
       - name: Remove conda environment
+        if: always()
         run: |
           . "${SETUP_SCRIPT}"
-          conda env remove --name "${CONDA_ENV_NAME}"
+          conda env remove --name "${CONDA_ENV_NAME}" || true
+          rm -f ~/.ssh/authorized_keys
