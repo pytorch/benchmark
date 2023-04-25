@@ -108,7 +108,7 @@ def install_torch_build_deps(cuda_version: str):
     subprocess.check_call(cmd)
     # conda-forge build deps
     build_deps = [ "ffmpeg" ]
-    cmd = ["conda", "install", "-y", "-c", "conda-forge"] + build_deps
+    cmd = ["conda", "install", "-y"] + build_deps
     subprocess.check_call(cmd)
     # pip deps
     pip_deps = [ f"numpy=={PIN_NUMPY_VERSION}" ]
