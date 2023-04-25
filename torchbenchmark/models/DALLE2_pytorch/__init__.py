@@ -84,7 +84,7 @@ class Model(BenchmarkModel):
 
     def eval(self):
         model, inputs = self.get_module()
-        with torch.inference_mode():
+        with torch.no_grad():
             images = model(*inputs)
         return (images,)
 

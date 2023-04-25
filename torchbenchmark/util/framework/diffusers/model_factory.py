@@ -32,5 +32,6 @@ class DiffuserModel(BenchmarkModel):
         raise NotImplementedError(f"Train is not implemented for model {self.name}")
 
     def eval(self):
-        images = self.pipe(*self.example_inputs).images
+        with torch.no_grad():
+            images = self.pipe(*self.example_inputs).images
         return images

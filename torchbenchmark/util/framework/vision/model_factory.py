@@ -85,8 +85,9 @@ class TorchVisionModel(BenchmarkModel):
             self.g.replay()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
-        with self.amp_context():
-            return self.model(*self.example_inputs)
+        with torch.no_grad():
+            with self.amp_context():
+                return self.model(*self.example_inputs)
 
     def cudagraph_eval(self):
         for data, target in zip(self.real_input, self.real_output):
