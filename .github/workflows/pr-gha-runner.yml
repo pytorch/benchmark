@@ -23,6 +23,10 @@ jobs:
           sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
           sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
           nvidia-smi
+      - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
+        uses: seemethere/add-github-ssh-key@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Conda Env
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
@@ -51,6 +55,16 @@ jobs:
           . "${SETUP_INSTANCE_SCRIPT}"
           conda activate "${CONDA_ENV}"
           python test.py
+      - name: Hold runner for 2 hours or until ssh sessions have drained
+        # Always hold for active ssh sessions
+        if: always()
+        run: .github/scripts/wait_for_ssh_to_drain.sh
+      - name: Remove conda environment
+        if: always()
+        run: |
+          . "${SETUP_INSTANCE_SCRIPT}"
+          conda env remove --name "${CONDA_ENV}" || true
+          rm -f ~/.ssh/authorized_keys
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
