@@ -340,7 +340,7 @@ class ModelTask(base_task.TaskBase):
     # =========================================================================
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def replace_invoke(module_name, func_name) -> None:
+    def replace_invoke(module_name: str, func_name: str) -> None:
         # import function from pkg
         model = globals()["model"]
         try:
