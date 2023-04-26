@@ -5,7 +5,7 @@ import time
 import json
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
@@ -49,7 +49,7 @@ class TorchBenchABTestResult:
     details: Dict[str, TorchBenchABTestMetric]
 
 
-def get_output_json(bm_name, metrics):
+def get_output_json(bm_name, metrics) -> Dict[str, Any]:
     import torch
     return {
         "name": bm_name,
@@ -57,32 +57,35 @@ def get_output_json(bm_name, metrics):
         "metrics": metrics,
     }
 
-def dump_output(bm_name, output):
-    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-    target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
-    target_dir.mkdir(exist_ok=True, parents=True)
+
+def dump_output(bm_name, output, target_dir: Path=None) -> None:
+    if target_dir is None:
+        target_dir = get_output_dir(bm_name)
     fname = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
     full_fname = os.path.join(target_dir, fname)
     with open(full_fname, 'w') as f:
         json.dump(output, f, indent=4)
 
-def get_date_from_metrics(metrics_file: str):
+
+def get_date_from_metrics(metrics_file: str) -> str:
     datetime_obj = datetime.strptime(metrics_file, "metrics-%Y%m%d%H%M%S")
     return datetime.strftime(datetime_obj, "%Y-%m-%d")
 
-def get_ub_name(metrics_file_path: str):
+
+def get_ub_name(metrics_file_path: str) -> str:
     with open(metrics_file_path, "r") as mf:
         metrics = json.load(mf)
     return metrics["name"]
 
-def get_output_dir(bm_name):
+
+def get_output_dir(bm_name) -> Path:
     current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-    target_dir = current_dir.parent.joinpath(".userbenchmark", bm_name)
+    target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
     target_dir.mkdir(exist_ok=True, parents=True)
     return target_dir
 
 
-def get_latest_n_jsons_from_s3(n: int, bm_name: str, platform_name: str, date: str):
+def get_latest_n_jsons_from_s3(n: int, bm_name: str, platform_name: str, date: str) -> List[str]:
     """Retrieves the most recent n metrics json filenames from S3 the WEEK BEFORE the given date, exclusive of that date.
        If fewer than n items are found, returns all found items without erroring, even if there were no items. """
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
