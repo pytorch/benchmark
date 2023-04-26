@@ -15,7 +15,7 @@ mkdir -p "${RESULT_DIR}/mnist"
 pushd "${EXAMPLES_DIR}/mnist"
 export LOG_FILE=${RESULT_DIR}/mnist/result.log
 export MEM_FILE=${RESULT_DIR}/mnist/result_mem.log
-bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 1
+bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 10
 # run mnist-hogwild
 mkdir -p ${RESULT_DIR}/mnist_hogwild
 pushd "${EXAMPLES_DIR}/mnist_hogwild"
