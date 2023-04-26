@@ -4,15 +4,29 @@ Run PyTorch cpu benchmarking.
 import json
 import os
 import re
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
-REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
+REPO_PATH = Path(__file__).absolute().parent.parent.parent
 USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
 
+class add_path():
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
+
 def get_output_dir(bm_name, test_date=None):
-    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+    current_dir = Path(__file__).parent.absolute()
     bm_out_dir = current_dir.parent.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
     test_date = test_date if test_date else datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
     output_dir = bm_out_dir.joinpath("cpu-" + test_date)
@@ -31,7 +45,7 @@ def dump_output(bm_name, output, output_dir=None, fname=None):
     output_dir = output_dir if output_dir else get_output_dir(bm_name)
     fname = fname if fname else "metrics-{}.json".format(os.getpid())
     full_fname = os.path.join(output_dir, fname)
-    with open(full_fname, 'w') as f:
+    with open(full_fname, "w") as f:
         json.dump(output, f, indent=4)
 
 def get_run(test_dir: Path):
@@ -62,17 +76,17 @@ def add_test_results(runs, result_metrics):
     # timm_regnet-eval-eager_cmem
     for run in runs:
         run_base_name = f"{run['model']}-{run['test']}-{run['mode']}"
-        ins_number = len(run['results'])
+        ins_number = len(run["results"])
         assert ins_number
-        latency_metric = 'latency' in run['results'][0]['metrics']
-        cmem_metric = 'cpu_peak_mem' in run['results'][0]['metrics']
+        latency_metric = "latency" in run["results"][0]["metrics"]
+        cmem_metric = "cpu_peak_mem" in run["results"][0]["metrics"]
         latency_sum = 0
         cmem_sum = 0
-        for ins_res in run['results']: 
+        for ins_res in run["results"]: 
             if latency_metric:           
-                latency_sum += ins_res['metrics']['latency']
+                latency_sum += ins_res["metrics"]["latency"]
             if cmem_metric:
-                cmem_sum += ins_res['metrics']['cpu_peak_mem']
+                cmem_sum += ins_res["metrics"]["cpu_peak_mem"]
         if latency_metric:
             result_metrics[f"{run_base_name}_latency"] = latency_sum / ins_number
         if cmem_metric:

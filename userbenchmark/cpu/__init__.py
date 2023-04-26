@@ -16,10 +16,10 @@ from .cpu_utils import REPO_PATH, get_output_dir, get_output_json, dump_output, 
 from ..utils import add_path
 
 with add_path(REPO_PATH):
-    from torchbenchmark.util.experiment.instantiator import list_models, TorchBenchModelConfig, \
-                                                            list_devices, list_tests
+    from torchbenchmark.util.experiment.instantiator import (list_models, TorchBenchModelConfig, 
+                                                            list_devices, list_tests)
 
-BM_NAME = 'cpu'
+BM_NAME = "cpu"
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 def generate_model_configs(devices: List[str], tests: List[str], model_names: List[str], batch_size: int, jit: bool, extra_args: List[str]) -> List[TorchBenchModelConfig]:
