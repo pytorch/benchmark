@@ -8,10 +8,10 @@ from userbenchmark.utils import REPO_PATH, add_path, dump_output, get_output_jso
 import argparse
 import sys
 import itertools
-import datetime
+from datetime import datetime
 
 with add_path(REPO_PATH):
-    from torchbenchmark.util.experiment.instantiator import list_models
+    from torchbenchmark.util.experiment.instantiator import inject_model_invoke, list_models, load_model_isolated, TorchBenchModelConfig
 
 
 BM_NAME: str = 'optim'
@@ -333,7 +333,8 @@ def is_excluded(mn: str, d: str, on: str, func_str: str, defaults: Dict[str, Any
                 ('device' not in e or e['device'] == d) and
                 ('optim' not in e or e['optim'] == on) and
                 ('funct_str' not in e or e['func_str'] == func_str) and
-                ('defaults' not in e or all(f in defaults_to_str(defaults) for f in e['defaults'])) for e in EXCLUSIONS])
+                ('defaults' not in e or all(f in defaults_to_str(defaults) for f in e['defaults']))
+                for e in EXCLUSIONS])
     
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     try:
@@ -345,7 +346,7 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         generate_random_gradients(params)
         pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
 
-        print(f'{datetime.datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
+        print(f'{datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
         return benchmark.Timer(
             stmt=f'{maybe_pt2_}optimizer_step(optim)',
             globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
@@ -357,11 +358,49 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
             raise e
         print(e)
         with open('errors.txt', 'a') as f:
-            f.write(f'{datetime.datetime.now().timestamp()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {str(e)}\n')
+            f.write(f'{datetime.now().timestamp()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {str(e)}\n')
         return None
 
 
-def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str], flags: List[str]) -> List[float]:
+# [NB] Why do we split up our benchmarks per model and device?
+# There was a joyous time when we simply for loop'd over all our configs
+# and ran one benchmark per cross product of model, device, optim, function.
+# For ease of understanding, we forewent the adage of running each model-related
+# task in its own process, and we employed a little cache to prevent reloading
+# parameters while we were still using the same model.
+#
+# Well, ignoring wise advice caught up to us when, on one fateful night, a
+# model changed how it was run and started messing with the global torch 
+# cudnn context, ruining all other models who also dabble in messing with
+# the cudnn context (just grep for `torch.backends.cudnn.`). Since we really
+# cannot control how each of the upstreamed models may change, we decided
+# to make amends and rewrite the structure into two parts:
+#   1. For loop over all possible model and device pairs
+#   2. For each model + device: enter a subprocess for isolation!
+#      Retrieve the relevant parameters and run every cross product
+#      between the optimizer and func_str configs. Store the relevant
+#      benchmark results on the model instance and get them after.
+#      results on the model
+def run_all_configs_per_model_and_device(self, 
+                                         optim_cfgs: List[Tuple[torch.optim.Optimizer, Dict[str, Any]]],
+                                         func_strs: List[str]) -> None:
+    model, _ = m.get_module()
+    params_clone = []
+    for p in model.parameters():
+        params_clone.append(p.clone().detach())
+    return params_clone
+
+
+    for (O, defaults), func_str in itertools.product(optim_cfgs, func_strs):
+        if (is_excluded(mn, d, O.__name__, func_str, defaults)):
+            continue
+        bm = run_model(mn, d, O, defaults, func_str)
+        if bm is not None:
+            results.append(bm)
+
+
+def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str],
+                   devices: List[str], flags: List[str]) -> List[float]:
     results = []
     optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults_to_str(defaults) for f in flags)]
 
@@ -369,12 +408,39 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
         models = SUBSET_OF_MODEL_NAMES
         optim_cfgs = [(O, defaults) for (O, defaults) in optim_cfgs if (all([x in ['foreach', 'fused', 'lr'] for x in defaults]))]
     
-    for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
-        if (is_excluded(mn, d, O.__name__, func_str, defaults)):
-            continue
-        bm = run_model(mn, d, O, defaults, func_str)
-        if bm is not None:
-            results.append(bm)
+    for mn, d in itertools.product(models, devices):
+        try:
+            model_cfg = TorchBenchModelConfig(
+                name=mn,
+                device=d,
+                test='train',
+                batch_size=None,
+                jit=False,
+                extra_args=[],
+                extra_env=None,
+            )
+        except NotImplementedError:
+            model_cfg = TorchBenchModelConfig(
+                name=mn,
+                device=d,
+                test='eval',
+                batch_size=None,
+                jit=False,
+                extra_args=[],
+                extra_env=None,
+            )
+        model = load_model_isolated(model_cfg)
+        inject_model_invoke(model, run_all_configs_per_model_and_device)
+
+        # the following now calls run_all_configs_per_model_and_device
+        model.invoke(optim_cfgs, func_strs)
+
+        for (O, defaults), func_str in itertools.product(optim_cfgs, func_strs):
+            if (is_excluded(mn, d, O.__name__, func_str, defaults)):
+                continue
+            bm = run_model(mn, d, O, defaults, func_str)
+            if bm is not None:
+                results.append(bm)
     return results
 
 
