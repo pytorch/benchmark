@@ -67,7 +67,7 @@ jobs:
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
 
           # TODO: scale this to run other benchmarks, but let's start with optim
-          python run_benchmark.py optim -c ${{ github.event.inputs.userbenchmark_options }}
+          python -m userbenchmark.optim.run_optim_benchmarks -c ${{ github.event.inputs.userbenchmark_options }}
           cp -r ./.userbenchmark/optim ../benchmark-output
       - name: Detect potential regressions
         continue-on-error: true
