@@ -24,7 +24,7 @@ SUBSET_OF_MODEL_NAMES: List[str] = [
     'BERT_pytorch', 'DALLE2_pytorch', 'hf_GPT2_large', 'hf_T5_large', 'resnet50', 'timm_vision_transformer', 'yolov3'
 ]
 
-DEVICES: str = ['cuda', 'cpu']
+DEVICES: List[str] = ['cuda', 'cpu']
 
 OPTIM_NAMES = [o.__name__ for o in [Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam, SparseAdam]]
 
@@ -219,7 +219,7 @@ EXCLUSIONS: List[Dict[str, Any]] = [
         'mnasnet1_0', 'mobilenet_v2', 'mobilenet_v2_quantized_qat', 'mobilenet_v3_large',
         'phlippe_densenet', 'pytorch_unet', 'resnet152', 'resnet50', 'resnet50_quantized_qat', 'resnext50_32x4d',
         'shufflenet_v2_x1_0', 'timm_efficientnet', 'timm_nfnet', 'timm_regnet',
-        'timm_vision_transformer']
+        'timm_vision_transformer', 'yolov3']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
     # C++ kernel for both CUDA and CPU for single tensor implementations.
@@ -286,20 +286,18 @@ def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
 
     # some (usually quantized) models do not support eval on CPU, but since we
     # only care about params + randomly generate grads, eval vs train doesn't matter
-    if getattr(Model, 'ALLOW_CUSTOMIZE_BSIZE', True):
+    try:
+        params = _get_model_params(Model(device=device, test='train', batch_size=1))
+    except:
         try:
-            params = _get_model_params(Model(device=device, test='train', batch_size=1))
-        except NotImplementedError:
             params = _get_model_params(Model(device=device, test='eval', batch_size=1))
-        finally:
-            del Model
-    else:
-        try:
-            params = _get_model_params(Model(device=device, test='train'))
-        except NotImplementedError:
-            params = _get_model_params(Model(device=device, test='eval'))
-        finally:
-            del Model
+        except:
+            try:
+                params = _get_model_params(Model(device=device, test='train'))
+            except:
+                params = _get_model_params(Model(device=device, test='eval'))
+    finally:
+        del Model
     
     lil_cache = (modelName, device, params)
     return params
@@ -370,7 +368,7 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
     optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults_to_str(defaults) for f in flags)]
 
     if run_on_subset:
-        models = SUBSET_OF_MODEL_NAMES
+        models = [m for m in SUBSET_OF_MODEL_NAMES if m in models]
         optim_cfgs = [(O, defaults) for (O, defaults) in optim_cfgs if (all([x in ['foreach', 'fused', 'lr'] for x in defaults]))]
     
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
@@ -406,7 +404,9 @@ def parse_args(args: List[str]):
     parser.add_argument(
         '--subset', '-s',
         action='store_true',
-        help='Run benchmarks on a standard subset of models. Will overwrite the --models (-m) setting.'
+        help='Run benchmarks on a standard subset of models. If the --models (-m) is set, we will ' +
+             'take the intersection of the requested models and the defined subset. For example, ' +
+             '`...-s -m llama yolov3` will ONLY run yolov3.'
     )
     parser.add_argument(
         '--devices', '-d',
