@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from torchbenchmark import load_model_by_name
 import torch
@@ -415,7 +416,7 @@ def parse_args(args: List[str]):
         choices=DEVICES,
         help='List of devices to run tests on')
     parser.add_argument(
-        '--default-flags', '-df',
+        '--default-flags', '--df',
         nargs='*',
         default=[],
         choices=['foreach', 'no_foreach', 'fused', 'maximize', 'capturable', 'differentiable', 'default',
@@ -430,6 +431,11 @@ def parse_args(args: List[str]):
         '--continue-on-error', '-c',
         action='store_true',
         help='Continue running benchmarks on failure, errors will be written to errors.txt'
+    )
+    parser.add_argument(
+        '--output-dir', '--od', default=None, type=str,
+        help='name of directory path in which to dump the metrics json, e.g., "./.userbenchmark/optim/tmp". ' +
+             'If None, we will dump output the metrics json to "REPO_ROOT/.userbenchmark/optim".'
     )
     args = parser.parse_args(args)
     return args
@@ -447,9 +453,12 @@ def run(args: List[str]):
     global continue_on_error, run_on_subset
     continue_on_error = args.continue_on_error
     run_on_subset = args.subset
+    target_dir = Path(args.output_dir) if args.output_dir is not None else None
+    target_dir.mkdir(exist_ok=True, parents=True)
+
     results = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
     metrics: Dict[str, float] = get_metrics(results) 
-    dump_output(BM_NAME, get_output_json(BM_NAME, metrics))
+    dump_output(BM_NAME, get_output_json(BM_NAME, metrics), target_dir=target_dir)
     compare = benchmark.Compare(results)
     compare.trim_significant_figures()
     compare.colorize(rowwise=True)
