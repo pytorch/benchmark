@@ -29,6 +29,9 @@ def _set_extra_env(extra_env):
     for env_key in extra_env:
         os.environ[env_key] = extra_env[env_key]
 
+def inject_model_invoke(model_task: ModelTask, inject_function):
+    model_task.replace_invoke(inject_function.__module__, inject_function.__name__)
+
 def load_model_isolated(config: TorchBenchModelConfig, timeout: float=WORKER_TIMEOUT) -> ModelTask:
     """ Load and return the model in a subprocess. """
     task = ModelTask(config.name, timeout=timeout, extra_env=config.extra_env)
