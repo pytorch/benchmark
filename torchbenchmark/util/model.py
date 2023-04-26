@@ -151,7 +151,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     self.set_optimizer(current_optimizer)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
-        eager_latency = warmup(self)
+        if should_check_correctness:
+            eager_latency = warmup(self)
         # apply optimization args
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
