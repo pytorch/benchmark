@@ -314,10 +314,15 @@ def optimizer_step(optimizer):
     optimizer.step()
 
 def pt2_optimizer_step(optimizer):
+    a = datetime.datetime.now()
     @torchdynamo.optimize('inductor')
     def f():
         optimizer.step()
+    b = datetime.datetime.now()
+    print('time it takes to COMPILE the step: ', b - a)
     f()
+    c = datetime.datetime.now()
+    print('time it takes to RUN the step: ', c - b)
 
 def defaults_to_str(defaults: Dict[str, Any]) -> str:
     # We define lr for SGD, but we don't currently vary lr so it is effectively the default.
@@ -340,12 +345,18 @@ def is_excluded(mn: str, d: str, on: str, func_str: str, defaults: Dict[str, Any
     
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     try:
-        params = get_model_params(modelName, device)   
+        a = datetime.datetime.now()
+        params = get_model_params(modelName, device)
+        b = datetime.datetime.now()
+        print('time to get params: ', b - a)
         print('getting params: ', params[0].size(), params[0].dtype, len(params), params[0].device)
         if Optim.__name__ == 'SGD':
             defaults['lr'] = 1e-2
+        c = datetime.datetime.now()
         optim = Optim(params, **defaults)
         generate_random_gradients(params)
+        d = datetime.datetime.now()
+        print('time to gen grads: ', d - c)
         pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
 
         print(f'{datetime.datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
@@ -375,7 +386,10 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
         if (is_excluded(mn, d, O.__name__, func_str, defaults)):
             continue
+        a = datetime.datetime.now()
         bm = run_model(mn, d, O, defaults, func_str)
+        b = datetime.datetime.now()
+        print('time to run one instance: ', b - a)
         if bm is not None:
             results.append(bm)
     return results
