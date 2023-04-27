@@ -10,8 +10,6 @@ jobs:
   build-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, linux.4xlarge]
-    env:
-      GHCR_PAT: ${{ secrets.GHCR_PAT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
