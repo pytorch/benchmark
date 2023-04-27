@@ -454,7 +454,8 @@ def run(args: List[str]):
     continue_on_error = args.continue_on_error
     run_on_subset = args.subset
     target_dir = Path(args.output_dir) if args.output_dir is not None else None
-    target_dir.mkdir(exist_ok=True, parents=True)
+    if target_dir is not None:
+        target_dir.mkdir(exist_ok=True, parents=True)
 
     results = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
     metrics: Dict[str, float] = get_metrics(results) 
