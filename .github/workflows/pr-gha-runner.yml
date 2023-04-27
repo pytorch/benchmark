@@ -35,6 +35,7 @@ jobs:
           . "${SETUP_INSTANCE_SCRIPT}"
           conda activate "${CONDA_ENV}"
           python utils/cuda_utils.py --install-torch-nightly
+          python utils/cuda_utils.py --check-torch-nightly-version
       - name: Install TorchBench
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"

@@ -36,6 +36,7 @@ jobs:
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda activate "${CONDA_ENV}"
           python utils/cuda_utils.py --install-torch-nightly
+          python utils/cuda_utils.py --check-torch-nightly-version
       - name: Install TorchBench
         run: |
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
