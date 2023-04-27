@@ -221,18 +221,18 @@ if __name__ == "__main__":
         assert args.name, f"To detect regression with S3, you must specify a userbenchmark name."
         assert args.end_date and (end_date := datetime.strptime(args.end_date, "%YY%mm%dd")), f"To detect regression with dates, you must specify an end date in format YYmmdd."
         userbenchmark_name = args.name
-        treatment = None
-    latest_metrics_jsons = get_latest_n_jsons_from_s3(7, userbenchmark_name, args.platform, end_date)
+    available_metrics_jsons = get_latest_n_jsons_from_s3(7, userbenchmark_name, args.platform, end_date)
     # Download control from S3
-    if len(latest_metrics_jsons) == 0:
-        raise RuntimeWarning(f"No previous JSONS in a week found to compare against the end date {end_date}. No regression info has been generated.")
-    start_date = args.start_date if args.start_date else get_best_start_date(latest_metrics_jsons, end_date)
+    if len(available_metrics_jsons) == 0:
+        raise RuntimeWarning(f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated.")
+    start_date = args.start_date if args.start_date else get_best_start_date(available_metrics_jsons, end_date)
     if not start_date:
-        raise RuntimeWarning(f"No start date in previous JSONS found to compare against the end date {end_date}. No regression info has been generated.")
+        raise RuntimeWarning(f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. " +
+                             f"Available JSON dates: {available_metrics_jsons.keys()}. No regression info has been generated.")
 
     print(f"[TorchBench Regression Detector] Detecting regression of {userbenchmark_name} on platform {args.platform}, start date: {start_date}, end date: {end_date}.")
-    control = get_metrics_by_date(start_date) if not control else control
-    treatment = get_metrics_by_date(end_date) if not treatment else treatment
+    control = get_metrics_by_date(available_metrics_jsons, start_date) if not control else control
+    treatment = get_metrics_by_date(available_metrics_jsons, end_date) if not treatment else treatment
     regressions_dict = generate_regression_dict(control, treatment)
     output_path = args.output if args.output else get_default_output_path(control["name"])
     process_regressions_into_yaml(regressions_dict, output_path, args.control, args.treatment)
