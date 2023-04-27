@@ -8,7 +8,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        path: benchmark
+        with:
+          path: benchmark
       - name: Build TorchBench nightly docker
         run: |
           export TODAY=$(date +'%Y%m%d')
