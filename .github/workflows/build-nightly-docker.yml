@@ -2,9 +2,11 @@ name: TorchBench nightly docker build
 on:
   workflow_dispatch:
 jobs:
-  build-docker:
+  build-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, linux.4xlarge]
+    env:
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -21,5 +23,10 @@ jobs:
         run: |
           export TODAY=$(date +'%Y%m%d')
           export DOCKER_TAG=dev${TODAY}
+          echo $GHCR_PAT | docker login ghcr.io -u pytorch --password-stdin
           docker push ghcr.io/pytorch/torchbench:${DOCKER_TAG}
           docker push ghcr.io/pytorch/torchbench:latest
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true
