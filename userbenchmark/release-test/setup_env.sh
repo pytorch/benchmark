@@ -29,11 +29,11 @@ pip uninstall -y torch torchvision
 conda install -y -c pytorch ${MAGMA_VERSION}
 # install pytorch and pytorch-cuda
 if [ $PYTORCH_CHANNEL = "pytorch" ] && [ $PYTORCH_VERSION = "1.12.1" ]; then
-  conda install pytorch=${PYTORCH_VERSION} torchvision torchaudio cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c conda-forge
+  conda install -y pytorch=${PYTORCH_VERSION} torchvision torchaudio cudatoolkit=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c conda-forge
 elif [ $PYTORCH_CHANNEL = "pytorch-nightly" ] ; then
-  conda install pytorch torchvision torchaudio pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
+  conda install -y pytorch torchvision torchaudio pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
 else
-  conda install --force-reinstall pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
+  conda install --force-reinstall -y pytorch=${PYTORCH_VERSION} torchvision torchtext pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
 fi
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
