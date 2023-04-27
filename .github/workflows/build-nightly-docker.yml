@@ -1,8 +1,6 @@
 name: TorchBench nightly docker build
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 14 * * *' # run at 2 PM UTC
 jobs:
   build-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
@@ -17,7 +15,7 @@ jobs:
           export DOCKER_TAG=dev${TODAY}
           cd benchmark/docker
           docker build . -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:${DOCKER_TAG}
-          docker tag ghcr.io/pytorch/pytorch-nightly:${DOCKER_TAG} ghcr.io/pytorch/torchbench:latest
+          docker tag ghcr.io/pytorch/torchbench:${DOCKER_TAG} ghcr.io/pytorch/torchbench:latest
       - name: Push docker to remote
         run: |
           export TODAY=$(date +'%Y%m%d')
