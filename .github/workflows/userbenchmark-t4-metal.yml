@@ -46,6 +46,7 @@ jobs:
           fi
           # Install PyTorch and torchvision nightly from pip
           python utils/cuda_utils.py --install-torch-nightly
+          python utils/cuda_utils.py --check-torch-nightly-version
           # make sure pytorch+cuda works
           python -c "import torch; torch.cuda.init()"
       - name: Install TorchBench
