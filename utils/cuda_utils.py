@@ -136,7 +136,7 @@ if __name__ == "__main__":
     parser.add_argument("--install-torch-build-deps", action="store_true", help="Install pytorch build requirements")
     parser.add_argument("--install-torch-nightly", action="store_true", help="Install pytorch nightlies")
     parser.add_argument("--check-torch-nightly-version", action="store_true", help="Validate pytorch nightly package consistency")
-    parser.add_argument("--force-date", type=str, default=None, help="Force Pytorch nightly release date version")
+    parser.add_argument("--force-date", type=str, default=None, help="Force Pytorch nightly release date version. Date string format: YYmmdd")
     args = parser.parse_args()
     if args.setup_cuda_softlink:
         setup_cuda_softlink(cuda_version=args.cudaver)
