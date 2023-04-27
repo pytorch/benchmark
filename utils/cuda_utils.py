@@ -114,7 +114,7 @@ def get_torch_nightly_version(pkg_name: str):
     pkg = importlib.import_module(pkg_name)
     version = pkg.__version__
     regex = ".*dev([0-9]+).*"
-    date_str = re.match(regex, version).group()[1]
+    date_str = re.match(regex, version).groups()[0]
     pkg_ver = {"version": version, "date": date_str}
     return (pkg_name, pkg_ver)
 
@@ -126,7 +126,7 @@ def check_torch_nightly_version(force_date: Optional[str] = None):
     if force_date and not pkg_dates[0] == force_date:
         raise RuntimeError(f"Force date value {force_date}, but found torch packages {pkg_versions}.")
     force_date_str = f"User force date {force_date}" if force_date else ""
-    print(f"Installed consistent torch packages: {pkg_versions}. {force_date_str}")
+    print(f"Installed consistent torch nightly packages: {pkg_versions}. {force_date_str}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
