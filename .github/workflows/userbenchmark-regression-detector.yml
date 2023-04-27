@@ -24,6 +24,17 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: benchmark
+      - name: Clean workspace
+        shell: bash
+        run: |
+          echo "About to wipe and recreate ${GITHUB_WORKSPACE}"
+          rm -rf "${GITHUB_WORKSPACE}"
+          mkdir "${GITHUB_WORKSPACE}"
+      - name: Clean TorchBench checkout
+        run: |
+          # Remove any artifacts from the previous checkouts
+          git clean -fxd
+        working-directory: benchmark
       - name: Create conda environment
         run: |
           . "${SETUP_SCRIPT}"
