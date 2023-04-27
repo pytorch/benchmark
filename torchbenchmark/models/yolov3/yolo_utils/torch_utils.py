@@ -32,7 +32,7 @@ def select_device(device='', apex=False, batch_size=None):
 
     cuda = False if cpu_request else torch.cuda.is_available()
     if cuda:
-        return torch.cuda.current_device()
+        return torch.device(f"cuda:{torch.cuda.current_device()}")
 
     print('Using CPU')
     return torch.device('cpu')
