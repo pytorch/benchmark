@@ -1,0 +1,24 @@
+name: TorchBench nightly docker build
+on:
+  workflow_dispatch:
+jobs:
+  build-docker:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, linux.4xlarge]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        path: benchmark
+      - name: Build TorchBench nightly docker
+        run: |
+          export TODAY=$(date +'%Y%m%d')
+          export DOCKER_TAG=dev${TODAY}
+          cd benchmark/docker
+          docker build . -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:${DOCKER_TAG}
+          docker tag ghcr.io/pytorch/torchbench:${DOCKER_TAG} ghcr.io/pytorch/torchbench:latest
+      - name: Push docker to remote
+        run: |
+          export TODAY=$(date +'%Y%m%d')
+          export DOCKER_TAG=dev${TODAY}
+          docker push ghcr.io/pytorch/torchbench:${DOCKER_TAG}
+          docker push ghcr.io/pytorch/torchbench:latest
