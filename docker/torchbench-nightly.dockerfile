@@ -20,7 +20,8 @@ RUN cd /workspace/benchmark && \
     conda activate ${CONDA_ENV_NAME} && \
     python utils/cuda_utils.py --install-torch-deps && \
     python utils/cuda_utils.py --install-torch-nightly && \
-    TODAY_STR=$(date +'%Y%m%d') python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
+    export TODAY_STR=$(date +'%Y%m%d') && \
+    python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
 
 # Install TorchBench
 RUN cd /workspace/benchmark && \
