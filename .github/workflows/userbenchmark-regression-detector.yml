@@ -34,7 +34,6 @@ jobs:
         run: |
           # Remove any artifacts from the previous checkouts
           git clean -fxd
-        working-directory: benchmark
       - name: Create conda environment
         run: |
           . "${SETUP_SCRIPT}"
