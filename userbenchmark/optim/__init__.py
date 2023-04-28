@@ -7,6 +7,7 @@ from torch.optim import Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam
 import torch.utils.benchmark as benchmark
 from userbenchmark.utils import REPO_PATH, add_path, dump_output, get_output_json
 import argparse
+import gc
 import sys
 import itertools
 import datetime
@@ -359,12 +360,20 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
 
         print(f'{datetime.datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
-        return benchmark.Timer(
+        r = benchmark.Timer(
             stmt=f'{maybe_pt2_}optimizer_step(optim)',
             globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
             sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
             description=pt2_description + defaults_to_str(defaults),
         ).blocked_autorange()
+
+        if maybe_pt2_:
+            # Clears the cache that dynamo had accumulated to prevent OOMs
+            # See https://github.com/pytorch/pytorch/issues/100264
+            torchdynamo.reset()
+            gc.collect()
+
+        return r
     except Exception as e: 
         if not continue_on_error:
             raise e
@@ -374,7 +383,8 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         return None
 
 
-def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str], flags: List[str]) -> List[float]:
+def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str],
+                   flags: List[str]) -> List[torch.utils.benchmark.utils.common.Measurement]:
     results = []
     optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults_to_str(defaults) for f in flags)]
 
@@ -404,7 +414,8 @@ def parse_args(args: List[str]):
         nargs='*',
         default=FUNC_STRS,
         choices=FUNC_STRS,
-        help='What optimizer.step() function variations to benchmark'
+        help='What optimizer.step() function variations to benchmark. NOTE: there is an underscore ' +
+             'for "pt2_"!'
     )
     parser.add_argument(
         '--models', '-m',
