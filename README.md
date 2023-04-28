@@ -145,3 +145,17 @@ See [Unidash](https://www.internalfb.com/intern/unidash/dashboard/pytorch_benchm
 ## Adding new models
 
 See [Adding Models](torchbenchmark/models/ADDING_MODELS.md).
+
+## Citation
+
+If you use TorchBench in your academic work, please cite the following:
+```
+@misc{hao2023torchbench,
+      title={TorchBench: Benchmarking PyTorch with High API Surface Coverage}, 
+      author={Yueming Hao and Xu Zhao and Bin Bao and David Berard and Will Constable and Adnan Aziz and Xu Liu},
+      year={2023},
+      eprint={2304.14226},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```
