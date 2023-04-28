@@ -353,5 +353,11 @@ if __name__ == "__main__":
                      stress=args.stress, metrics_needed=metrics_needed, metrics_gpu_backend=args.metrics_gpu_backend)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
-    if hasattr(m, 'dynamo_compilation_time'):
-        print('{:<20} {:>18}'.format("PT2 Compilation time: ", "%.3f seconds" % m.dynamo_compilation_time), sep='')
+
+    # Print dynamo compilation metrics, if there are any.
+    try:
+        from torch._dynamo.utils import compile_times
+        compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))["_compile"]
+        print('{:<20} {:>18}'.format("PT2 Compilation time: ", "%.3f seconds" % float(compile_time)), sep='')
+    except:
+        pass
