@@ -25,7 +25,7 @@ CUDA_VERSION_MAP = {
     }
 }
 PIN_CMAKE_VERSION = "3.22.*"
-TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchtext", "torchvision"]
+TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchtext", "torchvision", "torchaudio"]
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
     regex = 'release (.*),'
