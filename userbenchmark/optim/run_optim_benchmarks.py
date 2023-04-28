@@ -28,7 +28,6 @@ MODEL_NAMES: List[str] = list_models()
 DEVICES: List[str] = ['cuda', 'cpu']
 OUTPUT_DIR: Path = REPO_PATH.joinpath('.userbenchmark/optim/tmp')
 
-
 # Capture the specified models and devices we want to run to avoid redundant work,
 # but send the rest of the user arguments to the underlying optim benchmark runner.
 def parse_args() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:

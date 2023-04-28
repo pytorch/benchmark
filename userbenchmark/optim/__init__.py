@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 from torchbenchmark import load_model_by_name
 import torch
 from torch import _dynamo as torchdynamo
@@ -10,6 +10,7 @@ import argparse
 import sys
 import itertools
 import datetime
+# import objgraph
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models
@@ -20,6 +21,9 @@ BM_NAME: str = 'optim'
 continue_on_error: bool = False
 run_on_subset: bool = False
 ignore_skips: bool = False
+
+# Models for which to skip printing the benchmark comparison table due to memory constraints
+no_compare_table_models: List[str] = []
 
 MODEL_NAMES: List[str] = list_models()
 SUBSET_OF_MODEL_NAMES: List[str] = [
@@ -194,6 +198,10 @@ DENSE_MODELS = [
     'yolov3'
 ]
 
+MEMORY_INTENSIVE_MODELS: List[str] = [
+    'dlrm', 'fambench_xlmr', 'hf_GPT2_large', 'hf_T5_large', 'timm_vision_transformer_large'
+]
+
 # Skips! Exclusions are represented by a dictionary of incompatible configs, where
 # optim => optimizer name
 # model => model name
@@ -321,13 +329,15 @@ def generate_random_gradients(parameters):
         p.grad = torch.rand_like(p)
 
 def optimizer_step(optimizer):
-    optimizer.step()
+    # optimizer.step()
+    pass
 
 def pt2_optimizer_step(optimizer):
-    @torchdynamo.optimize('inductor')
+    @torch.compile()
     def f():
         optimizer.step()
     f()
+    
 
 def defaults_to_str(defaults: Dict[str, Any]) -> str:
     # We define lr for SGD, but we don't currently vary lr so it is effectively the default.
@@ -348,47 +358,71 @@ def is_excluded(mn: str, d: str, on: str, func_str: str, defaults: Dict[str, Any
                 ('funct_str' not in e or e['func_str'] == func_str) and
                 ('defaults' not in e or all(f in defaults_to_str(defaults) for f in e['defaults'])) for e in EXCLUSIONS])
     
-def run_model(modelName, device, Optim, defaults, maybe_pt2_):
+def run_model(modelName, device, Optim, defaults, maybe_pt2_) -> Tuple[str, str, float, Optional[torch.utils.benchmark.utils.common.Measurement]]:
     try:
-        params = get_model_params(modelName, device)   
+        print("CUDA Memory before getting params: ", torch.cuda.memory_allocated())
+        params = get_model_params(modelName, device)  
         print('getting params: ', params[0].size(), params[0].dtype, len(params), params[0].device)
+        print("CUDA Memory after getting params: ", torch.cuda.memory_allocated())
         if Optim.__name__ == 'SGD':
             defaults['lr'] = 1e-2
         optim = Optim(params, **defaults)
+        print("CUDA Memory after init'ing my optim: ", torch.cuda.memory_allocated())
         generate_random_gradients(params)
-        pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
+        print("CUDA Memory after generating random grads: ", torch.cuda.memory_allocated())
+
+        pt2_description = ''
+        if maybe_pt2_:
+            pt2_description = '(pt2) '
+            torchdynamo.reset()
 
         print(f'{datetime.datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
-        return benchmark.Timer(
+        
+        r = benchmark.Timer(
             stmt=f'{maybe_pt2_}optimizer_step(optim)',
             globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
             sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
             description=pt2_description + defaults_to_str(defaults),
         ).blocked_autorange()
+        print("CUDA Memory after actually running the benchmarks: ", torch.cuda.memory_allocated())
+
+        ts: torch.utils.benchmark.utils.common.TaskSpec = r.task_spec
+        return ts.sub_label, ts.description, r.mean, r # (None if modelName in no_compare_table_models else r)
     except Exception as e: 
         if not continue_on_error:
             raise e
         print(e)
         with open('errors.txt', 'a') as f:
             f.write(f'{datetime.datetime.now().timestamp()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {str(e)}\n')
-        return None
+        return None, None, None, None
 
 
-def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str], flags: List[str]) -> List[float]:
-    results = []
+def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str], flags: List[str]) -> Tuple[Dict[str, float], List[torch.utils.benchmark.utils.common.Measurement]]:
+    # metrics will be a Dict of description to mean time in seconds
+    metrics: Dict[str, float] = {}
+    # measurements will be a List of Measurement objects to build a benchmark comparison table later
+    measurements: List[torch.utils.benchmark.utils.common.Measurement] = []
+
     optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults_to_str(defaults) for f in flags)]
 
     if run_on_subset:
         models = [m for m in SUBSET_OF_MODEL_NAMES if m in models]
         optim_cfgs = [(O, defaults) for (O, defaults) in optim_cfgs if (all([x in ['foreach', 'fused', 'lr'] for x in defaults]))]
     
+    import gc
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
         if (not ignore_skips and is_excluded(mn, d, O.__name__, func_str, defaults)):
             continue
-        bm = run_model(mn, d, O, defaults, func_str)
-        if bm is not None:
-            results.append(bm)
-    return results
+        print("CUDA Memory before below instance was run: ", torch.cuda.memory_allocated())
+        bm_sub_label, bm_description, bm_mean, measurement_obj = run_model(mn, d, O, defaults, func_str)
+        print("CUDA Memory after above instance was run: ", torch.cuda.memory_allocated())
+        if bm_sub_label is not None:
+            metrics[f'{bm_sub_label}, {bm_description}'] = bm_mean
+        if measurement_obj is not None:
+            measurements.append(measurement_obj)
+        print("CUDA Memory at end of loop: ", torch.cuda.memory_allocated())
+        gc.collect()
+    return metrics, measurements
 
 
 def parse_args(args: List[str]):
@@ -453,10 +487,15 @@ def parse_args(args: List[str]):
              'benchmarks once one believes they should be fixed. Beware though! You may run into errors ' +
              'that were previously hidden by the exclusions.'
     )
+    parser.add_argument(
+        '--no-compare-table-models', '-n', default=MEMORY_INTENSIVE_MODELS, choices=MODEL_NAMES, action='append',
+        help='The script will try to print a colorful table comparing all the benchmark results. ' +
+        'However, some models do not have enough memory to store every Measurement object so we ' +
+        'forego this luxury for such memory intensive models.'
+    )
     args = parser.parse_args(args)
     return args
 
-# convert results into a JSON of description to mean time in seconds
 def get_metrics(results: List[torch.utils.benchmark.utils.common.Measurement]) -> Dict[str, float]:
     metrics = {}
     for r in results:
@@ -466,21 +505,25 @@ def get_metrics(results: List[torch.utils.benchmark.utils.common.Measurement]) -
 
 def run(args: List[str]):
     args = parse_args(args)
-    global continue_on_error, run_on_subset, ignore_skips
+    global continue_on_error, run_on_subset, ignore_skips, no_compare_table_models
     continue_on_error = args.continue_on_error
     run_on_subset = args.subset
     ignore_skips = args.ignore_skips
+    no_compare_table_models = args.no_compare_table_models
+
+    print(no_compare_table_models)
     target_dir = Path(args.output_dir) if args.output_dir is not None else None
     if target_dir is not None:
         target_dir.mkdir(exist_ok=True, parents=True)
 
-    results = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
-    metrics: Dict[str, float] = get_metrics(results) 
+    metrics, measurements = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
     dump_output(BM_NAME, get_output_json(BM_NAME, metrics), target_dir=target_dir)
-    compare = benchmark.Compare(results)
-    compare.trim_significant_figures()
-    compare.colorize(rowwise=True)
-    compare.print()
+
+    if len(measurements) > 0:
+        compare = benchmark.Compare(measurements)
+        compare.trim_significant_figures()
+        compare.colorize(rowwise=True)
+        compare.print()
 
 if __name__ == '__main__':
     run(sys.argv[1:])
