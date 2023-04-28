@@ -159,3 +159,4 @@ If you use TorchBench in your academic work, please cite the following:
       primaryClass={cs.LG}
 }
 ```
+The full paper [TorchBench: Benchmarking PyTorch with High API Surface Coverage](https://arxiv.org/abs/2304.14226) is public on arXiv.org.
