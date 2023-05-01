@@ -5,7 +5,7 @@ def run(control, treatment) -> Optional[TorchBenchABTestResult]:
     control_env = control["environ"]
     treatment_env = treatment["environ"]
     control_metrics = control["metrics"]
-    treatment_metrics = control["metrics"]
+    treatment_metrics = treatment["metrics"]
     details = {}
     for control_metric_name, control_metric in control_metrics.items():
         if control_metric_name in treatment_metrics:
