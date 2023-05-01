@@ -82,7 +82,7 @@ jobs:
         if: env.TORCHBENCH_REGRESSION_DETECTED
         uses: peter-evans/create-issue-from-file@v4
         with:
-          title: V2 Performance Signal Detected by TorchBench Userbenchmark "torch-nightly" on ${{ env.TORCHBENCH_REGRESSION_DETECTED }}
+          title: V3 Performance Signal Detected by TorchBench Userbenchmark "torch-nightly" on ${{ env.TORCHBENCH_REGRESSION_DETECTED }}
           content-filepath: ./benchmark/gh-issue.md
           labels: |
             torchbench-perf-report
