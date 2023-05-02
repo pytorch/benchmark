@@ -176,7 +176,7 @@ def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime):
         # Use the latest metric file on on the same day
         if metric_datetime.date() == pick_date.date():
             pick_metrics_json_key = metrics_json_key
-    assert pick_metrics_json_key, f"Selectd date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
+    assert pick_metrics_json_key, f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
     metrics_json_file = s3.get_file_as_json(pick_metrics_json_key)
     with open(metrics_json_file, "r") as metrics_fp:
@@ -231,8 +231,8 @@ if __name__ == "__main__":
             treatment = json.load(cfptr)
     else:
         assert args.name, f"To detect regression with S3, you must specify a userbenchmark name."
-        end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
         userbenchmark_name = args.name
+        end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
     available_metrics_jsons = get_latest_n_day_jsons_from_s3(7, userbenchmark_name, args.platform, end_date)
     # Download control from S3
     if len(available_metrics_jsons) == 0:
