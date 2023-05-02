@@ -131,10 +131,11 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         print(f"No regressions found between {control_commit} and {treatment_commit}.")
         return
 
-    fname = os.environ["GITHUB_ENV"]
-    content = f"TORCHBENCH_REGRESSION_DETECTED='{treatment_commit}'\n"
-    with open(fname, 'a') as fo:
-        fo.write(content)
+    if "GITHUB_ENV" in os.environ:
+        fname = os.environ["GITHUB_ENV"]
+        content = f"TORCHBENCH_REGRESSION_DETECTED='{treatment_commit}'\n"
+        with open(fname, 'a') as fo:
+            fo.write(content)
 
     github_run_id = os.environ.get("GITHUB_RUN_ID", None)
     github_run_url = "No URL found, please look for the failing action in " + \
