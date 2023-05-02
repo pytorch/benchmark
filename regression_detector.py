@@ -159,12 +159,11 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         f.write(issue_body)
 
 
-def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[datetime]:
+def get_best_start_date(latest_metrics_jsons: List[str], end_date: datetime) -> Optional[datetime]:
     """Get the date closest to `end_date` from `latest_metrics_jsons`"""
-    end_datetime = datetime.strptime("%Y-%m-%d", end_date)
     for metrics_json in latest_metrics_jsons:
         start_datetime = get_date_from_metrics_s3_key(metrics_json)
-        if start_datetime < end_datetime:
+        if start_datetime < end_date:
             return start_datetime
     return None
 
