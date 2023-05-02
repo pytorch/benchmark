@@ -14,7 +14,7 @@ RUN cd /workspace/benchmark && \
     conda activate ${CONDA_ENV_NAME} && \
     sudo python ./utils/cuda_utils.py --setup-cuda-softlink
 
-# Install PyTorch nightly and verify the date is the latest
+# Install PyTorch nightly and verify the date is correct
 RUN cd /workspace/benchmark && \
     . /workspace/setup_instance.sh && \
     conda activate ${CONDA_ENV_NAME} && \

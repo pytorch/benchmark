@@ -21,7 +21,7 @@ jobs:
         with:
           registry: ghcr.io
           username: pytorch
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
       - name: Build TorchBench nightly docker
         run: |
           export TODAY=$(date +'%Y%m%d')

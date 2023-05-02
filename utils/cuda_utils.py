@@ -72,7 +72,8 @@ def setup_cuda_softlink(cuda_version: str):
     os.symlink(str(cuda_path.resolve()), str(current_cuda_path.resolve()))
 
 def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
-    uninstall_torch_cmd = ["pip", "uninstall", "-y", "torch", "torchvision", "torchtext", "torchaudio"]
+    uninstall_torch_cmd = ["pip", "uninstall", "-y"]
+    uninstall_torch_cmd.extend(TORCHBENCH_TORCH_NIGHTLY_PACKAGES)
     if dryrun:
         print(f"Uninstall pytorch: {uninstall_torch_cmd}")
     else:
