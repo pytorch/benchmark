@@ -231,7 +231,7 @@ if __name__ == "__main__":
         assert args.name, f"To detect regression with S3, you must specify a userbenchmark name."
         userbenchmark_name = args.name
         end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
-    available_metrics_jsons = get_latest_jsons_in_s3_from_last_n_days(7, userbenchmark_name, args.platform, end_date)
+    available_metrics_jsons = get_latest_jsons_in_s3_from_last_n_days(userbenchmark_name, args.platform, end_date, ndays=7)
     # Download control from S3
     if len(available_metrics_jsons) == 0:
         raise RuntimeWarning(f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated.")
