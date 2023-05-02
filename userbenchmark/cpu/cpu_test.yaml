@@ -1,0 +1,4 @@
+test: eval
+model: resnet50,mobilenet_v2
+jit: True
+extra_args: --fuser fuser3
