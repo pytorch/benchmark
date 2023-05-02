@@ -261,7 +261,7 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
     {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': [df], 'optim': 'NAdam'} for m in [
        'densenet121', 'doctr_reco_predictor', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large','hf_Longformer',
-       'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152'
+       'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152', 'yolov3'
     ] for df in ['no_foreach', 'differentiable']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
