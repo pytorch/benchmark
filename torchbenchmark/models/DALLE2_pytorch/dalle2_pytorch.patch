@@ -1,8 +1,8 @@
 diff --git a/dalle2_pytorch/dalle2_pytorch.py b/dalle2_pytorch/dalle2_pytorch.py
-index c0211fc..42728d0 100644
+index 71a6e4c..8880bfa 100644
 --- a/dalle2_pytorch/dalle2_pytorch.py
 +++ b/dalle2_pytorch/dalle2_pytorch.py
-@@ -1278,7 +1278,7 @@ class DiffusionPrior(nn.Module):
+@@ -1293,7 +1293,7 @@ class DiffusionPrior(nn.Module):
          if self.init_image_embed_l2norm:
              image_embed = l2norm(image_embed) * self.image_embed_scale
  
@@ -11,7 +11,7 @@ index c0211fc..42728d0 100644
              times = torch.full((batch,), i, device = device, dtype = torch.long)
  
              self_cond = x_start if self.net.self_cond else None
-@@ -1305,7 +1305,7 @@ class DiffusionPrior(nn.Module):
+@@ -1320,7 +1320,7 @@ class DiffusionPrior(nn.Module):
          if self.init_image_embed_l2norm:
              image_embed = l2norm(image_embed) * self.image_embed_scale
  
@@ -20,7 +20,7 @@ index c0211fc..42728d0 100644
              alpha = alphas[time]
              alpha_next = alphas[time_next]
  
-@@ -1407,7 +1407,7 @@ class DiffusionPrior(nn.Module):
+@@ -1422,7 +1422,7 @@ class DiffusionPrior(nn.Module):
  
          img = torch.randn(shape, device = device)
  
@@ -29,7 +29,7 @@ index c0211fc..42728d0 100644
              img = self.p_sample(img, torch.full((batch_size,), i, device = device, dtype = torch.long), text_cond = text_cond, cond_scale = cond_scale)
          return img
  
-@@ -2848,7 +2848,7 @@ class Decoder(nn.Module):
+@@ -2866,7 +2866,7 @@ class Decoder(nn.Module):
          if not is_latent_diffusion:
              lowres_cond_img = maybe(self.normalize_img)(lowres_cond_img)
  
@@ -38,7 +38,7 @@ index c0211fc..42728d0 100644
              is_last_timestep = time == 0
  
              for r in reversed(range(0, resample_times)):
-@@ -2938,7 +2938,7 @@ class Decoder(nn.Module):
+@@ -2956,7 +2956,7 @@ class Decoder(nn.Module):
          if not is_latent_diffusion:
              lowres_cond_img = maybe(self.normalize_img)(lowres_cond_img)
  
@@ -47,7 +47,7 @@ index c0211fc..42728d0 100644
              is_last_timestep = time_next == 0
  
              for r in reversed(range(0, resample_times)):
-@@ -3120,7 +3120,7 @@ class Decoder(nn.Module):
+@@ -3138,7 +3138,7 @@ class Decoder(nn.Module):
          inpaint_image = None,
          inpaint_mask = None,
          inpaint_resample_times = 5,
@@ -56,7 +56,7 @@ index c0211fc..42728d0 100644
      ):
          assert self.unconditional or exists(image_embed), 'image embed must be present on sampling from decoder unless if trained unconditionally'
  
-@@ -3149,7 +3149,7 @@ class Decoder(nn.Module):
+@@ -3167,7 +3167,7 @@ class Decoder(nn.Module):
          num_unets = self.num_unets
          cond_scale = cast_tuple(cond_scale, num_unets)
  
