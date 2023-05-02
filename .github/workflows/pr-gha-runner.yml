@@ -7,7 +7,7 @@ on:
       - main
 
 env:
-  CONDA_ENV: "pr-test"
+  CONDA_ENV: "torchbench"
   SETUP_INSTANCE_SCRIPT: "/workspace/setup_instance.sh"
 
 jobs:
@@ -20,8 +20,8 @@ jobs:
       - name: GPU Tuning
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
           nvidia-smi
       - name: Setup Conda Env
         run: |
@@ -39,6 +39,7 @@ jobs:
         run: |
           . "${SETUP_INSTANCE_SCRIPT}"
           conda activate "${CONDA_ENV}"
+          pip uninstall -y dill pyarrow
           python install.py
       - name: Validate benchmark components (Worker)
         run: |
