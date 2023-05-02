@@ -45,6 +45,7 @@ def call_userbenchmark_detector(detector, start_file: str, end_file: str) -> Opt
     return detector(start_file, end_file)
 
 def get_default_output_path(bm_name: str) -> str:
+    # By default, write result to $REPO_DIR/.userbenchmark/<userbenchmark-name>/regression-<time>.json
     output_path = os.path.join(REPO_PATH, USERBENCHMARK_OUTPUT_PREFIX, bm_name)
     fname = "regression-{}.yaml".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
     return os.path.join(output_path, fname)
@@ -84,7 +85,6 @@ def generate_regression_dict(control, treatment) -> Dict[Any, Any]:
     return result_dict if result_dict else {}
     
 def process_regressions_into_yaml(regressions_dict, output_path: str, control_file: str, treatment_file: str) -> None:
-    # Write result to $REPO_DIR/.userbenchmark/<userbenchmark-name>/regression-<time>.json
     if regressions_dict == {}:
         print(f"No performance signal detected between file {control_file} and {treatment_file}.")
         return
