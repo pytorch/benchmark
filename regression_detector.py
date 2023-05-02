@@ -159,7 +159,7 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         f.write(issue_body)
 
 
-def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[datetime.datetime]:
+def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[datetime]:
     """Get the date closest to `end_date` from `latest_metrics_jsons`"""
     end_datetime = datetime.strptime("%Y-%m-%d", end_date)
     for metrics_json in latest_metrics_jsons:
@@ -169,7 +169,7 @@ def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[datetim
     return None
 
 
-def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime.datetime):
+def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime):
     pick_metrics_json_key: Optional[str] = None
     for metrics_json in latest_metrics_jsons:
         metric_datetime = datetime.strptime(metrics_json.split('/')[-1].split('-')[-1].split('.')[0],
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     if not args.control and args.treatment:
         json_path = Path(args.treatment)
         assert json_path.exists(), f"Specified result json path {args.treatment} does not exist."
-        end_date: datetime.datetime = datetime.strptime(get_date_from_metrics(json_path.stem), "%Y-%m-%d")
+        end_date: datetime = datetime.strptime(get_date_from_metrics(json_path.stem), "%Y-%m-%d")
         userbenchmark_name: str = get_ub_name(args.treatment)
         with open(json_path, "r") as cfptr:
             treatment = json.load(cfptr)

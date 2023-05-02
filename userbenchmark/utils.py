@@ -85,7 +85,7 @@ def get_output_dir(bm_name) -> Path:
     return target_dir
 
 
-def get_latest_n_day_jsons_from_s3(ndays: int, bm_name: str, platform_name: str, date: datetime.datetime, limit: int=100) -> List[str]:
+def get_latest_n_day_jsons_from_s3(ndays: int, bm_name: str, platform_name: str, date: datetime, limit: int=100) -> List[str]:
     """Retrieves the most recent n day metrics json filenames from S3 the WEEK BEFORE the given date, inclusive of that date.
        If fewer than n days are found, returns all found items without erroring, even if there were no items.
        Returns maximum 100 results by default. """
