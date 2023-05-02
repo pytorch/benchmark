@@ -1,2 +1,2 @@
-git+https://github.com/lucidrains/DALLE2-pytorch@580274be79c4cb11e1fe1ef9dcaaeba9c7be669a
+git+https://github.com/lucidrains/DALLE2-pytorch@00e07b7d61e21447d55e6d06d5c928cf8b67601d
 tensorboard
