@@ -91,7 +91,7 @@ def get_date_from_metrics_s3_key(metrics_s3_key: str) -> datetime:
 
 
 def get_latest_jsons_in_s3_from_last_n_days(ndays: int, bm_name: str, platform_name: str, date: datetime, limit: int=100) -> List[str]:
-    """Retrieves the most recent n day metrics json filenames from S3 the WEEK BEFORE the given date, inclusive of that date.
+    """Retrieves the most recent n day metrics json filenames from S3 before the given date, inclusive of that date.
        If fewer than n days are found, returns all found items without erroring, even if there were no items.
        Returns maximum 100 results by default. """
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
