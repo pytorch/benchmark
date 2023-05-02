@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Any, List, Dict, Optional
 from userbenchmark.utils import PLATFORMS, USERBENCHMARK_OUTPUT_PREFIX, REPO_PATH, \
                                 TorchBenchABTestResult, get_date_from_metrics, \
-                                get_ub_name, get_latest_n_jsons_from_s3
+                                get_ub_name, get_latest_n_day_jsons_from_s3
 from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT
 
 GITHUB_ISSUE_TEMPLATE = """
@@ -159,26 +159,27 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         f.write(issue_body)
 
 
-def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[str]:
+def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[datetime.datetime]:
     """Get the date closest to `end_date` from `latest_metrics_jsons`"""
-    end_datetime = datetime.strptime("%Y%m%d", end_date)
+    end_datetime = datetime.strptime("%Y-%m-%d", end_date)
     for metrics_json in latest_metrics_jsons:
         start_datetime = datetime.strptime(metrics_json.split('/')[-1].split('-')[-1].split('.')[0], '%Y%m%d%H%M%S')
         if start_datetime < end_datetime:
-            return datetime.strftime("%Y%m%d", start_datetime)
+            return start_datetime
     return None
 
 
-def get_metrics_by_date(latest_metrics_jsons: List[str], date_str: str):
-    chosen_metrics_json_key: Optional[str] = None
+def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime.datetime):
+    pick_metrics_json_key: Optional[str] = None
     for metrics_json in latest_metrics_jsons:
-        metric_datetime = datetime.strftime(datetime.strptime(metrics_json.split('/')[-1].split('-')[-1].split('.')[0],
-                                                            '%Y%m%d%H%M%S'), '%Y%m%d')
-        if metric_datetime == date_str:
-            chosen_metrics_json_key = metrics_json
-    assert chosen_metrics_json_key, f"Selectd date {date_str} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
+        metric_datetime = datetime.strptime(metrics_json.split('/')[-1].split('-')[-1].split('.')[0],
+                                                            '%Y%m%d%H%M%S')
+        # Use the latest metric file on on the same day
+        if metric_datetime.date() == pick_date.date():
+            pick_metrics_json_key = metrics_json
+    assert pick_metrics_json_key, f"Selectd date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
-    metrics_json_file = s3.get_file_as_json(chosen_metrics_json_key)
+    metrics_json_file = s3.get_file_as_json(pick_metrics_json_key)
     with open(metrics_json_file, "r") as metrics_fp:
         return json.load(metrics_fp)
 
@@ -225,18 +226,19 @@ if __name__ == "__main__":
     if not args.control and args.treatment:
         json_path = Path(args.treatment)
         assert json_path.exists(), f"Specified result json path {args.treatment} does not exist."
-        end_date: str = get_date_from_metrics(json_path.stem)
+        end_date: datetime.datetime = datetime.strptime(get_date_from_metrics(json_path.stem), "%Y-%m-%d")
         userbenchmark_name: str = get_ub_name(args.treatment)
         with open(json_path, "r") as cfptr:
             treatment = json.load(cfptr)
     else:
         assert args.name, f"To detect regression with S3, you must specify a userbenchmark name."
-        assert args.end_date and (end_date := datetime.strptime(args.end_date, "%YY%mm%dd")), f"To detect regression with dates, you must specify an end date in format YYmmdd."
+        end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
         userbenchmark_name = args.name
-    available_metrics_jsons = get_latest_n_jsons_from_s3(7, userbenchmark_name, args.platform, end_date)
+    available_metrics_jsons = get_latest_n_day_jsons_from_s3(7, userbenchmark_name, args.platform, end_date)
     # Download control from S3
     if len(available_metrics_jsons) == 0:
         raise RuntimeWarning(f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated.")
+    print(f"Found metrics json files on S3: {available_metrics_jsons}")
     start_date = args.start_date if args.start_date else get_best_start_date(available_metrics_jsons, end_date)
     if not start_date:
         raise RuntimeWarning(f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. " +
