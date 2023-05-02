@@ -85,6 +85,11 @@ def get_output_dir(bm_name) -> Path:
     return target_dir
 
 
+def get_date_from_metrics_s3_key(metrics_s3_key: str) -> datetime:
+    metrics_s3_json_filename = metrics_s3_key.split('/')[-1]
+    return datetime.strptime(metrics_s3_json_filename, 'metrics-%Y%m%d%H%M%S.json')
+
+
 def get_latest_n_day_jsons_from_s3(ndays: int, bm_name: str, platform_name: str, date: datetime, limit: int=100) -> List[str]:
     """Retrieves the most recent n day metrics json filenames from S3 the WEEK BEFORE the given date, inclusive of that date.
        If fewer than n days are found, returns all found items without erroring, even if there were no items.
@@ -104,7 +109,7 @@ def get_latest_n_day_jsons_from_s3(ndays: int, bm_name: str, platform_name: str,
         if s3.exists(None, current_directory):
             files = s3.list_directory(current_directory)
             metric_jsons = [f for f in files if f.endswith('.json') and 'metrics' in f]
-            metric_jsons.sort(key=lambda x: datetime.strptime(x.split('/')[-1].split('-')[-1].split('.')[0], '%Y%m%d%H%M%S'), reverse=True)
+            metric_jsons.sort(key=lambda x: get_date_from_metrics_s3_key(x), reverse=True)
             previous_json_files.extend(metric_jsons[:limit - len(previous_json_files)])
 
         # Move on to the previous date.

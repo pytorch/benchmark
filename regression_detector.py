@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Any, List, Dict, Optional
 from userbenchmark.utils import PLATFORMS, USERBENCHMARK_OUTPUT_PREFIX, REPO_PATH, \
                                 TorchBenchABTestResult, get_date_from_metrics, \
-                                get_ub_name, get_latest_n_day_jsons_from_s3
+                                get_ub_name, get_latest_n_day_jsons_from_s3, get_date_from_metrics_s3_key
 from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT
 
 GITHUB_ISSUE_TEMPLATE = """
@@ -163,7 +163,7 @@ def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[datetim
     """Get the date closest to `end_date` from `latest_metrics_jsons`"""
     end_datetime = datetime.strptime("%Y-%m-%d", end_date)
     for metrics_json in latest_metrics_jsons:
-        start_datetime = datetime.strptime(metrics_json.split('/')[-1].split('-')[-1].split('.')[0], '%Y%m%d%H%M%S')
+        start_datetime = get_date_from_metrics_s3_key(metrics_json)
         if start_datetime < end_datetime:
             return start_datetime
     return None
@@ -171,12 +171,11 @@ def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[datetim
 
 def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime):
     pick_metrics_json_key: Optional[str] = None
-    for metrics_json in latest_metrics_jsons:
-        metric_datetime = datetime.strptime(metrics_json.split('/')[-1].split('-')[-1].split('.')[0],
-                                                            '%Y%m%d%H%M%S')
+    for metrics_json_key in latest_metrics_jsons:
+        metric_datetime = get_date_from_metrics_s3_key(metrics_json_key)
         # Use the latest metric file on on the same day
         if metric_datetime.date() == pick_date.date():
-            pick_metrics_json_key = metrics_json
+            pick_metrics_json_key = metrics_json_key
     assert pick_metrics_json_key, f"Selectd date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
     metrics_json_file = s3.get_file_as_json(pick_metrics_json_key)
