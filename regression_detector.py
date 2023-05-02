@@ -10,7 +10,7 @@ import yaml
 from pathlib import Path
 import time
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, List, Dict, Optional
 from userbenchmark.utils import PLATFORMS, USERBENCHMARK_OUTPUT_PREFIX, REPO_PATH, \
                                 TorchBenchABTestResult, get_date_from_metrics, \
                                 get_ub_name, get_latest_n_jsons_from_s3
@@ -159,14 +159,26 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         f.write(issue_body)
 
 
-def get_best_start_date(latest_metrics_jsons, end_date: str):
+def get_best_start_date(latest_metrics_jsons, end_date: str) -> Optional[str]:
     """Get the date closest to `end_date` from `latest_metrics_jsons`"""
-    pass
+    end_datetime = datetime.strptime("%Y%m%d", end_date)
+    for metrics_json in latest_metrics_jsons:
+        start_datetime = datetime.strptime(metrics_json.split('/')[-1].split('-')[-1].split('.')[0], '%Y%m%d%H%M%S')
+        if start_datetime < end_datetime:
+            return datetime.strftime("%Y%m%d", start_datetime)
+    return None
 
 
-def get_metrics_by_date(date_str: str):
+def get_metrics_by_date(latest_metrics_jsons: List[str], date_str: str):
+    chosen_metrics_json_key: Optional[str] = None
+    for metrics_json in latest_metrics_jsons:
+        metric_datetime = datetime.strftime(datetime.strptime(metrics_json.split('/')[-1].split('-')[-1].split('.')[0],
+                                                            '%Y%m%d%H%M%S'), '%Y%m%d')
+        if metric_datetime == date_str:
+            chosen_metrics_json_key = metrics_json
+    assert chosen_metrics_json_key, f"Selectd date {date_str} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
-    metrics_json_file = s3.get_file_as_json(latest_metrics_jsons[date_str])
+    metrics_json_file = s3.get_file_as_json(chosen_metrics_json_key)
     with open(metrics_json_file, "r") as metrics_fp:
         return json.load(metrics_fp)
 
