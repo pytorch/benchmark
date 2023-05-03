@@ -10,10 +10,10 @@ import yaml
 from pathlib import Path
 import time
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, List, Dict, Optional
 from userbenchmark.utils import PLATFORMS, USERBENCHMARK_OUTPUT_PREFIX, REPO_PATH, \
                                 TorchBenchABTestResult, get_date_from_metrics, \
-                                get_ub_name, get_latest_n_jsons_from_s3
+                                get_ub_name, get_latest_jsons_in_s3_from_last_n_days, get_date_from_metrics_s3_key
 from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT
 
 GITHUB_ISSUE_TEMPLATE = """
@@ -40,6 +40,7 @@ GitHub workflow that triggered this issue: {github_run_url}
 cc {owner}
 """
 
+DEFAULT_GH_ISSUE_OWNER = "@xuzhao9"
 
 def call_userbenchmark_detector(detector, start_file: str, end_file: str) -> Optional[TorchBenchABTestResult]:
     return detector(start_file, end_file)
@@ -130,10 +131,11 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         print(f"No regressions found between {control_commit} and {treatment_commit}.")
         return
 
-    fname = os.environ["GITHUB_ENV"]
-    content = f"TORCHBENCH_REGRESSION_DETECTED='{treatment_commit}'\n"
-    with open(fname, 'a') as fo:
-        fo.write(content)
+    if "GITHUB_ENV" in os.environ:
+        fname = os.environ["GITHUB_ENV"]
+        content = f"TORCHBENCH_REGRESSION_DETECTED='{treatment_commit}'\n"
+        with open(fname, 'a') as fo:
+            fo.write(content)
 
     github_run_id = os.environ.get("GITHUB_RUN_ID", None)
     github_run_url = "No URL found, please look for the failing action in " + \
@@ -158,6 +160,29 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         f.write(issue_body)
 
 
+def get_best_start_date(latest_metrics_jsons: List[str], end_date: datetime) -> Optional[datetime]:
+    """Get the date closest to `end_date` from `latest_metrics_jsons`"""
+    for metrics_json in latest_metrics_jsons:
+        start_datetime = get_date_from_metrics_s3_key(metrics_json)
+        if start_datetime < end_date:
+            return start_datetime
+    return None
+
+
+def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime):
+    pick_metrics_json_key: Optional[str] = None
+    for metrics_json_key in latest_metrics_jsons:
+        metric_datetime = get_date_from_metrics_s3_key(metrics_json_key)
+        # Use the latest metric file on on the same day
+        if metric_datetime.date() == pick_date.date():
+            pick_metrics_json_key = metrics_json_key
+            break
+    assert pick_metrics_json_key, f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
+    s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
+    metrics_json = s3.get_file_as_json(pick_metrics_json_key)
+    return metrics_json
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Local metrics file comparison
@@ -180,6 +205,7 @@ if __name__ == "__main__":
                              "Its existence ONLY is used to detect whether runtime regressions occurred.")
     args = parser.parse_args()
 
+    # User provided both control and treatment files
     if args.control and args.treatment:
         with open(args.control, "r") as cfptr:
             control = json.load(cfptr)
@@ -188,30 +214,41 @@ if __name__ == "__main__":
         output_path = args.output if args.output else get_default_output_path(control["name"])
         regressions_dict = generate_regression_dict(control, treatment)
         process_regressions_into_yaml(regressions_dict, output_path, args.control, args.treatment)
-    elif not args.control and args.treatment:
-        if not args.platform:
-            raise ValueError("A platform must be specified with the --platform flag to retrieve the "
-                             "previous metrics JSONs as control from S3.")
-        # Download control from S3
+        exit(0)
+
+    # Query S3 to get control and treatment json files
+    if not args.platform:
+        raise ValueError("A platform must be specified with the --platform flag to retrieve the "
+                         "previous metrics JSONs as control from S3.")
+    # User only provide the treatement file, and expect us to download from S3
+    control, treatment = None, None
+    if not args.control and args.treatment:
         json_path = Path(args.treatment)
         assert json_path.exists(), f"Specified result json path {args.treatment} does not exist."
-        date: str = get_date_from_metrics(json_path.stem)
+        end_date: datetime = datetime.strptime(get_date_from_metrics(json_path.stem), "%Y-%m-%d")
         userbenchmark_name: str = get_ub_name(args.treatment)
-        latest_metrics_jsons = get_latest_n_jsons_from_s3(1, userbenchmark_name, args.platform, date)
-
-        if len(latest_metrics_jsons) == 0:
-            raise RuntimeWarning("No previous JSONS found to compare against. No regression info has been generated.")
-
-        s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
-        control = s3.get_file_as_json(latest_metrics_jsons[0])
         with open(json_path, "r") as cfptr:
             treatment = json.load(cfptr)
-        regressions_dict = generate_regression_dict(control, treatment)
-        output_path = args.output if args.output else get_default_output_path(control["name"])
-        process_regressions_into_yaml(regressions_dict, output_path, args.control, args.treatment)
-
-        owner = " ".join(args.owner) if args.owner else "@xuzhao9"
-        process_regressions_into_gh_issue(regressions_dict, owner, args.gh_issue_path, args.errors_path)
     else:
-        # S3 path
-        print("Comparison for metrics from Amazon S3 given a userbenchmark name is WIP.")
+        assert args.name, f"To detect regression with S3, you must specify a userbenchmark name."
+        userbenchmark_name = args.name
+        end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
+    available_metrics_jsons = get_latest_jsons_in_s3_from_last_n_days(userbenchmark_name, args.platform, end_date, ndays=7)
+    # Download control from S3
+    if len(available_metrics_jsons) == 0:
+        raise RuntimeWarning(f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated.")
+    print(f"Found metrics json files on S3: {available_metrics_jsons}")
+    start_date = args.start_date if args.start_date else get_best_start_date(available_metrics_jsons, end_date)
+    if not start_date:
+        raise RuntimeWarning(f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. " +
+                             f"Available JSON dates: {available_metrics_jsons.keys()}. No regression info has been generated.")
+
+    print(f"[TorchBench Regression Detector] Detecting regression of {userbenchmark_name} on platform {args.platform}, start date: {start_date}, end date: {end_date}.")
+    control = get_metrics_by_date(available_metrics_jsons, start_date) if not control else control
+    treatment = get_metrics_by_date(available_metrics_jsons, end_date) if not treatment else treatment
+    regressions_dict = generate_regression_dict(control, treatment)
+    output_path = args.output if args.output else get_default_output_path(control["name"])
+    process_regressions_into_yaml(regressions_dict, output_path, args.control, args.treatment)
+
+    owner = " ".join(args.owner) if args.owner else DEFAULT_GH_ISSUE_OWNER
+    process_regressions_into_gh_issue(regressions_dict, owner, args.gh_issue_path, args.errors_path)
