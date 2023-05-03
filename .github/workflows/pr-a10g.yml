@@ -38,21 +38,13 @@ jobs:
             --tty \
             --detach \
             -v "${PWD}/benchmark:/benchmark" \
-            -w /workspace \
+            -w / \
             "${{ env.DOCKER_IMAGE }}"
           )
 
-          docker exec -t -w "/benchmark" "${container_name}" bash -c \
-            ". ${HOME}/miniconda3/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} && cd /benchmark && python install.py"
+          docker exec -t -w "/benchmark" "${container_name}" bash -c "/benchmark/scripts/torchbench_install.sh"
+          docker exec -t -w "/benchmark" "${container_name}" bash -c "/benchmark/scripts/torchbench_test.sh"
 
-          docker exec -t -w "/benchmark" "${container_name}" bash -c \
-            ". ${HOME}/miniconda3/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} " \
-            " && cd /benchmark && python -m components.test.test_subprocess" \
-            "python -m components.test.test_worker"
-
-          docker exec -t -w "/benchmark" "${container_name}" bash -c \
-            ". ${HOME}/miniconda3/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} " \
-            " && cd /benchmark && python test.py"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
