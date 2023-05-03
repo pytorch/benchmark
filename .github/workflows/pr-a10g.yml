@@ -7,7 +7,8 @@ on:
       - main
 
 env:
-  CONDA_ENV: "pr-test"
+  CONDA_ENV: "torchbench"
+  DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
 
 jobs:
   pr-test:
@@ -18,41 +19,40 @@ jobs:
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Pull docker image
+        uses: pytorch/test-infra/.github/actions/pull-docker-image@main
+        with:
+          docker-image: ${{ env.DOCKER_IMAGE }}
       - name: Install Conda and basic packages
         run: |
           bash scripts/install_basics_amzn_linux_2.sh
       - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
         id: install-nvidia-driver
         uses: pytorch/test-infra/.github/actions/setup-nvidia@main
-      - name: Setup Conda Env
+      - name: Install and Test TorchBench
         run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate
-          python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
-          conda activate "${CONDA_ENV}"
-          python utils/cuda_utils.py --install-torch-deps
-      - name: Install PyTorch nightly
-        run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV}"
-          python utils/cuda_utils.py --install-torch-nightly
-          python utils/cuda_utils.py --check-torch-nightly-version
-      - name: Install TorchBench
-        run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV}"
-          python install.py
-      - name: Validate benchmark components (Worker)
-        run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV}"
-          python -m components.test.test_subprocess
-          python -m components.test.test_worker
-      - name: Validate benchmark components (Model)
-        run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV}"
-          python test.py
+          container_name=$(docker run \
+            -e CONDA_ENV \
+            --tty \
+            --detach \
+            -v "${PWD}/benchmark:/benchmark" \
+            -w /workspace \
+            "${{ env.DOCKER_IMAGE }}"
+          )
+
+          docker exec -t -w "/benchmark" "${container_name}" bash -c \
+            ". ${HOME}/miniconda3/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} && cd /benchmark && python install.py"
+
+          docker exec -t -w "/benchmark" "${container_name}" bash -c \
+            ". ${HOME}/miniconda3/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} " \
+            " && cd /benchmark && python -m components.test.test_subprocess" \
+            "python -m components.test.test_worker"
+
+          docker exec -t -w "/benchmark" "${container_name}" bash -c \
+            ". ${HOME}/miniconda3/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} " \
+            " && cd /benchmark && python test.py"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
