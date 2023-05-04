@@ -43,8 +43,8 @@ jobs:
             "${{ env.DOCKER_IMAGE }}"
           )
 
-          docker exec -t -w "/benchmark" "${container_name}" bash -c "/benchmark/scripts/torchbench_install.sh"
-          docker exec -t -w "/benchmark" "${container_name}" bash -c "/benchmark/scripts/torchbench_test.sh"
+          docker exec -t -w "/benchmark" "${container_name}" bash -c "bash /benchmark/scripts/torchbench_install.sh"
+          docker exec -t -w "/benchmark" "${container_name}" bash -c "bash /benchmark/scripts/torchbench_test.sh"
 
 
 concurrency:
