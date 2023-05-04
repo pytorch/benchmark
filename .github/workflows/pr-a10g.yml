@@ -27,6 +27,7 @@ jobs:
           docker-image: ${{ env.DOCKER_IMAGE }}
       - name: Install Conda and basic packages
         run: |
+          cd benchmark/
           bash scripts/install_basics_amzn_linux_2.sh
       - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
         id: install-nvidia-driver
