@@ -17,6 +17,10 @@ jobs:
     runs-on: [self-hosted, linux.g5.4xlarge.nvidia.gpu]
     timeout-minutes: 1440 # 24 hours
     steps:
+      - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
+        uses: seemethere/add-github-ssh-key@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout TorchBench
         uses: actions/checkout@v3
         with:
