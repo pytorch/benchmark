@@ -16,6 +16,8 @@ import numpy as np
 import torch
 import torch.profiler as profiler
 
+import traceback
+
 from torchbenchmark import load_canary_model_by_name, load_model_by_name
 from torchbenchmark.util.experiment.metrics import get_peak_memory
 
@@ -295,12 +297,17 @@ if __name__ == "__main__":
         exit(-1)
 
     found = False
-    Model = load_model_by_name(args.model)
+
+    try:
+        Model = load_model_by_name(args.model)
+    except ModuleNotFoundError:
+        traceback.print_exc()
+        exit(-1)
     if not Model:
-        # try load model from canary
-        Model = load_canary_model_by_name(args.model)
-        if not Model:
-            print(f"Unable to find model matching {args.model}.")
+        try:
+            Model = load_canary_model_by_name(args.model)
+        except ModuleNotFoundError:
+            traceback.print_exc()
             exit(-1)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)

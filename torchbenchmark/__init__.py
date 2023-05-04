@@ -18,6 +18,9 @@ import torch
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
+class ModelNotFoundError(Exception):
+    pass
+
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 DATA_PATH = os.path.join(REPO_PATH, "torchbenchmark", "data", ".data")
 
@@ -605,11 +608,9 @@ def load_model_by_name(model):
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
     model_pkg = model_name if not _is_internal_model(model_name) else f"{internal_model_dir}.{model_name}"
-    try:
-        module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
-    except ModuleNotFoundError as e:
-        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it. \n {e}")
-        return None
+    
+    module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
+    
     Model = getattr(module, 'Model', None)
     if Model is None:
         print(f"Warning: {module} does not define attribute Model, skip it")
@@ -619,12 +620,9 @@ def load_model_by_name(model):
     return Model
 
 def load_canary_model_by_name(model: str):
-    assert _is_canary_model(model), f"Canary model {model} is not found in the {canary_model_dir} path."
-    try:
-        module = importlib.import_module(f'.canary_models.{model}', package=__name__)
-    except ModuleNotFoundError as e:
-        print(f"Warning: Could not find dependent module {e.name} for Model {model}, skip it. \n {e}")
-        return None
+    if not _is_canary_model(model):
+        raise ModelNotFoundError(f"{model} is not found in the both core and canary model lists")
+    module = importlib.import_module(f'.canary_models.{model}', package=__name__)
     Model = getattr(module, 'Model', None)
     if Model is None:
         print(f"Warning: {module} does not define attribute Model, skip it")
