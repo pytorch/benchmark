@@ -46,7 +46,7 @@ jobs:
             -w / \
             "${{ env.DOCKER_IMAGE }}"
           )
-
+          sleep 3600
           docker exec -t -w "/benchmark" "${container_name}" bash -c "bash /benchmark/scripts/torchbench_install.sh"
           docker exec -t -w "/benchmark" "${container_name}" bash -c "bash /benchmark/scripts/torchbench_test.sh"
 
