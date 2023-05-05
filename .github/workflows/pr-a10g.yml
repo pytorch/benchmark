@@ -29,7 +29,7 @@ jobs:
         uses: pytorch/test-infra/.github/actions/pull-docker-image@main
         with:
           docker-image: ${{ env.DOCKER_IMAGE }}
-      - name: Install Conda and basic packages
+      - name: Install basic packages
         run: |
           cd benchmark/
           bash scripts/install_basics_amzn_linux_2.sh
@@ -40,15 +40,15 @@ jobs:
         run: |
           container_name=$(docker run \
             -e CONDA_ENV \
+            --interactive \
             --tty \
             --detach \
             -v "${PWD}/benchmark:/benchmark" \
             -w / \
             "${{ env.DOCKER_IMAGE }}"
           )
-          sleep 3600
-          docker exec -t -w "/benchmark" "${container_name}" bash -c "bash /benchmark/scripts/torchbench_install.sh"
-          docker exec -t -w "/benchmark" "${container_name}" bash -c "bash /benchmark/scripts/torchbench_test.sh"
+          docker exec -it -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
+          docker exec -it -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_test.sh
       - name: Teardown Linux
         uses: pytorch/test-infra/.github/actions/teardown-linux@main
         if: always()
