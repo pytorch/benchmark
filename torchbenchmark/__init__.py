@@ -604,7 +604,7 @@ def load_model_by_name(model):
                     map(lambda y: os.path.basename(y), _list_model_paths()))
     models = list(models)
     if not models:
-        raise RuntimeWarning(f"{model} is not found in the core list. Searching canary...")
+        raise ModelNotFoundError(f"{model} is not found in the core list. Searching canary...")
         return None
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]

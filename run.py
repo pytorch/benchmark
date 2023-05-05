@@ -305,7 +305,7 @@ if __name__ == "__main__":
     except ModuleNotFoundError:
         traceback.print_exc()
         exit(-1)
-    except RuntimeWarning:
+    except:
         traceback.print_exc()
     if not Model:
         try:
