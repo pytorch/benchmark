@@ -41,7 +41,6 @@ cc {owner}
 """
 
 DEFAULT_GH_ISSUE_OWNER = "@xuzhao9"
-DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.07
 
 def call_userbenchmark_detector(detector, start_file: str, end_file: str) -> Optional[TorchBenchABTestResult]:
     return detector(start_file, end_file)
@@ -105,7 +104,7 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
     troubled_tests = ""
     for test, stats in regressions_dict["details"].items():
         delta = stats["delta"]
-        if abs(delta) > DEFAULT_REGRESSION_DELTA_THRESHOLD:
+        if delta != 0:
             sign = "+" if delta > 0 else ""
             troubled_tests += f"- {test}: {sign}{delta:.5f}%\n"
     
