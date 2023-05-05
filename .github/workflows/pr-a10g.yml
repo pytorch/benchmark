@@ -40,15 +40,14 @@ jobs:
         run: |
           container_name=$(docker run \
             -e CONDA_ENV \
-            --tty \
             --detach \
             -v "${PWD}/benchmark:/benchmark" \
             -w / \
             "${{ env.DOCKER_IMAGE }}" \
             tail -f /dev/null
           )
-          docker exec -it -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
-          docker exec -it -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_test.sh
+          docker exec -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
+          docker exec -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_test.sh
       - name: Teardown Linux
         uses: pytorch/test-infra/.github/actions/teardown-linux@main
         if: always()
