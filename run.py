@@ -18,7 +18,7 @@ import torch.profiler as profiler
 
 import traceback
 
-from torchbenchmark import load_canary_model_by_name, load_model_by_name
+from torchbenchmark import load_canary_model_by_name, load_model_by_name, ModelNotFoundError
 from torchbenchmark.util.experiment.metrics import get_peak_memory
 
 WARMUP_ROUNDS = 3
@@ -301,12 +301,14 @@ if __name__ == "__main__":
     try:
         Model = load_model_by_name(args.model)
     except ModuleNotFoundError:
+        traceback.print_exc()
         exit(-1)
-    except:
+    except ModelNotFoundError:
         traceback.print_exc()
         try:
             Model = load_canary_model_by_name(args.model)
         except ModuleNotFoundError:
+            traceback.print_exc()
             exit(-1)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
