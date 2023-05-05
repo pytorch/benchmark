@@ -297,6 +297,7 @@ if __name__ == "__main__":
         exit(-1)
 
     found = False
+    Model = None
 
     try:
         Model = load_model_by_name(args.model)
@@ -304,11 +305,15 @@ if __name__ == "__main__":
         traceback.print_exc()
         exit(-1)
     except ModelNotFoundError:
-        traceback.print_exc()
+        print(f"Warning: The model {args.model} cannot be found at core set.")
+    if not Model:
         try:
             Model = load_canary_model_by_name(args.model)
         except ModuleNotFoundError:
             traceback.print_exc()
+            exit(-1)
+        except ModelNotFoundError:
+            print(f"Error: The model {args.model} cannot be found at either core or canary model set.")
             exit(-1)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
