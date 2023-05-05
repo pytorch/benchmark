@@ -605,7 +605,6 @@ def load_model_by_name(model):
     models = list(models)
     if not models:
         raise ModelNotFoundError(f"{model} is not found in the core model list.")
-        return None
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
     model_pkg = model_name if not _is_internal_model(model_name) else f"{internal_model_dir}.{model_name}"

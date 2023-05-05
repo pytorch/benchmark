@@ -301,14 +301,12 @@ if __name__ == "__main__":
     try:
         Model = load_model_by_name(args.model)
     except ModuleNotFoundError:
-        traceback.print_exc()
         exit(-1)
     except:
         traceback.print_exc()
         try:
             Model = load_canary_model_by_name(args.model)
         except ModuleNotFoundError:
-            traceback.print_exc()
             exit(-1)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
