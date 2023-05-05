@@ -21,6 +21,7 @@ import traceback
 from torchbenchmark import load_canary_model_by_name, load_model_by_name
 from torchbenchmark.util.experiment.metrics import get_peak_memory
 
+
 WARMUP_ROUNDS = 3
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
 if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -298,11 +299,14 @@ if __name__ == "__main__":
 
     found = False
 
+    Model = None
     try:
         Model = load_model_by_name(args.model)
     except ModuleNotFoundError:
         traceback.print_exc()
         exit(-1)
+    except RuntimeWarning:
+        traceback.print_exc()
     if not Model:
         try:
             Model = load_canary_model_by_name(args.model)
