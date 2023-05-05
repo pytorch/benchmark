@@ -18,7 +18,7 @@ import torch
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
-class ModelNotFoundError(Exception):
+class ModelNotFoundError(RuntimeError):
     pass
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
@@ -604,7 +604,7 @@ def load_model_by_name(model):
                     map(lambda y: os.path.basename(y), _list_model_paths()))
     models = list(models)
     if not models:
-        raise ModelNotFoundError(f"{model} is not found in the core list. Searching canary...")
+        raise ModelNotFoundError(f"{model} is not found in the core model list.")
         return None
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
@@ -622,7 +622,7 @@ def load_model_by_name(model):
 
 def load_canary_model_by_name(model: str):
     if not _is_canary_model(model):
-        raise ModelNotFoundError(f"{model} is not found in the both core and canary model lists")
+        raise ModelNotFoundError(f"{model} is not found in the canary model list.")
     module = importlib.import_module(f'.canary_models.{model}', package=__name__)
     Model = getattr(module, 'Model', None)
     if Model is None:
