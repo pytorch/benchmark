@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 1440 # 24 hours
     steps:
       - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
-        uses: seemethere/add-github-ssh-key@v1
+        uses: pytorch/test-infra/.github/actions/setup-ssh@main
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout TorchBench
@@ -49,7 +49,9 @@ jobs:
           sleep 3600
           docker exec -t -w "/benchmark" "${container_name}" bash -c "bash /benchmark/scripts/torchbench_install.sh"
           docker exec -t -w "/benchmark" "${container_name}" bash -c "bash /benchmark/scripts/torchbench_test.sh"
-
+      - name: Teardown Linux
+        uses: pytorch/test-infra/.github/actions/teardown-linux@main
+        if: always()
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
