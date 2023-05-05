@@ -9,6 +9,7 @@ on:
 env:
   CONDA_ENV: "torchbench"
   DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
+  SETUP_SCRIPT: "/workspace/setup_instance.sh"
 
 jobs:
   pr-test:
@@ -40,6 +41,7 @@ jobs:
         run: |
           container_name=$(docker run \
             -e CONDA_ENV \
+            -e SETUP_SCRIPT \
             --tty \
             --detach \
             -v "${PWD}/benchmark:/benchmark" \
