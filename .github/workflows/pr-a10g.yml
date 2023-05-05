@@ -45,6 +45,7 @@ jobs:
             --tty \
             --detach \
             -v "${PWD}/benchmark:/benchmark" \
+            --gpus all \
             -w / \
             "${{ env.DOCKER_IMAGE }}" \
             tail -f /dev/null
