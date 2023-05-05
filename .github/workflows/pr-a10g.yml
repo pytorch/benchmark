@@ -40,12 +40,12 @@ jobs:
         run: |
           container_name=$(docker run \
             -e CONDA_ENV \
-            --interactive \
             --tty \
             --detach \
             -v "${PWD}/benchmark:/benchmark" \
             -w / \
-            "${{ env.DOCKER_IMAGE }}"
+            "${{ env.DOCKER_IMAGE }}" \
+            tail -f /dev/null
           )
           docker exec -it -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
           docker exec -it -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_test.sh
