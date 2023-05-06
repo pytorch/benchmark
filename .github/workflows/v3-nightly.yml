@@ -41,6 +41,7 @@ jobs:
           set -x
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
+          pip uninstall -y dill pyarrow
           python install.py
       - name: Run the torch-nightly userbenchmark
         run: |
