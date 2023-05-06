@@ -25,21 +25,10 @@ jobs:
           nvidia-smi
       - name: Install TorchBench
         run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
-          pip uninstall -y dill pyarrow
-          python install.py
-      - name: Validate benchmark components (Worker)
+          bash ./scripts/torchbench_install.sh
+      - name: Validate benchmark components
         run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
-          python -m components.test.test_subprocess
-          python -m components.test.test_worker
-      - name: Validate benchmark components (Model)
-        run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
-          python test.py
+          bash ./scripts/torchbench_test.sh
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}

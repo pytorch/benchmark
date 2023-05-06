@@ -88,7 +88,3 @@ jobs:
         with:
           name: TorchBench V3 result
           path: benchmark-output/
-      - name: Destroy conda env
-        run: |
-          . "${SETUP_SCRIPT}"
-          conda env remove --name "${CONDA_ENV_NAME}"

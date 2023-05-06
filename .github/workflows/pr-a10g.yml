@@ -30,10 +30,6 @@ jobs:
         uses: pytorch/test-infra/.github/actions/pull-docker-image@main
         with:
           docker-image: ${{ env.DOCKER_IMAGE }}
-      - name: Install basic packages
-        run: |
-          cd benchmark/
-          bash scripts/install_basics_amzn_linux_2.sh
       - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
         id: install-nvidia-driver
         uses: pytorch/test-infra/.github/actions/setup-nvidia@main
