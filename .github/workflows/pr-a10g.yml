@@ -7,7 +7,9 @@ on:
       - main
 
 env:
-  CONDA_ENV: "pr-test"
+  CONDA_ENV: "torchbench"
+  DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
+  SETUP_SCRIPT: "/workspace/setup_instance.sh"
 
 jobs:
   pr-test:
@@ -16,43 +18,40 @@ jobs:
     runs-on: [self-hosted, linux.g5.4xlarge.nvidia.gpu]
     timeout-minutes: 1440 # 24 hours
     steps:
+      - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
+        uses: pytorch/test-infra/.github/actions/setup-ssh@main
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-      - name: Install Conda and basic packages
-        run: |
-          bash scripts/install_basics_amzn_linux_2.sh
+        with:
+          path: benchmark
+      - name: Pull docker image
+        uses: pytorch/test-infra/.github/actions/pull-docker-image@main
+        with:
+          docker-image: ${{ env.DOCKER_IMAGE }}
       - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
         id: install-nvidia-driver
         uses: pytorch/test-infra/.github/actions/setup-nvidia@main
-      - name: Setup Conda Env
+      - name: Install and Test TorchBench
         run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate
-          python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
-          conda activate "${CONDA_ENV}"
-          python utils/cuda_utils.py --install-torch-deps
-      - name: Install PyTorch nightly
-        run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV}"
-          python utils/cuda_utils.py --install-torch-nightly
-          python utils/cuda_utils.py --check-torch-nightly-version
-      - name: Install TorchBench
-        run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV}"
-          python install.py
-      - name: Validate benchmark components (Worker)
-        run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV}"
-          python -m components.test.test_subprocess
-          python -m components.test.test_worker
-      - name: Validate benchmark components (Model)
-        run: |
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
-          conda activate "${CONDA_ENV}"
-          python test.py
+          container_name=$(docker run \
+            -e CONDA_ENV \
+            -e SETUP_SCRIPT \
+            --tty \
+            --detach \
+            -v "${PWD}/benchmark:/benchmark" \
+            --gpus all \
+            -w / \
+            "${{ env.DOCKER_IMAGE }}" \
+            tail -f /dev/null
+          )
+          echo "Container name: ${container_name}"
+          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
+          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_test.sh
+      - name: Teardown Linux
+        uses: pytorch/test-infra/.github/actions/teardown-linux@main
+        if: always()
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}

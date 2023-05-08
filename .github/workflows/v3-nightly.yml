@@ -7,7 +7,7 @@ on:
 jobs:
   run-benchmark:
     env:
-      CONDA_ENV_NAME:  "torchbench-v3-nightly-ci"
+      CONDA_ENV_NAME:  "torchbench"
       PLATFORM_NAME: "gcp_a100"
       SETUP_SCRIPT: "/workspace/setup_instance.sh"
       TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
@@ -23,33 +23,19 @@ jobs:
         with:
           ref: v3.0
           path: benchmark
-      - name: Create conda environment
-        run: |
-          . "${SETUP_SCRIPT}"
-          python benchmark/utils/python_utils.py --create-conda-env "${CONDA_ENV_NAME}"
-          sudo python benchmark/utils/cuda_utils.py --setup-cuda-softlink
       - name: Tune Nvidia GPU
         run: |
           . "${SETUP_SCRIPT}"
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
-      - name: Install PyTorch nightly
+      - name: Check PyTorch nightly if scheduled
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
-          python utils/cuda_utils.py --install-torch-deps
-          # Check if nightly builds are available
-          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
-          # If failed, the script will generate empty result
-          if [ -z $NIGHTLIES ]; then
-              echo "Torch nightly build failed. Cancel the workflow."
-              exit 1
-          fi
-          # Install PyTorch nightly and domain libraries from pip
-          python utils/cuda_utils.py --install-torch-nightly
-          # make sure pytorch+cuda works
-          python -c "import torch; torch.cuda.init()"
+          TODAY_STR=$(date +'%Y%m%d')
+          python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
       - name: Install TorchBench
         run: |
           set -x
@@ -102,7 +88,3 @@ jobs:
         with:
           name: TorchBench V3 result
           path: benchmark-output/
-      - name: Destroy conda env
-        run: |
-          . "${SETUP_SCRIPT}"
-          conda env remove --name "${CONDA_ENV_NAME}"
