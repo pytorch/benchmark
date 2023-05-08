@@ -84,6 +84,7 @@ def parse_args(args):
     parser.add_argument("--jit", action="store_true", help="Convert the models to jit mode.")
     parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
     parser.add_argument("--output", "-o", default=None, help="Output dir.")
+    parser.add_argument("--timeout", default=None, help="Limit single model test run time. Default None, means no limitation.")
     parser.add_argument("--launcher", action="store_true", help="Use torch.backends.xeon.run_cpu to get the peak performance on Intel(R) Xeon(R) Scalable Processors.")
     parser.add_argument("--launcher-args", default=None, help="Provide the args of torch.backends.xeon.run_cpu. See `python -m torch.backends.xeon.run_cpu --help`")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
@@ -141,4 +142,13 @@ def run_benchmark(config, args):
     
     print(f"Running benchmark: {cmd}")
     if not args.dryrun:
-        subprocess.check_call(cmd, cwd=REPO_PATH)
+        timeout = int(args.timeout) if args.timeout else None
+        try:
+            result = subprocess.run(cmd, cwd=REPO_PATH, capture_output=True, text=True, check=False, timeout=timeout)
+            if result.returncode != 0:
+                print(f"=========={config.name} Failed==========")
+                print(result.stderr)
+            else:
+                print(result.stdout)
+        except Exception as e:
+            print(e)

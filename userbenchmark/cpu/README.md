@@ -28,6 +28,7 @@ All parameters of `cpu` userbenchmark as below,
 - `--config, -c` YAML config to specify tests to run.
 - `--output, -o` output dir. By default will create folder under
   `.userbenchmark/cpu`.
+- `--timeout` limit single model test run time. Default `None` means no limitation.
 - `--launcher` whether to use `torch.backends.xeon.run_cpu` to get the peak
   performance on Intel(R) Xeon(R) Scalable Processors.
 - `--launcher-args` work with `--launcher` enabled, to provide the args of
