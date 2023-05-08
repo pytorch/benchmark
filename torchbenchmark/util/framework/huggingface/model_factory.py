@@ -4,9 +4,11 @@ import os
 import torch
 from contextlib import nullcontext
 from torch import optim
+import torch.nn as nn
 from torchbenchmark.util.model import BenchmarkModel
+from torchbenchmark.tasks import NLP
 import transformers
-from transformers import AutoConfig, ReformerConfig, BertConfig
+from transformers import AutoConfig, ReformerConfig, BertConfig, GenerationConfig
 from typing import Tuple
 
 class_models = {
@@ -52,6 +54,8 @@ class HuggingFaceModel(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.name = name
+        name = name.replace('_generate', '')
+        self.unqual_name = name
         if test == "train":
             self.max_length = class_models[name][0]
         elif test == "eval":
@@ -83,8 +87,8 @@ class HuggingFaceModel(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             # Cut the length of sentence when running on CPU, to reduce test time
-            if self.device == "cpu" and self.name in cpu_input_slice:
-                self.max_length = int(self.max_length / cpu_input_slice[self.name])
+            if self.device == "cpu" and name in cpu_input_slice:
+                self.max_length = int(self.max_length / cpu_input_slice[name])
             eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
             self.example_inputs = {'input_ids': eval_context, }
             if class_models[name][3] == 'AutoModelForSeq2SeqLM':
@@ -94,7 +98,7 @@ class HuggingFaceModel(BenchmarkModel):
         self.amp_context = nullcontext
 
     def get_module(self, wrap_model=True):
-        if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
+        if class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
             k = 'labels' if self.test == 'train' else 'decoder_input_ids'
             if not wrap_model:
                 return self.model, (
@@ -116,7 +120,7 @@ class HuggingFaceModel(BenchmarkModel):
                 for bucket_len in random.choices(buckets, k=nsamples)
             ]
 
-        if class_models[self.name][3] == 'AutoModelForSeq2SeqLM':
+        if class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
             raise NotImplementedError("Not yet supported")
 
         # TODO(whc) why is labels not passed through?
@@ -148,3 +152,35 @@ class HuggingFaceModel(BenchmarkModel):
 
     def enable_amp(self):
         self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
+
+class HuggingFaceGenerationModel(HuggingFaceModel):
+    task = NLP.GENERATION
+    DEFAULT_EVAL_BSIZE = 1
+
+    """
+    Instead of just running __call__ on the model, use generate to generate
+    text.
+    """
+    def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
+        super().__init__(name=name, test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        # Make this configurable with extra_args
+        # NB: this is *fixed* generation size as eos_token_id is None
+        generation_config = GenerationConfig(
+            max_new_tokens=256,
+            pad_token_id=0,
+            eos_token_id=None,
+            do_sample=False,
+            num_beams=1,
+            use_cache=True,
+        )
+        self.model = GenerationWrapper(self.model, generation_config)
+
+
+class GenerationWrapper(nn.Module):
+    def __init__(self, model, generation_config):
+        super().__init__()
+        self.model = model
+        self.generation_config = generation_config
+
+    def forward(self, inputs):
+        return self.model.generate(inputs, self.generation_config)
