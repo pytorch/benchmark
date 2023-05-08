@@ -71,7 +71,7 @@ def parse_args(args: List[str], work_dir: Path):
     parser = argparse.ArgumentParser()
     parser.add_argument("--pytorch-src", default=str(work_dir.resolve()),
                         help="Location of PyTorch source repo")
-    parser.add_argument("--pytorch-branch", default="master",
+    parser.add_argument("--pytorch-branch", default="main",
                         help="The branch of pytorch to check out")
     parser.add_argument("--analyze-json", type=str, default=None, help="Only analyze an existing result")
     args = parser.parse_args(args)
