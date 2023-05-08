@@ -13,6 +13,7 @@ def run(control, treatment) -> Optional[TorchBenchABTestResult]:
         if control_metric_name in treatment_metrics:
             treatment_metric = treatment_metrics[control_metric_name]
             delta = (treatment_metric - control_metric) / control_metric
+            # Trigger on BOTH slowdowns and speedups
             if abs(delta) > DEFAULT_REGRESSION_DELTA_THRESHOLD:
                 details[control_metric_name] = TorchBenchABTestMetric(control=control_metric, treatment=treatment_metric, delta=delta)
     return TorchBenchABTestResult(control_env=control_env, \
