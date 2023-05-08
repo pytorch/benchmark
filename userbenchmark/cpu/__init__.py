@@ -137,7 +137,7 @@ def run_benchmark(config, args):
 
     cmd.extend(config.extra_args)
     cmd.append("-o")
-    cmd.append(args.output)
+    cmd.append(str(args.output))
     
     print(f"Running benchmark: {cmd}")
     if not args.dryrun:

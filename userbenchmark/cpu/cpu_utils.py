@@ -51,10 +51,10 @@ def dump_output(bm_name, output, output_dir=None, fname=None):
 def get_run(test_dir: Path):
     run = {}
     testdir_name = test_dir.name
-    regex = "(.*)_(.*)_(.*)"
+    regex = "(.*)-(.*)-(.*)"
     g = re.match(regex, testdir_name).groups()
-    run["test"] = g[0]
-    run["model"] = g[1]
+    run["model"] = g[0]
+    run["test"] = g[1]
     run["mode"] = g[2]
     run["results"] = []
     ins_jsons = filter(lambda x: x.is_file(), test_dir.iterdir())
