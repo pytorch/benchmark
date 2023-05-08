@@ -62,8 +62,8 @@ test. And for each single model test, it will create a subfolder under folder
 instance PID for that model test.
 ```shell
 $ ls .userbenchmark/cpu/cpu-20230420004336
-eval_alexnet_eager/  eval_resnet50_eager/  
-$ ls .userbenchmark/cpu/cpu-20230420004336/eval_alexnet_eager/
+alexnet-eval-eager/  resnet50-eval-eager/  
+$ ls .userbenchmark/cpu/cpu-20230420004336/alexnet-eval-eager/
 metrics-3347653.json  metrics-3347654.json  metrics-3347655.json  metrics-3347656.json
 $ cat .userbenchmark/cpu/metrics-20230420004336.json 
 {
