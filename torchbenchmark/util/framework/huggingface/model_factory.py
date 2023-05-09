@@ -50,13 +50,21 @@ class HuggingFaceModel(BenchmarkModel):
     # Default eval precision on CUDA device is fp16(half mode)
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
+    # If you suffix a model with '_generate', we will instead wrap the
+    # unsuffixed model with GenerationWrapper which will make it do
+    # autoregressive text generation instead of a probability prediction
+    # NB: name is used as kwarg, cannot rename it here
     def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.name = name
-        name = name.replace('_generate', '')
-        self.is_generate = self.name != name
-        self.unqual_name = name
+        if name.endswith('_generate'):
+            self.is_generate = True
+            self.unqual_name = name[:-len('_generate')]
+        else:
+            self.is_generate = False
+            self.unqual_name = name
+        name = self.unqual_name  # we don't want to refer to the qualified name anymore
         if test == "train":
             self.max_length = class_models[name][0]
         elif test == "eval":
@@ -166,6 +174,8 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
         super().__init__(name=name, test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         # Make this configurable with extra_args
         # NB: this is *fixed* generation size as eos_token_id is None
+        # These params were cribbed off of
+        # https://github.com/younesbelkada/hf-torch-compile-benchmark
         generation_config = GenerationConfig(
             max_new_tokens=256,
             pad_token_id=0,
