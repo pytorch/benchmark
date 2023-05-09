@@ -11,15 +11,16 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         embed_dim = 1536
-        # These are picked to match _generate config on HuggingFace
         beam_size = 1
-        generate_size = 256
+        # This is quite a bit smaller than, e.g., T5, because this model is
+        # quite a bit slower to run
+        generate_size = 64
         self.model = SequenceGenerator(
             create_model(embed_dim),
             beam_size,
             generate_size,
         ).eval().to(self.device)
-        prompt_size = 256 # made smaller
+        prompt_size = 64
         vocab_size = 128  # cribbed from original script
         self.example_inputs = (
             torch.randint(1, vocab_size, (self.batch_size, prompt_size)).to(self.device),
