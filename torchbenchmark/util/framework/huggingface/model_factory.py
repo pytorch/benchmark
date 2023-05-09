@@ -184,6 +184,12 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
         )
         self.model = GenerationWrapper(self.model, generation_config)
 
+    def eval(self) -> Tuple[torch.Tensor]:
+        with torch.no_grad():
+            with self.amp_context():
+                out = self.model(self.example_inputs['input_ids'])
+        return (out,)
+
 
 class GenerationWrapper(nn.Module):
     def __init__(self, model, generation_config):
