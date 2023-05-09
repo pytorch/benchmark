@@ -55,6 +55,7 @@ class HuggingFaceModel(BenchmarkModel):
 
         self.name = name
         name = name.replace('_generate', '')
+        self.is_generate = self.name != name
         self.unqual_name = name
         if test == "train":
             self.max_length = class_models[name][0]
@@ -98,7 +99,7 @@ class HuggingFaceModel(BenchmarkModel):
         self.amp_context = nullcontext
 
     def get_module(self, wrap_model=True):
-        if class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
+        if not self.is_generate and class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
             k = 'labels' if self.test == 'train' else 'decoder_input_ids'
             if not wrap_model:
                 return self.model, (
