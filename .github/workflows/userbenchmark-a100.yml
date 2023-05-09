@@ -9,14 +9,11 @@ on:
       userbenchmark_options:
         description: "Option of the user benchmark to run"
 env:
-  PYTHON_VERSION: "3.8"
-  TENSORRT_PYTHON_VERSION: "cp38"
-  TENSORRT_VERSION: "8.2.4.2"
-  CUDA_VERSION: "cu116"
-  CONDA_ENV_NAME: "userbenchmarks-ci"
-  MAGMA_VERSION: "magma-cuda116"
+  CONDA_ENV_NAME: "torchbench"
   PLATFORM_NAME: "gcp_a100"
   TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   SETUP_SCRIPT: "/workspace/setup_instance.sh"
 jobs:
   run-userbenchmark:
@@ -27,37 +24,19 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: benchmark
-      - name: Create conda environment
-        run: |
-          . "${SETUP_SCRIPT}"
-          conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
       - name: Tune Nvidia GPU
         run: |
           . "${SETUP_SCRIPT}"
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
           nvidia-smi
-      - name: Install PyTorch nightly
+      - name: Check PyTorch nightly if scheduled
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
-          # Install dependencies
-          conda install -y numpy requests ninja pyyaml setuptools gitpython beautifulsoup4 regex
-          conda install -y expecttest libglib pango -c conda-forge
-          conda install -y -c pytorch "${MAGMA_VERSION}"
-          pip install requests bs4 argparse gitpython boto3 pyyaml numpy regex psutil
-          # Check if nightly builds are available
-          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
-          # If failed, the script will generate empty result
-          if [ -z $NIGHTLIES ]; then
-              echo "Torch nightly build failed. Cancel the workflow."
-              exit 1
-          fi
-          # Install PyTorch nightly and domain libraries from pip
-          pip install --pre torch torchtext torchvision torchaudio \
-            -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
-          # make sure pytorch+cuda works
-          python -c "import torch; torch.cuda.init()"
+          TODAY_STR=$(date +'%Y%m%d')
+          python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
       - name: Install TorchBench
         run: |
           set -x
@@ -76,12 +55,16 @@ jobs:
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
             python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
-            cp -r ./.userbenchmark ../benchmark-output
+            if [ -d ./.userbenchmark ]; then
+              cp -r ./.userbenchmark ../benchmark-output
+            else
+              mkdir ../benchmark-output
+            fi
           else
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           fi
-      - name: Upload result jsons to Scribe
+      - name: Upload result jsons to Scribe and S3
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
           pushd benchmark
@@ -89,13 +72,10 @@ jobs:
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
             python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
+            python ./scripts/userbenchmark/upload_s3.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
           done
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: TorchBench result
           path: benchmark-output/
-      - name: Remove conda environment
-        run: |
-          . "${SETUP_SCRIPT}"
-          conda env remove --name "${CONDA_ENV_NAME}"

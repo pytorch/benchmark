@@ -4,10 +4,11 @@ from typing import List, Optional, Tuple
 from torchbenchmark.util.backends import list_backends, BACKENDS
 
 from torchbenchmark.util.backends.flops import enable_fvcore_flops
-from torchbenchmark.util.backends.fx2trt import enable_fx2trt
-from torchbenchmark.util.backends.torch_trt import enable_torchtrt
+from torchbenchmark.util.env_check import is_torchvision_model, is_staged_train_test
 
 TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
+AVAILABLE_PRECISIONS = ["fp32", "tf32", "fp16", "amp", "fx_int8", "bf16","amp_fp16", "amp_bf16"]
+QUANT_ENGINES = ["x86", "fbgemm", "qnnpack", "onednn"]
 
 def check_correctness_p(
     model: 'torchbenchmark.util.model.BenchmarkModel',
@@ -20,14 +21,13 @@ def check_correctness_p(
         return False
     if dargs.skip_correctness:
         return False
-    is_eval_test = model.test == "eval"
     # always check correctness with torchdynamo
     if model.dynamo:
         return True
     opt_args_dict = vars(opt_args)
     for k in opt_args_dict:
         if opt_args_dict[k]:
-            return is_eval_test
+            return True
     return False
 
 def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool=True):
@@ -36,35 +36,25 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool
     group.add_argument('--no-' + name, dest=name, action='store_false')
     parser.set_defaults(**{name: default_value})
 
-def is_timm_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'TIMM_MODEL') and model.TIMM_MODEL
-
-def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
-
-def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
-
-def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
-
-def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer')
-
-def get_hf_maxlength(model: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[int]:
-    return model.max_length if is_hf_model(model) else None
-
 def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision: str) -> bool:
     if precision == "fp16":
         return model.device == 'cuda' and hasattr(model, "enable_fp16_half")
     if precision == "tf32":
         return model.device == "cuda"
     if precision == "amp":
+        return True
+    if precision == "fx_int8":
+        return model.device == 'cpu' and hasattr(model, "enable_fx_int8")
+    if precision == "bf16":
+        return model.device == 'cpu' and hasattr(model, "enable_bf16")
+    if precision == "amp_fp16":
         if model.test == 'eval' and model.device == 'cuda':
             return True
         if model.test == 'train' and model.device == 'cuda':
             return hasattr(model, 'enable_amp') or is_staged_train_test(model)
-    assert precision == "fp32", f"Expected precision to be one of fp32, tf32, fp16, or amp, but get {precision}"
+    if precision == "amp_bf16":
+        return model.device == 'cpu'
+    assert precision == "fp32", f"Expected precision to be one of {AVAILABLE_PRECISIONS}, but get {precision}"
     return True
 
 def check_memory_layout(model: 'torchbenchmark.util.model.BenchmakModel', channels_last: bool) -> bool:
@@ -98,9 +88,10 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
         default=None,
         help="Path to function that will apply distributed wrapping fn(model, dargs.distributed)",
     )
-    parser.add_argument("--precision", choices=["fp32", "tf32", "fp16", "amp"], default=get_precision_default(model), help="choose precisions from: fp32, tf32, fp16, or amp")
+    parser.add_argument("--precision", choices=AVAILABLE_PRECISIONS, default=get_precision_default(model), help=f"choose precisions from {AVAILABLE_PRECISIONS}")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
     parser.add_argument("--skip_correctness", action='store_true', help="Skip correctness checks")
+    parser.add_argument("--quant-engine", choices=QUANT_ENGINES, default='x86', help=f"choose quantization engine for fx_int8 precision from {QUANT_ENGINES}")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
         raise NotImplementedError(f"precision value: {dargs.precision}, "
@@ -128,7 +119,15 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
         # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
         if hasattr(model, "enable_amp"):
             model.enable_amp()
-        elif model.test == "eval":
+    elif dargs.precision == "fx_int8":
+        assert model.device == "cpu" and model.test == "eval", f"fx_int8 only work for eval mode on cpu device."
+        model.enable_fx_int8(dargs.quant_engine)
+    elif dargs.precision == "bf16":
+        assert model.device == "cpu", f"bf16 only work on cpu device."
+        model.enable_bf16()
+    elif dargs.precision == "amp_fp16":
+        assert model.device == "cuda", f"{model.device} has no fp16 autocast."
+        if model.test == "eval":
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
         elif model.test == "train":
@@ -136,6 +135,9 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
             assert is_staged_train_test(model), f"Expected model implements staged train test (forward, backward, optimizer)."
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16), stage=TEST_STAGE.FORWARD)
+    elif dargs.precision == "amp_bf16":
+        import torch
+        model.add_context(lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16))
     elif not dargs.precision == "fp32":
         assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
 
@@ -143,43 +145,18 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=list_backends(), help="enable backends")
-    parser.add_argument("--fx2trt", action='store_true', help="enable fx2trt")
-    parser.add_argument("--fuser", type=str, default="", choices=["fuser0", "fuser1", "fuser2"], help="enable fuser")
-    parser.add_argument("--torch_trt", action='store_true', help="enable torch_tensorrt")
     parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
     parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"
-    if model.device == "cpu" and args.fuser:
-        raise NotImplementedError("Fuser only works with GPU.")
-    if not (model.device == "cuda" and model.test == "eval"):
-        if args.fx2trt or args.torch_trt:
-            raise NotImplementedError("TensorRT only works for CUDA inference tests.")
-    if is_torchvision_model(model):
-        args.cudagraph = False
+    if args.backend:
+        backend = BACKENDS[args.backend]
+        model._enable_backend, extra_args = backend(model, backend_args=extra_args)
     return args, extra_args
 
-def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, extra_args: List[str]):
+def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
     if args.flops == "fvcore":
         enable_fvcore_flops(model)
     if args.backend:
-        backend = BACKENDS[args.backend]
-        # transform the model using the specified backend
-        backend(model, backend_args=extra_args)
-        return
-    assert not extra_args, f"Exptected no unknown args at this point, found {extra_args}"
-    if args.fuser:
-        import torch
-        model.add_context(lambda: torch.jit.fuser(args.fuser))
-    if args.fx2trt:
-        if model.jit:
-            raise NotImplementedError("fx2trt with JIT is not available.")
-        module, exmaple_inputs = model.get_module()
-        fp16 = not (model.dargs.precision == "fp32")
-        model.set_module(enable_fx2trt(model.batch_size, fp16=fp16, model=module, example_inputs=exmaple_inputs,
-                                       is_hf_model=is_hf_model(model), hf_max_length=get_hf_maxlength(model)))
-    if args.torch_trt:
-        module, exmaple_inputs = model.get_module()
-        precision = 'fp16' if not model.dargs.precision == "fp32" else 'fp32'
-        model.set_module(enable_torchtrt(precision=precision, model=module, example_inputs=exmaple_inputs))
+        model._enable_backend()

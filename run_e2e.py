@@ -23,7 +23,7 @@ def run(func) -> Dict[str, float]:
     return result
 
 def gen_result(m, run_result):
-    num_epochs = m.num_epochs if hasattr(m, 'num_epochs') else 1
+    num_epochs = getattr(m, "num_epochs", 1)
     r = E2EBenchmarkResult(device=m.device, device_num=m.device_num,
                            test=m.test, num_examples=m.num_examples,
                            num_epochs=num_epochs, batch_size=m.batch_size, result=dict())

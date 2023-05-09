@@ -29,6 +29,9 @@ def _set_extra_env(extra_env):
     for env_key in extra_env:
         os.environ[env_key] = extra_env[env_key]
 
+def inject_model_invoke(model_task: ModelTask, inject_function):
+    model_task.replace_invoke(inject_function.__module__, inject_function.__name__)
+
 def load_model_isolated(config: TorchBenchModelConfig, timeout: float=WORKER_TIMEOUT) -> ModelTask:
     """ Load and return the model in a subprocess. """
     task = ModelTask(config.name, timeout=timeout, extra_env=config.extra_env)
@@ -59,6 +62,18 @@ def load_model(config: TorchBenchModelConfig) -> BenchmarkModel:
                          f"but model {model_instance.name} runs with batch size {model_instance.batch_size}. Please report a bug.")
     _set_extra_env(config.extra_env)
     return model_instance
+
+def list_devices() -> List[str]:
+    """Return a list of available devices."""
+    devices = ["cpu"]
+    import torch
+    if torch.cuda.is_available():
+        devices.append("cuda")
+    return devices
+
+def list_tests() -> List[str]:
+    """Return a list of available tests."""
+    return ["train", "eval"]
 
 def list_models() -> List[str]:
     """Return a list of names of all TorchBench models"""

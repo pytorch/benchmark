@@ -31,9 +31,6 @@ class TimmModel(BenchmarkModel):
             self.model.train()
         elif test == "eval":
             self.model.eval()
-
-        if device == 'cuda':
-            torch.cuda.empty_cache()
         self.amp_context = suppress
 
     def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
@@ -69,6 +66,12 @@ class TimmModel(BenchmarkModel):
         output = self.model(self.example_inputs)
         return output
 
+    def get_optimizer(self):
+        return self.cfg.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.cfg.optimizer = optimizer
+
     def enable_fp16_half(self):
         self.model = self.model.half()
         self.example_inputs = self.example_inputs.half()
@@ -76,9 +79,6 @@ class TimmModel(BenchmarkModel):
     def enable_channels_last(self):
         self.model = self.model.to(memory_format=torch.channels_last)
         self.example_inputs = self.example_inputs.contiguous(memory_format=torch.channels_last)
-
-    def enable_amp(self):
-        self.amp_context = lambda: torch.cuda.amp.autocast(dtype=torch.float16)
 
     def get_module(self):
         return self.model, (self.example_inputs,)

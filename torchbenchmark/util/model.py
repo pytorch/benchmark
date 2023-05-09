@@ -8,11 +8,13 @@ import inspect
 import yaml
 from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
+from torch.utils._pytree import tree_map
 from torchbenchmark import REPO_PATH
-from torchbenchmark.util.extra_args import check_correctness_p, is_hf_model, parse_opt_args, apply_opt_args, \
+from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
                                            TEST_STAGE
-from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check
+from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model
+from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -82,6 +84,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.jit = jit
         self.determine_batch_size(batch_size)
         self.extra_args = extra_args
+        self.opt = None
         # contexts to run in the test function
         if self.test == "train":
             # In train test, there are run contexts that should only be applied for forward/backward/optimizer stage
@@ -122,6 +125,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     # Run the post processing for model acceleration
     def __post__init__(self):
+        # All arguments should be parsed at this point.
+        assert not self.extra_args, f"Expected no unknown args at this point, found {self.extra_args}"
         should_check_correctness = check_correctness_p(self, self.opt_args, self.dargs)
         if should_check_correctness:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
@@ -130,10 +135,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif isinstance(self.eager_output, torch.Tensor):
                 self.eager_output = self.eager_output.detach()
             if self.test == "train":
-                opt_saved = None
-                if hasattr(self, "opt"):
-                    opt_saved = self.opt
-                    self.opt = None
+                current_optimizer = self.get_optimizer()
+                if current_optimizer is not None:
+                    self.set_optimizer(None)
                 try:
                     if self.DEEPCOPY:
                         copy_model = copy.deepcopy(self)
@@ -143,8 +147,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     self.eager_model_after_one_train_iteration = copy_model.model
                 except RuntimeError:
                     warnings.warn(UserWarning("Can't copy the model. Skipping train correctness check."))
-                if opt_saved:
-                    self.opt = opt_saved
+                if current_optimizer is not None:
+                    self.set_optimizer(current_optimizer)
         # apply decoration args
         apply_decoration_args(self, self.dargs)
         # apply optimization args
@@ -152,7 +156,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
-            apply_opt_args(self, self.opt_args, self.extra_args)
+            apply_opt_args(self, self.opt_args)
         if should_check_correctness:
             # tensorrt or fp16 is known to generate less-accurate results
             # in this case, use more relaxed cosine similarity instead of torch.allclose
@@ -162,8 +166,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.dargs.precision == "fp16"
                 or self.dargs.precision == "amp"
                 or (self.dynamo and self.opt_args.torchdynamo == "fx2trt")
-                or (not self.dynamo and self.opt_args.fx2trt)
+                or (not self.dynamo and (self.device == "cuda" and self.opt_args.backend == "fx2trt"))
                 or (not self.dynamo and self.opt_args.use_cosine_similarity)
+                or self.dargs.precision == "fx_int8"
+                or self.dargs.precision == "bf16"
+                or self.dargs.precision == "amp_fp16"
+                or self.dargs.precision == "amp_bf16"
             ):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
@@ -185,7 +193,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             else:
                 module, _inputs = self.get_module()
             self.set_module(apply_trainer(module, self.dargs.distributed))
-        if self.test == "cuda":
+        # Need to clean up the cache because we run deep copy within correceness check
+        if self.device == "cuda":
             torch.cuda.empty_cache()
 
     def determine_batch_size(self, batch_size=None):
@@ -194,15 +203,18 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.batch_size = batch_size
         if not batch_size:
             self.batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
-            # use the device suggestion on CUDA inference tests
-            if self.test == "eval":
-                if self.device == "cuda":
-                    current_device_name = torch.cuda.get_device_name()
-                    assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
-                elif self.device == "cpu":
-                    current_device_name = "cpu"
-                if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"]:
-                    self.batch_size = self.metadata["devices"][current_device_name]["eval_batch_size"]
+            if self.device == "cuda":
+                current_device_name = torch.cuda.get_device_name()
+                assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+            elif self.device == "cpu":
+                current_device_name = "cpu"
+            elif self.device == "mps":
+                current_device_name = "mps"
+            # use the device suggestion on CUDA inference tests, key should be either eval_batch_size or train_batch_size
+            device_batch_size_key = f"{self.test}_batch_size"
+            if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"] \
+                             and device_batch_size_key in self.metadata["devices"][current_device_name]:
+                self.batch_size = self.metadata["devices"][current_device_name][device_batch_size_key]
             # If the model doesn't implement test or eval test
             # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
             if not self.batch_size:
@@ -238,6 +250,34 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         elif stage == TEST_STAGE.OPTIMIZER:
             self.optimizer_contexts.append(context_fn)
 
+
+    # Common interface for all models extending BenchmarkModel to access the optimizer.
+    # Some models have an opt attribute, others have an optimizer attribute; this
+    # implementation handles both. This function should not error! Simply return None
+    # if there's no optimizer in sight.
+    def get_optimizer(self):
+        if hasattr(self, "optimizer"):
+            return self.optimizer
+        if hasattr(self, "opt"):
+            return self.opt
+        warnings.warn("The optimizer for this model is not stored in self.opt nor self.optimizer. "
+                      "Currently returning None! Please override this implementation with your own "
+                      "if there is an optimizer this should be returning instead.")
+        return None
+
+    # Takes in an optimizer and sets that to be the optimizer used from now on.
+    # There are special models like dcgan that would update multiple optimizers at once,
+    # so optimizer here is not always strictly a, say, torch.optim.Optimizer.
+    def set_optimizer(self, optimizer) -> None:
+        if hasattr(self, "optimizer"):
+            self.optimizer = optimizer
+            return
+        if hasattr(self, "opt"):
+            self.opt = optimizer
+            return
+        raise NotImplementedError("The optimizer for this model is not stored in self.opt nor self.optimizer. "
+                                  "Please override this implementation with your own.")
+
     # Default implementation for replacing the model
     def set_module(self, new_model):
         if hasattr(self, 'model') and isinstance(self.model, torch.nn.Module):
@@ -252,8 +292,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                                   "Please submit an issue if you need input iterator implementation for the model.")
 
     def invoke_staged_train_test(self) -> None:
-        if hasattr(self, "opt") and self.opt:
-            self.opt.zero_grad()
+        optimizer = self.get_optimizer()
+        if optimizer is not None:
+            optimizer.zero_grad()
 
         with nested(*self.forward_contexts):
             losses = self.forward()
@@ -261,9 +302,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         with nested(*self.backward_contexts):
             self.backward(losses)
 
-        if hasattr(self, "opt") and self.opt:
+        if optimizer is not None:
             with nested(*self.optimizer_contexts):
-                self.optimizer()
+                self.optimizer_step()
 
         return None
 
@@ -340,3 +381,76 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         torch._C._set_graph_executor_optimize(True)
 
         bench_allclose(base, opt)
+
+    def enable_channels_last(self):
+        model_name = self.name
+        try:
+            model, _ = self.get_module()
+            model = model.to(memory_format=torch.channels_last)
+        except RuntimeError:
+            warnings.warn(UserWarning(f"{model_name} doesn't support `channels_last` yet!"))
+            return
+        self.set_module(model)
+        def inputs_convert(example_inputs):
+            if isinstance(example_inputs, torch.Tensor) and example_inputs.dim()==4:
+                return example_inputs.to(memory_format=torch.channels_last)
+            elif isinstance(example_inputs, (tuple, list, dict)):
+                return tree_map(lambda x: inputs_convert(x), example_inputs)
+            else:
+                warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))
+                return example_inputs
+        if hasattr(self, 'example_inputs'):
+            self.example_inputs = inputs_convert(self.example_inputs)
+        else:
+            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))
+
+    def enable_fx_int8(self, quant_engine:str='x86'):
+        torch.backends.quantized.engine = quant_engine
+        try:
+            model, _ = self.get_module()
+            # Get sub modules
+            model, sub_module_list = get_sub_module(model, dict(model.named_modules()), '')
+            if not len(sub_module_list):
+                warnings.warn(UserWarning(f"{self.name} doesn't have submodule can ben quantized!"))
+            model = prepare_sub_module(sub_module_list, model, '', quant_engine)
+            self.set_module(model)
+            # Calibration
+            self.eval()
+            model, _ = self.get_module()
+            model = convert_sub_module(sub_module_list, model, '')
+            self.set_module(model)
+        except Exception as e:
+            print(e)
+            raise RuntimeError(f"{self.name} doesn't support `fx_int8` yet!")
+
+    def enable_bf16(self):
+        model_name = self.name
+        try:
+            model, _ = self.get_module()
+            model = model.to(torch.bfloat16)
+        except RuntimeError:
+            warnings.warn(UserWarning(f"{model_name} doesn't support `to(torch.bfloat16)` yet!"))
+            return
+        self.set_module(model)
+        def inputs_convert(example_inputs):
+            if isinstance(example_inputs, torch.Tensor) and example_inputs.dtype == torch.float32:
+                return example_inputs.to(torch.bfloat16)
+            elif isinstance(example_inputs, (tuple, list, dict)):
+                return tree_map(lambda x: inputs_convert(x), example_inputs)
+            else:
+                warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
+                return example_inputs
+        if hasattr(self, 'example_inputs'):
+            self.example_inputs = inputs_convert(self.example_inputs)
+        else:
+            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
+
+    def enable_amp(self):
+        if not self.dynamo and self.opt_args.backend == 'cudagraph':
+            return NotImplementedError("AMP not implemented for cudagraphs")
+        if not hasattr(self, "amp_context"):
+            raise RuntimeError(f"{self.name} doesn't have amp_context support!")
+        if self.device == "cpu":
+            self.amp_context = lambda: torch.cpu.amp.autocast()
+        elif self.device == "cuda":
+            self.amp_context = lambda: torch.cuda.amp.autocast()

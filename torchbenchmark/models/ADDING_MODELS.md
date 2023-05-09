@@ -30,6 +30,23 @@ Some of the APIs are optional, and you can raise NotImplemented if a particular 
 
 Take care to set the random seed like [here](https://github.com/pytorch/benchmark/blob/master/torchbenchmark/models/Background_Matting/__init__.py#L20), to ensure your model runs the same way each time it's benchmarked.
 
+
+#### A minimal new model addition
+A bare miminum example you can follow is https://github.com/pytorch/benchmark/tree/main/torchbenchmark/models/phlippe_resnet
+
+The functions you specifically need to implement are 
+1. `__init__()` which is responsible for initalizing your `nn.Module`
+2. `get_module()` which is responsible for returning the initialized `nn.Module` and an example input
+3. `train()` which is a training loop, you can return a `NotImplementedError()` if your example is inference only. If your
+   training loop can be encapsulated by a `forward()`, `backward()`, and `optimizer_step()`, you need not redefine `train()`.
+   Instead, please make sure your model provides functions `forward()`, `backward()`, and `optimizer_step()` along with an
+   attribute `self.optimizer` which will be chained together for testing, see `invoke_staged_train_test()` for details. 
+4. `eval()` which showcases a simple inference
+
+Optionally, if you would like to be able to customize different optimizers for your model, feel free 
+to override the BenchmarkModel's base class' default `get_optimizer()` and `set_optimizer(optimizer)`
+methods.  
+
 ### Preparing install.py and dependencies
 Simply put, install.py should be a one stop shop to install all the dependencies
 for your model, __except torch, torchvision, torchtext__ which should be assumed to 
@@ -89,3 +106,13 @@ make sure to verify correctness by capturing the output of the non-jit model for
 version.
 
 [PyTorch Docs: Creating Torchscript Code](https://pytorch.org/docs/1.1.0/jit.html#creating-torchscript-code)
+
+### Test
+
+After you've submitted your new model, suppose it was called `new_model` make sure the tests pass locally. Your model name is equivalent to the new folder you'd have created in `torchbenchmark/models`
+
+1. `cd benchmark`
+2. `python install.py`
+3. `python test.py -k "test_new_model"`
+
+And thank you for contributing to torchbench!

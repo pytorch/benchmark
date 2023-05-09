@@ -37,6 +37,21 @@ def has_native_amp() -> bool:
         pass
     return False
 
+def is_timm_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'TIMM_MODEL') and model.TIMM_MODEL
+
+def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
+
+def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
+
+def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
+
+def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
+    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer_step')
+
 def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
        If the result is not stable, raise RuntimeError. """
@@ -72,40 +87,50 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
     return previous_result
 
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, atol=1e-4, rtol=1e-4) -> bool:
+    import torch
+
     old_test = model.test
     model.test = "eval"
     opt_saved = None
-    if hasattr(model, "opt"):
-        opt_saved = model.opt
-        model.opt = None
-    for _i in range(rounds):
-        # some models are stateful and will give different outputs
-        # on the same input if called multiple times
-        set_random_seed()
-        try:
-            if deepcopy:
-                copy_model = copy.deepcopy(model)
-            else:
+    opt_saved = model.opt
+    model.opt = None
+
+    # It looks we don't run backward here and also dynamo may have
+    # an issue with memory usage: https://fburl.com/workplace/cgxzsdhz
+    with torch.no_grad():
+        for _i in range(rounds):
+            # some models are stateful and will give different outputs
+            # on the same input if called multiple times
+            set_random_seed()
+            try:
+                if deepcopy:
+                    copy_model = copy.deepcopy(model)
+                else:
+                    copy_model = model
+            except RuntimeError:
+                # if the model is not copy-able, don't copy it
                 copy_model = model
-        except RuntimeError:
-            # if the model is not copy-able, don't copy it
-            copy_model = model
-        cur_result = copy_model.invoke()
+            cur_result = copy_model.invoke()
 
-        equal_nan = hasattr(model, "EQUAL_NAN") and model.EQUAL_NAN
-        if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol, equal_nan=equal_nan):
-            return False
+            equal_nan = hasattr(model, "EQUAL_NAN") and model.EQUAL_NAN
+            if not same(model.eager_output, cur_result, cos_similarity=cos_sim, atol=atol, rtol=rtol, equal_nan=equal_nan):
+                # Restore the original model test if eval correctness doesn't pass
+                model.test = old_test
+                model.opt = opt_saved if opt_saved else model.opt
+                return False
 
-        del cur_result
+            del cur_result
+
     model.test = old_test
-    if opt_saved:
-        model.opt = opt_saved
+    model.opt = opt_saved if opt_saved else model.opt
 
     if model.test == "train":
         if not hasattr(model, "model") or not hasattr(model.model, "named_parameters"):
             warnings.warn(UserWarning("model doesn't have model or model.named_parameters. Skipping train correctness check."))
+            return True
         if not hasattr(model, "eager_model_after_one_train_iteration"):
             warnings.warn(UserWarning("model doesn't have eager_model_after_one_train_iteration. Skipping train correctness check."))
+            return True
         model.invoke()
         for name, param in model.model.named_parameters():
             if not param.requires_grad:
@@ -122,6 +147,7 @@ def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim
                             print(f"model with dynamo does not have grad of param {name}")
                         else:
                             print(f"grad of param {name} after running with dynamo doesn't have gradient matching with eager mode")
+                            print(f"grad of param:\n{param.grad}\neager grad:\n{param_ref.grad}")
                         return False
                     break
             if not found:

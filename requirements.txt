@@ -8,8 +8,8 @@ pytest
 pytest-benchmark
 requests
 tabulate
-git+https://github.com/rwightman/pytorch-image-models.git@6d4665b
-transformers==4.20.1
+git+https://github.com/rwightman/pytorch-image-models.git@45af496
+transformers==4.27.4
 MonkeyType
 psutil
 pyyaml
@@ -20,3 +20,4 @@ numpy==1.21.2
 git+https://github.com/kornia/kornia.git@b7050c3
 scipy # for lazy_bench.py
 submitit
+pynvml

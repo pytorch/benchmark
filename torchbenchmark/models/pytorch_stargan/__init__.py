@@ -30,6 +30,9 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 16
     ALLOW_CUSTOMIZE_BSIZE = False
 
+    # TODO: Customizing the optimizer is nontrivial, perhaps a next step.
+    CANNOT_SET_CUSTOM_OPTIMIZER = True
+
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
@@ -38,6 +41,7 @@ class Model(BenchmarkModel):
         config.celeba_image_dir = os.path.join(DATA_PATH, 'pytorch_stargan_inputs/data/celeba/images')
         config.attr_path = os.path.join(DATA_PATH, 'pytorch_stargan_inputs/data/celeba/list_attr_celeba.txt')
         config.num_iters = 1
+        config.num_workers = 0
         config.batch_size = self.batch_size
         config.use_tensorboard = False
         config.device = device

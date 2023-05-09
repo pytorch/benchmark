@@ -73,7 +73,6 @@ class Model(BenchmarkModel):
                                 annFile=os.path.join(DATA_DIR, COCO_DATA[COCO_DATA_KEY][1]),
                                 transforms=transforms)
         sampler = torch.utils.data.SequentialSampler(dataset)
-
         self.data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                                       sampler=sampler,
                                                                       collate_fn=_collate_fn), self.device)

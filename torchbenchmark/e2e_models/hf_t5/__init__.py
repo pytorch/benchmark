@@ -251,49 +251,6 @@ class Model(E2EBenchmarkModel):
         elif hf_args.distributed == "none":
             model = accelerator.prepare(model)
 
-        # Optimizer
-        # Split weights in two groups, one with weight decay and the other not.
-        no_decay = ["bias", "LayerNorm.weight", "layer_norm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
-                "weight_decay": hf_args.weight_decay,
-            },
-            {
-                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
-                "weight_decay": 0.0,
-            },
-        ]
-        optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=hf_args.learning_rate)
-
-        # Scheduler and math around the number of training steps.
-        overrode_max_train_steps = False
-        num_update_steps_per_epoch = math.ceil(len(train_dataloader) / hf_args.gradient_accumulation_steps)
-        if hf_args.max_train_steps is None:
-            hf_args.max_train_steps = hf_args.num_train_epochs * num_update_steps_per_epoch
-            overrode_max_train_steps = True
-
-        lr_scheduler = get_scheduler(
-            name=hf_args.lr_scheduler_type,
-            optimizer=optimizer,
-            num_warmup_steps=hf_args.num_warmup_steps,
-            num_training_steps=hf_args.max_train_steps,
-        )
-
-        # Prepare everything with our `accelerator`.
-        if hf_args.distributed == "deepspeed":
-            # deepspeed will error unless all components prepared at the same time
-            model, train_dataloader, eval_dataloader, optimizer, lr_scheduler = accelerator.prepare(model, train_dataloader, eval_dataloader, optimizer, lr_scheduler)
-        else:
-             # ddp and fsdp need model prepared before wrapping.
-            train_dataloader, eval_dataloader, optimizer, lr_scheduler = accelerator.prepare(train_dataloader, eval_dataloader, optimizer, lr_scheduler)
-
-        # We need to recalculate our total training steps as the size of the training dataloader may have changed.
-        num_update_steps_per_epoch = math.ceil(len(train_dataloader) / hf_args.gradient_accumulation_steps)
-        if overrode_max_train_steps:
-            hf_args.max_train_steps = hf_args.num_train_epochs * num_update_steps_per_epoch
-        # Afterwards we recalculate our number of training epochs
-        hf_args.num_train_epochs = math.ceil(hf_args.max_train_steps / num_update_steps_per_epoch)
         # Figure out how many steps we should save the Accelerator states
         if hasattr(hf_args.checkpointing_steps, "isdigit"):
             hf_args.checkpointing_steps = hf_args.checkpointing_steps
@@ -313,15 +270,61 @@ class Model(E2EBenchmarkModel):
         # Setup class members
         self.hf_args = hf_args
         self.model = model
-        self.optimizer = optimizer
         self.train_dataloader = train_dataloader
         self.eval_dataloader = eval_dataloader
-        self.lr_scheduler = lr_scheduler
         self.accelerator = accelerator
         self.tokenizer = tokenizer
         self.metric = metric
         self.config = config
         self.postprocess_text = postprocess_text
+
+        # Optimizer
+        # Split weights in two groups, one with weight decay and the other not.
+        no_decay = ["bias", "LayerNorm.weight", "layer_norm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "weight_decay": hf_args.weight_decay,
+            },
+            {
+                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+        self.optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=hf_args.learning_rate)
+        self._update_everything_with_optimizer()
+
+    def _update_everything_with_optimizer(self):
+        # Scheduler and math around the number of training steps.
+        overrode_max_train_steps = False
+        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / self.hf_args.gradient_accumulation_steps)
+        if self.hf_args.max_train_steps is None:
+            self.hf_args.max_train_steps = self.hf_args.num_train_epochs * num_update_steps_per_epoch
+            overrode_max_train_steps = True
+
+        self.lr_scheduler = get_scheduler(
+            name=self.hf_args.lr_scheduler_type,
+            optimizer=self.optimizer,
+            num_warmup_steps=self.hf_args.num_warmup_steps,
+            num_training_steps=self.hf_args.max_train_steps,
+        )
+
+        # Prepare everything with our `accelerator`.
+        if self.hf_args.distributed == "deepspeed":
+            # deepspeed will error unless all components prepared at the same time
+            self.model, self.train_dataloader, self.eval_dataloader, self.optimizer, self.lr_scheduler = self.accelerator.prepare(
+                self.model, self.train_dataloader, self.eval_dataloader, self.optimizer, self.lr_scheduler)
+        else:
+            # ddp and fsdp need model prepared before wrapping.
+            self.train_dataloader, self.eval_dataloader, self.optimizer, self.lr_scheduler = self.accelerator.prepare(
+                self.train_dataloader, self.eval_dataloader, self.optimizer, self.lr_scheduler)
+
+        # We need to recalculate our total training steps as the size of the training dataloader may have changed.
+        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / self.hf_args.gradient_accumulation_steps)
+        if overrode_max_train_steps:
+            self.hf_args.max_train_steps = self.hf_args.num_train_epochs * num_update_steps_per_epoch
+        # Afterwards we recalculate our number of training epochs
+        self.hf_args.num_train_epochs = math.ceil(self.hf_args.max_train_steps / num_update_steps_per_epoch)
 
     def train(self):
         completed_steps = 0
@@ -404,6 +407,13 @@ class Model(E2EBenchmarkModel):
         # logger.info({"bleu": eval_metric["score"]})
         return eval_metric
 
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+        self._update_everything_with_optimizer()
+
     def next_batch(self):
         return next(iter(self.train_dataloader))
 
@@ -429,6 +439,12 @@ class Model(E2EBenchmarkModel):
 
     def _run_backward(self, loss):
         self.accelerator.backward(loss)
+
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
 
     def run_optimizer_step(self):
         if self.dynamo and not self.opt_args.dynamo_disable_optimizer_step:

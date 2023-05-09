@@ -4,6 +4,8 @@ Utils for getting git-related information.
 """
 
 import os
+import time
+from pathlib import Path
 import subprocess
 from datetime import datetime
 from typing import Optional, List
@@ -104,27 +106,47 @@ def get_current_commit(repo: str) -> Optional[str]:
 def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
-        command = f"git checkout {commit}"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        command = "git submodule sync"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        command = "git submodule update --init --recursive"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        command = ["git", "checkout", "--recurse-submodules", commit]
+        subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
-        print(f"Failed to checkout commit {commit} in repo {repo}")
-        return False
+        # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
+        try:
+            time.sleep(5)
+            index_lock = os.path.join(repo, ".git", "index.lock")
+            if os.path.exists(index_lock):
+                os.remove(index_lock)
+            command = ["git", "checkout", "--recurse-submodules", commit]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            return True
+        except subprocess.CalledProcessError:
+            print(f"Failed to checkout commit {commit} in repo {repo}")
+            return False
 
 def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
         assert len(branch) != 0
-        command = f"git checkout {branch}"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        command = "git submodule sync"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        command = "git submodule update --init --recursive"
-        subprocess.check_call(command, cwd=repo, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        command = ["git", "checkout", "--recurse-submodules", branch]
+        subprocess.check_call(command, cwd=repo, shell=False)
+        command = ["git", "pull"]
+        subprocess.check_call(command, cwd=repo, shell=False)
+        command = ["git", "checkout", "--recurse-submodules", branch]
+        subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
-        print(f"Failed to update git repo {repo}")
-        return False
+        # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
+        try:
+            time.sleep(5)
+            index_lock = os.path.join(repo, ".git", "index.lock")
+            if os.path.exists(index_lock):
+                os.remove(index_lock)
+            command = ["git", "checkout", "--recurse-submodules", branch]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            command = ["git", "pull"]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            command = ["git", "checkout", "--recurse-submodules", branch]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            return True
+        except subprocess.CalledProcessError:
+            print(f"Failed to update to branch {branch} in repo {repo}")
+            return False

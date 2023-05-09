@@ -18,6 +18,9 @@ import torch
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 
+class ModelNotFoundError(RuntimeError):
+    pass
+
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 DATA_PATH = os.path.join(REPO_PATH, "torchbenchmark", "data", ".data")
 
@@ -40,6 +43,7 @@ with add_path(str(REPO_PATH)):
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = 'models'
 internal_model_dir = "fb"
+canary_model_dir = "canary_models"
 install_file = 'install.py'
 
 
@@ -92,11 +96,11 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
 
     return (True, None, None)
 
+def dir_contains_file(dir, file_name) -> bool:
+    names = map(lambda x: x.name, filter(lambda x: x.is_file(), dir.iterdir()))
+    return file_name in names
 
 def _list_model_paths() -> List[str]:
-    def dir_contains_file(dir, file_name) -> bool:
-        names = map(lambda x: x.name, filter(lambda x: x.is_file(), dir.iterdir()))
-        return file_name in names
     p = pathlib.Path(__file__).parent.joinpath(model_dir)
     # Only load the model directories that contain a "__init.py__" file
     models = sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and \
@@ -107,13 +111,26 @@ def _list_model_paths() -> List[str]:
         models.extend(m)
     return models
 
+def _list_canary_model_paths() -> List[str]:
+    p = pathlib.Path(__file__).parent.joinpath(canary_model_dir)
+    # Only load the model directories that contain a "__init.py__" file
+    models = sorted(str(child.absolute()) for child in p.iterdir() if child.is_dir() and \
+                        (not child.name == internal_model_dir) and dir_contains_file(child, "__init__.py"))
+    return models
+
 def _is_internal_model(model_name: str) -> bool:
     p = pathlib.Path(__file__).parent.joinpath(model_dir).joinpath(internal_model_dir).joinpath(model_name)
     if p.exists() and p.joinpath("__init__.py").exists():
         return True
     return False
 
-def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False, test_mode: bool = False) -> bool:
+def _is_canary_model(model_name: str) -> bool:
+    p = pathlib.Path(__file__).parent.joinpath(canary_model_dir).joinpath(model_name)
+    if p.exists() and p.joinpath("__init__.py").exists():
+        return True
+    return False
+
+def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False, test_mode: bool = False, allow_canary: bool = False) -> bool:
     if not _test_https():
         print(proxy_suggestion)
         sys.exit(-1)
@@ -121,6 +138,10 @@ def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool =
     failures = {}
     models = list(map(lambda p: p.lower(), models))
     model_paths = filter(lambda p: True if not models else os.path.basename(p).lower() in models, _list_model_paths())
+    if allow_canary:
+        canary_model_paths = filter(lambda p: os.path.basename(p).lower() in models, _list_canary_model_paths())
+        model_paths = list(model_paths)
+        model_paths.extend(canary_model_paths)
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         if test_mode:
@@ -318,6 +339,24 @@ class ModelTask(base_task.TaskBase):
         })
 
     # =========================================================================
+    # == Replace the `invoke()` function in `model` instance ==================
+    # =========================================================================
+    @base_task.run_in_worker(scoped=True)
+    @staticmethod
+    def replace_invoke(module_name: str, func_name: str) -> None:
+        import importlib
+        # import function from pkg
+        model = globals()["model"]
+        try:
+            module = importlib.import_module(module_name)
+            inject_func = getattr(module, func_name, None)
+            if inject_func is None:
+                diagnostic_msg = f"Warning: {module} does not define attribute {func_name}, skip it"
+        except ModuleNotFoundError as e:
+            diagnostic_msg = f"Warning: Could not find dependent module {e.name} for Model {model.name}, skip it"
+        model.invoke = inject_func.__get__(model)
+
+    # =========================================================================
     # == Get Model attribute in the child process =============================
     # =========================================================================
     @base_task.run_in_worker(scoped=True)
@@ -404,7 +443,7 @@ class ModelTask(base_task.TaskBase):
         model = globals()["model"]
         module, example_inputs = model.get_module()
         if isinstance(example_inputs, dict):
-            # Huggingface models pass **kwargs as arguments, not *args
+            # Huggingface and GNN models pass **kwargs as arguments, not *args
             module(**example_inputs)
         elif isinstance(example_inputs, tuple) or isinstance(example_inputs, list):
             module(*example_inputs)
@@ -429,18 +468,8 @@ class ModelTask(base_task.TaskBase):
     @staticmethod
     def check_eval_output() -> None:
         instance = globals()["model"]
-        import torch
         assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."
         out = instance.invoke()
-        # check output type
-        model_name = getattr(instance, 'name', None)
-        if not isinstance(out, tuple):
-            raise RuntimeError(f'Model {model_name} eval test output is not a tuple')
-
-        for ind, element in enumerate(out):
-            if not isinstance(element, torch.Tensor):
-                raise RuntimeError(f'Model {model_name} eval test output is tuple, but'
-                                   f' its {ind}-th element is not a Tensor.')
         # check output stableness on CUDA device
         from torchbenchmark.util.env_check import stableness_check
         if instance.device == "cuda":
@@ -575,21 +604,31 @@ def load_model_by_name(model):
                     map(lambda y: os.path.basename(y), _list_model_paths()))
     models = list(models)
     if not models:
-        return None
+        raise ModelNotFoundError(f"{model} is not found in the core model list.")
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
     model_pkg = model_name if not _is_internal_model(model_name) else f"{internal_model_dir}.{model_name}"
-    try:
-        module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
-    except ModuleNotFoundError as e:
-        print(f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it. \n {e}")
-        return None
+    
+    module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
+    
     Model = getattr(module, 'Model', None)
     if Model is None:
         print(f"Warning: {module} does not define attribute Model, skip it")
         return None
     if not hasattr(Model, 'name'):
         Model.name = model_name
+    return Model
+
+def load_canary_model_by_name(model: str):
+    if not _is_canary_model(model):
+        raise ModelNotFoundError(f"{model} is not found in the canary model list.")
+    module = importlib.import_module(f'.canary_models.{model}', package=__name__)
+    Model = getattr(module, 'Model', None)
+    if Model is None:
+        print(f"Warning: {module} does not define attribute Model, skip it")
+        return None
+    if not hasattr(Model, 'name'):
+        Model.name = model
     return Model
 
 def get_metadata_from_yaml(path):

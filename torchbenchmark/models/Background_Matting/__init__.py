@@ -31,7 +31,7 @@ def _create_data_dir():
     return data_dir
 
 class Model(BenchmarkModel):
-    task = COMPUTER_VISION.OTHER_COMPUTER_VISION
+    task = COMPUTER_VISION.PATTERN_RECOGNITION
     # Original btach size: 4
     # Original hardware: unknown
     # Source: https://arxiv.org/pdf/2004.00626.pdf

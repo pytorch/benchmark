@@ -1,4 +1,4 @@
-dill==0.3.5.1
+dill
 tqdm
 iopath
 numpy

@@ -9,18 +9,29 @@ DANGER: make sure to `python install.py` first or otherwise make sure the benchm
 Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
+import logging
 import time
+
 import numpy as np
+import torch
 import torch.profiler as profiler
 
-from torchbenchmark import load_model_by_name
-import torch
+import traceback
+
+from torchbenchmark import load_canary_model_by_name, load_model_by_name, ModelNotFoundError
+from torchbenchmark.util.experiment.metrics import get_peak_memory
 
 WARMUP_ROUNDS = 3
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
 if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
-SUPPORT_PROFILE_LIST = ["record_shapes", "profile_memory", "with_stack", "with_flops", "with_modules"]
+SUPPORT_PROFILE_LIST = [
+    "record_shapes",
+    "profile_memory",
+    "with_stack",
+    "with_flops",
+    "with_modules",
+]
 
 
 def run_one_step_with_cudastreams(func, streamcount):
@@ -57,7 +68,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def printResultSummaryTime(result_summary, metrics_needed=[], metrics_backend_mapping={}, model=None, model_analyzer=None):
+def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_model_analyzer=None, cpu_peak_mem=None, mem_device_id=None, gpu_peak_mem=None):
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
@@ -72,55 +83,31 @@ def printResultSummaryTime(result_summary, metrics_needed=[], metrics_backend_ma
     else:
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
         print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
-
     # if model_flops is not None, output the TFLOPs per sec
     if 'flops' in metrics_needed:
-        if metrics_backend_mapping['flops'] == 'dcgm':
-            tflops = model_analyzer.calculate_flops()
+        if flops_model_analyzer.metrics_backend_mapping['flops'] == 'dcgm':
+            tflops_device_id, tflops = flops_model_analyzer.calculate_flops()
         else:
             flops, batch_size = model.get_flops()
             tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
-        print('{:<20} {:>20}'.format("FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
-
-    if 'gpu_peak_mem' in metrics_needed:
-        gpu_peak_mem = model_analyzer.calculate_gpu_peak_mem()
-        print('{:<20} {:>20}'.format("GPU Peak Memory:", "%.4f GB" % gpu_peak_mem, sep=''))
-    if 'cpu_peak_mem' in metrics_needed:
-        cpu_peak_mem = model_analyzer.calculate_cpu_peak_mem()
+        print('{:<20} {:>20}'.format("GPU %d FLOPS:" % tflops_device_id, "%.4f TFLOPs per second" % tflops, sep=''))
+    if gpu_peak_mem is not None:
+        print('{:<20} {:>20}'.format("GPU %d Peak Memory:" % mem_device_id, "%.4f GB" % gpu_peak_mem, sep=''))
+    if cpu_peak_mem is not None:
         print('{:<20} {:>20}'.format("CPU Peak Memory:", "%.4f GB" % cpu_peak_mem, sep=''))
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file=False, stress=0, metrics_needed=[], metrics_gpu_backend=None):
+def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file=None, stress=0, metrics_needed=[], metrics_gpu_backend=None):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
 
     result_summary = []
-    metrics_backend_mapping = {}
-    model_analyzer = None
-    if metrics_needed:
+    flops_model_analyzer = None
+    if 'flops' in metrics_needed:
         from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
-        model_analyzer = ModelAnalyzer()
-        if export_metrics_file:
-            model_analyzer.set_export_csv_name(export_metrics_file)
-        if 'gpu_peak_mem' in metrics_needed:
-            model_analyzer.add_metric_gpu_peak_mem()
-            metrics_backend_mapping['gpu_peak_mem'] = 'dcgm' if metrics_gpu_backend == 'dcgm' else 'nvml'
-        if 'flops' in metrics_needed:
-            if metrics_gpu_backend == 'dcgm':
-                model_analyzer.add_metric_gpu_flops()
-                metrics_backend_mapping['flops'] = 'dcgm'
-            else:
-                metrics_backend_mapping['flops'] = 'fvcore'
-        if 'cpu_peak_mem' in metrics_needed:
-            model_analyzer.add_metric_cpu_peak_mem()
-        if metrics_gpu_backend == "default":
-            model_analyzer.set_gpu_monitor_backend_nvml()
-        for metric in metrics_backend_mapping:
-            print(f"Metric {metric} is collected by {metrics_backend_mapping[metric]} backend")
-        if 'cpu_peak_mem' in metrics_needed:
-            print("Metric cpu_peak_mem is collected by psutil.Process.")
-        model_analyzer.start_monitor()
+        flops_model_analyzer = ModelAnalyzer(export_metrics_file, ['flops'], metrics_gpu_backend)
+        flops_model_analyzer.start_monitor()
 
     if stress:
         cur_time = time.time_ns()
@@ -172,14 +159,17 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
                 last_it = _i
         _i += 1
 
-    if model_analyzer is not None:
-        model_analyzer.stop_monitor()
-        model_analyzer.aggregate()
+    if flops_model_analyzer is not None:
+        flops_model_analyzer.stop_monitor()
+        flops_model_analyzer.aggregate()
+    cpu_peak_mem = None
+    gpu_peak_mem = None
+    mem_device_id = None
+    if 'cpu_peak_mem' in metrics_needed or 'gpu_peak_mem' in metrics_needed:
+        cpu_peak_mem, mem_device_id, gpu_peak_mem = get_peak_memory(func, model.device, export_metrics_file=export_metrics_file, metrics_needed=metrics_needed, metrics_gpu_backend=metrics_gpu_backend)
 
-    printResultSummaryTime(result_summary, metrics_needed, metrics_backend_mapping, model, model_analyzer)
+    printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, cpu_peak_mem, mem_device_id, gpu_peak_mem)
 
-    if export_metrics_file:
-        model_analyzer.export_all_records_to_csv()
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
@@ -226,18 +216,27 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         with_modules=args.profile_detailed if args.profile_detailed else profile_opts["with_modules"],
         on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
     ) as prof:
-        start_event = torch.cuda.Event(enable_timing=True)
-        end_event = torch.cuda.Event(enable_timing=True)
-        for i in range(nwarmup + 1):
-            t0 = time.time_ns()
-            start_event.record()
-            func()
-            torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
-            end_event.record()
-            t1 = time.time_ns()
-            if i >= nwarmup:
-                result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
-            prof.step()
+        if args.device == "cuda":
+            start_event = torch.cuda.Event(enable_timing=True)
+            end_event = torch.cuda.Event(enable_timing=True)
+            for i in range(nwarmup + 1):
+                t0 = time.time_ns()
+                start_event.record()
+                func()
+                torch.cuda.synchronize()  # Need to sync here to match run_one_step()'s timed run.
+                end_event.record()
+                t1 = time.time_ns()
+                if i >= nwarmup:
+                    result_summary.append((start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000))
+                prof.step()
+        else:
+             for i in range(nwarmup + 1):
+                t0 = time.time_ns()
+                func()
+                t1 = time.time_ns()
+                if i >= nwarmup:
+                    result_summary.append([(t1 - t0) / 1_000_000])
+                prof.step()
     if args.profile_eg and eg:
         eg.stop()
         eg.unregister_callback()
@@ -284,32 +283,60 @@ if __name__ == "__main__":
     parser.add_argument("--cudastreams", action="store_true",
                         help="Utilization test using increasing number of cuda streams.")
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
-    parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result.")
     parser.add_argument("--export-metrics", action="store_true",
                         help="Export all specified metrics records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
     parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
-    parser.add_argument("--metrics", type=str,
-                        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
+    parser.add_argument("--metrics", type=str, default="cpu_peak_mem,gpu_peak_mem",
+                        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. You can also set `none` to disable all metrics. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
     parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "default"], default="default", help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,
     \n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  \n  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.\n  - you can specify flops by --metrics flops, and it is collected by fvcore.\nIn dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,\n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().\n  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""")
+    parser.add_argument("--channels-last", action="store_true", help="enable torch.channels_last()")
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
         exit(-1)
 
     found = False
-    Model = load_model_by_name(args.model)
-    if not Model:
-        print(f"Unable to find model matching {args.model}.")
+    Model = None
+
+    try:
+        Model = load_model_by_name(args.model)
+    except ModuleNotFoundError:
+        traceback.print_exc()
         exit(-1)
+    except ModelNotFoundError:
+        print(f"Warning: The model {args.model} cannot be found at core set.")
+    if not Model:
+        try:
+            Model = load_canary_model_by_name(args.model)
+        except ModuleNotFoundError:
+            traceback.print_exc()
+            exit(-1)
+        except ModelNotFoundError:
+            print(f"Error: The model {args.model} cannot be found at either core or canary model set.")
+            exit(-1)
 
     m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
-    print(f"Running {args.test} method from {Model.name} on {args.device} in {args.mode} mode with input batch size {m.batch_size}.")
+    if m.dynamo:
+        mode = f"dynamo {m.opt_args.torchdynamo}"
+    elif m.opt_args.backend:
+        mode = f"{m.opt_args.backend}"
+    else:
+        mode = "eager"
+    print(f"Running {args.test} method from {Model.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}.")
+    if args.channels_last:
+        m.enable_channels_last()
 
     test = m.invoke
     if args.amp:
-        test = torch.autocast("cuda")(test)
+        test = torch.autocast(m.device)(test)
     metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
+    if 'none' in metrics_needed:
+        metrics_needed = []
+    # only enabled gpu_peak_mem for cuda device
+    if args.device != 'cuda' and 'gpu_peak_mem' in metrics_needed:
+        metrics_needed.remove('gpu_peak_mem')
+    metrics_needed = list(set(metrics_needed))
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
         if metrics_gpu_backend == 'dcgm':
@@ -329,7 +356,7 @@ if __name__ == "__main__":
             exit(-1)
         export_metrics_file = "%s_all_metrics.csv" % args.model
     else:
-        export_metrics_file = False
+        export_metrics_file = None
     if args.profile:
         profile_one_step(test)
     elif args.cudastreams:
@@ -339,3 +366,11 @@ if __name__ == "__main__":
                      stress=args.stress, metrics_needed=metrics_needed, metrics_gpu_backend=args.metrics_gpu_backend)
     if hasattr(m, 'correctness'):
         print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
+
+    # Print dynamo compilation metrics, if there are any.
+    try:
+        from torch._dynamo.utils import compile_times
+        compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))["_compile"]
+        print('{:<20} {:>18}'.format("PT2 Compilation time: ", "%.3f seconds" % float(compile_time)), sep='')
+    except:
+        pass

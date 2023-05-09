@@ -9,12 +9,15 @@ class CPUMonitor(Monitor):
     A CPU monitor that uses psutil to monitor CPU usage
     """
 
-    def __init__(self, frequency, metrics_needed=[]):
+    def __init__(self, frequency, metrics_needed=[], monitored_pid=None):
         super().__init__(frequency, metrics_needed)
         # It is a raw record list. [timestamp, cpu_memory_usage, cpu_available_memory]
         self._cpu_records = []
-        # the current process is the process which launches and runs the deep learning models.
-        self._monitored_pid = os.getpid()
+        if monitored_pid:
+            self._monitored_pid = monitored_pid
+        else:
+            self._monitored_pid = os.getpid()
+ 
 
 
     def _get_cpu_stats(self):

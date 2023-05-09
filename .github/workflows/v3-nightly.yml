@@ -1,0 +1,90 @@
+name: TorchBench V3 nightly (A100)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *' # run at 2 PM UTC
+
+jobs:
+  run-benchmark:
+    env:
+      CONDA_ENV_NAME:  "torchbench"
+      PLATFORM_NAME: "gcp_a100"
+      SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      IS_GHA: 1
+      BUILD_ENVIRONMENT: benchmark-nightly
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, a100-runner]
+    steps:
+      - name: Checkout TorchBench v3.0 branch
+        uses: actions/checkout@v3
+        with:
+          ref: v3.0
+          path: benchmark
+      - name: Tune Nvidia GPU
+        run: |
+          . "${SETUP_SCRIPT}"
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
+          nvidia-smi
+      - name: Check PyTorch nightly if scheduled
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          TODAY_STR=$(date +'%Y%m%d')
+          python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
+      - name: Install TorchBench
+        run: |
+          set -x
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          python install.py
+      - name: Run the torch-nightly userbenchmark
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          # remove old results
+          if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
+          pushd benchmark
+          if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
+          python run_benchmark.py torch-nightly -c v3-cuda-tests.yaml
+          cp -r ./.userbenchmark/torch-nightly ../benchmark-output
+      - name: Detect potential regressions
+        continue-on-error: true
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          pushd benchmark
+          RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
+          # TODO: the following assumes only one metrics-*.json is found. It will keep
+          # overwriting gh-issue.md if multiple are found.
+          for r in ${RESULTS[@]}; do
+            python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @xuzhao9 \
+            --gh-issue-path gh-issue.md --errors-path errors.txt
+          done
+      - name: Create the github issue
+        continue-on-error: true
+        if: env.TORCHBENCH_REGRESSION_DETECTED
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: V3 Performance Signal Detected by TorchBench Userbenchmark "torch-nightly" on ${{ env.TORCHBENCH_REGRESSION_DETECTED }}
+          content-filepath: ./benchmark/gh-issue.md
+          labels: |
+            torchbench-perf-report
+      - name: Copy artifact and upload to scribe and Amazon S3
+        run: |
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          TODAY=$(date "+%Y%m%d%H%M%S")
+          pushd benchmark
+          LATEST_RESULT=$(find ../benchmark-output/ -name "metrics-*.json" | sort -r | head -1)
+          echo "Benchmark result file: ${LATEST_RESULT}"
+          # Upload the result json to Scribe
+          python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
+          # Upload the result json to Amazon S3
+          python ./scripts/userbenchmark/upload_s3.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
+      - name: Upload result to GH Actions Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: TorchBench V3 result
+          path: benchmark-output/

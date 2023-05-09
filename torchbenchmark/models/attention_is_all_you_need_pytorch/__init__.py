@@ -34,6 +34,7 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 256
     DEFAULT_EVAL_BSIZE = 32
     NUM_OF_BATCHES = 1
+    init_lr = 2.0
 
     def _create_transformer(self):
         transformer = Transformer(
@@ -100,7 +101,7 @@ class Model(BenchmarkModel):
             self.example_inputs = self._preprocess(train_data)
             self.optimizer = ScheduledOptim(
                 optim.Adam(self.model.parameters(), betas=(0.9, 0.98), eps=1e-09),
-                2.0, self.opt.d_model, self.opt.n_warmup_steps)
+                self.init_lr, self.opt.d_model, self.opt.n_warmup_steps)
         elif test == "eval":
             self.model.eval()
             self.example_inputs = self._preprocess(test_data)
@@ -108,6 +109,19 @@ class Model(BenchmarkModel):
     def get_module(self):
         for (src_seq, trg_seq, gold) in self.example_inputs:
             return self.model, (*(src_seq, trg_seq), )
+
+    def get_optimizer(self):
+        if hasattr(self, "optimizer"):
+            return self.optimizer
+        return None
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+
+    # set_optimizer sets the optimizer to whatever you pass it. set_inner_optimizer will wrap your
+    # input optimizer with ScheduledOptim.
+    def set_inner_optimizer(self, optimizer: torch.optim.Optimizer) -> None:
+        self.optimizer = ScheduledOptim(optimizer, self.init_lr, self.opt.d_model, self.opt.n_warmup_steps)
 
     def eval(self) -> torch.Tensor:
         result = None

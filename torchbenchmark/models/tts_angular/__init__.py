@@ -35,3 +35,9 @@ class Model(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         out = self.model.eval()
         return (out, )
+
+    def get_optimizer(self):
+        return self.model.get_optimizer()
+
+    def set_optimizer(self, optimizer) -> None:
+        self.model.set_optimizer(optimizer)

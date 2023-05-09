@@ -149,6 +149,9 @@ class Model(BenchmarkModel):
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
                                    with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
 
+        if test == "eval":
+            bert.eval()
+
         example_batch = next(iter(train_data_loader))
         self.example_inputs = example_batch['bert_input'].to(self.device)[:self.batch_size], example_batch['segment_label'].to(self.device)[:self.batch_size]
         self.is_next = example_batch['is_next'].to(self.device)[:self.batch_size]
@@ -190,3 +193,13 @@ class Model(BenchmarkModel):
         trainer.optim_schedule.zero_grad()
         loss.backward()
         trainer.optim_schedule.step_and_update_lr()
+
+    # self.model is a Trainer that has an inner optimizer wrapped by a scheduled optimizer. Return the inner,
+    # since the scheduled is derived.
+    def get_optimizer(self):
+        return self.model.get_optimizer()
+
+    # self.model is a Trainer that has an inner optimizer wrapped by a scheduled optimizer. Update both with
+    # a new inner optimizer.
+    def set_optimizer(self, optimizer: torch.optim.Optimizer) -> None:
+        self.model.set_optimizer(optimizer)

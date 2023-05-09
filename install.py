@@ -29,22 +29,6 @@ def s3_checkout():
             print(f"Checking out {s3_url} to {model_dir.joinpath(model_file)}")
             output.write(r.content)
 
-def git_lfs_checkout():
-    tb_dir = os.path.dirname(os.path.realpath(__file__))
-    try:
-        # forcefully install git-lfs to the repo
-        subprocess.check_call(['git', 'lfs', 'install', '--force'], stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, cwd=tb_dir)
-        subprocess.check_call(['git', 'lfs', 'fetch'], stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, cwd=tb_dir)
-        subprocess.check_call(['git', 'lfs', 'checkout', '.'], stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, cwd=tb_dir)
-    except subprocess.CalledProcessError as e:
-        return (False, e.output)
-    except Exception as e:
-        return (False, e)
-    return True, None
-
 def decompress_input():
     tb_dir = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(tb_dir, "torchbenchmark", "data")
@@ -78,6 +62,7 @@ if __name__ == '__main__':
     parser.add_argument("models", nargs='*', default=[],
                         help="Specify one or more models to install. If not set, install all models.")
     parser.add_argument("--test-mode", action="store_true", help="Run in test mode and check package versions")
+    parser.add_argument("--canary", action="store_true", help="Install canary model.")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--component", choices=["distributed"], help="Install requirements for optional components.")
@@ -94,15 +79,9 @@ if __name__ == '__main__':
         sys.exit(-1)
     print("OK")
 
-    print("checking out Git LFS files...", end="", flush=True)
-    success, errmsg = git_lfs_checkout()
-    if success:
-        print("OK")
-    else:
-        print("FAIL")
-        print("git lfs failed. checking out input files from S3...", end="", flush=True)
-        s3_checkout()
-        print("OK")
+    print("checking out input files from Amazon S3 ...", end="", flush=True)
+    s3_checkout()
+    print("OK")
 
     decompress_input()
 
@@ -127,7 +106,7 @@ if __name__ == '__main__':
                 Before: {versions}, after: {new_versions}")
         sys.exit(-1)
     from torchbenchmark import setup
-    success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail, test_mode=args.test_mode)
+    success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail, test_mode=args.test_mode, allow_canary=args.canary)
     if not success:
         if args.continue_on_fail:
             print("Warning: some benchmarks were not installed due to failure")

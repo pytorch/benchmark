@@ -9,12 +9,11 @@ on:
       userbenchmark_options:
         description: "Option of the user benchmark to run"
 env:
-  PYTHON_VERSION: "3.8"
-  CUDA_VERSION: "cu116"
   CONDA_ENV_NAME: "userbenchmarks-ci"
-  MAGMA_VERSION: "magma-cuda116"
   PLATFORM_NAME: "aws_t4_metal"
   TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   SETUP_SCRIPT: "/data/nvme/bin/setup_instance.sh"
 jobs:
   run-userbenchmark:
@@ -27,18 +26,17 @@ jobs:
           path: benchmark
       - name: Create conda environment
         run: |
-          conda create -y -q --name "${CONDA_ENV_NAME}" python="${PYTHON_VERSION}"
+          python benchmark/utils/python_utils.py --create-conda-env "${CONDA_ENV_NAME}"
+          sudo python benchmark/utils/cuda_utils.py --setup-cuda-softlink
       - name: Install PyTorch nightly
         run: |
           . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
           pushd benchmark
           # Install dependencies
-          conda install -y pyyaml numpy ninja
+          python utils/cuda_utils.py --install-torch-deps
           # check the machine is tuned
-          pip install -U py-cpuinfo psutil distro
+          pip install -U py-cpuinfo psutil distro boto3
           sudo ${HOME}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python3 torchbenchmark/util/machine_config.py
-          conda install -y -c pytorch "${MAGMA_VERSION}"
-          pip install requests bs4 argparse gitpython boto3 regex
           # Check if nightly builds are available
           NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
           # If failed, the script will generate empty result
@@ -47,8 +45,8 @@ jobs:
               exit 1
           fi
           # Install PyTorch and torchvision nightly from pip
-          pip install --pre torch torchvision torchtext torchaudio \
-            -f https://download.pytorch.org/whl/nightly/${CUDA_VERSION}/torch_nightly.html
+          python utils/cuda_utils.py --install-torch-nightly
+          python utils/cuda_utils.py --check-torch-nightly-version
           # make sure pytorch+cuda works
           python -c "import torch; torch.cuda.init()"
       - name: Install TorchBench
@@ -69,7 +67,11 @@ jobs:
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
             python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
-            cp -r ./.userbenchmark ../benchmark-output
+            if [ -d ./.userbenchmark ]; then
+              cp -r ./.userbenchmark ../benchmark-output
+            else
+              mkdir ../benchmark-output
+            fi
           else
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
@@ -82,9 +84,10 @@ jobs:
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
             python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
+            python ./scripts/userbenchmark/upload_s3.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
           done
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: TorchBench result
           path: benchmark-output/

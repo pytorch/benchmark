@@ -36,7 +36,7 @@ logger.setLevel(logging.WARNING)
 
 
 class Model(BenchmarkModel):
-    task = NLP.OTHER_NLP
+    task = NLP.LANGUAGE_MODELING
     # Use the train batch size from the original CMRC2018 Q&A task
     # Source: https://fastnlp.readthedocs.io/zh/latest/tutorials/extend_1_bert_embedding.html
     DEFAULT_TRAIN_BSIZE = 6
@@ -213,3 +213,13 @@ class Model(BenchmarkModel):
         :return: a scalar
         """
         return self.losser(predict, truth)
+
+    def get_optimizer(self):
+        r"""Gets the optimizer if initiated"""
+        if hasattr(self, "optimizer"):
+            return self.optimizer
+        return None
+
+    def set_optimizer(self, optimizer) -> None:
+        r"""Sets the optimizer regardless of whether it's been initiated"""
+        self.optimizer = optimizer

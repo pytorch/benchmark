@@ -142,6 +142,12 @@ def parse_args(args: List[str]=None):
         default=None,
         help="Precision (e.g. amp, fp32, fp16)",
     )
+    parser.add_argument(
+        "--nccl-socket-ifname",
+        type=str,
+        default="ens",
+        help="Value to use for NCCL_SOCKET_IFNAME environment variable",
+    )
 
 
     try:
@@ -371,7 +377,7 @@ class TrainerWrapper(object):
         # os.environ["NCCL_IB_DISABLE"] = str(1)
         os.environ["NCCL_DEBUG"] = 'INFO'
         os.environ["NCCL_DEBUG_SUBSYS"] = 'INIT,ENV,NET'
-        os.environ['NCCL_SOCKET_IFNAME'] = 'ens'
+        os.environ['NCCL_SOCKET_IFNAME'] = args.nccl_socket_ifname
         # os.environ["NCCL_ALGO"] = 'ring'
         os.environ["FI_PROVIDER"] = 'efa'
         os.environ["FI_EFA_USE_DEVICE_RDMA"]= str(1)
@@ -679,7 +685,7 @@ def main():
         slurm_exclude=args.exclude,
     )
 
-    executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
+    executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=args.timeout)
 
     if "ddp" in args.distributed:
         benchmark_ddp(args, executor)

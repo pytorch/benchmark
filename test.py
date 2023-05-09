@@ -19,8 +19,8 @@ from torchbenchmark.util.metadata_utils import skip_by_metadata
 
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
-# a single test encounters an extreme failure, so we give up after 5 a test
-# is unresponsive to 5 minutes. (Note: this does not require that the entire
+# a single test encounters an extreme failure, so we give up after a test is
+# unresponsive to 5 minutes. (Note: this does not require that the entire
 # test case completes in 5 minutes. It requires that if the worker is
 # unresponsive for 5 minutes the parent will presume it dead / incapacitated.)
 TIMEOUT = 300  # Seconds
@@ -59,9 +59,16 @@ def _create_example_model_instance(task: ModelTask, device: str):
 
 def _load_test(path, device):
 
+    def _skip_cuda_memory_check_p(metadata):
+        if device != "cuda":
+            return True
+        if "skip_cuda_memory_leak" in metadata and metadata["skip_cuda_memory_leak"]:
+            return True
+        return False
+
     def example_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
-        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+        with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 _create_example_model_instance(task, device)
                 task.check_example()
@@ -75,7 +82,7 @@ def _load_test(path, device):
         allow_customize_batch_size = task.get_model_attribute("ALLOW_CUSTOMIZE_BSIZE", classattr=True)
         # to speedup test, use batch size 1 if possible
         batch_size = 1 if allow_customize_batch_size else None
-        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+        with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="train", device=device, jit=False, batch_size=batch_size)
                 task.invoke()
@@ -90,7 +97,7 @@ def _load_test(path, device):
         allow_customize_batch_size = task.get_model_attribute("ALLOW_CUSTOMIZE_BSIZE", classattr=True)
         # to speedup test, use batch size 1 if possible
         batch_size = 1 if allow_customize_batch_size else None
-        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+        with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="eval", device=device, jit=False, batch_size=batch_size)
                 task.invoke()
@@ -102,7 +109,7 @@ def _load_test(path, device):
 
     def check_device_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
-        with task.watch_cuda_memory(skip=(device != "cuda"), assert_equal=self.assertEqual):
+        with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 task.make_model_instance(test="eval", device=device, jit=False)
                 task.check_device()
