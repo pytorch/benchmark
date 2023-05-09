@@ -184,6 +184,9 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
         )
         self.model = GenerationWrapper(self.model, generation_config)
 
+    def train(self):
+        raise NotImplementedError("_generate variant doesn't train")
+
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
             with self.amp_context():
