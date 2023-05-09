@@ -1,7 +1,7 @@
 name: TorchBench Userbenchmark on A100
 on:
   schedule:
-    - cron: '0 14 * * *' # run at 2 PM UTC
+    - cron: '0 16 * * *' # run at 4 PM UTC
   workflow_dispatch:
     inputs:
       userbenchmark_name:
@@ -9,7 +9,8 @@ on:
       userbenchmark_options:
         description: "Option of the user benchmark to run"
 env:
-  CONDA_ENV_NAME: "torchbench"
+  BASE_CONDA_ENV: "torchbench"
+  CONDA_ENV: "userbenchmark-a100"
   PLATFORM_NAME: "gcp_a100"
   TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -33,20 +34,24 @@ jobs:
       - name: Check PyTorch nightly if scheduled
         if: ${{ github.event_name == 'schedule' }}
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${BASE_CONDA_ENV}"
           pushd benchmark
           TODAY_STR=$(date +'%Y%m%d')
           python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
+      - name: Clone and setup conda env
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
           pushd benchmark
           python install.py
       - name: Run user benchmark
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
@@ -79,3 +84,9 @@ jobs:
         with:
           name: TorchBench result
           path: benchmark-output/
+      - name: Clean up Conda env
+        if: always()
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all

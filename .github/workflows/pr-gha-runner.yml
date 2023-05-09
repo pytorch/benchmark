@@ -7,7 +7,8 @@ on:
       - main
 
 env:
-  CONDA_ENV: "torchbench"
+  BASE_CONDA_ENV: "torchbench"
+  CONDA_ENV: "pr-ci-a100"
   SETUP_SCRIPT: "/workspace/setup_instance.sh"
 
 jobs:
@@ -22,12 +23,22 @@ jobs:
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
+      - name: Clone and setup Conda env
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |
           bash ./scripts/torchbench_install.sh
       - name: Validate benchmark components
         run: |
           bash ./scripts/torchbench_test.sh
+      - name: Clean up Conda env
+        if: always()
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
