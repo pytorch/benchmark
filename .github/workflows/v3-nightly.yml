@@ -7,7 +7,8 @@ on:
 jobs:
   run-benchmark:
     env:
-      CONDA_ENV_NAME:  "torchbench"
+      BASE_CONDA_ENV: "torchbench"
+      CONDA_ENV:  "torchbench-v3-nightly"
       PLATFORM_NAME: "gcp_a100"
       SETUP_SCRIPT: "/workspace/setup_instance.sh"
       TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
@@ -36,15 +37,18 @@ jobs:
           pushd benchmark
           TODAY_STR=$(date +'%Y%m%d')
           python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
+      - name: Clone and setup conda env
+        run: |
+          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
           pushd benchmark
           python install.py
       - name: Run the torch-nightly userbenchmark
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
@@ -54,7 +58,7 @@ jobs:
       - name: Detect potential regressions
         continue-on-error: true
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           # TODO: the following assumes only one metrics-*.json is found. It will keep
@@ -74,7 +78,7 @@ jobs:
             torchbench-perf-report
       - name: Copy artifact and upload to scribe and Amazon S3
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
           TODAY=$(date "+%Y%m%d%H%M%S")
           pushd benchmark
           LATEST_RESULT=$(find ../benchmark-output/ -name "metrics-*.json" | sort -r | head -1)
@@ -88,3 +92,8 @@ jobs:
         with:
           name: TorchBench V3 result
           path: benchmark-output/
+      - name: Clean up Conda env
+        if: always()
+        run: |
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all
