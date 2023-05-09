@@ -505,7 +505,6 @@ class MultiheadAttention(nn.Module):
         attn = self.out_proj(attn)
         return attn, None  # To match return type of F.multi_head_attention_forward
 
-    @torch.jit.export
     def reorder_incremental_state(
         self,
         incremental_state: Dict[str, Dict[str, Optional[Tensor]]],
@@ -1083,7 +1082,6 @@ class TransformerDecoder(nn.Module):
             return self._future_mask[:cur_seq_len, :cur_seq_len]
 
 
-@torch.jit.script
 def _sample_topp(temperature: float, sampling_topp: float, lprobs: torch.Tensor):
     if temperature == 0.0 or sampling_topp == 0.0:
         # greedy search

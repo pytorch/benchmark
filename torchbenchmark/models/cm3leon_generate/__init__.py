@@ -34,5 +34,6 @@ class Model(BenchmarkModel):
         return NotImplementedError("training script not published")
 
     def eval(self):
-        out = self.model(*self.example_inputs)
+        with torch.no_grad():
+            out = self.model(*self.example_inputs)
         return (out,)
