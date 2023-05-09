@@ -1,8 +1,8 @@
 name: TorchBench nightly docker build
 on:
   schedule:
-    # Push the nightly docker daily at 1 PM UTC
-    - cron: '0 13 * * *'
+    # Push the nightly docker daily at 3 PM UTC
+    - cron: '0 15 * * *'
   workflow_dispatch:
 env:
   WITH_PUSH: "true"

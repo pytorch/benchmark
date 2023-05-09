@@ -2,7 +2,7 @@ name: TorchBench V3 nightly (A100)
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 14 * * *' # run at 2 PM UTC
+    - cron: '0 16 * * *' # run at 4 PM UTC
 
 jobs:
   run-benchmark:
