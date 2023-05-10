@@ -140,15 +140,17 @@ def run_benchmark(config, args):
     cmd.append("-o")
     cmd.append(str(args.output))
     
-    print(f"Running benchmark: {cmd}")
+    print(f"\nRunning benchmark: {' '.join(map(str, cmd))}")
     if not args.dryrun:
         timeout = int(args.timeout) if args.timeout else None
+        capture_output = False if args.launcher else True
         try:
-            result = subprocess.run(cmd, cwd=REPO_PATH, capture_output=True, text=True, check=False, timeout=timeout)
-            if result.returncode != 0:
-                print(f"=========={config.name} Failed==========")
-                print(result.stderr)
-            else:
-                print(result.stdout)
+            result = subprocess.run(cmd, cwd=REPO_PATH, capture_output=capture_output, text=True, check=False, timeout=timeout)
+            if capture_output:
+                if result.returncode != 0:
+                    print(f"=========={config.name} Failed==========")
+                    print(result.stderr)
+                else:
+                    print(result.stdout)
         except Exception as e:
             print(e)
