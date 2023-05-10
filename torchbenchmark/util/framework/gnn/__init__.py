@@ -1,5 +1,6 @@
 import subprocess
 import os.path
+import sys
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
