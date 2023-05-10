@@ -114,6 +114,10 @@ Some useful options include:
 - `--collect-only` only show what tests would run, useful to see what models there are or debug your filter expression
 - `--cpu_only` if running on a local CPU machine and ignoring machine configuration checks
 
+#### Examples of Benchmark Filters
+- `-k "test_train[NAME-cuda-jit]"` for a particular flavor of a particular model
+- `-k "(BERT and (not cuda) and (not jit))"` for a more flexible approach to filtering
+
 Note that `test_bench.py` will eventually be deprecated as the `userbenchmark` work evolve. Users are encouraged to explore and consider using [userbenchmark](#using-userbenchmark).
 
 ### Using userbenchmark
@@ -127,10 +131,6 @@ Sometimes you may want to just run train or eval on a particular model, e.g. for
 python run.py <model> [-d {cpu,cuda}] [-m {eager,jit}] [-t {eval,train}] [--profile]
 ```
 Note: `<model>` can be a full, exact name, or a partial string match.
-
-#### Examples of Benchmark Filters
-- `-k "test_train[NAME-cuda-jit]"` for a particular flavor of a particular model
-- `-k "(BERT and (not cuda) and (not jit))"` for a more flexible approach to filtering
 
 ## Nightly CI runs
 
