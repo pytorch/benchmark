@@ -9,6 +9,7 @@ https://github.com/huggingface/transformers/blob/main/src/transformers/models/gp
 
 import math
 import inspect
+from typing import Optional
 from dataclasses import dataclass
 
 import torch
@@ -121,6 +122,14 @@ class GPTConfig:
     n_embd: int = 768
     dropout: float = 0.0
     bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
+
+
+@dataclass
+class GPTGenerationConfig:
+    max_new_tokens: int = 512  # max number of new tokens to generate
+    temperature: float = 1.0  # temperature for sampling. > 1.0: more exploring, < 1.0: more conservative.
+    top_k: Optional[int] = None  # top_k > 0: keep only top k tokens with highest probability (top-k filtering).
+
 
 class GPT(nn.Module):
 
@@ -335,3 +344,13 @@ class GPT(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
 
         return idx
+
+
+class SequenceGeneratorNanoGPT(nn.Module):
+    def __init__(self, model, generate_config) -> None:
+        super().__init__()
+        self.base_model: GPT = model
+        self.generate_config: GPTGenerationConfig = generate_config
+
+    def forward(self, idx):
+        return self.base_model.generate(idx, self.generate_config.max_new_tokens, self.generate_config.temperature, self.generate_config.top_k)
