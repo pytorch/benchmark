@@ -3,5 +3,5 @@ from torchbenchmark.tasks import GNN
 
 class Model(BasicGNNModel):
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(model_name="graphsage", test=test, device=device, jit=jit,
+        super().__init__(model_name="sage", test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
