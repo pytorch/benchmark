@@ -1,5 +1,6 @@
 name: TorchBench Userbenchmark on AWS c5.24xlarge
 on:
+  pull_request:
   workflow_dispatch:
     inputs:
       userbenchmark_name:
@@ -31,9 +32,6 @@ jobs:
         uses: pytorch/test-infra/.github/actions/pull-docker-image@main
         with:
           docker-image: ${{ env.DOCKER_IMAGE }}
-      - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
-        id: install-nvidia-driver
-        uses: pytorch/test-infra/.github/actions/setup-nvidia@main
       - name: Run Docker Image
         run: |
           CONTAINER_ID=$(docker run \
@@ -42,7 +40,6 @@ jobs:
             --tty \
             --detach \
             -v "${PWD}/benchmark:/benchmark" \
-            --gpus all \
             -w / \
             "${{ env.DOCKER_IMAGE }}" \
             tail -f /dev/null
@@ -61,7 +58,6 @@ jobs:
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           # Run userbenchmark
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
-          
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
             docker exec -t -w "/benchmark" "${CONTAINER_ID}" python .github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
