@@ -106,7 +106,7 @@ def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path:
         delta = stats["delta"]
         if delta != 0:
             sign = "+" if delta > 0 else ""
-            troubled_tests += f"- {test}: {sign}{delta:.5f}%\n"
+            troubled_tests += f"- {test}: {sign}{delta:.5%}\n"
     
     control_only_tests = ""
     for test, stat in regressions_dict["control_only_metrics"].items():
