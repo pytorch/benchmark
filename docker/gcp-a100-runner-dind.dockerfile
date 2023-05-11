@@ -98,8 +98,7 @@ RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.s
 RUN . ${HOME}/miniconda3/etc/profile.d/conda.sh && \
     conda activate base && \
     conda init && \
-    conda install -y python=3.10 && \
-    pip install unittest-xml-reporting pyyaml
+    conda install -y python=3.10
 
 RUN echo "\
 . \${HOME}/miniconda3/etc/profile.d/conda.sh\n\
