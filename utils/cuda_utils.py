@@ -81,7 +81,7 @@ def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
         for _loop in range(3):
             subprocess.check_call(uninstall_torch_cmd)
     pytorch_nightly_url = f"https://download.pytorch.org/whl/nightly/{CUDA_VERSION_MAP[cuda_version]['pytorch_url']}"
-    install_torch_cmd = ["pip", "install", "--pre"]
+    install_torch_cmd = ["pip", "install", "--pre", "--no-cache-dir"]
     install_torch_cmd.extend(TORCHBENCH_TORCH_NIGHTLY_PACKAGES)
     install_torch_cmd.extend(["-i",  pytorch_nightly_url])
     if dryrun:
