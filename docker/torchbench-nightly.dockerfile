@@ -10,7 +10,7 @@ RUN git clone https://github.com/pytorch/benchmark /workspace/benchmark
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python ./utils/python_utils.py --create-conda-env ${CONDA_ENV} && \
-    echo "if [[ -z \${CONDA_ENV} ]]; then export \${CONDA_ENV}=${CONDA_ENV}; fi" >> /workspace/setup_instance.sh && \
+    echo "if [ -z \${CONDA_ENV} ]; then export CONDA_ENV=${CONDA_ENV}; fi" >> /workspace/setup_instance.sh && \
     echo "conda activate \${CONDA_ENV}" >> /workspace/setup_instance.sh && \
     echo "\
 export LD_LIBRARY_PATH=\${CONDA_PREFIX}/lib\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n\
