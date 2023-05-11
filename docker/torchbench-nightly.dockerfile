@@ -9,7 +9,7 @@ RUN git clone https://github.com/pytorch/benchmark /workspace/benchmark
 RUN cd /workspace/benchmark && \
     . /workspace/setup_instance.sh && \
     python ./utils/python_utils.py --create-conda-env ${CONDA_ENV} && \
-    echo "conda activate \${CONDA_ENV}" >> /workspace/setup_instance.sh && \
+    echo "if [[ -z \${CONDA_ENV} ]]; then echo \"CONDA_ENV is not set\" && exit 1; else conda activate \${CONDA_ENV} fi" >> /workspace/setup_instance.sh && \
     conda activate ${CONDA_ENV} && \
     sudo python ./utils/cuda_utils.py --setup-cuda-softlink
 
