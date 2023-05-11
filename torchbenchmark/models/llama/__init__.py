@@ -15,7 +15,7 @@ class Model(BenchmarkModel):
     
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-        self.model_args = ModelArgs(vocab_size=32,device=self.device)
+        self.model_args = ModelArgs(vocab_size=32000,device=self.device)
         torch.set_default_device(self.device)
         self.model = Transformer(self.model_args).to(self.device)
         self.seq_len = 32
