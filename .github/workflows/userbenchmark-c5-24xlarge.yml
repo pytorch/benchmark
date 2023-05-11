@@ -60,15 +60,17 @@ jobs:
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
-            docker exec -t -w "/benchmark" "${CONTAINER_ID}" python .github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
+            docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash -c ". "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}" && \
+                              python .github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}"
             if [ -d ./.userbenchmark ]; then
               cp -r ./.userbenchmark ../benchmark-output
             else
               mkdir ../benchmark-output
             fi
           else
-            docker exec -t -w "/benchmark" "${CONTAINER_ID}" python run-benchmarks.py \
-                              "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
+            docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash -c ". "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}" &&
+                              python run-benchmarks.py \
+                              "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}"
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           fi
       - name: Upload result jsons to Scribe
