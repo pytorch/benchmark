@@ -106,6 +106,8 @@ RUN echo "\
 conda activate base\n\
 export CONDA_HOME=\${HOME}/miniconda3\n\
 export CUDA_HOME=/usr/local/cuda\n\
-export PATH=\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n" >> /workspace/setup_instance.sh
+export PATH=\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n\
+export LD_LIBRARY_PATH=\${CUDA_HOME}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n\
+export LIBRARY_PATH=\${CUDA_HOME}/lib64\${LIBRARY_PATHPATH:+:\${LIBRARY_PATHPATH}}\n" >> /workspace/setup_instance.sh
 
 RUN echo ". /workspace/setup_instance.sh\n" >> ${HOME}/.bashrc
