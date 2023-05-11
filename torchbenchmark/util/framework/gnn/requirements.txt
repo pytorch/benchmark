@@ -1,0 +1,1 @@
+torch_geometric @ git+https://github.com/pyg-team/pytorch_geometric.git@cabcd4097442ba60aa1efa11e1619dd9bb8fb527
