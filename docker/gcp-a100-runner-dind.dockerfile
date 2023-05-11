@@ -102,15 +102,12 @@ RUN . ${HOME}/miniconda3/etc/profile.d/conda.sh && \
     pip install unittest-xml-reporting pyyaml
 
 RUN echo "\
-export CONDA_HOME=\${HOME}/miniconda3\n\
-export CUDA_HOME=/usr/local/cuda\n\
-export PATH=\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n\
-export LD_LIBRARY_PATH=\${CUDA_HOME}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n" >> ${HOME}/.bashrc
-
-RUN echo "\
 . \${HOME}/miniconda3/etc/profile.d/conda.sh\n\
 conda activate base\n\
 export CONDA_HOME=\${HOME}/miniconda3\n\
 export CUDA_HOME=/usr/local/cuda\n\
-export PATH=\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n\
-export LD_LIBRARY_PATH=\${CUDA_HOME}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n" >> /workspace/setup_instance.sh
+export PATH=\${CONDA_PREFIX}/bin:\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n\
+export LD_LIBRARY_PATH=\${CONDA_PREFIX}/lib:\${CUDA_HOME}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n\
+export LIBRARY_PATH=\${CONDA_PREFIX}/lib:\${CUDA_HOME}/lib64\${LIBRARY_PATHPATH:+:\${LIBRARY_PATHPATH}}\n" >> /workspace/setup_instance.sh
+
+RUN echo ". /workspace/setup_instance.sh\n" >> ${HOME}/.bashrc
