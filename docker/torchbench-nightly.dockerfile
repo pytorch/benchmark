@@ -32,4 +32,13 @@ RUN cd /workspace/benchmark && \
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python utils/cuda_utils.py --install-torchbench-deps && \
+    local cc_path=$(conda run -n "${CONDA_ENV}" printenv CC) && \
+    local cxx_path=$(conda run -n "${CONDA_ENV}" printenv CXX) && \
+    ln -s "${cc_path}" "$(dirname "$cc_path")/cc" && \
+    ln -s "${cc_path}" "$(dirname "$cc_path")/gcc" && \
+    ln -s "${cxx_path}" "$(dirname "$cxx_path")/c++" && \
+    ln -s "${cxx_path}" "$(dirname "$cxx_path")/g++"
+
+RUN cd /workspace/benchmark && \
+    . ${SETUP_SCRIPT} && \
     python install.py
