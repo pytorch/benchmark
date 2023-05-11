@@ -138,7 +138,9 @@ class BasicGNNModel(BenchmarkModel):
         self.example_inputs = (x, edge_index)
 
     def eval(self):
-        return (self.model(*self.example_inputs),)
+        self.model.eval()
+        with torch.no_grad():
+            return (self.model(*self.example_inputs),)
 
     def train(self):
         # NB: This is a little different than test_basic_gnn.py, as we
