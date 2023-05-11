@@ -1,4 +1,5 @@
 # default base image: summerwind/actions-runner-dind:latest
+# base image: Ubuntu 20.04
 ARG BASE_IMAGE=summerwind/actions-runner-dind:latest
 FROM ${BASE_IMAGE}
 
@@ -8,10 +9,6 @@ RUN sudo apt-get -y update && sudo apt -y update
 RUN sudo apt-get install -y git jq \
                             vim wget curl ninja-build cmake \
                             libgl1-mesa-glx libsndfile1-dev kmod
-
-# Install gcc-11, needed by the latest fbgemm
-RUN sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
-    sudo apt install -y g++-11
 
 # get switch-cuda utility
 RUN sudo wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
@@ -106,7 +103,6 @@ RUN . ${HOME}/miniconda3/etc/profile.d/conda.sh && \
 
 RUN echo "\
 export CONDA_HOME=\${HOME}/miniconda3\n\
-export NVIDIA_HOME=/usr/local/nvidia\n\
 export CUDA_HOME=/usr/local/cuda\n\
 export PATH=\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n\
 export LD_LIBRARY_PATH=\${CUDA_HOME}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n" >> ${HOME}/.bashrc
@@ -115,7 +111,6 @@ RUN echo "\
 . \${HOME}/miniconda3/etc/profile.d/conda.sh\n\
 conda activate base\n\
 export CONDA_HOME=\${HOME}/miniconda3\n\
-export NVIDIA_HOME=/usr/local/nvidia\n\
 export CUDA_HOME=/usr/local/cuda\n\
 export PATH=\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n\
 export LD_LIBRARY_PATH=\${CUDA_HOME}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n" >> /workspace/setup_instance.sh
