@@ -14,7 +14,7 @@ RUN cd /workspace/benchmark && \
     echo "conda activate \${CONDA_ENV}" >> /workspace/setup_instance.sh && \
     echo "\
 export LD_LIBRARY_PATH=\${CONDA_PREFIX}/lib\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n\
-export LIBRARY_PATH=\${CONDA_PREFIX}/lib\${LIBRARY_PATHPATH:+:\${LIBRARY_PATHPATH}}\n" >> /workspace/setup_instance.sh && \
+export LIBRARY_PATH=\${CONDA_PREFIX}/lib\${LIBRARY_PATHPATH:+:\${LIBRARY_PATHPATH}}\n" >> /workspace/setup_instance.sh
 
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
