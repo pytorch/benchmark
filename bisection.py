@@ -192,7 +192,18 @@ class TorchSource:
         env["USE_MKLDNN"] = "1"
         env["USE_MKL"] = "1"
         env["USE_CUDNN"] = "1"
+        env["USE_FFMPEG"] = "1"
+        # Torchaudio SOX build has failures, skip it
+        env["BUILD_SOX"] = "0"
         env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
+        if not "LD_LIBRARY_PATH" in env:
+            env["LIBRARY_PATH"] = ""
+        env["LD_LIBRARY_PATH"] = f'{env["CONDA_PREFIX"]}/lib/:{env["LD_LIBRARY_PATH"]}'
+        if not "LIBRARY_PATH" in env:
+            env["LIBRARY_PATH"] = ""
+        env["LIBRARY_PATH"] = f'{env["CONDA_PREFIX"]}/lib/:{env["LIBRARY_PATH"]}'
+        print(env["LD_LIBRARY_PATH"])
+        print(env["LIBRARY_PATH"])
         return env
 
     # Checkout the last commit of dependencies on date
@@ -203,7 +214,7 @@ class TorchSource:
             dep_commit = gitutils.get_git_commit_on_date(pkg_path, cdate)
             print(f"Checking out {pkg} commit {dep_commit} ...", end="", flush=True)
             assert dep_commit, "Failed to find the commit on {cdate} of {pkg}"
-            assert gitutils.checkout_git_commit(pkg_path, dep_commit), "Failed to checkout commit {commit} of {pkg}"
+            assert gitutils.checkout_git_commit(pkg_path, dep_commit), f"Failed to checkout commit {dep_commit} of {pkg}"
             print("done.")
     
     # Install dependencies such as torchtext and torchvision
@@ -224,7 +235,7 @@ class TorchSource:
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchtext"][0], env=build_env, shell=True)
         # Build torchaudio
         print(f"Building torchaudio ...", end="", flush=True)
-        command = "python setup.py clean install"
+        command = "python setup.py clean develop"
         subprocess.check_call(command, cwd=TORCHBENCH_DEPS["torchaudio"][0], env=build_env, shell=True)
         print("done")
 
