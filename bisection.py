@@ -66,17 +66,24 @@ def exist_dir_path(string):
     else:
         raise NotADirectoryError(string)
 
-# Find the latest non-empty json file in the directory
-def find_latest_json_file(result_dir: str):
-    json_files = list(filter(lambda x: x.endswith(".json"), os.listdir(result_dir)))
-    json_files.sort(reverse=True)
-    for f in json_files:
-        # Return the first non-empty json file
-        json_path = os.path.join(result_dir, f)
-        if os.path.exists(json_path) and os.stat(json_path).st_size:
-            return json_path
-    print(f"Can't find non-empty json files in path: {result_dir}")
-    return str()
+@dataclass
+class TorchRepo:
+    name: str
+    src_path: Path
+    cur_commit: str
+    main_branch: str
+
+def get_updated_torch_repos(pytorch_repos_path: str, torchbench_repo_path: str) -> Dict[str, TorchRepo]:
+    all_repos = {}
+    for repo_name in TORCHBENCH_BISECTION_TARGETS.keys():
+        repo_path = Path(pytorch_repos_path).joinpath("repo_name")
+        assert repo_path.exists() and repo_path.is_dir(), f"{str(repo_path)} is not an existing directory."
+        main_branch = "main" if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name] else \
+                      TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
+        update_git_repo(repo_path.absolute(), main_branch)
+        cur_commit = get_git_repo_cur_commit(repo_path.absolute())
+        all_repos[repo_name] = TorchRepo(name=repo_name, src_path=repo_path, cur_commit=cur_commit, main_branch=main_branch)
+    return all_repos
 
 def get_delta_str(reference: float, current: float) -> str:
     delta_num = ((current - reference) / current * 100)
@@ -135,12 +142,6 @@ class Commit:
     def __str__(self):
         return self.sha
 
-@dataclass
-class TorchRepo:
-    name: str
-    src_path: Path
-    cur_commit: str
-    main_branch: str = "main"
 
 class TorchSource:
     srcpath: str
@@ -511,10 +512,10 @@ if __name__ == "__main__":
     parser.add_argument("--pytorch-repos-path",
                         help="the directory of pytorch/* source code repositories",
                         type=exist_dir_path)
-    parser.add_argument("--torchbench-src",
+    parser.add_argument("--torchbench-repo-path",
                         help="the directory of torchbench source code git repository",
                         type=exist_dir_path)
-    parser.add_argument("--target",
+    parser.add_argument("--target-repo",
                         help="the target repo for bisection, default to pytorch. It should match the hash in the bisection config.",
                         default="pytorch",
                         choices=TORCHBENCH_BISECTION_TARGETS.keys())
@@ -549,10 +550,12 @@ if __name__ == "__main__":
     targets = None
     if "tests" in bisect_config:
         targets = bisect_config["tests"]
-    
+    # read the repo directory, if necessary, update it
+    torch_repos: Dict[str, TorchRepo] = get_updated_torch_repos(args.pytorch_repos_path, args.torchbench_repo_path)
+
     bisection = TorchBenchBisection(workdir=args.work_dir,
-                                    torch_src=args.pytorch_src,
-                                    bench_src=args.torchbench_src,
+                                    torch_repos=torch_repos,
+                                    target_repo=args.target_repo,
                                     start=bisect_config["start"],
                                     end=bisect_config["end"],
                                     threshold=bisect_config["threshold"],
