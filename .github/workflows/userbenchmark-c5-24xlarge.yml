@@ -67,8 +67,8 @@ jobs:
               mkdir ../benchmark-output
             fi
           else
-            docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash -c ". ${SETUP_SCRIPT} && conda activate ${CONDA_ENV} &&
-                              python run-benchmarks.py \
+            docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash -c ". ${SETUP_SCRIPT} && conda activate ${CONDA_ENV} && \
+                              python run_benchmark.py \
                               \"${{ github.event.inputs.userbenchmark_name }}\" ${{ github.event.inputs.userbenchmark_options }}"
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           fi
