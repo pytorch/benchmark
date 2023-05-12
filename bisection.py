@@ -11,12 +11,12 @@ Usage:
 """
 
 import os
+import sys
 import json
 import shutil
 import yaml
 import argparse
 from pathlib import Path
-from dataclasses import dataclass
 from tabulate import tabulate
 import subprocess
 from datetime import datetime
@@ -25,11 +25,8 @@ from typing import Optional, List, Dict, Tuple
 from torchbenchmark.util import gitutils
 from utils.build_utils import (
     setup_bisection_build_env,
-    build_pytorch,
-    build_torchaudio,
-    build_torchdata,
-    build_torchtext,
-    build_torchvision
+    build_repo,
+    TorchRepo,
 )
 from utils.cuda_utils import prepare_cuda_env, DEFAULT_CUDA_VERSION
 
@@ -37,26 +34,32 @@ TORCHBENCH_BISECTION_TARGETS = {
     "pytorch": {
         "name": "pytorch",
         "url": "https://github.com/pytorch/pytorch.git",
+        "build_command": [sys.executable, "setup.py", "install"],
     },
     "torchdata": {
         "name": "data",
         "url": "https://github.com/pytorch/data.git",
+        "build_command": [sys.executable, "setup.py", "install"],
     },
     "torchvision": {
         "name": "vision",
         "url": "https://github.com/pytorch/vision.git",
+        "build_command": [sys.executable, "setup.py", "install"],
     },
     "torchtext": {
         "name": "text",
         "url": "https://github.com/pytorch/text.git",
+        "build_command": [sys.executable, "setup.py", "clean", "install"],
     },
     "torchaudio": {
         "name": "audio",
         "url": "https://github.com/pytorch/audio.git",
+        "build_command": [sys.executable, "setup.py", "clean", "develop"],
     },
     "torchbench": {
         "name": "benchmark",
         "url": "https://github.com/pytorch/benchmark.git",
+        "build_command": [sys.executable, "install.py"],
     },
 }
 
@@ -65,13 +68,6 @@ def exist_dir_path(string):
         return string
     else:
         raise NotADirectoryError(string)
-
-@dataclass
-class TorchRepo:
-    name: str
-    src_path: Path
-    cur_commit: str
-    main_branch: str
 
 def get_updated_torch_repos(pytorch_repos_path: str, torchbench_repo_path: str) -> Dict[str, TorchRepo]:
     all_repos = {}
@@ -82,7 +78,8 @@ def get_updated_torch_repos(pytorch_repos_path: str, torchbench_repo_path: str) 
                       TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
         update_git_repo(repo_path.absolute(), main_branch)
         cur_commit = get_git_repo_cur_commit(repo_path.absolute())
-        all_repos[repo_name] = TorchRepo(name=repo_name, src_path=repo_path, cur_commit=cur_commit, main_branch=main_branch)
+        all_repos[repo_name] = TorchRepo(name=repo_name, src_path=repo_path, cur_commit=cur_commit, \
+                                         main_branch=main_branch, build_command=TORCHBENCH_BISECTION_TARGETS[repo_name]["build_command"])
     return all_repos
 
 def get_delta_str(reference: float, current: float) -> str:
@@ -208,10 +205,10 @@ class TorchSource:
     
     # Install dependencies such as torchtext and torchvision
     def build_install_deps(self, build_env):
-        build_torchdata(self.src_repo["torchdata"]["path"], build_env)
-        build_torchvision(self.src_repo["torchvision"]["path"], build_env)
-        build_torchtext(self.src_repo["torchtext"]["path"], build_env)
-        build_torchaudio(self.src_repo["torchaudio"]["path"], build_env)
+        build_repo(self.repos["torchdata"], build_env)
+        build_repo(self.repos["torchvision"], build_env)
+        build_repo(self.repos["torchtext"], build_env)
+        build_repo(self.repos["torchaudio"], build_env)
 
     def build(self, commit: Commit):
         # checkout pytorch commit

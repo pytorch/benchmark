@@ -2,9 +2,19 @@
 Utilities for building pytorch and torch* domain packages
 """
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
+from typing import List, Dict
 
+FIRST_TIME_INSTALL_TORCHBENCH = True
+
+@dataclass
+class TorchRepo:
+    name: str
+    src_path: Path
+    cur_commit: str
+    main_branch: str
+    build_command: List[str]
 
 def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
     env["USE_CUDA"] = "1"
@@ -24,32 +34,13 @@ def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
 def _print_info(info: str):
     print(f"===========================   {info}   ===========================", flush=True)
 
-def build_pytorch(src_path: Path, build_env: Dict[str, str]):
-    _print_info("BUILDING PYTORCH START")
-    command = ["python", "setup.py", "install"]
-    subprocess.check_call(command, cwd=src_path, env=build_env)
-    _print_info("BUILDING PYTORCH END")
-
-def build_torchdata(src_path: Path, build_env: Dict[str, str]):
-    _print_info("BUILDING TORCHDATA START")
-    command = ["python", "setup.py", "install"]
-    subprocess.check_call(command, cwd=src_path, env=build_env)
-    _print_info("BUILDING TORCHDATA END")
-
-def build_torchvision(src_path: Path, build_env: Dict[str, str]):
-    _print_info("BUILDING TORCHVISION START")
-    command = ["python", "setup.py", "install"]
-    subprocess.check_call(command, cwd=src_path, env=build_env)
-    _print_info("BUILDING TORCHVISION END")
-
-def build_torchtext(src_path: Path, build_env: Dict[str, str]):
-    _print_info("BUILDING TORCHTEXT START")
-    command = ["python", "setup.py", "clean", "install"]
-    subprocess.check_call(command, cwd=src_path, env=build_env)
-    _print_info("BUILDING TORCHTEXT END")
-
-def build_torchaudio(src_path: Path, build_env: Dict[str, str]):
-    _print_info("BUILDING TORCHAUDIO START")
-    command = ["python", "setup.py", "clean", "develop"]
-    subprocess.check_call(command, cwd=src_path, env=build_env)
-    _print_info("BUILDING TORCHAUDIO END")
+def build_repo(repo: TorchRepo, build_env: Dict[str, str]):
+    if not repo.name == "torchbench":
+        _print_info(f"BUILDING {repo.name.upper()} START")
+        subprocess.check_call(repo.build_command, cwd=repo.src_path, env=build_env)
+        _print_info(f"BUILDING {repo.name.upper()} END")
+    elif FIRST_TIME_INSTALL_TORCHBENCH:
+        _print_info(f"BUILDING {repo.name.upper()} START")
+        subprocess.check_call(repo.build_command, cwd=repo.src_path, env=build_env)
+        FIRST_TIME_INSTALL_TORCHBENCH = False
+        _print_info(f"BUILDING {repo.name.upper()} END")
