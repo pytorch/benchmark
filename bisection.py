@@ -22,7 +22,7 @@ import subprocess
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple
 
-from torchbenchmark.util import gitutils
+from utils.gitutils import *
 from utils.build_utils import (
     setup_bisection_build_env,
     build_repo,
