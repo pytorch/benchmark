@@ -7,6 +7,7 @@ ENV SETUP_SCRIPT=/workspace/setup_instance.sh
 
 # Setup Conda env and CUDA
 RUN git clone https://github.com/pytorch/benchmark /workspace/benchmark
+RUN cd /workspace/benchmark && git pull && git checkout -t origin/xz9/fix-docker
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python ./utils/python_utils.py --create-conda-env ${CONDA_ENV} && \
