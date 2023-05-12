@@ -28,6 +28,7 @@ All parameters of `cpu` userbenchmark as below,
 - `--config, -c` YAML config to specify tests to run.
 - `--output, -o` output dir. By default will create folder under
   `.userbenchmark/cpu`.
+- `--timeout` limit single model test run time. Default `None` means no limitation.
 - `--launcher` whether to use `torch.backends.xeon.run_cpu` to get the peak
   performance on Intel(R) Xeon(R) Scalable Processors.
 - `--launcher-args` work with `--launcher` enabled, to provide the args of
@@ -62,8 +63,8 @@ test. And for each single model test, it will create a subfolder under folder
 instance PID for that model test.
 ```shell
 $ ls .userbenchmark/cpu/cpu-20230420004336
-eval_alexnet_eager/  eval_resnet50_eager/  
-$ ls .userbenchmark/cpu/cpu-20230420004336/eval_alexnet_eager/
+alexnet-eval-eager/  resnet50-eval-eager/  
+$ ls .userbenchmark/cpu/cpu-20230420004336/alexnet-eval-eager/
 metrics-3347653.json  metrics-3347654.json  metrics-3347655.json  metrics-3347656.json
 $ cat .userbenchmark/cpu/metrics-20230420004336.json 
 {

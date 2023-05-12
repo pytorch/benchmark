@@ -23,19 +23,20 @@ with add_path(str(REPO_PATH)):
 
     def get_output_subdir(config: TorchBenchModelConfig) -> str:
         mode = "jit" if config.jit else "eager"
-        subdir = f"{config.test}_{config.name}_{mode}"
+        subdir = f"{config.name}-{config.test}-{mode}"
         return subdir
 
     def result_to_output_metrics(metrics: TorchBenchModelMetrics) -> Dict[str, float]:
         result_metrics = {}
-        if metrics.latencies:
-            latency_metric = "latency"
-            median_latency = numpy.median(metrics.latencies)
-            assert median_latency, f"Run failed for metric {latency_metric}"
-            result_metrics[latency_metric] = median_latency
-        if metrics.cpu_peak_mem:
-            cpu_peak_mem = "cpu_peak_mem"
-            result_metrics[cpu_peak_mem] = metrics.cpu_peak_mem
+        if metrics:
+            if metrics.latencies:
+                latency_metric = "latency"
+                median_latency = numpy.median(metrics.latencies)
+                assert median_latency, f"Run failed for metric {latency_metric}"
+                result_metrics[latency_metric] = median_latency
+            if metrics.cpu_peak_mem:
+                cpu_peak_mem = "cpu_peak_mem"
+                result_metrics[cpu_peak_mem] = metrics.cpu_peak_mem
         return result_metrics
 
     def dump_result_to_json(metrics, output_dir):

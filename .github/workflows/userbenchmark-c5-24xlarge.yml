@@ -27,6 +27,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: benchmark
+      - name: Install Conda
+        run: |
+          cd benchmark
+          bash scripts/install_conda.sh
       - name: Pull docker image
         uses: pytorch/test-infra/.github/actions/pull-docker-image@main
         with:
@@ -67,14 +71,15 @@ jobs:
               mkdir ../benchmark-output
             fi
           else
-            docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash -c ". ${SETUP_SCRIPT} && conda activate ${CONDA_ENV} &&
-                              python run-benchmarks.py \
+            docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash -c ". ${SETUP_SCRIPT} && conda activate ${CONDA_ENV} && \
+                              python run_benchmark.py \
                               \"${{ github.event.inputs.userbenchmark_name }}\" ${{ github.event.inputs.userbenchmark_options }}"
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           fi
       - name: Upload result jsons to Scribe
         run: |
           pushd benchmark
+          . scripts/activate_conda.sh
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
