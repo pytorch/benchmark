@@ -114,6 +114,12 @@ def install_torchbench_deps():
     torchbench_conda_deps = ["gxx_linux-64=10.4.0", "sysroot_linux-64=2.17", "-c", "conda-forge"]
     cmd = ["conda", "install", "-y"] + torchbench_conda_deps
     subprocess.check_call(cmd)
+    # install ncurses 6.3 from conda-forge, the default ncurses package in the anaconda channel
+    # doesn't package properly to include libtinfo dependency
+    # the conda-forge version is correct
+    ncurses_deps = ["ncurses=6.3", "-c", "conda-forge", "--force-reinstall"]
+    cmd = ["conda", "install", "-y"] + ncurses_deps
+    subprocess.check_call(cmd)
     # install unittest-xml-reporting, needed by the unittest
     cmd = ["pip", "install", "unittest-xml-reporting"]
     subprocess.check_call(cmd)
