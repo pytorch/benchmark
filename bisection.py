@@ -1,5 +1,5 @@
 """bisection.py
-Runs bisection to determine PRs that cause performance change.
+Runs bisection to determine PRs that trigger performance signals.
 It assumes that the pytorch, torchbench, torchtext, torchvision, and torchaudio repositories provided are all clean with the latest code.
 By default, the torchaudio, torchvision and torchtext packages will be fixed to the latest commit on the same pytorch commit date.
 
@@ -15,8 +15,9 @@ import json
 import shutil
 import yaml
 import argparse
+from pathlib import Path
+from dataclasses import dataclass
 from tabulate import tabulate
-import re
 import subprocess
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple
@@ -32,13 +33,31 @@ from utils.build_utils import (
 )
 from utils.cuda_utils import prepare_cuda_env, DEFAULT_CUDA_VERSION
 
-TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
-TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
-TORCHBENCH_DEPS = {
-    "torchdata": (os.path.expandvars("${HOME}/data"), "main"),
-    "torchtext": (os.path.expandvars("${HOME}/text"), "main"),
-    "torchvision": (os.path.expandvars("${HOME}/vision"), "main"),
-    "torchaudio": (os.path.expandvars("${HOME}/audio"), "main"),
+TORCHBENCH_BISECTION_TARGETS = {
+    "pytorch": {
+        "name": "pytorch",
+        "url": "https://github.com/pytorch/pytorch.git",
+    },
+    "torchdata": {
+        "name": "data",
+        "url": "https://github.com/pytorch/data.git",
+    },
+    "torchvision": {
+        "name": "vision",
+        "url": "https://github.com/pytorch/vision.git",
+    },
+    "torchtext": {
+        "name": "text",
+        "url": "https://github.com/pytorch/text.git",
+    },
+    "torchaudio": {
+        "name": "audio",
+        "url": "https://github.com/pytorch/audio.git",
+    },
+    "torchbench": {
+        "name": "benchmark",
+        "url": "https://github.com/pytorch/benchmark.git",
+    },
 }
 
 def exist_dir_path(string):
@@ -115,6 +134,13 @@ class Commit:
         self.digest = None
     def __str__(self):
         return self.sha
+
+@dataclass
+class TorchRepo:
+    name: str
+    src_path: Path
+    cur_commit: str
+    main_branch: str = "main"
 
 class TorchSource:
     srcpath: str
@@ -488,6 +514,10 @@ if __name__ == "__main__":
     parser.add_argument("--torchbench-src",
                         help="the directory of torchbench source code git repository",
                         type=exist_dir_path)
+    parser.add_argument("--target",
+                        help="the target repo for bisection, default to pytorch. It should match the hash in the bisection config.",
+                        default="pytorch",
+                        choices=TORCHBENCH_BISECTION_TARGETS.keys())
     parser.add_argument("--config",
                         help="the bisection configuration in YAML format")
     parser.add_argument("--output",
@@ -507,6 +537,7 @@ if __name__ == "__main__":
 
     with open(args.config, "r") as f:
         bisect_config = yaml.full_load(f)
+
     # sanity checks
     valid_directions = ["increase", "decrease", "both"]
     assert("start" in bisect_config), "Illegal bisection config, must specify start commit SHA."
