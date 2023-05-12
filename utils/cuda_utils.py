@@ -111,7 +111,7 @@ def install_torch_build_deps(cuda_version: str):
 def install_torchbench_deps():
     # torchrec_dlrm requires fbgemm_gpu, which requires gxx_linux-64=10.4.0 and sysroot_linux-64=2.17
     # see: https://github.com/pytorch/FBGEMM/blob/0e24712210b44a3adf3832f9f9bfb1e486d81f4f/.github/scripts/setup_env.bash#L102
-    torchbench_conda_deps = ["gxx_linux-64=10.4.0", "sysroot_linux-64=2.17", "-c", "conda-forge"]
+    torchbench_conda_deps = ["gxx_linux-64=10.4.0", "sysroot_linux-64=2.17", "p11-kit", "-c", "conda-forge"]
     cmd = ["conda", "install", "-y"] + torchbench_conda_deps
     subprocess.check_call(cmd)
     # install ncurses 6.3 from conda-forge, the default ncurses package in the anaconda channel
