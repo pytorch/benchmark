@@ -81,7 +81,7 @@ def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
         for _loop in range(3):
             subprocess.check_call(uninstall_torch_cmd)
     pytorch_nightly_url = f"https://download.pytorch.org/whl/nightly/{CUDA_VERSION_MAP[cuda_version]['pytorch_url']}"
-    install_torch_cmd = ["pip", "install", "--pre"]
+    install_torch_cmd = ["pip", "install", "--pre", "--no-cache-dir"]
     install_torch_cmd.extend(TORCHBENCH_TORCH_NIGHTLY_PACKAGES)
     install_torch_cmd.extend(["-i",  pytorch_nightly_url])
     if dryrun:
@@ -98,9 +98,6 @@ def install_torch_deps(cuda_version: str):
     torch_deps = ["numpy", "requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
     cmd = ["conda", "install", "-y"] + torch_deps
     subprocess.check_call(cmd)
-    # install unittest-xml-reporting
-    cmd = ["pip", "install", "unittest-xml-reporting"]
-    subprocess.check_call(cmd)
 
 def install_torch_build_deps(cuda_version: str):
     install_torch_deps(cuda_version=cuda_version)
@@ -109,6 +106,16 @@ def install_torch_build_deps(cuda_version: str):
     torch_build_deps = ["cffi", "sympy", "typing_extensions", "future", "six", "dataclasses", "tabulate", "tqdm", "mkl", "mkl-include", \
                         f"cmake={PIN_CMAKE_VERSION}"]
     cmd = ["conda", "install", "-y"] + torch_build_deps
+    subprocess.check_call(cmd)
+
+def install_torchbench_deps():
+    # torchrec_dlrm requires fbgemm_gpu, which requires gxx_linux-64=10.4.0 and sysroot_linux-64=2.17
+    # see: https://github.com/pytorch/FBGEMM/blob/0e24712210b44a3adf3832f9f9bfb1e486d81f4f/.github/scripts/setup_env.bash#L102
+    torchbench_conda_deps = ["gxx_linux-64=10.4.0", "sysroot_linux-64=2.17", "-c", "conda-forge"]
+    cmd = ["conda", "install", "-y"] + torchbench_conda_deps
+    subprocess.check_call(cmd)
+    # install unittest-xml-reporting, needed by the unittest
+    cmd = ["pip", "install", "unittest-xml-reporting"]
     subprocess.check_call(cmd)
 
 def get_torch_nightly_version(pkg_name: str):
@@ -133,9 +140,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cudaver", default=DEFAULT_CUDA_VERSION, help="Specify the default CUDA version")
     parser.add_argument("--setup-cuda-softlink", action="store_true", help="Setup the softlink to /usr/local/cuda")
-    parser.add_argument("--install-torch-deps", action="store_true", help="Install pytorch runtime requirements")
-    parser.add_argument("--install-torch-build-deps", action="store_true", help="Install pytorch build requirements")
+    parser.add_argument("--install-torch-deps", action="store_true", help="Install pytorch runtime dependencies")
+    parser.add_argument("--install-torch-build-deps", action="store_true", help="Install pytorch build dependencies")
     parser.add_argument("--install-torch-nightly", action="store_true", help="Install pytorch nightlies")
+    parser.add_argument("--install-torchbench-deps", action="store_true", help="Install torchbench conda dependencies")
     parser.add_argument("--check-torch-nightly-version", action="store_true", help="Validate pytorch nightly package consistency")
     parser.add_argument("--force-date", type=str, default=None, help="Force Pytorch nightly release date version. Date string format: YYmmdd")
     args = parser.parse_args()
@@ -147,6 +155,8 @@ if __name__ == "__main__":
         install_torch_build_deps(cuda_version=args.cudaver)
     if args.install_torch_nightly:
         install_pytorch_nightly(cuda_version=args.cudaver, env=os.environ)
+    if args.install_torchbench_deps:
+        install_torchbench_deps()
     if args.check_torch_nightly_version:
         assert not args.install_torch_nightly, "Error: Can't run install torch nightly and check version in the same command."
         check_torch_nightly_version(args.force_date)
