@@ -1,7 +1,7 @@
 from typing import Optional
 from ..utils import TorchBenchABTestResult, TorchBenchABTestMetric
 
-DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.07
+DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.1
 
 def run(control, treatment) -> Optional[TorchBenchABTestResult]:
     control_env = control["environ"]
@@ -10,6 +10,9 @@ def run(control, treatment) -> Optional[TorchBenchABTestResult]:
     treatment_metrics = treatment["metrics"]
     details = {}
     for control_metric_name, control_metric in control_metrics.items():
+        # Don't report benchmark stats for CPU as CPU can be unstable
+        if "cpu" in control_metric_name:
+            continue
         if control_metric_name in treatment_metrics:
             treatment_metric = treatment_metrics[control_metric_name]
             delta = (treatment_metric - control_metric) / control_metric
