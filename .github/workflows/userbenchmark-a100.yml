@@ -34,24 +34,24 @@ jobs:
       - name: Check PyTorch nightly if scheduled
         if: ${{ github.event_name == 'schedule' }}
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${BASE_CONDA_ENV}"
+          CONDA_ENV=${BASE_CONDA_ENV} && . "${SETUP_SCRIPT}"
           pushd benchmark
           TODAY_STR=$(date +'%Y%m%d')
           python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
       - name: Clone and setup conda env
         run: |
-          . "${SETUP_SCRIPT}"
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           pushd benchmark
           python install.py
       - name: Run user benchmark
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
@@ -71,7 +71,7 @@ jobs:
           fi
       - name: Upload result jsons to Scribe and S3
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"

@@ -26,30 +26,30 @@ jobs:
           path: benchmark
       - name: Tune Nvidia GPU
         run: |
-          . "${SETUP_SCRIPT}"
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
       - name: Check PyTorch nightly if scheduled
         if: ${{ github.event_name == 'schedule' }}
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${BASE_CONDA_ENV}"
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           pushd benchmark
           TODAY_STR=$(date +'%Y%m%d')
           python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
       - name: Clone and setup conda env
         run: |
-          . "${SETUP_SCRIPT}"
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           pushd benchmark
           python install.py
       - name: Run the torch-nightly userbenchmark
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
@@ -59,7 +59,7 @@ jobs:
       - name: Detect potential regressions
         continue-on-error: true
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           # TODO: the following assumes only one metrics-*.json is found. It will keep
@@ -79,7 +79,7 @@ jobs:
             torchbench-perf-report
       - name: Copy artifact and upload to scribe and Amazon S3
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           TODAY=$(date "+%Y%m%d%H%M%S")
           pushd benchmark
           LATEST_RESULT=$(find ../benchmark-output/ -name "metrics-*.json" | sort -r | head -1)
