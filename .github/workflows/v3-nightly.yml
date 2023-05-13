@@ -26,7 +26,6 @@ jobs:
           path: benchmark
       - name: Tune Nvidia GPU
         run: |
-          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
