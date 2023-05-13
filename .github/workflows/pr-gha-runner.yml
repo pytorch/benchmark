@@ -25,7 +25,7 @@ jobs:
           nvidia-smi
       - name: Clone and setup Conda env
         run: |
-          . "${SETUP_SCRIPT}"
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |

@@ -33,18 +33,18 @@ jobs:
           nvidia-smi
       - name: Clone and setup Conda env
         run: |
-          . "${SETUP_SCRIPT}"
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           pushd benchmark
           python install.py
       - name: Run optim user benchmark
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
@@ -56,7 +56,7 @@ jobs:
       - name: Detect potential regressions
         continue-on-error: true
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           # TODO: the following assumes only one metrics-*.json is found. It will keep 
@@ -75,7 +75,7 @@ jobs:
             torchbench-perf-report
       - name: Upload result jsons to Scribe and S3
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV}"
+          . "${SETUP_SCRIPT}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
