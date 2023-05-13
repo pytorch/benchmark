@@ -34,7 +34,7 @@ jobs:
       - name: Check PyTorch nightly if scheduled
         if: ${{ github.event_name == 'schedule' }}
         run: |
-          CONDA_ENV=${BASE_CONDA_ENV} && . "${SETUP_SCRIPT}"
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           pushd benchmark
           TODAY_STR=$(date +'%Y%m%d')
           python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
