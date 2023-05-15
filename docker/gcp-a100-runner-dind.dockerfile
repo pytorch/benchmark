@@ -85,9 +85,6 @@ RUN cd /workspace && mkdir tmp_nccl && cd tmp_nccl && \
     rm -rf tmp_nccl && \
     sudo ldconfig
 
-# Setup the default CUDA version to 11.7
-RUN sudo rm -f /usr/local/cuda && sudo ln -s /usr/local/cuda-11.7 /usr/local/cuda
-
 # Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh && \
     cd /workspace && \
