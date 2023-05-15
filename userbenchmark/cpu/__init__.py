@@ -119,13 +119,14 @@ def run_benchmark(config, args):
     if args.launcher:
         cmd.extend(["-m", "torch.backends.xeon.run_cpu"])
         if args.launcher_args:
-            cmd.extend(args.launcher_args.split(" "))
+            import shlex
+            cmd.extend(shlex.split(args.launcher_args))
     cmd.append(str(benchmark_script))
     if config.name:
         cmd.append("-m")
         cmd.append(config.name)
     if config.device:
-        cmd.append("--device")
+        cmd.append("-d")
         cmd.append(config.device)
     if config.batch_size:
         cmd.append("-b")
