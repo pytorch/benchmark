@@ -15,7 +15,7 @@ import torch
 
     
 class Model(BenchmarkModel):
-    task = NLP.SEGMENTATION
+    task = ComputerVision.SEGMENTATION
     DEFAULT_EVAL_BSIZE = 32
     
     def __init__(self, test, device, jit=False, batch_size=1, extra_args=[]):
