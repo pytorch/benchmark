@@ -361,6 +361,9 @@ class Model(E2EBenchmarkModel):
         if self.hf_args.val_max_target_length is None:
             self.hf_args.val_max_target_length = self.hf_args.max_target_length
 
+        if self.hf_args.num_beams is None:
+            self.hf_args.num_beams = 1
+
         gen_kwargs = {
             "max_length": self.hf_args.val_max_target_length if self.hf_args is not None else self.config.max_length,
             "num_beams": self.hf_args.num_beams,
