@@ -9,8 +9,8 @@ import torch
 from typing import Optional, Tuple
 
 
-from sam import Sam
-from transforms import ResizeLongestSide
+from .sam import Sam
+from .transforms import ResizeLongestSide
 
 
 class SamPredictor:
@@ -209,8 +209,8 @@ class SamPredictor:
             of masks and H=W=256. These low res logits can be passed to
             a subsequent iteration as mask input.
         """
-        if not self.is_image_set:
-            raise RuntimeError("An image must be set with .set_image(...) before mask prediction.")
+        # if not self.is_image_set:
+        #     raise RuntimeError("An image must be set with .set_image(...) before mask prediction.")
 
         if point_coords is not None:
             points = (point_coords, point_labels)
@@ -247,10 +247,10 @@ class SamPredictor:
         shape 1xCxHxW, where C is the embedding dimension and (H,W) are
         the embedding spatial dimension of SAM (typically C=256, H=W=64).
         """
-        if not self.is_image_set:
-            raise RuntimeError(
-                "An image must be set with .set_image(...) to generate an embedding."
-            )
+        # if not self.is_image_set:
+        #     raise RuntimeError(
+        #         "An image must be set with .set_image(...) to generate an embedding."
+        #     )
         assert self.features is not None, "Features must exist if an image has been set."
         return self.features
 

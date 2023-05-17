@@ -2,20 +2,18 @@
 # This software may be used and distributed according to the terms of the GNU General Public License version 3.
 
 from ...util.model import BenchmarkModel
-from sam import Sam
-from image_encoder import ImageEncoderViT
-from mask_decoder import MaskDecoder
-from prompt_encoder import PromptEncoder
-from transformer import TwoWayTransformer
-from predictor import SamPredictor
+from .build_sam import sam_model_registry
+from .predictor import SamPredictor
+from PIL import Image
+import numpy as np
 
-
-from torchbenchmark.tasks import ComputerVision
+from torchbenchmark.tasks import COMPUTER_VISION
 import torch
+
 
     
 class Model(BenchmarkModel):
-    task = ComputerVision.SEGMENTATION
+    task = COMPUTER_VISION.SEGMENTATION
     DEFAULT_EVAL_BSIZE = 32
     
     def __init__(self, test, device, jit=False, batch_size=1, extra_args=[]):
@@ -25,16 +23,17 @@ class Model(BenchmarkModel):
         sam_checkpoint = "sam_vit_h_4b8939.pth"
         model_type = "vit_h"
 
-        self.model = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+        # TODO Before merge: Add the real checkpoint when done testing
+        self.model = sam_model_registry[model_type](checkpoint=None)
         self.model.to(device=device)
 
-        self.example_inputs = torch.randn(batch_size, 3, 224, 224).to(device=device)
+        # TODO Before merge: Make the batch size configurable
+        # We don't actually pass in a tensor but pass in an image
+        # self.example_inputs = [{0 : torch.randn(3, 224, 224).to(device=device)}], 
         
-        # We will just run an inference over a random tensor
-        # predictor = SamPredictor(sam)
-        
+   
     def get_module(self):
-        return self.model, self.example_inputs
+        return self.model # self.example_inputs
     
     def train(self):
         error_msg = """
@@ -47,7 +46,26 @@ class Model(BenchmarkModel):
         return NotImplementedError(error_msg)
 
     def eval(self):
+        predictor = SamPredictor(self.model)
+        random_image_path = generate_random_image(128, 128, 3)
+        masks, _, _ = predictor.predict(random_image_path)
         self.model.eval()
         with torch.no_grad():
-            out=self.model(*self.example_inputs)
-        return (out,)
+            out=self.model(self.example_inputs, multimask_output=True)
+        return (masks,)
+
+
+# TODO: I'm open to wgetting a real image but this seems useful for now
+# Generate a random image with specified width, height, and color channels
+def generate_random_image(width, height, channels):
+    # Create a random numpy array representing the image pixels
+    image_data = np.random.randint(0, 256, (height, width, channels), dtype=np.uint8)
+    
+    # Create a Pillow image object from the numpy array
+    image = Image.fromarray(image_data)
+    
+    # Save the image to a file
+    image_path = "random_image.jpg"
+    image.save(image_path)
+    
+    return image_path
