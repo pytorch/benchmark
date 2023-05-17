@@ -6,7 +6,7 @@ from .build_sam import sam_model_registry
 from .predictor import SamPredictor
 from PIL import Image
 import numpy as np
-
+import cv2
 from torchbenchmark.tasks import COMPUTER_VISION
 import torch
 
@@ -47,12 +47,20 @@ class Model(BenchmarkModel):
 
     def eval(self):
         predictor = SamPredictor(self.model)
-        random_image_path = generate_random_image(128, 128, 3)
-        masks, _, _ = predictor.predict(random_image_path)
-        self.model.eval()
-        with torch.no_grad():
-            out=self.model(self.example_inputs, multimask_output=True)
+        # random_image_path = generate_random_image(128, 128, 3)
+        image = cv2.imread('truck.jpg')
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        predictor.set_image(image)
+
+        input_point = np.array([[500, 375]])
+        input_label = np.array([1])
+        masks, scores, logits = predictor.predict(
+        point_coords=input_point,
+        point_labels=input_label,
+        multimask_output=True)
         return (masks,)
+    
+
 
 
 # TODO: I'm open to wgetting a real image but this seems useful for now
