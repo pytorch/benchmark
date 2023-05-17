@@ -12,7 +12,7 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         # Use the default configs
         self.gpt_config = GPTConfig()
-        self.generator_config = GPTGenerationConfig(500, 0.8, 200)
+        self.generator_config = GPTGenerationConfig(32, 0.8, 200)
         self.model = SequenceGeneratorNanoGPT(GPT(self.gpt_config), self.generator_config).eval().to(self.device)
         self.prompt_size = 64
         self.example_inputs = (
