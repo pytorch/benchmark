@@ -13,3 +13,4 @@ def download_data():
 if __name__ == '__main__':
     pip_install_requirements()
     download_checkpoint()
+    download_data()
