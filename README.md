@@ -122,7 +122,7 @@ Note that `test_bench.py` will eventually be deprecated as the `userbenchmark` w
 
 ### Using userbenchmark
 
-The `userbenchmark` allows you to develop your customized benchmarks with TorchBench models. Refer to the [userbenchamrk instructions](https://github.com/pytorch/benchmark/blob/main/userbenchmark/ADDING_USERBENCHMARKS.md) to learn more on how you can create a new `userbenchmark`. You can then use the `run_benchmark.py` driver to drive the benchmark. e.g. `python run_benchmark.py <benchmark_name>`. Run `python run_benchmark.py —help` to find out available options.
+The `userbenchmark` allows you to develop your customized benchmarks with TorchBench models. Refer to the [userbenchmark instructions](https://github.com/pytorch/benchmark/blob/main/userbenchmark/ADDING_USERBENCHMARKS.md) to learn more on how you can create a new `userbenchmark`. You can then use the `run_benchmark.py` driver to drive the benchmark. e.g. `python run_benchmark.py <benchmark_name>`. Run `python run_benchmark.py —help` to find out available options.
 
 ### Using `run.py` for simple debugging or profiling
 Sometimes you may want to just run train or eval on a particular model, e.g. for debugging or profiling.  Rather than relying on __main__ implementations inside each model, `run.py` provides a lightweight CLI for this purpose, building on top of the standard BenchmarkModel API.
