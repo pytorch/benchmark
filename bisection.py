@@ -17,10 +17,9 @@ import shutil
 import yaml
 import argparse
 from pathlib import Path
-from tabulate import tabulate
 import subprocess
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Any
 
 from utils.gitutils import *
 from utils.build_utils import (
@@ -77,68 +76,22 @@ def get_updated_torch_repos(pytorch_repos_path: str, torchbench_repo_path: str) 
         main_branch = "main" if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name] else \
                       TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
         update_git_repo(repo_path.absolute(), main_branch)
-        cur_commit = get_git_repo_cur_commit(repo_path.absolute())
+        cur_commit = get_current_commit(repo_path.absolute())
         all_repos[repo_name] = TorchRepo(name=repo_name, src_path=repo_path, cur_commit=cur_commit, \
                                          main_branch=main_branch, build_command=TORCHBENCH_BISECTION_TARGETS[repo_name]["build_command"])
     return all_repos
 
-def get_delta_str(reference: float, current: float) -> str:
-    delta_num = ((current - reference) / current * 100)
-    delta_str = "{:+3f}".format(delta_num) + "%"
-    if (abs(delta_num) >= 5):
-        delta_str = delta_str + "*"
-    return delta_str
-
-def get_means(data):
-    rc = dict()
-    for param in data["benchmarks"]:
-        name = param["name"]
-        mean = param["stats"]["mean"]
-        rc[name] = mean
-    return rc
-
-def analyze_abtest_result_dir(result_dir: str):
-    dirs = [ os.path.join(result_dir, name) for name in os.listdir(result_dir) if os.path.isdir(os.path.join(result_dir, name)) ]
-    delta = False
-    json_files = list(filter(len, map(find_latest_json_file, dirs)))
-    out = [['Benchmark']]
-    assert json_files, f"Don't find benchmark result files in {result_dir}."
-    # If there are only two json files, we believe it is an abtest, so print delta of the mean
-    if len(json_files) == 2:
-        delta = True
-    with open(json_files[0], "r") as fp:
-        cur_result = json.load(fp)
-        means = get_means(cur_result)
-    for key in means:
-        out.append([])
-        out[-1].append(key)
-    for index, json_file in enumerate(json_files):
-        with open(json_file, "r") as fp:
-            jsonobj = json.load(fp)
-        header = f"Run {os.path.basename(os.path.dirname(json_file))}"
-        out[0].append(header)
-        means = get_means(jsonobj)
-        if delta and index == 0:
-            reference = means
-        for key_index, key in enumerate(means):
-            out[key_index+1].append(means[key])
-            if delta and index == 1:
-                out[0].append("Delta")
-                out[key_index+1].append(get_delta_str(reference[key], means[key]))
-    out_str = tabulate(out, headers='firstrow')
-    return out_str
 
 class Commit:
     sha: str
     ctime: str
-    digest: Dict[str, float]
+    digest: Optional[Any]
     def __init__(self, sha, ctime):
         self.sha = sha
         self.ctime = ctime
         self.digest = None
     def __str__(self):
         return self.sha
-
 
 class TorchSource:
     srcpath: str
@@ -152,7 +105,7 @@ class TorchSource:
         self.commit_dict = dict()
 
     def prep(self, build_env: os._Environ) -> bool:
-        repo_origin_url = gitutils.get_git_origin(self.srcpath)
+        repo_origin_url = get_git_origin(self.srcpath)
         if not repo_origin_url == TORCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
         self.update_repos()
@@ -495,11 +448,6 @@ class TorchBenchBisection:
         with open(self.output_json, 'w') as outfile:
             json.dump(json_obj, outfile, indent=2)
 
-    def output_abtest_result(self):
-        abtest_result = analyze_abtest_result_dir(self.workdir)
-        with open(self.output_json, 'w') as outfile:
-            outfile.write(abtest_result)
-        print(abtest_result)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -520,18 +468,11 @@ if __name__ == "__main__":
                         help="the bisection configuration in YAML format")
     parser.add_argument("--output",
                         help="the output json file")
-    parser.add_argument("--analyze-result",
-                        help="specify the output result directory to analyze")
     # by default, debug mode is disabled
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
                         action='store_true')
     args = parser.parse_args()
-
-    # If this is to print the overview of a test result, don't need to run the actual execution
-    if args.analyze_result:
-        print(analyze_abtest_result_dir(args.analyze_result))
-        exit(0)
 
     with open(args.config, "r") as f:
         bisect_config = yaml.full_load(f)
@@ -564,7 +505,4 @@ if __name__ == "__main__":
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
     bisection.run()
-    if bisection.abtest:
-        bisection.output_abtest_result()
-    else:
-        bisection.output()
+    bisection.output()

@@ -5,7 +5,6 @@ Utils for getting git-related information.
 
 import os
 import time
-from pathlib import Path
 import subprocess
 from datetime import datetime
 from typing import Optional, List
