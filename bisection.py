@@ -452,7 +452,7 @@ class TorchBenchBisection:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-dir",
-                        help="bisection working directory",
+                        help="bisection working directory for logs and results",
                         type=exist_dir_path)
     parser.add_argument("--pytorch-repos-path",
                         help="the directory of pytorch/* source code repositories",
