@@ -9,6 +9,7 @@ import numpy as np
 import cv2
 from torchbenchmark.tasks import COMPUTER_VISION
 import torch
+import os
 
 
     
@@ -20,11 +21,11 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         
         # Checkpoint options are here https://github.com/facebookresearch/segment-anything#model-checkpoints
-        sam_checkpoint = "sam_vit_h_4b8939.pth"
+        sam_checkpoint = os.path.join('.data', 'sam_vit_h_4b8939.pth')
         model_type = "vit_h"
 
         # TODO Before merge: Add the real checkpoint when done testing
-        self.model = sam_model_registry[model_type](checkpoint=None)
+        self.model = sam_model_registry[model_type](checkpoint=sam_checkpoint)
         self.model.to(device=device)
 
         # TODO Before merge: Make the batch size configurable
@@ -47,8 +48,8 @@ class Model(BenchmarkModel):
 
     def eval(self):
         predictor = SamPredictor(self.model)
-        # random_image_path = generate_random_image(128, 128, 3)
-        image = cv2.imread('truck.jpg')
+        image_path = os.path.join('.data', 'truck.jpg')
+        image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         predictor.set_image(image)
 
