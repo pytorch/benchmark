@@ -60,21 +60,3 @@ class Model(BenchmarkModel):
         point_labels=input_label,
         multimask_output=True)
         return (masks,)
-    
-
-
-
-# TODO: I'm open to wgetting a real image but this seems useful for now
-# Generate a random image with specified width, height, and color channels
-def generate_random_image(width, height, channels):
-    # Create a random numpy array representing the image pixels
-    image_data = np.random.randint(0, 256, (height, width, channels), dtype=np.uint8)
-    
-    # Create a Pillow image object from the numpy array
-    image = Image.fromarray(image_data)
-    
-    # Save the image to a file
-    image_path = "random_image.jpg"
-    image.save(image_path)
-    
-    return image_path
