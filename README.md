@@ -21,19 +21,19 @@ conda create -n torchbenchmark python=3.10
 conda activate torchbenchmark
 ```
 
-If you are running NVIDIA GPU tests, we support CUDA 11.7+, and use CUDA 11.7 as default:
+If you are running NVIDIA GPU tests, we support CUDA 11.8+, and use CUDA 11.8 as default:
 ```
-conda install -y -c pytorch magma-cuda117
+conda install -y -c pytorch magma-cuda118
 ```
 
 Then install pytorch, torchtext, torchvision, and torchaudio using conda:
 ```
-conda install pytorch torchvision torchtext torchaudio pytorch-cuda=11.7 -c pytorch-nightly -c nvidia
+conda install pytorch torchvision torchtext torchaudio pytorch-cuda=11.8 -c pytorch-nightly -c nvidia
 ```
 Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
 ```
-pip install --pre torch torchvision torchtext torchaudio -f https://download.pytorch.org/whl/nightly/cu117/torch_nightly.html
+pip install --pre torch torchvision torchtext torchaudio -i https://download.pytorch.org/whl/nightly/cu118
 ```
 
 Install other necessary libraries:

@@ -8,13 +8,9 @@ from pathlib import Path
 from typing import Optional
 
 # defines the default CUDA version to compile against
-DEFAULT_CUDA_VERSION = "11.7"
+DEFAULT_CUDA_VERSION = "11.8"
 
 CUDA_VERSION_MAP = {
-    "11.6": {
-         "pytorch_url": "cu116",
-         "magma_version": "magma-cuda116",
-    },
     "11.7": {
          "pytorch_url": "cu117",
          "magma_version": "magma-cuda117",
@@ -22,7 +18,11 @@ CUDA_VERSION_MAP = {
     "11.8": {
          "pytorch_url": "cu118",
          "magma_version": "magma-cuda118",
-    }
+    },
+    "12.1": {
+         "pytorch_url": "cu121",
+         "magma_version": "magma-cuda121",
+    },
 }
 PIN_CMAKE_VERSION = "3.22.*"
 TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchtext", "torchvision", "torchaudio"]
