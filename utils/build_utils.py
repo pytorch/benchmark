@@ -6,14 +6,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict
 
-FIRST_TIME_INSTALL_TORCHBENCH = True
 
 @dataclass
 class TorchRepo:
     name: str
+    origin_url: str
+    main_branch: str
     src_path: Path
     cur_commit: str
-    main_branch: str
     build_command: List[str]
 
 def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
@@ -30,17 +30,10 @@ def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
     env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
     return env
 
-
 def _print_info(info: str):
     print(f"===========================   {info}   ===========================", flush=True)
 
 def build_repo(repo: TorchRepo, build_env: Dict[str, str]):
-    if not repo.name == "torchbench":
-        _print_info(f"BUILDING {repo.name.upper()} START")
-        subprocess.check_call(repo.build_command, cwd=repo.src_path, env=build_env)
-        _print_info(f"BUILDING {repo.name.upper()} END")
-    elif FIRST_TIME_INSTALL_TORCHBENCH:
-        _print_info(f"BUILDING {repo.name.upper()} START")
-        subprocess.check_call(repo.build_command, cwd=repo.src_path, env=build_env)
-        FIRST_TIME_INSTALL_TORCHBENCH = False
-        _print_info(f"BUILDING {repo.name.upper()} END")
+    _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} START")
+    subprocess.check_call(repo.build_command, cwd=repo.src_path, env=build_env)
+    _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} END")

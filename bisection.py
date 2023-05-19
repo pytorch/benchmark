@@ -4,9 +4,9 @@ It assumes that the pytorch, torchbench, torchtext, torchvision, and torchaudio 
 By default, the torchaudio, torchvision and torchtext packages will be fixed to the latest commit on the same pytorch commit date.
 
 Usage:
-  python bisection.py --work-dir <WORK-DIR> \
-    --pytorch-src <PYTORCH_SRC_DIR> \
-    --torchbench-src <TORCHBENCH_SRC_DIR> \
+  python bisection.py --work-dir <WORK_DIR> \
+    --torch-repos-path <PYTORCH_REPOS_PATH> \
+    --torchbench-repo-path <TORCHBENCH_SRC_DIR> \
     --config <BISECT_CONFIG> --output <OUTPUT_FILE_PATH>
 """
 
@@ -68,19 +68,26 @@ def exist_dir_path(string):
     else:
         raise NotADirectoryError(string)
 
-def get_updated_torch_repos(pytorch_repos_path: str, torchbench_repo_path: str) -> Dict[str, TorchRepo]:
+def get_updated_torch_repos(pytorch_repos_path: str, torchbench_repo_path: Optional[str]=None) -> Dict[str, TorchRepo]:
     all_repos = {}
-    for repo_name in TORCHBENCH_BISECTION_TARGETS.keys():
-        repo_path = Path(pytorch_repos_path).joinpath("repo_name")
+    def _gen_torch_repo(repo_name: str, repo_path: str):
         assert repo_path.exists() and repo_path.is_dir(), f"{str(repo_path)} is not an existing directory."
         main_branch = "main" if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name] else \
                       TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
         update_git_repo(repo_path.absolute(), main_branch)
         cur_commit = get_current_commit(repo_path.absolute())
-        all_repos[repo_name] = TorchRepo(name=repo_name, src_path=repo_path, cur_commit=cur_commit, \
-                                         main_branch=main_branch, build_command=TORCHBENCH_BISECTION_TARGETS[repo_name]["build_command"])
+        return TorchRepo(name=repo_name, 
+                         origin_url=TORCHBENCH_BISECTION_TARGETS[repo_name]["url"],
+                         main_branch=main_branch,
+                         src_path=repo_path,
+                         cur_commit=cur_commit,
+                         build_command=TORCHBENCH_BISECTION_TARGETS[repo_name]["build_command"])
+    for repo_name in TORCHBENCH_BISECTION_TARGETS.keys():
+        repo_subdir_name = TORCHBENCH_BISECTION_TARGETS[repo_name]["name"]
+        repo_path = Path(pytorch_repos_path).joinpath(repo_subdir_name) if not (torchbench_repo_path and repo_name == "torchbench") \
+                        else Path(torchbench_repo_path)
+        all_repos[repo_name] = _gen_torch_repo(repo_name, repo_path)
     return all_repos
-
 
 class Commit:
     sha: str
@@ -93,25 +100,28 @@ class Commit:
     def __str__(self):
         return self.sha
 
-class TorchSource:
-    srcpath: str
+class BisectionTargetRepo:
+    repo: TorchRepo
+    start: str
+    end: str
     commits: List[Commit]
-    build_env: os._Environ
-    # Map from commit SHA to index in commits
+    # Map from commit SHA to its index in commits
     commit_dict: Dict[str, int]
-    def __init__(self, srcpath: str):
-        self.srcpath = srcpath
+    def __init__(self, repo: TorchRepo, start: str, end: str):
+        self.repo = repo
+        self.start = start
+        self.end = end
         self.commits = []
         self.commit_dict = dict()
 
-    def prep(self, build_env: os._Environ) -> bool:
+    def prep(self) -> bool:
         repo_origin_url = get_git_origin(self.srcpath)
         if not repo_origin_url == TORCH_GITREPO:
             print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
         self.update_repos()
         # Clean up the existing packages
         self.cleanup()
-        self.build_env = build_env
+        # TODO: init commits
         return True
 
     # Update pytorch, torchtext, torchvision, and torchaudio repo
@@ -203,7 +213,7 @@ class TorchSource:
             subprocess.check_call(command, shell=True)
         print("done")
 
-class TorchBench:
+class TorchBenchRepo:
     srcpath: str # path to pytorch/benchmark source code
     branch: str
     timelimit: int # timeout limit in minutes
@@ -214,24 +224,18 @@ class TorchBench:
     bench_env: os._Environ
 
     def __init__(self, srcpath: str,
-                 torch_src: TorchSource,
-                 timelimit: int,
+                 torch_src: BisectionTargetRepo,
                  workdir: str):
         self.srcpath = srcpath
         self.torch_src = torch_src
-        self.timelimit = timelimit
         self.workdir = workdir
         self.first_time = True
         self.models = list()
 
     def prep(self, bench_env) -> bool:
         self.bench_env = bench_env
-        # Verify the code in srcpath is pytorch/benchmark
-        repo_origin_url = gitutils.get_git_origin(self.srcpath)
-        if not repo_origin_url == TORCHBENCH_GITREPO:
-            print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCHBENCH_GITREPO}")
         # get the name of current branch
-        self.branch = gitutils.get_current_branch(self.srcpath)
+        self.branch = get_current_branch(self.srcpath)
         # get list of models
         self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
                         if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
@@ -323,52 +327,50 @@ class TorchBench:
         return commit.digest
         
 class TorchBenchBisection:
-    workdir: str
-    start: str
-    end: str
-    threshold: float
-    direction: str
-    targets: List[str]
+    workdir: Path
+    bisection_env: os._Environ
+    torch_repos: List[TorchRepo]
+    target_repo: BisectionTargetRepo
+    torchbench: TorchBenchRepo
+    bisect_config: Any
+    output_json: str
+    debug: bool
     # left commit, right commit, targets to test
     bisectq: List[Tuple[Commit, Commit, List[str]]]
     result: List[Tuple[Commit, Commit]]
-    torch_src: TorchSource
-    bench: TorchBench
-    output_json: str
-    debug: bool
-    abtest: bool
+
 
     def __init__(self,
                  workdir: str,
-                 torch_src: str,
-                 bench_src: str,
+                 torch_repos: List[TorchRepo],
+                 target_repo: TorchRepo,
                  start: str,
                  end: str,
-                 threshold: float,
-                 direction: str,
-                 timeout: int,
-                 targets: List[str],
+                 bisect_config: Any,
                  output_json: str,
                  debug: bool = False):
-        self.workdir = workdir
-        self.start = start
-        self.end = end
-        self.threshold = threshold
-        self.direction = direction
-        self.targets = targets
+        self.workdir = Path(workdir)
+        self.torch_repos = torch_repos
+        self.target_repo = BisectionTargetRepo(repo=target_repo, start=start, end=end)
+        self.torchbench = TorchBenchRepo(repo=torch_repos["torchbench"],
+                                         workdir=self.workdir)
+        self.bisect_config = bisect_config
         self.bisectq = list()
         self.result = list()
-        self.torch_src = TorchSource(srcpath = torch_src)
-        self.bench = TorchBench(srcpath = bench_src,
-                                torch_src = self.torch_src,
-                                timelimit = timeout,
-                                workdir = self.workdir)
         self.output_json = output_json
         self.debug = debug
-        # Special treatment for abtest
-        self.abtest = False
-        if self.threshold == 100.0 and self.direction == "decrease":
-            self.abtest = True
+
+    def prep(self) -> bool:
+        base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
+        self.bisection_env = setup_bisection_build_env(base_build_env)
+        if not self.target_repo.prep(self.bisection_env):
+            return False
+        if not self.torchbench.prep(self.bisection_env):
+            return False
+        left_commit = self.target_repo_src.commits[0]
+        right_commit = self.target_repo_src.commits[-1]
+        self.bisectq.append((left_commit, right_commit, self.bisect_config))
+        return True
 
     # Left: older commit; right: newer commit
     # Return: List of targets that satisfy the regression rule: <threshold, direction>
@@ -396,19 +398,6 @@ class TorchBenchBisection:
                 elif self.direction == "both":
                     out.append(target)
         return out
-
-    def prep(self) -> bool:
-        base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
-        if not self.torch_src.prep(base_build_env):
-            return False
-        if not self.torch_src.init_commits(self.start, self.end, self.abtest):
-            return False
-        if not self.bench.prep(base_build_env):
-            return False
-        left_commit = self.torch_src.commits[0]
-        right_commit = self.torch_src.commits[-1]
-        self.bisectq.append((left_commit, right_commit, self.targets))
-        return True
         
     def run(self):
         while len(self.bisectq):
@@ -454,18 +443,19 @@ if __name__ == "__main__":
     parser.add_argument("--work-dir",
                         help="bisection working directory for logs and results",
                         type=exist_dir_path)
-    parser.add_argument("--pytorch-repos-path",
+    parser.add_argument("--torch-repos-path",
                         help="the directory of pytorch/* source code repositories",
                         type=exist_dir_path)
     parser.add_argument("--torchbench-repo-path",
-                        help="the directory of torchbench source code git repository",
+                        default=None,
+                        help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
                         type=exist_dir_path)
+    parser.add_argument("--config",
+                        help="the output of regression_detector.py in YAML")
     parser.add_argument("--target-repo",
-                        help="the target repo for bisection, default to pytorch. It should match the hash in the bisection config.",
+                        help="the target repo for bisection, default to pytorch. It should match the hash in the YAML config file.",
                         default="pytorch",
                         choices=TORCHBENCH_BISECTION_TARGETS.keys())
-    parser.add_argument("--config",
-                        help="the bisection configuration in YAML format")
     parser.add_argument("--output",
                         help="the output json file")
     # by default, debug mode is disabled
@@ -478,28 +468,17 @@ if __name__ == "__main__":
         bisect_config = yaml.full_load(f)
 
     # sanity checks
-    valid_directions = ["increase", "decrease", "both"]
     assert("start" in bisect_config), "Illegal bisection config, must specify start commit SHA."
     assert("end" in bisect_config), "Illegal bisection config, must specify end commit SHA."
-    assert("threshold" in bisect_config), "Illegal bisection config, must specify threshold."
-    assert("direction" in bisect_config), "Illegal bisection config, must specify direction."
-    assert(bisect_config["direction"] in valid_directions), "We only support increase, decrease, or both directions"
-    assert("timeout" in bisect_config), "Illegal bisection config, must specify timeout."
-    targets = None
-    if "tests" in bisect_config:
-        targets = bisect_config["tests"]
     # read the repo directory, if necessary, update it
-    torch_repos: Dict[str, TorchRepo] = get_updated_torch_repos(args.pytorch_repos_path, args.torchbench_repo_path)
+    torch_repos: Dict[str, TorchRepo] = get_updated_torch_repos(args.torch_repos_path, args.torchbench_repo_path)
 
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_repos=torch_repos,
-                                    target_repo=args.target_repo,
+                                    target_repo=torch_repos[args.target_repo],
                                     start=bisect_config["start"],
                                     end=bisect_config["end"],
-                                    threshold=bisect_config["threshold"],
-                                    direction=bisect_config["direction"],
-                                    timeout=bisect_config["timeout"],
-                                    targets=targets,
+                                    bisect_config=bisect_config,
                                     output_json=args.output,
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
