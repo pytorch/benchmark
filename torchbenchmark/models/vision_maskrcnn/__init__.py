@@ -45,9 +45,12 @@ def _prefetch(loader, device):
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
-    DEFAULT_TRAIN_BSIZE = 4
-    DEFAULT_EVAL_BSIZE = 4
+    # MaskRCNN doesn't actually take the inputs in batches; it takes a list
+    # of tensors which individually are CHW
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
     NUM_OF_BATCHES = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         # reduce the eval batch size when running on CPU
