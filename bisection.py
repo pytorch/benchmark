@@ -23,7 +23,7 @@ from typing import Optional, List, Dict, Tuple, Any
 
 from userbenchmark.utils import parse_abtest_result_from_regression_dict, TorchBenchABTestResult
 from regression_detector import generate_regression_dict
-from utils.gitutils import *
+from utils import gitutils
 from utils.build_utils import (
     setup_bisection_build_env,
     build_repo,
@@ -77,9 +77,9 @@ def get_updated_clean_torch_repos(pytorch_repos_path: str, torchbench_repo_path:
         main_branch = "main" if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name] else \
                       TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
         if not skip_update_repos or not repo_name in skip_update_repos:
-            assert update_git_repo(repo_path.absolute(), main_branch)
-            assert clean_git_repo(repo_path.absolute())
-        cur_commit = get_current_commit(repo_path.absolute())
+            assert gitutils.update_git_repo(repo_path.absolute(), main_branch)
+            assert gitutils.clean_git_repo(repo_path.absolute())
+        cur_commit = gitutils.get_current_commit(repo_path.absolute())
         return TorchRepo(name=repo_name, 
                          origin_url=TORCHBENCH_BISECTION_TARGETS[repo_name]["url"],
                          main_branch=main_branch,
@@ -108,26 +108,29 @@ class BisectionTargetRepo:
     repo: TorchRepo
     start: str
     end: str
+    non_target_repos: List[TorchRepo]
+    # generated in prep()
     bisection_env: os._Environ
     commits: List[Commit]
     # Map from commit SHA to its index in commits
     commit_dict: Dict[str, int]
-    def __init__(self, repo: TorchRepo, start: str, end: str):
+    def __init__(self, repo: TorchRepo, start: str, end: str, non_target_repos: List[TorchRepo]):
         self.repo = repo
         self.start = start
         self.end = end
+        self.non_target_repos = non_target_repos
         self.commits = []
         self.commit_dict = dict()
 
     def prep(self) -> bool:
         base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
         self.bisection_env = setup_bisection_build_env(base_build_env)
-        commits = get_git_commits(self.repo.src_path, self.start, self.end)
+        commits = gitutils.get_git_commits(self.repo.src_path, self.start, self.end)
         if not commits or len(commits) < 2:
             print(f"Failed to retrieve commits from {self.start} to {self.end} in {self.repo.src_path}.")
             return False
         for count, commit in enumerate(commits):
-            ctime = get_git_commit_date(self.repo.src_path, commit)
+            ctime = gitutils.get_git_commit_date(self.repo.src_path, commit)
             self.commits.append(Commit(sha=commit, ctime=ctime))
             self.commit_dict[commit] = count
         return True
@@ -140,39 +143,36 @@ class BisectionTargetRepo:
         else:
             return self.commits[int((left_index + right_index) / 2)]
 
-    # Checkout the last commit of dependencies on date
-    def checkout_deps(self, cdate: datetime):
-        for pkg in TORCHBENCH_DEPS:
-            pkg_path, branch = TORCHBENCH_DEPS[pkg]
-            gitutils.checkout_git_branch(pkg_path, branch)
-            dep_commit = gitutils.get_git_commit_on_date(pkg_path, cdate)
-            print(f"Checking out {pkg} commit {dep_commit} ...", end="", flush=True)
-            assert dep_commit, "Failed to find the commit on {cdate} of {pkg}"
-            assert gitutils.checkout_git_commit(pkg_path, dep_commit), f"Failed to checkout commit {dep_commit} of {pkg}"
+    # Checkout the last commit of non-target repos on date
+    def checkout_non_target_repos(self, cdate: datetime):
+        for repo in self.non_target_repos:
+            gitutils.checkout_git_branch(repo.src_path.absolute(), repo.main_branch)
+            dep_commit = gitutils.get_git_commit_on_date(repo.src_path.absolute(), cdate)
+            assert dep_commit, f"Failed to find the commit on {cdate} of {repo.name}"
+            print(f"Checking out {repo.name} commit {dep_commit} ...", end="", flush=True)
+            assert gitutils.checkout_git_commit(repo.src_path.absolute(), dep_commit), \
+                   f"Failed to checkout commit {dep_commit} of {repo.name}"
             print("done.")
     
     # Install dependencies such as torchtext and torchvision
-    def build_install_deps(self, build_env):
-        build_repo(self.repos["torchdata"], build_env)
-        build_repo(self.repos["torchvision"], build_env)
-        build_repo(self.repos["torchtext"], build_env)
-        build_repo(self.repos["torchaudio"], build_env)
+    def build_non_target_repos(self):
+        for repo in self.non_target_repos:
+            build_repo(repo)
 
     def build(self, commit: Commit):
-        # checkout pytorch commit
-        print(f"Checking out pytorch commit {commit.sha} ...", end="", flush=True)
-        checkout_git_commit(self.srcpath, commit.sha)
-        print("done.")
-        # checkout pytorch deps commit
+        # checkout target repo commit
+        print(f"====================== [TORCHBENCH] Checking out target repo {self.repo.name} commit {commit.sha} " \
+              "=======================", end="", flush=True)
+        assert gitutils.checkout_git_commit(self.repo.src_path.absolute(), commit.sha)
+        # checkout non-target repos commit
         ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
-        self.checkout_deps(ctime)
-        # setup environment variables
-        build_env = setup_bisection_build_env(self.build_env)
-        # build pytorch
-        print(f"Building pytorch commit {commit.sha} ...", end="", flush=True)
+        self.checkout_non_target_repos(ctime)
+        # build target repo
+        print(f"Building target repo {self.repo.name} commit {commit.sha} ...", end="", flush=True)
+        build_repo(self.repo)
         # Check if version.py exists, if it does, remove it.
-        # This is to force pytorch update the version.py file upon incremental compilation
-        version_py_path = os.path.join(self.srcpath, "torch/version.py")
+        # This is to force pytorch to update the version.py file upon incremental compilation
+        version_py_path = os.path.join(self.repo.src_path.absolute(), "torch/version.py")
         if os.path.exists(version_py_path):
             os.remove(version_py_path)
         try:
@@ -328,7 +328,8 @@ class TorchBenchBisection:
                  debug: bool = False):
         self.workdir = Path(workdir)
         self.torch_repos = torch_repos
-        self.target_repo = BisectionTargetRepo(repo=target_repo, start=start, end=end)
+        non_target_repos = list(filter(lambda x: not x.name == target_repo.name, torch_repos))
+        self.target_repo = BisectionTargetRepo(repo=target_repo, start=start, end=end, non_target_repos=non_target_repos)
         self.torchbench = TorchBenchRepo(repo=torch_repos["torchbench"],
                                          target_repo=self.target_repo,
                                          workdir=self.workdir)
@@ -433,8 +434,8 @@ if __name__ == "__main__":
     # load, update, and clean the repo directories
     torch_repos: Dict[str, TorchRepo] = get_updated_clean_torch_repos(args.torch_repos_path, args.torchbench_repo_path, skip_update_repos)
     target_repo = torch_repos[bisect_config.bisection]
-    start_hash = get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.control_env["git_commit_hash"])
-    end_hash =  get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.treatment_env["git_commit_hash"])
+    start_hash = gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.control_env["git_commit_hash"])
+    end_hash =  gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.treatment_env["git_commit_hash"])
 
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_repos=torch_repos,
