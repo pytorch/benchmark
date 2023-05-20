@@ -21,6 +21,9 @@ def run(control, treatment) -> TorchBenchABTestResult:
                                   control_env=control_env, \
                                   treatment_env=treatment_env, \
                                   details=details, \
+<<<<<<< HEAD
                                   control_only_metrics={}, \
                                   treatment_only_metrics={}, \
+=======
+>>>>>>> b82763d2 (Add bisection script)
                                   bisection="pytorch")

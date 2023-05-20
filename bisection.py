@@ -21,6 +21,8 @@ import subprocess
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Any
 
+from userbenchmark.utils import parse_abtest_result_from_regression_dict, TorchBenchABTestResult
+from regression_detector import generate_regression_dict
 from utils.gitutils import *
 from utils.build_utils import (
     setup_bisection_build_env,
@@ -68,13 +70,14 @@ def exist_dir_path(string):
     else:
         raise NotADirectoryError(string)
 
-def get_updated_torch_repos(pytorch_repos_path: str, torchbench_repo_path: Optional[str]=None) -> Dict[str, TorchRepo]:
+def get_updated_clean_torch_repos(pytorch_repos_path: str, torchbench_repo_path: Optional[str]=None) -> Dict[str, TorchRepo]:
     all_repos = {}
     def _gen_torch_repo(repo_name: str, repo_path: str):
         assert repo_path.exists() and repo_path.is_dir(), f"{str(repo_path)} is not an existing directory."
         main_branch = "main" if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name] else \
                       TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
         update_git_repo(repo_path.absolute(), main_branch)
+        assert clean_git_repo(repo_path.absolute())
         cur_commit = get_current_commit(repo_path.absolute())
         return TorchRepo(name=repo_name, 
                          origin_url=TORCHBENCH_BISECTION_TARGETS[repo_name]["url"],
@@ -92,7 +95,7 @@ def get_updated_torch_repos(pytorch_repos_path: str, torchbench_repo_path: Optio
 class Commit:
     sha: str
     ctime: str
-    digest: Optional[Any]
+    digest: Optional[Dict[str, Any]]
     def __init__(self, sha, ctime):
         self.sha = sha
         self.ctime = ctime
@@ -104,49 +107,29 @@ class BisectionTargetRepo:
     repo: TorchRepo
     start: str
     end: str
+    bisection_env: os._Environ
     commits: List[Commit]
     # Map from commit SHA to its index in commits
     commit_dict: Dict[str, int]
-    def __init__(self, repo: TorchRepo, start: str, end: str):
+    def __init__(self, repo: TorchRepo, start: str, end: str, bisection_env: os._Environ):
         self.repo = repo
         self.start = start
         self.end = end
+        self.bisection_env = bisection_env
         self.commits = []
         self.commit_dict = dict()
 
     def prep(self) -> bool:
-        repo_origin_url = get_git_origin(self.srcpath)
-        if not repo_origin_url == TORCH_GITREPO:
-            print(f"WARNING: Unmatched repo origin url: {repo_origin_url} with standard {TORCH_GITREPO}")
-        self.update_repos()
-        # Clean up the existing packages
-        self.cleanup()
-        # TODO: init commits
-        return True
-
-    # Update pytorch, torchtext, torchvision, and torchaudio repo
-    def update_repos(self):
-        repos = [(self.srcpath, "main")]
-        repos.extend(TORCHBENCH_DEPS.values())
-        for (repo, branch) in repos:
-            gitutils.clean_git_repo(repo)
-            assert gitutils.update_git_repo(repo, branch), f"Failed to update {branch} branch of repository {repo}."
-
-    # Get all commits between start and end, save them in self.commits
-    def init_commits(self, start: str, end: str, abtest: bool) -> bool:
-        if not abtest:
-            commits = gitutils.get_git_commits(self.srcpath, start, end)
-        else:
-            commits = [start, end]
+        commits = get_git_commits(self.repo.src_path, self.start, self.end)
         if not commits or len(commits) < 2:
-            print(f"Failed to retrieve commits from {start} to {end} in {self.srcpath}.")
+            print(f"Failed to retrieve commits from {self.start} to {self.end} in {self.repo.src_path}.")
             return False
         for count, commit in enumerate(commits):
-            ctime = gitutils.get_git_commit_date(self.srcpath, commit)
+            ctime = get_git_commit_date(self.repo.src_path, commit)
             self.commits.append(Commit(sha=commit, ctime=ctime))
             self.commit_dict[commit] = count
         return True
-    
+
     def get_mid_commit(self, left: Commit, right: Commit) -> Optional[Commit]:
         left_index = self.commit_dict[left.sha]
         right_index = self.commit_dict[right.sha]
@@ -176,7 +159,7 @@ class BisectionTargetRepo:
     def build(self, commit: Commit):
         # checkout pytorch commit
         print(f"Checking out pytorch commit {commit.sha} ...", end="", flush=True)
-        gitutils.checkout_git_commit(self.srcpath, commit.sha)
+        checkout_git_commit(self.srcpath, commit.sha)
         print("done.")
         # checkout pytorch deps commit
         ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
@@ -214,13 +197,11 @@ class BisectionTargetRepo:
         print("done")
 
 class TorchBenchRepo:
-    srcpath: str # path to pytorch/benchmark source code
-    branch: str
+    repo: TorchRepo
     timelimit: int # timeout limit in minutes
     workdir: str
-    models: List[str]
     first_time: bool
-    torch_src: TorchSource
+    target_repo: BisectionTargetRepo
     bench_env: os._Environ
 
     def __init__(self, srcpath: str,
@@ -230,15 +211,11 @@ class TorchBenchRepo:
         self.torch_src = torch_src
         self.workdir = workdir
         self.first_time = True
-        self.models = list()
 
     def prep(self, bench_env) -> bool:
         self.bench_env = bench_env
         # get the name of current branch
         self.branch = get_current_branch(self.srcpath)
-        # get list of models
-        self.models = [ model for model in os.listdir(os.path.join(self.srcpath, "torchbenchmark", "models"))
-                        if os.path.isdir(os.path.join(self.srcpath, "torchbenchmark", "models", model)) ]
         return True
 
     def _install_benchmark(self):
@@ -332,11 +309,11 @@ class TorchBenchBisection:
     torch_repos: List[TorchRepo]
     target_repo: BisectionTargetRepo
     torchbench: TorchBenchRepo
-    bisect_config: Any
+    bisect_config: TorchBenchABTestResult
     output_json: str
     debug: bool
-    # left commit, right commit, targets to test
-    bisectq: List[Tuple[Commit, Commit, List[str]]]
+    # left commit, right commit, TorchBenchABTestResult to test
+    bisectq: List[Tuple[Commit, Commit, TorchBenchABTestResult]]
     result: List[Tuple[Commit, Commit]]
 
 
@@ -346,7 +323,7 @@ class TorchBenchBisection:
                  target_repo: TorchRepo,
                  start: str,
                  end: str,
-                 bisect_config: Any,
+                 bisect_config: TorchBenchABTestResult,
                  output_json: str,
                  debug: bool = False):
         self.workdir = Path(workdir)
@@ -372,50 +349,29 @@ class TorchBenchBisection:
         self.bisectq.append((left_commit, right_commit, self.bisect_config))
         return True
 
-    # Left: older commit; right: newer commit
-    # Return: List of targets that satisfy the regression rule: <threshold, direction>
-    def regression(self, left: Commit, right: Commit, targets: List[str]) -> List[str]:
+    # Left: older commit, right: newer commit, target: TorchBenchABTestResult
+    # Return: List of [left, right, TorchBenchABTestResult] that satisfy the regression rule
+    def regression_detection(self, left: Commit, right: Commit) -> TorchBenchABTestResult:
         # If uncalculated, commit.digest will be None
         assert left.digest, "Commit {left.sha} must have a digest"
         assert right.digest, "Commit {right.sha} must have a digest"
-        out = []
-        for target in targets:
-            # digest could be empty if benchmark timeout
-            left_mean = left.digest[target] if len(left.digest) else 0
-            right_mean = right.digest[target] if len(right.digest) else 0
-            # If either left or right timeout, diff is 100. Otherwise use the min mean value to calculate diff.
-            diff = abs(left_mean - right_mean) / min(left_mean, right_mean) * 100 if min(left_mean, right_mean) else 100
-            # If both timeout, diff is zero percent
-            diff = 0 if not max(left_mean, right_mean) else diff
-            print(f"Target {target}: left commit {left.sha} mean {left_mean} vs. right commit {right.sha} mean {right_mean}. Diff: {diff}.")
-            if diff >= self.threshold:
-                if self.direction == "increase" and left_mean < right_mean:
-                    # Time increase == performance regression
-                    out.append(target)
-                elif self.direction == "decrease" and left_mean > right_mean:
-                    # Time decrease == performance optimization
-                    out.append(target)
-                elif self.direction == "both":
-                    out.append(target)
-        return out
+        regression_dict = generate_regression_dict(left.digest, right.digest)
+        abtest_result = parse_abtest_result_from_regression_dict(regression_dict)
+        return abtest_result
         
     def run(self):
         while len(self.bisectq):
-            (left, right, targets) = self.bisectq.pop(0)
-            self.bench.get_digest(left, targets, self.debug)
-            self.bench.get_digest(right, targets, self.debug)
-            if targets == None and len(left.digest):
-                targets = left.digest.keys()
-            if targets == None and len(right.digest):
-                targets = right.digest.keys()
-            updated_targets = self.regression(left, right, targets)
-            if len(updated_targets):
+            (left, right, abtest_result) = self.bisectq.pop(0)
+            self.torchbench.run_commit(left, abtest_result, self.debug)
+            self.torchbench.run_commit(right, abtest_result, self.debug)
+            updated_abtest_result = self.regression_detection(left, right)
+            if len(updated_abtest_result.details):
                 mid = self.torch_src.get_mid_commit(left, right)
                 if mid == None:
                     self.result.append((left, right))
                 else:
-                    self.bisectq.append((left, mid, updated_targets))
-                    self.bisectq.append((mid, right, updated_targets))
+                    self.bisectq.append((left, mid, updated_abtest_result))
+                    self.bisectq.append((mid, right, updated_abtest_result))
  
     def output(self):
         json_obj = dict()
@@ -451,11 +407,7 @@ if __name__ == "__main__":
                         help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
                         type=exist_dir_path)
     parser.add_argument("--config",
-                        help="the output of regression_detector.py in YAML")
-    parser.add_argument("--target-repo",
-                        help="the target repo for bisection, default to pytorch. It should match the hash in the YAML config file.",
-                        default="pytorch",
-                        choices=TORCHBENCH_BISECTION_TARGETS.keys())
+                        help="the regression dict output of regression_detector.py in YAML")
     parser.add_argument("--output",
                         help="the output json file")
     # by default, debug mode is disabled
@@ -465,19 +417,24 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
-        bisect_config = yaml.full_load(f)
+        bisect_config = parse_abtest_result_from_regression_dict(yaml.full_load(f))
 
     # sanity checks
-    assert("start" in bisect_config), "Illegal bisection config, must specify start commit SHA."
-    assert("end" in bisect_config), "Illegal bisection config, must specify end commit SHA."
-    # read the repo directory, if necessary, update it
-    torch_repos: Dict[str, TorchRepo] = get_updated_torch_repos(args.torch_repos_path, args.torchbench_repo_path)
+    assert bisect_config.control_env["git_commit_hash"], "Invalid bisection config, must specify control group commit hash."
+    assert bisect_config.treatment_env["git_commit_hash"], "Invalid bisection config, must specify treatment group commit hash."
+    assert bisect_config.bisection in TORCHBENCH_BISECTION_TARGETS.keys(), f"Invalid bisection config, " \
+                                                                            f"get bisection target repo {bisect_config.bisection}, " \
+                                                                            f"available target repos: {TORCHBENCH_BISECTION_TARGETS.keys()}"
+    assert bisect_config.bisection_mode == "bisect", "Abtest mode is not supported yet."
+
+    # load, update, and clean the repo directories
+    torch_repos: Dict[str, TorchRepo] = get_updated_clean_torch_repos(args.torch_repos_path, args.torchbench_repo_path)
 
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_repos=torch_repos,
-                                    target_repo=torch_repos[args.target_repo],
-                                    start=bisect_config["start"],
-                                    end=bisect_config["end"],
+                                    target_repo=torch_repos[bisect_config.bisection],
+                                    start=bisect_config.control_env["git_commit_hash"],
+                                    end=bisect_config.treatment_env["git_commit_hash"],
                                     bisect_config=bisect_config,
                                     output_json=args.output,
                                     debug=args.debug)

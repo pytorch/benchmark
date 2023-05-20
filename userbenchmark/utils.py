@@ -83,6 +83,20 @@ def parse_abtest_result_from_regression_file_for_bisect(regression_file: str):
     )
 
 
+def parse_abtest_result_from_regression_dict(regression_dict: Dict[Any, Any]) -> TorchBenchABTestResult:
+    def _parse_abtest_details(regression_dict: Dict[Any, Any]) -> Dict[str, TorchBenchABTestMetric]:
+        ret = {}
+        for key in regression_dict["details"]:
+            ret[key] = TorchBenchABTestMetric(control=regression_dict["details"][key]["control"],
+                                              treatment=regression_dict["details"][key]["treatment"],
+                                              delta=regression_dict["details"][key]["delta"])
+        return ret
+    return TorchBenchABTestResult(control_env=regression_dict["control_env"],
+                                  treatment_env=regression_dict["treatment_env"],
+                                  bisection=regression_dict["bisection"],
+                                  details=_parse_abtest_details(regression_dict))
+
+
 def get_output_json(bm_name, metrics) -> Dict[str, Any]:
     import torch
     return {
