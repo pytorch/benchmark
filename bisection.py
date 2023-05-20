@@ -27,6 +27,7 @@ from utils import gitutils
 from utils.build_utils import (
     setup_bisection_build_env,
     build_repo,
+    cleanup_torch_packages,
     TorchRepo,
 )
 from utils.cuda_utils import prepare_cuda_env, DEFAULT_CUDA_VERSION
@@ -153,11 +154,6 @@ class BisectionTargetRepo:
             assert gitutils.checkout_git_commit(repo.src_path.absolute(), dep_commit), \
                    f"Failed to checkout commit {dep_commit} of {repo.name}"
             print("done.")
-    
-    # Install dependencies such as torchtext and torchvision
-    def build_non_target_repos(self):
-        for repo in self.non_target_repos:
-            build_repo(repo)
 
     def build(self, commit: Commit):
         # checkout target repo commit
@@ -168,35 +164,13 @@ class BisectionTargetRepo:
         ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
         self.checkout_non_target_repos(ctime)
         # build target repo
-        print(f"Building target repo {self.repo.name} commit {commit.sha} ...", end="", flush=True)
         build_repo(self.repo)
-        # Check if version.py exists, if it does, remove it.
-        # This is to force pytorch to update the version.py file upon incremental compilation
-        version_py_path = os.path.join(self.repo.src_path.absolute(), "torch/version.py")
-        if os.path.exists(version_py_path):
-            os.remove(version_py_path)
-        try:
-            command = "python setup.py install"
-            subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
-            command_testbuild = "python -c 'import torch'"
-            subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env, shell=True)
-        except subprocess.CalledProcessError:
-            # Remove the build directory, then try build it again
-            build_path = os.path.join(self.srcpath, "build")
-            if os.path.exists(build_path):
-                shutil.rmtree(build_path)
-            subprocess.check_call(command, cwd=self.srcpath, env=build_env, shell=True)
-        print("done")
-        self.build_install_deps(build_env)
+        # build non target repos
+        for repo in self.non_target_repos:
+            build_repo(repo)
 
     def cleanup(self):
-        packages = ["torch"] + list(TORCHBENCH_DEPS.keys())
-        CLEANUP_ROUND = 5
-        # Clean up multiple times to make sure the packages are all uninstalled
-        for _ in range(CLEANUP_ROUND):
-            command = "pip uninstall -y " + " ".join(packages) + " || true"
-            subprocess.check_call(command, shell=True)
-        print("done")
+        cleanup_torch_packages()
 
 class TorchBenchRepo:
     repo: TorchRepo
@@ -221,33 +195,30 @@ class TorchBenchRepo:
 
     def _install_benchmark(self):
         "Install and build TorchBench dependencies"
-        command = ["python", "install.py"]
-        subprocess.check_call(command, cwd=self.srcpath, env=self.bench_env, shell=False)
+        command = [sys.executable, "install.py"]
+        subprocess.check_call(command, cwd=self.repo.src_path.absolute(), env=self.bisection_env)
 
-    def run_benchmark(self, commit: Commit, targets: List[str]) -> str:
+    def _run_benchmark_for_commit(self, commit: Commit, debug: bool=False) -> str:
         # Return the result json file path
-        output_dir = os.path.join(self.workdir, commit.sha)
+        output_dir = os.path.join(self.workdir.absolute(), commit.sha)
         # If the directory already exists, clear its contents
         if os.path.exists(output_dir):
             assert os.path.isdir(output_dir), "Must specify output directory: {output_dir}"
-            filelist = [ f for f in os.listdir(output_dir) ]
-            for f in filelist:
-                os.remove(os.path.join(output_dir, f))
-        else:
-            os.mkdir(output_dir)
-        bmfilter = targets_to_bmfilter(targets, self.models)
+            shutil.rmtree(output_dir)
+        os.mkdir(output_dir)
         # If the first time to run benchmark, install the dependencies first
         if self.first_time:
             self._install_benchmark()
             self.first_time = False
-        print(f"Running TorchBench for commit: {commit.sha}, filter {bmfilter} ...", end="", flush=True)
+        print(f"===================== [TORCHBENCH] Running TorchBench for commit: {commit.sha} START =====================", flush=True)
+
         command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
         try:
             subprocess.check_call(command, cwd=self.srcpath, env=self.bench_env, shell=True, timeout=self.timelimit * 60)
         except subprocess.TimeoutExpired:
             print(f"Benchmark timeout for {commit.sha}. Result will be None.")
             return output_dir
-        print("done.")
+        print(f"===================== [TORCHBENCH] Running TorchBench for commit: {commit.sha} END =====================", flush=True)
         return output_dir
 
     def gen_digest(self, result_dir: str, targets: List[str]) -> Dict[str, float]:
@@ -281,11 +252,11 @@ class TorchBenchRepo:
             assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
         return out
 
-    def get_digest(self, commit: Commit, targets: List[str], debug: bool) -> Dict[str, float]:
-        # digest is cached
-        if commit.digest is not None:
+    def get_digest_for_commit(self, commit: Commit, abtest_result: Dict[str, Any], debug: bool) -> Dict[str, float]:
+        # digest is cached before
+        if commit.digest:
             return commit.digest
-        # if debug mode, skip the build and benchmark run
+        # if in debug mode, load from the benchmark file if it exists
         if debug:
             result_dir = os.path.join(self.workdir, commit.sha)
             if os.path.isdir(result_dir):
@@ -296,12 +267,12 @@ class TorchBenchRepo:
                         commit.digest = self.gen_digest(result_dir, targets)
                         return commit.digest
         # Build pytorch and its dependencies
-        self.torch_src.build(commit)
-        # Run benchmark
-        result_dir = self.run_benchmark(commit, targets)
-        commit.digest = self.gen_digest(result_dir, targets)
-        print(f"Cleaning up packages from commit {commit.sha} ...", end="", flush=True)
-        self.torch_src.cleanup()
+        self.target_repo.build(commit)
+        # Run benchmark, return the output json file
+        result_json = self._run_benchmark_for_commit(commit, abtest_result)
+        commit.digest = self.gen_digest(result_json)
+        print(f"================== [TORCHBENCH] Cleaning up packages for commit {commit.sha} ==================", flush=True)
+        self.target_repo.cleanup()
         return commit.digest
         
 class TorchBenchBisection:
@@ -362,11 +333,11 @@ class TorchBenchBisection:
     def run(self):
         while len(self.bisectq):
             (left, right, abtest_result) = self.bisectq.pop(0)
-            self.torchbench.run_commit(left, abtest_result, self.debug)
-            self.torchbench.run_commit(right, abtest_result, self.debug)
+            self.torchbench.get_digest_for_commit(left, abtest_result, self.debug)
+            self.torchbench.get_digest_for_commit(right, abtest_result, self.debug)
             updated_abtest_result = self.regression_detection(left, right)
             if len(updated_abtest_result.details):
-                mid = self.torch_src.get_mid_commit(left, right)
+                mid = self.target_repo.get_mid_commit(left, right)
                 if mid == None:
                     self.result.append((left, right))
                 else:
