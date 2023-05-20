@@ -124,6 +124,7 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
 
 def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
+        print(f"======================= [TORCHBENCH] Updating repository {repo} branch {branch} =======================")
         assert len(branch) != 0
         command = ["git", "checkout", "--recurse-submodules", branch]
         subprocess.check_call(command, cwd=repo, shell=False)
@@ -136,6 +137,7 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
         # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
         try:
             time.sleep(5)
+            print(f"======================= [TORCHBENCH] Updating repository {repo} branch {branch} (2nd try) =======================")
             index_lock = os.path.join(repo, ".git", "index.lock")
             if os.path.exists(index_lock):
                 os.remove(index_lock)

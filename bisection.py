@@ -76,7 +76,7 @@ def get_updated_clean_torch_repos(pytorch_repos_path: str, torchbench_repo_path:
         assert repo_path.exists() and repo_path.is_dir(), f"{str(repo_path)} is not an existing directory."
         main_branch = "main" if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name] else \
                       TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
-        update_git_repo(repo_path.absolute(), main_branch)
+        assert update_git_repo(repo_path.absolute(), main_branch)
         assert clean_git_repo(repo_path.absolute())
         cur_commit = get_current_commit(repo_path.absolute())
         return TorchRepo(name=repo_name, 
