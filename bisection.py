@@ -70,14 +70,15 @@ def exist_dir_path(string):
     else:
         raise NotADirectoryError(string)
 
-def get_updated_clean_torch_repos(pytorch_repos_path: str, torchbench_repo_path: Optional[str]=None) -> Dict[str, TorchRepo]:
+def get_updated_clean_torch_repos(pytorch_repos_path: str, torchbench_repo_path: Optional[str]=None, skip_update_repos: Optional[List[str]]=None) -> Dict[str, TorchRepo]:
     all_repos = {}
     def _gen_torch_repo(repo_name: str, repo_path: str):
         assert repo_path.exists() and repo_path.is_dir(), f"{str(repo_path)} is not an existing directory."
         main_branch = "main" if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name] else \
                       TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
-        assert update_git_repo(repo_path.absolute(), main_branch)
-        assert clean_git_repo(repo_path.absolute())
+        if not skip_update_repos or not repo_name in skip_update_repos:
+            assert update_git_repo(repo_path.absolute(), main_branch)
+            assert clean_git_repo(repo_path.absolute())
         cur_commit = get_current_commit(repo_path.absolute())
         return TorchRepo(name=repo_name, 
                          origin_url=TORCHBENCH_BISECTION_TARGETS[repo_name]["url"],
@@ -410,6 +411,7 @@ if __name__ == "__main__":
                         help="the regression dict output of regression_detector.py in YAML")
     parser.add_argument("--output",
                         help="the output json file")
+    parser.add_argument("--skip-update", type=Optional[str], default=None, help="Repositories to skip update.")
     # by default, debug mode is disabled
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
@@ -426,9 +428,15 @@ if __name__ == "__main__":
                                                                             f"get bisection target repo {bisect_config.bisection}, " \
                                                                             f"available target repos: {TORCHBENCH_BISECTION_TARGETS.keys()}"
     assert bisect_config.bisection_mode == "bisect", "Abtest mode is not supported yet."
+    if args.skip_update:
+        skip_update_repos = list(map(lambda x: x.strip(), args.skip_update.split(",")))
+        for repo in skip_update_repos:
+            assert repo in TORCHBENCH_BISECTION_TARGETS.keys(), f"User specified skip update repo {repo} not in list: {TORCHBENCH_BISECTION_TARGETS.keys()}"
+    else:
+        skip_update_repos = None
 
     # load, update, and clean the repo directories
-    torch_repos: Dict[str, TorchRepo] = get_updated_clean_torch_repos(args.torch_repos_path, args.torchbench_repo_path)
+    torch_repos: Dict[str, TorchRepo] = get_updated_clean_torch_repos(args.torch_repos_path, args.torchbench_repo_path, skip_update_repos)
 
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_repos=torch_repos,
