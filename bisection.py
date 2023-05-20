@@ -439,6 +439,6 @@ if __name__ == "__main__":
                                     output_json=args.output,
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
-    print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.torch_src.commits]))
-    bisection.run()
-    bisection.output()
+    print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.target_repo.commits]))
+    # bisection.run()
+    # bisection.output()
