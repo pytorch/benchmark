@@ -112,15 +112,16 @@ class BisectionTargetRepo:
     commits: List[Commit]
     # Map from commit SHA to its index in commits
     commit_dict: Dict[str, int]
-    def __init__(self, repo: TorchRepo, start: str, end: str, bisection_env: os._Environ):
+    def __init__(self, repo: TorchRepo, start: str, end: str):
         self.repo = repo
         self.start = start
         self.end = end
-        self.bisection_env = bisection_env
         self.commits = []
         self.commit_dict = dict()
 
     def prep(self) -> bool:
+        base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
+        self.bisection_env = setup_bisection_build_env(base_build_env)
         commits = get_git_commits(self.repo.src_path, self.start, self.end)
         if not commits or len(commits) < 2:
             print(f"Failed to retrieve commits from {self.start} to {self.end} in {self.repo.src_path}.")
@@ -199,24 +200,23 @@ class BisectionTargetRepo:
 
 class TorchBenchRepo:
     repo: TorchRepo
-    timelimit: int # timeout limit in minutes
-    workdir: str
-    first_time: bool
     target_repo: BisectionTargetRepo
-    bench_env: os._Environ
+    workdir: Path
+    bisection_env: os._Environ
+    timelimit: int # timeout limit in minutes
+    first_time: bool
 
-    def __init__(self, srcpath: str,
-                 torch_src: BisectionTargetRepo,
-                 workdir: str):
-        self.srcpath = srcpath
-        self.torch_src = torch_src
+    def __init__(self,
+                 repo: TorchRepo,
+                 target_repo: BisectionTargetRepo,
+                 workdir: Path):
+        self.repo = repo
+        self.target_repo = target_repo
         self.workdir = workdir
         self.first_time = True
 
-    def prep(self, bench_env) -> bool:
-        self.bench_env = bench_env
-        # get the name of current branch
-        self.branch = get_current_branch(self.srcpath)
+    def prep(self, bisection_env: os._Environ) -> bool:
+        self.bisection_env = bisection_env
         return True
 
     def _install_benchmark(self):
@@ -306,7 +306,6 @@ class TorchBenchRepo:
         
 class TorchBenchBisection:
     workdir: Path
-    bisection_env: os._Environ
     torch_repos: List[TorchRepo]
     target_repo: BisectionTargetRepo
     torchbench: TorchBenchRepo
@@ -331,6 +330,7 @@ class TorchBenchBisection:
         self.torch_repos = torch_repos
         self.target_repo = BisectionTargetRepo(repo=target_repo, start=start, end=end)
         self.torchbench = TorchBenchRepo(repo=torch_repos["torchbench"],
+                                         target_repo=self.target_repo,
                                          workdir=self.workdir)
         self.bisect_config = bisect_config
         self.bisectq = list()
@@ -339,14 +339,12 @@ class TorchBenchBisection:
         self.debug = debug
 
     def prep(self) -> bool:
-        base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
-        self.bisection_env = setup_bisection_build_env(base_build_env)
-        if not self.target_repo.prep(self.bisection_env):
+        if not self.target_repo.prep():
             return False
-        if not self.torchbench.prep(self.bisection_env):
+        if not self.torchbench.prep(self.target_repo.bisection_env):
             return False
-        left_commit = self.target_repo_src.commits[0]
-        right_commit = self.target_repo_src.commits[-1]
+        left_commit = self.target_repo.commits[0]
+        right_commit = self.target_repo.commits[-1]
         self.bisectq.append((left_commit, right_commit, self.bisect_config))
         return True
 
@@ -378,9 +376,6 @@ class TorchBenchBisection:
         json_obj = dict()
         json_obj["start"] = self.start
         json_obj["end"] = self.end
-        json_obj["threshold"] = self.threshold
-        json_obj["timeout"] = self.bench.timelimit
-        json_obj["torchbench_branch"] = self.bench.branch
         json_obj["result"] = []
         for res in self.result:
             r = dict()
@@ -431,7 +426,7 @@ if __name__ == "__main__":
     if args.skip_update:
         skip_update_repos = list(map(lambda x: x.strip(), args.skip_update.split(",")))
         for repo in skip_update_repos:
-            assert repo in TORCHBENCH_BISECTION_TARGETS.keys(), f"User specified skip update repo {repo} not in list: {TORCHBENCH_BISECTION_TARGETS.keys()}"
+            assert repo in list(TORCHBENCH_BISECTION_TARGETS.keys()), f"User specified skip update repo {repo} not in list: {TORCHBENCH_BISECTION_TARGETS.keys()}"
     else:
         skip_update_repos = None
 
