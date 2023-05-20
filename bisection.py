@@ -411,7 +411,7 @@ if __name__ == "__main__":
                         help="the regression dict output of regression_detector.py in YAML")
     parser.add_argument("--output",
                         help="the output json file")
-    parser.add_argument("--skip-update", type=Optional[str], default=None, help="Repositories to skip update.")
+    parser.add_argument("--skip-update", type=str, default="", help="Repositories to skip update.")
     # by default, debug mode is disabled
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
