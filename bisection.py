@@ -432,12 +432,15 @@ if __name__ == "__main__":
 
     # load, update, and clean the repo directories
     torch_repos: Dict[str, TorchRepo] = get_updated_clean_torch_repos(args.torch_repos_path, args.torchbench_repo_path, skip_update_repos)
+    target_repo = torch_repos[bisect_config.bisection]
+    start_hash = get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.control_env["git_commit_hash"])
+    end_hash =  get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.treatment_env["git_commit_hash"])
 
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_repos=torch_repos,
                                     target_repo=torch_repos[bisect_config.bisection],
-                                    start=bisect_config.control_env["git_commit_hash"],
-                                    end=bisect_config.treatment_env["git_commit_hash"],
+                                    start=start_hash,
+                                    end=end_hash,
                                     bisect_config=bisect_config,
                                     output_json=args.output,
                                     debug=args.debug)

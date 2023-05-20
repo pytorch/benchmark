@@ -3,11 +3,34 @@
 Utils for getting git-related information.
 """
 
+import git
+import re
 import os
 import time
 import subprocess
 from datetime import datetime
 from typing import Optional, List
+
+# Assume the nightly branch commit message is in the following format
+# Hash in the parentheses links to the commit on the master branch
+NIGHTLY_COMMIT_MSG = "nightly release \((.*)\)"
+
+
+def get_torch_main_commit(pytorch_repo: str, nightly_commit: str):
+    repo = git.Repo(pytorch_repo)
+    msg = repo.commit(nightly_commit).message
+    # There are two possibilities of the hash `nightly_commit`:
+    # 1. The hash belongs to the nightly branch
+    #    If so, the git commit message should match `NIGHTLY_COMMIT_MSG`
+    # 2. The hash belongs to the master/main branch
+    #    We can directly use this hash in this case
+    nightly_commit_regex = re.compile(NIGHTLY_COMMIT_MSG)
+    search_result = nightly_commit_regex.search(msg)
+    if search_result:
+        return search_result.group(1)
+    # We now believe the commit now belongs to the master/main branch
+    # Unfortunately, there is no way to map a commit back to a branch with gitpython
+    return nightly_commit
 
 def clean_git_repo(repo: str) -> bool:
     try:

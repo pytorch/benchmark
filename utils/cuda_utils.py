@@ -55,7 +55,7 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
         print(f"NVCC version output: {output}")
         assert _nvcc_output_match(output, cuda_version), f"Expected CUDA version {cuda_version}, getting nvcc test result {output}"
     # step 3: install the correct magma version
-    install_magma_cmd = ["conda", "install", "-c", "pytorch", CUDA_VERSION_MAP[cuda_version]['magma_version']]
+    install_magma_cmd = ["conda", "install", "-y", "-c", "pytorch", CUDA_VERSION_MAP[cuda_version]['magma_version']]
     if dryrun:
         print(f"Installing CUDA magma: {install_magma_cmd}")
     subprocess.check_call(install_magma_cmd, env=env)
