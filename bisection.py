@@ -267,7 +267,7 @@ class TorchBenchRepo:
 
 class TorchBenchBisection:
     workdir: Path
-    torch_repos: List[TorchRepo]
+    torch_repos: Dict[str, TorchRepo]
     target_repo: BisectionTargetRepo
     torchbench: TorchBenchRepo
     bisect_config: TorchBenchABTestResult
@@ -289,7 +289,7 @@ class TorchBenchBisection:
                  debug: bool = False):
         self.workdir = Path(workdir)
         self.torch_repos = torch_repos
-        non_target_repos = list(filter(lambda x: not x.name == target_repo.name, torch_repos))
+        non_target_repos = list(filter(lambda x: not x.name == target_repo.name, torch_repos.values()))
         self.target_repo = BisectionTargetRepo(repo=target_repo, start=start, end=end, non_target_repos=non_target_repos)
         self.torchbench = TorchBenchRepo(repo=torch_repos["torchbench"],
                                          target_repo=self.target_repo,
