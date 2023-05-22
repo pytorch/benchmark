@@ -6,10 +6,8 @@ DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.07
 def run(control, treatment) -> TorchBenchABTestResult:
     control_env = control["environ"]
     control_env["git_commit_hash"] = control["environ"]["pytorch_git_version"]
-    del control_env["pytorch_git_version"]
     control_metrics = control["metrics"]
     treatment_env = treatment["environ"]
-    del treatment_env["pytorch_git_version"]
     treatment_env["git_commit_hash"] = treatment["environ"]["pytorch_git_version"]
     treatment_metrics = treatment["metrics"]
     details = {}
