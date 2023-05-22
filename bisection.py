@@ -10,18 +10,22 @@ Usage:
     --config <BISECT_CONFIG> --output <OUTPUT_FILE_PATH>
 """
 
+import argparse
 import os
 import sys
 import json
+import time
 import shutil
 import yaml
-import argparse
 from pathlib import Path
 import subprocess
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple, Any
+from typing import Optional, List, Dict, Tuple, Any, Callable
 
-from userbenchmark.utils import parse_abtest_result_from_regression_dict, TorchBenchABTestResult
+from userbenchmark.utils import (
+    parse_abtest_result_from_regression_file_for_bisect,
+    TorchBenchABTestResult,
+)
 from regression_detector import generate_regression_dict
 from utils import gitutils
 from utils.build_utils import (
@@ -70,6 +74,22 @@ def exist_dir_path(string):
         return string
     else:
         raise NotADirectoryError(string)
+
+def exist_file_path(string):
+    if not os.path.exists(string):
+        raise FileNotFoundError(string)
+    elif os.path.isdir(string):
+        return IsADirectoryError(string)
+    else:
+        return string
+
+def get_latest_non_empty_file(directory: str, cond: Callable) -> Optional[str]:
+    if os.path.isdir(directory):
+        filelist = [ os.path.join(directory, f) for f in os.listdir(directory) ]
+        non_empty_filelist = [ f for f in filelist if os.path.getsize(f) and cond(f) ]
+        if len(non_empty_filelist):
+            return max(non_empty_filelist, key=os.path.getctime)
+    return None
 
 def get_updated_clean_torch_repos(pytorch_repos_path: str, torchbench_repo_path: Optional[str]=None, skip_update_repos: Optional[List[str]]=None) -> Dict[str, TorchRepo]:
     all_repos = {}
@@ -123,6 +143,17 @@ class BisectionTargetRepo:
         self.commits = []
         self.commit_dict = dict()
 
+    # Checkout the last commit of non-target repos on date
+    def _checkout_non_target_repos(self, cdate: datetime):
+        for repo in self.non_target_repos:
+            gitutils.checkout_git_branch(repo.src_path.absolute(), repo.main_branch)
+            dep_commit = gitutils.get_git_commit_on_date(repo.src_path.absolute(), cdate)
+            assert dep_commit, f"Failed to find the commit on {cdate} of {repo.name}"
+            print(f"Checking out {repo.name} commit {dep_commit} ...", end="", flush=True)
+            assert gitutils.checkout_git_commit(repo.src_path.absolute(), dep_commit), \
+                   f"Failed to checkout commit {dep_commit} of {repo.name}"
+            print("done.")
+
     def prep(self) -> bool:
         base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
         self.bisection_env = setup_bisection_build_env(base_build_env)
@@ -144,17 +175,6 @@ class BisectionTargetRepo:
         else:
             return self.commits[int((left_index + right_index) / 2)]
 
-    # Checkout the last commit of non-target repos on date
-    def checkout_non_target_repos(self, cdate: datetime):
-        for repo in self.non_target_repos:
-            gitutils.checkout_git_branch(repo.src_path.absolute(), repo.main_branch)
-            dep_commit = gitutils.get_git_commit_on_date(repo.src_path.absolute(), cdate)
-            assert dep_commit, f"Failed to find the commit on {cdate} of {repo.name}"
-            print(f"Checking out {repo.name} commit {dep_commit} ...", end="", flush=True)
-            assert gitutils.checkout_git_commit(repo.src_path.absolute(), dep_commit), \
-                   f"Failed to checkout commit {dep_commit} of {repo.name}"
-            print("done.")
-
     def build(self, commit: Commit):
         # checkout target repo commit
         print(f"====================== [TORCHBENCH] Checking out target repo {self.repo.name} commit {commit.sha} " \
@@ -162,15 +182,12 @@ class BisectionTargetRepo:
         assert gitutils.checkout_git_commit(self.repo.src_path.absolute(), commit.sha)
         # checkout non-target repos commit
         ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
-        self.checkout_non_target_repos(ctime)
+        self._checkout_non_target_repos(ctime)
         # build target repo
         build_repo(self.repo)
         # build non target repos
         for repo in self.non_target_repos:
             build_repo(repo)
-
-    def cleanup(self):
-        cleanup_torch_packages()
 
 class TorchBenchRepo:
     repo: TorchRepo
@@ -198,7 +215,7 @@ class TorchBenchRepo:
         command = [sys.executable, "install.py"]
         subprocess.check_call(command, cwd=self.repo.src_path.absolute(), env=self.bisection_env)
 
-    def _run_benchmark_for_commit(self, commit: Commit, debug: bool=False) -> str:
+    def _run_benchmark_for_commit(self, commit: Commit, bisect_config: TorchBenchABTestResult) -> str:
         # Return the result json file path
         output_dir = os.path.join(self.workdir.absolute(), commit.sha)
         # If the directory already exists, clear its contents
@@ -210,47 +227,23 @@ class TorchBenchRepo:
         if self.first_time:
             self._install_benchmark()
             self.first_time = False
+        bm_name = bisect_config.name
+        output_file = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
+        output_file_path = os.path.join(output_dir, output_file)
         print(f"===================== [TORCHBENCH] Running TorchBench for commit: {commit.sha} START =====================", flush=True)
+        command = [sys.executable, "run_benchmark.py", bm_name, "--run-bisect", bisect_config.bisection_config_file_path, "--output", output_file_path]
+        subprocess.check_call(command, cwd=self.repo.src_path, env=self.bisection_env)
+        print(f"===================== [TORCHBENCH] Running TorchBench for commit: {commit.sha} END. OUTPUT: {output_file_path} =====================", flush=True)
+        return output_file_path
 
-        command = f"""bash .github/scripts/run.sh "{output_dir}" "{bmfilter}" 2>&1 | tee {output_dir}/benchmark.log"""
-        try:
-            subprocess.check_call(command, cwd=self.srcpath, env=self.bench_env, shell=True, timeout=self.timelimit * 60)
-        except subprocess.TimeoutExpired:
-            print(f"Benchmark timeout for {commit.sha}. Result will be None.")
-            return output_dir
-        print(f"===================== [TORCHBENCH] Running TorchBench for commit: {commit.sha} END =====================", flush=True)
-        return output_dir
-
-    def gen_digest(self, result_dir: str, targets: List[str]) -> Dict[str, float]:
-        filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
-        out = dict()
-        if not len(filelist):
-            print(f"Empty directory or json file in {result_dir}. Return empty digest.")
+    def _gen_digest(self, result_json: str) -> Dict[str, float]:
+        out = {}
+        if not os.path.getsize(result_json).st_size:
+            print(f"Empty json file {result_json}. Return empty digest.")
             return out
-        # Use the first json as the benchmark data file
-        data_file = os.path.join(result_dir, filelist[0])
-        if not os.stat(data_file).st_size:
-            print(f"Empty json file {filelist[0]} in {result_dir}. Return empty digest.")
-            return out
-        with open(data_file, "r") as df:
+        with open(result_json, "r") as df:
             data = json.load(df)
-        # Fill in targets if it is None
-        if targets == None:
-            targets = list()
-            for each in data["benchmarks"]:
-                targets.append(each["name"])
-        old_targets = targets.copy()
-        for t in filter(lambda x: x in self.models, old_targets):
-            targets.remove(t)
-            names =  filter(lambda y: t in y, map(lambda x: x["name"], data["benchmarks"]))
-            targets.extend(list(names))
-        for each in data["benchmarks"]:
-            if each["name"] in targets:
-                out[each["name"]] = each["stats"]["mean"]
-        # Make sure all target tests are available
-        for target in targets:
-            assert out[target], f"Don't find benchmark result of {target} in {filelist[0]}."
-        return out
+        return data["metrics"].copy()
 
     def get_digest_for_commit(self, commit: Commit, abtest_result: Dict[str, Any], debug: bool) -> Dict[str, float]:
         # digest is cached before
@@ -259,22 +252,19 @@ class TorchBenchRepo:
         # if in debug mode, load from the benchmark file if it exists
         if debug:
             result_dir = os.path.join(self.workdir, commit.sha)
-            if os.path.isdir(result_dir):
-                filelist = [ f for f in os.listdir(result_dir) if f.endswith(".json") ]
-                if len(filelist):
-                    data_file = os.path.join(result_dir, filelist[0])
-                    if os.stat(data_file).st_size:
-                        commit.digest = self.gen_digest(result_dir, targets)
-                        return commit.digest
-        # Build pytorch and its dependencies
+            result_json = get_latest_non_empty_file(result_dir)
+            if result_json:
+                commit.digest = self._gen_digest(result_json)
+                return commit.digest
+        # Build all torch packages
         self.target_repo.build(commit)
         # Run benchmark, return the output json file
         result_json = self._run_benchmark_for_commit(commit, abtest_result)
-        commit.digest = self.gen_digest(result_json)
+        commit.digest = self._gen_digest(result_json)
         print(f"================== [TORCHBENCH] Cleaning up packages for commit {commit.sha} ==================", flush=True)
-        self.target_repo.cleanup()
+        cleanup_torch_packages()
         return commit.digest
-        
+
 class TorchBenchBisection:
     workdir: Path
     torch_repos: List[TorchRepo]
@@ -327,7 +317,11 @@ class TorchBenchBisection:
         assert left.digest, "Commit {left.sha} must have a digest"
         assert right.digest, "Commit {right.sha} must have a digest"
         regression_dict = generate_regression_dict(left.digest, right.digest)
-        abtest_result = parse_abtest_result_from_regression_dict(regression_dict)
+        regression_file = f"regression-{left.sha}-{right.sha}.yaml"
+        regression_file_full_path = os.path.join(self.workdir.absolute(), regression_file)
+        with open(regression_file_full_path, "w") as rf:
+            rf.write(yaml.dump_all(regression_dict))
+        abtest_result = parse_abtest_result_from_regression_file_for_bisect(regression_file_full_path)
         return abtest_result
         
     def run(self):
@@ -346,17 +340,18 @@ class TorchBenchBisection:
  
     def output(self):
         json_obj = dict()
-        json_obj["start"] = self.start
-        json_obj["end"] = self.end
+        json_obj["target_repo"] = self.target_repo.repo.name
+        json_obj["start"] = self.target_repo.start
+        json_obj["end"] = self.target_repo.end
         json_obj["result"] = []
         for res in self.result:
             r = dict()
             r["commit1"] = res[0].sha
             r["commit1_time"] = res[0].ctime
-            r["commit1_digest"] = res[0].digest if len(res[0].digest) else "timeout"
+            r["commit1_digest"] = res[0].digest
             r["commit2"] = res[1].sha
             r["commit2_time"] = res[1].ctime
-            r["commit2_digest"] = res[1].digest if len(res[1].digest) else "timeout"
+            r["commit2_digest"] = res[1].digest
             json_obj["result"].append(r)
         with open(self.output_json, 'w') as outfile:
             json.dump(json_obj, outfile, indent=2)
@@ -375,7 +370,8 @@ if __name__ == "__main__":
                         help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
                         type=exist_dir_path)
     parser.add_argument("--config",
-                        help="the regression dict output of regression_detector.py in YAML")
+                        help="the regression dict output of regression_detector.py in YAML",
+                        type=exist_file_path)
     parser.add_argument("--output",
                         help="the output json file")
     parser.add_argument("--skip-update", type=str, default="", help="Repositories to skip update.")
@@ -385,16 +381,18 @@ if __name__ == "__main__":
                         action='store_true')
     args = parser.parse_args()
 
-    with open(args.config, "r") as f:
-        bisect_config = parse_abtest_result_from_regression_dict(yaml.full_load(f))
-
+    bisect_config = parse_abtest_result_from_regression_file_for_bisect(args.config)
     # sanity checks
+    assert bisect_config.name, "Invalid bisection config, must specify userbenchmark name."
     assert bisect_config.control_env["git_commit_hash"], "Invalid bisection config, must specify control group commit hash."
     assert bisect_config.treatment_env["git_commit_hash"], "Invalid bisection config, must specify treatment group commit hash."
     assert bisect_config.bisection in TORCHBENCH_BISECTION_TARGETS.keys(), f"Invalid bisection config, " \
                                                                             f"get bisection target repo {bisect_config.bisection}, " \
                                                                             f"available target repos: {TORCHBENCH_BISECTION_TARGETS.keys()}"
     assert bisect_config.bisection_mode == "bisect", "Abtest mode is not supported yet."
+    assert os.path.exists(bisect_config.bisection_config_file_path), f"Specifed bisection file path {bisect_config.bisection_config_file_path} must exist."
+    assert len(bisect_config.details), "The bisection target metrics must not be empty."
+
     if args.skip_update:
         skip_update_repos = list(map(lambda x: x.strip(), args.skip_update.split(",")))
         for repo in skip_update_repos:
@@ -418,5 +416,5 @@ if __name__ == "__main__":
                                     debug=args.debug)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.target_repo.commits]))
-    # bisection.run()
-    # bisection.output()
+    bisection.run()
+    bisection.output()
