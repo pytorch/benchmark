@@ -24,14 +24,8 @@ class Model(BenchmarkModel):
         sam_checkpoint = os.path.join('.data', 'sam_vit_h_4b8939.pth')
         model_type = "vit_h"
 
-        # TODO Before merge: Add the real checkpoint when done testing
         self.model = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-        self.model.to(device=device)
-
-        # TODO Before merge: Make the batch size configurable
-        # We don't actually pass in a tensor but pass in an image
-        # self.example_inputs = [{0 : torch.randn(3, 224, 224).to(device=device)}], 
-        
+        self.model.to(device=device)        
    
     def get_module(self):
         return self.model # self.example_inputs
