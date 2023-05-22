@@ -11,7 +11,6 @@ from torchbenchmark.tasks import COMPUTER_VISION
 import torch
 import os
 
-
     
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
@@ -26,11 +25,16 @@ class Model(BenchmarkModel):
         model_type = "vit_h"
 
         self.model = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-        self.model.to(device=device)        
+        self.model.to(device=device)   
+        data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.data')
+
+        image_path = os.path.join(data_folder, 'truck.jpg')
+        self.image = cv2.imread(image_path)
+        self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)     
    
     def get_module(self):
-        return self.model # self.example_inputs
-    
+        return self.model, self.image
+            
     def train(self):
         error_msg = """
             As of May 17, 2023
@@ -43,12 +47,8 @@ class Model(BenchmarkModel):
 
     def eval(self):
         predictor = SamPredictor(self.model)
-        data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.data')
 
-        image_path = os.path.join(data_folder, 'truck.jpg')
-        image = cv2.imread(image_path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        predictor.set_image(image)
+        predictor.set_image(self.image)
 
         input_point = np.array([[500, 375]])
         input_label = np.array([1])

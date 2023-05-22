@@ -2,8 +2,3 @@
 opencv-python
 pycocotools
 opencv-python
-
-# Might not be needed
-matplotlib
-onnx
-onnxruntime
