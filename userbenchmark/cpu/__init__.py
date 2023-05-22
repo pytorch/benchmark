@@ -12,7 +12,7 @@ import yaml
 from datetime import datetime
 from pathlib import Path
 from typing import List
-from .cpu_utils import REPO_PATH, get_output_dir, get_output_json, dump_output, analyze
+from .cpu_utils import REPO_PATH, parse_str_to_list, validate, get_output_dir, get_output_json, dump_output, analyze
 from ..utils import add_path
 
 with add_path(REPO_PATH):
@@ -42,12 +42,6 @@ def dump_result_to_json(metrics, output_dir, fname):
     result = get_output_json(BM_NAME, metrics)
     dump_output(BM_NAME, result, output_dir, fname)
 
-def validate(candidates: List[str], choices: List[str]) -> List[str]:
-    """Validate the candidates provided by the user is valid"""
-    for candidate in candidates:
-        assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
-    return candidates
-
 def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConfig]:
     yaml_file_path = os.path.join(CURRENT_DIR, yaml_file)
     with open(yaml_file_path, "r") as yf:
@@ -69,12 +63,6 @@ def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConf
         configs.append(config)
     return configs
 
-def parse_str_to_list(candidates):
-    if isinstance(candidates, list):
-        return candidates
-    candidates = list(map(lambda x: x.strip(), candidates.split(",")))
-    return candidates
-
 def parse_args(args):
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", "-d", default="cpu", help="Devices to run, splited by comma.")
@@ -83,6 +71,7 @@ def parse_args(args):
     parser.add_argument("--batch-size", "-b", default=None, help="Run the specifice batch size.")
     parser.add_argument("--jit", action="store_true", help="Convert the models to jit mode.")
     parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
+    parser.add_argument("--metrics", default="latencies", help="Benchmark metrics, split by comma.")
     parser.add_argument("--output", "-o", default=None, help="Output dir.")
     parser.add_argument("--timeout", default=None, help="Limit single model test run time. Default None, means no limitation.")
     parser.add_argument("--launcher", action="store_true", help="Use torch.backends.xeon.run_cpu to get the peak performance on Intel(R) Xeon(R) Scalable Processors.")
@@ -138,6 +127,8 @@ def run_benchmark(config, args):
         cmd.append("--jit")
 
     cmd.extend(config.extra_args)
+    cmd.append("--metrics")
+    cmd.append(args.metrics)
     cmd.append("-o")
     cmd.append(str(args.output))
     

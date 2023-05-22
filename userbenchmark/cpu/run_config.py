@@ -9,17 +9,14 @@ import numpy
 from typing import List, Dict, Optional
 from pathlib import Path
 
-from cpu_utils import add_path, REPO_PATH, get_output_dir, get_output_json, dump_output
+from cpu_utils import add_path, REPO_PATH, validate, parse_str_to_list, list_metrics, get_output_dir, get_output_json, dump_output
 with add_path(str(REPO_PATH)):
-    from torchbenchmark.util.experiment.instantiator import (list_models, load_model_isolated, TorchBenchModelConfig,
+    from torchbenchmark.util.experiment.instantiator import (list_models, load_model, load_model_isolated, TorchBenchModelConfig,
                                                             list_devices, list_tests)
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
     BM_NAME = 'cpu'
     CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-
-    def get_metrics(_config: TorchBenchModelConfig) -> List[str]:
-        return ["latencies", "cpu_peak_mem"]
 
     def get_output_subdir(config: TorchBenchModelConfig) -> str:
         mode = "jit" if config.jit else "eager"
@@ -43,21 +40,19 @@ with add_path(str(REPO_PATH)):
         result = get_output_json(BM_NAME, metrics)
         dump_output(BM_NAME, result, output_dir)
 
-    def validate(candidate: str, choices: List[str]) -> str:
-        """Validate the candidates provided by the user is valid"""
-        assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
-        return candidate
-
-    def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
+    def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
         """This function only handles NotImplementedError, all other errors will fail."""
-        metrics = get_metrics(config)
         print(f"Running {config} ...", end='')
         if dryrun:
             return None
         # We do not allow RuntimeError in this test
         try:
-            # load the model instance within separate subprocess
-            model = load_model_isolated(config)
+            if "cpu_peak_mem" in metrics:
+                # load the model instance within separate subprocess
+                model = load_model_isolated(config)
+            else:
+                # load the model instance within current process
+                model = load_model(config)
             # get the model test metrics
             result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
         except NotImplementedError as e:
@@ -70,6 +65,7 @@ with add_path(str(REPO_PATH)):
         device = validate(args.device, list_devices())
         test = validate(args.test, list_tests())
         model = validate(args.model, list_models())
+        metrics = validate(parse_str_to_list(args.metrics), list_metrics())
         config = TorchBenchModelConfig(
             name=model,
             device=device,
@@ -79,7 +75,7 @@ with add_path(str(REPO_PATH)):
             extra_args=extra_args,
             extra_env=None)
         try:
-            metrics = run_config(config, dryrun=args.dryrun)
+            metrics = run_config(config, metrics, dryrun=args.dryrun)
         except KeyboardInterrupt:
             print("User keyboard interrupted!")
         if not args.dryrun:
@@ -97,6 +93,7 @@ with add_path(str(REPO_PATH)):
         parser.add_argument("--batch-size", "-b", default=None, type=int, help="Run the specifice batch size.")
         parser.add_argument("--jit", action="store_true", help="Convert the models to jit mode.")
         parser.add_argument("--output", "-o", default=None, help="Output dir.")
+        parser.add_argument("--metrics", default="latencies", help="Benchmark metrics, split by comma.")
         parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
         args, extra_args = parser.parse_known_args()
         run(args, extra_args)
