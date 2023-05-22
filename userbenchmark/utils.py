@@ -91,8 +91,8 @@ def parse_abtest_result_from_regression_file_for_bisect(regression_file: str) ->
                                               treatment=regression_dict["details"][key]["treatment"],
                                               delta=regression_dict["details"][key]["delta"])
         return ret
-    with open(regression_file, "r") as f:
-        regression_dict = yaml.full_load(regression_file)
+    with open(regression_file, "r") as rf:
+        regression_dict = yaml.full_load(rf)
     return TorchBenchABTestResult(
         name=regression_dict["name"],
         control_env=regression_dict["control_env"],

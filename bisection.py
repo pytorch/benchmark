@@ -360,9 +360,11 @@ class TorchBenchBisection:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-dir",
+                        required=True,
                         help="bisection working directory for logs and results",
                         type=exist_dir_path)
     parser.add_argument("--torch-repos-path",
+                        required=True,
                         help="the directory of pytorch/* source code repositories",
                         type=exist_dir_path)
     parser.add_argument("--torchbench-repo-path",
@@ -370,9 +372,11 @@ if __name__ == "__main__":
                         help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
                         type=exist_dir_path)
     parser.add_argument("--config",
+                        required=True,
                         help="the regression dict output of regression_detector.py in YAML",
                         type=exist_file_path)
     parser.add_argument("--output",
+                        required=True,
                         help="the output json file")
     parser.add_argument("--skip-update", type=str, default="", help="Repositories to skip update.")
     # by default, debug mode is disabled
