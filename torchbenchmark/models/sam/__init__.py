@@ -21,7 +21,8 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         
         # Checkpoint options are here https://github.com/facebookresearch/segment-anything#model-checkpoints
-        sam_checkpoint = os.path.join('.data', 'sam_vit_h_4b8939.pth')
+        data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.data')
+        sam_checkpoint = os.path.join(data_folder, 'sam_vit_h_4b8939.pth')
         model_type = "vit_h"
 
         self.model = sam_model_registry[model_type](checkpoint=sam_checkpoint)
@@ -42,7 +43,9 @@ class Model(BenchmarkModel):
 
     def eval(self):
         predictor = SamPredictor(self.model)
-        image_path = os.path.join('.data', 'truck.jpg')
+        data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.data')
+
+        image_path = os.path.join(data_folder, 'truck.jpg')
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         predictor.set_image(image)

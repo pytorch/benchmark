@@ -14,7 +14,8 @@ def download_data():
 if __name__ == '__main__':
     pip_install_requirements()
 
-    data_folder = os.path.join(os.getcwd(), '.data')
+    # Create .data folder in the script's directory
+    data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.data')
     os.makedirs(data_folder, exist_ok=True)
 
     # Download checkpoint and data files to the .data folder
