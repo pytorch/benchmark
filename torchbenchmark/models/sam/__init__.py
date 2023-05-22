@@ -31,9 +31,20 @@ class Model(BenchmarkModel):
         image_path = os.path.join(data_folder, 'truck.jpg')
         self.image = cv2.imread(image_path)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)     
+        self.sample_image  = torch.randn((3, 256, 256)).to(device)
+
    
     def get_module(self):
-        return self.model, self.image
+        example_input = [
+            {
+                'image': self.sample_image,
+                'original_size': (256, 256),
+            }
+        ]
+
+        multimask_output = False
+
+        return self.model, (example_input, multimask_output)
             
     def train(self):
         error_msg = """
