@@ -113,6 +113,7 @@ After you've submitted your new model, suppose it was called `new_model` make su
 
 1. `cd benchmark`
 2. `python install.py`
-3. `python test.py -k "test_new_model"`
+3. `python run.py model -d cuda` and `python run.py model -d cpu`
+3. `python test.py -k "model_"` following the format from here https://github.com/pytorch/benchmark#using-testpy
 
 And thank you for contributing to torchbench!
