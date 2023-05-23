@@ -1,0 +1,60 @@
+name: TorchBench V3 bisection
+on:
+  workflow_dispatch:
+    inputs:
+      issue_name:
+        description: "Bisection Issue Name"
+        required: true
+        default: "example-issue"
+
+jobs:
+  bisection:
+    env:
+      CONDA_ENV: "bisection-ci-v3"
+      BASE_CONDA_ENV: "torchbench"
+      BISECT_WORKDIR: ".userbenchmark/torch-nightly/v3-bisection"
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, bm-runner]
+    timeout-minutes: 2880 # 48 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: v3.0
+      - name: Checkout pytorch
+        uses: actions/checkout@v3
+        with:
+          name: pytorch/pytorch
+      - name: Tune Nvidia GPU
+        run: |
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
+          nvidia-smi
+      - name: Clone and setup conda env
+        run: |
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
+      - name: Bisection
+        run: |
+          . "${SETUP_SCRIPT}"
+          TODAY=$(date +Ymd)
+          python bisection.py --work-dir "${BISECT_WORKDIR}" --torch-repos-path "${PWD}/srcs" \
+                --torchbench-repo-path "${PWD}" --config "${TODAY}" --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json" \
+                --skip-update torchbench
+      - name: Analyze bisection result
+        run: |
+          . "${SETUP_SCRIPT}"
+          export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
+          python ./.github/scripts/bmutils/analyze-bisection-result.py --bisection-root "${BISECT_BASE}" --gh-workflow-id "${GITHUB_RUN_ID}"
+          cp -r "${BISECT_BASE}" ./bisection-result
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: Bisection result
+          path: bisection-result/
+      - name: Clean up Conda env
+        if: always()
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all
