@@ -184,10 +184,10 @@ class BisectionTargetRepo:
         ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
         self._checkout_non_target_repos(ctime)
         # build target repo
-        build_repo(self.repo)
+        build_repo(self.repo, self.bisection_env)
         # build non target repos
         for repo in self.non_target_repos:
-            build_repo(repo)
+            build_repo(repo, self.bisection_env)
 
 class TorchBenchRepo:
     repo: TorchRepo
