@@ -25,10 +25,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           name: pytorch/pytorch
-      - name: Checkout torchvision
-      - name: Checkout torchaudio
-      - name: Checkout torchdata
-      - name: Checkout torchtext
       - name: Tune Nvidia GPU
         run: |
           sudo nvidia-smi -pm 1
