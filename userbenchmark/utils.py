@@ -97,7 +97,7 @@ def get_ub_name(metrics_file_path: str) -> str:
         return metrics["name"]
     elif metrics_file_path.endswith(".yaml"):
         with open(metrics_file_path, "r") as mf:
-            regression = yaml.safe_load_all(metrics_file_path)
+            regression = yaml.safe_load(mf)
         return regression["name"]
     print(f"Unknown metrics or regression file name path: {metrics_file_path}")
     exit(1)
