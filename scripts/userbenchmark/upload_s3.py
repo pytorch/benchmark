@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--userbenchmark_platform", required=True,
                         help='Name of the userbenchmark platform')
-    parser.add_argument("--userbenchmark_json", required=True,
+    parser.add_argument("--upload-file", required=True,
                         help='Upload userbenchmark json or regression yaml file.')
     args = parser.parse_args()
     json_path = Path(args.userbenchmark_json)
