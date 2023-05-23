@@ -87,6 +87,7 @@ def get_date_from_metrics(metrics_file: str) -> str:
     datetime_obj = datetime.strptime(stripped_filename, "%Y%m%d%H%M%S")
     return datetime.strftime(datetime_obj, "%Y-%m-%d")
 
+
 def get_ub_name(metrics_file_path: str) -> str:
     if metrics_file_path.endswith(".json"):
         with open(metrics_file_path, "r") as mf:
@@ -98,12 +99,6 @@ def get_ub_name(metrics_file_path: str) -> str:
         return regression["name"]
     print(f"Unknown metrics or regression file name path: {metrics_file_path}")
     exit(1)
-
-def get_output_dir(bm_name) -> Path:
-    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-    target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
-    target_dir.mkdir(exist_ok=True, parents=True)
-    return target_dir
 
 
 def get_date_from_metrics_s3_key(metrics_s3_key: str) -> datetime:
