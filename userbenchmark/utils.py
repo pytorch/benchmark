@@ -81,14 +81,11 @@ def dump_output(bm_name: str, output: Any, target_dir: Path=None) -> None:
 
 
 def get_date_from_metrics(metrics_file: str) -> str:
-    if metrics_file.startswith("metrics-"):
-        datetime_obj = datetime.strptime(metrics_file, "metrics-%Y%m%d%H%M%S")
-        return datetime.strftime(datetime_obj, "%Y-%m-%d")
-    elif metrics_file.startswith("regression-"):
-        datetime_obj = datetime.strptime(metrics_file, "regression-%Y%m%d%H%M%S")
-        return datetime.strftime(datetime_obj, "%Y-%m-%d")
-    print(f"Unknown metrics or regression file name format: {metrics_file}")
-    exit(1)
+    assert metrics_file.startswith("metrics-") or metrics_file.startswith("regression-"), f"Unknown metrics or regression file name format: {metrics_file}"
+    # metrics_file usually looks like metrics-%Y%m%d%H%M%S or regression-%Y%m%d%H%M%S
+    stripped_filename = metrics_file.split("-")[1]
+    datetime_obj = datetime.strptime(stripped_filename, "%Y%m%d%H%M%S")
+    return datetime.strftime(datetime_obj, "%Y-%m-%d")
 
 def get_ub_name(metrics_file_path: str) -> str:
     if metrics_file_path.endswith(".json"):
