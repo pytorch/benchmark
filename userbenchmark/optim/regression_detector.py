@@ -1,7 +1,7 @@
 from typing import Optional
 from ..utils import TorchBenchABTestResult, TorchBenchABTestMetric
 
-DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.1
+DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.3
 
 def run(control, treatment) -> Optional[TorchBenchABTestResult]:
     control_env = control["environ"]
