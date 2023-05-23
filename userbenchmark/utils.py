@@ -58,11 +58,23 @@ def get_output_json(bm_name, metrics) -> Dict[str, Any]:
     }
 
 
-def dump_output(bm_name, output, target_dir: Path=None) -> None:
+def get_output_dir(bm_name) -> Path:
+    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+    target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
+    target_dir.mkdir(exist_ok=True, parents=True)
+    return target_dir
+
+
+def get_default_output_json_path(bm_name: str, target_dir: Path=None) -> str:
     if target_dir is None:
         target_dir = get_output_dir(bm_name)
     fname = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
     full_fname = os.path.join(target_dir, fname)
+    return full_fname
+
+
+def dump_output(bm_name: str, output: Any, target_dir: Path=None) -> None:
+    full_fname = get_default_output_json_path(bm_name, target_dir=target_dir)
     with open(full_fname, 'w') as f:
         json.dump(output, f, indent=4)
 
@@ -76,14 +88,6 @@ def get_ub_name(metrics_file_path: str) -> str:
     with open(metrics_file_path, "r") as mf:
         metrics = json.load(mf)
     return metrics["name"]
-
-
-def get_output_dir(bm_name) -> Path:
-    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-    target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
-    target_dir.mkdir(exist_ok=True, parents=True)
-    return target_dir
-
 
 def get_date_from_metrics_s3_key(metrics_s3_key: str) -> datetime:
     metrics_s3_json_filename = metrics_s3_key.split('/')[-1]

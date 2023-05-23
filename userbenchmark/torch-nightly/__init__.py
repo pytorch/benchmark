@@ -1,6 +1,7 @@
 """
 Run PyTorch nightly benchmarking.
 """
+import re
 import argparse
 import itertools
 import json
@@ -10,7 +11,7 @@ import yaml
 import numpy
 
 from typing import List, Tuple, Dict, Optional, Any
-from ..utils import REPO_PATH, add_path, get_output_json, dump_output
+from ..utils import REPO_PATH, add_path, get_output_json, get_default_output_json_path
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig, \
@@ -71,7 +72,7 @@ def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBen
     # test_eval[timm_regnet-cuda-eager]_cmem
     # test_eval[timm_regnet-cuda-eager]_gmem
     result_metrics = {}
-    for config_id, (config, metrics) in enumerate(results):
+    for _config_id, (config, metrics) in enumerate(results):
         metrics_base = f"test_{config.test}[{config.name}-{config.device}-eager]"
         latency_metric = f"{metrics_base}_latency"
         median_latency = numpy.median(metrics.latencies)
@@ -85,17 +86,13 @@ def result_to_output_metrics(results: List[Tuple[TorchBenchModelConfig, TorchBen
             result_metrics[gpu_peak_mem] = metrics.gpu_peak_mem
     return result_metrics
 
-def dump_result_to_json(metrics):
-    result = get_output_json(BM_NAME, metrics)
-    dump_output(BM_NAME, result)
-
 def validate(candidates: List[str], choices: List[str]) -> List[str]:
     """Validate the candidates provided by the user is valid"""
     for candidate in candidates:
         assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
     return candidates
 
-def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelConfig, List[float], Any]:
+def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[List[TorchBenchModelConfig], Dict[str, float], Any]:
     yaml_file_path = os.path.join(CURRENT_DIR, yaml_file)
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
@@ -111,7 +108,7 @@ def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelCon
                 device=device,
                 test=c["test"],
                 batch_size=c["batch_size"] if "batch_size" in c else None,
-                jit=c["jit"] if "jit" in c else False,
+                jit=False,
                 extra_args=[],
                 extra_env=None,
             )
@@ -120,6 +117,32 @@ def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[TorchBenchModelCon
             latency_metric_key = f"{metrics_base}_latency"
             reference_latencies[latency_metric_key] = c["median_latency"]
     return configs, reference_latencies, config_obj
+
+
+def parse_test_name(test_name: str) -> TorchBenchModelConfig:
+    regex = "test_(.*)\[(.*)-(.*)-eager\]"
+    test, model, device = re.match(regex, test_name).groups()
+    return TorchBenchModelConfig(
+        name=model,
+        device=device,
+        test=test,
+        batch_size=None,
+        jit=False,
+        extra_args=[],
+        extra_env=None,
+    )
+
+def generate_model_configs_from_bisect_yaml(bisect_yaml_file: str) -> List[TorchBenchModelConfig]:
+    def _remove_suffix(test_name: str):
+        index_last_underscore = test_name.rfind("_")
+        return test_name[:index_last_underscore]
+    with open(bisect_yaml_file, "r") as yf:
+        bisect_obj = yaml.safe_load(yf)
+    # remove the suffix
+    bisect_tests = [ _remove_suffix(test_name) for test_name in bisect_obj["details"] ]
+    bisect_tests = set(bisect_tests)
+    configs = [ parse_test_name(test_name_str) for test_name_str in sorted(bisect_tests) ]
+    return configs
 
 def parse_str_to_list(candidates):
     if isinstance(candidates, list):
@@ -132,6 +155,7 @@ def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> Optional[To
     metrics = get_metrics(config)
     print(f"Running {config} ...", end='')
     if dryrun:
+        print(" [Skip: Dryrun]")
         return None
     # We do not allow RuntimeError in this test
     try:
@@ -151,8 +175,10 @@ def parse_args(args):
     parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
     parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice models, splited by comma.")
     parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
+    parser.add_argument("--run-bisect", help="Run with the output of regression detector.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
-    parser.add_argument("--score", default=None, help="Generate score from the past run json.")
+    parser.add_argument("--score", default=None, help="Generate score from the past run json only.")
+    parser.add_argument("--output", default=get_default_output_json_path(BM_NAME), help="Specify the path of the output file")
     return parser.parse_args(args)
 
 def run(args: List[str]):
@@ -170,6 +196,8 @@ def run(args: List[str]):
         exit(0)
     elif args.config:
         configs, reference_latencies, config_obj = generate_model_configs_from_yaml(args.config)
+    elif args.run_bisect:
+        configs = generate_model_configs_from_bisect_yaml(args.run_bisect)
     else:
         # If not specified, use the entire model set
         if not args.model:
@@ -194,4 +222,6 @@ def run(args: List[str]):
             score_version = config_obj["metadata"]["score_version"]
             score_name = f"{score_version}_score"
             metrics[score_name] = score
-        dump_result_to_json(metrics)
+        result = get_output_json(BM_NAME, metrics)
+        with open(args.output, 'w') as f:
+            json.dump(result, f, indent=4)
