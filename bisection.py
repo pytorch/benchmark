@@ -146,6 +146,9 @@ class BisectionTargetRepo:
     # Checkout the last commit of non-target repos on date
     def _checkout_non_target_repos(self, cdate: datetime):
         for repo in self.non_target_repos:
+            # Do not need to checkout torchbench
+            if repo.name == "torchbench":
+                continue
             gitutils.checkout_git_branch(repo.src_path.absolute(), repo.main_branch)
             dep_commit = gitutils.get_git_commit_on_date(repo.src_path.absolute(), cdate)
             assert dep_commit, f"Failed to find the commit on {cdate} of {repo.name}"
