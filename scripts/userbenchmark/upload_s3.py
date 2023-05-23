@@ -1,8 +1,6 @@
 import argparse
-import json
 import sys
 from pathlib import Path
-from datetime import datetime
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 class add_path():
@@ -24,7 +22,8 @@ with add_path(str(REPO_ROOT)):
 
 def upload_s3(ub_name: str, platform_name: str, date_str: str, file_path: Path):
     """S3 path:
-        s3://ossci-metrics/torchbench_userbenchmark/<userbenchmark-name>/<platform-name>/<date>/metrics-<time>.json"""
+        s3://ossci-metrics/torchbench_userbenchmark/<userbenchmark-name>/<platform-name>/<date>/metrics-<YYmmddHHMMSS>.json
+        s3://ossci-metrics/torchbench_userbenchmark/<userbenchmark-name>/<platform-name>/<date>/regression-<YYmmddHHMMSS>.yaml"""
     s3client = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
     prefix = f"{ub_name}/{platform_name}/{date_str}"
     s3client.upload_file(prefix=prefix, file_path=file_path)
@@ -34,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--userbenchmark_platform", required=True,
                         help='Name of the userbenchmark platform')
     parser.add_argument("--userbenchmark_json", required=True,
-                        help='Upload userbenchmark json data')
+                        help='Upload userbenchmark json or regression yaml file.')
     args = parser.parse_args()
     json_path = Path(args.userbenchmark_json)
     assert json_path.exists(), f"Specified result json path {args.userbenchmark_json} does not exist."

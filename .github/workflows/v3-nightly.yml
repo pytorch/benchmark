@@ -79,7 +79,6 @@ jobs:
       - name: Copy artifact and upload to scribe and Amazon S3
         run: |
           . "${SETUP_SCRIPT}"
-          TODAY=$(date "+%Y%m%d%H%M%S")
           pushd benchmark
           LATEST_RESULT=$(find ../benchmark-output/ -name "metrics-*.json" | sort -r | head -1)
           echo "Benchmark result file: ${LATEST_RESULT}"
@@ -87,6 +86,11 @@ jobs:
           python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
           # Upload the result json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
+          if [ -n "${TORCHBENCH_REGRESSION_DETECTED}" ]; then
+            LATEST_REGRESSION_RESULT=$(find ../benchmark-output/ -name "regression-*.json" | sort -r | head -1)
+            # Upload the regression json to Amazon S3
+            python ./scripts/userbenchmark/upload_s3.py --userbenchmark_json "${LATEST_REGRESSION_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
+          fi
       - name: Upload result to GH Actions Artifact
         uses: actions/upload-artifact@v3
         with:
