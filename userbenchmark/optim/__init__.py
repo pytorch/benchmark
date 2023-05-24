@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 from torchbenchmark import load_model_by_name
 import torch
 from torch import _dynamo as torchdynamo
@@ -11,6 +11,7 @@ import gc
 import sys
 import itertools
 import datetime
+import yaml
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models
@@ -21,6 +22,19 @@ BM_NAME: str = 'optim'
 continue_on_error: bool = False
 run_on_subset: bool = False
 ignore_skips: bool = False
+
+# Models that are unstable in torch-nightly should not run in the optim world either
+def get_unstable_models() -> Set[str]:
+    unstable_models: Set[str]= set()
+    yaml_file_path = REPO_PATH.joinpath('userbenchmark/torch-nightly/v3-cuda-tests.yaml')
+    with open(yaml_file_path, "r") as yf:
+        config_obj = yaml.safe_load(yf)
+    for d in config_obj['cuda']:
+        if not d['stable']:
+            unstable_models.add(d['model'])
+    return unstable_models
+
+unstable_models: Set[str] = get_unstable_models()
 
 MODEL_NAMES: List[str] = list_models()
 SUBSET_OF_MODEL_NAMES: List[str] = [
@@ -213,6 +227,9 @@ DENSE_MODELS = [
 # {'optim': 'SparseAdam', 'model': 'BERT_pytorch'}, any configuration with
 # SparseAdam on BERT_pytorch will be skipped.
 EXCLUSIONS: List[Dict[str, Any]] = [
+    # Skip models deemed unstable by torch-nightly
+    {'model': m} for m in unstable_models
+] + [
     # SparseAdam does not support dense gradients
     {'optim': 'SparseAdam', 'model': m} for m in DENSE_MODELS
 ] + [
