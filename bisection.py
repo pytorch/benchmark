@@ -23,10 +23,7 @@ from datetime import datetime
 from dataclasses import asdict
 from typing import Optional, List, Dict, Tuple, Any, Callable
 
-from userbenchmark.utils import (
-    parse_abtest_result_from_regression_file_for_bisect,
-    TorchBenchABTestResult,
-)
+from userbenchmark.utils import TorchBenchABTestResult
 from regression_detector import generate_regression_result
 from utils import gitutils
 from utils.build_utils import (
