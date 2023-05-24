@@ -39,8 +39,7 @@ jobs:
           . "${SETUP_SCRIPT}"
           TODAY=$(date +Ymd)
           python bisection.py --work-dir "${BISECT_WORKDIR}" --torch-repos-path "${PWD}/srcs" \
-                --torchbench-repo-path "${PWD}" --config "${TODAY}" --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json" \
-                --skip-update torchbench
+                --torchbench-repo-path "${PWD}" --config "${TODAY}" --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
       - name: Analyze bisection result
         run: |
           . "${SETUP_SCRIPT}"

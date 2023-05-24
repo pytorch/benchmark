@@ -271,5 +271,9 @@ if __name__ == "__main__":
     (treatment, treatment_file) = get_metrics_by_date(available_metrics_jsons, end_date) if not treatment else (treatment, args.treatment)
     regression_result = generate_regression_result(control, treatment)
     output_path = args.output if args.output else get_default_output_path(control["name"])
+<<<<<<< HEAD
     process_regressions_into_yaml(regression_result, output_path, control_file, treatment_file)
+=======
+    process_regressions_into_yaml(regression_result, output_path, args.control, args.treatment)
+>>>>>>> 57ec3f88 (Fix regression detector code)
     process_regressions_into_gh_issue(regression_result, owner, args.gh_issue_path, args.errors_path)

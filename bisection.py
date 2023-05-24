@@ -91,7 +91,9 @@ def get_latest_non_empty_file(directory: str, cond: Callable) -> Optional[str]:
             return max(non_empty_filelist, key=os.path.getctime)
     return None
 
-def get_updated_clean_torch_repos(pytorch_repos_path: str, torchbench_repo_path: Optional[str]=None, skip_update_repos: Optional[List[str]]=None) -> Dict[str, TorchRepo]:
+def get_updated_clean_torch_repos(pytorch_repos_path: str,
+                                  torchbench_repo_path: Optional[str]=None,
+                                  skip_update_repos: Optional[List[str]]=None) -> Dict[str, TorchRepo]:
     all_repos = {}
     def _gen_torch_repo(repo_name: str, repo_path: str):
         assert repo_path.exists() and repo_path.is_dir(), f"{str(repo_path)} is not an existing directory."
@@ -381,7 +383,7 @@ if __name__ == "__main__":
     parser.add_argument("--output",
                         required=True,
                         help="the output json file")
-    parser.add_argument("--skip-update", type=str, default="", help="Repositories to skip update.")
+    parser.add_argument("--skip-update", type=str, default="torchbench", help="Repositories to skip update.")
     # by default, debug mode is disabled
     parser.add_argument("--debug",
                         help="run in debug mode, if the result json exists, use it directly",
