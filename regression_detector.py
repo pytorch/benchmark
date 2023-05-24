@@ -196,7 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("--start-date", default=None, help="The start date to detect regression.")
     parser.add_argument("--end-date", default=None, help="The latest date to detect regression.")
     # download from S3
-    parser.add_argument("--download-from-s3", help="Download the regression yaml file from S3.")
+    parser.add_argument("--download-from-s3", action='store_true', help="Download the regression yaml file from S3.")
     # output file path
     parser.add_argument("--output", default=None, help="Output path to print the regression detection file.")
     # GitHub issue details
@@ -252,6 +252,7 @@ if __name__ == "__main__":
         with open(args.output, "w") as rf:
             yaml.safe_dump(regression_yaml, rf)
         print(f"Downloaded the regression yaml file to path {args.output}")
+        exit(0)
 
     metrics_json_cond = lambda x: x.endswith('.json') and 'metrics' in x
     available_metrics_jsons = get_latest_files_in_s3_from_last_n_days(userbenchmark_name, args.platform, end_date, metrics_json_cond, ndays=7)

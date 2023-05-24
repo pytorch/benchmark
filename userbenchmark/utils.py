@@ -103,7 +103,8 @@ def get_ub_name(metrics_file_path: str) -> str:
 
 def get_date_from_metrics_s3_key(metrics_s3_key: str) -> datetime:
     metrics_s3_json_filename = metrics_s3_key.split('/')[-1]
-    return datetime.strptime(metrics_s3_json_filename, 'metrics-%Y%m%d%H%M%S.json')
+    return datetime.strptime(metrics_s3_json_filename, 'metrics-%Y%m%d%H%M%S.json') if metrics_s3_key.endswith('.json') \
+        else datetime.strptime(metrics_s3_json_filename, 'regression-%Y%m%d%H%M%S.yaml')
 
 
 def get_latest_files_in_s3_from_last_n_days(bm_name: str, platform_name: str, date: datetime, cond: Callable, ndays: int=7, limit: int=100) -> List[str]:
