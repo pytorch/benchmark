@@ -211,7 +211,6 @@ if __name__ == "__main__":
     owner = " ".join(args.owner) if args.owner else DEFAULT_GH_ISSUE_OWNER
 
     # User provided both control and treatment files
-    owner = " ".join(args.owner) if args.owner else DEFAULT_GH_ISSUE_OWNER
     if args.control and args.treatment:
         with open(args.control, "r") as cfptr:
             control = json.load(cfptr)
