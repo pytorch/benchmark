@@ -307,6 +307,7 @@ class TorchBenchBisection:
         self.debug = debug
 
     def prep(self) -> bool:
+        cleanup_torch_packages()
         if not self.target_repo.prep():
             return False
         if not self.torchbench.prep(self.target_repo.bisection_env):
