@@ -35,8 +35,8 @@ if __name__ == "__main__":
     parser.add_argument("--upload-file", required=True,
                         help='Upload userbenchmark json or regression yaml file.')
     args = parser.parse_args()
-    json_path = Path(args.userbenchmark_json)
-    assert json_path.exists(), f"Specified result json path {args.userbenchmark_json} does not exist."
-    date_str = get_date_from_metrics(json_path.stem)
-    ub_name = get_ub_name(args.userbenchmark_json)
-    upload_s3(ub_name, args.userbenchmark_platform, date_str, json_path)
+    upload_file_path = Path(args.upload_file)
+    assert upload_file_path.exists(), f"Specified result json path {args.upload_file} does not exist."
+    date_str = get_date_from_metrics(upload_file_path.stem)
+    ub_name = get_ub_name(args.upload_file)
+    upload_s3(ub_name, args.userbenchmark_platform, date_str, upload_file_path)
