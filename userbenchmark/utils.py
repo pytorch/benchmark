@@ -3,6 +3,7 @@ import sys
 from datetime import datetime, timedelta
 import time
 import json
+import yaml
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -80,14 +81,25 @@ def dump_output(bm_name: str, output: Any, target_dir: Path=None) -> None:
 
 
 def get_date_from_metrics(metrics_file: str) -> str:
-    datetime_obj = datetime.strptime(metrics_file, "metrics-%Y%m%d%H%M%S")
+    assert metrics_file.startswith("metrics-") or metrics_file.startswith("regression-"), f"Unknown metrics or regression file name format: {metrics_file}"
+    # metrics_file usually looks like metrics-%Y%m%d%H%M%S or regression-%Y%m%d%H%M%S
+    stripped_filename = metrics_file.split("-")[1]
+    datetime_obj = datetime.strptime(stripped_filename, "%Y%m%d%H%M%S")
     return datetime.strftime(datetime_obj, "%Y-%m-%d")
 
 
 def get_ub_name(metrics_file_path: str) -> str:
-    with open(metrics_file_path, "r") as mf:
-        metrics = json.load(mf)
-    return metrics["name"]
+    if metrics_file_path.endswith(".json"):
+        with open(metrics_file_path, "r") as mf:
+            metrics = json.load(mf)
+        return metrics["name"]
+    elif metrics_file_path.endswith(".yaml"):
+        with open(metrics_file_path, "r") as mf:
+            regression = yaml.safe_load(mf)
+        return regression["name"]
+    print(f"Unknown metrics or regression file name path: {metrics_file_path}")
+    exit(1)
+
 
 def get_date_from_metrics_s3_key(metrics_s3_key: str) -> datetime:
     metrics_s3_json_filename = metrics_s3_key.split('/')[-1]
