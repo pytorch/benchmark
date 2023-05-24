@@ -23,7 +23,10 @@ from datetime import datetime
 from dataclasses import asdict
 from typing import Optional, List, Dict, Tuple, Any, Callable
 
-from userbenchmark.utils import TorchBenchABTestResult
+from userbenchmark.utils import (
+    TorchBenchABTestResult,
+    parse_abtest_result_from_regression_file_for_bisect
+)
 from regression_detector import generate_regression_result
 from utils import gitutils
 from utils.build_utils import (
@@ -399,7 +402,6 @@ if __name__ == "__main__":
                                                                             f"get bisection target repo {bisect_config.bisection}, " \
                                                                             f"available target repos: {TORCHBENCH_BISECTION_TARGETS.keys()}"
     assert bisect_config.bisection_mode == "bisect", "Abtest mode is not supported yet."
-    assert os.path.exists(bisect_config.bisection_config_file_path), f"Specifed bisection file path {bisect_config.bisection_config_file_path} must exist."
     assert len(bisect_config.details), "The bisection target metrics must not be empty."
 
     if args.skip_update:
