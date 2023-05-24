@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Any, List, Dict, Optional
 from userbenchmark.utils import PLATFORMS, USERBENCHMARK_OUTPUT_PREFIX, REPO_PATH, \
                                 TorchBenchABTestResult, get_date_from_metrics, \
-                                get_ub_name, get_latest_jsons_in_s3_from_last_n_days, get_date_from_metrics_s3_key
+                                get_ub_name, get_latest_files_in_s3_from_last_n_days, get_date_from_metrics_s3_key
 from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT
 
 GITHUB_ISSUE_TEMPLATE = """
@@ -195,6 +195,8 @@ if __name__ == "__main__":
     parser.add_argument("--platform", choices=PLATFORMS, default=None, help="The name of platform of the regression.")
     parser.add_argument("--start-date", default=None, help="The start date to detect regression.")
     parser.add_argument("--end-date", default=None, help="The latest date to detect regression.")
+    # download from S3
+    parser.add_argument("--download-from-s3", help="Download the regression yaml file from S3.")
     # output file path
     parser.add_argument("--output", default=None, help="Output path to print the regression detection file.")
     # GitHub issue details
@@ -236,15 +238,31 @@ if __name__ == "__main__":
         assert args.name, f"To detect regression with S3, you must specify a userbenchmark name."
         userbenchmark_name = args.name
         end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
-    available_metrics_jsons = get_latest_jsons_in_s3_from_last_n_days(userbenchmark_name, args.platform, end_date, ndays=7)
+
+    # Only download the existing regression YAML file from S3
+    if args.download_from_s3:
+        assert args.output, f"You must specify a regression output file path for S3 download."
+        regression_yaml_cond = lambda x: x.endswith('.yaml') and 'regression' in x
+        available_regression_yamls = get_latest_files_in_s3_from_last_n_days(userbenchmark_name, args.platform, end_date, regression_yaml_cond, ndays=1)
+        if not len(available_regression_yamls):
+            raise RuntimeError(f"No regression yaml found on S3 for end date {end_date}, userbenchmark {userbenchmark_name}, and platform {args.platform}")
+        latest_regression_yaml = available_regression_yamls[0]
+        s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
+        regression_yaml = s3.get_file_as_yaml(latest_regression_yaml)
+        with open(args.output, "w") as rf:
+            yaml.safe_dump(regression_yaml, rf)
+        print(f"Downloaded the regression yaml file to path {args.output}")
+
+    metrics_json_cond = lambda x: x.endswith('.json') and 'metrics' in x
+    available_metrics_jsons = get_latest_files_in_s3_from_last_n_days(userbenchmark_name, args.platform, end_date, metrics_json_cond, ndays=7)
     # Download control from S3
     if len(available_metrics_jsons) == 0:
-        raise RuntimeWarning(f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated.")
+        raise RuntimeError(f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated.")
     print(f"Found metrics json files on S3: {available_metrics_jsons}")
     start_date = args.start_date if args.start_date else get_best_start_date(available_metrics_jsons, end_date)
     if not start_date:
-        raise RuntimeWarning(f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. " +
-                             f"Available JSON dates: {available_metrics_jsons.keys()}. No regression info has been generated.")
+        raise RuntimeError(f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. " +
+                           f"Available JSON dates: {available_metrics_jsons.keys()}. No regression info has been generated.")
 
     print(f"[TorchBench Regression Detector] Detecting regression of {userbenchmark_name} on platform {args.platform}, start date: {start_date}, end date: {end_date}.")
     control = get_metrics_by_date(available_metrics_jsons, start_date) if not control else control

@@ -2,6 +2,7 @@ from typing import Any, List, Optional
 import boto3
 import os
 import json
+import yaml
 from pathlib import Path
 
 USERBENCHMARK_S3_BUCKET = "ossci-metrics"
@@ -28,6 +29,10 @@ class S3Client:
     def get_file_as_json(self, key: str) -> Any:
         obj = self.s3.get_object(Bucket=self.bucket, Key=key)
         return json.loads(obj['Body'].read().decode('utf-8'))
+
+    def get_file_as_yaml(self, key: str) -> Any:
+        obj = self.s3.get_object(Bucket=self.bucket, Key=key)
+        return yaml.safe_load(obj['Body'].read().decode('utf-8'))
 
     def exists(self, prefix: str, file_name: str) -> Optional[str]:
         """Test if the key object/prefix/file_name exists in the S3 bucket.
