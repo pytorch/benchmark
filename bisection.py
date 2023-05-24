@@ -20,13 +20,14 @@ import yaml
 from pathlib import Path
 import subprocess
 from datetime import datetime
+from dataclasses import asdict
 from typing import Optional, List, Dict, Tuple, Any, Callable
 
 from userbenchmark.utils import (
     parse_abtest_result_from_regression_file_for_bisect,
     TorchBenchABTestResult,
 )
-from regression_detector import generate_regression_dict
+from regression_detector import generate_regression_result
 from utils import gitutils
 from utils.build_utils import (
     setup_bisection_build_env,
@@ -321,13 +322,13 @@ class TorchBenchBisection:
         # If uncalculated, commit.digest will be None
         assert left.digest, "Commit {left.sha} must have a digest"
         assert right.digest, "Commit {right.sha} must have a digest"
-        regression_dict = generate_regression_dict(left.digest, right.digest)
+        regression_result = generate_regression_result(left.digest, right.digest)
         regression_file = f"regression-{left.sha}-{right.sha}.yaml"
         regression_file_full_path = os.path.join(self.workdir.absolute(), regression_file)
         with open(regression_file_full_path, "w") as rf:
-            rf.write(yaml.dump_all(regression_dict))
-        abtest_result = parse_abtest_result_from_regression_file_for_bisect(regression_file_full_path)
-        return abtest_result
+            rf.write(yaml.dump_all(asdict(regression_result)))
+        regression_result.bisection_config_file_path = regression_file_full_path
+        return regression_result
         
     def run(self):
         while len(self.bisectq):
@@ -335,7 +336,9 @@ class TorchBenchBisection:
             self.torchbench.get_digest_for_commit(left, abtest_result, self.debug)
             self.torchbench.get_digest_for_commit(right, abtest_result, self.debug)
             updated_abtest_result = self.regression_detection(left, right)
-            if len(updated_abtest_result.details):
+            if  len(updated_abtest_result.details) or \
+                len(updated_abtest_result.control_only_metrics) or \
+                len(updated_abtest_result.treatment_only_metrics):
                 mid = self.target_repo.get_mid_commit(left, right)
                 if mid == None:
                     self.result.append((left, right))
