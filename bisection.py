@@ -69,6 +69,7 @@ TORCHBENCH_BISECTION_TARGETS = {
         "build_command": [sys.executable, "install.py"],
     },
 }
+SKIP_INATLL_TORCHBENCH = False
 
 def exist_dir_path(string):
     if os.path.isdir(string):
@@ -231,7 +232,7 @@ class TorchBenchRepo:
             shutil.rmtree(output_dir)
         os.mkdir(output_dir)
         # If the first time to run benchmark, install the dependencies first
-        if self.first_time:
+        if self.first_time and not SKIP_INATLL_TORCHBENCH:
             self._install_benchmark()
             self.first_time = False
         bm_name = bisect_config.name
@@ -385,6 +386,7 @@ if __name__ == "__main__":
                         required=True,
                         help="the regression dict output of regression_detector.py in YAML",
                         type=exist_file_path)
+    parser.add_argument("--skip-install-torchbench", action="store_true", help="Skip installing torchbench")
     parser.add_argument("--output",
                         required=True,
                         help="the output json file")
@@ -412,6 +414,8 @@ if __name__ == "__main__":
             assert repo in list(TORCHBENCH_BISECTION_TARGETS.keys()), f"User specified skip update repo {repo} not in list: {TORCHBENCH_BISECTION_TARGETS.keys()}"
     else:
         skip_update_repos = None
+    if args.skip_install_torchbench:
+        SKIP_INATLL_TORCHBENCH = True
 
     # load, update, and clean the repo directories
     torch_repos: Dict[str, TorchRepo] = get_updated_clean_torch_repos(args.torch_repos_path, args.torchbench_repo_path, skip_update_repos)
