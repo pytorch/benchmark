@@ -198,6 +198,7 @@ def run(args: List[str]):
         configs, reference_latencies, config_obj = generate_model_configs_from_yaml(args.config)
     elif args.run_bisect:
         configs = generate_model_configs_from_bisect_yaml(args.run_bisect)
+        reference_latencies = None
     else:
         # If not specified, use the entire model set
         if not args.model:
