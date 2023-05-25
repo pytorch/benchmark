@@ -153,20 +153,20 @@ def parse_str_to_list(candidates):
 def run_config(config: TorchBenchModelConfig, dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
     """This function only handles NotImplementedError, all other errors will fail."""
     metrics = get_metrics(config)
-    print(f"Running {config} ...", end='')
+    print(f"Running {config} ...", end='', flush=True)
     if dryrun:
-        print(" [Skip: Dryrun]")
+        print(" [Skip: Dryrun]", flush=True)
         return None
     # We do not allow RuntimeError in this test
     try:
-        # load the model instance within the same process
+        # load the model instance in subprocess
         model = load_model_isolated(config)
         # get the model test metrics
         result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
     except NotImplementedError as e:
-        print(" [NotImplemented]")
+        print(" [NotImplemented]", flush=True)
         return None
-    print(" [Done]")
+    print(" [Done]", flush=True)
     return result
 
 def parse_args(args):
