@@ -243,7 +243,7 @@ class TorchBenchRepo:
 
     def _gen_digest(self, result_json: str) -> Dict[str, float]:
         out = {}
-        if not os.path.getsize(result_json).st_size:
+        if not os.path.getsize(result_json):
             print(f"Empty json file {result_json}. Return empty digest.")
             return out
         with open(result_json, "r") as df:
