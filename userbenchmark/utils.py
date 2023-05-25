@@ -6,7 +6,7 @@ import json
 import yaml
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
@@ -103,10 +103,11 @@ def get_ub_name(metrics_file_path: str) -> str:
 
 def get_date_from_metrics_s3_key(metrics_s3_key: str) -> datetime:
     metrics_s3_json_filename = metrics_s3_key.split('/')[-1]
-    return datetime.strptime(metrics_s3_json_filename, 'metrics-%Y%m%d%H%M%S.json')
+    return datetime.strptime(metrics_s3_json_filename, 'metrics-%Y%m%d%H%M%S.json') if metrics_s3_key.endswith('.json') \
+        else datetime.strptime(metrics_s3_json_filename, 'regression-%Y%m%d%H%M%S.yaml')
 
 
-def get_latest_jsons_in_s3_from_last_n_days(bm_name: str, platform_name: str, date: datetime, ndays: int=7, limit: int=100) -> List[str]:
+def get_latest_files_in_s3_from_last_n_days(bm_name: str, platform_name: str, date: datetime, cond: Callable, ndays: int=7, limit: int=100) -> List[str]:
     """Retrieves the most recent n day metrics json filenames from S3 before the given date, inclusive of that date.
        If fewer than n days are found, returns all found items without erroring, even if there were no items.
        Returns maximum 100 results by default. """
@@ -124,7 +125,7 @@ def get_latest_jsons_in_s3_from_last_n_days(bm_name: str, platform_name: str, da
 
         if s3.exists(None, current_directory):
             files = s3.list_directory(current_directory)
-            metric_jsons = [f for f in files if f.endswith('.json') and 'metrics' in f]
+            metric_jsons = [f for f in files if cond(f)]
             metric_jsons.sort(key=lambda x: get_date_from_metrics_s3_key(x), reverse=True)
             previous_json_files.extend(metric_jsons[:limit - len(previous_json_files)])
 
