@@ -69,7 +69,7 @@ TORCHBENCH_BISECTION_TARGETS = {
         "build_command": [sys.executable, "install.py"],
     },
 }
-SKIP_INATLL_TORCHBENCH = False
+SKIP_INSTALL_TORCHBENCH = False
 
 def exist_dir_path(string):
     if os.path.isdir(string):
@@ -232,7 +232,7 @@ class TorchBenchRepo:
             shutil.rmtree(output_dir)
         os.mkdir(output_dir)
         # If the first time to run benchmark, install the dependencies first
-        if self.first_time and not SKIP_INATLL_TORCHBENCH:
+        if self.first_time and not SKIP_INSTALL_TORCHBENCH:
             self._install_benchmark()
             self.first_time = False
         bm_name = bisect_config.name
@@ -415,7 +415,7 @@ if __name__ == "__main__":
     else:
         skip_update_repos = None
     if args.skip_install_torchbench:
-        SKIP_INATLL_TORCHBENCH = True
+        SKIP_INSTALL_TORCHBENCH = True
 
     # load, update, and clean the repo directories
     torch_repos: Dict[str, TorchRepo] = get_updated_clean_torch_repos(args.torch_repos_path, args.torchbench_repo_path, skip_update_repos)
