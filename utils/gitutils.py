@@ -125,9 +125,14 @@ def get_current_commit(repo: str) -> Optional[str]:
         print(f"Failed to get the current commit in repo {repo}")
         return None
 
+def cleanup_local_changes(repo: str):
+    command = ["git", "reset", "--hard", "HEAD"]
+    subprocess.check_call(command, cwd=repo, shell=False)
+
 def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
+        cleanup_local_changes(repo)
         command = ["git", "checkout", "--recurse-submodules", commit]
         subprocess.check_call(command, cwd=repo, shell=False)
         return True

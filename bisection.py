@@ -101,6 +101,7 @@ def get_updated_clean_torch_repos(pytorch_repos_path: str,
         main_branch = "main" if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name] else \
                       TORCHBENCH_BISECTION_TARGETS[repo_name]["main_branch"]
         if not skip_update_repos or not repo_name in skip_update_repos:
+            gitutils.cleanup_local_changes(repo_path.absolute())
             assert gitutils.update_git_repo(repo_path.absolute(), main_branch)
             assert gitutils.clean_git_repo(repo_path.absolute())
         cur_commit = gitutils.get_current_commit(repo_path.absolute())
