@@ -1,4 +1,3 @@
 # Actually needed
 opencv-python
 pycocotools
-opencv-python
