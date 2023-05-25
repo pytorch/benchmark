@@ -196,6 +196,7 @@ DENSE_MODELS = [
     'resnet50_quantized_qat',
     'resnext50_32x4d',
     'sage',
+    'sam',
     'shufflenet_v2_x1_0',
     'soft_actor_critic',
     'speech_transformer',
