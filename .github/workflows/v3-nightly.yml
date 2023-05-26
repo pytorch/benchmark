@@ -54,7 +54,7 @@ jobs:
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           python run_benchmark.py torch-nightly -c v3-cuda-tests.yaml
-          ln -s ./.userbenchmark/torch-nightly ../benchmark-output
+          cp -r ./.userbenchmark/torch-nightly ../benchmark-output
       - name: Detect potential regressions
         continue-on-error: true
         run: |
@@ -67,6 +67,8 @@ jobs:
             python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @xuzhao9 \
             --gh-issue-path gh-issue.md --errors-path errors.txt
           done
+          rm -r ../benchmark-output || true
+          cp -r ./.userbenchmark/torch-nightly ../benchmark-output
       - name: Create the github issue
         continue-on-error: true
         if: env.TORCHBENCH_REGRESSION_DETECTED
