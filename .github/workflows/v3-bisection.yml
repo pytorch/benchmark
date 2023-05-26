@@ -75,7 +75,7 @@ jobs:
           mkdir -p "${BISECT_WORKDIR}"
           REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
           python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
-                                        --end-date "${REGRESSION_DATE}" --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
+                                        --end-date "${REGRESSION_DATE}" --download-from-s3 --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
           python ./utils/cuda_utils.py --install-torch-build-deps
       - name: Bisection
         run: |
