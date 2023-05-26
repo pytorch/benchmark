@@ -54,6 +54,7 @@ jobs:
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           python run_benchmark.py torch-nightly -c v3-cuda-tests.yaml
+          ln -s ./.userbenchmark/torch-nightly ../benchmark-output
       - name: Detect potential regressions
         continue-on-error: true
         run: |
@@ -66,7 +67,6 @@ jobs:
             python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @xuzhao9 \
             --gh-issue-path gh-issue.md --errors-path errors.txt
           done
-          cp -r ./.userbenchmark/torch-nightly ../benchmark-output
       - name: Create the github issue
         continue-on-error: true
         if: env.TORCHBENCH_REGRESSION_DETECTED
@@ -89,14 +89,10 @@ jobs:
       - name: Copy regression results to Amazon S3
         if: env.TORCHBENCH_REGRESSION_DETECTED
         run: |
-          . "${SETUP_SCRIPT}"
-          pushd benchmark
           LATEST_REGRESSION_RESULT=$(find ../benchmark-output/ -name "regression-*.yaml" | sort -r | head -1)
-          echo "Benchmark regression file: ${LATEST_REGRESSION_RESULT}"
           # Upload the regression json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --upload-file "${LATEST_REGRESSION_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
       - name: Upload result to GH Actions Artifact
-        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: TorchBench V3 result
