@@ -91,6 +91,8 @@ jobs:
       - name: Copy regression results to Amazon S3
         if: env.TORCHBENCH_REGRESSION_DETECTED
         run: |
+          . "${SETUP_SCRIPT}"
+          pushd benchmark
           LATEST_REGRESSION_RESULT=$(find ../benchmark-output/ -name "regression-*.yaml" | sort -r | head -1)
           # Upload the regression json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --upload-file "${LATEST_REGRESSION_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
