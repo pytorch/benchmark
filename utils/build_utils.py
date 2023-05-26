@@ -29,6 +29,9 @@ def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
     env["USE_MKL"] = "1"
     env["USE_CUDNN"] = "1"
     env["USE_FFMPEG"] = "1"
+    conda_extra_library_path = f'{env["CONDA_PREFIX"]}/x86_64-conda-linux-gnu/sysroot/lib64:{env["CONDA_PREFIX"]}/x86_64-conda-linux-gnu/sysroot/usr/lib64'
+    env["LD_LIBRARY_PATH"] = f'{env["LD_LIBRARY_PATH"]}:{conda_extra_library_path}'
+    env["LIBRARY_PATH"] = f'{env["LIBRARY_PATH"]}:{conda_extra_library_path}'
     # Torchaudio SOX build has failures, skip it
     env["BUILD_SOX"] = "0"
     env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
@@ -48,12 +51,13 @@ def build_pytorch_repo(repo: TorchRepo, build_env: Dict[str, str]):
         command_testbuild = [sys.executable, "-c", "'import torch'"]
         subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env)
     except subprocess.CalledProcessError:
-        _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} 2ND TRY")
+        exit(1)
+        # _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} 2ND TRY")
         # Remove the build directory, then try building it again
-        build_path = os.path.join(repo.src_path.absolute(), "build")
-        if os.path.exists(build_path):
-            shutil.rmtree(build_path)
-        subprocess.check_call(repo.build_command, cwd=repo.src_path.absolute(), env=build_env)
+        # build_path = os.path.join(repo.src_path.absolute(), "build")
+        # if os.path.exists(build_path):
+        #    shutil.rmtree(build_path)
+        # subprocess.check_call(repo.build_command, cwd=repo.src_path.absolute(), env=build_env)
 
 def build_repo(repo: TorchRepo, build_env: Dict[str, str]):
     _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} START")
