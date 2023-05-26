@@ -13,7 +13,8 @@ from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
                                            TEST_STAGE
-from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model
+from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model, \
+                                          save_deterministic_mode, load_deterministic_mode
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
 
 class PostInitProcessor(type):
@@ -96,20 +97,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             enable_profiling_executor  # force JIT profiling executor to be enabled by default
         ]
 
-        # taken from torchdynamo benchmarks, this further controls randomness settings
-        def deterministic_torch_manual_seed(*args, **kwargs):
-            from torch._C import default_generator
-
-            seed = 1337
-            import torch.cuda
-
-            if not torch.cuda._is_in_bad_fork():
-                torch.cuda.manual_seed_all(seed)
-
-            return default_generator.manual_seed(seed)
-
-        torch.manual_seed = deterministic_torch_manual_seed
         set_random_seed()
+        self._determinism_dict = save_deterministic_mode(self.name)
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # parse the args
@@ -127,13 +116,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def __post__init__(self):
         # All arguments should be parsed at this point.
         assert not self.extra_args, f"Expected no unknown args at this point, found {self.extra_args}"
+        # apply decoration args
+        apply_decoration_args(self, self.dargs)
         should_check_correctness = check_correctness_p(self, self.opt_args, self.dargs)
         if should_check_correctness:
             self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
-            if isinstance(self.eager_output, Tuple):
-                self.eager_output = tuple((t.detach() if isinstance(t, torch.Tensor) else t) for t in self.eager_output)
-            elif isinstance(self.eager_output, torch.Tensor):
-                self.eager_output = self.eager_output.detach()
+            self.eager_output = tree_map(lambda x: x.detach() if isinstance(x, torch.Tensor) else x, self.eager_output)
             if self.test == "train":
                 current_optimizer = self.get_optimizer()
                 if current_optimizer is not None:
@@ -149,8 +137,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     warnings.warn(UserWarning("Can't copy the model. Skipping train correctness check."))
                 if current_optimizer is not None:
                     self.set_optimizer(current_optimizer)
-        # apply decoration args
-        apply_decoration_args(self, self.dargs)
         # apply optimization args
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
@@ -176,9 +162,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
             else:
                 # get tolerance of correctness check from os.environ
-                atol = float(os.environ.get("TORCHBENCH_ATOL", "1e-4"))
-                rtol = float(os.environ.get("TORCHBENCH_RTOL", "1e-4"))
-                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, atol=atol, rtol=rtol)
+                tol = float(os.environ.get("TORCHBENCH_TOL", "1e-4"))
+                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, tol=tol)
+        load_deterministic_mode(self._determinism_dict)
         # setup distributed trainer
         if self.dargs.distributed:
             if self.dargs.distributed_wrap_fn:

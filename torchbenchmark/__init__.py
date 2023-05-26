@@ -608,9 +608,8 @@ def load_model_by_name(model):
     assert len(models) == 1, f"Found more than one models {models} with the exact name: {model}"
     model_name = models[0]
     model_pkg = model_name if not _is_internal_model(model_name) else f"{internal_model_dir}.{model_name}"
-    
     module = importlib.import_module(f'.models.{model_pkg}', package=__name__)
-    
+
     Model = getattr(module, 'Model', None)
     if Model is None:
         print(f"Warning: {module} does not define attribute Model, skip it")
