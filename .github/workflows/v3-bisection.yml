@@ -75,7 +75,7 @@ jobs:
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
           REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
-          python bisection.py --work-dir "${BISECT_WORKDIR}" --torch-repos-path "${PWD}/srcs" \
+          python bisection.py --work-dir "${BISECT_WORKDIR}" --torch-repos-path "${PWD}/../srcs" \
                 --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml" \
                 --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
           cp -r "${BISECT_WORKDIR}" ../bisection-result
