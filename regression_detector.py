@@ -78,13 +78,15 @@ def generate_regression_dict(control, treatment) -> Dict[Any, Any]:
 
     # Local file comparison, return the regression detection object
     result = call_userbenchmark_detector(detector, control, treatment)
+    result_dict = {}
+    result_dict["name"] = bm_name
     if result or control_only_metrics or treatment_only_metrics:
         # organize metrics into a JSON dictionary
         result_dict = asdict(result)
         result_dict["control_only_metrics"] = control_only_metrics
         result_dict["treatment_only_metrics"] = treatment_only_metrics
-    return result_dict if result_dict else {}
-    
+    return result_dict
+
 def process_regressions_into_yaml(regressions_dict, output_path: str, control_file: str, treatment_file: str) -> None:
     if regressions_dict == {}:
         print(f"No performance signal detected between file {control_file} and {treatment_file}.")
