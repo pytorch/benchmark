@@ -14,36 +14,37 @@ jobs:
       BASE_CONDA_ENV: "torchbench"
       BISECT_WORKDIR: ".userbenchmark/torch-nightly/bisection"
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, bm-runner]
+    runs-on: [self-hosted, a100-runner]
     timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        path: benchmark
+        with:
+          path: benchmark
       - name: Checkout pytorch
         uses: actions/checkout@v3
         with:
-          name: pytorch/pytorch
+          repository: pytorch/pytorch
           path: srcs/pytorch
       - name: Checkout torchvision
         uses: actions/checkout@v3
         with:
-          name: pytorch/vision
+          repository: pytorch/vision
           path: srcs/vision
       - name: Checkout torchtext
         uses: actions/checkout@v3
         with:
-          name: pytorch/text
+          repository: pytorch/text
           path: srcs/text
       - name: Checkout torchdata
         uses: actions/checkout@v3
         with:
-          name: pytorch/data
+          repository: pytorch/data
           path: srcs/data
       - name: Checkout torchaudio
         uses: actions/checkout@v3
         with:
-          name: pytorch/audio
+          repository: pytorch/audio
           path: srcs/audio
       - name: Tune Nvidia GPU
         run: |
