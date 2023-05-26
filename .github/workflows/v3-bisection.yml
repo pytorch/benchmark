@@ -10,9 +10,14 @@ on:
 jobs:
   bisection:
     env:
-      CONDA_ENV: "bisection-ci-v3"
       BASE_CONDA_ENV: "torchbench"
+      CONDA_ENV: "bisection-ci-v3"
+      PLATFORM_NAME: "gcp_a100"
+      USERBENCHMARK_NAME: "torch-nightly"
+      SETUP_SCRIPT: "/workspace/setup_instance.sh"
       BISECT_WORKDIR: ".userbenchmark/torch-nightly/bisection"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, a100-runner]
     timeout-minutes: 2880 # 48 hours
@@ -55,12 +60,15 @@ jobs:
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
+      - name: Download regression config
+        run: |
+          mkdir -p "${BISECT_WORKDIR}"; cd benchmark
+          python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
+                                        --end-date "${REGRESSION_DATE}" --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
       - name: Bisection
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
           REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
-          mkdir -p "${BISECT_WORKDIR}"
-          python regression_detector.py --name torch-nightly --platform gcp_a100 --end-date "${REGRESSION_DATE}" --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
           python bisection.py --work-dir "${BISECT_WORKDIR}" --torch-repos-path "${PWD}/srcs" \
                 --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml" \
                 --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
