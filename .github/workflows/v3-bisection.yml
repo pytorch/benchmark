@@ -2,29 +2,49 @@ name: TorchBench V3 bisection
 on:
   workflow_dispatch:
     inputs:
-      issue_name:
-        description: "Bisection Issue Name"
+      regression_date:
+        description: "Date of the regression"
         required: true
-        default: "example-issue"
+        default: "2023-05-19"
 
 jobs:
   bisection:
     env:
       CONDA_ENV: "bisection-ci-v3"
       BASE_CONDA_ENV: "torchbench"
-      BISECT_WORKDIR: ".userbenchmark/torch-nightly/v3-bisection"
+      BISECT_WORKDIR: ".userbenchmark/torch-nightly/bisection"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          ref: v3.0
+        path: benchmark
       - name: Checkout pytorch
         uses: actions/checkout@v3
         with:
           name: pytorch/pytorch
+          path: srcs/pytorch
+      - name: Checkout torchvision
+        uses: actions/checkout@v3
+        with:
+          name: pytorch/vision
+          path: srcs/vision
+      - name: Checkout torchtext
+        uses: actions/checkout@v3
+        with:
+          name: pytorch/text
+          path: srcs/text
+      - name: Checkout torchdata
+        uses: actions/checkout@v3
+        with:
+          name: pytorch/data
+          path: srcs/data
+      - name: Checkout torchaudio
+        uses: actions/checkout@v3
+        with:
+          name: pytorch/audio
+          path: srcs/audio
       - name: Tune Nvidia GPU
         run: |
           sudo nvidia-smi -pm 1
@@ -36,17 +56,16 @@ jobs:
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Bisection
         run: |
-          . "${SETUP_SCRIPT}"
-          TODAY=$(date +Ymd)
+          . "${SETUP_SCRIPT}"; cd benchmark
+          REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
+          mkdir -p "${BISECT_WORKDIR}"
+          python regression_detector.py --name torch-nightly --platform gcp_a100 --end-date "${REGRESSION_DATE}" --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
           python bisection.py --work-dir "${BISECT_WORKDIR}" --torch-repos-path "${PWD}/srcs" \
-                --torchbench-repo-path "${PWD}" --config "${TODAY}" --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
-      - name: Analyze bisection result
-        run: |
-          . "${SETUP_SCRIPT}"
-          export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
-          python ./.github/scripts/bmutils/analyze-bisection-result.py --bisection-root "${BISECT_BASE}" --gh-workflow-id "${GITHUB_RUN_ID}"
-          cp -r "${BISECT_BASE}" ./bisection-result
+                --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml" \
+                --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
+          cp -r "${BISECT_WORKDIR}" ../bisection-result
       - name: Upload artifact
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: Bisection result
