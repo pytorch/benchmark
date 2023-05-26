@@ -56,13 +56,17 @@ jobs:
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
+      - name: Install Deps
+        run: |
+          sudo apt-get install -y ffmpeg libavcodec-dev libavformat-dev libavdevice-dev
       - name: Clone and setup conda env
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Download regression config
         run: |
-          mkdir -p "${BISECT_WORKDIR}"; cd benchmark
+          . "${SETUP_SCRIPT}"; cd benchmark
+          mkdir -p "${BISECT_WORKDIR}"
           python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
                                         --end-date "${REGRESSION_DATE}" --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
       - name: Bisection
