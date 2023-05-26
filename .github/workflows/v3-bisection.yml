@@ -31,26 +31,31 @@ jobs:
         with:
           repository: pytorch/pytorch
           path: srcs/pytorch
+          fetch-depth: 0
       - name: Checkout torchvision
         uses: actions/checkout@v3
         with:
           repository: pytorch/vision
           path: srcs/vision
+          fetch-depth: 0
       - name: Checkout torchtext
         uses: actions/checkout@v3
         with:
           repository: pytorch/text
           path: srcs/text
+          fetch-depth: 0
       - name: Checkout torchdata
         uses: actions/checkout@v3
         with:
           repository: pytorch/data
           path: srcs/data
+          fetch-depth: 0
       - name: Checkout torchaudio
         uses: actions/checkout@v3
         with:
           repository: pytorch/audio
           path: srcs/audio
+          fetch-depth: 0
       - name: Tune Nvidia GPU
         run: |
           sudo nvidia-smi -pm 1
