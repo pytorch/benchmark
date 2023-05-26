@@ -58,6 +58,7 @@ jobs:
           nvidia-smi
       - name: Install Deps
         run: |
+          sudo apt-get -y update && sudo apt -y update
           sudo apt-get install -y ffmpeg libavcodec-dev libavformat-dev libavdevice-dev
       - name: Clone and setup conda env
         run: |
