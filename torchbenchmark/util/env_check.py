@@ -135,11 +135,12 @@ def _load_deterministic_dict(determinism_dict: Dict[str, bool]):
     torch.backends.cuda.matmul.allow_tf32 = determinism_dict["torch.backends.cuda.matmul.allow_tf32"]
 
 def deterministic_run(func):
-    def _inner(**kwargs):
-        name = kwargs["model"].name
+    def _inner(*args, **kwargs):
+        name = args[0].name
         determinism_dict = _save_deterministic_dict(name)
-        func(**kwargs)
+        result = func(*args, **kwargs)
         _load_deterministic_dict(determinism_dict)
+        return result
     return _inner
 
 @deterministic_run
