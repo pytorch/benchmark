@@ -78,15 +78,14 @@ def generate_regression_dict(control, treatment) -> Dict[Any, Any]:
 
     # Local file comparison, return the regression detection object
     result = call_userbenchmark_detector(detector, control, treatment)
-    if result or control_only_metrics or treatment_only_metrics:
-        # organize metrics into a JSON dictionary
-        result_dict = asdict(result)
-        result_dict["control_only_metrics"] = control_only_metrics
-        result_dict["treatment_only_metrics"] = treatment_only_metrics
-    return result_dict if result_dict else {}
-    
+    result_dict = asdict(result)
+    result_dict["name"] = bm_name
+    result_dict["control_only_metrics"] = control_only_metrics
+    result_dict["treatment_only_metrics"] = treatment_only_metrics
+    return result_dict
+
 def process_regressions_into_yaml(regressions_dict, output_path: str, control_file: str, treatment_file: str) -> None:
-    if regressions_dict == {}:
+    if not len(regressions_dict["details"]) and not len(regressions_dict["control_only_metrics"]) and not len(regressions_dict["treatment_only_metrics"]):
         print(f"No performance signal detected between file {control_file} and {treatment_file}.")
         return
 
@@ -180,7 +179,7 @@ def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime):
     assert pick_metrics_json_key, f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
     metrics_json = s3.get_file_as_json(pick_metrics_json_key)
-    return metrics_json
+    return (metrics_json, pick_metrics_json_key)
 
 
 if __name__ == "__main__":
@@ -266,9 +265,9 @@ if __name__ == "__main__":
                            f"Available JSON dates: {available_metrics_jsons.keys()}. No regression info has been generated.")
 
     print(f"[TorchBench Regression Detector] Detecting regression of {userbenchmark_name} on platform {args.platform}, start date: {start_date}, end date: {end_date}.")
-    control = get_metrics_by_date(available_metrics_jsons, start_date) if not control else control
-    treatment = get_metrics_by_date(available_metrics_jsons, end_date) if not treatment else treatment
+    (control, control_file) = get_metrics_by_date(available_metrics_jsons, start_date) if not control else (control, args.control)
+    (treatment, treatment_file) = get_metrics_by_date(available_metrics_jsons, end_date) if not treatment else (treatment, args.treatment)
     regressions_dict = generate_regression_dict(control, treatment)
     output_path = args.output if args.output else get_default_output_path(control["name"])
-    process_regressions_into_yaml(regressions_dict, output_path, args.control, args.treatment)
+    process_regressions_into_yaml(regressions_dict, output_path, control_file, treatment_file)
     process_regressions_into_gh_issue(regressions_dict, owner, args.gh_issue_path, args.errors_path)

@@ -67,6 +67,8 @@ jobs:
             python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @xuzhao9 \
             --gh-issue-path gh-issue.md --errors-path errors.txt
           done
+          rm -r ../benchmark-output || true
+          cp -r ./.userbenchmark/torch-nightly ../benchmark-output
       - name: Create the github issue
         continue-on-error: true
         if: env.TORCHBENCH_REGRESSION_DETECTED
@@ -89,6 +91,8 @@ jobs:
       - name: Copy regression results to Amazon S3
         if: env.TORCHBENCH_REGRESSION_DETECTED
         run: |
+          . "${SETUP_SCRIPT}"
+          pushd benchmark
           LATEST_REGRESSION_RESULT=$(find ../benchmark-output/ -name "regression-*.yaml" | sort -r | head -1)
           # Upload the regression json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --upload-file "${LATEST_REGRESSION_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
