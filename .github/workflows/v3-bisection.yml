@@ -77,6 +77,11 @@ jobs:
           python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
                                         --end-date "${REGRESSION_DATE}" --download-from-s3 --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
           python ./utils/cuda_utils.py --install-torch-build-deps
+          # setup shared library paths
+          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/libpthread.so.0" /lib64/
+          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/lib64/libpthread_nonshared.a" /usr/lib64/
+          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/libc.so.6" /lib64/
+          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/lib64/libc_nonshared.a" /usr/lib64/
       - name: Bisection
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
