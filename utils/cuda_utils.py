@@ -114,6 +114,9 @@ def install_torch_build_deps(cuda_version: str):
     build_deps = [ "ffmpeg" ]
     cmd = ["conda", "install", "-y", "-c", "conda-forge"] + build_deps
     subprocess.check_call(cmd)
+    # pip deps
+    pip_deps = [ f"numpy=={PIN_NUMPY_VERSION}" ] + pip_deps
+    subprocess.check_call(cmd)
 
 def install_torchbench_deps():
     # torchrec_dlrm requires fbgemm_gpu, which requires gxx_linux-64=10.4.0 and sysroot_linux-64=2.17
