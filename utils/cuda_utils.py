@@ -25,6 +25,9 @@ CUDA_VERSION_MAP = {
     },
 }
 PIN_CMAKE_VERSION = "3.22.*"
+# the numpy version needs to be consistent with
+# https://github.com/pytorch/builder/blob/e66e48f9b1968213c6a7ce3ca8df6621435f0a9c/wheel/build_wheel.sh#L146
+PIN_NUMPY_VERSION = "1.21.2"
 TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchtext", "torchvision", "torchaudio"]
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
@@ -95,7 +98,7 @@ def install_torch_deps(cuda_version: str):
     cmd = ["conda", "install", "-y", magma_pkg, "-c", "pytorch"]
     subprocess.check_call(cmd)
     # install other dependencies
-    torch_deps = ["numpy", "requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
+    torch_deps = [f"numpy={PIN_NUMPY_VERSION}", "requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
     cmd = ["conda", "install", "-y"] + torch_deps
     subprocess.check_call(cmd)
 
