@@ -93,7 +93,7 @@ jobs:
       - name: Wait for SSH
         if: always()
         run:
-          sleep 10000000000
+          sleep 28800
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v3
