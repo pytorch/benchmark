@@ -73,7 +73,7 @@ jobs:
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
           mkdir -p "${BISECT_WORKDIR}"
-          conda install -c conda-forge pthread-stubs
+          conda install -y -c conda-forge pthread-stubs
           REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
           python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
                                         --end-date "${REGRESSION_DATE}" --download-from-s3 --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
