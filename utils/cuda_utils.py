@@ -98,7 +98,7 @@ def install_torch_deps(cuda_version: str):
     cmd = ["conda", "install", "-y", magma_pkg, "-c", "pytorch"]
     subprocess.check_call(cmd)
     # install other dependencies
-    torch_deps = [f"numpy={PIN_NUMPY_VERSION}", "requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
+    torch_deps = ["requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
     cmd = ["conda", "install", "-y"] + torch_deps
     subprocess.check_call(cmd)
 
