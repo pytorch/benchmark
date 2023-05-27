@@ -14,7 +14,7 @@ from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, 
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
                                            TEST_STAGE
 from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model, \
-                                          save_deterministic_mode, load_deterministic_mode
+                                          save_cublas_workspace_config, load_cublas_workspace_config
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
 
 class PostInitProcessor(type):
@@ -98,7 +98,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         ]
 
         set_random_seed()
-        self._determinism_dict = save_deterministic_mode(self.name)
+        self._cublas_workspace_config = save_cublas_workspace_config()
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # parse the args
@@ -164,7 +164,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 # get tolerance of correctness check from os.environ
                 tol = float(os.environ.get("TORCHBENCH_TOL", "1e-4"))
                 self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, tol=tol)
-        load_deterministic_mode(self._determinism_dict)
+        load_cublas_workspace_config(self._cublas_workspace_config)
         # setup distributed trainer
         if self.dargs.distributed:
             if self.dargs.distributed_wrap_fn:

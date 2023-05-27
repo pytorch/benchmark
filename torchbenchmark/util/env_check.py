@@ -61,33 +61,16 @@ def set_random_seed():
     numpy.random.seed(MAIN_RANDOM_SEED)
     torch.manual_seed = deterministic_torch_manual_seed
 
-def save_deterministic_mode(name: str) -> Dict[str, Any]:
-    determinism_dict = {}
+def save_cublas_workspace_config() -> Dict[str, Any]:
+    cublas_workspace_config = {}
     if "CUBLAS_WORKSPACE_CONFIG" in os.environ:
-        determinism_dict["CUBLAS_WORKSPACE_CONFIG"] = os.environ["CUBLAS_WORKSPACE_CONFIG"]
+        cublas_workspace_config["CUBLAS_WORKSPACE_CONFIG"] = os.environ["CUBLAS_WORKSPACE_CONFIG"]
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-    import torch
-    determinism_dict["torch.use_deterministic_algorithms"] = torch.are_deterministic_algorithms_enabled()
-    determinism_dict["torch.backends.cudnn.allow_tf32"] = torch.backends.cudnn.allow_tf32
-    determinism_dict["torch.backends.cudnn.benchmark"] = torch.backends.cudnn.benchmark
-    determinism_dict["torch.backends.cuda.matmul.allow_tf32"] = torch.backends.cuda.matmul.allow_tf32
+    return cublas_workspace_config
 
-    if not name in UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS:
-        torch.use_deterministic_algorithms(True)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.allow_tf32 = False
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cuda.matmul.allow_tf32 = False
-    return determinism_dict
-
-def load_deterministic_mode(determinism_dict: Dict[str, Any]) -> None:
-    import torch
-    torch.use_deterministic_algorithms(determinism_dict["torch.use_deterministic_algorithms"])
-    torch.backends.cudnn.allow_tf32 = determinism_dict["torch.backends.cudnn.allow_tf32"]
-    torch.backends.cudnn.benchmark = determinism_dict["torch.backends.cudnn.benchmark"]
-    torch.backends.cuda.matmul.allow_tf32 = determinism_dict["torch.backends.cuda.matmul.allow_tf32"]
-    if "CUBLAS_WORKSPACE_CONFIG" in determinism_dict:
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = determinism_dict["CUBLAS_WORKSPACE_CONFIG"]
+def load_cublas_workspace_config(cublas_workspace_config: Dict[str, Any]) -> None:
+    if "CUBLAS_WORKSPACE_CONFIG" in cublas_workspace_config:
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = cublas_workspace_config["CUBLAS_WORKSPACE_CONFIG"]
     elif "CUBLAS_WORKSPACE_CONFIG" in os.environ:
         del os.environ["CUBLAS_WORKSPACE_CONFIG"]
 
@@ -128,6 +111,38 @@ def _get_forward_result(model: 'torchbenchmark.util.model.BenchmarkModel', is_tr
         return module(*example_inputs)
     return model.invoke()
 
+def _save_deterministic_dict(name: str):
+    determinism_dict = {}
+    import torch
+    determinism_dict["torch.use_deterministic_algorithms"] = torch.are_deterministic_algorithms_enabled()
+    determinism_dict["torch.backends.cudnn.allow_tf32"] = torch.backends.cudnn.allow_tf32
+    determinism_dict["torch.backends.cudnn.benchmark"] = torch.backends.cudnn.benchmark
+    determinism_dict["torch.backends.cuda.matmul.allow_tf32"] = torch.backends.cuda.matmul.allow_tf32
+
+    if not name in UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS:
+        torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.allow_tf32 = False
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cuda.matmul.allow_tf32 = False
+    return determinism_dict
+
+def _load_deterministic_dict(determinism_dict: Dict[str, bool]):
+    import torch
+    torch.use_deterministic_algorithms(determinism_dict["torch.use_deterministic_algorithms"])
+    torch.backends.cudnn.allow_tf32 = determinism_dict["torch.backends.cudnn.allow_tf32"]
+    torch.backends.cudnn.benchmark = determinism_dict["torch.backends.cudnn.benchmark"]
+    torch.backends.cuda.matmul.allow_tf32 = determinism_dict["torch.backends.cuda.matmul.allow_tf32"]
+
+def deterministic_run(func):
+    def _inner(**kwargs):
+        name = kwargs["model"].name
+        determinism_dict = _save_deterministic_dict(name)
+        func(**kwargs)
+        _load_deterministic_dict(determinism_dict)
+    return _inner
+
+@deterministic_run
 def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
     """Get the eager output. Run eager mode a couple of times to guarantee stableness.
        If the result is not stable, raise RuntimeError. """
@@ -161,6 +176,7 @@ def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=
         model.opt = opt_saved
     return previous_result
 
+@deterministic_run
 def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, tol=1e-4) -> bool:
     import torch
 
