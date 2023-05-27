@@ -73,7 +73,6 @@ jobs:
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
           mkdir -p "${BISECT_WORKDIR}"
-          conda install -y -c conda-forge pthread-stubs
           REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
           python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
                                         --end-date "${REGRESSION_DATE}" --download-from-s3 --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
@@ -86,6 +85,10 @@ jobs:
                 --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml" \
                 --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
           cp -r "${BISECT_WORKDIR}" ../bisection-result
+      - name: Wait for SSH
+        if: always()
+        run:
+          sleep 10000000000
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v3

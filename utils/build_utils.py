@@ -29,9 +29,6 @@ def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
     env["USE_MKL"] = "1"
     env["USE_CUDNN"] = "1"
     env["USE_FFMPEG"] = "1"
-    conda_extra_library_path = f'{env["CONDA_PREFIX"]}/x86_64-conda-linux-gnu/sysroot/lib64:{env["CONDA_PREFIX"]}/x86_64-conda-linux-gnu/sysroot/usr/lib64'
-    env["LD_LIBRARY_PATH"] = f'{env["LD_LIBRARY_PATH"]}:{conda_extra_library_path}'
-    env["LIBRARY_PATH"] = f'{env["LIBRARY_PATH"]}:{conda_extra_library_path}'
     # Torchaudio SOX build has failures, skip it
     env["BUILD_SOX"] = "0"
     env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
