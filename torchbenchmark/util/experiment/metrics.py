@@ -85,7 +85,7 @@ def get_peak_memory(func, device: str, num_iter=MEMPROF_ITER, export_metrics_fil
         mem_model_analyzer.export_all_records_to_csv()
     return cpu_peak_mem, device_id, gpu_peak_mem
 
-def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics= [], export_metrics_file= False, metrics_gpu_backend='nvml') -> TorchBenchModelMetrics:
+def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], export_metrics_file=False, metrics_gpu_backend='nvml') -> TorchBenchModelMetrics:
     latencies = None
     cpu_peak_mem = None
     gpu_peak_mem = None
@@ -97,3 +97,11 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics= [],
     if 'cpu_peak_mem' in metrics or 'gpu_peak_mem' in metrics:
         cpu_peak_mem, _device_id, gpu_peak_mem = get_peak_memory(model.invoke, device, export_metrics_file=export_metrics_file, metrics_needed=metrics, metrics_gpu_backend=metrics_gpu_backend, cpu_monitored_pid=model.worker.proc_pid())
     return TorchBenchModelMetrics(latencies, cpu_peak_mem, gpu_peak_mem)
+
+def get_model_accuracy(model_name: str, extra_args=[], isolated:bool=True) -> Optional[str]:
+    from torchbenchmark.util.experiment.instantiator import load_model_isolated, load_model, TorchBenchModelConfig
+    if isolated:
+        model = load_model_isolated(model_name)
+    else:
+        model = load_model()
+    return None
