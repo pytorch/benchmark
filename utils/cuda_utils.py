@@ -132,7 +132,7 @@ def install_torchbench_deps():
     cmd = ["conda", "install", "-y"] + ncurses_deps
     subprocess.check_call(cmd)
     # install unittest-xml-reporting, needed by the unittest
-    cmd = ["pip", "install", "unittest-xml-reporting"]
+    cmd = ["pip", "install", "unittest-xml-reporting", "boto3"]
     subprocess.check_call(cmd)
 
 def get_torch_nightly_version(pkg_name: str):
