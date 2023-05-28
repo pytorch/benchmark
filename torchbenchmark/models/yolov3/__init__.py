@@ -90,7 +90,8 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
-        out = model(*example_inputs, augment=False)
+        with self.amp_context():
+            out = model(*example_inputs, augment=False)
         pred = out[0]
         # Apply NMS
         pred = non_max_suppression(pred, 0.3, 0.6,
