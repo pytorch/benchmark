@@ -48,13 +48,12 @@ def build_pytorch_repo(repo: TorchRepo, build_env: Dict[str, str]):
         command_testbuild = [sys.executable, "-c", "'import torch'"]
         subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env)
     except subprocess.CalledProcessError:
-        exit(1)
-        # _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} 2ND TRY")
+        _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} 2ND TRY")
         # Remove the build directory, then try building it again
-        # build_path = os.path.join(repo.src_path.absolute(), "build")
-        # if os.path.exists(build_path):
-        #    shutil.rmtree(build_path)
-        # subprocess.check_call(repo.build_command, cwd=repo.src_path.absolute(), env=build_env)
+        build_path = os.path.join(repo.src_path.absolute(), "build")
+        if os.path.exists(build_path):
+            shutil.rmtree(build_path)
+        subprocess.check_call(repo.build_command, cwd=repo.src_path.absolute(), env=build_env)
 
 def build_repo(repo: TorchRepo, build_env: Dict[str, str]):
     _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} START")
