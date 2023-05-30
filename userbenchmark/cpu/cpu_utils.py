@@ -8,6 +8,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import List, Dict, Optional
 
 REPO_PATH = Path(__file__).absolute().parent.parent.parent
 USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
@@ -24,6 +25,24 @@ class add_path():
             sys.path.remove(self.path)
         except ValueError:
             pass
+
+def list_metrics() -> List[str]:
+    return ["latencies", "cpu_peak_mem"]
+
+def parse_str_to_list(candidates):
+    if isinstance(candidates, list):
+        return candidates
+    candidates = list(map(lambda x: x.strip(), candidates.split(",")))
+    return candidates
+
+def validate(candidates, choices: List[str]):
+    """Validate the candidates provided by the user is valid"""
+    if isinstance(candidates, List):
+        for candidate in candidates:
+            assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
+    else:
+        assert candidates in choices, f"Specified {candidates}, but not in available list: {choices}."
+    return candidates
 
 def get_output_dir(bm_name, test_date=None):
     current_dir = Path(__file__).parent.absolute()
