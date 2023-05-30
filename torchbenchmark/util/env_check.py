@@ -25,6 +25,46 @@ UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS = [
     "Super_SloMo",
     "vgg16",
 ]
+CI_SKIP_OPTIMIZER = {
+    # TIMM
+    "convmixer_768_32",  # accuracy
+    "hrnet_w18",  # Stack issue in fx
+    # TorchBench
+    "dlrm",  # symbolic shapes error
+    # HF
+    "pnasnet5large",  # Stack issue in fx
+    "MobileBertForMaskedLM",  # Stack issue in fx
+    "MobileBertForQuestionAnswering",  # Stack issue in fx
+    "PegasusForConditionalGeneration",  # OOM
+}
+
+
+# Need lower tolerance on GPU. GPU kernels have non deterministic kernels for these models.
+REQUIRE_HIGHER_TOLERANCE = {
+    "alexnet",
+    "attention_is_all_you_need_pytorch",
+    "densenet121",
+    "hf_Albert",
+    "vgg16",
+    "mobilenet_v3_large",
+    "nvidia_deeprecommender",
+    "timm_efficientdet",
+}
+# These models need >1e-3 tolerance
+REQUIRE_EVEN_HIGHER_TOLERANCE = {
+    "soft_actor_critic",
+    "tacotron2",
+}
+REQUIRE_HIGHER_FP16_TOLERANCE = {
+    "drq",
+}
+REQUIRE_COSINE_TOLERACE = {
+    # Just keeping it here even though its empty, if we need this in future.
+}
+SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS = {
+    # Models that deterministic algorithms can not be turned on for eager mode.
+    "Background_Matting",
+}
 # Use the list from
 # https://github.com/pytorch/pytorch/blob/6c7410ddc350fea625e47744da9d6be7ec74b628/benchmarks/dynamo/torchbench.py#L382
 USE_GRAD_IN_INFERENCE = [
@@ -140,25 +180,180 @@ def load_deterministic_dict(determinism_dict: Dict[str, bool]):
     torch.backends.cudnn.benchmark = determinism_dict["torch.backends.cudnn.benchmark"]
     torch.backends.cuda.matmul.allow_tf32 = determinism_dict["torch.backends.cuda.matmul.allow_tf32"]
 
+def cast_to(dtype, model, inputs):
+    import torch
+    from torch.utils._pytree import tree_map
+    # cast model and inputs to fp16
+    if dtype == torch.float16:
+        model = model.half()
+    else:
+        model = model.to(dtype)
+
+    inputs = tree_map(
+        lambda x: x.to(dtype)
+        if isinstance(x, torch.Tensor) and x.is_floating_point()
+        else x,
+        inputs,
+    )
+    return model, inputs
+
+
+def clone_input(x, *, dtype=None):
+    """copy while preserving strides"""
+    import torch
+    # TODO: this is questionable
+    if isinstance(x, torch._subclasses.FakeTensor):
+        # this func fails on fake tensors in __torch_dispatch__
+        return x
+
+    def torch_clone(x):
+        y = torch.clone(x)
+        if x.is_leaf:
+            y.requires_grad_(x.requires_grad)
+        if x.is_leaf and x.grad is not None:
+            y.grad = clone_input(x.grad, dtype=dtype)
+        if hasattr(x, "_dynamo_dynamic_indices"):
+            y._dynamo_dynamic_indices = x._dynamo_dynamic_indices.copy()
+        return y
+
+    with torch.no_grad():
+        if x.device.type == "xla":
+            # Access data_ptr() for a xla tensor will cause crash
+            return torch_clone(x)
+
+        needed_size = sum(
+            (shape - 1) * stride for shape, stride in zip(x.size(), x.stride())
+        )
+        if x.is_quantized:
+            result = torch.empty_quantized((needed_size + 32,), x)
+        else:
+            result = torch.empty(
+                needed_size + 32, dtype=dtype or x.dtype, device=x.device
+            )
+        cache_line_offset = (
+            (x.data_ptr() - result.data_ptr()) % 32
+        ) // x.element_size()
+        result.as_strided_(x.size(), x.stride(), cache_line_offset)
+        try:
+            result.copy_(x.clone())
+            if x.is_leaf:
+                result.requires_grad_(x.requires_grad)
+            if x.is_leaf and x.grad is not None:
+                result.grad = clone_input(x.grad, dtype=dtype)
+        except RuntimeError:
+            # RuntimeError: unsupported operation: more than one element of the written-to
+            # tensor refers to a single memory location. Please clone() the tensor before
+            # performing the operation.
+            return torch_clone(x)
+        if hasattr(x, "_dynamo_dynamic_indices"):
+            result._dynamo_dynamic_indices = x._dynamo_dynamic_indices.copy()
+        return result
+
+def clone_inputs(example_inputs):
+    import torch
+    if type(example_inputs) is dict:
+        res = dict(example_inputs)
+        for key, value in res.items():
+            assert isinstance(value, torch.Tensor)
+            res[key] = clone_input(value)
+        return res
+
+    res = list(example_inputs)
+    for i in range(len(res)):
+        if isinstance(res[i], torch.Tensor):
+            res[i] = clone_input(res[i])
+    return res
+
+def init_optimizer(name, device, params, is_training):
+    import torch
+    if device == "cuda" and is_training and name not in CI_SKIP_OPTIMIZER:
+        optimizer = torch.optim.SGD(params, lr=0.01)
+    else:
+        optimizer = None
+    return optimizer
+
+def run_n_iterations(self, mod, inputs, iterations=STABLENESS_CHECK_ROUNDS):
+    def _model_iter_fn(mod, inputs, collect_outputs):
+        pass
+    for _ in range(iterations - 1):
+        _model_iter_fn(mod, inputs, collect_outputs=False)
+    return _model_iter_fn(mod, inputs, collect_outputs=True)
+
+def get_tolerance_and_cosine_flag(model, is_training, current_device, name):
+    tolerance = 1e-4
+    cosine = model.dargs.use_cosine_similarity
+    # Increase the tolerance for torch allclose
+    if model.dargs.precision == "fp16" or model.dargs.precision == "amp":
+        if name in REQUIRE_HIGHER_FP16_TOLERANCE:
+            return 1e-2, cosine
+        return 1e-3, cosine
+    if is_training and current_device == "cuda":
+        tolerance = 1e-3
+        if name in REQUIRE_COSINE_TOLERACE:
+            cosine = True
+        elif name in REQUIRE_HIGHER_TOLERANCE:
+            tolerance = 1e-3
+        elif name in REQUIRE_EVEN_HIGHER_TOLERANCE:
+            tolerance = 8 * 1e-2
+    return tolerance, cosine
+
+def skip_accuracy_check_as_eager_non_deterministic(is_training):
+    if is_training:
+        return SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS
+    return set()
+
 def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[str]:
     import torch
     should_check_correctness = _check_correctness_p(tbmodel, tbmodel.opt_args)
     if not should_check_correctness:
         return "pass_due_to_skip"
+
+    def _equal_nan_p(precision):
+        equal_nan = True
+        if precision == "fp32":
+            equal_nan = False
+        return equal_nan
+
+    def reset_rng_state():
+        set_random_seed()
+
+    def deepcopy_model(model, is_deepcopy):
+        if not is_deepcopy:
+            return model
+        try:
+            return copy.deepcopy(model)
+        except TypeError:
+            return model
+
+    def maybe_cast(tbmodel, model, example_inputs):
+        model = deepcopy_model(model)
+        example_inputs = clone_inputs(example_inputs)
+        if tbmodel.dargs.precision == "fp32":
+            model, example_inputs = cast_to_fp32(model, example_inputs)
+        elif tbmodel.dargs.precision == "fp16":
+            model, example_inputs = cast_to_fp16(model, example_inputs)
+        elif tbmodel.dargs.precision == "bf16":
+            model, example_inputs = cast_to_bf16(model, example_inputs)
+        return model, example_inputs
+
     model, example_inputs = tbmodel.get_module()
     name = tbmodel.name
     current_device = tbmodel.device
     cosine = False
     is_training = tbmodel.test == "train"
+    is_deepcopy = tbmodel.DEEPCOPY
     accuracy_status = "pass"
+    equal_nan = _equal_nan_p(tbmodel.darags.precision)
+
     # Collect the fp64 reference outputs to be used later for accuracy checking.
     fp64_outputs = None
     try:
-        model_fp64, inputs_fp64 = cast_to_fp64(
-            deepcopy_and_maybe_ddp(model),
+        model_fp64, inputs_fp64 = cast_to(
+            torch.float64,
+            deepcopy_model(model, is_deepcopy),
             clone_inputs(example_inputs),
         )
-        init_optimizer(name, current_device, model_fp64.parameters())
+        optimizer = init_optimizer(name, current_device, model_fp64.parameters(), is_training)
         fp64_outputs = run_n_iterations(model_fp64, inputs_fp64)
     except Exception:
         log.warning(
@@ -172,13 +367,13 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
     )
      # Cast the model to float16/float32 as necessary
     model, example_inputs = maybe_cast(model, example_inputs)
-    with pick_grad(name, self.args.training):
+    with pick_grad(name, is_training):
         # Get results of native pytorch
         reset_rng_state()
         try:
-            model_copy = deepcopy_and_maybe_ddp(model)
+            model_copy = deepcopy_model(model)
             init_optimizer(name, current_device, model_copy.parameters())
-            correct_result = self.run_n_iterations(
+            correct_result = run_n_iterations(
                 model_copy, clone_inputs(example_inputs)
             )
         except Exception as e:
@@ -193,8 +388,8 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
         # Rerun native pytorch
         reset_rng_state()
         try:
-            model_copy = deepcopy_and_maybe_ddp(model)
-            init_optimizer(name, current_device, model_copy.parameters())
+            model_copy = deepcopy_model(model)
+            optimizer = init_optimizer(name, current_device, model_copy.parameters())
             correct_rerun_result = run_n_iterations(
                 model_copy, clone_inputs(example_inputs)
             )
@@ -209,7 +404,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
         is_same = True
         try:
             if (
-                name not in skip_accuracy_check_as_eager_non_deterministic
+                name not in skip_accuracy_check_as_eager_non_deterministic(is_training)
                 and not same(
                     correct_result,
                     correct_rerun_result,
@@ -236,31 +431,18 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
         reset_rng_state()
         torch._dynamo.reset()
         try:
-            model_copy = deepcopy_and_maybe_ddp(model)
-            init_optimizer(name, current_device, model_copy.parameters())
-            optimized_model_iter_fn = optimize_ctx(self.run_n_iterations)
+            model_copy = deepcopy_model(model)
+            optimizer = init_optimizer(name, current_device, model_copy.parameters())
+            optimized_model_iter_fn = optimize_ctx(run_n_iterations)
             new_result = optimized_model_iter_fn(model_copy, example_inputs)
         except Exception as e:
             log.exception(e)
-            if (
-                isinstance(e, BackendCompilerFailed)
-                and (
-                    "Internal Triton PTX codegen error" in str(e)
-                    or "cubin" in str(e)
-                )
-            ):
-                accuracy_status = "pass_due_to_skip"
-                return accuracy_status
-            else:
-                accuracy_status = (
-                    "OOM"
-                    if isinstance(e, torch.cuda.OutOfMemoryError)
-                    else "fail_to_run"
-                )
-                return accuracy_status
-
-        if name in skip_accuracy_check_as_eager_non_deterministic:
-            return "pass_due_to_skip"
+            accuracy_status = (
+                "OOM"
+                if isinstance(e, torch.cuda.OutOfMemoryError)
+                else "fail_to_run"
+            )
+            return accuracy_status
 
         try:
             if not same(

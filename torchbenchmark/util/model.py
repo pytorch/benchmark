@@ -117,12 +117,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def __post__init__(self):
         # All arguments should be parsed at this point.
         assert not self.extra_args, f"Expected no unknown args at this point, found {self.extra_args}"
-        # apply decoration args
-        apply_decoration_args(self, self.dargs)
         if self.dargs.accuracy:
             self.accuracy = check_accuracy(self)
             load_deterministic_dict(self.deterministic_dict)
             return
+        # apply decoration args
+        apply_decoration_args(self, self.dargs)
         # apply optimization args
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
