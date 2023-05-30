@@ -98,10 +98,17 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], 
         cpu_peak_mem, _device_id, gpu_peak_mem = get_peak_memory(model.invoke, device, export_metrics_file=export_metrics_file, metrics_needed=metrics, metrics_gpu_backend=metrics_gpu_backend, cpu_monitored_pid=model.worker.proc_pid())
     return TorchBenchModelMetrics(latencies, cpu_peak_mem, gpu_peak_mem)
 
-def get_model_accuracy(model_name: str, extra_args=[], isolated:bool=True) -> Optional[str]:
-    from torchbenchmark.util.experiment.instantiator import load_model_isolated, load_model, TorchBenchModelConfig
-    if isolated:
-        model = load_model_isolated(model_name)
-    else:
-        model = load_model()
-    return None
+def get_model_accuracy(model_name: str, device: str, test: str, extra_args=[]) -> Optional[str]:
+    from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig, load_model_isolated
+    # Try load minimal batch size, if fail, load the default batch size
+    full_extra_args = ["--accuracy"] + extra_args
+    accuracy_config = TorchBenchModelConfig(
+        name=model_name,
+        device=device,
+        test=test,
+        batch_size=None,
+        jit=False,
+        extra_args=full_extra_args,
+    )
+    model = load_model_isolated(accuracy_config)
+    return model.accuracy

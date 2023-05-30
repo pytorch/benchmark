@@ -90,7 +90,7 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     )
     parser.add_argument("--precision", choices=AVAILABLE_PRECISIONS, default=get_precision_default(model), help=f"choose precisions from {AVAILABLE_PRECISIONS}")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
-    parser.add_argument("--skip_correctness", action='store_true', help="Skip correctness checks")
+    parser.add_argument("--accuracy", action="store_true", help="Check accuracy of the model only instead of running the performance test.")
     parser.add_argument("--quant-engine", choices=QUANT_ENGINES, default='x86', help=f"choose quantization engine for fx_int8 precision from {QUANT_ENGINES}")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):

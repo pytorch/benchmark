@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
 from torch.utils._pytree import tree_map
 from torchbenchmark import REPO_PATH
-from torchbenchmark.util.extra_args import check_correctness_p, parse_opt_args, apply_opt_args, \
+from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
                                            TEST_STAGE
-from torchbenchmark.util.env_check import set_random_seed, correctness_check, stableness_check, is_hf_model, \
-                                          save_cublas_workspace_config, load_cublas_workspace_config
+from torchbenchmark.util.env_check import set_random_seed, is_hf_model, \
+                                          save_deterministic_dict, load_deterministic_dict, check_accuracy
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
 
 class PostInitProcessor(type):
@@ -83,7 +83,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device
         self.jit = jit
-        self.determine_batch_size(batch_size)
         self.extra_args = extra_args
         self.opt = None
         # contexts to run in the test function
@@ -98,11 +97,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         ]
 
         set_random_seed()
-        self._cublas_workspace_config = save_cublas_workspace_config()
         # sanity checks of the options
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # parse the args
         self.dargs, opt_args = parse_decoration_args(self, self.extra_args)
+        if self.dargs.accuracy:
+            self.deterministic_dict = save_deterministic_dict(self.name)
         # if the args contain "--torchdynamo", parse torchdynamo args
         if "--torchdynamo" in opt_args:
             self.dynamo = True
@@ -111,6 +111,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             self.dynamo = False
             self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
+        self.determine_batch_size(batch_size)
 
     # Run the post processing for model acceleration
     def __post__init__(self):
@@ -118,53 +119,16 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert not self.extra_args, f"Expected no unknown args at this point, found {self.extra_args}"
         # apply decoration args
         apply_decoration_args(self, self.dargs)
-        should_check_correctness = check_correctness_p(self, self.opt_args, self.dargs)
-        if should_check_correctness:
-            self.eager_output = stableness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, rounds=1)
-            self.eager_output = tree_map(lambda x: x.detach() if isinstance(x, torch.Tensor) else x, self.eager_output)
-            if self.test == "train":
-                current_optimizer = self.get_optimizer()
-                if current_optimizer is not None:
-                    self.set_optimizer(None)
-                try:
-                    if self.DEEPCOPY:
-                        copy_model = copy.deepcopy(self)
-                    else:
-                        copy_model = self
-                    copy_model.invoke()
-                    self.eager_model_after_one_train_iteration = copy_model.model
-                except RuntimeError:
-                    warnings.warn(UserWarning("Can't copy the model. Skipping train correctness check."))
-                if current_optimizer is not None:
-                    self.set_optimizer(current_optimizer)
+        if self.dargs.accuracy:
+            self.accuracy = check_accuracy(self)
+            load_deterministic_dict(self.deterministic_dict)
+            return
         # apply optimization args
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
             apply_opt_args(self, self.opt_args)
-        if should_check_correctness:
-            # tensorrt or fp16 is known to generate less-accurate results
-            # in this case, use more relaxed cosine similarity instead of torch.allclose
-            # for correctness testing
-            # see: https://github.com/pytorch/torchdynamo/pull/438
-            if (
-                self.dargs.precision == "fp16"
-                or self.dargs.precision == "amp"
-                or (self.dynamo and self.opt_args.torchdynamo == "fx2trt")
-                or (not self.dynamo and (self.device == "cuda" and self.opt_args.backend == "fx2trt"))
-                or (not self.dynamo and self.opt_args.use_cosine_similarity)
-                or self.dargs.precision == "fx_int8"
-                or self.dargs.precision == "bf16"
-                or self.dargs.precision == "amp_fp16"
-                or self.dargs.precision == "amp_bf16"
-            ):
-                self.correctness = correctness_check(self, cos_sim=True, deepcopy=self.DEEPCOPY)
-            else:
-                # get tolerance of correctness check from os.environ
-                tol = float(os.environ.get("TORCHBENCH_TOL", "1e-4"))
-                self.correctness = correctness_check(self, cos_sim=False, deepcopy=self.DEEPCOPY, tol=tol)
-        load_cublas_workspace_config(self._cublas_workspace_config)
         # setup distributed trainer
         if self.dargs.distributed:
             if self.dargs.distributed_wrap_fn:
@@ -213,6 +177,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
             elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
+        elif self.dargs.accuracy:
+            self.batch_size = 1
 
     def load_metadata(self):
         relative_path = self.__class__.__module__.split(".")

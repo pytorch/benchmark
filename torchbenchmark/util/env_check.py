@@ -5,6 +5,7 @@ This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 import copy
 import importlib
 import os
+import argparse
 import logging
 import warnings
 from typing import Any, Dict, List, Optional, Tuple
@@ -61,19 +62,6 @@ def set_random_seed():
     numpy.random.seed(MAIN_RANDOM_SEED)
     torch.manual_seed = deterministic_torch_manual_seed
 
-def save_cublas_workspace_config() -> Dict[str, Any]:
-    cublas_workspace_config = {}
-    if "CUBLAS_WORKSPACE_CONFIG" in os.environ:
-        cublas_workspace_config["CUBLAS_WORKSPACE_CONFIG"] = os.environ["CUBLAS_WORKSPACE_CONFIG"]
-    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-    return cublas_workspace_config
-
-def load_cublas_workspace_config(cublas_workspace_config: Dict[str, Any]) -> None:
-    if "CUBLAS_WORKSPACE_CONFIG" in cublas_workspace_config:
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = cublas_workspace_config["CUBLAS_WORKSPACE_CONFIG"]
-    elif "CUBLAS_WORKSPACE_CONFIG" in os.environ:
-        del os.environ["CUBLAS_WORKSPACE_CONFIG"]
-
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
     for module in packages:
@@ -105,14 +93,28 @@ def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool
 def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer_step')
 
-def _get_forward_result(model: 'torchbenchmark.util.model.BenchmarkModel', is_training: bool):
-    if is_training:
-        module, example_inputs = model.get_module()
-        return module(*example_inputs)
-    return model.invoke()
+def _check_correctness_p(
+    model: 'torchbenchmark.util.model.BenchmarkModel',
+    opt_args: argparse.Namespace,
+) -> bool:
+    "If correctness check should be enabled."
+    # if the model doesn't support correctness check (like detectron2), skip it
+    if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
+        return False
+    # always check correctness with torchdynamo
+    if model.dynamo:
+        return True
+    opt_args_dict = vars(opt_args)
+    for k in opt_args_dict:
+        if opt_args_dict[k]:
+            return True
+    return False
 
-def _save_deterministic_dict(name: str):
+def save_deterministic_dict(name: str):
     determinism_dict = {}
+    if "CUBLAS_WORKSPACE_CONFIG" in os.environ:
+        determinism_dict["CUBLAS_WORKSPACE_CONFIG"] = os.environ["CUBLAS_WORKSPACE_CONFIG"]
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     import torch
     determinism_dict["torch.use_deterministic_algorithms"] = torch.are_deterministic_algorithms_enabled()
     determinism_dict["torch.backends.cudnn.allow_tf32"] = torch.backends.cudnn.allow_tf32
@@ -127,124 +129,158 @@ def _save_deterministic_dict(name: str):
     torch.backends.cuda.matmul.allow_tf32 = False
     return determinism_dict
 
-def _load_deterministic_dict(determinism_dict: Dict[str, bool]):
+def load_deterministic_dict(determinism_dict: Dict[str, bool]):
+    if "CUBLAS_WORKSPACE_CONFIG" in determinism_dict:
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = determinism_dict["CUBLAS_WORKSPACE_CONFIG"]
+    elif "CUBLAS_WORKSPACE_CONFIG" in os.environ:
+        del os.environ["CUBLAS_WORKSPACE_CONFIG"]
     import torch
     torch.use_deterministic_algorithms(determinism_dict["torch.use_deterministic_algorithms"])
     torch.backends.cudnn.allow_tf32 = determinism_dict["torch.backends.cudnn.allow_tf32"]
     torch.backends.cudnn.benchmark = determinism_dict["torch.backends.cudnn.benchmark"]
     torch.backends.cuda.matmul.allow_tf32 = determinism_dict["torch.backends.cuda.matmul.allow_tf32"]
 
-def deterministic_run(func):
-    def _inner(*args, **kwargs):
-        name = args[0].name
-        determinism_dict = _save_deterministic_dict(name)
-        result = func(*args, **kwargs)
-        _load_deterministic_dict(determinism_dict)
-        return result
-    return _inner
-
-@deterministic_run
-def stableness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=STABLENESS_CHECK_ROUNDS) -> Tuple['torch.Tensor']:
-    """Get the eager output. Run eager mode a couple of times to guarantee stableness.
-       If the result is not stable, raise RuntimeError. """
-    opt_saved = None
-    if hasattr(model, "opt"):
-        opt_saved = model.opt
-        model.opt = None
-
-    previous_result = None
-    is_training = model.test == "train"
-    for _i in range(rounds):
-        set_random_seed()
-        # some models are stateful and will give different outputs
-        # on the same input if called multiple times
-        try:
-            if deepcopy:
-                copy_model = copy.deepcopy(model)
-            else:
-                copy_model = model
-        except RuntimeError:
-            # if the model is not copy-able, don't copy it
-            copy_model = model
-        if previous_result == None:
-            previous_result = _get_forward_result(copy_model, is_training)
-        else:
-            cur_result = _get_forward_result(copy_model, is_training)
-            if not same(previous_result, cur_result, cos_similarity=cos_sim):
-                raise RuntimeError("Model returns unstable result. Please report a bug.")
-            del cur_result
-    if opt_saved:
-        model.opt = opt_saved
-    return previous_result
-
-@deterministic_run
-def correctness_check(model: 'torchbenchmark.util.model.BenchmarkModel', cos_sim=True, deepcopy=True, rounds=CORRECTNESS_CHECK_ROUNDS, tol=1e-4) -> bool:
+def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[str]:
     import torch
+    should_check_correctness = _check_correctness_p(tbmodel, tbmodel.opt_args)
+    if not should_check_correctness:
+        return "pass_due_to_skip"
+    model, example_inputs = tbmodel.get_module()
+    name = tbmodel.name
+    current_device = tbmodel.device
+    cosine = False
+    is_training = tbmodel.test == "train"
+    accuracy_status = "pass"
+    # Collect the fp64 reference outputs to be used later for accuracy checking.
+    fp64_outputs = None
+    try:
+        model_fp64, inputs_fp64 = cast_to_fp64(
+            deepcopy_and_maybe_ddp(model),
+            clone_inputs(example_inputs),
+        )
+        init_optimizer(name, current_device, model_fp64.parameters())
+        fp64_outputs = run_n_iterations(model_fp64, inputs_fp64)
+    except Exception:
+        log.warning(
+            "fp64 golden ref were not generated for %s. Setting accuracy check to cosine",
+            tbmodel.name,
+        )
+        cosine = True
+        fp64_outputs = None
+    tolerance, cos_similarity = get_tolerance_and_cosine_flag(
+            is_training, current_device, name
+    )
+     # Cast the model to float16/float32 as necessary
+    model, example_inputs = maybe_cast(model, example_inputs)
+    with pick_grad(name, self.args.training):
+        # Get results of native pytorch
+        reset_rng_state()
+        try:
+            model_copy = deepcopy_and_maybe_ddp(model)
+            init_optimizer(name, current_device, model_copy.parameters())
+            correct_result = self.run_n_iterations(
+                model_copy, clone_inputs(example_inputs)
+            )
+        except Exception as e:
+            accuracy_status = (
+                "eager_1st_run_OOM"
+                if isinstance(e, torch.cuda.OutOfMemoryError)
+                else "eager_1st_run_fail"
+            )
+            log.exception(e)
+            return accuracy_status
 
-    opt_saved = None
-    if hasattr(model, "opt"):
-        opt_saved = model.opt
-        model.opt = None
+        # Rerun native pytorch
+        reset_rng_state()
+        try:
+            model_copy = deepcopy_and_maybe_ddp(model)
+            init_optimizer(name, current_device, model_copy.parameters())
+            correct_rerun_result = run_n_iterations(
+                model_copy, clone_inputs(example_inputs)
+            )
+        except Exception as e:
+            accuracy_status = (
+                "eager_2nd_run_OOM"
+                if isinstance(e, torch.cuda.OutOfMemoryError)
+                else "eager_2nd_run_fail"
+            )
+            return accuracy_status
+        # Two eager runs should have exactly same result
+        is_same = True
+        try:
+            if (
+                name not in skip_accuracy_check_as_eager_non_deterministic
+                and not same(
+                    correct_result,
+                    correct_rerun_result,
+                    fp64_ref=None,
+                    cos_similarity=False,
+                    tol=0,
+                    equal_nan=equal_nan,
+                )
+            ):
+                is_same = False
+        except Exception as e:
+            # Sometimes torch.allclose may throw RuntimeError
+            is_same = False
 
-    is_training = model.test == "train"
-    # It looks we don't run backward here and also dynamo may have
-    # an issue with memory usage: https://fburl.com/workplace/cgxzsdhz
-    # with pick_grad(model.name, is_training):
-    with torch.no_grad():
-        for _i in range(rounds):
-            # some models are stateful and will give different outputs
-            # on the same input if called multiple times
-            set_random_seed()
-            try:
-                if deepcopy:
-                    copy_model = copy.deepcopy(model)
-                else:
-                    copy_model = model
-            except RuntimeError:
-                # if the model is not copy-able, don't copy it
-                copy_model = model
-            cur_result = _get_forward_result(copy_model, is_training)
+        if not is_same:
+            accuracy_status = "eager_two_runs_differ"
+            return accuracy_status
 
-            equal_nan = hasattr(model, "EQUAL_NAN") and model.EQUAL_NAN
-            if not same(model.eager_output, cur_result, cos_similarity=cos_sim, tol=tol, equal_nan=equal_nan):
-                # Restore the original model test if eval correctness doesn't pass
-                model.opt = opt_saved if opt_saved else model.opt
-                return False
+        correct_rerun_result = None
 
-            del cur_result
+        # Run with Dynamo
+        # Sometime CI fails with random triton compilation failure which will be skipped for now
+        # TODO: revisit this after switching to new Triton runtime
+        reset_rng_state()
+        torch._dynamo.reset()
+        try:
+            model_copy = deepcopy_and_maybe_ddp(model)
+            init_optimizer(name, current_device, model_copy.parameters())
+            optimized_model_iter_fn = optimize_ctx(self.run_n_iterations)
+            new_result = optimized_model_iter_fn(model_copy, example_inputs)
+        except Exception as e:
+            log.exception(e)
+            if (
+                isinstance(e, BackendCompilerFailed)
+                and (
+                    "Internal Triton PTX codegen error" in str(e)
+                    or "cubin" in str(e)
+                )
+            ):
+                accuracy_status = "pass_due_to_skip"
+                return accuracy_status
+            else:
+                accuracy_status = (
+                    "OOM"
+                    if isinstance(e, torch.cuda.OutOfMemoryError)
+                    else "fail_to_run"
+                )
+                return accuracy_status
 
-    model.opt = opt_saved if opt_saved else model.opt
+        if name in skip_accuracy_check_as_eager_non_deterministic:
+            return "pass_due_to_skip"
 
-    if is_training:
-        if not hasattr(model, "model") or not hasattr(model.model, "named_parameters"):
-            warnings.warn(UserWarning("model doesn't have model or model.named_parameters. Skipping train correctness check."))
-            return True
-        if not hasattr(model, "eager_model_after_one_train_iteration"):
-            warnings.warn(UserWarning("model doesn't have eager_model_after_one_train_iteration. Skipping train correctness check."))
-            return True
-        model.invoke()
-        for name, param in model.model.named_parameters():
-            if not param.requires_grad:
-                continue
-            found = False
-            for name_ref, param_ref in model.eager_model_after_one_train_iteration.named_parameters():
-                if name_ref == name:
-                    found = True
-                    # backward typically requires higher error margin.
-                    # 400 times bigger may sound too big to be useful but still better than not checking at all.
-                    if not same(param_ref.grad, param.grad, cos_similarity=cos_sim, tol=tol*40):
-                        import torch
-                        if not isinstance(param.grad, torch.Tensor):
-                            print(f"model with dynamo does not have grad of param {name}")
-                        else:
-                            print(f"grad of param {name} after running with dynamo doesn't have gradient matching with eager mode")
-                            print(f"grad of param:\n{param.grad}\neager grad:\n{param_ref.grad}")
-                        return False
-                    break
-            if not found:
-                print(f"param {name} in model with dynamo not found in the eager model")
-                return False
-    return True
+        try:
+            if not same(
+                correct_result,
+                new_result,
+                fp64_outputs,
+                equal_nan=equal_nan,
+                cos_similarity=cos_similarity,
+                tol=tolerance,
+            ):
+                is_same = False
+        except Exception as e:
+            # Sometimes torch.allclose may throw RuntimeError
+            is_same = False
+
+        if not is_same:
+            accuracy_status = "fail_accuracy"
+            return accuracy_status
+
+        return accuracy_status
 
 def istype(obj, allowed_types):
     """isinstance() without subclasses"""
