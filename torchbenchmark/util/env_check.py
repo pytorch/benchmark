@@ -346,31 +346,41 @@ def reduce_to_scalar_loss(out):
 def compute_loss(self, pred):
     return reduce_to_scalar_loss(pred)
 
+def optimizer_zero_grad(optimizer, mod):
+    if optimizer is not None:
+        optimizer.zero_grad(True)
+    else:
+        mod.zero_grad(True)
+
+def optimizer_step(optimizer):
+    if optimizer is not None:
+        optimizer.step()
+
 def forward_pass(mod, inputs, contexts, _collect_outputs=True):
     with nested(*contexts):
         return mod(*inputs)
 
 def forward_and_backward_pass(mod, inputs, optimizer, contexts, collect_outputs=True):
     cloned_inputs = clone_inputs(inputs)
-    optimizer_zero_grad(mod)
+    optimizer_zero_grad(optimizer, mod)
     with nested(*contexts):
         pred = mod(*cloned_inputs)
         loss = compute_loss(pred)
-    grad_scaler.scale(loss).backward()
-    optimizer_step()
+    loss.backward()
+    optimizer_step(optimizer)
     if collect_outputs:
         return collect_results(mod, pred, loss, cloned_inputs)
     return None
 
-def run_n_iterations(mod, inputs, is_training, optimizer=None, iterations=STABLENESS_CHECK_ROUNDS):
-    def _model_iter_fn(mod, inputs, optimizer, collect_outputs):
+def run_n_iterations(mod, inputs, contexts, is_training, optimizer=None, iterations=STABLENESS_CHECK_ROUNDS):
+    def _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs):
         if is_training:
-            forward_and_backward_pass(mod, inputs, optimizer, collect_outputs)
+            forward_and_backward_pass(mod, inputs, contexts, optimizer, collect_outputs)
         else:
             forward_pass(mod, inputs)
     for _ in range(iterations - 1):
-        _model_iter_fn(mod, inputs, optimizer, collect_outputs=False)
-    return _model_iter_fn(mod, inputs, optimizer, collect_outputs=True)
+        _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs=False)
+    return _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs=True)
 
 def get_tolerance_and_cosine_flag(model, is_training, current_device, name):
     tolerance = 1e-4
@@ -397,6 +407,7 @@ def skip_accuracy_check_as_eager_non_deterministic(is_training):
 
 def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[str]:
     import torch
+    import functools
     should_check_correctness = _check_correctness_p(tbmodel, tbmodel.opt_args)
     if not should_check_correctness:
         return "pass_due_to_skip"
@@ -436,7 +447,17 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
     is_training = tbmodel.test == "train"
     is_deepcopy = tbmodel.DEEPCOPY
     accuracy_status = "pass"
+    contexts = []
     equal_nan = _equal_nan_p(tbmodel.darags.precision)
+    optimize_ctx = functools.partial(
+            torch.compile,
+            backend=model.opt_args.torchdynamo,
+    )
+
+    if model.device == "cuda" and model.dargs.amp and is_training:
+        contexts.append(torch.cuda.amp.autocast)
+    elif model.dargs.amp and model.dargs.precision == "bf16" and model.device == "cpu":
+        contexts.append(torch.cpu.amp.autocast)
 
     # Collect the fp64 reference outputs to be used later for accuracy checking.
     fp64_outputs = None
@@ -447,7 +468,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
             clone_inputs(example_inputs),
         )
         optimizer = init_optimizer(name, current_device, model_fp64.parameters(), is_training)
-        fp64_outputs = run_n_iterations(model_fp64, inputs_fp64, optimizer)
+        fp64_outputs = run_n_iterations(model_fp64, inputs_fp64, contexts, optimizer)
     except Exception:
         log.warning(
             "fp64 golden ref were not generated for %s. Setting accuracy check to cosine",
@@ -467,7 +488,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
             model_copy = deepcopy_model(model)
             optimizer = init_optimizer(name, current_device, model_copy.parameters())
             correct_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs), optimizer
+                model_copy, clone_inputs(example_inputs), contexts, optimizer
             )
         except Exception as e:
             accuracy_status = (
@@ -484,7 +505,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
             model_copy = deepcopy_model(model)
             optimizer = init_optimizer(name, current_device, model_copy.parameters())
             correct_rerun_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs), optimizer
+                model_copy, clone_inputs(example_inputs), contexts, optimizer
             )
         except Exception as e:
             accuracy_status = (
@@ -527,7 +548,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
             model_copy = deepcopy_model(model)
             optimizer = init_optimizer(name, current_device, model_copy.parameters())
             optimized_model_iter_fn = optimize_ctx(run_n_iterations)
-            new_result = optimized_model_iter_fn(model_copy, example_inputs, optimizer)
+            new_result = optimized_model_iter_fn(model_copy, example_inputs, contexts, optimizer)
         except Exception as e:
             log.exception(e)
             accuracy_status = (
