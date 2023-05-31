@@ -439,33 +439,6 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def check_example() -> None:
-        model = globals()["model"]
-        module, example_inputs = model.get_module()
-        if isinstance(example_inputs, dict):
-            # Huggingface and GNN models pass **kwargs as arguments, not *args
-            module(**example_inputs)
-        elif isinstance(example_inputs, tuple) or isinstance(example_inputs, list):
-            module(*example_inputs)
-        else:
-            assert False, "example_inputs from model.get_module() must be dict, tuple, or list"
-        # If model implements `gen_inputs()` interface, test the first example input it generates
-        try:
-            input_iter, _size = model.gen_inputs()
-            next_inputs = next(input_iter)
-
-            for input in next_inputs:
-                if isinstance(input, dict):
-                    # Huggingface models pass **kwargs as arguments, not *args
-                    module(**input)
-                else:
-                    module(*input)
-        except NotImplementedError:
-            # We allow models that don't implement this interface
-            pass
-
-    @base_task.run_in_worker(scoped=True)
-    @staticmethod
     def check_eval_output() -> None:
         instance = globals()["model"]
         assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."

@@ -47,10 +47,10 @@ class TestBenchmark(unittest.TestCase):
 def _create_example_model_instance(task: ModelTask, device: str):
     skip = False
     try:
-        task.make_model_instance(test="eval", device=device, jit=False)
+        task.make_model_instance(test="eval", device=device, jit=False, extra_args=["--accuracy"])
     except NotImplementedError:
         try:
-            task.make_model_instance(test="train", device=device, jit=False)
+            task.make_model_instance(test="train", device=device, jit=False, extra_args=["--accuracy"])
         except NotImplementedError:
             skip = True
     finally:
@@ -71,7 +71,8 @@ def _load_test(path, device):
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 _create_example_model_instance(task, device)
-                task.check_example()
+                accuracy = task.get_model_attribute("accuracy")
+                assert accuracy == "pass", f"Expected accuracy pass, get {accuracy}"
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest(f'Method `get_module()` on {device} is not implemented, skipping...')
@@ -81,9 +82,7 @@ def _load_test(path, device):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(test="train", device=device, jit=False, batch_size=None, extra_args=["--accuracy"])
-                accuracy = task.get_model_attribute("accuracy")
-                assert accuracy == "pass", f"Expected accuracy pass, get {accuracy}"
+                task.make_model_instance(test="train", device=device, jit=False, batch_size=None)
                 task.invoke()
                 task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
@@ -95,9 +94,7 @@ def _load_test(path, device):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(test="eval", device=device, jit=False, batch_size=None, extra_args=["--accuracy"])
-                accuracy = task.get_model_attribute("accuracy")
-                assert accuracy == "pass", f"Expected accuracy pass, get {accuracy}"
+                task.make_model_instance(test="eval", device=device, jit=False, batch_size=None)
                 task.invoke()
                 task.check_details_eval(device=device, md=metadata)
                 task.check_eval_output()

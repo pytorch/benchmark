@@ -526,7 +526,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
         torch._dynamo.reset()
         optimize_ctx = functools.partial(
             torch.compile,
-            backend=model.opt_args.torchdynamo,
+            backend=tbmodel.opt_args.torchdynamo,
         )
         try:
             model_copy = deepcopy_model(model, is_deepcopy)
