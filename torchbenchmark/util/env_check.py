@@ -326,7 +326,7 @@ def reduce_to_scalar_loss(out):
         )
     raise NotImplementedError("Don't know how to reduce", type(out))
 
-def compute_loss(self, pred):
+def compute_loss(pred):
     return reduce_to_scalar_loss(pred)
 
 def optimizer_zero_grad(optimizer, mod):
@@ -343,7 +343,7 @@ def forward_pass(mod, inputs, contexts, _collect_outputs=True):
     with nested(*contexts):
         return mod(*inputs)
 
-def forward_and_backward_pass(mod, inputs, optimizer, contexts, collect_outputs=True):
+def forward_and_backward_pass(mod, inputs, contexts, optimizer, collect_outputs=True):
     cloned_inputs = clone_inputs(inputs)
     optimizer_zero_grad(optimizer, mod)
     with nested(*contexts):
