@@ -79,12 +79,11 @@ def _load_test(path, device):
     def train_fn(self):
         metadata = get_metadata_from_yaml(path)
         task = ModelTask(path, timeout=TIMEOUT)
-        allow_customize_batch_size = task.get_model_attribute("ALLOW_CUSTOMIZE_BSIZE", classattr=True)
-        # to speedup test, use batch size 1 if possible
-        batch_size = 1 if allow_customize_batch_size else None
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(test="train", device=device, jit=False, batch_size=batch_size)
+                task.make_model_instance(test="train", device=device, jit=False, batch_size=None, extra_args=["--accuracy"])
+                accuracy = task.get_model_attribute("accuracy")
+                assert accuracy == "pass", f"Expected accuracy pass, get {accuracy}"
                 task.invoke()
                 task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
@@ -94,12 +93,11 @@ def _load_test(path, device):
     def eval_fn(self):
         metadata = get_metadata_from_yaml(path)
         task = ModelTask(path, timeout=TIMEOUT)
-        allow_customize_batch_size = task.get_model_attribute("ALLOW_CUSTOMIZE_BSIZE", classattr=True)
-        # to speedup test, use batch size 1 if possible
-        batch_size = 1 if allow_customize_batch_size else None
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(test="eval", device=device, jit=False, batch_size=batch_size)
+                task.make_model_instance(test="eval", device=device, jit=False, batch_size=None, extra_args=["--accuracy"])
+                accuracy = task.get_model_attribute("accuracy")
+                assert accuracy == "pass", f"Expected accuracy pass, get {accuracy}"
                 task.invoke()
                 task.check_details_eval(device=device, md=metadata)
                 task.check_eval_output()

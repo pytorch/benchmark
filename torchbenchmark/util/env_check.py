@@ -405,7 +405,7 @@ def skip_accuracy_check_as_eager_non_deterministic(is_training):
         return SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS
     return set()
 
-def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optional[str]:
+def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     import torch
     import functools
     should_check_correctness = _check_correctness_p(tbmodel, tbmodel.opt_args)
@@ -449,10 +449,6 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
     accuracy_status = "pass"
     contexts = []
     equal_nan = _equal_nan_p(tbmodel.darags.precision)
-    optimize_ctx = functools.partial(
-            torch.compile,
-            backend=model.opt_args.torchdynamo,
-    )
 
     if model.device == "cuda" and model.dargs.amp and is_training:
         contexts.append(torch.cuda.amp.autocast)
@@ -537,6 +533,9 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
             accuracy_status = "eager_two_runs_differ"
             return accuracy_status
 
+        if not model.opt_args.torchdynamo:
+            return accuracy_status
+
         correct_rerun_result = None
 
         # Run with Dynamo
@@ -544,6 +543,10 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
         # TODO: revisit this after switching to new Triton runtime
         reset_rng_state()
         torch._dynamo.reset()
+        optimize_ctx = functools.partial(
+            torch.compile,
+            backend=model.opt_args.torchdynamo,
+        )
         try:
             model_copy = deepcopy_model(model)
             optimizer = init_optimizer(name, current_device, model_copy.parameters())

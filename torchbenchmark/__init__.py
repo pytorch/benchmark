@@ -469,11 +469,7 @@ class ModelTask(base_task.TaskBase):
     def check_eval_output() -> None:
         instance = globals()["model"]
         assert instance.test == "eval", "We only support checking output of an eval test. Please submit a bug report."
-        out = instance.invoke()
-        # check output stableness on CUDA device
-        from torchbenchmark.util.env_check import stableness_check
-        if instance.device == "cuda":
-            stableness_check(instance, cos_sim=False, deepcopy=instance.DEEPCOPY)
+        instance.invoke()
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
