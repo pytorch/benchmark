@@ -27,6 +27,13 @@ from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 import torch.nn.functional as F
 
+class WrappedModule(torch.nn.Module):
+    def __init__(self, inner_module: torch.nn.Module, inner_module_forward: str):
+        self._inner_module_forward = getattr(inner_module, inner_module_forward)
+
+    def forward(self, inputs):
+        return self._inner_module_forward(inputs)
+
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     FAMBENCH_MODEL = True
@@ -43,6 +50,8 @@ class Model(BenchmarkModel):
     DEFAULT_VOCAB_SIZE = 250000
     # by default, use fp16 half precision for training
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
+    # Copy error: RecursionError: maximum recursion depth exceeded
+    DEEPCOPY = False
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -71,7 +80,7 @@ class Model(BenchmarkModel):
         self.y_true_l = list(map(lambda x: x.to(self.device), self.y_true_l))
 
     def get_module(self):
-        return self.xlmr, self.x_l
+        return WrappedModule(self.xlmr, 'extract_features'), self.x_l
 
     def enable_fp16_half(self):
         self.xmlr = self.xlmr.half()
