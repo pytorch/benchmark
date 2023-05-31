@@ -47,10 +47,10 @@ class TestBenchmark(unittest.TestCase):
 def _create_example_model_instance(task: ModelTask, device: str):
     skip = False
     try:
-        task.make_model_instance(test="train", device=device, jit=False, extra_args=["--accuracy"])
+        task.make_model_instance(test="eval", device=device, jit=False, extra_args=["--accuracy"])
     except NotImplementedError:
         try:
-            task.make_model_instance(test="eval", device=device, jit=False, extra_args=["--accuracy"])
+            task.make_model_instance(test="train", device=device, jit=False, extra_args=["--accuracy"])
         except NotImplementedError:
             skip = True
     finally:
