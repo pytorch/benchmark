@@ -29,6 +29,7 @@ import torch.nn.functional as F
 
 class WrappedModule(torch.nn.Module):
     def __init__(self, inner_module: torch.nn.Module, inner_module_forward_name: str):
+        super().__init__()
         self.model = inner_module
         self._inner_module_forward_name = inner_module_forward_name
 
