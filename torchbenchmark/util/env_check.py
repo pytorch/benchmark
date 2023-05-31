@@ -22,6 +22,7 @@ UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS = [
     "Background_Matting",
     "pytorch_CycleGAN_and_pix2pix",
     "pytorch_unet",
+    "sam",
     "Super_SloMo",
     "vgg16",
 ]
@@ -64,6 +65,13 @@ REQUIRE_COSINE_TOLERACE = {
 SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS = {
     # Models that deterministic algorithms can not be turned on for eager mode.
     "Background_Matting",
+    "detectron2_fasterrcnn_r_101_c4",
+    "detectron2_fasterrcnn_r_101_dc5",
+    "detectron2_fasterrcnn_r_101_fpn",
+    "detectron2_fasterrcnn_r_50_c4",
+    "detectron2_fasterrcnn_r_50_dc5",
+    "detectron2_fasterrcnn_r_50_fpn",
+    "detectron2_maskrcnn",
 }
 # Use the list from
 # https://github.com/pytorch/pytorch/blob/6c7410ddc350fea625e47744da9d6be7ec74b628/benchmarks/dynamo/torchbench.py#L382
