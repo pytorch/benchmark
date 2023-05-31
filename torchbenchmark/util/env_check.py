@@ -7,8 +7,8 @@ import importlib
 import os
 import argparse
 import logging
-import warnings
-from typing import Any, Dict, List, Optional, Tuple
+from contextlib import contextmanager, ExitStack
+from typing import Any, Dict, List, Optional
 
 MAIN_RANDOM_SEED = 1337
 # rounds for stableness tests
@@ -73,6 +73,16 @@ USE_GRAD_IN_INFERENCE = [
 HAS_NUMPY = True
 
 log = logging.getLogger(__name__)
+
+@contextmanager
+def nested(*contexts):
+    """
+    Chain and apply a list of contexts
+    """
+    with ExitStack() as stack:
+        for ctx in contexts:
+            stack.enter_context(ctx())
+        yield contexts
 
 def pick_grad(name: str, is_training: bool):
     import torch
@@ -197,6 +207,45 @@ def cast_to(dtype, model, inputs):
     )
     return model, inputs
 
+def collect_results(model, prediction, loss, example_inputs):
+    import torch
+    results = []
+    results.append(prediction)
+    results.append(loss)
+    # if isinstance(loss, torch.Tensor) and loss.item() > 1:
+    #     log.warning(
+    #         f"High loss value alert - {loss:.2f}. Can result in unstable gradients."
+    #     )
+
+    grads = dict()
+    params = dict()
+    for name, param in model.named_parameters():
+        # if isinstance(model, eval_frame.OptimizedModule):
+        #     name = remove_optimized_module_prefix(name)
+        param_copy = param
+        grad = param.grad
+        # Treat None and zero grad as same
+        if param.grad is None:
+            grad = torch.zeros_like(param)
+        grads[name + ".grad"] = grad
+        params[name] = param_copy
+    results.append(grads)
+    results.append(params)
+    buffers = dict()
+    for name, buffer in model.named_buffers():
+        # if isinstance(model, eval_frame.OptimizedModule):
+        #     name = remove_optimized_module_prefix(name)
+        buffers[name] = buffer
+    results.append(buffers)
+    for example in example_inputs:
+        if isinstance(example, (tuple, list)):
+            for inp in example:
+                if isinstance(inp, torch.Tensor):
+                    results.append(inp.grad)
+        else:
+            if isinstance(example, torch.Tensor):
+                results.append(example.grad)
+    return results
 
 def clone_input(x, *, dtype=None):
     """copy while preserving strides"""
@@ -272,12 +321,56 @@ def init_optimizer(name, device, params, is_training):
         optimizer = None
     return optimizer
 
-def run_n_iterations(self, mod, inputs, iterations=STABLENESS_CHECK_ROUNDS):
-    def _model_iter_fn(mod, inputs, collect_outputs):
-        pass
+def reduce_to_scalar_loss(out):
+    """Reduce the output of a model to get scalar loss"""
+    import torch
+    if isinstance(out, torch.Tensor):
+        # Mean does not work on integer tensors
+        return out.sum() / out.numel()
+    elif isinstance(out, (list, tuple)):
+        return sum([reduce_to_scalar_loss(x) for x in out]) / len(out)
+    elif type(out).__name__ in (
+        "MaskedLMOutput",
+        "Seq2SeqLMOutput",
+        "CausalLMOutputWithCrossAttentions",
+    ):
+        return reduce_to_scalar_loss(out.logits)
+    elif type(out).__name__ == "SquashedNormal":
+        return out.mean.sum()
+    elif isinstance(out, dict):
+        return sum([reduce_to_scalar_loss(value) for value in out.values()]) / len(
+            out.keys()
+        )
+    raise NotImplementedError("Don't know how to reduce", type(out))
+
+def compute_loss(self, pred):
+    return reduce_to_scalar_loss(pred)
+
+def forward_pass(mod, inputs, contexts, _collect_outputs=True):
+    with nested(*contexts):
+        return mod(*inputs)
+
+def forward_and_backward_pass(mod, inputs, optimizer, contexts, collect_outputs=True):
+    cloned_inputs = clone_inputs(inputs)
+    optimizer_zero_grad(mod)
+    with nested(*contexts):
+        pred = mod(*cloned_inputs)
+        loss = compute_loss(pred)
+    grad_scaler.scale(loss).backward()
+    optimizer_step()
+    if collect_outputs:
+        return collect_results(mod, pred, loss, cloned_inputs)
+    return None
+
+def run_n_iterations(mod, inputs, is_training, optimizer=None, iterations=STABLENESS_CHECK_ROUNDS):
+    def _model_iter_fn(mod, inputs, optimizer, collect_outputs):
+        if is_training:
+            forward_and_backward_pass(mod, inputs, optimizer, collect_outputs)
+        else:
+            forward_pass(mod, inputs)
     for _ in range(iterations - 1):
-        _model_iter_fn(mod, inputs, collect_outputs=False)
-    return _model_iter_fn(mod, inputs, collect_outputs=True)
+        _model_iter_fn(mod, inputs, optimizer, collect_outputs=False)
+    return _model_iter_fn(mod, inputs, optimizer, collect_outputs=True)
 
 def get_tolerance_and_cosine_flag(model, is_training, current_device, name):
     tolerance = 1e-4
@@ -329,17 +422,17 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
         model = deepcopy_model(model)
         example_inputs = clone_inputs(example_inputs)
         if tbmodel.dargs.precision == "fp32":
-            model, example_inputs = cast_to_fp32(model, example_inputs)
+            model, example_inputs = cast_to(torch.float32, model, example_inputs)
         elif tbmodel.dargs.precision == "fp16":
-            model, example_inputs = cast_to_fp16(model, example_inputs)
+            model, example_inputs = cast_to(torch.float16, model, example_inputs)
         elif tbmodel.dargs.precision == "bf16":
-            model, example_inputs = cast_to_bf16(model, example_inputs)
+            model, example_inputs = cast_to(torch.bfloat16, model, example_inputs)
         return model, example_inputs
 
     model, example_inputs = tbmodel.get_module()
     name = tbmodel.name
     current_device = tbmodel.device
-    cosine = False
+    optimizer = None
     is_training = tbmodel.test == "train"
     is_deepcopy = tbmodel.DEEPCOPY
     accuracy_status = "pass"
@@ -354,16 +447,16 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
             clone_inputs(example_inputs),
         )
         optimizer = init_optimizer(name, current_device, model_fp64.parameters(), is_training)
-        fp64_outputs = run_n_iterations(model_fp64, inputs_fp64)
+        fp64_outputs = run_n_iterations(model_fp64, inputs_fp64, optimizer)
     except Exception:
         log.warning(
             "fp64 golden ref were not generated for %s. Setting accuracy check to cosine",
             tbmodel.name,
         )
-        cosine = True
+        model.dargs.use_cosine_similarity = True
         fp64_outputs = None
     tolerance, cos_similarity = get_tolerance_and_cosine_flag(
-            is_training, current_device, name
+            model, is_training, current_device, name
     )
      # Cast the model to float16/float32 as necessary
     model, example_inputs = maybe_cast(model, example_inputs)
@@ -372,9 +465,9 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
         reset_rng_state()
         try:
             model_copy = deepcopy_model(model)
-            init_optimizer(name, current_device, model_copy.parameters())
+            optimizer = init_optimizer(name, current_device, model_copy.parameters())
             correct_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs)
+                model_copy, clone_inputs(example_inputs), optimizer
             )
         except Exception as e:
             accuracy_status = (
@@ -391,7 +484,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
             model_copy = deepcopy_model(model)
             optimizer = init_optimizer(name, current_device, model_copy.parameters())
             correct_rerun_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs)
+                model_copy, clone_inputs(example_inputs), optimizer
             )
         except Exception as e:
             accuracy_status = (
@@ -434,7 +527,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> Optio
             model_copy = deepcopy_model(model)
             optimizer = init_optimizer(name, current_device, model_copy.parameters())
             optimized_model_iter_fn = optimize_ctx(run_n_iterations)
-            new_result = optimized_model_iter_fn(model_copy, example_inputs)
+            new_result = optimized_model_iter_fn(model_copy, example_inputs, optimizer)
         except Exception as e:
             log.exception(e)
             accuracy_status = (
