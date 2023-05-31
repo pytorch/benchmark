@@ -355,7 +355,7 @@ def forward_and_backward_pass(mod, inputs, optimizer, contexts, collect_outputs=
         return collect_results(mod, pred, loss, cloned_inputs)
     return None
 
-def run_n_iterations(mod, inputs, contexts, is_training, optimizer=None, iterations=STABLENESS_CHECK_ROUNDS):
+def run_n_iterations(mod, inputs, contexts, optimizer=None, is_training=False, iterations=STABLENESS_CHECK_ROUNDS):
     def _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs):
         if is_training:
             forward_and_backward_pass(mod, inputs, contexts, optimizer, collect_outputs)
@@ -444,7 +444,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             clone_inputs(example_inputs),
         )
         optimizer = init_optimizer(name, current_device, model_fp64.parameters(), is_training)
-        fp64_outputs = run_n_iterations(model_fp64, inputs_fp64, contexts, optimizer)
+        fp64_outputs = run_n_iterations(model_fp64, inputs_fp64, contexts, optimizer, is_training)
     except Exception:
         log.warning(
             "fp64 golden ref were not generated for %s. Setting accuracy check to cosine",
@@ -464,7 +464,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             model_copy = deepcopy_model(model, is_deepcopy)
             optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
             correct_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs), contexts, optimizer
+                model_copy, clone_inputs(example_inputs), contexts, optimizer, is_training
             )
         except Exception as e:
             accuracy_status = (
@@ -482,7 +482,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             model_copy = deepcopy_model(model, is_deepcopy)
             optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
             correct_rerun_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs), contexts, optimizer
+                model_copy, clone_inputs(example_inputs), contexts, optimizer, is_training
             )
         except Exception as e:
             accuracy_status = (
@@ -532,7 +532,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             model_copy = deepcopy_model(model, is_deepcopy)
             optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
             optimized_model_iter_fn = optimize_ctx(run_n_iterations)
-            new_result = optimized_model_iter_fn(model_copy, example_inputs, contexts, optimizer)
+            new_result = optimized_model_iter_fn(model_copy, example_inputs, contexts, optimizer, is_training)
         except Exception as e:
             log.exception(e)
             accuracy_status = (
