@@ -364,8 +364,8 @@ if __name__ == "__main__":
     else:
         run_one_step(test, model=m, export_metrics_file=export_metrics_file,
                      stress=args.stress, metrics_needed=metrics_needed, metrics_gpu_backend=args.metrics_gpu_backend)
-    if hasattr(m, 'correctness'):
-        print('{:<20} {:>20}'.format("Correctness: ", str(m.correctness)), sep='')
+    if hasattr(m, 'accuracy'):
+        print('{:<20} {:>20}'.format("Accuracy: ", str(m.accuracy)), sep='')
 
     # Print dynamo compilation metrics, if there are any.
     try:

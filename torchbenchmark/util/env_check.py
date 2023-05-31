@@ -143,23 +143,6 @@ def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool
 def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
     return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer_step')
 
-def _check_correctness_p(
-    model: 'torchbenchmark.util.model.BenchmarkModel',
-    opt_args: argparse.Namespace,
-) -> bool:
-    "If correctness check should be enabled."
-    # if the model doesn't support correctness check (like detectron2), skip it
-    if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
-        return False
-    # always check correctness with torchdynamo
-    if model.dynamo:
-        return True
-    opt_args_dict = vars(opt_args)
-    for k in opt_args_dict:
-        if opt_args_dict[k]:
-            return True
-    return False
-
 def save_deterministic_dict(name: str):
     determinism_dict = {}
     if "CUBLAS_WORKSPACE_CONFIG" in os.environ:
@@ -377,7 +360,7 @@ def run_n_iterations(mod, inputs, contexts, is_training, optimizer=None, iterati
         if is_training:
             forward_and_backward_pass(mod, inputs, contexts, optimizer, collect_outputs)
         else:
-            forward_pass(mod, inputs)
+            forward_pass(mod, inputs, contexts, collect_outputs)
     for _ in range(iterations - 1):
         _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs=False)
     return _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs=True)
@@ -408,9 +391,6 @@ def skip_accuracy_check_as_eager_non_deterministic(is_training):
 def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     import torch
     import functools
-    should_check_correctness = _check_correctness_p(tbmodel, tbmodel.opt_args)
-    if not should_check_correctness:
-        return "pass_due_to_skip"
 
     def _equal_nan_p(precision):
         equal_nan = True
@@ -430,7 +410,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             return model
 
     def maybe_cast(tbmodel, model, example_inputs):
-        model = deepcopy_model(model)
+        model = deepcopy_model(model, tbmodel.DEEPCOPY)
         example_inputs = clone_inputs(example_inputs)
         if tbmodel.dargs.precision == "fp32":
             model, example_inputs = cast_to(torch.float32, model, example_inputs)
@@ -448,11 +428,11 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     is_deepcopy = tbmodel.DEEPCOPY
     accuracy_status = "pass"
     contexts = []
-    equal_nan = _equal_nan_p(tbmodel.darags.precision)
+    equal_nan = _equal_nan_p(tbmodel.dargs.precision)
 
-    if model.device == "cuda" and model.dargs.amp and is_training:
+    if tbmodel.device == "cuda" and tbmodel.dargs.precision == "amp" and is_training:
         contexts.append(torch.cuda.amp.autocast)
-    elif model.dargs.amp and model.dargs.precision == "bf16" and model.device == "cpu":
+    elif tbmodel.dargs.precision == "amp" and tbmodel.dargs.precision == "bf16" and tbmodel.device == "cpu":
         contexts.append(torch.cpu.amp.autocast)
 
     # Collect the fp64 reference outputs to be used later for accuracy checking.
@@ -470,19 +450,19 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             "fp64 golden ref were not generated for %s. Setting accuracy check to cosine",
             tbmodel.name,
         )
-        model.dargs.use_cosine_similarity = True
+        tbmodel.dargs.use_cosine_similarity = True
         fp64_outputs = None
     tolerance, cos_similarity = get_tolerance_and_cosine_flag(
-            model, is_training, current_device, name
+            tbmodel, is_training, current_device, name
     )
      # Cast the model to float16/float32 as necessary
-    model, example_inputs = maybe_cast(model, example_inputs)
+    model, example_inputs = maybe_cast(tbmodel, model, example_inputs)
     with pick_grad(name, is_training):
         # Get results of native pytorch
         reset_rng_state()
         try:
-            model_copy = deepcopy_model(model)
-            optimizer = init_optimizer(name, current_device, model_copy.parameters())
+            model_copy = deepcopy_model(model, is_deepcopy)
+            optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
             correct_result = run_n_iterations(
                 model_copy, clone_inputs(example_inputs), contexts, optimizer
             )
@@ -492,14 +472,15 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
                 if isinstance(e, torch.cuda.OutOfMemoryError)
                 else "eager_1st_run_fail"
             )
+            print(e)
             log.exception(e)
             return accuracy_status
 
         # Rerun native pytorch
         reset_rng_state()
         try:
-            model_copy = deepcopy_model(model)
-            optimizer = init_optimizer(name, current_device, model_copy.parameters())
+            model_copy = deepcopy_model(model, is_deepcopy)
+            optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
             correct_rerun_result = run_n_iterations(
                 model_copy, clone_inputs(example_inputs), contexts, optimizer
             )
@@ -533,7 +514,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             accuracy_status = "eager_two_runs_differ"
             return accuracy_status
 
-        if not model.opt_args.torchdynamo:
+        if not hasattr(tbmodel.opt_args, 'torchdynamo') or not tbmodel.opt_args.torchdynamo:
             return accuracy_status
 
         correct_rerun_result = None
@@ -548,8 +529,8 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             backend=model.opt_args.torchdynamo,
         )
         try:
-            model_copy = deepcopy_model(model)
-            optimizer = init_optimizer(name, current_device, model_copy.parameters())
+            model_copy = deepcopy_model(model, is_deepcopy)
+            optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
             optimized_model_iter_fn = optimize_ctx(run_n_iterations)
             new_result = optimized_model_iter_fn(model_copy, example_inputs, contexts, optimizer)
         except Exception as e:
