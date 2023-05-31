@@ -28,11 +28,13 @@ from torchbenchmark.tasks import NLP
 import torch.nn.functional as F
 
 class WrappedModule(torch.nn.Module):
-    def __init__(self, inner_module: torch.nn.Module, inner_module_forward: str):
-        self._inner_module_forward = getattr(inner_module, inner_module_forward)
+    def __init__(self, inner_module: torch.nn.Module, inner_module_forward_name: str):
+        self.model = inner_module
+        self._inner_module_forward_name = inner_module_forward_name
 
     def forward(self, inputs):
-        return self._inner_module_forward(inputs)
+        inner_module_forward = getattr(self.model, self._inner_module_forward_name)
+        return inner_module_forward(inputs)
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
