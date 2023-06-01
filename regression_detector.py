@@ -4,7 +4,7 @@ The regression detector of TorchBench Userbenchmark.
 import json
 import argparse
 import importlib
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 import os
 import yaml
 from pathlib import Path
@@ -42,8 +42,6 @@ cc {owner}
 
 DEFAULT_GH_ISSUE_OWNER = "@xuzhao9"
 
-def call_userbenchmark_detector(detector, start_file: str, end_file: str) -> Optional[TorchBenchABTestResult]:
-    return detector(start_file, end_file)
 
 def get_default_output_path(bm_name: str) -> str:
     # By default, write result to $REPO_DIR/.userbenchmark/<userbenchmark-name>/regression-<time>.json
@@ -51,7 +49,9 @@ def get_default_output_path(bm_name: str) -> str:
     fname = "regression-{}.yaml".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
     return os.path.join(output_path, fname)
 
-def generate_regression_dict(control, treatment) -> Dict[Any, Any]:
+def generate_regression_result(control: Dict[str, Any], treatment: Dict[str, Any]) -> TorchBenchABTestResult:
+    def _call_userbenchmark_detector(detector, start_file: str, end_file: str) -> TorchBenchABTestResult:
+        return detector(start_file, end_file)
     assert control["name"] == treatment["name"], f'Expected the same userbenchmark name from metrics files, \
                                                 but getting {control["name"]} and {treatment["name"]}.'
     bm_name = control["name"]
@@ -76,30 +76,31 @@ def generate_regression_dict(control, treatment) -> Dict[Any, Any]:
     treatment["metrics"] = filtered_treatment_metrics
     assert filtered_control_metrics.keys() == filtered_treatment_metrics.keys()
 
-    # Local file comparison, return the regression detection object
-    result = call_userbenchmark_detector(detector, control, treatment)
-    result_dict = asdict(result)
-    result_dict["name"] = bm_name
-    result_dict["control_only_metrics"] = control_only_metrics
-    result_dict["treatment_only_metrics"] = treatment_only_metrics
-    return result_dict
+    # Local file comparison, return the regression detection result object
+    result = _call_userbenchmark_detector(detector, control, treatment)
+    result.control_only_metrics = control_only_metrics
+    result.treatment_only_metrics = treatment_only_metrics
+    return result
 
-def process_regressions_into_yaml(regressions_dict, output_path: str, control_file: str, treatment_file: str) -> None:
-    if not len(regressions_dict["details"]) and not len(regressions_dict["control_only_metrics"]) and not len(regressions_dict["treatment_only_metrics"]):
+def process_regressions_into_yaml(regression_result: TorchBenchABTestResult, output_path: str, control_file: str, treatment_file: str) -> None:
+    if  not len(regression_result.details) and \
+        not len(regression_result.control_only_metrics) and \
+        not len(regression_result.treatment_only_metrics):
         print(f"No performance signal detected between file {control_file} and {treatment_file}.")
         return
 
     # create the output directory if doesn't exist
     output_dir = Path(os.path.dirname(output_path))
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_yaml_str = yaml.safe_dump(regressions_dict, sort_keys=False)
+    output_yaml_str = yaml.safe_dump(asdict(regression_result), sort_keys=False)
     print(output_yaml_str)
     with open(output_path, "w") as ofptr:
         ofptr.write(output_yaml_str)
     print(f"Wrote above yaml to {output_path}.")
         
 
-def process_regressions_into_gh_issue(regressions_dict, owner: str, output_path: str, errors_path: str) -> None:
+def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult, owner: str, output_path: str, errors_path: str) -> None:
+    regressions_dict = asdict(regression_result)
     troubled_tests = ""
     for test, stats in regressions_dict["details"].items():
         delta = stats["delta"]
@@ -195,7 +196,8 @@ if __name__ == "__main__":
     parser.add_argument("--start-date", default=None, help="The start date to detect regression.")
     parser.add_argument("--end-date", default=None, help="The latest date to detect regression.")
     # download from S3
-    parser.add_argument("--download-from-s3", action='store_true', help="Download the regression yaml file from S3.")
+    parser.add_argument("--download-from-s3", action='store_true', help="Only download the existing regression yaml file from S3." \
+                                                                        "The regression yaml file can be used for bisection.")
     # output file path
     parser.add_argument("--output", default=None, help="Output path to print the regression detection file.")
     # GitHub issue details
@@ -215,9 +217,9 @@ if __name__ == "__main__":
         with open(args.treatment, "r") as tfptr:
             treatment = json.load(tfptr)
         output_path = args.output if args.output else get_default_output_path(control["name"])
-        regressions_dict = generate_regression_dict(control, treatment)
-        process_regressions_into_yaml(regressions_dict, output_path, args.control, args.treatment)
-        process_regressions_into_gh_issue(regressions_dict, owner, args.gh_issue_path, args.errors_path)
+        regression_result = generate_regression_result(control, treatment)
+        process_regressions_into_yaml(regression_result, output_path, args.control, args.treatment)
+        process_regressions_into_gh_issue(regression_result, owner, args.gh_issue_path, args.errors_path)
         exit(0)
 
     # Query S3 to get control and treatment json files
@@ -267,7 +269,7 @@ if __name__ == "__main__":
     print(f"[TorchBench Regression Detector] Detecting regression of {userbenchmark_name} on platform {args.platform}, start date: {start_date}, end date: {end_date}.")
     (control, control_file) = get_metrics_by_date(available_metrics_jsons, start_date) if not control else (control, args.control)
     (treatment, treatment_file) = get_metrics_by_date(available_metrics_jsons, end_date) if not treatment else (treatment, args.treatment)
-    regressions_dict = generate_regression_dict(control, treatment)
+    regression_result = generate_regression_result(control, treatment)
     output_path = args.output if args.output else get_default_output_path(control["name"])
-    process_regressions_into_yaml(regressions_dict, output_path, control_file, treatment_file)
-    process_regressions_into_gh_issue(regressions_dict, owner, args.gh_issue_path, args.errors_path)
+    process_regressions_into_yaml(regression_result, output_path, control_file, treatment_file)
+    process_regressions_into_gh_issue(regression_result, owner, args.gh_issue_path, args.errors_path)
