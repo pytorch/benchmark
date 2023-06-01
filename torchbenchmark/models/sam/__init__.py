@@ -47,14 +47,39 @@ class Model(BenchmarkModel):
         return self.model, (example_input, multimask_output)
             
     def train(self):
-        error_msg = """
-            As of May 17, 2023
-            Some base VIT checkpoints are available for SAM but getting the dataset
-            requires a research license. It's easy to make up a training loop on random
-            data and if that's interesting please let @msaroufim know
-            https://github.com/facebookresearch/segment-anything#dataset
         """
-        return NotImplementedError(error_msg)
+        This really means finetune since it's too expensive to train this from scratch
+        """
+        optimizer = torch.optim.Adam(self.model.mask_decoder.parameters()) 
+        loss_fn = torch.nn.MSELoss()
+        images = []
+
+        for input_image, input_mask in images:
+
+            with torch.no_grad():
+                image_embedding = self.model.image_encoder(input_image)
+                sparse_embeddings, dense_embeddings = self.model.prompt_encoder()
+            
+            low_res_masks, iou_predictions = self.model.mask_decoder(
+                image_embeddings=image_embedding,
+                image_pe=self.model.prompt_encoder.get_dense_pe(),
+                sparse_prompt_embeddings=sparse_embeddings,
+                dense_prompt_embeddings=dense_embeddings,
+                multimask_output=False,
+            )
+
+            # Get input_size and original_image_size here
+            upscaled_masks = self.model.postprocess_masks(low_res_masks, input_size, original_image_size).to(self.device)
+
+            from torch.nn.functional import threshold, normalize
+
+            binary_mask = normalize(threshold(upscaled_masks, 0.0, 0)).to(self.device)
+
+            loss = loss_fn(binary_mask, input_mask)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
 
     def eval(self):
         predictor = SamPredictor(self.model)
