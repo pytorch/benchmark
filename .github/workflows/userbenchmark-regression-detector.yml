@@ -65,6 +65,7 @@ jobs:
             --gh-issue-path gh-issue.md --errors-path errors.txt
           done
       - name: Create the github issue
+        continue-on-error: true
         if: env.TORCHBENCH_REGRESSION_DETECTED
         uses: peter-evans/create-issue-from-file@v4
         with:
