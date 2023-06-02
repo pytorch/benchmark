@@ -1,5 +1,6 @@
 import os
 import sys
+import yaml
 from datetime import datetime, timedelta
 import time
 import json
@@ -44,10 +45,42 @@ class TorchBenchABTestMetric:
 
 @dataclass
 class TorchBenchABTestResult:
+    name: str
     control_env: Dict[str, str]
     treatment_env: Dict[str, str]
-    bisection: Optional[str]
     details: Dict[str, TorchBenchABTestMetric]
+    control_only_metrics: Dict[str, float]
+    treatment_only_metrics: Dict[str, float]
+    # the repository to bisect, default to "pytorch"
+    bisection: str = "pytorch"
+    # can be "abtest" or "bisect"
+    bisection_mode: str = "bisect"
+    # the regression-*.yaml file path that generates this object
+    bisection_config_file_path: Optional[str] = None
+
+
+def parse_abtest_result_from_regression_file_for_bisect(regression_file: str):
+    def _parse_dict_to_abtestmetric(details_dict) -> Dict[str, TorchBenchABTestMetric]:
+        r = {}
+        for name in details_dict:
+            r[name] = TorchBenchABTestMetric(control=details_dict[name]["control"],
+                                             treatment=details_dict[name]["treatment"],
+                                             delta=details_dict[name]["delta"])
+        return r
+    with open(regression_file, "r") as rf:
+        regression_dict = yaml.safe_load(rf)
+    return TorchBenchABTestResult(
+        name=regression_dict["name"],
+        control_env=regression_dict["control_env"],
+        treatment_env=regression_dict["treatment_env"],
+        details=_parse_dict_to_abtestmetric(regression_dict["details"]),
+        control_only_metrics=regression_dict["control_only_metrics"],
+        treatment_only_metrics=regression_dict["treatment_only_metrics"],
+        bisection=regression_dict["bisection"],
+        bisection_mode=regression_dict["bisection_mode"],
+        bisection_config_file_path=regression_file if not regression_dict["bisection_config_file_path"] \
+                                    else regression_dict["bisection_config_file_path"],
+    )
 
 
 def get_output_json(bm_name, metrics) -> Dict[str, Any]:
