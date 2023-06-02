@@ -248,7 +248,7 @@ class TorchBenchRepo:
             return out
         with open(result_json, "r") as df:
             data = json.load(df)
-        return data["metrics"].copy()
+        return data
 
     def get_digest_for_commit(self, commit: Commit, abtest_result: Dict[str, Any], debug: bool) -> Dict[str, float]:
         # digest is cached before
@@ -257,7 +257,7 @@ class TorchBenchRepo:
         # if in debug mode, load from the benchmark file if it exists
         if debug:
             result_dir = os.path.join(self.workdir, commit.sha)
-            result_json = get_latest_non_empty_file(result_dir)
+            result_json = get_latest_non_empty_file(result_dir, lambda x: x.endswith(".json"))
             if result_json:
                 commit.digest = self._gen_digest(result_json)
                 return commit.digest

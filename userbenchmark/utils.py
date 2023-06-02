@@ -82,6 +82,7 @@ def parse_abtest_result_from_regression_file_for_bisect(regression_file: str):
                                     else regression_dict["bisection_config_file_path"],
     )
 
+
 def get_output_json(bm_name, metrics) -> Dict[str, Any]:
     import torch
     return {
