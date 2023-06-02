@@ -326,7 +326,7 @@ class TorchBenchBisection:
         regression_file = f"regression-{left.sha}-{right.sha}.yaml"
         regression_file_full_path = os.path.join(self.workdir.absolute(), regression_file)
         with open(regression_file_full_path, "w") as rf:
-            rf.write(yaml.dump_all(asdict(regression_result)))
+            rf.write(yaml.safe_dump(asdict(regression_result)))
         regression_result.bisection_config_file_path = regression_file_full_path
         return regression_result
         
@@ -363,6 +363,8 @@ class TorchBenchBisection:
             json_obj["result"].append(r)
         with open(self.output_json, 'w') as outfile:
             json.dump(json_obj, outfile, indent=2)
+        print(f"Bisection successful. Result saved to {self.output_json}:")
+        print(json_obj)
 
 
 if __name__ == "__main__":

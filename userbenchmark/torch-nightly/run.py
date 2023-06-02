@@ -12,13 +12,13 @@ import numpy
 
 from typing import List, Tuple, Dict, Optional, Any
 from ..utils import REPO_PATH, add_path, get_output_json, get_default_output_json_path
+from . import BM_NAME
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig, \
                                                             list_devices, list_tests
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
 
-BM_NAME = "torch-nightly"
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 DEFAULT_DELTA_THRESHOLD = 0.07
 DEFAULT_TARGET_SCORE = 1000.0
