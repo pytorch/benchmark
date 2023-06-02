@@ -82,27 +82,6 @@ def parse_abtest_result_from_regression_file_for_bisect(regression_file: str):
                                     else regression_dict["bisection_config_file_path"],
     )
 
-
-def parse_abtest_result_from_regression_file_for_bisect(regression_file: str) -> TorchBenchABTestResult:
-    def _parse_abtest_details(regression_dict: Dict[Any, Any]) -> Dict[str, TorchBenchABTestMetric]:
-        ret = {}
-        for key in regression_dict["details"]:
-            ret[key] = TorchBenchABTestMetric(control=regression_dict["details"][key]["control"],
-                                              treatment=regression_dict["details"][key]["treatment"],
-                                              delta=regression_dict["details"][key]["delta"])
-        return ret
-    with open(regression_file, "r") as rf:
-        regression_dict = yaml.full_load(rf)
-    return TorchBenchABTestResult(
-        name=regression_dict["name"],
-        control_env=regression_dict["control_env"],
-        treatment_env=regression_dict["treatment_env"],
-        details=_parse_abtest_details(regression_dict),
-        bisection=regression_dict["bisection"],
-        bisection_mode="bisect",
-        bisection_config_file_path=regression_file)
-
-
 def get_output_json(bm_name, metrics) -> Dict[str, Any]:
     import torch
     return {
