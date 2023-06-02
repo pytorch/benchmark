@@ -10,25 +10,6 @@ TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL']
 AVAILABLE_PRECISIONS = ["fp32", "tf32", "fp16", "amp", "fx_int8", "bf16","amp_fp16", "amp_bf16"]
 QUANT_ENGINES = ["x86", "fbgemm", "qnnpack", "onednn"]
 
-def check_correctness_p(
-    model: 'torchbenchmark.util.model.BenchmarkModel',
-    opt_args: argparse.Namespace,
-    dargs: argparse.Namespace,
-) -> bool:
-    "If correctness check should be enabled."
-    # if the model doesn't support correctness check (like detectron2), skip it
-    if hasattr(model, 'SKIP_CORRECTNESS_CHECK') and model.SKIP_CORRECTNESS_CHECK:
-        return False
-    if dargs.skip_correctness:
-        return False
-    # always check correctness with torchdynamo
-    if model.dynamo:
-        return True
-    opt_args_dict = vars(opt_args)
-    for k in opt_args_dict:
-        if opt_args_dict[k]:
-            return True
-    return False
 
 def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool=True):
     group = parser.add_mutually_exclusive_group(required=False)
@@ -90,7 +71,8 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     )
     parser.add_argument("--precision", choices=AVAILABLE_PRECISIONS, default=get_precision_default(model), help=f"choose precisions from {AVAILABLE_PRECISIONS}")
     parser.add_argument("--channels-last", action='store_true', help="enable channels-last memory layout")
-    parser.add_argument("--skip_correctness", action='store_true', help="Skip correctness checks")
+    parser.add_argument("--accuracy", action="store_true", help="Check accuracy of the model only instead of running the performance test.")
+    parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     parser.add_argument("--quant-engine", choices=QUANT_ENGINES, default='x86', help=f"choose quantization engine for fx_int8 precision from {QUANT_ENGINES}")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
@@ -146,7 +128,6 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=list_backends(), help="enable backends")
     parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
-    parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"

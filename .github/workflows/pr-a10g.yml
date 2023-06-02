@@ -40,6 +40,7 @@ jobs:
             -e SETUP_SCRIPT \
             --tty \
             --detach \
+            --shm-size=32gb \
             -v "${PWD}/benchmark:/benchmark" \
             --gpus all \
             -w / \

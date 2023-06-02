@@ -47,10 +47,10 @@ class TestBenchmark(unittest.TestCase):
 def _create_example_model_instance(task: ModelTask, device: str):
     skip = False
     try:
-        task.make_model_instance(test="eval", device=device, jit=False)
+        task.make_model_instance(test="eval", device=device, jit=False, extra_args=["--accuracy"])
     except NotImplementedError:
         try:
-            task.make_model_instance(test="train", device=device, jit=False)
+            task.make_model_instance(test="train", device=device, jit=False, extra_args=["--accuracy"])
         except NotImplementedError:
             skip = True
     finally:
@@ -71,7 +71,8 @@ def _load_test(path, device):
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 _create_example_model_instance(task, device)
-                task.check_example()
+                accuracy = task.get_model_attribute("accuracy")
+                assert accuracy == "pass" or accuracy == "eager_1st_run_OOM", f"Expected accuracy pass, get {accuracy}"
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest(f'Method `get_module()` on {device} is not implemented, skipping...')
