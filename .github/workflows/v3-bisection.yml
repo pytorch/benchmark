@@ -97,10 +97,6 @@ jobs:
                 --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml" \
                 --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
           cp -r "${BISECT_WORKDIR}" ../bisection-result
-      - name: Wait for SSH
-        if: always()
-        run:
-          sleep 28800
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v3
