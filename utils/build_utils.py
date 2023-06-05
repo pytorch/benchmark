@@ -31,6 +31,8 @@ def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
     env["USE_FFMPEG"] = "1"
     # Torchaudio SOX build has failures, skip it
     env["BUILD_SOX"] = "0"
+    # Disable Torchaudio KALDI build
+    env["BUILD_KALDI"] = "0"
     env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
     return env
 
