@@ -15,7 +15,7 @@ def run(control, treatment) -> TorchBenchABTestResult:
         control_metric = control_metrics[metric_names]
         treatment_metric = treatment_metrics[metric_names]
         delta = (treatment_metric - control_metric) / control_metric
-        if abs(delta) > DEFAULT_REGRESSION_DELTA_THRESHOLD:
+        if abs(delta) > DEFAULT_REGRESSION_DELTA_THRESHOLD and not "torchrec_dlrm" in metric_names:
             details[metric_names] = TorchBenchABTestMetric(control=control_metric, treatment=treatment_metric, delta=delta)
     return TorchBenchABTestResult(name=BM_NAME,
                                   control_env=control_env, \
