@@ -324,6 +324,10 @@ if __name__ == "__main__":
     else:
         mode = "eager"
     print(f"Running {args.test} method from {Model.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}.")
+    if "--accuracy" in extra_args:
+        print('{:<20} {:>20}'.format("Accuracy: ", str(m.accuracy)), sep='')
+        exit(0)
+
     if args.channels_last:
         m.enable_channels_last()
 
@@ -364,8 +368,6 @@ if __name__ == "__main__":
     else:
         run_one_step(test, model=m, export_metrics_file=export_metrics_file,
                      stress=args.stress, metrics_needed=metrics_needed, metrics_gpu_backend=args.metrics_gpu_backend)
-    if hasattr(m, 'accuracy'):
-        print('{:<20} {:>20}'.format("Accuracy: ", str(m.accuracy)), sep='')
 
     # Print dynamo compilation metrics, if there are any.
     try:

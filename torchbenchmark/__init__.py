@@ -257,6 +257,8 @@ class ModelTask(base_task.TaskBase):
         assert self._lock.acquire(blocking=False), "Failed to acquire lock."
 
         self._model_path = model_path
+        if _is_internal_model(model_path):
+            model_path = f"{internal_model_dir}.{model_path}"
         self._worker = Worker(timeout=timeout, extra_env=extra_env)
         self.worker.run("import torch")
 
