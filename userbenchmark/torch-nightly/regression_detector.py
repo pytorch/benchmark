@@ -1,6 +1,6 @@
 from ..utils import TorchBenchABTestResult, TorchBenchABTestMetric
-
 from . import BM_NAME
+
 DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.07
 
 def run(control, treatment) -> TorchBenchABTestResult:
