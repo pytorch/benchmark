@@ -25,6 +25,9 @@ CUDA_VERSION_MAP = {
     },
 }
 PIN_CMAKE_VERSION = "3.22.*"
+# the numpy version needs to be consistent with
+# https://github.com/pytorch/builder/blob/e66e48f9b1968213c6a7ce3ca8df6621435f0a9c/wheel/build_wheel.sh#L146
+PIN_NUMPY_VERSION = "1.21.2"
 TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchtext", "torchvision", "torchaudio"]
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
@@ -55,7 +58,7 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
         print(f"NVCC version output: {output}")
         assert _nvcc_output_match(output, cuda_version), f"Expected CUDA version {cuda_version}, getting nvcc test result {output}"
     # step 3: install the correct magma version
-    install_magma_cmd = ["conda", "install", "-c", "pytorch", CUDA_VERSION_MAP[cuda_version]['magma_version']]
+    install_magma_cmd = ["conda", "install", "-y", "-c", "pytorch", CUDA_VERSION_MAP[cuda_version]['magma_version']]
     if dryrun:
         print(f"Installing CUDA magma: {install_magma_cmd}")
     subprocess.check_call(install_magma_cmd, env=env)
@@ -95,7 +98,7 @@ def install_torch_deps(cuda_version: str):
     cmd = ["conda", "install", "-y", magma_pkg, "-c", "pytorch"]
     subprocess.check_call(cmd)
     # install other dependencies
-    torch_deps = ["numpy", "requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
+    torch_deps = ["requests", "ninja", "pyyaml", "setuptools", "gitpython", "beautifulsoup4", "regex"]
     cmd = ["conda", "install", "-y"] + torch_deps
     subprocess.check_call(cmd)
 
@@ -106,6 +109,14 @@ def install_torch_build_deps(cuda_version: str):
     torch_build_deps = ["cffi", "sympy", "typing_extensions", "future", "six", "dataclasses", "tabulate", "tqdm", "mkl", "mkl-include", \
                         f"cmake={PIN_CMAKE_VERSION}"]
     cmd = ["conda", "install", "-y"] + torch_build_deps
+    subprocess.check_call(cmd)
+    # conda-forge build deps
+    build_deps = [ "ffmpeg" ]
+    cmd = ["conda", "install", "-y", "-c", "conda-forge"] + build_deps
+    subprocess.check_call(cmd)
+    # pip deps
+    pip_deps = [ f"numpy=={PIN_NUMPY_VERSION}" ]
+    cmd = ["pip", "install"] + pip_deps
     subprocess.check_call(cmd)
 
 def install_torchbench_deps():
@@ -121,7 +132,7 @@ def install_torchbench_deps():
     cmd = ["conda", "install", "-y"] + ncurses_deps
     subprocess.check_call(cmd)
     # install unittest-xml-reporting, needed by the unittest
-    cmd = ["pip", "install", "unittest-xml-reporting"]
+    cmd = ["pip", "install", "unittest-xml-reporting", "boto3"]
     subprocess.check_call(cmd)
 
 def get_torch_nightly_version(pkg_name: str):

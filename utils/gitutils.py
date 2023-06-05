@@ -3,12 +3,34 @@
 Utils for getting git-related information.
 """
 
+import git
+import re
 import os
 import time
-from pathlib import Path
 import subprocess
 from datetime import datetime
 from typing import Optional, List
+
+# Assume the nightly branch commit message is in the following format
+# Hash in the parentheses links to the commit on the master branch
+NIGHTLY_COMMIT_MSG = "nightly release \((.*)\)"
+
+
+def get_torch_main_commit(pytorch_repo: str, nightly_commit: str):
+    repo = git.Repo(pytorch_repo)
+    msg = repo.commit(nightly_commit).message
+    # There are two possibilities of the hash `nightly_commit`:
+    # 1. The hash belongs to the nightly branch
+    #    If so, the git commit message should match `NIGHTLY_COMMIT_MSG`
+    # 2. The hash belongs to the master/main branch
+    #    We can directly use this hash in this case
+    nightly_commit_regex = re.compile(NIGHTLY_COMMIT_MSG)
+    search_result = nightly_commit_regex.search(msg)
+    if search_result:
+        return search_result.group(1)
+    # We now believe the commit now belongs to the master/main branch
+    # Unfortunately, there is no way to map a commit back to a branch with gitpython
+    return nightly_commit
 
 def clean_git_repo(repo: str) -> bool:
     try:
@@ -103,9 +125,14 @@ def get_current_commit(repo: str) -> Optional[str]:
         print(f"Failed to get the current commit in repo {repo}")
         return None
 
+def cleanup_local_changes(repo: str):
+    command = ["git", "reset", "--hard", "HEAD"]
+    subprocess.check_call(command, cwd=repo, shell=False)
+
 def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
+        cleanup_local_changes(repo)
         command = ["git", "checkout", "--recurse-submodules", commit]
         subprocess.check_call(command, cwd=repo, shell=False)
         return True
@@ -125,6 +152,7 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
 
 def update_git_repo(repo: str, branch: str="main") -> bool:
     try:
+        print(f"======================= [TORCHBENCH] Updating repository {repo} branch {branch} =======================")
         assert len(branch) != 0
         command = ["git", "checkout", "--recurse-submodules", branch]
         subprocess.check_call(command, cwd=repo, shell=False)
@@ -137,6 +165,7 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
         # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
         try:
             time.sleep(5)
+            print(f"======================= [TORCHBENCH] Updating repository {repo} branch {branch} (2nd try) =======================")
             index_lock = os.path.join(repo, ".git", "index.lock")
             if os.path.exists(index_lock):
                 os.remove(index_lock)
