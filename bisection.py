@@ -183,7 +183,7 @@ class BisectionTargetRepo:
     def build(self, commit: Commit):
         # checkout target repo commit
         print(f"====================== [TORCHBENCH] Checking out target repo {self.repo.name} commit {commit.sha} " \
-              "=======================", end="", flush=True)
+              "=======================", flush=True)
         assert gitutils.checkout_git_commit(self.repo.src_path.absolute(), commit.sha)
         # checkout non-target repos commit
         ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
