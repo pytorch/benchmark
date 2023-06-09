@@ -21,4 +21,4 @@ python -m components.test.test_subprocess
 python -m components.test.test_worker
 
 # Test models
-python test.py
+python test.py -v
