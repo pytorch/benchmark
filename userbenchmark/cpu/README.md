@@ -40,6 +40,7 @@ All parameters of `cpu` userbenchmark as below,
   executing `python -m torch.backends.xeon.run_cpu --help`, or check the source
   code in
   [here](https://github.com/pytorch/pytorch/blob/main/torch/backends/xeon/run_cpu.py).
+  Default value is `--throughput-mode`.
 - `--dryrun` whether dryrun the userbenchmark command.
 
 Besides those parameters provided by the `cpu` userbenchmark directly, user also
