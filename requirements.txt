@@ -9,7 +9,7 @@ pytest-benchmark
 requests
 tabulate
 git+https://github.com/huggingface/pytorch-image-models.git@6635bc3
-transformers==4.27.4
+transformers==4.30.0
 MonkeyType
 psutil
 pyyaml
