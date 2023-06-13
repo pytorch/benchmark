@@ -371,8 +371,7 @@ if __name__ == "__main__":
 
     # Print dynamo compilation metrics, if there are any.
     try:
-        from torch._dynamo.utils import compile_times
-        compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))["_compile"]
-        print('{:<20} {:>18}'.format("PT2 Compilation time: ", "%.3f seconds" % float(compile_time)), sep='')
+        if m.pt2_compilation_time:
+            print('{:<20} {:>18}'.format("PT2 Compilation time: ", "%.3f seconds" % m.pt2_compilation_time), sep='')
     except:
         pass

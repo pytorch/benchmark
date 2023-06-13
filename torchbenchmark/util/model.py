@@ -405,3 +405,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.amp_context = lambda: torch.cpu.amp.autocast()
         elif self.device == "cuda":
             self.amp_context = lambda: torch.cuda.amp.autocast()
+
+    @property
+    def pt2_compilation_time(self):
+        from torch._dynamo.utils import compile_times
+        compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))["_compile"]
+        return float(compile_time)
