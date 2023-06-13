@@ -23,17 +23,22 @@ with add_path(str(REPO_PATH)):
         subdir = f"{config.name}-{config.test}-{mode}"
         return subdir
 
-    def result_to_output_metrics(metrics: TorchBenchModelMetrics) -> Dict[str, float]:
+    def result_to_output_metrics(metrics: List[str], metrics_res: TorchBenchModelMetrics) -> Dict[str, float]:
         result_metrics = {}
-        if metrics:
-            if metrics.latencies:
+        if metrics_res:
+            if "latencies" in metrics and metrics_res.latencies:
                 latency_metric = "latency"
-                median_latency = numpy.median(metrics.latencies)
+                median_latency = numpy.median(metrics_res.latencies)
                 assert median_latency, f"Run failed for metric {latency_metric}"
                 result_metrics[latency_metric] = median_latency
-            if metrics.cpu_peak_mem:
+            if "throughputs" in metrics and metrics_res.throughputs:
+                throughput_metric = "throughput"
+                median_throughput = numpy.median(metrics_res.throughputs)
+                assert median_throughput, f"Run failed for metric {throughput_metric}"
+                result_metrics[throughput_metric] = median_throughput
+            if "cpu_peak_mem" in metrics and metrics_res.cpu_peak_mem:
                 cpu_peak_mem = "cpu_peak_mem"
-                result_metrics[cpu_peak_mem] = metrics.cpu_peak_mem
+                result_metrics[cpu_peak_mem] = metrics_res.cpu_peak_mem
         return result_metrics
 
     def dump_result_to_json(metrics, output_dir):
@@ -75,14 +80,14 @@ with add_path(str(REPO_PATH)):
             extra_args=extra_args,
             extra_env=None)
         try:
-            metrics = run_config(config, metrics, dryrun=args.dryrun)
+            metrics_res = run_config(config, metrics, dryrun=args.dryrun)
         except KeyboardInterrupt:
             print("User keyboard interrupted!")
         if not args.dryrun:
             args.output = args.output if args.output else get_output_dir(BM_NAME)
             target_dir = Path(args.output).joinpath(get_output_subdir(config))
             target_dir.mkdir(exist_ok=True, parents=True)
-            metrics_dict = result_to_output_metrics(metrics)
+            metrics_dict = result_to_output_metrics(metrics, metrics_res)
             dump_result_to_json(metrics_dict, target_dir)
 
     if __name__ == "__main__":

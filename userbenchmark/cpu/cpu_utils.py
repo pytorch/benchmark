@@ -27,7 +27,7 @@ class add_path():
             pass
 
 def list_metrics() -> List[str]:
-    return ["latencies", "cpu_peak_mem"]
+    return ["latencies", "throughputs", "cpu_peak_mem"]
 
 def parse_str_to_list(candidates):
     if isinstance(candidates, list):
@@ -98,16 +98,22 @@ def add_test_results(runs, result_metrics):
         ins_number = len(run["results"])
         assert ins_number
         latency_metric = "latency" in run["results"][0]["metrics"]
+        throughput_metric = "throughput" in run["results"][0]["metrics"]
         cmem_metric = "cpu_peak_mem" in run["results"][0]["metrics"]
         latency_sum = 0
+        throughput_sum = 0
         cmem_sum = 0
         for ins_res in run["results"]: 
             if latency_metric:           
                 latency_sum += ins_res["metrics"]["latency"]
+            if throughput_metric:
+                throughput_sum += ins_res["metrics"]["throughput"]
             if cmem_metric:
                 cmem_sum += ins_res["metrics"]["cpu_peak_mem"]
         if latency_metric:
             result_metrics[f"{run_base_name}_latency"] = latency_sum / ins_number
+        if throughput_metric:
+            result_metrics[f"{run_base_name}_throughput"] = throughput_sum
         if cmem_metric:
             result_metrics[f"{run_base_name}_cmem"] = cmem_sum / ins_number
     return result_metrics
