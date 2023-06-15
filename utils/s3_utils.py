@@ -89,7 +89,7 @@ def checkout_s3_data(data_type: str, name: str, decompress: bool=True):
     assert data_type == "INPUT_TARBALLS" or data_type == "MODEL_PKLS", \
         f"Expected data type either INPUT_TARBALLS or MODEL_PKLS, get {data_type}."
     assert name in index[data_type], f"Cannot find specified file name {name} in {index_file}."
-    data_file = index[data_type][name]
+    data_file = name
     data_path_segment = f"/data/{data_file}" if data_type == "INPUT_TARBALLS" else \
                 f"/models/{data_file}"
     full_path = download_dir.joinpath(data_path_segment)
