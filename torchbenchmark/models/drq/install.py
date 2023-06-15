@@ -1,4 +1,3 @@
-import os
 import subprocess
 import sys
 from utils import s3_utils
