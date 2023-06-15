@@ -4,7 +4,7 @@ import torch
 import torch.utils.data
 
 from .layers import TacotronSTFT
-from .utils import load_wav_to_torch, load_filepaths_and_text
+from .tacotron2_utils import load_wav_to_torch, load_filepaths_and_text
 from .text import text_to_sequence
 
 
