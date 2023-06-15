@@ -58,7 +58,7 @@ class S3Client:
 
 
 def decompress_s3_data(s3_tarball_path: Path):
-    assert s3_tarball_path.absolute().endswith(".tar.gz"), f"Expected .tar.gz file path but get {s3_tarball_path}."
+    assert str(s3_tarball_path.absolute()).endswith(".tar.gz"), f"Expected .tar.gz file path but get {s3_tarball_path}."
     import tarfile
     data_dir = os.path.join(REPO_ROOT, "torchbenchmark", "data")
     # Hide decompressed file in .data directory so that they won't be checked in
@@ -90,14 +90,14 @@ def checkout_s3_data(data_type: str, name: str, decompress: bool=True):
         f"Expected data type either INPUT_TARBALLS or MODEL_PKLS, get {data_type}."
     assert name in index[data_type], f"Cannot find specified file name {name} in {index_file}."
     data_file = name
-    data_path_segment = f"/data/{data_file}" if data_type == "INPUT_TARBALLS" else \
-                f"/models/{data_file}"
+    data_path_segment = f"data/{data_file}" if data_type == "INPUT_TARBALLS" else \
+                f"models/{data_file}"
     full_path = download_dir.joinpath(data_path_segment)
-    s3_url = f"{S3_URL_BASE}{data_path_segment}"
+    s3_url = f"{S3_URL_BASE}/{data_path_segment}"
     # Download if the tarball file does not exist
     if not full_path.exists():
         r = requests.get(s3_url, allow_redirects=True)
-        with open(str(full_path), "wb") as output:
+        with open(str(full_path.absolute()), "wb") as output:
             print(f"Checking out {s3_url} to {full_path}")
             output.write(r.content)
     if decompress:

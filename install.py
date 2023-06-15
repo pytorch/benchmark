@@ -59,11 +59,6 @@ if __name__ == '__main__':
         print(errmsg)
         if not args.continue_on_fail:
             sys.exit(-1)
-    new_versions = get_pkg_versions(TORCH_DEPS)
-    if versions != new_versions:
-        print(f"The torch packages are re-installed after installing the benchmark deps. \
-                Before: {versions}, after: {new_versions}")
-        sys.exit(-1)
     from torchbenchmark import setup
     success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail, test_mode=args.test_mode, allow_canary=args.canary)
     if not success:
@@ -71,3 +66,8 @@ if __name__ == '__main__':
             print("Warning: some benchmarks were not installed due to failure")
         else:
             raise RuntimeError("Failed to complete setup")
+    new_versions = get_pkg_versions(TORCH_DEPS)
+    if versions != new_versions:
+        print(f"The torch packages are re-installed after installing the benchmark deps. \
+                Before: {versions}, after: {new_versions}")
+        sys.exit(-1)
