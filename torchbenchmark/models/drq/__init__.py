@@ -13,7 +13,7 @@ from gym import spaces
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
-from .utils import FrameStack, set_seed_everywhere, eval_mode
+from .drqutils import FrameStack, set_seed_everywhere, eval_mode
 from .drq import DRQAgent
 from .config import DRQConfig
 from .replay_buffer import ReplayBuffer

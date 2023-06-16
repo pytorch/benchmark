@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from utils import s3_utils
 
 
 def check_data_dir():
@@ -15,3 +16,4 @@ def pip_install_requirements():
 
 if __name__ == '__main__':
     pip_install_requirements()
+    s3_utils.checkout_s3_data("INPUT_TARBALLS", "tacotron2-minimal.tar.gz", decompress=True)

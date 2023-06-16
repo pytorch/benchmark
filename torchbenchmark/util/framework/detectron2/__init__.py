@@ -4,6 +4,7 @@ import sys
 import subprocess
 from pathlib import Path
 from urllib import request
+from utils import s3_utils
 
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 # Load pre-trained weights
@@ -23,9 +24,6 @@ MODEL_WEIGHTS_MAP = {
     "detectron2_fcos_r_50_fpn": None,
 }
 
-def check_data_dir():
-    coco2017_data_dir = os.path.join(CURRENT_DIR.parent.parent.parent, "data", ".data", "coco2017-minimal")
-    assert os.path.exists(coco2017_data_dir), "Couldn't find coco2017 minimal data dir, please run install.py again."
 
 def install_model_weights(model_name, model_dir):
     assert model_name in MODEL_WEIGHTS_MAP, f"Model {model_name} is not in MODEL_WEIGHTS_MAP. Cannot download the model weights file."
@@ -56,7 +54,7 @@ def remove_tools_directory():
         pass
 
 def install_detectron2(model_name, model_dir):
-    check_data_dir()
+    s3_utils.checkout_s3_data("INPUT_TARBALLS", "coco128.tar.gz", decompress=True)
     install_model_weights(model_name, model_dir)
     pip_install_requirements()
     remove_tools_directory()
