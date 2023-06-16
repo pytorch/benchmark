@@ -1,3 +1,5 @@
 # Actually needed
 opencv-python
 pycocotools
+monai
+tqdm
