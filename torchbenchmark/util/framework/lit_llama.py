@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import traceback
 from pathlib import Path
 from torchbenchmark import REPO_PATH
 
@@ -33,6 +34,17 @@ def openllama_download():
     ], cwd=LIT_LLAMA_PATH)
 
 def install_lit_llama():
+    import torch
+    try:
+        from pynvml import nvmlDeviceGetMemoryInfo
+        info = nvmlDeviceGetMemoryInfo(torch.cuda._get_pynvml_handler())
+        if info.total < 40 * 1024 ** 3:
+            print("not enough GPU memory for 7B parameters, skipping llama (avail: {info.total / 1024 ** 3}GB)")
+            return
+    except Exception as e:
+        print("failed to test GPU memory, skipping llama weights")
+        traceback.print_exc()
+        return
     update_lit_llama_submodule()
     pip_install_requirements()
     openllama_download()
