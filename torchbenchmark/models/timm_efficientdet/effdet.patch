@@ -65,3 +65,30 @@ index 73d73fd..a35e284 100644
              coco_ids.append(img_id)
              if self.pred_yxyx:
                  # to xyxy
+diff --git a/effdet/data/transforms.py b/effdet/data/transforms.py
+index 262cbaf..dba6594 100644
+--- a/effdet/data/transforms.py
++++ b/effdet/data/transforms.py
+@@ -41,17 +41,17 @@ class ImageToTensor:
+ 
+ def _pil_interp(method):
+     if method == 'bicubic':
+-        return Image.BICUBIC
++        return Image.Resampling.BICUBIC
+     elif method == 'lanczos':
+-        return Image.LANCZOS
++        return Image.Resampling.LANCZOS
+     elif method == 'hamming':
+-        return Image.HAMMING
++        return Image.Resampling.HAMMING
+     else:
+         # default bilinear, do we want to allow nearest?
+-        return Image.BILINEAR
++        return Image.Resampling.BILINEAR
+ 
+ 
+-_RANDOM_INTERPOLATION = (Image.BILINEAR, Image.BICUBIC)
++_RANDOM_INTERPOLATION = (Image.Resampling.BILINEAR, Image.Resampling.BICUBIC)
+ 
+ 
+ def clip_boxes_(boxes, img_size):
