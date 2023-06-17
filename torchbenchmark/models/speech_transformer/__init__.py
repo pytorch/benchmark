@@ -9,6 +9,8 @@
 import os
 import itertools
 import torch
+# set KALDI_ROOT to avoid spam message
+os.environ["KALDI_ROOT"] = "/tmp"
 
 from .config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from ...util.model import BenchmarkModel
@@ -29,8 +31,6 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
-        # set KALDI_ROOT to avoid spam message
-        os.environ["KALDI_ROOT"] = "/tmp"
         self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=self.batch_size, num_train_batch=NUM_TRAIN_BATCH, device=self.device)
         if test == "train":
             self.traincfg.model.to(self.device)
