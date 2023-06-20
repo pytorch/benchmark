@@ -30,6 +30,8 @@ class Model(BenchmarkModel):
         lora_dropout = 0.05
 
         checkpoint_path = os.path.join(LIT_LLAMA_PATH, "checkpoints/lit-llama/7B/lit-llama.pth")
+        if not os.path.exists(checkpoint_path):
+            raise NotImplementedError("checkpoint doesn't exist")
         with lazy_load(checkpoint_path) as checkpoint, lora(r=lora_r, alpha=lora_alpha, dropout=lora_dropout, enabled=True):
             name = llama_model_lookup(checkpoint)
 

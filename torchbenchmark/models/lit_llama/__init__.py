@@ -22,6 +22,8 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         checkpoint_path = os.path.join(LIT_LLAMA_PATH, "checkpoints/lit-llama/7B/lit-llama.pth")
+        if not os.path.exists(checkpoint_path):
+            raise NotImplementedError("checkpoint doesn't exist")
         with lazy_load(checkpoint_path) as checkpoint:
             name = llama_model_lookup(checkpoint)
 
