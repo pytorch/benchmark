@@ -55,7 +55,7 @@ def main() -> None:
 
     # Run benchmarks in subprocesses to take isolate contexts and memory
     for m, d in itertools.product(args.models, args.devices):
-        command = [sys.executable, '-m', 'userbenchmark.optim.__init__', '--continue-on-error',
+        command = [sys.executable, '-m', 'userbenchmark.optim.run', '--continue-on-error',
                    '--output-dir', OUTPUT_DIR, '--models', m, '--devices', d] + optim_bm_args
         # Use check=True to force this process to go serially since our capacity
         # only safely allows 1 model at a time
