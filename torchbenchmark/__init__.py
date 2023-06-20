@@ -289,6 +289,7 @@ class ModelTask(base_task.TaskBase):
     def _maybe_import_model(package: str, model_path: str) -> Dict[str, Any]:
         import importlib
         import os
+        import traceback
 
         model_name = os.path.basename(model_path)
         diagnostic_msg = ""
@@ -302,8 +303,8 @@ class ModelTask(base_task.TaskBase):
                 Model.name = model_name
 
         except ModuleNotFoundError as e:
-            Model = None
-            diagnostic_msg = f"Warning: Could not find dependent module {e.name} for Model {model_name}, skip it"
+            traceback.print_exc()
+            exit(-1)
 
         # Populate global namespace so subsequent calls to worker.run can access `Model`
         globals()["Model"] = Model
