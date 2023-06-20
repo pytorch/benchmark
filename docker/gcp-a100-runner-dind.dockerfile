@@ -4,6 +4,9 @@ ARG BASE_IMAGE=summerwind/actions-runner-dind:latest
 FROM ${BASE_IMAGE}
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+# NVIDIA Driver version: 525.105.17, GKE version: 1.26.5-gke.1200
+# GKE release notes: https://cloud.google.com/kubernetes-engine/docs/release-notes#current_versions
+ENV NVIDIA_VERSION="525.105.17"
 
 RUN sudo apt-get -y update && sudo apt -y update
 RUN sudo apt-get install -y git jq \
@@ -17,11 +20,10 @@ RUN sudo chmod +x /usr/bin/switch-cuda.sh
 RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 
 # Download and the NVIDIA Driver files, NVIDIA Driver version is bundled together with GKE
-# NVIDIA Driver version: 525.60.13, GKE version: 1.26.2-gke.1000
-# GKE release notes: https://cloud.google.com/kubernetes-engine/docs/release-notes#current_versions
-# Do not compile the kernel modules, which is provided by the host GKE environment
+# Install runtime libraries only, do not compile the kernel modules
+# The kernel modules are already provided by the host GKE environment
 RUN cd /workspace && mkdir tmp_nvidia && cd tmp_nvidia && \
-    wget -q https://storage.googleapis.com/nvidia-drivers-us-public/tesla/525.60.13/NVIDIA-Linux-x86_64-525.60.13.run && \
+    wget -q https://storage.googleapis.com/nvidia-drivers-us-public/tesla/${NVIDIA_VERSION}/NVIDIA-Linux-x86_64-${NVIDIA_VERSION}.run && \
     sudo bash ./NVIDIA-Linux-x86_64-525.60.13.run --no-kernel-modules -s --no-systemd --no-kernel-module-source --no-nvidia-modprobe
 
 # Source of the CUDA installation scripts:
