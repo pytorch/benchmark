@@ -450,7 +450,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     try:
         model_fp64, inputs_fp64 = cast_to(
             torch.float64,
-            deepcopy_model(model, is_deepcopy),
+            deepcopy_model(model, is_deepcopy=True),
             clone_inputs(example_inputs),
         )
         optimizer = init_optimizer(name, current_device, model_fp64.parameters(), is_training)
