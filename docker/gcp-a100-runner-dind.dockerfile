@@ -24,7 +24,7 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 # The kernel modules are already provided by the host GKE environment
 RUN cd /workspace && mkdir tmp_nvidia && cd tmp_nvidia && \
     wget -q https://storage.googleapis.com/nvidia-drivers-us-public/tesla/${NVIDIA_VERSION}/NVIDIA-Linux-x86_64-${NVIDIA_VERSION}.run && \
-    sudo bash ./NVIDIA-Linux-x86_64-525.60.13.run --no-kernel-modules -s --no-systemd --no-kernel-module-source --no-nvidia-modprobe
+    sudo bash ./NVIDIA-Linux-x86_64-${NVIDIA_VERSION}.run --no-kernel-modules -s --no-systemd --no-kernel-module-source --no-nvidia-modprobe
 
 # Source of the CUDA installation scripts:
 # https://github.com/pytorch/builder/blob/main/common/install_cuda.sh
