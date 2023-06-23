@@ -8,5 +8,3 @@ not_implemented:
   - jit: true
   # disable train test because of CI infra capacity issue
   - test: train
-  # disable accuracy test because of CUDA OOM issue
-  - test: example
