@@ -60,9 +60,11 @@ def enable_profiling_executor():
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
     DEFAULT_EVAL_BSIZE: Optional[int] = None
-    # by default, deepcopy the model when checking correctness
+    # by default, deepcopy the model when checking accuracy
     # because some models are stateful (such as moco)
     DEEPCOPY: bool = True
+    # by default, turn on deterministic mode when checking accuracy
+    DISABLE_DETERMINISM: bool = False
 
     test: str
     device: str
@@ -100,7 +102,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # parse the args
         self.dargs, opt_args = parse_decoration_args(self, self.extra_args)
-        if self.dargs.accuracy:
+        if self.dargs.accuracy and not self.DISABLE_DETERMINISM:
             self.deterministic_dict = save_deterministic_dict(self.name)
         # if the args contain "--torchdynamo", parse torchdynamo args
         if "--torchdynamo" in opt_args:
@@ -118,7 +120,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert not self.extra_args, f"Expected no unknown args at this point, found {self.extra_args}"
         if self.dargs.accuracy:
             self.accuracy = check_accuracy(self)
-            load_deterministic_dict(self.deterministic_dict)
+            if not self.DISABLE_DETERMINISM:
+                load_deterministic_dict(self.deterministic_dict)
             return
         # apply decoration args
         apply_decoration_args(self, self.dargs)
@@ -405,3 +408,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.amp_context = lambda: torch.cpu.amp.autocast()
         elif self.device == "cuda":
             self.amp_context = lambda: torch.cuda.amp.autocast()
+
+    @property
+    def pt2_compilation_time(self):
+        from torch._dynamo.utils import compile_times
+        compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))["_compile"]
+        return float(compile_time)

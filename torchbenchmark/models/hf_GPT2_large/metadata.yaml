@@ -11,3 +11,6 @@ not_implemented:
   # CPU OOM on torchbench CI
   - device: cpu
     test: train
+  # CPU OOM on torchbench CI accuracy
+  - device: cpu
+    test: example

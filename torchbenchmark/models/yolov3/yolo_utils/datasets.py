@@ -284,7 +284,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
         n = len(self.img_files)
         assert n > 0, 'No images found in %s. See %s' % (path, help_url)
-        bi = np.floor(np.arange(n) / batch_size).astype(np.int)  # batch index
+        bi = np.floor(np.arange(n) / batch_size).astype(int)  # batch index
         nb = bi[-1] + 1  # number of batches
 
         self.n = n  # number of images
@@ -333,7 +333,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 elif mini > 1:
                     shapes[i] = [1, 1 / mini]
 
-            self.batch_shapes = np.ceil(np.array(shapes) * img_size / 32. + pad).astype(np.int) * 32
+            self.batch_shapes = np.ceil(np.array(shapes) * img_size / 32. + pad).astype(int) * 32
 
         # Cache labels
         self.imgs = [None] * n
@@ -399,7 +399,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                         b = x[1:] * [w, h, w, h]  # box
                         b[2:] = b[2:].max()  # rectangle to square
                         b[2:] = b[2:] * 1.3 + 30  # pad
-                        b = xywh2xyxy(b.reshape(-1, 4)).ravel().astype(np.int)
+                        b = xywh2xyxy(b.reshape(-1, 4)).ravel().astype(int)
 
                         b[[0, 2]] = np.clip(b[[0, 2]], 0, w)  # clip boxes outside of image
                         b[[1, 3]] = np.clip(b[[1, 3]], 0, h)

@@ -9,6 +9,8 @@
 import os
 import itertools
 import torch
+# set KALDI_ROOT to avoid spam message
+os.environ["KALDI_ROOT"] = "/tmp"
 
 from .config import SpeechTransformerTrainConfig, SpeechTransformerEvalConfig
 from ...util.model import BenchmarkModel

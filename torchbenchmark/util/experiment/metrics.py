@@ -17,8 +17,10 @@ NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 @dataclasses.dataclass
 class TorchBenchModelMetrics:
     latencies: List[float]
+    throughputs: List[float]
     cpu_peak_mem: Optional[float]
     gpu_peak_mem: Optional[float]
+    pt2_compilation_time: Optional[float]
 
 def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS) -> List[float]:
     "Run one step of the model, and return the latency in milliseconds."
@@ -86,20 +88,32 @@ def get_peak_memory(func, device: str, num_iter=MEMPROF_ITER, export_metrics_fil
         mem_model_analyzer.export_all_records_to_csv()
     return cpu_peak_mem, device_id, gpu_peak_mem
 
+def get_pt2_compilation_time(model: Union[BenchmarkModel, ModelTask]):
+    if isinstance(model, ModelTask):
+        return model.get_model_attribute('pt2_compilation_time')
+    else:
+        return model.pt2_compilation_time
+
 def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], export_metrics_file=False, metrics_gpu_backend='nvml', nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS) -> TorchBenchModelMetrics:
     import os
     latencies = None
+    throughputs = None
     cpu_peak_mem = None
     gpu_peak_mem = None
+    pt2_compilation_time = None
     if not (isinstance(model, BenchmarkModel) or isinstance(model, ModelTask)):
         raise ValueError(f"Expected BenchmarkModel or ModelTask, get type: {type(model)}")
     model_pid = os.getpid() if isinstance(model, BenchmarkModel) else model.worker.proc_pid()
     device = model.device if isinstance(model, BenchmarkModel) else model.get_model_attribute("device")
-    if 'latencies' in metrics:
+    if 'latencies' in metrics or 'throughputs' in metrics:
         latencies = get_latencies(model.invoke, device, nwarmup=nwarmup, num_iter=num_iter)
     if 'cpu_peak_mem' in metrics or 'gpu_peak_mem' in metrics:
         cpu_peak_mem, _device_id, gpu_peak_mem = get_peak_memory(model.invoke, device, export_metrics_file=export_metrics_file, metrics_needed=metrics, metrics_gpu_backend=metrics_gpu_backend, cpu_monitored_pid=model_pid)
-    return TorchBenchModelMetrics(latencies, cpu_peak_mem, gpu_peak_mem)
+    if 'throughputs' in metrics:
+        throughputs = [model.batch_size * 1000 / latency for latency in latencies]
+    if 'pt2_compilation_time' in metrics:
+        pt2_compilation_time = get_pt2_compilation_time(model)
+    return TorchBenchModelMetrics(latencies, throughputs, cpu_peak_mem, gpu_peak_mem, pt2_compilation_time)
 
 def get_model_accuracy(model_config: TorchBenchModelConfig, isolated: bool=True) -> str:
     import copy

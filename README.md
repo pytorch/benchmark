@@ -38,7 +38,7 @@ pip install --pre torch torchvision torchtext torchaudio -i https://download.pyt
 
 Install other necessary libraries:
 ```
-pip install pyyaml
+pip install boto3 pyyaml
 ```
 
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.

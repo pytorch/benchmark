@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+from utils import s3_utils
 from pathlib import Path
 
 def pip_install_requirements():
@@ -18,6 +19,7 @@ def preprocess():
                            '-save_data', os.path.join(root, 'm30k_deen_shr.pkl'), '-data_path', multi30k_data_dir])
 
 if __name__ == '__main__':
+    s3_utils.checkout_s3_data("INPUT_TARBALLS", "multi30k.tar.gz", decompress=True)
     pip_install_requirements()
     spacy_download('en_core_web_sm')
     spacy_download('de_core_news_sm')

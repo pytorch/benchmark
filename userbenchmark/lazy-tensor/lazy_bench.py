@@ -318,10 +318,10 @@ def to_device(tensors, device):
 
     try:
         import torchbenchmark.models.soft_actor_critic.nets
-        import torchbenchmark.models.drq.utils
+        import torchbenchmark.models.drq.drqutils
         if (
             isinstance(tensors, torchbenchmark.models.soft_actor_critic.nets.SquashedNormal) or
-            isinstance(tensors, torchbenchmark.models.drq.utils.SquashedNormal)
+            isinstance(tensors, torchbenchmark.models.drq.drqutils.SquashedNormal)
         ):
             # a SquashedNormal is a py class that holds a loc and scale torch tensor,
             # so convert it to a tuple for compatibility with downstream check_results

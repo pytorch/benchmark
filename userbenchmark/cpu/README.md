@@ -27,7 +27,8 @@ All parameters of `cpu` userbenchmark as below,
 - `--jit` whether to convert and run the model with `jit` mode.
 - `--config, -c` YAML config to specify tests to run.
 - `--metrics` benchmark metrics, split by comma. Current support metrics
-  including `latencies` and `cpu_peak_mem`, default value is `latencies`.
+  including `latencies`, `throughputs` and `cpu_peak_mem`, default value is
+  `latencies`.
 - `--output, -o` output dir. By default will create folder under
   `.userbenchmark/cpu`.
 - `--timeout` limit single model test run time. Default `None` means no
@@ -39,6 +40,7 @@ All parameters of `cpu` userbenchmark as below,
   executing `python -m torch.backends.xeon.run_cpu --help`, or check the source
   code in
   [here](https://github.com/pytorch/pytorch/blob/main/torch/backends/xeon/run_cpu.py).
+  Default value is `--throughput-mode`.
 - `--dryrun` whether dryrun the userbenchmark command.
 
 Besides those parameters provided by the `cpu` userbenchmark directly, user also
