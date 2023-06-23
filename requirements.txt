@@ -1,4 +1,5 @@
 accelerate
+boto3
 bs4
 patch
 py-cpuinfo
