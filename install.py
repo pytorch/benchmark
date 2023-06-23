@@ -31,6 +31,7 @@ if __name__ == '__main__':
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--component", choices=["distributed"], help="Install requirements for optional components.")
+    parser.add_argument("--setup-only",  action="store_true", help="Only runs the setup routine without installing packages from requirements.txt")
     args = parser.parse_args()
 
     os.chdir(os.path.realpath(os.path.dirname(__file__)))
@@ -44,21 +45,29 @@ if __name__ == '__main__':
         sys.exit(-1)
     print("OK")
 
-    if args.component == "distributed":
-        success, errmsg = pip_install_requirements(requirements_txt="torchbenchmark/util/distributed/requirements.txt")
+    if args.setup_only:
+        if args.component:
+            print("--component and --setup-only cannot be specified together.")
+            sys.exit(-1)
+        print("Requirements installation will be skipped")
+        success = True
+    else:
+        if args.component == "distributed":
+            success, errmsg = pip_install_requirements(requirements_txt="torchbenchmark/util/distributed/requirements.txt")
+            if not success:
+                print("Failed to install torchbenchmark distributed requirements:")
+                print(errmsg)
+                if not args.continue_on_fail:
+                    sys.exit(-1)
+            sys.exit(0)
+
+        success, errmsg = pip_install_requirements()
         if not success:
-            print("Failed to install torchbenchmark distributed requirements:")
+            print("Failed to install torchbenchmark requirements:")
             print(errmsg)
             if not args.continue_on_fail:
                 sys.exit(-1)
-        sys.exit(0)
 
-    success, errmsg = pip_install_requirements()
-    if not success:
-        print("Failed to install torchbenchmark requirements:")
-        print(errmsg)
-        if not args.continue_on_fail:
-            sys.exit(-1)
     from torchbenchmark import setup
     success &= setup(models=args.models, verbose=args.verbose, continue_on_fail=args.continue_on_fail, test_mode=args.test_mode, allow_canary=args.canary)
     if not success:
