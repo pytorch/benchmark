@@ -180,7 +180,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
         elif self.dargs.accuracy:
-            self.batch_size = 4
+            self.batch_size = 4 if self.batch_size > 4 else self.batch_size
 
     def load_metadata(self):
         relative_path = self.__class__.__module__.split(".")
