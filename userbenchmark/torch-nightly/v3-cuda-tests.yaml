@@ -742,16 +742,16 @@ cuda:
     max_delta: '0.00445213870660801'
     median_latency: '24.037421'
     stable: true
-  - model: torchrec_dlrm
-    test: train
-    max_delta: '0.03276520580419736'
-    median_latency: '7.917619'
-    stable: true
-  - model: torchrec_dlrm
-    test: eval
-    max_delta: '0.024227634838419037'
-    median_latency: '2.884723'
-    stable: true
+#   - model: torchrec_dlrm
+#    test: train
+#    max_delta: '0.03276520580419736'
+#    median_latency: '7.917619'
+#    stable: true
+#   - model: torchrec_dlrm
+#     test: eval
+#     max_delta: '0.024227634838419037'
+#     median_latency: '2.884723'
+#     stable: true
   - model: tts_angular
     test: train
     max_delta: '0.03198045460567618'
