@@ -2,7 +2,7 @@
 '''
 This script is intended for the CI context only! The whole purpose behind this script is to enable
 process/context/memory isolation across different models and devices. The OG script (which this
-script calls) is the userbenchmark/optim/__init__.py script, which is better documented and what is
+script calls) is the userbenchmark/optim/run.py script, which is better documented and what is
 intended to be used locally. The current script is simply a wrapper that dispatches serial 
 subprocesses to run the OG script and handles the metrics.json merging afterwards.
 
