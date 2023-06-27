@@ -10,7 +10,7 @@ from typing import Optional, List, Dict
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark import _list_model_paths, load_model_by_name, ModelTask
 
-WORKER_TIMEOUT = 600 # seconds
+WORKER_TIMEOUT = 1800 # seconds
 BS_FIELD_NAME = "batch_size"
 
 @dataclasses.dataclass
