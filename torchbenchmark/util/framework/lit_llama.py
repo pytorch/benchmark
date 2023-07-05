@@ -35,6 +35,8 @@ def openllama_download():
 
 def install_lit_llama():
     import torch
+    update_lit_llama_submodule()
+    pip_install_requirements()
     try:
         from pynvml import nvmlDeviceGetMemoryInfo
         info = nvmlDeviceGetMemoryInfo(torch.cuda._get_pynvml_handler())
@@ -45,6 +47,4 @@ def install_lit_llama():
         print("failed to test GPU memory, skipping llama weights")
         traceback.print_exc()
         return
-    update_lit_llama_submodule()
-    pip_install_requirements()
     openllama_download()
