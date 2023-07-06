@@ -224,5 +224,8 @@ def run(args: List[str]):
             score_name = f"{score_version}_score"
             metrics[score_name] = score
         result = get_output_json(BM_NAME, metrics)
+        if args.device == 'cuda':
+            import torch
+            result["environ"]["device"] = torch.cuda.get_device_name()
         with open(args.output, 'w') as f:
             json.dump(result, f, indent=4)
