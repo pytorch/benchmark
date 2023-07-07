@@ -53,14 +53,6 @@ def main() -> None:
     assert not OUTPUT_DIR.exists() or not any(OUTPUT_DIR.glob("*")), \
            f'{OUTPUT_DIR} must be empty or nonexistent. Its contents will be wiped by this script.'
 
-    command = [sys.executable, '-m', 'userbenchmark.optim.run', '-m', 'BERT_pytorch', '-d', 'cuda', '-o', 'Adam', '--df', 'no_foreach', '-f', 'pt2_']
-    completed_process = subprocess.run(command, check=True)
-    # While it is certainly unexpected for a subprocess to fail, we don't want to halt entirely
-    # as there can be valuable benchmarks to gather from the other subprocesses.
-    if completed_process.returncode != 0:
-        print(f'OH NO, the subprocess for model {m} and device {d} exited with {completed_process.returncode}!')
-
-    return
     # Run benchmarks in subprocesses to take isolate contexts and memory
     for m, d in itertools.product(args.models, args.devices):
         command = [sys.executable, '-m', 'userbenchmark.optim.run', '--continue-on-error',
