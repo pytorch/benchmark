@@ -2,21 +2,19 @@ from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 import torch
 import os
-from torchbenchmark import REPO_PATH
+from torchbenchmark import add_path, REPO_PATH
 import sys
 import lightning as L
 
 LIT_LLAMA_PATH = os.path.join(REPO_PATH, "submodules", "lit-llama")
 
-sys.path.insert(0, LIT_LLAMA_PATH)
-
-from lit_llama.utils import EmptyInitOnDevice, lazy_load, llama_model_lookup
-from lit_llama import LLaMA, Tokenizer
+with add_path(LIT_LLAMA_PATH):
+    from lit_llama.utils import EmptyInitOnDevice, lazy_load, llama_model_lookup
+    from lit_llama import LLaMA, Tokenizer
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     DEFAULT_EVAL_BSIZE = 1
-    DEFAULT_TRAIN_BSIZE = 32
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
