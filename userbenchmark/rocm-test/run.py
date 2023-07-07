@@ -41,7 +41,7 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
     return result
 
 def get_metrics(_config: TorchBenchModelConfig) -> List[str]:
-    return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
+    return ["latencies",]
 
 def compute_score(results, reference_latencies: Dict[str, float]) -> float:
     # sanity checks
@@ -224,8 +224,7 @@ def run(args: List[str]):
             score_name = f"{score_version}_score"
             metrics[score_name] = score
         result = get_output_json(BM_NAME, metrics)
-        if args.device == 'cuda':
-            import torch
-            result["environ"]["device"] = torch.cuda.get_device_name()
+        import torch
+        result["environ"]["device"] = torch.cuda.get_device_name()
         with open(args.output, 'w') as f:
             json.dump(result, f, indent=4)

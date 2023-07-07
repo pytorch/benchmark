@@ -16,6 +16,10 @@ from torchbenchmark.util.env_check import set_random_seed, is_hf_model, \
                                           save_deterministic_dict, load_deterministic_dict, check_accuracy
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
 
+SPECIAL_DEVICE_MAPPING = {
+    "AMD Instinct MI210": "NVIDIA A100-SXM4-40GB"
+}
+
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
         obj = type.__call__(cls, *args, **kwargs)
@@ -158,6 +162,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             if self.device == "cuda":
                 current_device_name = torch.cuda.get_device_name()
                 assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+                if current_device_name in SPECIAL_DEVICE_MAPPING:
+                    current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
             elif self.device == "cpu":
                 current_device_name = "cpu"
             elif self.device == "mps":
