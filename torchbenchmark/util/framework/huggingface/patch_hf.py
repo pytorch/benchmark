@@ -6,6 +6,7 @@ import subprocess
 import sys
 from .model_factory import class_models
 from transformers import AutoConfig, ReformerConfig, BigBirdConfig, BertConfig
+
 PATCH_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "patches")
 
 def cache_model(name: str, **kwargs):
