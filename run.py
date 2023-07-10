@@ -10,16 +10,29 @@ Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
 import logging
+import random
+import string
 import time
+
+import traceback
+from datetime import datetime
+from functools import partial
 
 import numpy as np
 import torch
 import torch.profiler as profiler
 
-import traceback
-
-from torchbenchmark import load_canary_model_by_name, load_model_by_name, ModelNotFoundError
+from torchbenchmark import (
+    load_canary_model_by_name,
+    load_model_by_name,
+    ModelNotFoundError,
+)
 from torchbenchmark.util.experiment.metrics import get_peak_memory
+
+
+if not hasattr(torch.version, "git_version"):
+    from pytorch.benchmark.fb.run_utils import trace_handler
+
 
 WARMUP_ROUNDS = 3
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
@@ -171,7 +184,6 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
     printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, cpu_peak_mem, mem_device_id, gpu_peak_mem)
 
 
-
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     activity_groups = []
     result_summary = []
@@ -214,7 +226,7 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
         with_stack=args.profile_detailed if args.profile_detailed else profile_opts["with_stack"],
         with_flops=args.profile_detailed if args.profile_detailed else profile_opts["with_flops"],
         with_modules=args.profile_detailed if args.profile_detailed else profile_opts["with_modules"],
-        on_trace_ready=profiler.tensorboard_trace_handler(args.profile_folder)
+        on_trace_ready= partial(trace_handler, f"torchbench_{args.model}") if (not hasattr(torch.version, "git_version") and args.profile_export_chrome_trace) else profiler.tensorboard_trace_handler(args.profile_folder),
     ) as prof:
         if args.device == "cuda":
             start_event = torch.cuda.Event(enable_timing=True)
@@ -265,32 +277,101 @@ def _validate_profile_options(profile_options: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument("model", help="Full or partial name of a model to run.  If partial, picks the first match.")
-    parser.add_argument("-d", "--device", choices=SUPPORT_DEVICE_LIST, default="cpu", help="Which device to use.")
-    parser.add_argument("-m", "--mode", choices=["eager", "jit"], default="eager", help="Which mode to run.")
-    parser.add_argument("-t", "--test", choices=["eval", "train"], default="eval", help="Which test to run.")
-    parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
-    parser.add_argument("--profile-options", type=_validate_profile_options, help=f"Select which profile options to enable. Valid options: {SUPPORT_PROFILE_LIST}.")
+    parser.add_argument(
+        "model",
+        help="Full or partial name of a model to run.  If partial, picks the first match.",
+    )
+    parser.add_argument(
+        "-d",
+        "--device",
+        choices=SUPPORT_DEVICE_LIST,
+        default="cpu",
+        help="Which device to use.",
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        choices=["eager", "jit"],
+        default="eager",
+        help="Which mode to run.",
+    )
+    parser.add_argument(
+        "-t",
+        "--test",
+        choices=["eval", "train"],
+        default="eval",
+        help="Which test to run.",
+    )
+    parser.add_argument(
+        "--profile", action="store_true", help="Run the profiler around the function"
+    )
+    parser.add_argument(
+        "--profile-options",
+        type=_validate_profile_options,
+        help=f"Select which profile options to enable. Valid options: {SUPPORT_PROFILE_LIST}.",
+    )
     parser.add_argument("--amp", action="store_true", help="enable torch.autocast()")
-    parser.add_argument("--profile-folder", default="./logs", help="Save profiling model traces to this directory.")
-    parser.add_argument("--profile-detailed", action="store_true",
-                        help=f"Enable all profile options, including {SUPPORT_PROFILE_LIST}. Overrides --profile-options.")
-    parser.add_argument("--profile-devices", type=_validate_devices,
-                        help="Profile comma separated list of activities such as cpu,cuda.")
-    parser.add_argument("--profile-eg", action="store_true", help="Collect execution trace by PARAM")
-    parser.add_argument("--profile-eg-folder", default="./eg_logs",
-                        help="Save execution traces to this directory.")
-    parser.add_argument("--cudastreams", action="store_true",
-                        help="Utilization test using increasing number of cuda streams.")
+    parser.add_argument(
+        "--profile-folder",
+        default="./logs",
+        help="Save profiling model traces to this directory.",
+    )
+    parser.add_argument(
+        "--profile-detailed",
+        action="store_true",
+        help=f"Enable all profile options, including {SUPPORT_PROFILE_LIST}. Overrides --profile-options.",
+    )
+    parser.add_argument(
+        "--profile-export-chrome-trace",
+        action="store_true",
+        help="Export Chrome tracing files. (internal only)",
+    )
+    parser.add_argument(
+        "--profile-devices",
+        type=_validate_devices,
+        help="Profile comma separated list of activities such as cpu,cuda.",
+    )
+    parser.add_argument(
+        "--profile-eg", action="store_true", help="Collect execution trace by PARAM"
+    )
+    parser.add_argument(
+        "--profile-eg-folder",
+        default="./eg_logs",
+        help="Save execution traces to this directory.",
+    )
+    parser.add_argument(
+        "--cudastreams",
+        action="store_true",
+        help="Utilization test using increasing number of cuda streams.",
+    )
     parser.add_argument("--bs", type=int, help="Specify batch size to the test.")
-    parser.add_argument("--export-metrics", action="store_true",
-                        help="Export all specified metrics records to a csv file. The default csv file name is [model_name]_all_metrics.csv.")
-    parser.add_argument("--stress", type=float, default=0, help="Specify execution time (seconds) to stress devices.")
-    parser.add_argument("--metrics", type=str, default="cpu_peak_mem,gpu_peak_mem",
-                        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. You can also set `none` to disable all metrics. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.")
-    parser.add_argument("--metrics-gpu-backend", choices=["dcgm", "default"], default="default", help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,
-    \n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  \n  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.\n  - you can specify flops by --metrics flops, and it is collected by fvcore.\nIn dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,\n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().\n  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""")
-    parser.add_argument("--channels-last", action="store_true", help="enable torch.channels_last()")
+    parser.add_argument(
+        "--export-metrics",
+        action="store_true",
+        help="Export all specified metrics records to a csv file. The default csv file name is [model_name]_all_metrics.csv.",
+    )
+    parser.add_argument(
+        "--stress",
+        type=float,
+        default=0,
+        help="Specify execution time (seconds) to stress devices.",
+    )
+    parser.add_argument(
+        "--metrics",
+        type=str,
+        default="cpu_peak_mem,gpu_peak_mem",
+        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. You can also set `none` to disable all metrics. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.",
+    )
+    parser.add_argument(
+        "--metrics-gpu-backend",
+        choices=["dcgm", "default"],
+        default="default",
+        help="""Specify the backend [dcgm, default] to collect metrics. \nIn default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,
+    \n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().  \n  - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.\n  - you can specify flops by --metrics flops, and it is collected by fvcore.\nIn dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled. Optionally,\n  - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().\n  - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""",
+    )
+    parser.add_argument(
+        "--channels-last", action="store_true", help="enable torch.channels_last()"
+    )
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
@@ -313,19 +394,29 @@ if __name__ == "__main__":
             traceback.print_exc()
             exit(-1)
         except ModelNotFoundError:
-            print(f"Error: The model {args.model} cannot be found at either core or canary model set.")
+            print(
+                f"Error: The model {args.model} cannot be found at either core or canary model set."
+            )
             exit(-1)
 
-    m = Model(device=args.device, test=args.test, jit=(args.mode == "jit"), batch_size=args.bs, extra_args=extra_args)
+    m = Model(
+        device=args.device,
+        test=args.test,
+        jit=(args.mode == "jit"),
+        batch_size=args.bs,
+        extra_args=extra_args,
+    )
     if m.dynamo:
         mode = f"dynamo {m.opt_args.torchdynamo}"
     elif m.opt_args.backend:
         mode = f"{m.opt_args.backend}"
     else:
         mode = "eager"
-    print(f"Running {args.test} method from {Model.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}.")
+    print(
+        f"Running {args.test} method from {Model.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}."
+    )
     if "--accuracy" in extra_args:
-        print('{:<20} {:>20}'.format("Accuracy: ", str(m.accuracy)), sep='')
+        print("{:<20} {:>20}".format("Accuracy: ", str(m.accuracy)), sep="")
         exit(0)
 
     if args.channels_last:
@@ -334,25 +425,35 @@ if __name__ == "__main__":
     test = m.invoke
     if args.amp:
         test = torch.autocast(m.device)(test)
-    metrics_needed = [_ for _ in args.metrics.split(',') if _.strip()] if args.metrics else []
-    if 'none' in metrics_needed:
+    metrics_needed = (
+        [_ for _ in args.metrics.split(",") if _.strip()] if args.metrics else []
+    )
+    if "none" in metrics_needed:
         metrics_needed = []
     # only enabled gpu_peak_mem for cuda device
-    if args.device != 'cuda' and 'gpu_peak_mem' in metrics_needed:
-        metrics_needed.remove('gpu_peak_mem')
+    if args.device != "cuda" and "gpu_peak_mem" in metrics_needed:
+        metrics_needed.remove("gpu_peak_mem")
     metrics_needed = list(set(metrics_needed))
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
-        if metrics_gpu_backend == 'dcgm':
+        if metrics_gpu_backend == "dcgm":
             from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
+
             check_dcgm()
-        elif 'gpu_peak_mem' in metrics_needed:
+        elif "gpu_peak_mem" in metrics_needed:
             from components.model_analyzer.TorchBenchAnalyzer import check_nvml
+
             check_nvml()
-        if 'gpu_peak_mem' in metrics_needed or ('flops' in metrics_needed and metrics_gpu_backend == 'dcgm'):
-            assert args.device == 'cuda', "gpu_peak_mem and flops:dcgm are only available for cuda device."
-        if 'flops' in metrics_needed and metrics_gpu_backend == 'default':
-            assert hasattr(m, "get_flops"), f"The model {args.model} does not support calculating flops."
+        if "gpu_peak_mem" in metrics_needed or (
+            "flops" in metrics_needed and metrics_gpu_backend == "dcgm"
+        ):
+            assert (
+                args.device == "cuda"
+            ), "gpu_peak_mem and flops:dcgm are only available for cuda device."
+        if "flops" in metrics_needed and metrics_gpu_backend == "default":
+            assert hasattr(
+                m, "get_flops"
+            ), f"The model {args.model} does not support calculating flops."
             m.get_flops()
     if args.export_metrics:
         if not args.metrics:
@@ -366,12 +467,23 @@ if __name__ == "__main__":
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
-        run_one_step(test, model=m, export_metrics_file=export_metrics_file,
-                     stress=args.stress, metrics_needed=metrics_needed, metrics_gpu_backend=args.metrics_gpu_backend)
+        run_one_step(
+            test,
+            model=m,
+            export_metrics_file=export_metrics_file,
+            stress=args.stress,
+            metrics_needed=metrics_needed,
+            metrics_gpu_backend=args.metrics_gpu_backend,
+        )
 
     # Print dynamo compilation metrics, if there are any.
     try:
         if m.pt2_compilation_time:
-            print('{:<20} {:>18}'.format("PT2 Compilation time: ", "%.3f seconds" % m.pt2_compilation_time), sep='')
+            print(
+                "{:<20} {:>18}".format(
+                    "PT2 Compilation time: ", "%.3f seconds" % m.pt2_compilation_time
+                ),
+                sep="",
+            )
     except:
         pass
