@@ -8,3 +8,8 @@ class Model(HuggingFaceModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(name="hf_Falcon_7b", test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+
+    def eval(self):
+        if (self.device == "cpu"):
+            raise NotImplementedError("Falcon model is too slow on CPU - skip CPU test.")
+        super().eval()
