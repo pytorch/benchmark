@@ -77,6 +77,9 @@ def parse_args(args):
     parser.add_argument("--launcher", action="store_true", help="Use torch.backends.xeon.run_cpu to get the peak performance on Intel(R) Xeon(R) Scalable Processors.")
     parser.add_argument("--launcher-args", default="--throughput-mode", help="Provide the args of torch.backends.xeon.run_cpu. See `python -m torch.backends.xeon.run_cpu --help`")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
+
+    # Debug Parameters only used in command line
+    parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
     return parser.parse_known_args(args)
 
 def run(args: List[str]):
@@ -125,6 +128,8 @@ def run_benchmark(config, args):
         cmd.append(config.test)
     if config.jit:
         cmd.append("--jit")
+    if args.profile:
+        cmd.append("--profile")
 
     cmd.extend(config.extra_args)
     cmd.append("--metrics")
