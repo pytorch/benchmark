@@ -95,7 +95,6 @@ with add_path(str(REPO_PATH)):
             target_dir = Path(args.output).joinpath(get_output_subdir(config))
             target_dir.mkdir(exist_ok=True, parents=True)
             metrics_dict = result_to_output_metrics(metrics, metrics_res)
-            print(" Result: ", metrics_dict)
             dump_result_to_json(metrics_dict, target_dir)
 
     if __name__ == "__main__":
