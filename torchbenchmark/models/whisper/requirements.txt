@@ -1,0 +1,6 @@
+datasets
+numba
+numpy
+tqdm
+more-itertools
+tiktoken
