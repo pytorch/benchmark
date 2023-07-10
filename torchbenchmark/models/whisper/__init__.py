@@ -18,6 +18,7 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        # Failing on cpu and batch sizes that are too large
         if self.device == 'cpu':
             return NotImplementedError("CPU test too slow - skipping.")
         if batch_size > 72:
@@ -26,6 +27,7 @@ class Model(BenchmarkModel):
             """
             return NotImplementedError(error_msg)
         self.model = load_model("medium", self.device, "./.data", in_memory=True)
+        # Importing dataset and preprocessing
         dataset = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
         mels=[]
         for i in range(self.batch_size):
@@ -48,10 +50,5 @@ class Model(BenchmarkModel):
         return NotImplementedError(error_msg)
 
     def eval(self):
-        # self.model.eval()
         with torch.no_grad():
             return self.model.decode(self.example_inputs, self.model_args)
-            # return [self.model.transcribe(inp) for inp in self.example_inputs]
-    
-
-        
