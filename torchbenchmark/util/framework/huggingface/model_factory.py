@@ -27,7 +27,7 @@ class_models = {
     'hf_Bert': (512, 512, 'BertConfig()', 'AutoModelForMaskedLM'),
     # see https://huggingface.co/bert-large-cased
     'hf_Bert_large': (512, 512, 'BertConfig(hidden_size=1024, num_hidden_layers=24, num_attention_heads=16)', 'AutoModelForMaskedLM'),
-    'hf_Falcon_7b' : (512, 512, 'AutoConfig.from_pretrained("tiiuae/falcon-7b")', 'AutoModelForCausalLM')
+    'hf_Falcon_7b' : (512, 512, 'AutoConfig.from_pretrained("tiiuae/falcon-7b", trust_remote_code=True)', 'AutoModelForCausalLM'),
 }
 
 cpu_input_slice = {
