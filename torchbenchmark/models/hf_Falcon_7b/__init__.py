@@ -3,7 +3,7 @@ from torchbenchmark.util.framework.huggingface.model_factory import HuggingFaceM
 
 class Model(HuggingFaceModel):
     task = NLP.LANGUAGE_MODELING
-    # Published training batch size per GPU is 6: see https://huggingface.co/tiiuae/falcon-7b/blob/main/README.md
+    # Published training batch size per GPU is 6: see https://huggingface.co/tiiuae/falcon-7b/blob/main/README.md#:~:text=Batch%20size,tokens%20ramp%2Dup
     DEFAULT_TRAIN_BSIZE = 6
     DEFAULT_EVAL_BSIZE = 1
 
