@@ -10,7 +10,7 @@ import torch
 from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 
 
-class Model(BenchmarkModel):
+class Model(HuggingFaceAuthMixin, BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
 
     DEFAULT_TRAIN_BSIZE = 1
