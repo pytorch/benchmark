@@ -6,6 +6,7 @@ import os
 MODEL_NAME = "stabilityai/stable-diffusion-2"
 
 def load_model_checkpoint():
+    from diffusers import StableDiffusionPipeline                   │
     StableDiffusionPipeline.from_pretrained(MODEL_NAME, torch_dtype=torch.float16, safety_checker=None)
 
 def main():
@@ -13,7 +14,6 @@ def main():
         return NotImplementedError("Make sure to set `HUGGINGFACE_HUB_TOKEN` so you can download weights")
     else:
         install_diffusers()
-        from diffusers import StableDiffusionPipeline
         load_model_checkpoint()
 
 if __name__ == "__main__":
