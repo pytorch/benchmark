@@ -22,6 +22,7 @@ class Model(HuggingFaceAuthMixin, BenchmarkModel):
 
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+        HuggingFaceAuthMixin.__init__(self)
         super().__init__(test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
         assert self.dargs.precision == "fp16", f"Stable Diffusion model only supports fp16 precision."
