@@ -56,7 +56,10 @@ class Model(BenchmarkModel):
         return NotImplementedError(error_msg)
 
     def eval(self):
-        predictor = SamPredictor(self.model.to(dtype=torch.bfloat16))
+        # To test for bfloat16 uncomment the below line
+        # predictor = SamPredictor(self.model.to(dtype=torch.bfloat16))
+        
+        predictor = SamPredictor(self.model)
 
         predictor.set_image(self.image)
 
