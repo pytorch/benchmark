@@ -16,7 +16,7 @@ env:
   SETUP_SCRIPT: "/workspace/setup_instance.sh"
 jobs:
   run-userbenchmark:
-    runs-on: [self-hosted, testrunner1545]
+    runs-on: [testrunner1545]
     timeout-minutes: 1440 # 24 hours
     steps:
       - name: Checkout TorchBench
