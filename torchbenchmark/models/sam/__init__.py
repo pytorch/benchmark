@@ -43,7 +43,6 @@ class Model(BenchmarkModel):
         ]
 
         multimask_output = False
-
         return self.model, (example_input, multimask_output)
             
     def train(self):
@@ -57,7 +56,7 @@ class Model(BenchmarkModel):
         return NotImplementedError(error_msg)
 
     def eval(self):
-        predictor = SamPredictor(self.model)
+        predictor = SamPredictor(self.model.to(dtype=torch.bfloat16))
 
         predictor.set_image(self.image)
 
