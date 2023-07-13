@@ -10,6 +10,8 @@ env:
   CONDA_ENV: "torchbench"
   DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
   SETUP_SCRIPT: "/workspace/setup_instance.sh"
+  HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+
 
 jobs:
   pr-test:
