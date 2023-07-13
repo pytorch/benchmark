@@ -5,6 +5,7 @@ to authorize login and agree HuggingFace terms and conditions.
 """
 from torchbenchmark.tasks import COMPUTER_VISION
 from torchbenchmark.util.model import BenchmarkModel
+from torchbenchmark.util.framework.huggingface.model_factory import HuggingFaceAuthMixin
 
 import torch
 from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
