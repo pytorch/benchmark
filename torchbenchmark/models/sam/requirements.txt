@@ -1,0 +1,3 @@
+# Actually needed
+opencv-python
+pycocotools

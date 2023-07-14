@@ -1,5 +1,5 @@
 
-from typing import OrderedDict
+from typing import Optional, OrderedDict, Tuple
 
 from .dcgm.cpu_monitor import CPUMonitor
 from .dcgm.dcgm_monitor import DCGMMonitor
@@ -30,7 +30,7 @@ from time import time_ns
 
 
 class ModelAnalyzer:
-    def __init__(self):
+    def __init__(self, export_metrics_file=None, metrics_needed=[], metrics_gpu_backend='nvml', cpu_monitored_pid=None):
         # For debug
         # set_logger(logging.DEBUG)
         set_logger()
@@ -55,7 +55,8 @@ class ModelAnalyzer:
         self.gpu_records = None
         self.config = AnalayzerConfig()
         self.gpu_record_aggregator = RecordAggregator()
-        self.export_csv_name = ''
+        self.export_csv_name = None
+        self.set_export_csv_name(export_metrics_file)
         # the cpu metrics to be collected. available metrics are [CPUPeakMemory, ]
         self.cpu_metrics = []
         self.cpu_monitor = None
@@ -63,9 +64,28 @@ class ModelAnalyzer:
         self.cpu_records = None
         self.cpu_record_aggregator = RecordAggregator()
         self.cpu_metric_value = {}
+        self.cpu_monitored_pid = cpu_monitored_pid
         # GPU Monitor Backend
-        self.gpu_monitor_backend = 'dcgm'
+        self.gpu_monitor_backend = metrics_gpu_backend
+        self.start_monitor_timestamp = None
         self.stop_monitor_timestamp = None
+        self.metrics_backend_mapping = {}
+        self.process_metrics(metrics_needed, metrics_gpu_backend)
+    
+    def process_metrics(self, metrics_needed, metrics_gpu_backend):
+        if 'gpu_peak_mem' in metrics_needed:
+            self.add_metric_gpu_peak_mem()
+            self.metrics_backend_mapping['gpu_peak_mem'] = 'dcgm' if metrics_gpu_backend == 'dcgm' else 'nvml'
+        if 'flops' in metrics_needed:
+            if metrics_gpu_backend == 'dcgm':
+                self.add_metric_gpu_flops()
+                self.metrics_backend_mapping['flops'] = 'dcgm'
+            else:
+                self.metrics_backend_mapping['flops'] = 'fvcore'
+        if 'cpu_peak_mem' in metrics_needed:
+            self.add_metric_cpu_peak_mem()
+        if metrics_gpu_backend == "default":
+            self.set_gpu_monitor_backend_nvml()
 
     def add_metric_gpu_peak_mem(self):
         self.gpu_metrics.append(GPUPeakMemory)
@@ -79,17 +99,27 @@ class ModelAnalyzer:
     def set_gpu_monitor_backend_nvml(self):
         self.gpu_monitor_backend = 'nvml'
 
-    def set_export_csv_name(self, export_csv_name=''):
+    def set_export_csv_name(self, export_csv_name=None):
+        if not export_csv_name:
+            return
         self.export_csv_name = export_csv_name
         # test for correct permission
         with open(export_csv_name, 'w') as fout:
             fout.write('')
 
+    def update_export_name(self, insert_str=''):
+        index = self.export_csv_name.find('.csv')
+        if not index == -1:
+            self.export_csv_name = self.export_csv_name[:index] + insert_str + self.export_csv_name[index:]
+
     def start_monitor(self):
         try:
+            self.start_monitor_timestamp = time_ns()
             if self.gpu_metrics:
-                self.gpu_factory = GPUDeviceFactory()
+                self.gpu_factory = GPUDeviceFactory(self.gpu_monitor_backend)
                 self.gpus = self.gpu_factory.verify_requested_gpus(['all', ])
+                if not self.gpus:
+                    raise TorchBenchAnalyzerException('No GPU found')
                 if self.gpu_monitor_backend == 'dcgm':
                     self.gpu_monitor = DCGMMonitor(
                         self.gpus, self.config.monitoring_interval, self.gpu_metrics)
@@ -97,7 +127,7 @@ class ModelAnalyzer:
                     self.gpu_monitor = NVMLMonitor(
                         self.gpus, self.config.monitoring_interval, self.gpu_metrics)
             if self.cpu_metrics:
-                self.cpu_monitor = CPUMonitor(self.config.monitoring_interval, self.cpu_metrics)
+                self.cpu_monitor = CPUMonitor(self.config.monitoring_interval, self.cpu_metrics, self.cpu_monitored_pid)
             if self.gpu_metrics:
                 self.gpu_monitor.start_recording_metrics()
                 self.gpu_monitor_started = True
@@ -221,7 +251,7 @@ class ModelAnalyzer:
                 fout.write('\n')
                 last_timestamp = timestamp_start
                 for a_timestamp in timestamps:
-                    duration = (a_timestamp - last_timestamp) / 1000.0
+                    duration = (a_timestamp - last_timestamp) / 1e3
                     last_timestamp = a_timestamp
                     line = "%.2f, " % ((a_timestamp - timestamp_start) / 1000)
                     for record_type in csv_records[gpu_uuid]:
@@ -250,29 +280,28 @@ class ModelAnalyzer:
             else:
                 raise TorchBenchAnalyzerException("No available GPU with uuid ", gpu_uuid, " found!")
         else:
-            if len(self.gpu_metric_value) > 1:
-                logger.warning("There are multiple available GPUs and will only return the first one's flops.")
+            # Will only return the first one's peak memory bandwidth. So please use CUDA_VISIBLE_DEVICES to specify the GPU.
             gpu_uuid = next(iter(self.gpu_metric_value))
             gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
-            return gpu._sm_count * gpu._fma_count * 2 * gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9
+            device_id = self.gpu_factory.get_device_by_uuid(gpu_uuid).device_id()
+            return device_id, gpu._sm_count * gpu._fma_count * 2 * gpu._frequency * self.gpu_metric_value[gpu_uuid][GPUFP32Active].value() / 1e+9
 
-    def calculate_gpu_peak_mem(self, gpu_uuid=None) -> float:
+    def calculate_gpu_peak_mem(self, gpu_uuid=None) -> Tuple[Optional[str], float]:
         """
         The function to calculate GPU peak memory usage for the first available GPU.
         @return : a floating number representing GB.
         """
         if gpu_uuid:
             if gpu_uuid in self.gpu_metric_value:
-                gpu = self.gpu_factory.get_device_by_uuid(gpu_uuid)
                 return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
             else:
                 raise TorchBenchAnalyzerException("No available GPU with uuid ", gpu_uuid, " found!")
-        if len(self.gpu_metric_value) > 1:
-            logger.warning("There are multiple available GPUs and will only return the first one's peak memory bandwidth.")
         if len(self.gpu_metric_value) == 0:
             raise TorchBenchAnalyzerException("No metrics collected!")
+        # Will only return the first one's peak memory bandwidth. So please use CUDA_VISIBLE_DEVICES to specify the GPU.
         gpu_uuid = next(iter(self.gpu_metric_value))
-        return self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
+        device_id = self.gpu_factory.get_device_by_uuid(gpu_uuid).device_id()
+        return device_id, self.gpu_metric_value[gpu_uuid][GPUPeakMemory].value() / 1024
 
     def calculate_cpu_peak_mem(self, cpu_uuid=None) -> float:
         """
@@ -280,9 +309,12 @@ class ModelAnalyzer:
         @return : a floating number representing GB.
         """
         if len(self.cpu_metric_value) > 1:
-            logger.warning("There are multiple available CPUs and will only return the first one's peak memory bandwidth.")
+            logger.debug("There are multiple available CPUs and will only return the first one's peak memory bandwidth.")
         cpu_uuid = next(iter(self.cpu_metric_value))
         return self.cpu_metric_value[cpu_uuid][CPUPeakMemory].value() / 1024
+    
+
+
 
 
 def check_dcgm():
@@ -303,6 +335,6 @@ def check_nvml():
         pynvml.nvmlInit()
         pynvml.nvmlShutdown()
     except Exception as e:
-        logger.error("ERROR: NVML init failed. Please check the installation of nvidia-ml-py.", e)
+        logger.error("ERROR: NVML init failed. Please check the installation of pynvml.", e)
         exit(-1)
     return True

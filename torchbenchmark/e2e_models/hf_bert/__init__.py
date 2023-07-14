@@ -156,6 +156,21 @@ class Model(E2EBenchmarkModel):
                 device_id = torch.cuda.current_device()
             )
 
+        # Setup metrics
+        # Get the metric function
+        if hf_args.task_name is not None:
+            self.metric = evaluate.load("glue", hf_args.task_name)
+        else:
+            self.metric = evaluate.load("accuracy")
+
+        # Setup class members (model and the dataloaders will be updated in _prep_optimizer_and_scheduler() below)
+        self.hf_args = hf_args
+        self.is_regression = is_regression
+        self.accelerator = accelerator
+        self.model = model
+        self.train_dataloader = train_dataloader
+        self.eval_dataloader = eval_dataloader
+
         # Optimizer
         # Split weights in two groups, one with weight decay and the other not.
         no_decay = ["bias", "LayerNorm.weight"]
@@ -169,48 +184,36 @@ class Model(E2EBenchmarkModel):
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = AdamW(optimizer_grouped_parameters, lr=hf_args.learning_rate)
+        self.optimizer = AdamW(optimizer_grouped_parameters, lr=hf_args.learning_rate)
+        self._update_everything_with_optimizer()
 
+    def _update_everything_with_optimizer(self) -> None:
         # Prepare everything with our `accelerator` with deepspeed or non-distributed environment.
-        if hf_args.distributed == "deepspeed" or hf_args.distributed == "none":
+        if self.hf_args.distributed == "deepspeed" or self.hf_args.distributed == "none":
             # deepspeed will error unless all components prepared at the same time
-            model, train_dataloader, eval_dataloader, optimizer = accelerator.prepare(model, train_dataloader, eval_dataloader, optimizer)
+            self.model, self.train_dataloader, self.eval_dataloader, self.optimizer = self.accelerator.prepare(
+                self.model, self.train_dataloader, self.eval_dataloader, self.optimizer)
         else:
              # ddp and fsdp need model prepared before wrapping.
-            train_dataloader, eval_dataloader, optimizer = accelerator.prepare(train_dataloader, eval_dataloader, optimizer)
+            self.train_dataloader, self.eval_dataloader, self.optimizer = self.accelerator.prepare(
+                self.train_dataloader, self.eval_dataloader, self.optimizer)
             
-
         # Note -> the training dataloader needs to be prepared before we grab his length below (cause its length will be
         # shorter in multiprocess)
 
         # Scheduler and math around the number of training steps.
-        num_update_steps_per_epoch = math.ceil(len(train_dataloader) / hf_args.gradient_accumulation_steps)
-        if hf_args.max_train_steps is None:
-            hf_args.max_train_steps = hf_args.num_train_epochs * num_update_steps_per_epoch
+        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / self.hf_args.gradient_accumulation_steps)
+        if self.hf_args.max_train_steps is None:
+            self.hf_args.max_train_steps = self.hf_args.num_train_epochs * num_update_steps_per_epoch
         else:
-            hf_args.num_train_epochs = math.ceil(hf_args.max_train_steps / num_update_steps_per_epoch)
+            self.hf_args.num_train_epochs = math.ceil(self.hf_args.max_train_steps / num_update_steps_per_epoch)
 
-        lr_scheduler = get_scheduler(
-            name=hf_args.lr_scheduler_type,
-            optimizer=optimizer,
-            num_warmup_steps=hf_args.num_warmup_steps,
-            num_training_steps=hf_args.max_train_steps,
+        self.lr_scheduler = get_scheduler(
+            name=self.hf_args.lr_scheduler_type,
+            optimizer=self.optimizer,
+            num_warmup_steps=self.hf_args.num_warmup_steps,
+            num_training_steps=self.hf_args.max_train_steps,
         )
-        # Steup metrics
-        # Get the metric function
-        if hf_args.task_name is not None:
-            self.metric = evaluate.load("glue", hf_args.task_name)
-        else:
-            self.metric = evaluate.load("accuracy")
-        # Setup class members
-        self.hf_args = hf_args
-        self.is_regression = is_regression
-        self.model = model
-        self.optimizer = optimizer
-        self.train_dataloader = train_dataloader
-        self.eval_dataloader = eval_dataloader
-        self.lr_scheduler = lr_scheduler
-        self.accelerator = accelerator
 
     def train(self) -> Optional[dict]:
         completed_steps = 0
@@ -274,6 +277,13 @@ class Model(E2EBenchmarkModel):
         eval_metric = self.metric.compute()
         return eval_metric
 
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+        self._update_everything_with_optimizer()
+
     def next_batch(self):
         return next(iter(self.train_dataloader))
 
@@ -299,6 +309,12 @@ class Model(E2EBenchmarkModel):
 
     def _run_backward(self, loss):
         self.accelerator.backward(loss)
+
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
 
     def run_optimizer_step(self):
         if self.dynamo and not self.opt_args.dynamo_disable_optimizer_step:

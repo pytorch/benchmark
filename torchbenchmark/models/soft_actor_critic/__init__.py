@@ -140,6 +140,7 @@ class Model(BenchmarkModel):
             buffer_t = ReplayBuffer
         self.buffer = buffer_t(
             self.args.buffer_size,
+            device=self.device,
             state_shape=self.train_env.observation_space.shape,
             state_dtype=float,
             action_shape=(1,),
@@ -254,3 +255,9 @@ class Model(BenchmarkModel):
                 episode_return_history.append(episode_return)
             retval = torch.tensor(episode_return_history)
         return (torch.tensor(action), )
+
+    def get_optimizer(self):
+        return (self.actor_optimizer, self.critic_optimizer, self.log_alpha_optimizer)
+
+    def set_optimizer(self, optimizer) -> None:
+        self.actor_optimizer, self.critic_optimizer, self.log_alpha_optimizer = optimizer

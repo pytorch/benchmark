@@ -19,8 +19,8 @@ from torchbenchmark.util.metadata_utils import skip_by_metadata
 
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
-# a single test encounters an extreme failure, so we give up after 5 a test
-# is unresponsive to 5 minutes. (Note: this does not require that the entire
+# a single test encounters an extreme failure, so we give up after a test is
+# unresponsive to 5 minutes. (Note: this does not require that the entire
 # test case completes in 5 minutes. It requires that if the worker is
 # unresponsive for 5 minutes the parent will presume it dead / incapacitated.)
 TIMEOUT = 300  # Seconds
@@ -47,10 +47,10 @@ class TestBenchmark(unittest.TestCase):
 def _create_example_model_instance(task: ModelTask, device: str):
     skip = False
     try:
-        task.make_model_instance(test="eval", device=device, jit=False)
+        task.make_model_instance(test="eval", device=device, jit=False, extra_args=["--accuracy"])
     except NotImplementedError:
         try:
-            task.make_model_instance(test="train", device=device, jit=False)
+            task.make_model_instance(test="train", device=device, jit=False, extra_args=["--accuracy"])
         except NotImplementedError:
             skip = True
     finally:
@@ -71,7 +71,8 @@ def _load_test(path, device):
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
                 _create_example_model_instance(task, device)
-                task.check_example()
+                accuracy = task.get_model_attribute("accuracy")
+                assert accuracy == "pass" or accuracy == "eager_1st_run_OOM", f"Expected accuracy pass, get {accuracy}"
                 task.del_model_instance()
             except NotImplementedError:
                 self.skipTest(f'Method `get_module()` on {device} is not implemented, skipping...')

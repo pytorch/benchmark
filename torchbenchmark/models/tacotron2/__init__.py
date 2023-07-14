@@ -6,6 +6,7 @@ from .text import symbols
 from pathlib import Path
 from ...util.model import BenchmarkModel
 from typing import Tuple
+from contextlib import nullcontext
 from torchbenchmark.tasks import SPEECH
 
 
@@ -34,6 +35,7 @@ class Model(BenchmarkModel):
         self.criterion = Tacotron2Loss().to(device=device)
         loader, valset, collate_fn = prepare_dataloaders(self.hparams)
         self.example_inputs, self.target = self.model.parse_batch(next(iter(loader)), device=self.device)
+        self.amp_context = nullcontext
 
     # Parameters were obtained from the source code.
     # Source: https://github.com/NVIDIA/tacotron2/blob/bb6761349354ee914909a42208e4820929612069/hparams.py#L5
@@ -134,5 +136,6 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
-        out = self.model(self.example_inputs)
+        with self.amp_context():
+            out = self.model(self.example_inputs)
         return out

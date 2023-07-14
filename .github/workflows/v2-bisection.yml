@@ -16,6 +16,7 @@ jobs:
       PYTHON_VER: "3.8"
       CUDA_VER: "11.7"
       NUMPY_VER: "1.21.2"
+      CMAKE_VER: "3.26"
       MKL_VER: "2021.2.0"
       MAGMA_VER: "magma-cuda117"
     if: ${{ github.repository_owner == 'pytorch' }}
@@ -32,11 +33,11 @@ jobs:
           conda create -y -n "${BISECT_CONDA_ENV}" python="${PYTHON_VER}"
           . activate "${BISECT_CONDA_ENV}"
           . /data/nvme/bin/setup_instance.sh
-          # pytorch doesn't support cmake>3.22
-          # See: https://github.com/pytorch/pytorch/issues/74985
           conda install -y numpy="${NUMPY_VER}"  mkl="${MKL_VER}" mkl-include="${MKL_VER}" \
-                           requests ninja pyyaml setuptools cmake=3.22 cffi sympy \
+                           requests ninja pyyaml setuptools cffi sympy ffmpeg \
                            typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm regex
+          # install cmake 3.26 from conda-forge, cmake > 3.24 is required by torchaudio
+          conda install -y cmake="${CMAKE_VER}" -c conda-forge
           # Install magma
           conda install -y -c pytorch "${MAGMA_VER}"
       - name: Bisection
@@ -59,7 +60,7 @@ jobs:
           cp -r "${BISECT_BASE}" ./bisection-result
       - name: Create the github issue
         if: env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL
-        uses: peter-evans/create-issue-from-file@v3
+        uses: peter-evans/create-issue-from-file@v4
         with:
           title: V2 Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL }}
           content-filepath: ./bisection-result/gh-issue.md

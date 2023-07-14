@@ -10,6 +10,9 @@ PYTHON_VERSION_MAP = {
     "3.10": {
         "pytorch_url": "cp310",
     },
+    "3.11": {
+        "pytorch_url": "cp311",
+    },
 }
 
 def create_conda_env(pyver: str, name: str):

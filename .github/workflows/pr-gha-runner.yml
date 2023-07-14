@@ -7,8 +7,9 @@ on:
       - main
 
 env:
-  CONDA_ENV: "pr-test"
-  SETUP_INSTANCE_SCRIPT: "/workspace/setup_instance.sh"
+  BASE_CONDA_ENV: "torchbench"
+  CONDA_ENV: "pr-ci-a100"
+  SETUP_SCRIPT: "/workspace/setup_instance.sh"
 
 jobs:
   pr-test:
@@ -17,40 +18,27 @@ jobs:
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-      - name: GPU Tuning
+      - name: Tune Nvidia GPU
         run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -pm 1
-          sudo LD_LIBRARY_PATH=/usr/local/nvidia/lib64:$LD_LIBRARY_PATH nvidia-smi -ac 1215,1410
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
           nvidia-smi
-      - name: Setup Conda Env
+      - name: Clone and setup Conda env
         run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
-          conda activate "${CONDA_ENV}"
-          sudo python utils/cuda_utils.py --setup-cuda-softlink
-          python utils/cuda_utils.py --install-torch-deps
-      - name: Install PyTorch nightly
-        run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
-          python utils/cuda_utils.py --install-torch-nightly
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
-          python install.py
-      - name: Validate benchmark components (Worker)
+          bash ./scripts/torchbench_install.sh
+      - name: Validate benchmark components
         run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
-          python -m components.test.test_subprocess
-          python -m components.test.test_worker
-      - name: Validate benchmark components (Model)
+          bash ./scripts/torchbench_test.sh
+      - name: Clean up Conda env
+        if: always()
         run: |
-          . "${SETUP_INSTANCE_SCRIPT}"
-          conda activate "${CONDA_ENV}"
-          python test.py
+          . "${SETUP_SCRIPT}"
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}

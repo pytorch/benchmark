@@ -48,6 +48,7 @@ class Model(E2EBenchmarkModel):
         self.classes = ('plane', 'car', 'bird', 'cat', 'deer',
                         'dog', 'frog', 'horse', 'ship', 'truck')
         self.lr = 0.1
+        self.T_max = 200
         # initialize accuracy
         self.accuracy = 0.0
 
@@ -62,11 +63,18 @@ class Model(E2EBenchmarkModel):
             self.criterion = torch.nn.CrossEntropyLoss()
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr,
                              momentum=0.9, weight_decay=5e-4)
-            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=200)
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.T_max)
         else:
             # use pretrained model for eval
             self.model = torchvision.models.resnet50(pretrained=True).to(self.device)
             self.model.eval()
+
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.T_max)
 
     def _test_loop(self):
         self.model.eval()
@@ -104,3 +112,9 @@ class Model(E2EBenchmarkModel):
 
     def eval(self):
         raise NotImplementedError("Eval is not yet implemented for this model.")
+
+    def get_optimizer(self):
+        return self.optimizer
+
+    def set_optimizer(self, optimizer) -> None:
+        self.optimizer = optimizer

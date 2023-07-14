@@ -65,7 +65,7 @@ https://hud.pytorch.org/userbenchmark_view?url=https:%2F%2Fossci-metrics.s3.amaz
 ### Nightly CI
 
 To enroll your userbenchmark in nightly CI, create a `ci.yaml` file in your userbenchmark home directory.
-For example, here is the [ci.yaml](https://github.com/pytorch/benchmark/blob/main/userbenchmark/nvfuser/ci.yaml) of the nvfuser userbenchmark:
+Given below is an example content of the file:
 
 ```
 platform:   "gcp_a100"

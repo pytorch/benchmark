@@ -3,7 +3,10 @@
 .data
 ._*
 */**/__pycache__
+*/**/*.pkl
+*/**/*.pt
 */**/*.pyc
+*/**/*.tar.gz
 *.out*
 *.swp
 *.swo

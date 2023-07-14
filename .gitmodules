@@ -1,3 +1,6 @@
 [submodule "submodules/FAMBench"]
 	path = submodules/FAMBench
 	url = https://github.com/facebookresearch/FAMBench.git
+[submodule "submodules/lit-llama"]
+	path = submodules/lit-llama
+	url = https://github.com/Lightning-AI/lit-llama.git

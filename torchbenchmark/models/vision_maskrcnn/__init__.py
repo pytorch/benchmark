@@ -45,11 +45,14 @@ def _prefetch(loader, device):
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
-    DEFAULT_TRAIN_BSIZE = 4
-    DEFAULT_EVAL_BSIZE = 4
+    # MaskRCNN doesn't actually take the inputs in batches; it takes a list
+    # of tensors which individually are CHW
+    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 1
     NUM_OF_BATCHES = 1
+    ALLOW_CUSTOMIZE_BSIZE = False
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[], model_kwargs={}):
         # reduce the eval batch size when running on CPU
         # see: https://github.com/pytorch/benchmark/issues/895
         if device == "cpu":
@@ -57,7 +60,7 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
 
         self.model = torchvision.models.detection.maskrcnn_resnet50_fpn(
-            weights=torchvision.models.detection.MaskRCNN_ResNet50_FPN_Weights.COCO_V1
+            weights=torchvision.models.detection.MaskRCNN_ResNet50_FPN_Weights.COCO_V1, **model_kwargs
         ).to(self.device)
         # setup optimizer
         # optimizer parameters copied from
@@ -73,7 +76,6 @@ class Model(BenchmarkModel):
                                 annFile=os.path.join(DATA_DIR, COCO_DATA[COCO_DATA_KEY][1]),
                                 transforms=transforms)
         sampler = torch.utils.data.SequentialSampler(dataset)
-
         self.data_loader = _prefetch(torch.utils.data.DataLoader(dataset, batch_size=self.batch_size,
                                                                       sampler=sampler,
                                                                       collate_fn=_collate_fn), self.device)

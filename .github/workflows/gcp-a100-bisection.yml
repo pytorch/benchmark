@@ -1,0 +1,114 @@
+name: TorchBench Userbenchmark bisection on GCP A100
+on:
+  workflow_dispatch:
+    inputs:
+      regression_date:
+        description: "Date of the regression"
+        required: true
+        default: "2023-05-19"
+      userbenchmark_name:
+        description: "Name of the userbenchmark to bisect"
+        required: true
+        default: "torch-nightly"
+
+jobs:
+  bisection:
+    env:
+      BASE_CONDA_ENV: "torchbench"
+      CONDA_ENV: "userbenchmark-bisection-ci"
+      PLATFORM_NAME: "gcp_a100"
+      SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, a100-runner]
+    timeout-minutes: 2880 # 48 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Checkout pytorch
+        uses: actions/checkout@v3
+        with:
+          repository: pytorch/pytorch
+          path: srcs/pytorch
+          fetch-depth: 0
+      - name: Checkout torchvision
+        uses: actions/checkout@v3
+        with:
+          repository: pytorch/vision
+          path: srcs/vision
+          fetch-depth: 0
+      - name: Checkout torchtext
+        uses: actions/checkout@v3
+        with:
+          repository: pytorch/text
+          path: srcs/text
+          fetch-depth: 0
+      - name: Checkout torchdata
+        uses: actions/checkout@v3
+        with:
+          repository: pytorch/data
+          path: srcs/data
+          fetch-depth: 0
+      - name: Checkout torchaudio
+        uses: actions/checkout@v3
+        with:
+          repository: pytorch/audio
+          path: srcs/audio
+          fetch-depth: 0
+      - name: Tune Nvidia GPU
+        run: |
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
+          nvidia-smi
+      - name: Setup conda env
+        run: |
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+          cd benchmark
+          python ./utils/python_utils.py --create-conda-env "${CONDA_ENV}"
+      - name: Setup bisection environment
+        run: |
+          . "${SETUP_SCRIPT}"; cd benchmark
+          USERBENCHMARK_NAME="${{ github.event.inputs.userbenchmark_name }}"
+          BISECT_WORKDIR=".userbenchmark/${USERBENCHMARK_NAME}/bisection"
+          python utils/cuda_utils.py --install-torch-build-deps
+          python utils/cuda_utils.py --install-torchbench-deps
+          cc_path=$(conda run -n "${CONDA_ENV}" printenv CC)
+          cxx_path=$(conda run -n "${CONDA_ENV}" printenv CXX)
+          ln -s "${cc_path}" "$(dirname "$cc_path")/cc"
+          ln -s "${cc_path}" "$(dirname "$cc_path")/gcc"
+          ln -s "${cxx_path}" "$(dirname "$cxx_path")/c++"
+          ln -s "${cxx_path}" "$(dirname "$cxx_path")/g++"
+          # setup shared library paths
+          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/libpthread.so.0" /lib64/
+          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/lib64/libpthread_nonshared.a" /usr/lib64/
+          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/libc.so.6" /lib64/
+          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/lib64/libc_nonshared.a" /usr/lib64/
+          mkdir -p "${BISECT_WORKDIR}"
+          REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
+          python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
+                                        --end-date "${REGRESSION_DATE}" --download-from-s3 --output "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml"
+      - name: Bisection
+        run: |
+          . "${SETUP_SCRIPT}"; cd benchmark
+          USERBENCHMARK_NAME="${{ github.event.inputs.userbenchmark_name }}"
+          BISECT_WORKDIR=".userbenchmark/${USERBENCHMARK_NAME}/bisection"
+          REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
+          python bisection.py --work-dir "${BISECT_WORKDIR}" --torch-repos-path "${PWD}/../srcs" \
+                --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml" \
+                --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
+          cp -r "${BISECT_WORKDIR}" ../bisection-result
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Bisection result
+          path: bisection-result/
+      - name: Clean up Conda env
+        if: always()
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all

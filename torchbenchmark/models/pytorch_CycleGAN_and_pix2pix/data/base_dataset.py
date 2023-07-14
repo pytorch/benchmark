@@ -112,7 +112,7 @@ def get_transform(opt, params=None, grayscale=False, method=transforms.Interpola
     return transforms.Compose(transform_list)
 
 
-def __make_power_2(img, base, method=Image.BICUBIC):
+def __make_power_2(img, base, method=Image.Resampling.BICUBIC):
     ow, oh = img.size
     h = int(round(oh / base) * base)
     w = int(round(ow / base) * base)
@@ -123,7 +123,7 @@ def __make_power_2(img, base, method=Image.BICUBIC):
     return img.resize((w, h), method)
 
 
-def __scale_width(img, target_size, crop_size, method=Image.BICUBIC):
+def __scale_width(img, target_size, crop_size, method=Image.Resampling.BICUBIC):
     ow, oh = img.size
     if ow == target_size and oh >= crop_size:
         return img

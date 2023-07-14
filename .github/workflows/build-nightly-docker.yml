@@ -1,0 +1,42 @@
+name: TorchBench nightly docker build
+on:
+  schedule:
+    # Push the nightly docker daily at 3 PM UTC
+    - cron: '0 15 * * *'
+  workflow_dispatch:
+env:
+  WITH_PUSH: "true"
+jobs:
+  build-push-docker:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, linux.4xlarge]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Login to GitHub Container Registry
+        if: ${{ env.WITH_PUSH == 'true' }}
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: pytorch
+          password: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+      - name: Build TorchBench nightly docker
+        run: |
+          export TODAY=$(date +'%Y%m%d')
+          export DOCKER_TAG=dev${TODAY}
+          cd benchmark/docker
+          docker build . -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:${DOCKER_TAG}
+          docker tag ghcr.io/pytorch/torchbench:${DOCKER_TAG} ghcr.io/pytorch/torchbench:latest
+      - name: Push docker to remote
+        if: ${{ env.WITH_PUSH == 'true' }}
+        run: |
+          export TODAY=$(date +'%Y%m%d')
+          export DOCKER_TAG=dev${TODAY}
+          docker push ghcr.io/pytorch/torchbench:${DOCKER_TAG}
+          docker push ghcr.io/pytorch/torchbench:latest
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true

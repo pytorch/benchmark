@@ -6,6 +6,7 @@ import argparse
 import torch
 import os
 import numpy as np
+from contextlib import nullcontext
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
@@ -34,6 +35,9 @@ class Model(BenchmarkModel):
     # yolov3 CUDA inference test uses amp precision
     DEFAULT_EVAL_CUDA_PRECISION = "amp"
 
+    # TODO: yolov3 does use an optimizer, but it is inaccessible from this file.
+    CANNOT_SET_CUSTOM_OPTIMIZER = True
+
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         # run just 1 epoch
@@ -48,6 +52,7 @@ class Model(BenchmarkModel):
             self.training_loop, self.model, self.example_inputs = prepare_training_loop(train_args)
         elif test == "eval":
             self.model, self.example_inputs = self.prep_eval()
+        self.amp_context = nullcontext
 
     def prep_eval(self):
         parser = argparse.ArgumentParser()
@@ -85,7 +90,8 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
-        out = model(*example_inputs, augment=False)
+        with self.amp_context():
+            out = model(*example_inputs, augment=False)
         pred = out[0]
         # Apply NMS
         pred = non_max_suppression(pred, 0.3, 0.6,

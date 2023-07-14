@@ -19,47 +19,44 @@ conda install -y python=3.10
 # Or, using a new conda environment:
 conda create -n torchbenchmark python=3.10
 conda activate torchbenchmark
-# We depend on git lfs tool to store minimal input dataset such as images and annotations.
-# The total size of input dataset is ~20 MB
-conda install -y git-lfs
 ```
 
-If you are running NVIDIA GPU tests, we support CUDA 11.7+, and use CUDA 11.7 as default:
+If you are running NVIDIA GPU tests, we support CUDA 11.8+, and use CUDA 11.8 as default:
 ```
-conda install -y -c pytorch magma-cuda117
+conda install -y -c pytorch magma-cuda118
 ```
 
 Then install pytorch, torchtext, torchvision, and torchaudio using conda:
 ```
-conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch-nightly -c nvidia
+conda install pytorch torchvision torchtext torchaudio pytorch-cuda=11.8 -c pytorch-nightly -c nvidia
 ```
 Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
 ```
-pip install --pre torch torchvision torchtext torchaudio -f https://download.pytorch.org/whl/nightly/cu117/torch_nightly.html
+pip install --pre torch torchvision torchtext torchaudio -i https://download.pytorch.org/whl/nightly/cu118
 ```
 
 Install other necessary libraries:
 ```
-pip install pyyaml
+pip install boto3 pyyaml
 ```
 
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.
 ```
-git clone <benchmark>
-cd <benchmark>
+git clone https://github.com/pytorch/benchmark
+cd benchmark
 python install.py
 ```
 
 ### Building From Source
-Note that when building PyTorch from source, torchtext and torchvision must also be built from source to make sure the C APIs match.
+Note that when building PyTorch from source, torchtext, torchvision and torchaudio must also be built from source to make sure the C APIs match.
 
-See detailed instructions to install torchtext [here](https://github.com/pytorch/text), and torchvision [here](https://github.com/pytorch/vision).
+See detailed instructions to install torchtext [here](https://github.com/pytorch/text), torchvision [here](https://github.com/pytorch/vision) and torchaudio [here](https://github.com/pytorch/audio).
 Make sure to enable CUDA (by `FORCE_CUDA=1`) if using CUDA.
 Then,
 ```
-git clone <benchmark>
-cd <benchmark>
+git clone https://github.com/pytorch/benchmark
+cd benchmark
 python install.py
 ```
 
@@ -84,11 +81,13 @@ When running pytest (see below), the machine_config script is invoked to assert 
 
 
 ## Running Model Benchmarks
-There are currently two top-level scripts for running the models.
+There are multiple ways for running the model benchmarks.
 
 `test.py` offers the simplest wrapper around the infrastructure for iterating through each model and installing and executing it.
 
 `test_bench.py` is a pytest-benchmark script that leverages the same infrastructure but collects benchmark statistics and supports pytest filtering.
+
+`userbenchmark` allows to develop and run customized benchmarks.
 
 In each model repo, the assumption is that the user would already have all of the torch family of packages installed (torch, torchtext, torchvision,...) but it installs the rest of the dependencies for the model.
 
@@ -115,6 +114,16 @@ Some useful options include:
 - `--collect-only` only show what tests would run, useful to see what models there are or debug your filter expression
 - `--cpu_only` if running on a local CPU machine and ignoring machine configuration checks
 
+#### Examples of Benchmark Filters
+- `-k "test_train[NAME-cuda-jit]"` for a particular flavor of a particular model
+- `-k "(BERT and (not cuda) and (not jit))"` for a more flexible approach to filtering
+
+Note that `test_bench.py` will eventually be deprecated as the `userbenchmark` work evolve. Users are encouraged to explore and consider using [userbenchmark](#using-userbenchmark).
+
+### Using userbenchmark
+
+The `userbenchmark` allows you to develop your customized benchmarks with TorchBench models. Refer to the [userbenchmark instructions](https://github.com/pytorch/benchmark/blob/main/userbenchmark/ADDING_USERBENCHMARKS.md) to learn more on how you can create a new `userbenchmark`. You can then use the `run_benchmark.py` driver to drive the benchmark. e.g. `python run_benchmark.py <benchmark_name>`. Run `python run_benchmark.py —help` to find out available options.
+
 ### Using `run.py` for simple debugging or profiling
 Sometimes you may want to just run train or eval on a particular model, e.g. for debugging or profiling.  Rather than relying on __main__ implementations inside each model, `run.py` provides a lightweight CLI for this purpose, building on top of the standard BenchmarkModel API.
 
@@ -122,10 +131,6 @@ Sometimes you may want to just run train or eval on a particular model, e.g. for
 python run.py <model> [-d {cpu,cuda}] [-m {eager,jit}] [-t {eval,train}] [--profile]
 ```
 Note: `<model>` can be a full, exact name, or a partial string match.
-
-#### Examples of Benchmark Filters
-- `-k "test_train[NAME-cuda-jit]"` for a particular flavor of a particular model
-- `-k "(BERT and (not cuda) and (not jit))"` for a more flexible approach to filtering
 
 ## Nightly CI runs
 

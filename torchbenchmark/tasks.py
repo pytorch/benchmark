@@ -14,6 +14,7 @@ class COMPUTER_VISION(Enum):
 class NLP(Enum):
     TRANSLATION = "translation"
     LANGUAGE_MODELING = "language modeling"
+    GENERATION = "generation"
     OTHER_NLP = "other nlp"
 
 class SPEECH(Enum):
@@ -28,3 +29,6 @@ class REINFORCEMENT_LEARNING(Enum):
 
 class OTHER(Enum):
     OTHER_TASKS = "other tasks"
+
+class GNN(Enum):
+    CLASSIFICATION = "classification"

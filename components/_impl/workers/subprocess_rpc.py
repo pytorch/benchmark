@@ -12,6 +12,7 @@ import io
 import marshal
 import os
 import pickle
+import psutil
 import struct
 import sys
 import textwrap
@@ -19,7 +20,6 @@ import threading
 import time
 import traceback
 import types
-import psutil
 import typing
 
 
@@ -227,7 +227,7 @@ class Pipe:
             raise IOError(f"Subprocess terminates with code {int.from_bytes(msg, sys.byteorder)}")
 
         if check_bytes != _CHECK:
-            raise IOError(f"{check} != {_CHECK}, {msg}")
+            raise IOError(f"{check_bytes} != {_CHECK}, {msg}")
 
         if len(msg) != size:
             raise IOError(f"len(msg) != size: {len(msg)} vs. {size}")

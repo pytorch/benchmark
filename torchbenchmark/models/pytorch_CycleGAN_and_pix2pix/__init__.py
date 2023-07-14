@@ -24,6 +24,9 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
 
+    # TODO: Customizing the optimizer is nontrivial, perhaps a next step.
+    CANNOT_SET_CUSTOM_OPTIMIZER = True
+
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         checkpoints_dir = _create_data_dir("checkpoints")
@@ -37,7 +40,7 @@ class Model(BenchmarkModel):
         elif self.device == "cuda":
             device_arg = "--gpu_ids 0"
         if self.test == "train":
-            train_args = f"--dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 " + \
+            train_args = f"--tb_device {self.device} --dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 " + \
                          f"--n_epochs_decay 3 {device_arg} {checkpoints_arg}"
             self.training_loop = prepare_training_loop(train_args.split(' '))
         args = f"--dataroot {data_root}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test " + \

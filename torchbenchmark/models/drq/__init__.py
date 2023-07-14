@@ -13,7 +13,7 @@ from gym import spaces
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
-from .utils import FrameStack, set_seed_everywhere, eval_mode
+from .drqutils import FrameStack, set_seed_everywhere, eval_mode
 from .drq import DRQAgent
 from .config import DRQConfig
 from .replay_buffer import ReplayBuffer
@@ -88,6 +88,7 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
+    CANNOT_SET_CUSTOM_OPTIMIZER = True
     # this model will cause infinite loop if deep-copied
     DEEPCOPY = False
 
