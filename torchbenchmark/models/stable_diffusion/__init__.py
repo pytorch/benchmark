@@ -23,12 +23,12 @@ class Model(HuggingFaceAuthMixin, BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         HuggingFaceAuthMixin.__init__(self)
-        super().__init__(test=test, device=device, jit=jit,
+        BenchmarkModel.__init__(self,test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
-        assert self.dargs.precision == "fp16", f"Stable Diffusion model only supports fp16 precision."
+        # assert self.dargs.precision == "fp16", f"Stable Diffusion model only supports fp16 precision."
         model_id = "stabilityai/stable-diffusion-2"
         scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-        self.pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler, torch_dtype=torch.float16)
+        self.pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)
         self.pipe.to(self.device)
         self.example_inputs = "a photo of an astronaut riding a horse on mars"
 
