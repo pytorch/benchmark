@@ -6,7 +6,6 @@ class Model(HuggingFaceModel):
     task = SPEECH.RECOGNITION
     # https://cdn.openai.com/papers/whisper.pdf Says for large-v2 they trained on 1024 batch sizes, with 16 GPUs
     DEFAULT_EVAL_BSIZE = 64
-    DEFAULT_Train_BSIZE = 64
     
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         super().__init__(name="hf_Whisper", test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
