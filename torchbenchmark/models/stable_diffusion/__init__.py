@@ -20,12 +20,10 @@ class Model(HuggingFaceAuthMixin, BenchmarkModel):
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
-
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         HuggingFaceAuthMixin.__init__(self)
         BenchmarkModel.__init__(self,test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
-        # assert self.dargs.precision == "fp16", f"Stable Diffusion model only supports fp16 precision."
         model_id = "stabilityai/stable-diffusion-2"
         scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
         self.pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)
@@ -36,7 +34,10 @@ class Model(HuggingFaceAuthMixin, BenchmarkModel):
         pass
 
     def get_module(self):
-        return self.model, self.example_inputs
+        # This will only benchmark the text_encoder
+        # Stable diffusion is a composition of a text encoder, unet and vae
+        return self.pipe.text_encoder, self.example_inputs
+
 
     def train(self):
         raise NotImplementedError("Train test is not implemented for the stable diffusion model.")
