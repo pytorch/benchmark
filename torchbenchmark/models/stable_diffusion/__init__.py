@@ -11,7 +11,7 @@ import torch
 from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 
 
-class Model(HuggingFaceAuthMixin, BenchmarkModel):
+class Model(BenchmarkModel, HuggingFaceAuthMixin):
     task = COMPUTER_VISION.GENERATION
 
     DEFAULT_TRAIN_BSIZE = 1
@@ -22,7 +22,7 @@ class Model(HuggingFaceAuthMixin, BenchmarkModel):
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         HuggingFaceAuthMixin.__init__(self)
-        BenchmarkModel.__init__(self,test=test, device=device, jit=jit,
+        super().__init__(test=test, device=device, jit=jit,
                          batch_size=batch_size, extra_args=extra_args)
         model_id = "stabilityai/stable-diffusion-2"
         scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
