@@ -10,6 +10,7 @@ env:
   BASE_CONDA_ENV: "torchbench"
   CONDA_ENV: "pr-ci-a100"
   SETUP_SCRIPT: "/workspace/setup_instance.sh"
+  HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
 
 jobs:
   pr-test:

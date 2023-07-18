@@ -159,6 +159,11 @@ class HuggingFaceModel(BenchmarkModel):
         else:
             return (out["logits"], )
 
+class HuggingFaceAuthMixin:
+    def __init__(self):
+        if not 'HUGGING_FACE_HUB_TOKEN' in os.environ:
+            raise NotImplementedError("Make sure to set `HUGGING_FACE_HUB_TOKEN` so you can download weights")
+
 
 class HuggingFaceGenerationModel(HuggingFaceModel):
     task = NLP.GENERATION
