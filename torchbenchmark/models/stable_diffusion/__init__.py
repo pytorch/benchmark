@@ -33,10 +33,18 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
     def enable_fp16_half(self):
         pass
 
+    
     def get_module(self):
-        # This will only benchmark the text_encoder
-        # Stable diffusion is a composition of a text encoder, unet and vae
-        return self.pipe.text_encoder, self.example_inputs
+        batch_size = 1
+        sequence_length = 10
+        vocab_size = 32000
+
+        # Generate random indices within the valid range
+        input_tensor = torch.randint(low=0, high=vocab_size, size=(batch_size, sequence_length))
+
+        # Make sure the tensor has the correct data type
+        input_tensor = input_tensor.long().to(self.device)
+        return self.pipe.text_encoder, [input_tensor]
 
 
     def train(self):
