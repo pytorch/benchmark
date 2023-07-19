@@ -10,6 +10,7 @@ class PositionalEmbedding(nn.Module):
 
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, d_model).float()
+        # Changed from upstream, see https://github.com/codertimo/BERT-pytorch/pull/104
         pe.requires_grad = False
 
         position = torch.arange(0, max_len).float().unsqueeze(1)
