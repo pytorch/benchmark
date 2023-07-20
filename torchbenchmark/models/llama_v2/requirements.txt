@@ -1,3 +1,0 @@
-sentencepiece
-datasets
-transformers==4.31.0
