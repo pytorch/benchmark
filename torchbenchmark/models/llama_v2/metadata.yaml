@@ -7,9 +7,6 @@ eval_nograd: true
 not_implemented:
 - jit: true
 - device: cpu
-  test: train
-- device: cuda
-  test: eval
 - device: cuda
   test: train
 train_benchmark: false
