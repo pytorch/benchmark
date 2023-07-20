@@ -8,7 +8,6 @@ tqdm
 inflect
 bokeh
 pysbd
-pyworld
 soundfile
 nose
 cardboardlint
