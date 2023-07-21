@@ -28,7 +28,7 @@ class_models = {
     # see https://huggingface.co/bert-large-cased
     'hf_Bert_large': (512, 512, 'BertConfig(hidden_size=1024, num_hidden_layers=24, num_attention_heads=16)', 'AutoModelForMaskedLM'),
     # default num_hidden_layers=32 but that OOMs, feel free to change this config to something more real
-    'llama_v2' : (512,512, 'LlamaConfig(num_hidden_layers=26)', 'AutoModelForCausalLM'),
+    'llama_v2' : (512,512, 'LlamaConfig(num_hidden_layers=16)', 'AutoModelForCausalLM'),
 }
 
 cpu_input_slice = {
