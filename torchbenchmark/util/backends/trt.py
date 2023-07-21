@@ -114,11 +114,6 @@ def torch_trt(
         module, example_inputs = model.get_module()
         torch_dtype_precision = torch.half if FP16 else torch.float32
 
-        trt_input = [
-            torch_tensorrt.Input(shape=input_.shape, dtype=input_.dtype)
-            for input_ in example_inputs
-        ]
-
         print(
             f"Compiling {model.name} with batch size {model.batch_size}, precision {model.dargs.precision}, "
             + f"and {'default' if 'ir' not in torch_trt_kwargs else torch_trt_kwargs['ir']} IR"
@@ -126,7 +121,7 @@ def torch_trt(
 
         trt_module = torch_tensorrt.compile(
             module,
-            inputs=trt_input,
+            inputs=example_inputs,
             enabled_precisions={torch_dtype_precision},
             **torch_trt_kwargs,
         )
