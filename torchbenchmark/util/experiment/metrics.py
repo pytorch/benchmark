@@ -21,6 +21,7 @@ class TorchBenchModelMetrics:
     cpu_peak_mem: Optional[float]
     gpu_peak_mem: Optional[float]
     pt2_compilation_time: Optional[float]
+    model_flops: Optional[float]
 
 def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS) -> List[float]:
     "Run one step of the model, and return the latency in milliseconds."
@@ -94,6 +95,22 @@ def get_pt2_compilation_time(model: Union[BenchmarkModel, ModelTask]):
     else:
         return model.pt2_compilation_time
 
+def get_model_flops(model: Union[BenchmarkModel, ModelTask]) -> float:
+    "Run one step of the model, and return the model total flops."
+    from torch.utils.flop_counter import FlopCounterMode
+    flop_counter = FlopCounterMode()
+    def work_func():
+        if model.device == "cuda":
+            torch.cuda.synchronize()
+            model.invoke()
+            torch.cuda.synchronize()
+        else:
+            model.invoke()
+    with flop_counter:
+        work_func()
+    total_flops = sum([v for _, v in flop_counter.flop_counts["Global"].items()])
+    return total_flops
+
 def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], export_metrics_file=False, metrics_gpu_backend='nvml', nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS) -> TorchBenchModelMetrics:
     import os
     latencies = None
@@ -101,6 +118,7 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], 
     cpu_peak_mem = None
     gpu_peak_mem = None
     pt2_compilation_time = None
+    model_flops = None
     if not (isinstance(model, BenchmarkModel) or isinstance(model, ModelTask)):
         raise ValueError(f"Expected BenchmarkModel or ModelTask, get type: {type(model)}")
     model_pid = os.getpid() if isinstance(model, BenchmarkModel) else model.worker.proc_pid()
@@ -113,7 +131,9 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], 
         throughputs = [model.batch_size * 1000 / latency for latency in latencies]
     if 'pt2_compilation_time' in metrics:
         pt2_compilation_time = get_pt2_compilation_time(model)
-    return TorchBenchModelMetrics(latencies, throughputs, cpu_peak_mem, gpu_peak_mem, pt2_compilation_time)
+    if 'model_flops' in metrics:
+        model_flops = get_model_flops(model)
+    return TorchBenchModelMetrics(latencies, throughputs, cpu_peak_mem, gpu_peak_mem, pt2_compilation_time, model_flops)
 
 def get_model_accuracy(model_config: TorchBenchModelConfig, isolated: bool=True) -> str:
     import copy

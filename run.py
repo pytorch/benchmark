@@ -27,7 +27,7 @@ from torchbenchmark import (
     load_model_by_name,
     ModelNotFoundError,
 )
-from torchbenchmark.util.experiment.metrics import get_peak_memory
+from torchbenchmark.util.experiment.metrics import get_model_flops, get_peak_memory
 
 
 if not hasattr(torch.version, "git_version"):
@@ -81,7 +81,7 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_model_analyzer=None, cpu_peak_mem=None, mem_device_id=None, gpu_peak_mem=None):
+def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_model_analyzer=None, model_flops=None, cpu_peak_mem=None, mem_device_id=None, gpu_peak_mem=None):
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
@@ -104,6 +104,9 @@ def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_
             flops = model.get_flops()
             tflops = flops / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("GPU FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
+    if model_flops is not None:
+        tflops = model_flops / (cpu_walltime / 1.0e3) / 1.0e12
+        print('{:<20} {:>20}'.format("Model Flops:", "%.4f TFLOPs per second" % tflops, sep=''))
     if gpu_peak_mem is not None:
         print('{:<20} {:>20}'.format("GPU %d Peak Memory:" % mem_device_id, "%.4f GB" % gpu_peak_mem, sep=''))
     if cpu_peak_mem is not None:
@@ -180,8 +183,9 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
     mem_device_id = None
     if 'cpu_peak_mem' in metrics_needed or 'gpu_peak_mem' in metrics_needed:
         cpu_peak_mem, mem_device_id, gpu_peak_mem = get_peak_memory(func, model.device, export_metrics_file=export_metrics_file, metrics_needed=metrics_needed, metrics_gpu_backend=metrics_gpu_backend)
-
-    printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, cpu_peak_mem, mem_device_id, gpu_peak_mem)
+    if 'model_flops' in metrics_needed:
+        model_flops = get_model_flops(model)
+    printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, model_flops, cpu_peak_mem, mem_device_id, gpu_peak_mem)
 
 
 def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
@@ -360,7 +364,7 @@ if __name__ == "__main__":
         "--metrics",
         type=str,
         default="cpu_peak_mem,gpu_peak_mem",
-        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops]to be collected. You can also set `none` to disable all metrics. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.",
+        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops,model_flops]to be collected. You can also set `none` to disable all metrics. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.",
     )
     parser.add_argument(
         "--metrics-gpu-backend",
