@@ -1,7 +1,6 @@
 import argparse
 import importlib
 import os
-import submitit
 import sys
 import torch
 import uuid
@@ -9,9 +8,21 @@ import uuid
 from pathlib import Path
 from typing import List
 
+try:
+    import submitit
+except ImportError:
+    submitit = None
 
 def parse_args(args: List[str]=None):
-    parser = argparse.ArgumentParser(description='Submitit for PyTorch Distributed Benchmark', add_help=False)
+    parser = argparse.ArgumentParser(description='PyTorch Distributed Benchmark', add_help=False)
+
+    parser.add_argument(
+        "--scheduler",
+        default="slurm",
+        type=str,
+        choices=["local", "slurm"],
+        help="Where to launch the job on a specific infrastructure"
+    )
 
     parser.add_argument(
         "--ngpus",
