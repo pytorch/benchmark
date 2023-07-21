@@ -2,9 +2,7 @@ import argparse
 import enum
 from typing import List, Optional, Tuple
 from torchbenchmark.util.backends import list_backends, BACKENDS
-
-from torchbenchmark.util.backends.flops import enable_fvcore_flops
-from torchbenchmark.util.env_check import is_torchvision_model, is_staged_train_test
+from torchbenchmark.util.env_check import is_staged_train_test
 
 TEST_STAGE = enum.Enum('TEST_STAGE', ['FORWARD', 'BACKWARD', 'OPTIMIZER', 'ALL'])
 AVAILABLE_PRECISIONS = ["fp32", "tf32", "fp16", "amp", "fx_int8", "bf16","amp_fp16", "amp_bf16"]
@@ -127,7 +125,6 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=list_backends(), help="enable backends")
-    parser.add_argument("--flops", choices=["fvcore", "dcgm"], help="Return the flops result")
     args, extra_args = parser.parse_known_args(opt_args)
     if model.jit:
         args.backend = "torchscript"
@@ -137,7 +134,5 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     return args, extra_args
 
 def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
-    if args.flops == "fvcore":
-        enable_fvcore_flops(model)
     if args.backend:
         model._enable_backend()

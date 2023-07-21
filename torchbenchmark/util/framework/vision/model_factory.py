@@ -48,7 +48,15 @@ class TorchVisionModel(BenchmarkModel):
             self.real_output = ( torch.rand_like(self.example_outputs), )
 
     def get_flops(self):
-        return self.flops, self.batch_size
+        # By default, FlopCountAnalysis count one fused-mult-add (FMA) as one flop.
+        # However, in our context, we count 1 FMA as 2 flops instead of 1.
+        # https://github.com/facebookresearch/fvcore/blob/7a0ef0c0839fa0f5e24d2ef7f5d48712f36e7cd7/fvcore/nn/flop_count.py
+        assert self.test == "eval", "fvcore flops is only available on inference tests, as it doesn't measure backward pass."
+        from fvcore.nn import FlopCountAnalysis
+        FLOPS_FMA = 2.0
+        self.flops = FlopCountAnalysis(self.model, tuple(self.example_inputs)).total()
+        self.flops = self.flops * FLOPS_FMA
+        return self.flops
 
     def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
         def _gen_inputs():
@@ -96,4 +104,3 @@ class TorchVisionModel(BenchmarkModel):
             self.g.replay()
             break
         return (self.example_outputs, )
-

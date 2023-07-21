@@ -101,9 +101,9 @@ def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_
         if flops_model_analyzer.metrics_backend_mapping['flops'] == 'dcgm':
             tflops_device_id, tflops = flops_model_analyzer.calculate_flops()
         else:
-            flops, batch_size = model.get_flops()
-            tflops = flops * batch_size / (cpu_walltime / 1.0e3) / 1.0e12
-        print('{:<20} {:>20}'.format("GPU %d FLOPS:" % tflops_device_id, "%.4f TFLOPs per second" % tflops, sep=''))
+            flops = model.get_flops()
+            tflops = flops / (cpu_walltime / 1.0e3) / 1.0e12
+        print('{:<20} {:>20}'.format("GPU FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
     if gpu_peak_mem is not None:
         print('{:<20} {:>20}'.format("GPU %d Peak Memory:" % mem_device_id, "%.4f GB" % gpu_peak_mem, sep=''))
     if cpu_peak_mem is not None:
