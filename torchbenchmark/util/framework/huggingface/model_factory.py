@@ -27,6 +27,7 @@ class_models = {
     'hf_Bert': (512, 512, 'BertConfig()', 'AutoModelForMaskedLM'),
     # see https://huggingface.co/bert-large-cased
     'hf_Bert_large': (512, 512, 'BertConfig(hidden_size=1024, num_hidden_layers=24, num_attention_heads=16)', 'AutoModelForMaskedLM'),
+    'hf_Falcon_7b' : (512, 512, 'AutoConfig.from_pretrained("tiiuae/falcon-7b", trust_remote_code=True)', 'AutoModelForCausalLM'),
 }
 
 cpu_input_slice = {
@@ -77,7 +78,10 @@ class HuggingFaceModel(BenchmarkModel):
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
-        self.model = class_ctor.from_config(config).to(device)
+        kwargs = {}
+        if name == "hf_Falcon_7b":
+            kwargs["trust_remote_code"] = True
+        self.model = class_ctor.from_config(config, **kwargs).to(device)
         self.optimizer = optim.Adam(
             self.model.parameters(),
             lr=0.001,
