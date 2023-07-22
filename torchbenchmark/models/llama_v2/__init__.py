@@ -5,6 +5,7 @@ class Model(HuggingFaceModel, HuggingFaceAuthMixin):
     task = NLP.LANGUAGE_MODELING
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
+    DEEPCOPY = False 
 
     def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
         HuggingFaceAuthMixin.__init__(self)
