@@ -40,6 +40,11 @@ jobs:
           . "${SETUP_SCRIPT}"
           pushd benchmark
           python install.py
+      - name: Print torch.version.git_version
+        run: |
+          set -x
+          . "${SETUP_SCRIPT}"
+          python -c "import torch; print(torch.version.git_version)"
       - name: Run optim user benchmark
         run: |
           set -x
