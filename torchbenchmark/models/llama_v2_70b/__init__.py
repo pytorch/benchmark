@@ -19,3 +19,7 @@ class Model(HuggingFaceModel, HuggingFaceAuthMixin):
 
     def get_module(self):
         return NotImplementedError("70b LLAMA model will OOM on CI GPU machines")
+
+    def fsdp(self):
+        # self.model.to(device="meta")
+        return NotImplementedError("I haven't figured this out yet!")
