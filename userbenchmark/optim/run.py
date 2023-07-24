@@ -377,14 +377,15 @@ def is_excluded(mn: str, d: str, on: str, func_str: str, defaults: Dict[str, Any
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
     try:
         params = get_model_params(modelName, device)
-        print('getting params: ', params[0].size(), params[0].dtype, len(params), params[0].device)
+        print(datetime.datetime.now(), 'getting params: ', params[0].size(), params[0].dtype, len(params), params[0].device)
         if Optim.__name__ == 'SGD':
             defaults['lr'] = 1e-2
         optim = Optim(params, **defaults)
         generate_random_gradients(params)
         pt2_description = '' if maybe_pt2_ == '' else '(pt2) '
 
-        print(f'{datetime.datetime.now()}     {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}')
+        print(f'{datetime.datetime.now()}     python -m userbenchmark.optim.run -m {modelName} -d {device}' +
+              f' -o {Optim.__name__} --df "{defaults_to_str(defaults)}" -f {maybe_pt2_}')
         r = benchmark.Timer(
             stmt=f'{maybe_pt2_}optimizer_step(optim)',
             globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
@@ -404,7 +405,8 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
             raise e
         print(e)
         with open('errors.txt', 'a') as f:
-            f.write(f'{datetime.datetime.now().timestamp()} {modelName}, {device}, {Optim}, {defaults_to_str(defaults)}, {maybe_pt2_}, {str(e)}\n')
+            f.write(f'{datetime.datetime.now()} python -m userbenchmark.optim.run -m {modelName} -d {device}' +
+                    f' -o {Optim.__name__} --df "{defaults_to_str(defaults)}" -f {maybe_pt2_}{str(e)}\n')
         return None
 
 
@@ -465,13 +467,13 @@ def parse_args(args: List[str]):
         '--default-flags', '--df',
         nargs='*',
         default=[],
-        choices=['foreach', 'no_foreach', 'fused', 'maximize', 'capturable', 'differentiable', 'default',
-                 'amsgrad', 'momentum', 'nesterov'],
         help='List of flag descriptions to run tests on. We serialize the configs to a string (see ' +
              'defaults_to_str()) and test for inclusion of the flag description in the string. ' +
              'For example, "foreach" will enable all default configs with "foreach", including ' +
              'those with other flags and also "no_foreach". Effectually, passing in more flags ' +
-             'will further limit the default configs run.\n'
+             'will further limit the default configs run.\nValid flags include: foreach, no_foreach, ' +
+             'fused, maximize, capturable, differentiable, default, amsgrad, momentum, nesterov' +
+             ' and more!\n'
     )
     parser.add_argument(
         '--continue-on-error', '-c',
