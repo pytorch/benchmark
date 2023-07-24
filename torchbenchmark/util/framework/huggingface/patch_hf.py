@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 from .model_factory import class_models
-from transformers import AutoConfig, ReformerConfig, BigBirdConfig, BertConfig
+from transformers import AutoConfig, ReformerConfig, BigBirdConfig, BertConfig, LlamaConfig
 
 PATCH_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "patches")
 
