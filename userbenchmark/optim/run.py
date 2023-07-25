@@ -41,6 +41,9 @@ SUBSET_OF_MODEL_NAMES: List[str] = [
     'BERT_pytorch', 'DALLE2_pytorch', 'hf_GPT2_large', 'hf_T5_large', 'resnet50', 'timm_vision_transformer', 'yolov3'
 ]
 
+# NOTE: While it is possible to run these benchmarks on CPU, we skip running on CPU in CI because CPU stats can be
+# unstable and we had stopped reporting them. You'll still be able to use this script to run CPU though, as it may
+# be useful as a more local comparison point for implementations like forloop.
 DEVICES: List[str] = ['cuda', 'cpu']
 
 OPTIM_NAMES = [o.__name__ for o in [Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam, SparseAdam]]

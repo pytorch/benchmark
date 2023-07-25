@@ -25,7 +25,12 @@ with add_path(REPO_PATH):
 
 BM_NAME: str = 'optim'
 MODEL_NAMES: List[str] = list_models()
-DEVICES: List[str] = ['cuda', 'cpu']
+
+# NOTE: While it is possible to run these benchmarks on CPU, we skip running on CPU in CI because CPU stats can be
+# unstable and we had stopped reporting them. You'll still be able to use the run.py script to run CPU though, as
+# it may be useful as a more local comparison point for implementations like forloop.
+DEVICES: List[str] = ['cuda']
+
 OUTPUT_DIR: Path = REPO_PATH.joinpath('.userbenchmark/optim/tmp')
 
 
