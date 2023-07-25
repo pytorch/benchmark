@@ -40,7 +40,7 @@ class Model(BenchmarkModel):
         # Create optimizer
         self.loss_fn = ContrastiveLossWithTemperature()
         self.optimizer = torch.optim.AdamW(
-            list(self.model.parameters()) + list(loss_fn.parameters()),
+            list(self.model.parameters()) + list(self.loss_fn.parameters()),
             lr=5.0e-4,
             weight_decay=1.0e-4,
             eps=1.0e-6,
