@@ -16,7 +16,8 @@ from PIL import Image
 import math
 
 class Model(BenchmarkModel):
-    DEFAULT_EVAL_BSIZE = 32
+    DEFAULT_EVAL_BSIZE = 1
+    DEFAULT_TRAIN_BSIZE = 1
     
     def __init__(self, test, device, jit=False, batch_size=1, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -50,18 +51,25 @@ class Model(BenchmarkModel):
             eps=1.0e-6,
         )
 
-        # Zero the gradients
-        optimizer.zero_grad()
+        total_loss = 0
+        # Iterate over each text description
+        for i in range(len(self.text)):
+            # Zero the gradients
+            optimizer.zero_grad()
 
-        # Forward pass
-        image_embedding, text_embedding = self.model(self.image_tensor, self.text_tensor)
+            # Forward pass
+            image_embedding, text_embedding = self.model(self.image_tensor, self.text_tensor[i].unsqueeze(0))
+            
+            # Backward pass
+            loss = loss_fn(image_embedding, text_embedding)
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
         
-        # Backward pass
-        loss = loss_fn(image_embedding, text_embedding)
-        loss.backward()
-        optimizer.step()
+        # Return the average loss
+        return total_loss / len(self.text)
 
-        return loss.item()
     
     def eval(self):
         self.model.eval()
