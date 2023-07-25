@@ -21,6 +21,7 @@ BM_NAME: str = 'optim'
 
 continue_on_error: bool = False
 run_on_subset: bool = False
+run_basic_configs: bool = False
 ignore_skips: bool = False
 
 # Models that are unstable in torch-nightly should not run in the optim world either
@@ -40,6 +41,16 @@ MODEL_NAMES: List[str] = list_models()
 SUBSET_OF_MODEL_NAMES: List[str] = [
     'BERT_pytorch', 'DALLE2_pytorch', 'hf_GPT2_large', 'hf_T5_large', 'resnet50', 'timm_vision_transformer', 'yolov3'
 ]
+
+# PT2 compilation can take up 4 minutes for 1000 parameters even for foreach implementations,
+# and erroring has not been very diverse across models, so we pick one small model and one
+# larger model to ascertain PT2 performance over time. We skip everything else.
+# We _are_ working on minimizing compilation for foreach implementations.
+#
+# PT2 dynamo tracing for the for-loop implementation takes over 30s.
+# This is known + NOT going to be improved anytime soon, see
+# https://github.com/pytorch/torchdynamo/issues/1803#issuecomment-1336688894
+MODELS_TO_RUN_ON_PT2: List[str] = ['resnet18', 'timm_vision_transformer']
 
 # NOTE: While it is possible to run these benchmarks on CPU, we skip running on CPU in CI because CPU stats can be
 # unstable and we had stopped reporting them. You'll still be able to use this script to run CPU though, as it may
@@ -254,14 +265,14 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     {'defaults': ['fused'], 'device': 'cpu'},
     {'defaults': ['capturable'], 'device': 'cpu'},
 ] + [
-    # PT2 dynamo tracing for the for-loop implementation takes over 30s.
-    # This is known + not going to be improved anytime soon, see
-    # https://github.com/pytorch/torchdynamo/issues/1803#issuecomment-1336688894
-    # Run PT2 on for-loop implementations for only the subset of models. Skip everything else.
-    {'model': m, 'device': d, 'func_str': 'pt2_', 'defaults': [df]}
+    # PT2 compilation takes too long, so we only enable PT2 on a tiny subset of models.
+    # See note above on MODELS_TO_RUN_ON_PT2.
+    {'model': m, 'device': d, 'func_str': 'pt2_', 'defaults': []}
     for d in DEVICES
-    for m in set(MODEL_NAMES) - set(SUBSET_OF_MODEL_NAMES)
-    for df in ['no_foreach', 'differentiable'] + ([] if d == 'cuda' else ['default', 'maximize', 'amsgrad, maximize'])
+    for m in set(MODEL_NAMES) - set(MODELS_TO_RUN_ON_PT2)
+] + [
+    {'func_str': 'pt2_', 'defaults': [df]}
+    for df in ['maximize', 'differentiable', 'capturable', 'amsgrad']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in C++
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
@@ -374,7 +385,7 @@ def is_excluded(mn: str, d: str, on: str, func_str: str, defaults: Dict[str, Any
     return any([('model' not in e or e['model'] == mn) and
                 ('device' not in e or e['device'] == d) and
                 ('optim' not in e or e['optim'] == on) and
-                ('funct_str' not in e or e['func_str'] == func_str) and
+                ('func_str' not in e or e['func_str'] == func_str) and
                 ('defaults' not in e or all(f in defaults_to_str(defaults) for f in e['defaults'])) for e in EXCLUSIONS])
 
 def run_model(modelName, device, Optim, defaults, maybe_pt2_):
@@ -420,6 +431,8 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
 
     if run_on_subset:
         models = [m for m in SUBSET_OF_MODEL_NAMES if m in models]
+
+    if run_on_subset or run_basic_configs:
         optim_cfgs = [(O, defaults) for (O, defaults) in optim_cfgs if (all([x in ['foreach', 'fused', 'lr'] for x in defaults]))]
 
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
@@ -459,6 +472,13 @@ def parse_args(args: List[str]):
         help='Run benchmarks on a standard subset of models. If the --models (-m) is set, we will ' +
              'take the intersection of the requested models and the defined subset. For example, ' +
              '`...-s -m llama yolov3` will ONLY run yolov3.'
+    )
+    parser.add_argument(
+        '--basic', '-b',
+        action='store_true',
+        help='Run benchmarks on a standard subset of optimizer configs. If the --defaults-flags (--df)' +
+             ' is set, we will take the intersection of the requested configs and the defined subset. ' +
+             'For example, `...-b --df maximize fused` will ONLY run fused.'
     )
     parser.add_argument(
         '--devices', '-d',
@@ -507,9 +527,10 @@ def get_metrics(results: List[torch.utils.benchmark.utils.common.Measurement]) -
 
 def run(args: List[str]):
     args = parse_args(args)
-    global continue_on_error, run_on_subset, ignore_skips
+    global continue_on_error, run_on_subset, run_basic_configs, ignore_skips
     continue_on_error = args.continue_on_error
     run_on_subset = args.subset
+    run_basic_configs = args.basic
     ignore_skips = args.ignore_skips
     target_dir = Path(args.output_dir) if args.output_dir is not None else None
     if target_dir is not None:
