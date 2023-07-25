@@ -7,6 +7,5 @@ eval_nograd: true
 not_implemented:
 - jit: true
 - device: cpu
-  test: eval
 train_benchmark: false
 train_deterministic: false
