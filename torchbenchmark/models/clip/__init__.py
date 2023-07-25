@@ -50,7 +50,6 @@ class Model(BenchmarkModel):
             lr=5.0e-4,
             weight_decay=1.0e-4,
             eps=1.0e-6,
-            foreach=True,
         )
 
         # Zero the gradients
