@@ -30,8 +30,8 @@ class Model(BenchmarkModel):
         self.img_transform = CLIPImageTransform(is_train=False)
         self.text_transform = CLIPTextTransform()
 
-        self.image_tensor = self.img_transform(self.image)
-        self.text_tensor = self.text_transform(self.text)
+        self.image_tensor = self.img_transform(self.image).to(self.device)
+        self.text_tensor = self.text_transform(self.text).to(self.device)
         self.model = clip_vit_b32()
         self.model.to(self.device)
 
