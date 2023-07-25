@@ -1,5 +1,4 @@
 from typing import List
-import submitit
 import torch
 from torchbenchmark.util.distributed.submit import parse_args, get_init_file, TrainerWrapper
 from ..utils import dump_output
@@ -7,7 +6,7 @@ from ..utils import dump_output
 BM_NAME = "distributed"
 
 def gen_metrics_from_result(result):
-    assert isinstance(result, List), "The result of submitit should be a list."
+    assert isinstance(result, List), "The result should be a list."
     metrics = {}
     for result_id, r in enumerate(result):
         for metric_name in r:
@@ -17,6 +16,31 @@ def gen_metrics_from_result(result):
 def run(args: List[str]):
     args, model_args = parse_args(args)
 
+    if args.scheduler == "slurm":
+        result = slurm_run(args, model_args)
+    elif args.scheduler == "local":
+        result = local_run(args, model_args)
+    else:
+        raise ValueError(f"Unsupported scheduler: {args.scheduler}")
+
+    version = torch.version.git_version if hasattr(torch.version, "git_verison") else "Internal"
+
+    # dump the output file
+    output = {
+        "name": BM_NAME,
+        "environ": {"pytorch_git_version": version},
+        "args": vars(args),
+        "metrics": gen_metrics_from_result(result),
+    }
+    dump_output(BM_NAME, output)
+
+def local_run(args, model_args):
+    # TODO: Currently this does nothing but to support the path for "--scheduler local"
+    print("Current local run is not implemented, use '--scheduler slurm'. Skipping local run.")
+    return []
+
+def slurm_run(args, model_args):
+    import submitit
     # Note that the folder will depend on the job_id, to easily track experiments
     executor = submitit.AutoExecutor(folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000)
 
@@ -45,11 +69,4 @@ def run(args: List[str]):
 
     # waits for completion and returns output
     result = job.results()
-    # dump the output file
-    output = {
-        "name": BM_NAME,
-        "environ": {"pytorch_git_version": torch.version.git_version},
-        "args": vars(args),
-        "metrics": gen_metrics_from_result(result),
-    }
-    dump_output(BM_NAME, output)
+    return result

@@ -10,6 +10,8 @@ env:
   CONDA_ENV: "torchbench"
   DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
   SETUP_SCRIPT: "/workspace/setup_instance.sh"
+  HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+
 
 jobs:
   pr-test:
@@ -36,8 +38,9 @@ jobs:
       - name: Install and Test TorchBench
         run: |
           container_name=$(docker run \
-            -e CONDA_ENV \
-            -e SETUP_SCRIPT \
+            -e CONDA_ENV="${CONDA_ENV}" \
+            -e SETUP_SCRIPT="${SETUP_SCRIPT}" \
+            -e HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN}" \
             --tty \
             --detach \
             --shm-size=32gb \
