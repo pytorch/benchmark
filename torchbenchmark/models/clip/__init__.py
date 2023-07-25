@@ -58,15 +58,10 @@ class Model(BenchmarkModel):
 
         # Forward pass
         image_embedding, text_embedding = self.model(self.image_tensor, self.text_tensor)
-        score = image_embedding @ text_embedding.t()
-
-        # Compute loss
-        loss = loss_fn(score)
-
+        
         # Backward pass
+        loss = loss_fn(image_embedding, text_embedding)
         loss.backward()
-
-        # Update weights
         optimizer.step()
 
         return loss.item()
