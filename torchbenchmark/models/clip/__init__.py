@@ -15,8 +15,6 @@ from torchmultimodal.modules.losses.contrastive_loss_with_temperature import (
 from PIL import Image
 import math
 
-
-
 class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 32
     
