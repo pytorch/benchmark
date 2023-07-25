@@ -23,7 +23,7 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
         
         self.data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.data')
-        self.image_name = "2880px-Pizza-3007395.jpg"
+        self.image_name = "pizza.jpg"
         self.image = Image.open(os.path.join(self.data_folder, self.image_name))
         self.text = ["pizza", "dog"] * 16
         self.img_transform = CLIPImageTransform(is_train=False)
