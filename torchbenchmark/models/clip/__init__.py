@@ -16,8 +16,8 @@ from PIL import Image
 import math
 
 class Model(BenchmarkModel):
-    DEFAULT_EVAL_BSIZE = 1
-    DEFAULT_TRAIN_BSIZE = 1
+    DEFAULT_EVAL_BSIZE = 32
+    DEFAULT_TRAIN_BSIZE = 32
     
     def __init__(self, test, device, jit=False, batch_size=1, extra_args=[]):
         super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
@@ -25,14 +25,18 @@ class Model(BenchmarkModel):
         self.data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.data')
         self.image_name = "2880px-Pizza-3007395.jpg"
         self.image = Image.open(os.path.join(self.data_folder, self.image_name))
-        self.text = ["pizza", "dog", "sun"]
+        self.text = ["pizza", "dog"] * 16
         self.img_transform = CLIPImageTransform(is_train=False)
         self.text_transform = CLIPTextTransform()
 
-        self.image_tensor = self.img_transform(self.image).to(self.device)
+        self.images = [self.image for _ in range(self.batch_size)]
+        self.texts = [self.text for _ in range(self.batch_size)]
+
+        self.image_tensor = self.img_transform(self.images).to(self.device)
         self.text_tensor = self.text_transform(self.text).to(self.device)
         self.model = clip_vit_b32()
         self.model.to(self.device)
+
 
    
     def get_module(self):
@@ -51,21 +55,18 @@ class Model(BenchmarkModel):
             eps=1.0e-6,
         )
 
-        total_loss = 0
-        # Iterate over each text description
-        for i in range(len(self.text)):
-            # Zero the gradients
-            optimizer.zero_grad()
+        total_loss = 0 
+        optimizer.zero_grad()
 
-            # Forward pass
-            image_embedding, text_embedding = self.model(self.image_tensor, self.text_tensor[i].unsqueeze(0))
+        # Forward pass
+        image_embedding, text_embedding = self.model(self.image_tensor, self.text_tensor)
             
-            # Backward pass
-            loss = loss_fn(image_embedding, text_embedding)
-            loss.backward()
-            optimizer.step()
+        # Backward pass
+        loss = loss_fn(image_embedding, text_embedding)
+        loss.backward()
+        optimizer.step()
 
-            total_loss += loss.item()
+        total_loss += loss.item()
         
         # Return the average loss
         return total_loss / len(self.text)
