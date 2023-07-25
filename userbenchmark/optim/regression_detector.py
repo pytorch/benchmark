@@ -16,7 +16,8 @@ def run(control, treatment) -> Optional[TorchBenchABTestResult]:
             # Trigger on BOTH slowdowns and speedups
             if abs(delta) > DEFAULT_REGRESSION_DELTA_THRESHOLD:
                 details[control_metric_name] = TorchBenchABTestMetric(control=control_metric, treatment=treatment_metric, delta=delta)
-    return TorchBenchABTestResult(control_env=control_env, \
-                                  treatment_env=treatment_env, \
-                                  details=details, \
-                                  bisection=None)
+    # control_only_metrics/treatment_only_metrics will be filled in later by the main regression detector
+    return TorchBenchABTestResult(name=control["name"],
+                                  control_env=control_env,
+                                  treatment_env=treatment_env,
+                                  details=details)

@@ -50,8 +50,8 @@ def get_default_output_path(bm_name: str) -> str:
     return os.path.join(output_path, fname)
 
 def generate_regression_result(control: Dict[str, Any], treatment: Dict[str, Any]) -> TorchBenchABTestResult:
-    def _call_userbenchmark_detector(detector, start_file: str, end_file: str) -> TorchBenchABTestResult:
-        return detector(start_file, end_file)
+    def _call_userbenchmark_detector(detector, control: Dict[str, Any], treatment: Dict[str, Any]) -> TorchBenchABTestResult:
+        return detector(control, treatment)
     assert control["name"] == treatment["name"], f'Expected the same userbenchmark name from metrics files, \
                                                 but getting {control["name"]} and {treatment["name"]}.'
     bm_name = control["name"]
