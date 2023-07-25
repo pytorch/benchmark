@@ -49,8 +49,8 @@ class TorchBenchABTestResult:
     control_env: Dict[str, str]
     treatment_env: Dict[str, str]
     details: Dict[str, TorchBenchABTestMetric]
-    control_only_metrics: Dict[str, float]
-    treatment_only_metrics: Dict[str, float]
+    control_only_metrics: Dict[str, float] = {}
+    treatment_only_metrics: Dict[str, float] = {}
     # the repository to bisect, default to "pytorch"
     bisection: str = "pytorch"
     # can be "abtest" or "bisect"
