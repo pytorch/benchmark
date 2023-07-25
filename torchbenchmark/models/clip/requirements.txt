@@ -1,1 +1,1 @@
-torchmultimodal
+git+https://github.com/facebookresearch/multimodal.git
