@@ -14,8 +14,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         predictor = ocr_predictor(det_arch='db_resnet50', reco_arch='crnn_vgg16_bn', pretrained=True).to(self.device)
         # Doctr detection model expects input (batch_size, 3, 1024, 1024)

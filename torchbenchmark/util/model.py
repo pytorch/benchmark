@@ -72,7 +72,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     test: str
     device: str
-    jit: bool
     batch_size: int
     extra_args: List[str]
     run_contexts: List[ContextManager]
@@ -81,13 +80,12 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     A base class for adding models to torch benchmark.
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
-    def __init__(self, test: str, device: str, jit: bool=False, batch_size: Optional[int]=None, extra_args: List[str]=[]):
+    def __init__(self, test: str, device: str, batch_size: Optional[int]=None, extra_args: List[str]=[]):
         self.metadata = self.load_metadata()
         self.test = test
         assert self.test == "train" or self.test == "eval", \
             f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device
-        self.jit = jit
         self.extra_args = extra_args
         self.opt = None
         # contexts to run in the test function
@@ -282,65 +280,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     def eval_in_nograd(self):
         return True
-
-    def check_opt_vs_noopt_jit(self):
-        if not self.jit:
-            return
-
-        model_name = inspect.getfile(self.__class__).split(os.sep)[-2]
-        print(f"model_name={model_name} , {inspect.getfile(self.__class__)}")
-        model_blacklist = [
-            'demucs', # set up issue
-            'yolov3', # set up issue
-            'BERT_pytorch', # set up issue
-            'moco', # set up issue
-            'Super_SloMo', # results don't match, might be due to the way TE CUDA handles rand?
-            'attention_is_all_you_need_pytorch', # results don't match, might be due to the way TE CUDA handles rand?
-        ]
-
-        if model_name in model_blacklist:
-            warnings.warn(UserWarning(f"{model_name}.get_module() doesn't support `check_results` yet!"))
-            return
-
-        # if a model doesn't support `get_module`
-        # we should let it throw and then
-        # override `check_results` for that model
-        try:
-            model, inputs = self.get_module()
-        except NotImplementedError:
-            warnings.warn(UserWarning(f"{model_name}.get_module() doesn't support `check_results` yet!"))
-            return
-
-        def bench_allclose(a, b):
-            if isinstance(a, torch.Tensor):
-                assert(isinstance(b, torch.Tensor))
-                assert(a.allclose(b))
-            elif isinstance(a, tuple) or isinstance (b, list):
-                assert(type(a) == type(b))
-                assert(len(a) == len(b))
-                for i in range(len(a)):
-                    bench_allclose(a[i], b[i])
-            else:
-                raise RuntimeError("Encountered an supported type.\n" +
-                    "Please add the type or override `bench_allclose`")
-
-
-        try:
-            opt = model(*inputs)
-        except Exception as e:
-            print(e)
-            warnings.warn(UserWarning(f"{model_name}.eval() doesn't support `check_results` yet!"))
-            return
-
-        # disable optimizations and force a recompilation
-        # to a baseline version
-        fwd = model._c._get_method("forward")
-        fwd._debug_flush_compilation_cache()
-        torch._C._set_graph_executor_optimize(False)
-        base = model(*inputs)
-        torch._C._set_graph_executor_optimize(True)
-
-        bench_allclose(base, opt)
 
     def enable_channels_last(self):
         model_name = self.name

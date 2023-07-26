@@ -20,9 +20,9 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
         HuggingFaceAuthMixin.__init__(self)
-        super().__init__(test=test, device=device, jit=jit,
+        super().__init__(test=test, device=device,
                          batch_size=batch_size, extra_args=extra_args)
         model_id = "stabilityai/stable-diffusion-2"
         scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")

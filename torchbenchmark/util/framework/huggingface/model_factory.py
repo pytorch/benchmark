@@ -57,8 +57,8 @@ class HuggingFaceModel(BenchmarkModel):
     # unsuffixed model with GenerationWrapper which will make it do
     # autoregressive text generation instead of a probability prediction
     # NB: name is used as kwarg, cannot rename it here
-    def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, name, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         self.name = name
         if name.endswith('_generate'):
@@ -176,8 +176,8 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
     Instead of just running __call__ on the model, use generate to generate
     text.
     """
-    def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(name=name, test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, name, test, device, batch_size=None, extra_args=[]):
+        super().__init__(name=name, test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         # Make this configurable with extra_args
         # NB: this is *fixed* generation size as eos_token_id is None
         # These params were cribbed off of

@@ -97,11 +97,11 @@ class HardSwishBenchmark:
         self.dims = dims
 
     # test and extra_args are placeholders to match TorchBench API
-    def __call__(self, device, jit, test, extra_args):
-        return HardSwish(self.dims, device, jit)
+    def __call__(self, device, test, extra_args):
+        return HardSwish(self.dims, device)
 
 class HardSwish(nn.Module):
-    def __init__(self, dims, device='cuda', jit=False):
+    def __init__(self, dims, device='cuda'):
         super(HardSwish, self).__init__()
         self.name = "HardSwish[" + ','.join([str(d) for d in dims]) + ']'
         self.example_inputs = (
@@ -125,11 +125,11 @@ class DivAddMulBenchmark:
         self.dims = dims
 
     # test and extra_args are placeholders to match TorchBench API
-    def __call__(self, device, jit, test, extra_args):
-        return DivAddMul(self.dims, device, jit)
+    def __call__(self, device, test, extra_args):
+        return DivAddMul(self.dims, device)
 
 class DivAddMul(nn.Module):
-    def __init__(self, dims, device='cuda', jit=False):
+    def __init__(self, dims, device='cuda'):
         super(DivAddMul, self).__init__()
         self.attention_head_size = dims[1]
         self.W = torch.ones(*dims[-2:], device=device, dtype=torch.float32)
@@ -642,9 +642,9 @@ if __name__ == "__main__" :
 
                     # no try since we should've already filtered out models we can't create
                     set_seeds()
-                    benchmark = benchmark_cls(test=args.test, device=args.device, jit=False, extra_args=["--precision", args.precision])
+                    benchmark = benchmark_cls(test=args.test, device=args.device, extra_args=["--precision", args.precision])
                     set_seeds()
-                    lazy_benchmark = benchmark_cls(test=args.test, device='lazy', jit=False, extra_args=["--precision", args.precision])
+                    lazy_benchmark = benchmark_cls(test=args.test, device='lazy', extra_args=["--precision", args.precision])
                     # TODO: might be redundant
                     gc.collect()
 

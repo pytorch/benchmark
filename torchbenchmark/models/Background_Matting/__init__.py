@@ -39,8 +39,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         self.opt = Namespace(**{
             'n_blocks1': 7,
@@ -100,21 +100,15 @@ class Model(BenchmarkModel):
         self.log_writer = SummaryWriter(datadir)
         self.model_dir = datadir
 
-        self._maybe_trace()
-
-    def _maybe_trace(self):
+    def jit_callback(self):
         for data in self.train_data:
             bg, image, seg, multi_fr = data['bg'], data['image'], data['seg'], data['multi_fr']
             bg, image, seg, multi_fr = Variable(bg.to(self.device)), Variable(
                 image.to(self.device)), Variable(seg.to(self.device)), Variable(multi_fr.to(self.device))
-            if self.jit:
-                self.netB = torch.jit.trace(
-                    self.netB, (image, bg, seg, multi_fr))
-                self.netG = torch.jit.trace(
-                    self.netG, (image, bg, seg, multi_fr))
-            else:
-                self.netB(image, bg, seg, multi_fr)
-                self.netG(image, bg, seg, multi_fr)
+            self.netB = torch.jit.trace(
+                self.netB, (image, bg, seg, multi_fr))
+            self.netG = torch.jit.trace(
+                self.netG, (image, bg, seg, multi_fr))
             break
 
     def get_module(self):

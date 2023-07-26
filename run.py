@@ -294,13 +294,6 @@ if __name__ == "__main__":
         help="Which device to use.",
     )
     parser.add_argument(
-        "-m",
-        "--mode",
-        choices=["eager", "jit"],
-        default="eager",
-        help="Which mode to run.",
-    )
-    parser.add_argument(
         "-t",
         "--test",
         choices=["eval", "train"],
@@ -407,7 +400,6 @@ if __name__ == "__main__":
     m = Model(
         device=args.device,
         test=args.test,
-        jit=(args.mode == "jit"),
         batch_size=args.bs,
         extra_args=extra_args,
     )

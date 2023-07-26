@@ -46,8 +46,8 @@ class Model(BenchmarkModel):
     # cosine similarity or torch.close()
     SKIP_CORRECTNESS_CHECK = True
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader

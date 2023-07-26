@@ -62,7 +62,6 @@ def run(args: List[str]):
         device=args.device,
         test=args.test,
         batch_size=args.bs,
-        jit=False,
         extra_args=[],
         extra_env=None,
     )

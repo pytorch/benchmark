@@ -15,7 +15,6 @@ def parse_args(model: BenchmarkModel, extra_args: List[str]) -> argparse.Namespa
     add_bool_arg(parser, "eval_fp16", default_value=True)
     args = parser.parse_args(extra_args)
     args.device = model.device
-    args.jit = model.jit
     # disable fp16 when device is CPU
     if args.device == "cpu":
         args.eval_fp16 = False

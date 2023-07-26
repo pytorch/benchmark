@@ -52,7 +52,7 @@ def _extract_detail(path: str) -> Dict[str, Any]:
     # Separate train and eval to isolated processes.
     task_t = ModelTask(path, timeout=TIMEOUT)
     try:
-        task_t.make_model_instance(device=device, jit=False)
+        task_t.make_model_instance(device=device)
         task_t.set_train()
         task_t.train()
         task_t.extract_details_train()
@@ -64,7 +64,7 @@ def _extract_detail(path: str) -> Dict[str, Any]:
 
     task_e = ModelTask(path, timeout=TIMEOUT)
     try:
-        task_e.make_model_instance(device=device, jit=False)
+        task_e.make_model_instance(device=device)
         task_e.set_eval()
         task_e.eval()
         task_e.extract_details_eval()

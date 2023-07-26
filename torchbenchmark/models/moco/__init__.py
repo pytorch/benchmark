@@ -31,8 +31,8 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 32
     DEFAULT_EVAL_BSIZE = 32
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.opt = Namespace(**{
             'arch': 'resnet50',
             'epochs': 2,
@@ -88,7 +88,6 @@ class Model(BenchmarkModel):
     def get_module(self):
         """ Recommended
         Returns model, example_inputs
-        model should be torchscript model if self.jit is True.
         Both model and example_inputs should be on self.device properly.
         `model(*example_inputs)` should execute one step of model forward.
         """

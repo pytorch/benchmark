@@ -71,12 +71,13 @@ with add_path(str(REPO_PATH)):
         test = validate(args.test, list_tests())
         model = validate(args.model, list_models())
         metrics = validate(parse_str_to_list(args.metrics), list_metrics())
+        if args.jit:
+            extra_args.extend(["--backend", "torchscript"])
         config = TorchBenchModelConfig(
             name=model,
             device=device,
             test=test,
             batch_size=args.batch_size,
-            jit=args.jit,
             extra_args=extra_args,
             extra_env=None)
         try:

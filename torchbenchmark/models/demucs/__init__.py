@@ -38,12 +38,12 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 64
     DEFAULT_EVAL_BSIZE = 8
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]) -> None:
+    def __init__(self, test, device, batch_size=None, extra_args=[]) -> None:
         # reduce the eval batch size when running on CPU
         # see: https://github.com/pytorch/benchmark/issues/895
         if device == "cpu":
             self.DEFAULT_EVAL_BSIZE = max(1, int(self.DEFAULT_EVAL_BSIZE / 8))
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         self.parser = get_parser()
         self.args = self.parser.parse_args([])

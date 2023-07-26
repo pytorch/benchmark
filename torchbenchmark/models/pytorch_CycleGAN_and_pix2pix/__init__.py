@@ -27,8 +27,8 @@ class Model(BenchmarkModel):
     # TODO: Customizing the optimizer is nontrivial, perhaps a next step.
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         checkpoints_dir = _create_data_dir("checkpoints")
         results_dir = _create_data_dir("results")
         checkpoints_arg = f"--checkpoints_dir {checkpoints_dir}"
