@@ -35,8 +35,12 @@ class BERTTrainer:
         """
 
         # Setup cuda device for BERT training, argument -c, --cuda should be true
-        cuda_condition = torch.cuda.is_available() and with_cuda
-        self.device = torch.device("cuda:0" if cuda_condition else "cpu")
+        if (with_cuda and torch.cuda.is_available()):
+            self.device = torch.device("cuda:0")
+        elif (with_cuda and torch.backends.mps.is_available()):
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
 
         # This BERT model will be saved every epoch
         self.bert = bert
