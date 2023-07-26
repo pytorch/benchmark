@@ -72,8 +72,8 @@ class Detectron2Model(BenchmarkModel):
     # cosine similarity or torch.close()
     SKIP_CORRECTNESS_CHECK = True
 
-    def __init__(self, variant, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, variant, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.tb_args, self.extra_args = parse_tb_args(self.extra_args)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = False

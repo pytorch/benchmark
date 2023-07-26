@@ -3,6 +3,3 @@ eval_deterministic: false
 eval_nograd: true
 train_benchmark: false
 train_deterministic: false
-not_implemented:
-  # DrQ model does not support JIT
-  - jit: true

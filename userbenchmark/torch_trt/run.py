@@ -93,7 +93,6 @@ def run_single_model(
     model = Model(
         device="cuda",
         test="eval",
-        jit=False,
         batch_size=batch_size,
         extra_args=[
             "--backend",

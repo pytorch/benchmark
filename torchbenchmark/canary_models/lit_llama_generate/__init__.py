@@ -24,8 +24,8 @@ class GenerationWrapper(nn.Module):
         return lit_llama_generate.generate(self.model, idx, max_new_tokens)
 
 class Model(lit_llama.Model):
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.model = GenerationWrapper(self.model)
         tokenizer = Tokenizer(os.path.join(LIT_LLAMA_PATH, "checkpoints/lit-llama/tokenizer.model"))
         # max_new_tokens matches lit-llama/generate.py

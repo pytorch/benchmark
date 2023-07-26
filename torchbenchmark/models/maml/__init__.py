@@ -23,8 +23,8 @@ class Model(BenchmarkModel):
     # Which will return non-deterministic results
     SKIP_CORRECTNESS_CHECK = True
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         # load from disk or synthesize data
         use_data_file = False

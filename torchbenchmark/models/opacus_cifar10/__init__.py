@@ -16,12 +16,12 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 64
     DEFAULT_EVAL_BSIZE = 64
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
         # disable torchdynamo-fx2trt because it never terminates
         if "--torchdynamo" in extra_args and "fx2trt" in extra_args:
             raise NotImplementedError("TorchDynamo Fx2trt is not supported because of hanging issue. "
                                       "See: https://github.com/facebookresearch/torchdynamo/issues/109")
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         self.model = models.resnet18(num_classes=10)
         self.model = ModuleValidator.fix(self.model)

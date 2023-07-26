@@ -7,8 +7,8 @@ from typing import Optional, List
 class DiffuserModel(BenchmarkModel):
     DIFFUSER_MODEL = True
 
-    def __init__(self, name: str, test: str, device: str, jit: bool = False, batch_size: Optional[int] = None, extra_args: List[str] = ...):
-        super().__init__(test, device, jit, batch_size, extra_args)
+    def __init__(self, name: str, test: str, device: str, batch_size: Optional[int] = None, extra_args: List[str] = ...):
+        super().__init__(test, device, batch_size, extra_args)
         if self.device == "cpu":
             raise NotImplementedError(f"Model {self.name} does not support CPU device.")
         if not self.dargs.precision == "fp16":

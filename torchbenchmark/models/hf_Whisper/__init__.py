@@ -7,8 +7,8 @@ class Model(HuggingFaceModel):
     DEFAULT_EVAL_BSIZE = 8
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
     
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(name="hf_Whisper", test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(name="hf_Whisper", test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.feature_size = 80
         self.sequence_length = 3000
         self.input_features = torch.randn(size=(self.batch_size, self.feature_size, self.sequence_length),device=self.device)

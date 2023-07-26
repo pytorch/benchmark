@@ -45,7 +45,6 @@ def pytest_generate_tests(metafunc):
             scope="class")
 
         metafunc.parametrize('device', devices, scope='class')
-        metafunc.parametrize('compiler', ['jit', 'eager'], scope='class')
 
 
 @pytest.mark.benchmark(
@@ -59,8 +58,8 @@ class TestBenchNetwork:
 
     def test_train(self, model_path, device, compiler, benchmark):
         try:
-            if skip_by_metadata(test="train", device=device, jit=(compiler == 'jit'), \
-                                extra_args=[], metadata=get_metadata_from_yaml(model_path)):
+            if skip_by_metadata(test="train", device=device, extra_args=[], \
+                                metadata=get_metadata_from_yaml(model_path)):
                 raise NotImplementedError("Test skipped by its metadata.")
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
@@ -70,7 +69,7 @@ class TestBenchNetwork:
             if not task.model_details.exists:
                 return  # Model is not supported.
 
-            task.make_model_instance(test="train", device=device, jit=(compiler == 'jit'))
+            task.make_model_instance(test="train", device=device)
             benchmark(task.invoke)
             benchmark.extra_info['machine_state'] = get_machine_state()
             benchmark.extra_info['batch_size'] = task.get_model_attribute('batch_size')
@@ -82,8 +81,8 @@ class TestBenchNetwork:
 
     def test_eval(self, model_path, device, compiler, benchmark, pytestconfig):
         try:
-            if skip_by_metadata(test="eval", device=device, jit=(compiler == 'jit'), \
-                                extra_args=[], metadata=get_metadata_from_yaml(model_path)):
+            if skip_by_metadata(test="eval", device=device, extra_args=[], \
+                                metadata=get_metadata_from_yaml(model_path)):
                 raise NotImplementedError("Test skipped by its metadata.")
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
@@ -93,7 +92,7 @@ class TestBenchNetwork:
             if not task.model_details.exists:
                 return  # Model is not supported.
 
-            task.make_model_instance(test="eval", device=device, jit=(compiler == 'jit'))
+            task.make_model_instance(test="eval", device=device)
 
             with task.no_grad(disable_nograd=pytestconfig.getoption("disable_nograd")):
                 benchmark(task.invoke)
@@ -101,8 +100,6 @@ class TestBenchNetwork:
                 benchmark.extra_info['batch_size'] = task.get_model_attribute('batch_size')
                 benchmark.extra_info['precision'] = task.get_model_attribute("dargs", "precision")
                 benchmark.extra_info['test'] = 'eval'
-                if pytestconfig.getoption("check_opt_vs_noopt_jit"):
-                    task.check_opt_vs_noopt_jit()
 
         except NotImplementedError:
             print(f'Test eval on {device} is not implemented, skipping...')

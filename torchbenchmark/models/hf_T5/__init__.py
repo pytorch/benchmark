@@ -10,5 +10,5 @@ class Model(HuggingFaceModel):
     # Downscale to 1 to fit in Nvidia T4 of the infra
     DEFAULT_EVAL_BSIZE = 1
     
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(name="hf_T5", test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(name="hf_T5", test=test, device=device, batch_size=batch_size, extra_args=extra_args)

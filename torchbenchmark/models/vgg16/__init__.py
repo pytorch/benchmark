@@ -11,7 +11,7 @@ class Model(TorchVisionModel):
     DEFAULT_TRAIN_BSIZE = 64
     DEFAULT_EVAL_BSIZE = 4
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(model_name="vgg16", test=test, device=device, jit=jit,
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(model_name="vgg16", test=test, device=device,
                          batch_size=batch_size, weights=models.VGG16_Weights.IMAGENET1K_V1,
                          extra_args=extra_args)

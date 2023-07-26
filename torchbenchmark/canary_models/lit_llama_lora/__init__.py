@@ -21,8 +21,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
     DEFAULT_TRAIN_BSIZE = 4  # micro_batch_size in lora.py
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         # From finetune/lora.py hyperparameters
         lora_r = 8

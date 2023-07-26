@@ -46,8 +46,8 @@ class Model(BenchmarkModel):
     # can be a next step. For now, the optim is not customizable.
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         n_way = 5
         inplace_relu = True

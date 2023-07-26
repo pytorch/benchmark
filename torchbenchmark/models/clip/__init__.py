@@ -19,8 +19,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 32
     DEFAULT_TRAIN_BSIZE = 32
     
-    def __init__(self, test, device, jit=False, batch_size=1, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=1, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         
         self.data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.data')
         self.image_name = "pizza.jpg"

@@ -5,7 +5,6 @@ eval_benchmark: true
 eval_deterministic: false
 eval_nograd: true
 not_implemented:
-- jit: true
 - device: cpu
 train_benchmark: true
 train_deterministic: false

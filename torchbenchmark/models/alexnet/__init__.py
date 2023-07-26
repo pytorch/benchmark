@@ -9,7 +9,7 @@ class Model(TorchVisionModel):
     DEFAULT_TRAIN_BSIZE = 128
     DEFAULT_EVAL_BSIZE = 128
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(model_name="alexnet", test=test, device=device, jit=jit,
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(model_name="alexnet", test=test, device=device,
                          batch_size=batch_size, weights=models.AlexNet_Weights.IMAGENET1K_V1,
                          extra_args=extra_args)

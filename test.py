@@ -33,24 +33,13 @@ class TestBenchmark(unittest.TestCase):
     def tearDown(self):
         gc.collect()
 
-    def test_fx_profile(self):
-        try:
-            from torch.fx.interpreter import Interpreter
-        except ImportError:  # older versions of PyTorch
-            raise unittest.SkipTest("Requires torch>=1.8")
-        from fx_profile import main, ProfileAggregate
-        with patch.object(ProfileAggregate, "save") as mock_save:
-            # just run one model to make sure things aren't completely broken
-            main(["--repeat=1", "--filter=pytorch_struct", "--device=cpu"])
-            self.assertGreaterEqual(mock_save.call_count, 1)
-
 def _create_example_model_instance(task: ModelTask, device: str):
     skip = False
     try:
-        task.make_model_instance(test="eval", device=device, jit=False, extra_args=["--accuracy"])
+        task.make_model_instance(test="eval", device=device, extra_args=["--accuracy"])
     except NotImplementedError:
         try:
-            task.make_model_instance(test="train", device=device, jit=False, extra_args=["--accuracy"])
+            task.make_model_instance(test="train", device=device, extra_args=["--accuracy"])
         except NotImplementedError:
             skip = True
     finally:
@@ -85,7 +74,7 @@ def _load_test(path, device):
         batch_size = 1 if allow_customize_batch_size else None
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(test="train", device=device, jit=False, batch_size=batch_size)
+                task.make_model_instance(test="train", device=device, batch_size=batch_size)
                 task.invoke()
                 task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
@@ -100,7 +89,7 @@ def _load_test(path, device):
         batch_size = 1 if allow_customize_batch_size else None
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(test="eval", device=device, jit=False, batch_size=batch_size)
+                task.make_model_instance(test="eval", device=device, batch_size=batch_size)
                 task.invoke()
                 task.check_details_eval(device=device, md=metadata)
                 task.check_eval_output()
@@ -112,7 +101,7 @@ def _load_test(path, device):
         task = ModelTask(path, timeout=TIMEOUT)
         with task.watch_cuda_memory(skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual):
             try:
-                task.make_model_instance(test="eval", device=device, jit=False)
+                task.make_model_instance(test="eval", device=device)
                 task.check_device()
                 task.del_model_instance()
             except NotImplementedError:
@@ -124,8 +113,8 @@ def _load_test(path, device):
                            ["example", "train", "eval", "check_device"]):
         # set exclude list based on metadata
         setattr(TestBenchmark, f'test_{name}_{fn_name}_{device}',
-                (unittest.skipIf(skip_by_metadata(test=fn_name, device=device,\
-                                                  jit=False, extra_args=[], metadata=metadata), "This test is skipped by its metadata")(fn)))
+                (unittest.skipIf(skip_by_metadata(test=fn_name, device=device, extra_args=[], metadata=metadata), \
+                                 "This test is skipped by its metadata")(fn)))
 
 
 def _load_tests():

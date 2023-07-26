@@ -58,8 +58,8 @@ class Model(BenchmarkModel):
   ALLOW_CUSTOMIZE_BSIZE = False
   NUM_OF_BATCHES = 1
 
-  def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-    super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+  def __init__(self, test, device, batch_size=None, extra_args=[]):
+    super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
     WORD = Field(include_lengths=True)
     UD_TAG = Field(init_token="<bos>", eos_token="<eos>", include_lengths=True)

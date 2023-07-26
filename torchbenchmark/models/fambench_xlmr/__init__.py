@@ -56,8 +56,8 @@ class Model(BenchmarkModel):
     # Copy error: RecursionError: maximum recursion depth exceeded
     DEEPCOPY = False
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.xlmr = fairseq.models.roberta.XLMRModel.from_pretrained("xlmr.large")
         parser = init_argparse()
         args = parser.parse_args([f"--famconfig={self.DEFAULT_FAM_CONFIG}",

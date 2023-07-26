@@ -5,7 +5,6 @@ eval_benchmark: false
 eval_deterministic: false
 eval_nograd: true
 not_implemented:
-- jit: true
 - test: train
 train_benchmark: false
 train_deterministic: false

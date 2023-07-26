@@ -74,10 +74,10 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 16
     DEFAULT_EVAL_BSIZE = 16
 
-    def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
         if device == "cpu":
             self.DEFAULT_EVAL_BSIZE = max(1, int(self.DEFAULT_EVAL_BSIZE / 8))
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         debug_print = False
         root = str(Path(__file__).parent)
         args = parse_args(args=[
@@ -87,7 +87,7 @@ class Model(BenchmarkModel):
             '--output_path', 'bert.model',
         ]) # Avoid reading sys.argv here
         args.with_cuda = self.device == 'cuda'
-        args.script = self.jit
+        args.script = False
         args.on_memory = True
 
         # Example effect of batch size on eval time(ms)

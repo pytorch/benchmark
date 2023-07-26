@@ -23,8 +23,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 96
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         # Train: These options are from source code.
         # Source: https://arxiv.org/pdf/1903.04411.pdf
         # Code: https://github.com/megvii-research/ICCV2019-LearningToPaint/blob/master/baseline/train.py

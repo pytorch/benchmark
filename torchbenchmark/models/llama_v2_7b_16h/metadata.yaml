@@ -5,7 +5,6 @@ eval_benchmark: false
 eval_deterministic: false
 eval_nograd: true
 not_implemented:
-- jit: true
 - device: cpu
 - device: cuda
   test: train

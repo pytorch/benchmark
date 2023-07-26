@@ -6,5 +6,5 @@ class Model(HuggingFaceModel):
     DEFAULT_TRAIN_BSIZE = 4
     DEFAULT_EVAL_BSIZE = 1
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(name="hf_Bert_large", test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(name="hf_Bert_large", test=test, device=device, batch_size=batch_size, extra_args=extra_args)

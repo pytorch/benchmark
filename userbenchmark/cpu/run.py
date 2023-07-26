@@ -27,12 +27,13 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
     if not model_names:
         model_names = list_models()
     cfgs = itertools.product(*[devices, tests, model_names])
+    if jit:
+        extra_args.extend(["--backend", "torchscript"])
     result = [TorchBenchModelConfig(
         name=model_name,
         device=device,
         test=test,
         batch_size=batch_size,
-        jit=jit,
         extra_args=extra_args,
         extra_env=None,
     ) for device, test, model_name in cfgs]
@@ -50,13 +51,14 @@ def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConf
     models = validate(parse_str_to_list(models), list_models()) if models else list_models()
     extra_args = config_obj["extra_args"].split(' ') if config_obj["extra_args"] else []
     configs = []
+    if "jit" in config_obj and config_obj["jit"]:
+        extra_args.extend(["--backend", "torchscript"])
     for model in models:
         config = TorchBenchModelConfig(
             name=model,
             device="cpu",
             test=config_obj["test"],
             batch_size=config_obj["batch_size"] if "batch_size" in config_obj else None,
-            jit=config_obj["jit"] if "jit" in config_obj else False,
             extra_args=extra_args,
             extra_env=None,
         )

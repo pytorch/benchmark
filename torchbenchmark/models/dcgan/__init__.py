@@ -92,8 +92,6 @@ class Generator(nn.Module):
             # state size. (dcgan.nc) x 64 x 64
         )
 
-        self.jt = None
-        self.jitshape = None
         self.debug_print = False
 
     def forward(self, input):
@@ -131,8 +129,6 @@ class Discriminator(nn.Module):
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
-        self.jt = None
-        self.jitshape = None
 
     def forward(self, input):
       return self.main(input)
@@ -142,8 +138,8 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 32
     DEFAULT_EVAL_BSIZE = 256
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.debug_print = False
 
         self.root = str(Path(__file__).parent)
@@ -213,7 +209,6 @@ class Model(BenchmarkModel):
                 self.eval_noise = torch.randn(self.batch_size, nz, 1, 1, device=self.device)
 
     def jit_callback(self):
-        assert self.jit, "Calling JIT callback without specifying the JIT option."
         self.model = torch.jit.trace(self.model,(self.exmaple_inputs,))
         if self.test == "eval" and False == self.inference_just_descriminator:
             self.netG = torch.jit.trace(self.netG,(self.eval_noise,))

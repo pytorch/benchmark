@@ -41,8 +41,8 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 2048
     DEFAULT_EVAL_BSIZE = 2048
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         # Train architecture: use the configuration in the paper.
         # Source: https://arxiv.org/pdf/1906.00091.pdf

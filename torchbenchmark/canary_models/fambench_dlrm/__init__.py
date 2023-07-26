@@ -47,8 +47,8 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = DEFAULT_TRAIN_ARGS.mini_batch_size
     DEEPCOPY: bool = False
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test, device, batch_size, jit, extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test, device, batch_size, extra_args)
         if test == "train":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_TRAIN_ARGS))
             self.fambench_args.inference_only = False
