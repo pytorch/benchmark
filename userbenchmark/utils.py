@@ -6,7 +6,7 @@ import time
 import json
 import yaml
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Callable
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
@@ -49,8 +49,8 @@ class TorchBenchABTestResult:
     control_env: Dict[str, str]
     treatment_env: Dict[str, str]
     details: Dict[str, TorchBenchABTestMetric]
-    control_only_metrics: Dict[str, float] = {}
-    treatment_only_metrics: Dict[str, float] = {}
+    control_only_metrics: Dict[str, float] = field(default_factory=dict)
+    treatment_only_metrics: Dict[str, float] = field(default_factory=dict)
     # the repository to bisect, default to "pytorch"
     bisection: str = "pytorch"
     # can be "abtest" or "bisect"
