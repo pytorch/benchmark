@@ -42,6 +42,7 @@ All parameters of `cpu` userbenchmark as below,
   [here](https://github.com/pytorch/pytorch/blob/main/torch/backends/xeon/run_cpu.py).
   Default value is `--throughput-mode`.
 - `--dryrun` whether dryrun the userbenchmark command.
+- `--profile` whether to run profiler around the function.
 
 Besides those parameters provided by the `cpu` userbenchmark directly, user also
 can add all supported extra args defined in

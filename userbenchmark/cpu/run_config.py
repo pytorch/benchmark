@@ -5,6 +5,7 @@ Run PyTorch cpu benchmarking.
 import argparse
 import os
 import numpy
+import torch.profiler as profiler
 
 from typing import List, Dict, Optional
 from pathlib import Path
@@ -45,7 +46,7 @@ with add_path(str(REPO_PATH)):
         result = get_output_json(BM_NAME, metrics)
         dump_output(BM_NAME, result, output_dir)
 
-    def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
+    def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False, profile: bool=False) -> Optional[TorchBenchModelMetrics]:
         """This function only handles NotImplementedError, all other errors will fail."""
         print(f"Running {config} ...", end='')
         if dryrun:
@@ -59,7 +60,13 @@ with add_path(str(REPO_PATH)):
                 # load the model instance within current process
                 model = load_model(config)
             # get the model test metrics
-            result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
+            if profile:
+                print("[INFO] Collecting Profiling logs...")
+                with profiler.profile(activities=[profiler.ProfilerActivity.CPU]) as prof, profiler.record_function("model_inference"):
+                    result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
+                print(prof.key_averages().table(sort_by="self_cpu_time_total", row_limit=-1))
+            else:
+                result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
         except NotImplementedError as e:
             print(" [NotImplemented]")
             return None
@@ -81,7 +88,7 @@ with add_path(str(REPO_PATH)):
             extra_args=extra_args,
             extra_env=None)
         try:
-            metrics_res = run_config(config, metrics, dryrun=args.dryrun)
+            metrics_res = run_config(config, metrics, dryrun=args.dryrun, profile=args.profile)
         except KeyboardInterrupt:
             print("User keyboard interrupted!")
         if not args.dryrun:
@@ -101,5 +108,6 @@ with add_path(str(REPO_PATH)):
         parser.add_argument("--output", "-o", default=None, help="Output dir.")
         parser.add_argument("--metrics", default="latencies", help="Benchmark metrics, split by comma.")
         parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
+        parser.add_argument("--profile", action="store_true", help="Run the profiler around the function")
         args, extra_args = parser.parse_known_args()
         run(args, extra_args)
