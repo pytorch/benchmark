@@ -2,12 +2,9 @@ import argparse
 import subprocess
 import os
 import sys
-import yaml
-import tarfile
 from utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
 from pathlib import Path
 REPO_ROOT = Path(__file__).parent
-
 
 def pip_install_requirements(requirements_txt="requirements.txt"):
     if not _test_https():
