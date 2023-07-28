@@ -249,6 +249,10 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # Skip models deemed unstable by torch-nightly
     {'model': m} for m in unstable_models
 ] + [
+    # 16h currently OOMs, but once it supports train, we should remove this line
+    # See tracker https://github.com/pytorch/benchmark/issues/1793
+    {'model': 'llama_v2_7b_16h'}
+] +[
     # SparseAdam does not support dense gradients
     {'optim': 'SparseAdam', 'model': m} for m in DENSE_MODELS
 ] + [
