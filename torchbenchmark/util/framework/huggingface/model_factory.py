@@ -30,6 +30,8 @@ class_models = {
     'hf_Whisper': (1024, 1024, 'WhisperConfig()', 'AutoModelForAudioClassification'),
     # default num_hidden_layers=32 but that OOMs, feel free to change this config to something more real
     'llama_v2_7b_16h' : (512,512, 'LlamaConfig(num_hidden_layers=16)', 'AutoModelForCausalLM'),
+    # an even smaller model since 16h OOMs for our optimizer benchmarks
+    'llama_v2_7b_8h' : (512,512, 'LlamaConfig(num_hidden_layers=8)', 'AutoModelForCausalLM'),
 }
 
 cpu_input_slice = {
