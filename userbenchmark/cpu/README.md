@@ -24,7 +24,6 @@ All parameters of `cpu` userbenchmark as below,
   `None`, means run all models.
 - `--batch-size, -b` run with the specifice batch size. Default value is `None`,
   means run eith mdoel predifined default batch size.
-- `--jit` whether to convert and run the model with `jit` mode.
 - `--config, -c` YAML config to specify tests to run.
 - `--metrics` benchmark metrics, split by comma. Current support metrics
   including `latencies`, `throughputs` and `cpu_peak_mem`, default value is
@@ -68,7 +67,7 @@ test. And for each single model test, it will create a subfolder under folder
 instance PID for that model test.
 ```shell
 $ ls .userbenchmark/cpu/cpu-20230420004336
-alexnet-eval-eager/  resnet50-eval-eager/  
+alexnet-eval/  resnet50-eval/  
 $ ls .userbenchmark/cpu/cpu-20230420004336/alexnet-eval-eager/
 metrics-3347653.json  metrics-3347654.json  metrics-3347655.json  metrics-3347656.json
 $ cat .userbenchmark/cpu/metrics-20230420004336.json 
@@ -78,10 +77,10 @@ $ cat .userbenchmark/cpu/metrics-20230420004336.json
         "pytorch_git_version": "de1114554c38322273c066c091d455519d45472d"
     },
     "metrics": {
-        "alexnet-eval-eager_latency": 58.309660750000006,
-        "alexnet-eval-eager_cmem": 0.416259765625,
-        "resnet50-eval-eager_latency": 335.04970325,
-        "resnet50-eval-eager_cmem": 0.90673828125
+        "alexnet-eval_latency": 58.309660750000006,
+        "alexnet-eval_cmem": 0.416259765625,
+        "resnet50-eval_latency": 335.04970325,
+        "resnet50-eval_cmem": 0.90673828125
     }
 }
 ```
@@ -93,12 +92,22 @@ python run_benchmark.py cpu -c cpu_test.yaml
 
 Other typical cpu benchmark test examples.
 
-Benchmark jit with oneDNN fuser can use below comamnd,
+Benchmark torchdynamo inducotr backend on cpu device can use below command,
 ```shell
-python run_benchmark.py cpu --model resnet50 --test eval --jit --fuser fuser3
+python run_benchmark.py cpu --model resnet50 --test eval --torchdynamo inductor
 ```
 
-Benchmark `float32` eager inference with `channels-last` comamnd as below,
+Benchmark amp_bf16 on cpu device can use below command,
+```shell
+python run_benchmark.py cpu --model resnet50 --test eval --precision amp_bf16
+```
+
+Benchmark jit (`--backend torchscript`) with oneDNN fuser can use below command,
+```shell
+python run_benchmark.py cpu --model resnet50 --test eval --backend torchscript --fuser fuser3
+```
+
+Benchmark `float32` eager inference with `channels-last` command as below,
 ```shell
 python run_benchmark.py cpu --model resnet50 --test eval --channels-last
 ```

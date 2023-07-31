@@ -18,11 +18,6 @@ with add_path(str(REPO_PATH)):
     BM_NAME = 'cpu'
     CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-    def get_output_subdir(config: TorchBenchModelConfig) -> str:
-        mode = "jit" if config.jit else "eager"
-        subdir = f"{config.name}-{config.test}-{mode}"
-        return subdir
-
     def result_to_output_metrics(metrics: List[str], metrics_res: TorchBenchModelMetrics) -> Dict[str, float]:
         result_metrics = {}
         if metrics_res:
@@ -71,8 +66,6 @@ with add_path(str(REPO_PATH)):
         test = validate(args.test, list_tests())
         model = validate(args.model, list_models())
         metrics = validate(parse_str_to_list(args.metrics), list_metrics())
-        if args.jit:
-            extra_args.extend(["--backend", "torchscript"])
         config = TorchBenchModelConfig(
             name=model,
             device=device,
@@ -86,7 +79,7 @@ with add_path(str(REPO_PATH)):
             print("User keyboard interrupted!")
         if not args.dryrun:
             args.output = args.output if args.output else get_output_dir(BM_NAME)
-            target_dir = Path(args.output).joinpath(get_output_subdir(config))
+            target_dir = Path(args.output).joinpath(f"{config.name}-{config.test}")
             target_dir.mkdir(exist_ok=True, parents=True)
             metrics_dict = result_to_output_metrics(metrics, metrics_res)
             dump_result_to_json(metrics_dict, target_dir)
@@ -97,7 +90,6 @@ with add_path(str(REPO_PATH)):
         parser.add_argument("--test", "-t", default="eval", help="Tests to run.")
         parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice model.")
         parser.add_argument("--batch-size", "-b", default=None, type=int, help="Run the specifice batch size.")
-        parser.add_argument("--jit", action="store_true", help="Convert the models to jit mode.")
         parser.add_argument("--output", "-o", default=None, help="Output dir.")
         parser.add_argument("--metrics", default="latencies", help="Benchmark metrics, split by comma.")
         parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
