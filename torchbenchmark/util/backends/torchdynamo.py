@@ -53,6 +53,11 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         type=distutils.util.strtobool,
         default="false",
     )
+    parser.add_argument(
+        "--quantize",
+        action='store_true',
+        help="enable quantize for inducotr",
+    )
     args, extra_args = parser.parse_known_args(dynamo_args)
     return args, extra_args
 
@@ -72,8 +77,10 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
 
     if args.torchdynamo == "inductor":
         import torch._inductor as torchinductor
-        torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
-
+        if model.device == "cuda":
+            torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
+        if model.device == "cpu" and model.test == "eval" and args.quantize:
+            enable_inductor_quant(model)
         # Setup torchinductor.config.triton.mm
         if args.tritonmm == "triton":
             torchinductor.config.triton.mm = "triton"
@@ -120,3 +127,25 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         model.add_context(lambda: optimize_ddp_ctx(True))
 
     torchdynamo.reset()
+
+def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel'):
+    import copy
+    from torch.ao.quantization.quantize_pt2e import prepare_pt2e, convert_pt2e
+    import torch.ao.quantization.pt2e.quantizer.x86_inductor_quantizer as xiq
+    from torch.ao.quantization.pt2e.quantizer import X86InductorQuantizer
+    module, example_inputs = model.get_module()
+    # Generate the FX Module
+    exported_model, guards = torchdynamo.export(
+            module,
+            *copy.deepcopy(example_inputs),
+            aten_graph=True,
+        )
+    # Create X86InductorQuantizer
+    quantizer = X86InductorQuantizer()
+    quantizer.set_global(xiq.get_default_x86_inductor_quantization_config())
+    # PT2E Quantization flow
+    prepared_model = prepare_pt2e(exported_model, quantizer)
+    # Calibration
+    prepared_model(*example_inputs)
+    converted_model = convert_pt2e(prepared_model).eval()
+    model.set_module(converted_model)
