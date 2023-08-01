@@ -86,7 +86,7 @@ class Model(BenchmarkModel):
             '--vocab_path', f'{root}/data/vocab.small',
             '--output_path', 'bert.model',
         ]) # Avoid reading sys.argv here
-        args.with_cuda = self.device == 'cuda'
+        args.device = self.device
         args.script = False
         args.on_memory = True
 
@@ -147,7 +147,7 @@ class Model(BenchmarkModel):
 
         trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
-                                   with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
+                                   device=args.device, device_ids=args.device_ids, log_freq=args.log_freq, debug=args.debug)
 
         if test == "eval":
             bert.eval()
