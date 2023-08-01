@@ -123,6 +123,8 @@ def _load_tests():
         devices.append('cuda')
     if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
         devices.append('mps')
+    if device := os.getenv('ACCELERATOR'):
+        devices.append(device)
 
     for path in _list_model_paths():
         # TODO: skipping quantized tests for now due to BC-breaking changes for prepare

@@ -295,6 +295,8 @@ class ModelTask(base_task.TaskBase):
         diagnostic_msg = ""
         try:
             module = importlib.import_module(f'.models.{model_name}', package=package)
+            if accelerator_backend := os.getenv("ACCELERATOR_BACKEND"):
+                setattr(module, accelerator_backend, importlib.import_module(accelerator_backend))
             Model = getattr(module, 'Model', None)
             if Model is None:
                 diagnostic_msg = f"Warning: {module} does not define attribute Model, skip it"
