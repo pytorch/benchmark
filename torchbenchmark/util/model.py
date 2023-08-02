@@ -162,10 +162,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
                 if current_device_name in SPECIAL_DEVICE_MAPPING:
                     current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
-            elif self.device == "cpu":
-                current_device_name = "cpu"
-            elif self.device == "mps":
-                current_device_name = "mps"
+            else:
+                current_device_name = str(self.device)
             # use the device suggestion on CUDA inference tests, key should be either eval_batch_size or train_batch_size
             device_batch_size_key = f"{self.test}_batch_size"
             if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"] \
