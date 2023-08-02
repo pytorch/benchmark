@@ -11,5 +11,7 @@ class Model(HuggingFaceModel, HuggingFaceAuthMixin):
         HuggingFaceAuthMixin.__init__(self)
         super().__init__(name="llama_v2_7b", test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
+
     def train(self):
-        return NotImplementedError("7b LLAMA model will OOM on CI GPU machines")
+        return NotImplementedError("FSDP should implement a training loop")
+
