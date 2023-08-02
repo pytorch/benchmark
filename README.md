@@ -2,7 +2,7 @@
 This is a collection of open source benchmarks used to evaluate PyTorch performance.
 
 `torchbenchmark/models` contains copies of popular or exemplary workloads which have been modified to:
-*(a)* expose a standardized API for benchmark drivers, *(b)* optionally, enable JIT,
+*(a)* expose a standardized API for benchmark drivers, *(b)* optionally, enable backends such as torchinductor/torchscript,
  *(c)* contain a miniature version of train/test data and a dependency install script.
 
 ## Installation
@@ -34,11 +34,6 @@ Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
 ```
 pip install --pre torch torchvision torchtext torchaudio -i https://download.pytorch.org/whl/nightly/cu118
-```
-
-Install other necessary libraries:
-```
-pip install boto3 pyyaml
 ```
 
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.
@@ -115,8 +110,8 @@ Some useful options include:
 - `--cpu_only` if running on a local CPU machine and ignoring machine configuration checks
 
 #### Examples of Benchmark Filters
-- `-k "test_train[NAME-cuda-jit]"` for a particular flavor of a particular model
-- `-k "(BERT and (not cuda) and (not jit))"` for a more flexible approach to filtering
+- `-k "test_train[NAME-cuda-eager]"` for a particular flavor of a particular model
+- `-k "(BERT and (not cuda))"` for a more flexible approach to filtering
 
 Note that `test_bench.py` will eventually be deprecated as the `userbenchmark` work evolve. Users are encouraged to explore and consider using [userbenchmark](#using-userbenchmark).
 
@@ -128,7 +123,7 @@ The `userbenchmark` allows you to develop your customized benchmarks with TorchB
 Sometimes you may want to just run train or eval on a particular model, e.g. for debugging or profiling.  Rather than relying on __main__ implementations inside each model, `run.py` provides a lightweight CLI for this purpose, building on top of the standard BenchmarkModel API.
 
 ```
-python run.py <model> [-d {cpu,cuda}] [-m {eager,jit}] [-t {eval,train}] [--profile]
+python run.py <model> [-d {cpu,cuda}] [-t {eval,train}] [--profile]
 ```
 Note: `<model>` can be a full, exact name, or a partial string match.
 

@@ -3,5 +3,3 @@ eval_deterministic: true
 eval_nograd: true
 train_benchmark: false
 train_deterministic: false
-not_implemented:
-  - jit: true

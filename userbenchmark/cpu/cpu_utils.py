@@ -70,11 +70,10 @@ def dump_output(bm_name, output, output_dir=None, fname=None):
 def get_run(test_dir: Path):
     run = {}
     testdir_name = test_dir.name
-    regex = "(.*)-(.*)-(.*)"
+    regex = "(.*)-(.*)"
     g = re.match(regex, testdir_name).groups()
     run["model"] = g[0]
     run["test"] = g[1]
-    run["mode"] = g[2]
     run["results"] = []
     ins_jsons = filter(lambda x: x.is_file(), test_dir.iterdir())
     for ins_json in ins_jsons:
@@ -91,10 +90,10 @@ def get_runs(work_dir: Path):
 
 def add_test_results(runs, result_metrics):
     # metrics name examples:
-    # timm_regnet-eval-eager_latency
-    # timm_regnet-eval-eager_cmem
+    # timm_regnet-eval_latency
+    # timm_regnet-eval_cmem
     for run in runs:
-        run_base_name = f"{run['model']}-{run['test']}-{run['mode']}"
+        run_base_name = f"{run['model']}-{run['test']}"
         ins_number = len(run["results"])
         assert ins_number
         latency_metric = "latency" in run["results"][0]["metrics"]

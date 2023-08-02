@@ -126,8 +126,6 @@ def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: 
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=list_backends(), help="enable backends")
     args, extra_args = parser.parse_known_args(opt_args)
-    if model.jit:
-        args.backend = "torchscript"
     if args.backend:
         backend = BACKENDS[args.backend]
         model._enable_backend, extra_args = backend(model, backend_args=extra_args)

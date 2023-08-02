@@ -38,8 +38,8 @@ class Model(BenchmarkModel):
     # TODO: yolov3 does use an optimizer, but it is inaccessible from this file.
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         # run just 1 epoch
         self.num_epochs = 1
         self.train_num_batch = 1

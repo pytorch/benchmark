@@ -29,8 +29,8 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.traincfg = SpeechTransformerTrainConfig(prefetch=True, train_bs=self.batch_size, num_train_batch=NUM_TRAIN_BATCH, device=self.device)
         if test == "train":
             self.traincfg.model.to(self.device)

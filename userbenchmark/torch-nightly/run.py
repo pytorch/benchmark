@@ -34,7 +34,6 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
         device=device,
         test=test,
         batch_size=None,
-        jit=False,
         extra_args=[],
         extra_env=None,
     ) for device, test, model_name in cfgs]
@@ -108,7 +107,6 @@ def generate_model_configs_from_yaml(yaml_file: str) -> Tuple[List[TorchBenchMod
                 device=device,
                 test=c["test"],
                 batch_size=c["batch_size"] if "batch_size" in c else None,
-                jit=False,
                 extra_args=[],
                 extra_env=None,
             )
@@ -127,7 +125,6 @@ def parse_test_name(test_name: str) -> TorchBenchModelConfig:
         device=device,
         test=test,
         batch_size=None,
-        jit=False,
         extra_args=[],
         extra_env=None,
     )

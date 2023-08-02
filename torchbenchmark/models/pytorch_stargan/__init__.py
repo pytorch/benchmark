@@ -33,8 +33,8 @@ class Model(BenchmarkModel):
     # TODO: Customizing the optimizer is nontrivial, perhaps a next step.
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         # init config
         config = parse_config()
@@ -45,7 +45,7 @@ class Model(BenchmarkModel):
         config.batch_size = self.batch_size
         config.use_tensorboard = False
         config.device = device
-        config.should_script = jit
+        config.should_script = False
         config.prefetch = True
 
         makedirs(config)
@@ -73,6 +73,10 @@ class Model(BenchmarkModel):
     def generate_example_inputs(self):
         for x_real, c_trg_list in self.solver.get_test_inputs():
             return x_real, c_trg_list[0] # batch > #images
+
+    def jit_callback(self):
+        self.solver.G = torch.jit.script(self.solver.G)
+        self.solver.D = torch.jit.script(self.solver.D)
 
     def get_module(self):
         return self.model, self.example_inputs

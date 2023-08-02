@@ -8,7 +8,7 @@ import torch.nn as nn
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 import transformers
-from transformers import AutoConfig, ReformerConfig, BertConfig, LlamaConfig, GenerationConfig
+from transformers import AutoConfig, ReformerConfig, BertConfig, GenerationConfig, WhisperConfig, LlamaConfig
 from typing import Tuple
 
 class_models = {
@@ -27,6 +27,7 @@ class_models = {
     'hf_Bert': (512, 512, 'BertConfig()', 'AutoModelForMaskedLM'),
     # see https://huggingface.co/bert-large-cased
     'hf_Bert_large': (512, 512, 'BertConfig(hidden_size=1024, num_hidden_layers=24, num_attention_heads=16)', 'AutoModelForMaskedLM'),
+    'hf_Whisper': (1024, 1024, 'WhisperConfig()', 'AutoModelForAudioClassification'),
     # default num_hidden_layers=32 but that OOMs, feel free to change this config to something more real
     'llama_v2_7b_16h' : (512,512, 'LlamaConfig(num_hidden_layers=16)', 'AutoModelForCausalLM'),
     'hf_MPT_7b_instruct': (512, 512, 'AutoConfig.from_pretrained("mosaicml/mpt-7b-instruct", trust_remote_code=True)', 'AutoModelForCausalLM'),
@@ -57,8 +58,8 @@ class HuggingFaceModel(BenchmarkModel):
     # unsuffixed model with GenerationWrapper which will make it do
     # autoregressive text generation instead of a probability prediction
     # NB: name is used as kwarg, cannot rename it here
-    def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, name, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         self.name = name
         if name.endswith('_generate'):
@@ -179,8 +180,8 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
     Instead of just running __call__ on the model, use generate to generate
     text.
     """
-    def __init__(self, name, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(name=name, test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, name, test, device, batch_size=None, extra_args=[]):
+        super().__init__(name=name, test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         # Make this configurable with extra_args
         # NB: this is *fixed* generation size as eos_token_id is None
         # These params were cribbed off of

@@ -16,12 +16,10 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 32
     DEFAULT_EVAL_BSIZE = 32
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
         if test == "eval" and device != "cpu":
             raise NotImplementedError("The eval test only supports CPU.")
-        if jit and test == "train":
-            raise NotImplementedError("torchscript operations should only be applied after quantization operations")
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         self.model = models.resnet50().to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device),)

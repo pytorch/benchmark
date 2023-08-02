@@ -18,8 +18,8 @@ class TorchVisionModel(BenchmarkModel):
     # Whether to skip the opt zero grad
     SKIP_ZERO_GRAD = False
 
-    def __init__(self, model_name, test, device, jit=False, batch_size=None, weights=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, model_name, test, device, batch_size=None, weights=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
 

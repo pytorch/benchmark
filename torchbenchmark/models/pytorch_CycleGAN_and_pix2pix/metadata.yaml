@@ -4,6 +4,5 @@ eval_nograd: true
 train_benchmark: true
 train_deterministic: true
 not_implemented:
-  - jit: true
   # Disabled due to excessively slow runtime - see GH Issue #100
   - device: cpu

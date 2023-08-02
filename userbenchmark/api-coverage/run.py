@@ -111,7 +111,6 @@ def generate_model_config(model_name: str) -> List[TorchBenchModelConfig]:
         device=device,
         test=test,
         batch_size=None,
-        jit=False,
         extra_args=[],
         extra_env=None,
     ) for device, test in cfgs]

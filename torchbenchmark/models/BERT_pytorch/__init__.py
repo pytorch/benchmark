@@ -74,10 +74,10 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 16
     DEFAULT_EVAL_BSIZE = 16
 
-    def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
         if device == "cpu":
             self.DEFAULT_EVAL_BSIZE = max(1, int(self.DEFAULT_EVAL_BSIZE / 8))
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         debug_print = False
         root = str(Path(__file__).parent)
         args = parse_args(args=[
@@ -86,8 +86,8 @@ class Model(BenchmarkModel):
             '--vocab_path', f'{root}/data/vocab.small',
             '--output_path', 'bert.model',
         ]) # Avoid reading sys.argv here
-        args.with_cuda = self.device == 'cuda'
-        args.script = self.jit
+        args.device = self.device
+        args.script = False
         args.on_memory = True
 
         # Example effect of batch size on eval time(ms)
@@ -147,7 +147,7 @@ class Model(BenchmarkModel):
 
         trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
                                    lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
-                                   with_cuda=args.with_cuda, cuda_devices=args.cuda_devices, log_freq=args.log_freq, debug=args.debug)
+                                   device=args.device, device_ids=args.device_ids, log_freq=args.log_freq, debug=args.debug)
 
         if test == "eval":
             bert.eval()

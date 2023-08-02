@@ -32,8 +32,8 @@ class GNNModel(BenchmarkModel):
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
-    def __init__(self, model_name, test, device, jit=False, batch_size = None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, model_name, test, device, batch_size = None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.tb_args, self.extra_args = parse_tb_args(self.extra_args)
 
         root = str(Path(__file__).parent.parent.parent.parent)
@@ -120,8 +120,8 @@ class BasicGNNModel(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     task = GNN.CLASSIFICATION
-    def __init__(self, model_name, test, device, jit=False, batch_size = None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, model_name, test, device, batch_size = None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         Model = models_dict[model_name]
         self.model = Model(64, 64, num_layers=3).to(device)
         # Apply some global side effects to library (throw out the compiled

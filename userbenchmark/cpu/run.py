@@ -22,7 +22,7 @@ with add_path(REPO_PATH):
 BM_NAME = "cpu"
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-def generate_model_configs(devices: List[str], tests: List[str], model_names: List[str], batch_size: int, jit: bool, extra_args: List[str]) -> List[TorchBenchModelConfig]:
+def generate_model_configs(devices: List[str], tests: List[str], model_names: List[str], batch_size: int, extra_args: List[str]) -> List[TorchBenchModelConfig]:
     """Use the default batch size and default mode."""
     if not model_names:
         model_names = list_models()
@@ -32,7 +32,6 @@ def generate_model_configs(devices: List[str], tests: List[str], model_names: Li
         device=device,
         test=test,
         batch_size=batch_size,
-        jit=jit,
         extra_args=extra_args,
         extra_env=None,
     ) for device, test, model_name in cfgs]
@@ -56,7 +55,6 @@ def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConf
             device="cpu",
             test=config_obj["test"],
             batch_size=config_obj["batch_size"] if "batch_size" in config_obj else None,
-            jit=config_obj["jit"] if "jit" in config_obj else False,
             extra_args=extra_args,
             extra_env=None,
         )
@@ -69,7 +67,6 @@ def parse_args(args):
     parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
     parser.add_argument("--model", "-m", default=None, help="Only run the specifice models, splited by comma.")
     parser.add_argument("--batch-size", "-b", default=None, help="Run the specifice batch size.")
-    parser.add_argument("--jit", action="store_true", help="Convert the models to jit mode.")
     parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
     parser.add_argument("--metrics", default="latencies", help="Benchmark metrics, split by comma.")
     parser.add_argument("--output", "-o", default=None, help="Output dir.")
@@ -91,7 +88,7 @@ def run(args: List[str]):
         devices = validate(parse_str_to_list(args.device), list_devices())
         tests = validate(parse_str_to_list(args.test), list_tests())
         models = validate(parse_str_to_list(args.model), list_models())
-        configs = generate_model_configs(devices, tests, model_names=models, batch_size=args.batch_size, jit=args.jit, extra_args=extra_args)
+        configs = generate_model_configs(devices, tests, model_names=models, batch_size=args.batch_size, extra_args=extra_args)
     args.output = args.output if args.output else get_output_dir(BM_NAME, test_date)
     try:
         for config in configs:
@@ -123,8 +120,6 @@ def run_benchmark(config, args):
     if config.test:
         cmd.append("-t")
         cmd.append(config.test)
-    if config.jit:
-        cmd.append("--jit")
 
     cmd.extend(config.extra_args)
     cmd.append("--metrics")

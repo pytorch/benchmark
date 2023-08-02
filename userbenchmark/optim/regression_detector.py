@@ -10,16 +10,14 @@ def run(control, treatment) -> Optional[TorchBenchABTestResult]:
     treatment_metrics = treatment["metrics"]
     details = {}
     for control_metric_name, control_metric in control_metrics.items():
-        # Don't report benchmark stats for CPU as CPU can be unstable
-        if "cpu" in control_metric_name:
-            continue
         if control_metric_name in treatment_metrics:
             treatment_metric = treatment_metrics[control_metric_name]
             delta = (treatment_metric - control_metric) / control_metric
             # Trigger on BOTH slowdowns and speedups
             if abs(delta) > DEFAULT_REGRESSION_DELTA_THRESHOLD:
                 details[control_metric_name] = TorchBenchABTestMetric(control=control_metric, treatment=treatment_metric, delta=delta)
-    return TorchBenchABTestResult(control_env=control_env, \
-                                  treatment_env=treatment_env, \
-                                  details=details, \
-                                  bisection=None)
+    # control_only_metrics/treatment_only_metrics will be filled in later by the main regression detector
+    return TorchBenchABTestResult(name=control["name"],
+                                  control_env=control_env,
+                                  treatment_env=treatment_env,
+                                  details=details)

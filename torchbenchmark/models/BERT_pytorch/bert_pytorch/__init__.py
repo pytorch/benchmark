@@ -20,10 +20,10 @@ def parse_args(args=None):
     parser.add_argument("-e", "--epochs", type=int, default=10, help="number of epochs")
     parser.add_argument("-w", "--num_workers", type=int, default=0, help="dataloader worker size")
 
-    parser.add_argument("--with_cuda", type=bool, default=True, help="training with CUDA: true, or false")
+    parser.add_argument("--device", default=0, help="Device to use for training, str or int (CUDA only)")
     parser.add_argument("--log_freq", type=int, default=10, help="printing loss every n iter: setting n")
     parser.add_argument("--corpus_lines", type=int, default=None, help="total number of lines in corpus")
-    parser.add_argument("--cuda_devices", type=int, nargs='+', default=None, help="CUDA device ids")
+    parser.add_argument("--device_ids", nargs='+', default=None, help="Device ids, str or int (CUDA only)")
     parser.add_argument("--on_memory", type=bool, default=True, help="Loading on memory: true or false")
 
     parser.add_argument("--lr", type=float, default=1e-3, help="learning rate of adam")
@@ -32,4 +32,8 @@ def parse_args(args=None):
     parser.add_argument("--adam_beta2", type=float, default=0.999, help="adam first beta value")
 
     parsed_args = parser.parse_args(args)
+    if isinstance(parsed_args.device, str) and parsed_args.device.isdigit():
+        parsed_args.device = int(parsed_args.device)
+    if isinstance(parsed_args.device_ids, str) and parsed_args.device_ids.isdigit():
+        parsed_args.device_ids = int(parsed_args.device_ids)
     return parsed_args

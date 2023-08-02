@@ -47,8 +47,8 @@ class Model(BenchmarkModel):
     # prefetch only 1 batch
     NUM_OF_BATCHES = 1
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         if not device == "cuda":
             # Only implemented on CUDA because the original model code explicitly calls the `Tensor.cuda()` API
             # https://github.com/rwightman/efficientdet-pytorch/blob/9cb43186711d28bd41f82f132818c65663b33c1f/effdet/data/loader.py#L114
@@ -60,7 +60,7 @@ class Model(BenchmarkModel):
         # Disable distributed
         args.distributed = False
         args.device = self.device
-        args.torchscript = self.jit
+        args.torchscript = False
         args.world_size = 1
         args.rank = 0
         args.pretrained_backbone = not args.no_pretrained_backbone

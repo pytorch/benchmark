@@ -323,9 +323,9 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def make_model_instance(test: str, device: str, jit: bool, batch_size: Optional[int]=None, extra_args: List[str]=[]) -> None:
+    def make_model_instance(test: str, device: str, batch_size: Optional[int]=None, extra_args: List[str]=[]) -> None:
         Model = globals()["Model"]
-        model = Model(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+        model = Model(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         import gc
         gc.collect()
@@ -436,9 +436,6 @@ class ModelTask(base_task.TaskBase):
                 "torch.backends.cudnn.deterministic does not match expect metadata during eval."
         assert md["eval_nograd"] == self._details.metadata["eval_nograd"], \
             "torch.is_grad_enabled does not match expect metadata during eval."
-
-    def check_opt_vs_noopt_jit(self) -> None:
-        self.worker.run("model.check_opt_vs_noopt_jit()")
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod

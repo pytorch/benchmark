@@ -16,8 +16,8 @@ class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     DEFAULT_EVAL_BSIZE = 1
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         checkpoint_path = os.path.join(LIT_LLAMA_PATH, "checkpoints/lit-llama/7B/lit-llama.pth")
         if not os.path.exists(checkpoint_path):

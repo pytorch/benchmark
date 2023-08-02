@@ -8,8 +8,8 @@ class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
     DEFAULT_EVAL_BSIZE = 1
 
-    def __init__(self, test, device, jit=False, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         embed_dim = 1536
         beam_size = 1
         # This is quite a bit smaller than, e.g., T5, because this model is

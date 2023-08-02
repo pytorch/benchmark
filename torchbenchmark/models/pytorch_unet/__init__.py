@@ -26,8 +26,8 @@ class Model(BenchmarkModel):
     DEFAULT_TRAIN_CUDA_PRECISION = "amp"
     DEFAULT_EVAL_CUDA_PRECISION = "amp"
 
-    def __init__(self, test, device, batch_size=None, jit=False, extra_args=[]):
-        super().__init__(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         self.args = self._get_args()
         # The sample inputs shape used here mimic the setting of the original repo
@@ -71,7 +71,6 @@ class Model(BenchmarkModel):
             grad_scaler.update()
 
     def jit_callback(self):
-        assert self.jit, "Calling JIT callback without specifying the JIT option."
         if self.test == 'eval':
             self.model = torch.jit.optimize_for_inference( \
                 torch.jit.freeze(torch.jit.script(self.model.eval()), preserved_attrs=["n_classes"]))
