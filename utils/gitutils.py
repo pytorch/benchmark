@@ -163,6 +163,8 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
         subprocess.check_call(command, cwd=repo, shell=False)
         command = ["git", "checkout", "--recurse-submodules", branch]
         subprocess.check_call(command, cwd=repo, shell=False)
+        command = ["git", "submodule", "update", "--init", "--recursive"]
+        subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
         # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
@@ -177,6 +179,8 @@ def update_git_repo(repo: str, branch: str="main") -> bool:
             command = ["git", "pull"]
             subprocess.check_call(command, cwd=repo, shell=False)
             command = ["git", "checkout", "--recurse-submodules", branch]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            command = ["git", "submodule", "update", "--init", "--recursive"]
             subprocess.check_call(command, cwd=repo, shell=False)
             return True
         except subprocess.CalledProcessError:
