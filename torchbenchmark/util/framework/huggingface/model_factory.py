@@ -31,6 +31,9 @@ class_models = {
     # default num_hidden_layers=32 but that OOMs, feel free to change this config to something more real
     'llama_v2_7b_16h' : (512,512, 'LlamaConfig(num_hidden_layers=16)', 'AutoModelForCausalLM'),
     'hf_MPT_7b_instruct': (512, 512, 'AutoConfig.from_pretrained("mosaicml/mpt-7b-instruct", trust_remote_code=True)', 'AutoModelForCausalLM'),
+    'llama_v2_7b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-7b-hf")', 'AutoModelForCausalLM'),
+    'llama_v2_13b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-13b-hf")', 'AutoModelForCausalLM'),
+    'llama_v2_70b' : (512, 512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-70b-hf")', 'AutoModelForMaskedLM'),
 }
 
 cpu_input_slice = {
