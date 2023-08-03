@@ -10,11 +10,11 @@ from transformers import AutoConfig, ReformerConfig, BigBirdConfig, BertConfig, 
 
 PATCH_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "patches")
 
-def cache_model(name: str):
+def cache_model(name: str, **kwargs):
     import transformers
     model_config = eval(class_models[name][2])
     model_ctor = getattr(transformers, class_models[name][3])
-    model_ctor.from_config(model_config)
+    model_ctor.from_config(model_config, **kwargs)
 
 def patch_transformers():
     import transformers
