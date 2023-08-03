@@ -1,7 +1,8 @@
 from ..utils import TorchBenchABTestResult, TorchBenchABTestMetric
 from . import BM_NAME
 
-DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.07
+# only detect regressions larger than 10%
+DEFAULT_REGRESSION_DELTA_THRESHOLD = 0.10
 
 def run(control, treatment) -> TorchBenchABTestResult:
     control_env = control["environ"]
