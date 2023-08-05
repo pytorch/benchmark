@@ -403,7 +403,6 @@ class ModelTask(base_task.TaskBase):
     def invoke(self) -> None:
         self.worker.run("""
             model.invoke()
-            maybe_sync()
         """)
 
     def set_eval(self) -> None:
