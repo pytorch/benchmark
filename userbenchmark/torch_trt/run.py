@@ -8,14 +8,20 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import List
+from typing import List, Union
 
+from torchbenchmark.util.experiment.instantiator import (
+    TorchBenchModelConfig,
+    load_model_isolated,
+)
 from torchbenchmark import (
+    ModelTask,
     load_canary_model_by_name,
     load_model_by_name,
-    list_models,
+    _list_model_paths,
     ModelNotFoundError,
 )
+from torchbenchmark.util.model import BenchmarkModel
 
 
 def cli(args: List[str]):
@@ -80,42 +86,48 @@ def save_metrics(metrics):
 
 
 def run_single_model(
-    Model,
-    batch_size: int,
-    extra_args: List[str],
+    model: Union[BenchmarkModel, ModelTask],
     selected_ir: str,
     num_warmup: int,
     num_iter: int,
 ):
     """Run inference benchmarking on a single model"""
-    # Build TorchBench model instance, with backend having the userbenchmark name
-    # This invokes the torch_trt backend functionality directly
-    model = Model(
-        device="cuda",
-        test="eval",
-        batch_size=batch_size,
-        extra_args=[
-            "--backend",
-        ]
-        + extra_args,
-    )
 
+    # Get basic metrics for the model
     metrics = run_one_step(model.invoke, model, num_warmup, num_iter, selected_ir)
 
-    # Print dynamo compilation metrics, if there are any.
+    # Get PT2 compilation time for the model
     try:
-        if model.pt2_compilation_time:
+        if isinstance(model, ModelTask):
+            pt2_compilation_time = model.get_model_attribute("pt2_compilation_time")
+            name = model.get_model_attribute("name")
+            batch_size = model.get_model_attribute("batch_size")
+            precision = model.get_model_attribute("dargs", "precision")
+        else:
+            pt2_compilation_time = getattr(model, "pt2_compilation_time", None)
+            name = getattr(model, "name", None)
+            batch_size = getattr(model, "batch_size", None)
+            precision = getattr(model, "precision", None)
+
+        if pt2_compilation_time is not None and pt2_compilation_time:
             metrics[
-                f"{model.name}.bs_{model.batch_size}.precision_{model.dargs.precision}."
+                f"{name}.bs_{batch_size}.precision_{precision}."
                 + f"ir_{selected_ir}.pt2_compilation_time"
-            ] = model.pt2_compilation_time
+            ] = pt2_compilation_time
     except:
         pass
 
     return metrics
 
 
-def run_one_step(func, model, num_warmup, num_iter, selected_ir):
+def run_one_step(
+    func,
+    model: Union[BenchmarkModel, ModelTask],
+    num_warmup: int,
+    num_iter: int,
+    selected_ir: str,
+):
+    """Run one step of inference benchmarking on a single model"""
     # Warmup model inference
     for _ in range(num_warmup):
         func()
@@ -144,18 +156,31 @@ def run_one_step(func, model, num_warmup, num_iter, selected_ir):
     gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
     cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
 
-    if hasattr(model, "NUM_BATCHES"):
-        median_gpu_time_per_batch = gpu_time / model.NUM_BATCHES
-        median_cpu_walltime_per_batch = cpu_walltime / model.NUM_BATCHES
+    # Differentiate model attribute access based on input type
+    if isinstance(model, ModelTask):
+        num_batches = model.get_model_attribute("NUM_BATCHES")
+        name = model.get_model_attribute("name")
+        batch_size = model.get_model_attribute("batch_size")
+        precision = model.get_model_attribute("dargs", "precision")
+    else:
+        num_batches = getattr(model, "NUM_BATCHES", None)
+        name = getattr(model, "name", None)
+        batch_size = getattr(model, "batch_size", None)
+        precision = getattr(model, "precision", None)
+
+    if num_batches is not None:
+        median_gpu_time_per_batch = gpu_time / num_batches
+        median_cpu_walltime_per_batch = cpu_walltime / num_batches
     else:
         median_gpu_time_per_batch = gpu_time
         median_cpu_walltime_per_batch = cpu_walltime
 
+    # Store metrics as dictionary
     metrics = {
-        f"{model.name}.bs_{model.batch_size}.precision_{model.dargs.precision}."
-        + f"ir_{selected_ir}.median_gpu_time_per_batch": median_gpu_time_per_batch,
-        f"{model.name}.bs_{model.batch_size}.precision_{model.dargs.precision}."
-        + f"ir_{selected_ir}.median_cpu_walltime_per_batch": median_cpu_walltime_per_batch,
+        f"{name}.bs_{batch_size}.precision_{precision}."
+        + f"ir_{selected_ir}.median_gpu_time_ms_per_batch": median_gpu_time_per_batch,
+        f"{name}.bs_{batch_size}.precision_{precision}."
+        + f"ir_{selected_ir}.median_cpu_walltime_ms_per_batch": median_cpu_walltime_per_batch,
     }
 
     return metrics
@@ -196,10 +221,19 @@ def run(args: List[str]):
                 )
                 exit(-1)
 
+        # For single models, use a BenchmarkModel instance
+        model = Model(
+            device="cuda",
+            test="eval",
+            batch_size=parsed_args["bs"],
+            extra_args=[
+                "--backend",
+            ]
+            + unknown_args,
+        )
+
         all_metrics = run_single_model(
-            Model,
-            parsed_args["bs"],
-            unknown_args,
+            model,
             selected_ir,
             parsed_args["num_warmup"],
             parsed_args["num_iter"],
@@ -208,15 +242,36 @@ def run(args: List[str]):
     else:
         all_metrics = {}
 
-        for Model in list_models():
+        # For all models, use ModelTask instances
+        for model_name in _list_model_paths():
+            config = TorchBenchModelConfig(
+                name=model_name,
+                test="eval",
+                device="cuda",
+                batch_size=parsed_args["bs"],
+                extra_args=[
+                    "--backend",
+                ]
+                + unknown_args,
+            )
+
+            try:
+                Model = load_model_isolated(config=config)
+            except ValueError as e:
+                print(
+                    f"Loading model {model_name} failed with:\n{e}\nSkipping the model."
+                )
+                continue
+
             metrics = run_single_model(
                 Model,
-                parsed_args["bs"],
-                unknown_args,
                 selected_ir,
                 parsed_args["num_warmup"],
                 parsed_args["num_iter"],
             )
             all_metrics = {**all_metrics, **metrics}
+
+            # Delete model instance and clean up workspace
+            del Model
 
     save_metrics(all_metrics)
