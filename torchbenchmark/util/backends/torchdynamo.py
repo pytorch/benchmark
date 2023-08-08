@@ -49,6 +49,11 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         default="false",
     )
     parser.add_argument(
+        "--torchinductor_enable_group_fusion",
+        action='store_true',
+        help="enable group fusion in Inductor"
+    )
+    parser.add_argument(
         "--dynamo_disable_optimizer_step",
         type=distutils.util.strtobool,
         default="false",
@@ -79,6 +84,8 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             torchinductor.config.triton.mm = "triton"
             # currently can't pass correctness with use_bmm = True
             # torchinductor.config.triton.use_bmm = True
+        if args.torchinductor_enable_group_fusion:
+            torchinductor.config.group_fusion = True
 
         # used for correctness checks, to avoid triton rand() behaving differently from torch rand().
         torchinductor.config.fallback_random = bool(args.torchinductor_fallback_random)
