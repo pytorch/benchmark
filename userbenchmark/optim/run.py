@@ -50,7 +50,7 @@ SUBSET_OF_MODEL_NAMES: List[str] = [
 # PT2 dynamo tracing for the for-loop implementation takes over 30s.
 # This is known + NOT going to be improved anytime soon, see
 # https://github.com/pytorch/torchdynamo/issues/1803#issuecomment-1336688894
-MODELS_TO_RUN_ON_PT2: List[str] = ['resnet18', 'timm_vision_transformer']
+MODELS_TO_RUN_ON_PT2: List[str] = ['resnet18', 'timm_vision_transformer', 'timm_vision_transformer_large']
 
 # NOTE: While it is possible to run these benchmarks on CPU, we skip running on CPU in CI because CPU stats can be
 # unstable and we had stopped reporting them. You'll still be able to use this script to run CPU though, as it may
@@ -308,7 +308,7 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
     {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': [df], 'optim': 'NAdam'} for m in [
        'densenet121', 'doctr_reco_predictor', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large','hf_Longformer',
-       'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152', 'yolov3'
+       'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152', 'timm_vision_transformer', 'yolov3'
     ] for df in ['no_foreach', 'differentiable']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
