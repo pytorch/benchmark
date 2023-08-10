@@ -1,7 +1,0 @@
-device:
-  - "cuda"
-test:
-  - "train"
-  - "eval"
-args:
-  - ""
