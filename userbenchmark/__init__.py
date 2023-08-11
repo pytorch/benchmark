@@ -1,14 +1,15 @@
-import yaml
 from pathlib import Path
+from typing import List
 
 CURRENT_DIR = Path(__file__).parent
 
-def list_userbenchmarks():
+def list_userbenchmarks() -> List[str]:
     ub_dirs = [x for x in CURRENT_DIR.iterdir() if x.is_dir() and x.joinpath('__init__.py').exists() ]
     ub_names = list(map(lambda x: x.name, ub_dirs))
     return ub_names
 
 def get_ci_from_ub(ub_name):
+    import yaml
     ci_file = CURRENT_DIR.joinpath(ub_name).joinpath("ci.yaml")
     if not ci_file.exists():
         return None
