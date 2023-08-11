@@ -3,7 +3,9 @@ import subprocess
 import os
 import sys
 from utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
+from userbenchmark import list_userbenchmarks
 from pathlib import Path
+
 REPO_ROOT = Path(__file__).parent
 
 def pip_install_requirements(requirements_txt="requirements.txt"):
@@ -27,7 +29,7 @@ if __name__ == '__main__':
     parser.add_argument("--canary", action="store_true", help="Install canary model.")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
-    parser.add_argument("--component", choices=["distributed"], help="Install requirements for optional components.")
+    parser.add_argument("--userbenchmark", choices=list_userbenchmarks(), help="Install requirements for optional components.")
     args = parser.parse_args()
 
     os.chdir(os.path.realpath(os.path.dirname(__file__)))
@@ -41,13 +43,11 @@ if __name__ == '__main__':
         sys.exit(-1)
     print("OK")
 
-    if args.component == "distributed":
-        success, errmsg = pip_install_requirements(requirements_txt="torchbenchmark/util/distributed/requirements.txt")
-        if not success:
-            print("Failed to install torchbenchmark distributed requirements:")
-            print(errmsg)
-            if not args.continue_on_fail:
-                sys.exit(-1)
+    if args.userbenchmark:
+        # Install userbenchmark dependencies if exists
+        userbenchmark_dir = REPO_ROOT.joinpath("userbenchmark", args.userbenchmark)
+        if userbenchmark_dir.joinpath("install.py").is_file():
+            subprocess.check_call([sys.executable, "install.py"], cwd=userbenchmark_dir.absolute())
         sys.exit(0)
 
     success, errmsg = pip_install_requirements()
