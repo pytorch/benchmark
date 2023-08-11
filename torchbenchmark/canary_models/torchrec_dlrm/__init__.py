@@ -101,10 +101,13 @@ class Model(BenchmarkModel):
             {"lr": args.learning_rate},
         )
 
-        self.model = shard_modules(
-            module=train_model,
-            device=device
-        ).to(device)
+        if args.shard_model:
+            self.model = shard_modules(
+                module=train_model,
+                device=device
+            ).to(device)
+        else:
+            self.model = train_model.to(device)
         dense_optimizer = KeyedOptimizerWrapper(
             dict(in_backward_optimizer_filter(self.model.named_parameters())),
             lambda params: torch.optim.Adagrad(params, lr=args.learning_rate),

@@ -226,4 +226,9 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         action="store_true",
         help="Print the sharding plan used for each embedding table.",
     )
+    parser.add_argument(
+        "--shard_model",
+        action="store_true",
+        help="Shard the model and run it distributed.",
+    )
     return parser.parse_args(argv)
