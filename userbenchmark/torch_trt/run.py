@@ -13,12 +13,12 @@ from typing import List, Union
 from torchbenchmark.util.experiment.instantiator import (
     TorchBenchModelConfig,
     load_model_isolated,
+    list_models,
 )
 from torchbenchmark import (
     ModelTask,
     load_canary_model_by_name,
     load_model_by_name,
-    _list_model_paths,
     ModelNotFoundError,
 )
 from torchbenchmark.util.model import BenchmarkModel
@@ -243,7 +243,7 @@ def run(args: List[str]):
         all_metrics = {}
 
         # For all models, use ModelTask instances
-        for model_name in _list_model_paths():
+        for model_name in list_models():
             config = TorchBenchModelConfig(
                 name=model_name,
                 test="eval",
