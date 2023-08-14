@@ -355,5 +355,5 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     @property
     def pt2_compilation_time(self):
         from torch._dynamo.utils import compile_times
-        compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))["_compile"]
+        compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))["_compile.<locals>.compile_inner"]
         return float(compile_time)
