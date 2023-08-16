@@ -31,7 +31,9 @@ from torchbenchmark.util.experiment.metrics import get_model_flops, get_peak_mem
 
 
 if not hasattr(torch.version, "git_version"):
-    from pytorch.benchmark.fb.run_utils import trace_handler
+    from pytorch.benchmark.fb.run_utils import trace_handler, usage_report_logger
+else:
+    usage_report_logger = lambda: None
 
 
 WARMUP_ROUNDS = 3
@@ -374,6 +376,9 @@ if __name__ == "__main__":
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
         exit(-1)
+
+    # Log the tool usage
+    usage_report_logger()
 
     found = False
     Model = None
