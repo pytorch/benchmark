@@ -67,7 +67,7 @@ def build_repo(repo: TorchRepo, build_env: Dict[str, str]):
 
 def cleanup_torch_packages(pkgs: List[str]=[]):
     if not len(pkgs):
-        pkgs = ["torch", "torchvision", "torchtext", "torchaudio", "torchdata"]
+        pkgs = ["torch", "torchvision", "torchaudio", "torchdata"]
     for _ in range(CLEANUP_ROUND):
         command = "pip uninstall -y " + " ".join(pkgs) + " || true"
         subprocess.check_call(command, shell=True)

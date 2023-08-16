@@ -63,12 +63,6 @@ def pytest_benchmark_update_machine_info(config, machine_info):
     machine_info['cuda_version'] = torch.version.cuda
 
     try:
-        import torchtext
-        machine_info['torchtext_version'] = torchtext.__version__
-    except ImportError:
-        machine_info['torchtext_version'] = '*not-installed*'
-
-    try:
         import torchvision
         machine_info['torchvision_version'] = torchvision.__version__
     except ImportError:

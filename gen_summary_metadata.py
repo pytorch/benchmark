@@ -131,7 +131,7 @@ if __name__ == "__main__":
     parser.add_argument("--eval-nograd", default=None, type=_parser_helper,
                         help="Whether to enable no_grad during eval.")
     # parser.add_argument("--origin", default=None,
-    #                     help="Location of benchmark's origin. Such as torchtext or torchvision.")
+    #                     help="Location of benchmark's origin. Such as torchaudio or torchvision.")
     # parser.add_argument("--train-dtype", default=None,
     #                     choices=['float32', 'float16', 'bfloat16', 'amp'], help="Which fp type to perform training.")
     # parser.add_argument("--eval-dtype", default=None,

@@ -1,6 +1,6 @@
 #!/bin/sh
 # This script runs TorchBench without installing the pytorch and torch dep packages
-# It assumes pytorch, torchtext, and torchvision have already been installed
+# It assumes pytorch and torchvision have already been installed
 # Usage:
 # run.sh RESULT_DIR [BENCHMARK_FILTER]
 # The RESULT_DIR is required, BENCHMARK_FILTER is optional
