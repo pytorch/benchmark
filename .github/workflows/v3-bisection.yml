@@ -38,12 +38,6 @@ jobs:
           repository: pytorch/vision
           path: srcs/vision
           fetch-depth: 0
-      - name: Checkout torchtext
-        uses: actions/checkout@v3
-        with:
-          repository: pytorch/text
-          path: srcs/text
-          fetch-depth: 0
       - name: Checkout torchdata
         uses: actions/checkout@v3
         with:

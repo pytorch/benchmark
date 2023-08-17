@@ -28,17 +28,6 @@ RUN cd /workspace && mkdir tmp_nvidia && cd tmp_nvidia && \
 
 # Source of the CUDA installation scripts:
 # https://github.com/pytorch/builder/blob/main/common/install_cuda.sh
-# Install CUDA 11.7 and cudnn 8.5.0.96
-RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/cuda/11.7.0/local_installers/cuda_11.7.0_515.43.04_linux.run -O cuda_11.7.0_515.43.04_linux.run && \
-    sudo bash ./cuda_11.7.0_515.43.04_linux.run --toolkit --silent && \
-    rm -f cuda_11.7.0_515.43.04_linux.run
-RUN cd /workspace && wget -q https://ossci-linux.s3.amazonaws.com/cudnn-linux-x86_64-8.5.0.96_cuda11-archive.tar.xz -O cudnn-linux-x86_64-8.5.0.96_cuda11-archive.tar.xz && \
-    tar xJf cudnn-linux-x86_64-8.5.0.96_cuda11-archive.tar.xz && \
-    cd cudnn-linux-x86_64-8.5.0.96_cuda11-archive && \
-    sudo cp include/* /usr/local/cuda-11.7/include && \
-    sudo cp lib/* /usr/local/cuda-11.7/lib64 && \
-    sudo ldconfig && \
-    cd .. && rm -rf cudnn-linux-x86_64-8.5.0.96_cuda11-archive && rm -f cudnn-linux-x86_64-8.5.0.96_cuda11-archive.tar.xz
 
 # Install CUDA 11.8 and cudnn 8.7 and NCCL 2.15
 RUN cd /workspace && wget -q https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run -O cuda_11.8.0_520.61.05_linux.run && \

@@ -64,7 +64,6 @@ class BenchmarkData:
                 .assign(git_repo=self._commit_info[tag]['project'])
                 .assign(git_commit=self._commit_info[tag]['id'])
                 .assign(torch=self._machine_info[tag]['pytorch_version'])
-                .assign(torchtext=self._machine_info[tag]['torchtext_version'])
                 .assign(torchvision=self._machine_info[tag]['torchvision_version'])
                 .assign(date=self._commit_info[tag]['time']), ignore_index=True)
         return df

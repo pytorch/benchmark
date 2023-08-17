@@ -11,10 +11,6 @@ from typing import Optional
 DEFAULT_CUDA_VERSION = "11.8"
 
 CUDA_VERSION_MAP = {
-    "11.7": {
-         "pytorch_url": "cu117",
-         "magma_version": "magma-cuda117",
-    },
     "11.8": {
          "pytorch_url": "cu118",
          "magma_version": "magma-cuda118",
@@ -28,7 +24,7 @@ PIN_CMAKE_VERSION = "3.22.*"
 # the numpy version needs to be consistent with
 # https://github.com/pytorch/builder/blob/e66e48f9b1968213c6a7ce3ca8df6621435f0a9c/wheel/build_wheel.sh#L146
 PIN_NUMPY_VERSION = "1.21.2"
-TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchtext", "torchvision", "torchaudio"]
+TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchvision", "torchaudio"]
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
     regex = 'release (.*),'

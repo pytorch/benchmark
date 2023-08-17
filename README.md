@@ -26,14 +26,14 @@ If you are running NVIDIA GPU tests, we support CUDA 11.8+, and use CUDA 11.8 as
 conda install -y -c pytorch magma-cuda118
 ```
 
-Then install pytorch, torchtext, torchvision, and torchaudio using conda:
+Then install pytorch, torchvision, and torchaudio using conda:
 ```
-conda install pytorch torchvision torchtext torchaudio pytorch-cuda=11.8 -c pytorch-nightly -c nvidia
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch-nightly -c nvidia
 ```
 Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
 ```
-pip install --pre torch torchvision torchtext torchaudio -i https://download.pytorch.org/whl/nightly/cu118
+pip install --pre torch torchvision torchaudio -i https://download.pytorch.org/whl/nightly/cu118
 ```
 
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.
@@ -44,9 +44,9 @@ python install.py
 ```
 
 ### Building From Source
-Note that when building PyTorch from source, torchtext, torchvision and torchaudio must also be built from source to make sure the C APIs match.
+Note that when building PyTorch from source, torchvision and torchaudio must also be built from source to make sure the C APIs match.
 
-See detailed instructions to install torchtext [here](https://github.com/pytorch/text), torchvision [here](https://github.com/pytorch/vision) and torchaudio [here](https://github.com/pytorch/audio).
+See detailed instructions to install torchvision [here](https://github.com/pytorch/vision) and torchaudio [here](https://github.com/pytorch/audio).
 Make sure to enable CUDA (by `FORCE_CUDA=1`) if using CUDA.
 Then,
 ```
@@ -58,8 +58,8 @@ python install.py
 ### Notes
 - Setup steps require network connectivity - make sure to enable a proxy if needed.
 - We suggest using the latest PyTorch nightly releases to run the benchmark. Stable versions are NOT tested or maintained.
-- torch, torchtext, torchvision, and torchaudio must all be installed from the same build process.  This means it isn't possible to mix conda torchtext
-  with pip torch, or mix built-from-source torch with pip torchtext.  It's important to match even the conda channel (nightly vs regular).
+- torch, torchvision, and torchaudio must all be installed from the same build process.  This means it isn't possible to mix conda torchvision
+  with pip torch, or mix built-from-source torch with pip torchvision.  It's important to match even the conda channel (nightly vs regular).
   This is due to the differences in the compilation process used by different packaging systems producing incompatible Python binary extensions.
 
 ## Using a low-noise machine
@@ -84,7 +84,7 @@ There are multiple ways for running the model benchmarks.
 
 `userbenchmark` allows to develop and run customized benchmarks.
 
-In each model repo, the assumption is that the user would already have all of the torch family of packages installed (torch, torchtext, torchvision,...) but it installs the rest of the dependencies for the model.
+In each model repo, the assumption is that the user would already have all of the torch family of packages installed (torch, torchvision, torchaudio...) but it installs the rest of the dependencies for the model.
 
 ### Using `test.py`
 `python test.py` will execute the APIs for each model, as a sanity check.  For benchmarking, use `test_bench.py`.  It is based on unittest, and supports filtering via CLI.
