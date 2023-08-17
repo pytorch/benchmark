@@ -1,7 +1,7 @@
 """bisection.py
 Runs bisection to determine PRs that trigger performance signals.
-It assumes that the pytorch, torchbench, torchtext, torchvision, and torchaudio repositories provided are all clean with the latest code.
-By default, the torchaudio, torchvision and torchtext packages will be fixed to the latest commit on the same pytorch commit date.
+It assumes that the pytorch, torchbench, torchvision, and torchaudio repositories provided are all clean with the latest code.
+By default, the torchaudio and torchvision packages will be fixed to the latest commit on the same pytorch commit date.
 
 Usage:
   python bisection.py --work-dir <WORK_DIR> \
@@ -52,11 +52,6 @@ TORCHBENCH_BISECTION_TARGETS = {
         "name": "vision",
         "url": "https://github.com/pytorch/vision.git",
         "build_command": [sys.executable, "setup.py", "install"],
-    },
-    "torchtext": {
-        "name": "text",
-        "url": "https://github.com/pytorch/text.git",
-        "build_command": [sys.executable, "setup.py", "clean", "install"],
     },
     "torchaudio": {
         "name": "audio",

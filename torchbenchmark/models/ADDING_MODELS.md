@@ -42,7 +42,7 @@ The functions you specifically need to implement are
 
 ### Preparing install.py and dependencies
 Simply put, install.py should be a one stop shop to install all the dependencies
-for your model, __except torch, torchvision, torchtext__ which should be assumed to 
+for your model, __except torch, torchvision, torchaudio__ which should be assumed to 
 have been installed by an outsider (the benchmark CI).
 
 - Avoid pinning packages to specific versions with == without good reason, as the

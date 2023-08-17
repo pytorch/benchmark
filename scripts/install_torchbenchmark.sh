@@ -63,13 +63,6 @@ BUILD_SOX=1 python setup.py install 2>&1 > /dev/null
 test $? -eq 0 || { echo "torchaudio build failed!"; exit; }
 popd
 
-git clone https://github.com/pytorch/text torchtext
-pushd torchtext
-git submodule update --init --recursive
-python setup.py clean install 2>&1 > /dev/null
-test $? -eq 0 || { echo "torchtext build failed!"; exit; }
-popd
-
 git clone --recursive https://github.com/pytorch/benchmark.git
 pushd benchmark
 python install.py
