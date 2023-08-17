@@ -142,7 +142,6 @@ DENSE_MODELS = [
     'LearningToPaint',
     'Super_SloMo',
     'alexnet',
-    'attention_is_all_you_need_pytorch',
     'basic_gnn_edgecnn',
     'basic_gnn_gcn',
     'basic_gnn_gin',
@@ -205,7 +204,6 @@ DENSE_MODELS = [
     'phlippe_resnet',
     'pytorch_CycleGAN_and_pix2pix',
     'pytorch_stargan',
-    'pytorch_struct',
     'pytorch_unet',
     'resnet152',
     'resnet18',
@@ -285,7 +283,7 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # torch.compile()'d optimizer.step() has too many arguments in C++
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
     {'model': m, 'device': 'cpu', 'func_str': 'pt2_', 'defaults': []} for m in [
-        'BERT_pytorch', 'Background_Matting', 'Super_SloMo', 'attention_is_all_you_need_pytorch',
+        'BERT_pytorch', 'Background_Matting', 'Super_SloMo',
         'densenet121', 'detectron2_fasterrcnn_r_101_c4', 'detectron2_fasterrcnn_r_101_dc5',
         'detectron2_fasterrcnn_r_101_fpn', 'detectron2_fasterrcnn_r_50_fpn', 'detectron2_maskrcnn',
         'detectron2_maskrcnn_r_101_c4', 'detectron2_maskrcnn_r_101_fpn',

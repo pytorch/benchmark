@@ -43,7 +43,6 @@ CI_SKIP_OPTIMIZER = {
 # Need lower tolerance on GPU. GPU kernels have non deterministic kernels for these models.
 REQUIRE_HIGHER_TOLERANCE = {
     "alexnet",
-    "attention_is_all_you_need_pytorch",
     "densenet121",
     "hf_Albert",
     "vgg16",
