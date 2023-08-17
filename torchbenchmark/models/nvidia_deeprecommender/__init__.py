@@ -9,7 +9,6 @@
 
 import torch
 
-from torchbenchmark.models.attention_is_all_you_need_pytorch.train import train
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
 from typing import Tuple

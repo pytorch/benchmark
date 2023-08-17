@@ -12,6 +12,89 @@ MAIN_RANDOM_SEED = 1337
 STABLENESS_CHECK_ROUNDS: int = 3
 # rounds for correctness tests
 CORRECTNESS_CHECK_ROUNDS: int = 2
+# Use the list from
+# https://github.com/pytorch/pytorch/blob/6c7410ddc350fea625e47744da9d6be7ec74b628/benchmarks/dynamo/common.py#L2247
+UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS = [
+    "alexnet",
+    "Background_Matting",
+    "pytorch_CycleGAN_and_pix2pix",
+    "pytorch_unet",
+    "sam",
+    "Super_SloMo",
+    "vgg16",
+]
+CI_SKIP_OPTIMIZER = {
+    # TIMM
+    "convmixer_768_32",  # accuracy
+    "hrnet_w18",  # Stack issue in fx
+    # TorchBench
+    "dlrm",  # symbolic shapes error
+    # HF
+    "pnasnet5large",  # Stack issue in fx
+    "MobileBertForMaskedLM",  # Stack issue in fx
+    "MobileBertForQuestionAnswering",  # Stack issue in fx
+    "PegasusForConditionalGeneration",  # OOM
+}
+
+
+# Need lower tolerance on GPU. GPU kernels have non deterministic kernels for these models.
+REQUIRE_HIGHER_TOLERANCE = {
+    "alexnet",
+    "densenet121",
+    "hf_Albert",
+    "vgg16",
+    "mobilenet_v3_large",
+    "nvidia_deeprecommender",
+    "timm_efficientdet",
+}
+# These models need >1e-3 tolerance
+REQUIRE_EVEN_HIGHER_TOLERANCE = {
+    "soft_actor_critic",
+    "tacotron2",
+}
+REQUIRE_HIGHER_FP16_TOLERANCE = {
+    "drq",
+}
+REQUIRE_COSINE_TOLERACE = {
+    # Just keeping it here even though its empty, if we need this in future.
+}
+SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS = {
+    # Models that deterministic algorithms can not be turned on for eager mode.
+    "Background_Matting",
+    "detectron2_fasterrcnn_r_101_c4",
+    "detectron2_fasterrcnn_r_101_dc5",
+    "detectron2_fasterrcnn_r_101_fpn",
+    "detectron2_fasterrcnn_r_50_c4",
+    "detectron2_fasterrcnn_r_50_dc5",
+    "detectron2_fasterrcnn_r_50_fpn",
+    "detectron2_maskrcnn",
+}
+# Use the list from
+# https://github.com/pytorch/pytorch/blob/6c7410ddc350fea625e47744da9d6be7ec74b628/benchmarks/dynamo/torchbench.py#L382
+USE_GRAD_IN_INFERENCE = [
+    "maml"
+]
+HAS_NUMPY = True
+
+log = logging.getLogger(__name__)
+
+@contextmanager
+def nested(*contexts):
+    """
+    Chain and apply a list of contexts
+    """
+    with ExitStack() as stack:
+        for ctx in contexts:
+            stack.enter_context(ctx())
+        yield contexts
+
+def pick_grad(name: str, is_training: bool):
+    import torch
+    if is_training or name in USE_GRAD_IN_INFERENCE:
+        return torch.enable_grad()
+    else:
+        return torch.no_grad()
+>>>>>>> 2299f889 (Remove attention_is_all_you_need and pytorch_struct (#1833))
 
 def set_random_seed():
     import torch
