@@ -1,5 +1,5 @@
 """bisection.py
-Runs bisection to determine PRs that trigger performance signals.
+Executes bisection to identify pull requests (PRs) that activate performance signals.
 It assumes that the pytorch, torchbench, torchvision, and torchaudio repositories provided are all clean with the latest code.
 By default, the torchaudio and torchvision packages will be fixed to the latest commit on the same pytorch commit date.
 
