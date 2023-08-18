@@ -146,7 +146,6 @@ DENSE_MODELS = [
     'basic_gnn_gcn',
     'basic_gnn_gin',
     'basic_gnn_sage',
-    'clip',
     'cm3leon_generate',
     'dcgan',
     'demucs',
