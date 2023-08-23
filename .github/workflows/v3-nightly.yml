@@ -6,6 +6,7 @@ on:
 
 jobs:
   run-benchmark:
+    environment: docker-s3-upload
     env:
       BASE_CONDA_ENV: "torchbench"
       CONDA_ENV:  "torchbench-v3-nightly"

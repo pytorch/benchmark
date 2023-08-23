@@ -8,17 +8,19 @@ on:
         description: "Name of the user benchmark to run"
       userbenchmark_options:
         description: "Option of the user benchmark to run"
-env:
-  CONDA_ENV_NAME: "userbenchmarks-ci"
-  PLATFORM_NAME: "aws_t4_metal"
-  TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  SETUP_SCRIPT: "/data/nvme/bin/setup_instance.sh"
+
 jobs:
   run-userbenchmark:
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 1440 # 24 hours
+    environment: docker-s3-upload
+    env:
+      CONDA_ENV_NAME: "userbenchmarks-ci"
+      PLATFORM_NAME: "aws_t4_metal"
+      TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      SETUP_SCRIPT: "/data/nvme/bin/setup_instance.sh"
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
