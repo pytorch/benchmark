@@ -94,7 +94,6 @@ def pick_grad(name: str, is_training: bool):
         return torch.enable_grad()
     else:
         return torch.no_grad()
->>>>>>> 2299f889 (Remove attention_is_all_you_need and pytorch_struct (#1833))
 
 def set_random_seed():
     import torch
