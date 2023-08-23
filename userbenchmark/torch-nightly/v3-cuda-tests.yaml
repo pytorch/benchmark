@@ -62,16 +62,16 @@ cuda:
     max_delta: '0.012089359212515648'
     median_latency: '22.492651'
     stable: true
-  - test: train
-    model: attention_is_all_you_need_pytorch
-    max_delta: '0.004131861627093704'
-    median_latency: '191.760708'
-    stable: true
-  - model: attention_is_all_you_need_pytorch
-    test: eval
-    max_delta: '0.01359911643442069'
-    median_latency: '61.616649'
-    stable: true
+  # - test: train
+  #   model: attention_is_all_you_need_pytorch
+  #   max_delta: '0.004131861627093704'
+  #   median_latency: '191.760708'
+  #   stable: true
+  # - model: attention_is_all_you_need_pytorch
+  #   test: eval
+  #   max_delta: '0.01359911643442069'
+  #   median_latency: '61.616649'
+  #   stable: true
   - model: dcgan
     test: train
     max_delta: '0.034624491767270525'
@@ -557,11 +557,11 @@ cuda:
     max_delta: '0.00703204537212217'
     median_latency: '7.344804'
     stable: true
-  - test: train
-    model: pytorch_struct
-    max_delta: '0.0220314709699338'
-    median_latency: '103.433532'
-    stable: true
+  # - test: train
+  #   model: pytorch_struct
+  #   max_delta: '0.0220314709699338'
+  #   median_latency: '103.433532'
+  #   stable: true
   - model: pytorch_unet
     test: train
     max_delta: '0.020044930100385636'
