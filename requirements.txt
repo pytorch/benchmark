@@ -1,6 +1,7 @@
 accelerate
 bs4
 patch
+logging
 py-cpuinfo
 distro
 iopath
