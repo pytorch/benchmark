@@ -9,6 +9,7 @@ on:
 
 jobs:
   bisection:
+    environment: docker-s3-upload
     env:
       BISECT_CONDA_ENV: "bisection-ci-v2"
       BISECT_DIR: ".torchbench/v2-bisection-ci"

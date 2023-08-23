@@ -6,6 +6,7 @@ on:
 
 jobs:
   run-benchmark:
+    environment: docker-s3-upload
     env:
       TORCHBENCH_VER: "v2"
       CONFIG_VER: "v2"

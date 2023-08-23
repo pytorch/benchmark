@@ -19,6 +19,7 @@ jobs:
     # OS version: Amazon Linux 2
     runs-on: [self-hosted, linux.g5.4xlarge.nvidia.gpu]
     timeout-minutes: 1440 # 24 hours
+    environment: docker-s3-upload
     steps:
       - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
         uses: pytorch/test-infra/.github/actions/setup-ssh@main

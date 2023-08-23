@@ -22,6 +22,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, a100-runner]
+    environment: docker-s3-upload
     timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
