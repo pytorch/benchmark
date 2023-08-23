@@ -5,6 +5,7 @@ This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 import importlib
 import copy
 import warnings
+from contextlib import contextmanager, ExitStack
 from typing import List, Dict, Tuple, Optional
 
 MAIN_RANDOM_SEED = 1337
@@ -76,7 +77,6 @@ USE_GRAD_IN_INFERENCE = [
 ]
 HAS_NUMPY = True
 
-log = logging.getLogger(__name__)
 
 @contextmanager
 def nested(*contexts):
