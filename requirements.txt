@@ -19,7 +19,5 @@ pyyaml
 numpy==1.21.2
 # https://github.com/opencv/opencv-python/issues/885
 opencv-python==4.7.0.72
-# Need https://github.com/kornia/kornia/commit/53808e5 to work on PyTorch nightly
-git+https://github.com/kornia/kornia.git@b7050c3
 submitit
 pynvml
