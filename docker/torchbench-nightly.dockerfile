@@ -11,10 +11,7 @@ RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python ./utils/python_utils.py --create-conda-env ${CONDA_ENV} && \
     echo "if [ -z \${CONDA_ENV} ]; then export CONDA_ENV=${CONDA_ENV}; fi" >> /workspace/setup_instance.sh && \
-    echo "conda activate \${CONDA_ENV}" >> /workspace/setup_instance.sh && \
-    echo "\
-export LD_LIBRARY_PATH=\${CONDA_PREFIX}/lib\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n\
-export LIBRARY_PATH=\${CONDA_PREFIX}/lib\${LIBRARY_PATHPATH:+:\${LIBRARY_PATHPATH}}\n" >> /workspace/setup_instance.sh
+    echo "conda activate \${CONDA_ENV}" >> /workspace/setup_instance.sh
 
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
@@ -31,13 +28,7 @@ RUN cd /workspace/benchmark && \
 # Install TorchBench conda and python dependencies
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
-    python utils/cuda_utils.py --install-torchbench-deps && \
-    cc_path=$(conda run -n "${CONDA_ENV}" printenv CC) && \
-    cxx_path=$(conda run -n "${CONDA_ENV}" printenv CXX) && \
-    ln -s "${cc_path}" "$(dirname "$cc_path")/cc" && \
-    ln -s "${cc_path}" "$(dirname "$cc_path")/gcc" && \
-    ln -s "${cxx_path}" "$(dirname "$cxx_path")/c++" && \
-    ln -s "${cxx_path}" "$(dirname "$cxx_path")/g++"
+    python utils/cuda_utils.py --install-torchbench-deps
 
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
