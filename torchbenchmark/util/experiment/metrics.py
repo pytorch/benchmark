@@ -21,6 +21,7 @@ class TorchBenchModelMetrics:
     cpu_peak_mem: Optional[float]
     gpu_peak_mem: Optional[float]
     pt2_compilation_time: Optional[float]
+    pt2_graph_breaks: Optional[float]
     model_flops: Optional[float]
 
 def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS) -> List[float]:
@@ -89,12 +90,6 @@ def get_peak_memory(func, device: str, num_iter=MEMPROF_ITER, export_metrics_fil
         mem_model_analyzer.export_all_records_to_csv()
     return cpu_peak_mem, device_id, gpu_peak_mem
 
-def get_pt2_compilation_time(model: Union[BenchmarkModel, ModelTask]):
-    if isinstance(model, ModelTask):
-        return model.get_model_attribute('pt2_compilation_time')
-    else:
-        return model.pt2_compilation_time
-
 def get_model_flops(model: Union[BenchmarkModel, ModelTask]) -> float:
     "Run one step of the model, and return the model total flops."
     from torch.utils.flop_counter import FlopCounterMode
@@ -118,6 +113,7 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], 
     cpu_peak_mem = None
     gpu_peak_mem = None
     pt2_compilation_time = None
+    pt2_graph_breaks = None
     model_flops = None
     if not (isinstance(model, BenchmarkModel) or isinstance(model, ModelTask)):
         raise ValueError(f"Expected BenchmarkModel or ModelTask, get type: {type(model)}")
@@ -130,10 +126,14 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], 
     if 'throughputs' in metrics:
         throughputs = [model.batch_size * 1000 / latency for latency in latencies]
     if 'pt2_compilation_time' in metrics:
-        pt2_compilation_time = get_pt2_compilation_time(model)
+        pt2_compilation_time = model.get_model_attribute('pt2_compilation_time') \
+                               if isinstance(model, ModelTask) else model.pt2_compilation_time
+    if 'pt2_graph_breaks' in metrics:
+        pt2_graph_breaks = model.get_model_attribute('pt2_graph_breaks') \
+                           if isinstance(model, ModelTask) else model.pt2_graph_breaks
     if 'model_flops' in metrics:
         model_flops = get_model_flops(model)
-    return TorchBenchModelMetrics(latencies, throughputs, cpu_peak_mem, gpu_peak_mem, pt2_compilation_time, model_flops)
+    return TorchBenchModelMetrics(latencies, throughputs, cpu_peak_mem, gpu_peak_mem, pt2_compilation_time, pt2_graph_breaks, model_flops)
 
 def get_model_accuracy(model_config: TorchBenchModelConfig, isolated: bool=True) -> str:
     import copy
