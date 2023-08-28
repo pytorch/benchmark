@@ -487,5 +487,12 @@ if __name__ == "__main__":
                 ),
                 sep="",
             )
+        if m.pt2_graph_breaks:
+            print(
+                "{:<20} {:>18}".format(
+                    "PT2 Graph Breaks: ", "%.3f" % m.pt2_graph_breaks
+                ),
+                sep="",
+            )
     except:
         pass

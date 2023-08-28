@@ -357,3 +357,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         from torch._dynamo.utils import compile_times
         compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))["_compile.<locals>.compile_inner"]
         return float(compile_time)
+
+    @property
+    def pt2_graph_breaks(self):
+        from torch._dynamo.utils import counters
+        num_graph_breaks = len(counters["graph_break"].keys())
+        return num_graph_breaks
