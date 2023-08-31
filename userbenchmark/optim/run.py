@@ -368,11 +368,14 @@ def generate_random_gradients(parameters):
 def optimizer_step(optimizer):
     optimizer.step()
 
-def pt2_optimizer_step(optimizer):
+def compile_step(optimizer):
     @torchdynamo.optimize('inductor')
     def f():
         optimizer.step()
-    f()
+    return f
+
+def pt2_optimizer_step(compiled_step):
+    compiled_step()
 
 def defaults_to_str(defaults: Dict[str, Any]) -> str:
     # We define lr for SGD, but we don't currently vary lr so it is effectively the default.
@@ -405,20 +408,30 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
 
         print(f'{datetime.datetime.now()}     python -m userbenchmark.optim.run -m {modelName} -d {device}' +
               f' -o {Optim.__name__} --df "{defaults_to_str(defaults)}" -f {maybe_pt2_}')
+
+        arg = optim
+
+        # Run benchmarks for tracing
+        if maybe_pt2_ != '':
+            compile_r = benchmark.Timer(
+                setup='torchdynamo.reset(); gc.collect()',
+                stmt='compile_step(optim)',
+                globals={'optim': optim, 'compile_step': compile_step, 'torchdynamo': torchdynamo, 'gc': gc},
+                sub_label=f'compile_time, {modelName}, {optim.__class__.__name__}, {device}',
+                description=pt2_description + defaults_to_str(defaults),
+            ).blocked_autorange()
+            arg = compile_step(optim)
+        else:
+            compile_r = None
+
         r = benchmark.Timer(
-            stmt=f'{maybe_pt2_}optimizer_step(optim)',
-            globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
+            stmt=f'{maybe_pt2_}optimizer_step(arg)',
+            globals={'arg': arg, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
             sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
             description=pt2_description + defaults_to_str(defaults),
         ).blocked_autorange()
 
-        if maybe_pt2_:
-            # Clears the cache that dynamo had accumulated to prevent OOMs
-            # See https://github.com/pytorch/pytorch/issues/100264
-            torchdynamo.reset()
-            gc.collect()
-
-        return r
+        return r, compile_r
     except Exception as e:
         if not continue_on_error:
             raise e
@@ -432,6 +445,7 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
 def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str],
                    flags: List[str]) -> List[torch.utils.benchmark.utils.common.Measurement]:
     results = []
+    compile_results = []
     optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults_to_str(defaults) for f in flags)]
 
     if run_on_subset:
@@ -443,10 +457,12 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
         if (not ignore_skips and is_excluded(mn, d, O.__name__, func_str, defaults)):
             continue
-        bm = run_model(mn, d, O, defaults, func_str)
-        if bm is not None:
-            results.append(bm)
-    return results
+        r, compile_r = run_model(mn, d, O, defaults, func_str)
+        if r is not None:
+            results.append(r)
+        if compile_r is not None:
+            compile_results.append(compile_r)
+    return results, compile_results
 
 
 def parse_args(args: List[str]):
@@ -541,13 +557,22 @@ def run(args: List[str]):
     if target_dir is not None:
         target_dir.mkdir(exist_ok=True, parents=True)
 
-    results = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
+    results, compile_results = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
     metrics: Dict[str, float] = get_metrics(results)
-    dump_output(BM_NAME, get_output_json(BM_NAME, metrics), target_dir=target_dir)
+    compile_metrics: Dict[str, float] = get_metrics(compile_results)
+    dump_output(BM_NAME, get_output_json(BM_NAME, {**metrics, **compile_metrics}), target_dir=target_dir)
+
+    print("----------------- RUNTIME RESULTS -----------------")
     compare = benchmark.Compare(results)
     compare.trim_significant_figures()
     compare.colorize(rowwise=True)
     compare.print()
+
+    print("----------------- COMPILE TIME RESULTS -----------------")
+    compile_compare = benchmark.Compare(compile_results)
+    compile_compare.trim_significant_figures()
+    compile_compare.colorize(rowwise=True)
+    compile_compare.print()
 
 if __name__ == '__main__':
     run(sys.argv[1:])
