@@ -7,7 +7,7 @@ from tabulate import tabulate
 
 def print_benchmark_stats(data):
     print_stats = ['min', 'max', 'mean', 'stddev', 'rounds', 'median']
-    headers = ['name'] + print_stats 
+    headers = ['name'] + print_stats
     rows = []
     for benchmark in data['benchmarks']:
         row = [benchmark['name']]
