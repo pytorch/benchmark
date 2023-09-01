@@ -14,7 +14,7 @@ It is your userbenchmark's home directory, and you need to create an empty `__in
 Let's suppose the name of your benchmark is `test-userbenchmark`.
 
 We only require users to implement one function in their `run.py`: `def run(args: List[str]): ...`.
-We expect this function should output a *TorchBench userbenchmark metrics json* file in the `$REPO/.userbenchmark/test-userbenchmark/metrics-yyyyMMddHHmmss.json`.
+We expect this function would output a *TorchBench userbenchmark metrics json* file in the `$REPO_ROOT/.userbenchmark/test-userbenchmark/metrics-yyyyMMddHHmmss.json`.
 Where `yyyyMMddHHmmss` is the time when the metrics file is generated.
 
 Here is an example of the metrics json file:
@@ -34,7 +34,13 @@ Here is an example of the metrics json file:
 }
 ```
 
-where `metric-value-1` and `metric-value-2` are floats that indicate the performance metrics. 
+where `metric-value-1` and `metric-value-2` are floats that indicate the performance metrics.
+
+You may test your userbenchmark `test-userbenchmark` locally using the following command:
+
+```
+python run_benchmark.py test-userbenchmark
+```
 
 ## (Optional) Integrate your userbenchmark with CI
 
