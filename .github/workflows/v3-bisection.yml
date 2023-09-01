@@ -5,7 +5,7 @@ on:
       regression_date:
         description: "Date of the regression"
         required: true
-        default: "2023-05-19"
+        default: "2023-08-29"
 
 jobs:
   bisection:
@@ -69,17 +69,6 @@ jobs:
           . "${SETUP_SCRIPT}"; cd benchmark
           python utils/cuda_utils.py --install-torch-build-deps
           python utils/cuda_utils.py --install-torchbench-deps
-          cc_path=$(conda run -n "${CONDA_ENV}" printenv CC)
-          cxx_path=$(conda run -n "${CONDA_ENV}" printenv CXX)
-          ln -s "${cc_path}" "$(dirname "$cc_path")/cc"
-          ln -s "${cc_path}" "$(dirname "$cc_path")/gcc"
-          ln -s "${cxx_path}" "$(dirname "$cxx_path")/c++"
-          ln -s "${cxx_path}" "$(dirname "$cxx_path")/g++"
-          # setup shared library paths
-          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/libpthread.so.0" /lib64/
-          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/lib64/libpthread_nonshared.a" /usr/lib64/
-          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/libc.so.6" /lib64/
-          sudo ln -sf "${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/lib64/libc_nonshared.a" /usr/lib64/
           mkdir -p "${BISECT_WORKDIR}"
           REGRESSION_DATE="${{ github.event.inputs.regression_date }}"
           python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
