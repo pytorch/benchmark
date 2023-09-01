@@ -12,9 +12,6 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from .utils import LOCAL_WORLD_SIZE
-
-
 
 MaskCache = torch.Tensor
 RoPECache = torch.Tensor
@@ -75,12 +72,14 @@ llama_configs = {
 }
 
 class KVCache(nn.Module):
+    @torch.no_grad()
     def __init__(self, max_batch_size, max_seq_length, n_heads, head_size, device='cuda', dtype=torch.bfloat16):
         super().__init__()
         cache_shape = (max_batch_size, n_heads, max_seq_length, head_size)
         self.k_cache = torch.nn.Parameter(torch.zeros(cache_shape, device=device, dtype=dtype))
         self.v_cache = torch.nn.Parameter(torch.zeros(cache_shape, device=device, dtype=dtype))
 
+    @torch.no_grad()
     def update(self, input_pos, k_val, v_val):
         # input_pos: [S], k_val: [B, H, S, D]
         assert input_pos.shape[0] == k_val.shape[2]
@@ -106,8 +105,10 @@ class KVCacheAggregator(nn.Module):
         self.kv_caches = nn.ParameterList([])
 
 class LLaMA(nn.Module):
-    def __init__(self, config: LLaMAConfig) -> None:
+    def __init__(self, config: LLaMAConfig, world_size: int) -> None:
         super().__init__()
+        self.world_size = world_size
+
         assert config.padded_vocab_size is not None
         self.config = config
 
@@ -115,7 +116,7 @@ class LLaMA(nn.Module):
         self.transformer = nn.ModuleDict(
             dict(
                 wte=nn.Embedding(config.padded_vocab_size, config.n_embd),
-                h=nn.ModuleList(Block(config) for _ in range(config.n_layer)),
+                h=nn.ModuleList(Block(config, self.world_size) for _ in range(config.n_layer)),
                 ln_f=RMSNorm(config.n_embd),
             )
         )
@@ -127,8 +128,8 @@ class LLaMA(nn.Module):
         self.max_seq_length = None
 
     def setup_caches(self, max_batch_size, max_seq_length, device='cuda', dtype=torch.bfloat16):
-        n_embd = self.config.n_embd // LOCAL_WORLD_SIZE
-        n_head = self.config.n_head // LOCAL_WORLD_SIZE
+        n_embd = self.config.n_embd // self.world_size
+        n_head = self.config.n_head // self.world_size
         head_size = n_embd // n_head
 
         self.max_seq_length = max_seq_length
@@ -182,18 +183,18 @@ class LLaMA(nn.Module):
         return logits
 
     @classmethod
-    def from_name(cls, name: str) -> Self:
-        return cls(LLaMAConfig.from_name(name))
+    def from_name(cls, name: str, world_size: int) -> Self:
+        return cls(LLaMAConfig.from_name(name), world_size)
 
     def reset_cache(self) -> None:
         self.kv_caches.clear()
 
 
 class Block(nn.Module):
-    def __init__(self, config: LLaMAConfig) -> None:
+    def __init__(self, config: LLaMAConfig, world_size: int) -> None:
         super().__init__()
         self.rms_1 = RMSNorm(config.n_embd)
-        self.attn = CausalSelfAttention(config)
+        self.attn = CausalSelfAttention(config, world_size)
         self.rms_2 = RMSNorm(config.n_embd)
         self.mlp = MLP(config)
 
@@ -213,8 +214,10 @@ class Block(nn.Module):
 
 
 class CausalSelfAttention(nn.Module):
-    def __init__(self, config: LLaMAConfig) -> None:
+    def __init__(self, config: LLaMAConfig, world_size: int) -> None:
         super().__init__()
+        self.world_size = world_size
+
         assert config.n_embd % config.n_head == 0
         self.config = config
 
@@ -237,14 +240,14 @@ class CausalSelfAttention(nn.Module):
         kv_cache: Optional[KVCache] = None,
     ) -> Tuple[torch.Tensor, Optional[KVCache]]:
         B, T, C = x.size()  # batch size, sequence length, embedding dimensionality (n_embd)
-        _C = C // LOCAL_WORLD_SIZE
+        _C = C // self.world_size
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q = self.c_attn_q(x)
         k = self.c_attn_k(x)
         v = self.c_attn_v(x)
 
-        n_head = self.n_head // LOCAL_WORLD_SIZE
+        n_head = self.n_head // self.world_size
         head_size = _C // n_head
         k = k.view(B, T, n_head, head_size)
         q = q.view(B, T, n_head, head_size)
@@ -274,8 +277,8 @@ class CausalSelfAttention(nn.Module):
     def prepare_qkv_for_dtensor_tp(self):
         attn = self.c_attn
 
-        assert attn.in_features % LOCAL_WORLD_SIZE == 0 # q, k, v must be shardeable
-        attn.out_features = attn.out_features // LOCAL_WORLD_SIZE
+        assert attn.in_features % self.world_size == 0 # q, k, v must be shardeable
+        attn.out_features = attn.out_features // self.world_size
         # Shard on dim 0 since attn.weight is transposed
         # Shard q, k, v separately
         q, k, v = attn.weight.split(self.config.n_embd, dim=0) # (C, C)

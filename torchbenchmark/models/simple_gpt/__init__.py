@@ -9,7 +9,6 @@ from torchbenchmark.tasks import NLP
 
 from ...util.model import BenchmarkModel
 from .model import LLaMA
-from .utils import LOCAL_RANK, LOCAL_WORLD_SIZE
 
 
 class Model(BenchmarkModel):
@@ -24,17 +23,17 @@ class Model(BenchmarkModel):
             extra_args=extra_args,
         )
 
+        fabric = L.Fabric(devices=[self._rank], precision="bf16-true")
+        with fabric.init_module(empty_init=True):
+            self.model = LLaMA.from_name("7B", self._world_size)
+
         error = self.validate_environment()
         if error:
             # per ADDING_MODELS.md, convention is to fail silently in __init__ and raise in eval
             return
 
-        fabric = L.Fabric(devices=[LOCAL_RANK], precision="bf16-true")
-        with fabric.init_module(empty_init=True):
-            self.model = LLaMA.from_name("7B")
-
         # Tensor parallelism using DTensor
-        mesh = DeviceMesh("cuda", list(range(LOCAL_WORLD_SIZE)))
+        mesh = DeviceMesh("cuda", list(range(self._world_size)))
         for block in self.model.transformer.h:
             # prepare attention weights to be parallelized
             block.attn.prepare_qkv_for_dtensor_tp()
@@ -54,7 +53,7 @@ class Model(BenchmarkModel):
                 tp_mesh_dim=0,
             )
 
-        max_batch_size = 1
+        max_batch_size = self.DEFAULT_EVAL_BSIZE
         self.model.setup_caches(
             max_batch_size=max_batch_size, max_seq_length=self.model.config.block_size
         )
@@ -82,14 +81,15 @@ class Model(BenchmarkModel):
         if not torch.cuda.is_bf16_supported():
             return NotImplementedError("Model requires BF16")
 
-        if LOCAL_WORLD_SIZE != torch.cuda.device_count():
+        if self._world_size != torch.cuda.device_count():
             return NotImplementedError(
-                f"DTensor and all local GPUs to be within the device mesh. {torch.cuda.device_count()} local GPUs, but only world size is only {LOCAL_WORLD_SIZE}."
+                f"DTensor and all local GPUs to be within the device mesh. {torch.cuda.device_count()} local GPUs, but only world size is only {self._world_size}."
             )
 
         return None
 
     def eval(self):
+        # Note: Not called by dynamo runner
         error = self.validate_environment()
         if error:
             raise error
@@ -97,8 +97,3 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             out = self.model(*self.example_inputs)
         return (out,)
-
-
-if __name__ == "__main__":
-    model = Model(test="eval", device="cuda")
-    model.eval()
