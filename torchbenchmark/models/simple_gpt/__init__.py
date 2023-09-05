@@ -1,7 +1,6 @@
 import os
 
 import torch
-import lightning as L
 from torch.distributed._tensor import DeviceMesh
 from torch.distributed.tensor.parallel import parallelize_module
 from torch.distributed.tensor.parallel.style import ColwiseParallel, RowwiseParallel
@@ -23,9 +22,7 @@ class Model(BenchmarkModel):
             extra_args=extra_args,
         )
 
-        fabric = L.Fabric(devices=[self._rank], precision="bf16-true")
-        with fabric.init_module(empty_init=True):
-            self.model = LLaMA.from_name("7B", self._world_size)
+        self.model = LLaMA.from_name("7B", self._world_size).to(device=device, dtype=torch.bfloat16)
 
         error = self.validate_environment()
         if error:
