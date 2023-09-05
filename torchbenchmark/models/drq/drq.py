@@ -137,7 +137,7 @@ class Critic(nn.Module):
     def log(self, logger, step):
         pass
 
-class DRQAgent(object):
+class DRQAgent:
     """Data regularized Q: actor-critic method for learning from pixels."""
     def __init__(self, cfg, device, obs_shape, action_shape, action_range):
         self.action_range = action_range

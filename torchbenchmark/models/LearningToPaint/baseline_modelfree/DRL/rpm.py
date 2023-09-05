@@ -4,7 +4,7 @@ import random
 import torch
 import pickle as pickle
 
-class rpm(object):
+class rpm:
     # replay memory
     def __init__(self, buffer_size):
         self.buffer_size = buffer_size

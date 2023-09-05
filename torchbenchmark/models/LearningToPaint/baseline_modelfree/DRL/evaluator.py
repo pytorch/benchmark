@@ -1,7 +1,7 @@
 import numpy as np
 from utils.util import *
 
-class Evaluator(object):
+class Evaluator:
 
     def __init__(self, args, writer):    
         self.validate_episodes = args.validate_episodes

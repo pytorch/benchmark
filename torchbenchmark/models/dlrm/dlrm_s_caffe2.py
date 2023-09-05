@@ -94,7 +94,7 @@ def where_to_split(mini_batch_size, ndevices, _add_leftover=False):
 
 
 ### define dlrm in Caffe2 ###
-class DLRM_Net(object):
+class DLRM_Net:
     def FeedBlobWrapper(self, tag, val, add_prefix=True, split=False, device_id=-1):
         if self.ndevices > 1 and add_prefix:
             if split:
