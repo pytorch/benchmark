@@ -34,6 +34,9 @@ jobs:
       - name: Validate benchmark components
         run: |
           bash ./scripts/torchbench_test.sh
+      - name: Wait for SSH
+        run: |
+          sleep 100000
       - name: Clean up Conda env
         if: always()
         run: |
