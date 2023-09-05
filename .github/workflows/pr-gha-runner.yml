@@ -35,6 +35,7 @@ jobs:
         run: |
           bash ./scripts/torchbench_test.sh
       - name: Wait for SSH
+        if: always()
         run: |
           sleep 100000
       - name: Clean up Conda env
