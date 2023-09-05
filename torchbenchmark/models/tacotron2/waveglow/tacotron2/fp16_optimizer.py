@@ -48,7 +48,7 @@ class FP16_Module(nn.Module):
     def forward(self, *inputs, **kwargs):
         return fp16_to_fp32(self.module(*(fp32_to_fp16(inputs)), **kwargs))
 
-class FP16_Optimizer(object):
+class FP16_Optimizer:
     """
     FP16_Optimizer is designed to wrap an existing PyTorch optimizer,
     and enable an fp16 model to be trained using a master copy of fp32 weights.

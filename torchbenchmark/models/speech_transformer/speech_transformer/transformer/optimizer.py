@@ -2,7 +2,7 @@
 import torch
 
 
-class TransformerOptimizer(object):
+class TransformerOptimizer:
     """A simple wrapper class for learning rate scheduling"""
 
     def __init__(self, optimizer, k, d_model, warmup_steps=4000):

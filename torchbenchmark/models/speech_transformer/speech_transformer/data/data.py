@@ -100,7 +100,7 @@ class AudioDataLoader(data.DataLoader):
         self.collate_fn = LFRCollate(LFR_m=LFR_m, LFR_n=LFR_n)
 
 
-class LFRCollate(object):
+class LFRCollate:
     """Build this wrapper to pass arguments(LFR_m, LFR_n) to _collate_fn"""
     def __init__(self, LFR_m=1, LFR_n=1):
         self.LFR_m = LFR_m

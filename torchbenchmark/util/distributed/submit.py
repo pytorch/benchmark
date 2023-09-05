@@ -121,7 +121,7 @@ def get_init_file(args):
     return init_file
 
 
-class TrainerWrapper(object):
+class TrainerWrapper:
     def __init__(self, args, model_args=None):
         self.args = args
         self.model_args = model_args

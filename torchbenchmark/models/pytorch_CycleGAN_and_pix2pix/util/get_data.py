@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from os.path import abspath, isdir, join, basename
 
 
-class GetData(object):
+class GetData:
     """A Python script for downloading CycleGAN or pix2pix datasets.
 
     Parameters:
