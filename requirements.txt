@@ -7,8 +7,9 @@ pytest
 pytest-benchmark
 requests
 tabulate
-timm == 0.8.10.dev0
+transformers==4.31.0
+git+https://github.com/huggingface/pytorch-image-models.git@6635bc3
 MonkeyType
 psutil
 pyyaml
-numpy == 1.23.5
+numpy==1.21.2
