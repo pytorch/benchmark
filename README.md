@@ -110,7 +110,7 @@ Some useful options include:
 - `--cpu_only` if running on a local CPU machine and ignoring machine configuration checks
 
 #### Examples of Benchmark Filters
-- `-k "test_train[NAME-cuda-eager]"` for a particular flavor of a particular model
+- `-k "test_train[NAME-cuda]"` for a particular flavor of a particular model
 - `-k "(BERT and (not cuda))"` for a more flexible approach to filtering
 
 Note that `test_bench.py` will eventually be deprecated as the `userbenchmark` work evolve. Users are encouraged to explore and consider using [userbenchmark](#using-userbenchmark).
