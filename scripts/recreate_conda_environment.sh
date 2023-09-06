@@ -10,7 +10,7 @@ conda remove --name $NAME --all -y || true
 
 conda create -y -n $NAME python=$PYTHON_VERSION
 conda activate $NAME
-conda install -y pytorch torchtext torchvision -c pytorch-nightly
+conda install -y pytorch torchvision -c pytorch-nightly
 python install.py
 
 echo

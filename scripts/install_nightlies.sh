@@ -7,7 +7,7 @@ conda activate base
 conda install -y numpy requests ninja pyyaml setuptools gitpython
 conda install -y -c pytorch magma-cuda113
 
-pip install --pre torch torchvision torchtext \
+pip install --pre torch torchvision \
     --progress-bar off \
     -f https://download.pytorch.org/whl/nightly/cu113/torch_nightly.html
 

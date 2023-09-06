@@ -103,8 +103,8 @@ def parse_date_str(s: str):
 
 if __name__ == "__main__":
     # from tabulate import tabulate
-    # print(tabulate(get_n_prior_nightly_wheels(['torch', 'torchvision', 'torchtext'], 200)))
-    # wheels = get_n_prior_nightly_wheels(['torch', 'torchvision', 'torchtext'], 200)
+    # print(tabulate(get_n_prior_nightly_wheels(['torch', 'torchvision'], 200)))
+    # wheels = get_n_prior_nightly_wheels(['torch', 'torchvision'], 200)
     # for a, b, c in wheels:
         # print(f"   \"{a} {b} {c}\"  \\")
     import argparse
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument('--start_date', type=parse_date_str)
     parser.add_argument('--end_date', default=date.today(),
                         type=parse_date_str)
-    parser.add_argument('--packages', nargs='+', default=['torch', 'torchvision', 'torchtext'])
+    parser.add_argument('--packages', nargs='+', default=['torch', 'torchvision'])
     parser.add_argument('--output_dir')
     args = parser.parse_args()
     if args.action == 'create_requirements':

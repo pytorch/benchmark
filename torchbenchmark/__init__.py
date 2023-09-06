@@ -16,7 +16,7 @@ from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
 from .util.env_check import get_pkg_versions
 
-TORCH_DEPS = ['torch', 'torchvision', 'torchtext']
+TORCH_DEPS = ['torch', 'torchvision']
 proxy_suggestion = "Unable to verify https connectivity, " \
                    "required for setup.\n" \
                    "Do you need to use a proxy?"

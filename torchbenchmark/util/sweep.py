@@ -19,18 +19,16 @@ def run_step(cmd, cwd=None, conda_env=None, verbose=True):
 def create_env(env, benchmark, wheelset, py_ver=3.7, verbose=True):
     run_step(f"conda create -y -q -p {env} python={py_ver}")
     run_step(f"pip install -q {wheelset['torch']['wheel']} {wheelset['torchvision']['wheel']}", conda_env=env)
-    run_step(f"pip install -q --no-deps {wheelset['torchtext']['wheel']}", conda_env=env)
     run_step(f"python install.py", conda_env=env, cwd=benchmark)
 
 def check_env(env):
     torch_ver = run_step(f'python -c "import torch; print(torch.__version__)"', conda_env=env)
     torchvision_ver = run_step(f'python -c "import torchvision; print(torchvision.__version__)"', conda_env=env)
-    torchtext_ver = run_step(f'python -c "import torchtext; print(torchtext.__version__)"', conda_env=env)
-    print(torch_ver, torchvision_ver, torchtext_ver)
+    print(torch_ver, torchvision_ver)
     return True
 
 def prepare_envs(num_prior, env_root, benchmark):
-    wheelsets = get_n_prior_nightly_wheels(['torch', 'torchvision', 'torchtext'], num_prior)
+    wheelsets = get_n_prior_nightly_wheels(['torch', 'torchvision'], num_prior)
     for wheelset in wheelsets:
         version = wheelset['torch']['version']
         env = Path(env_root) / f"torch-{version}-env"
