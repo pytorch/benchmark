@@ -49,7 +49,7 @@ jobs:
           # Install magma
           conda install -y -c pytorch "${MAGMA_VERSION}"
           # Install PyTorch nightly from pip
-          pip install --no-cache-dir --pre torch torchvision torchaudio torchtext --index-url \
+          pip install --no-cache-dir --pre torch torchvision torchaudio --index-url \
             https://download.pytorch.org/whl/nightly/${CUDA_VERSION}
       - name: Install other TorchBench dependencies
         run: |
