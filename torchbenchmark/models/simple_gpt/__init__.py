@@ -14,6 +14,23 @@ class Model(BenchmarkModel):
     task = NLP.GENERATION
     DEFAULT_EVAL_BSIZE = 1
 
+    def validate_environment(self):
+        if not torch.cuda.is_available() or "cuda" not in self.device:
+            return NotImplementedError("Model requires CUDA")
+
+        if not torch.cuda.is_bf16_supported():
+            return NotImplementedError("Model requires BF16")
+
+        if not hasattr(self, "_world_size"):
+            return NotImplementedError("Model needs to be run via dynamo torchbench and be provided distributed parameters")
+
+        if self._world_size != torch.cuda.device_count():
+            return NotImplementedError(
+                f"DTensor and all local GPUs to be within the device mesh. {torch.cuda.device_count()} local GPUs, but only world size is only {self._world_size}"
+            )
+
+        return None
+
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         super().__init__(
             test=test,
@@ -22,12 +39,11 @@ class Model(BenchmarkModel):
             extra_args=extra_args,
         )
 
-        self.model = LLaMA.from_name("7B", self._world_size).to(device=device, dtype=torch.bfloat16)
-
         error = self.validate_environment()
         if error:
-            # per ADDING_MODELS.md, convention is to fail silently in __init__ and raise in eval
-            return
+            raise error
+
+        self.model = LLaMA.from_name("7B", self._world_size).to(device=device, dtype=torch.bfloat16)
 
         # Tensor parallelism using DTensor
         mesh = DeviceMesh("cuda", list(range(self._world_size)))
@@ -71,26 +87,5 @@ class Model(BenchmarkModel):
     def train(self):
         raise NotImplementedError("Training not supported for this model")
 
-    def validate_environment(self):
-        if not torch.cuda.is_available() or "cuda" not in self.device:
-            return NotImplementedError("Model requires CUDA")
-
-        if not torch.cuda.is_bf16_supported():
-            return NotImplementedError("Model requires BF16")
-
-        if self._world_size != torch.cuda.device_count():
-            return NotImplementedError(
-                f"DTensor and all local GPUs to be within the device mesh. {torch.cuda.device_count()} local GPUs, but only world size is only {self._world_size}."
-            )
-
-        return None
-
     def eval(self):
-        # Note: Not called by dynamo runner
-        error = self.validate_environment()
-        if error:
-            raise error
-
-        with torch.no_grad():
-            out = self.model(*self.example_inputs)
-        return (out,)
+        raise NotImplementedError("Model needs to be run via dynamo torchbench and be provided distributed parameters")

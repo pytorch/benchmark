@@ -95,8 +95,8 @@ This file should define two things:
 - `__main__` function, which exercises the model APIs for local testing
 
 Important: be deliberate about support for cpu/gpu and jit/no-jit.  In the case that
-your model is instantiated in an unsupported configuration, the convention is to return
-a model object from \_\_init\_\_ but raise NotImplementedError() from all its methods.
+your model is instantiated in an unsupported configuration, the convention is to raise
+NotImplementedError from \_\_init\_\_.
 
 See the [BenchmarkModel API](https://github.com/pytorch/benchmark/blob/master/torchbenchmark/util/model.py) to get started. The [BERT_pytorch](BERT_pytorch/__init__.py) benchmark can serve as a good example.
 
