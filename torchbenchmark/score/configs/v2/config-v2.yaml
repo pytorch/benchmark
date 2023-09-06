@@ -39,18 +39,6 @@ tests:
   test_eval[alexnet-cuda-jit]:
     norm: 0.0033223649952560663
     stable: true
-  test_eval[attention_is_all_you_need_pytorch-cpu-eager]:
-    norm: 0.06995468109380454
-    stable: true
-  test_eval[attention_is_all_you_need_pytorch-cpu-jit]:
-    norm: 0.06454386550467461
-    stable: true
-  test_eval[attention_is_all_you_need_pytorch-cuda-eager]:
-    norm: 0.029354333877563477
-    stable: true
-  test_eval[attention_is_all_you_need_pytorch-cuda-jit]:
-    norm: 0.026960783055983484
-    stable: true
   test_eval[dcgan-cuda-eager]:
     norm: 0.018106368952430785
     stable: true
@@ -512,9 +500,6 @@ tests:
     stable: true
   test_train[pytorch_stargan-cuda-jit]:
     norm: 0.280938713112846
-    stable: true
-  test_train[pytorch_struct-cuda-eager]:
-    norm: 0.46295464306604117
     stable: true
   test_train[pytorch_unet-cpu-eager]:
     norm: 2.2978561989730224
