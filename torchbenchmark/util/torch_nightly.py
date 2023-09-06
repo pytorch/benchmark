@@ -13,7 +13,7 @@ from datetime import date, timedelta
 from bs4 import BeautifulSoup
 from collections import defaultdict
 
-DEFAULT_CUDA_VERSION = "cu117"
+DEFAULT_CUDA_VERSION = "cu118"
 DEFAULT_PYTHON_VERSION = "cp310"
 
 torch_wheel_nightly_base = f"https://download.pytorch.org/whl/nightly/{DEFAULT_CUDA_VERSION}/" 
