@@ -113,7 +113,7 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         else:
             model.train = dynamo_optimizer(model.train)
     else:
-        model.eval = dynamo_optimizer(model.eval)
+        model.model = dynamo_optimizer(model.model)
 
     if args.optimize_dynamo_ddp:
         @contextlib.contextmanager
@@ -131,8 +131,8 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
 def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel'):
     import copy
     from torch.ao.quantization.quantize_pt2e import prepare_pt2e, convert_pt2e
-    import torch.ao.quantization.pt2e.quantizer.x86_inductor_quantizer as xiq
-    from torch.ao.quantization.pt2e.quantizer import X86InductorQuantizer
+    import torch.ao.quantization.quantizer.x86_inductor_quantizer as xiq
+    from torch.ao.quantization.quantizer.x86_inductor_quantizer import X86InductorQuantizer
     module, example_inputs = model.get_module()
     # Generate the FX Module
     exported_model, guards = torchdynamo.export(
