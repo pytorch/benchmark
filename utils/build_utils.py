@@ -28,7 +28,8 @@ def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
     env["USE_MKLDNN"] = "1"
     env["USE_MKL"] = "1"
     env["USE_CUDNN"] = "1"
-    env["USE_FFMPEG"] = "1"
+    # Do not depend on ffmpeg, which requires conda-forge
+    env["USE_FFMPEG"] = "0"
     # Torchaudio SOX build has failures, skip it
     env["BUILD_SOX"] = "0"
     # Disable Torchaudio KALDI build
