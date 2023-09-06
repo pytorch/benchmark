@@ -1,3 +1,2 @@
-transformers==4.10.0
 sentencepiece
 datasets
