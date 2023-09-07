@@ -372,12 +372,6 @@ tests:
   test_train[alexnet-cuda-jit]:
     norm: 0.3255895880283788
     stable: true
-  test_train[attention_is_all_you_need_pytorch-cuda-eager]:
-    norm: 0.7674085305770859
-    stable: true
-  test_train[attention_is_all_you_need_pytorch-cuda-jit]:
-    norm: 0.7794392879586667
-    stable: true
   test_train[dcgan-cpu-eager]:
     norm: 1.2124564830446616
     stable: false
