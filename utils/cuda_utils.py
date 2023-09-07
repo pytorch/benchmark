@@ -112,6 +112,10 @@ def install_torch_build_deps(cuda_version: str):
     subprocess.check_call(cmd)
 
 def install_torchbench_deps():
+    # weasyprint requires ffi7, which requires glib > 2.69 on ubuntu 20.04
+    conda_deps = ["glib"]
+    cmd = ["conda", "install", "-y"] + conda_deps
+    subprocess.check_call(cmd)
     cmd = ["pip", "install", "unittest-xml-reporting", "boto3"]
     subprocess.check_call(cmd)
 
