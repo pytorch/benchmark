@@ -11,6 +11,7 @@ import gc
 import sys
 import itertools
 import datetime
+import time
 import yaml
 
 with add_path(REPO_PATH):
@@ -405,20 +406,34 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
 
         print(f'{datetime.datetime.now()}     python -m userbenchmark.optim.run -m {modelName} -d {device}' +
               f' -o {Optim.__name__} --df "{defaults_to_str(defaults)}" -f {maybe_pt2_}')
+
+        compile_r = None
+        sub_label = f'{modelName}, {optim.__class__.__name__}, {device}'
+        description = pt2_description + defaults_to_str(defaults)
+
+        # Get compile time by running 5 times and subtracting
+        #   first entry - avg(entries 3 through 5)
+        # skipping the second entry due to high variance of first cache hit
+        if maybe_pt2_ != '':
+            times = []
+            if device == "cuda":
+                torch.cuda.reset_peak_memory_stats()
+                torch.cuda.empty_cache()
+            for _ in range(5):
+                t0 = time.perf_counter()
+                pt2_optimizer_step(optim)
+                t1 = time.perf_counter()
+                times.append(t1 - t0)
+            compile_r = (f'compile_time, {sub_label}, {description}', times[0] - sum(times[2:5]) / 3)
+
         r = benchmark.Timer(
             stmt=f'{maybe_pt2_}optimizer_step(optim)',
             globals={'optim': optim, 'optimizer_step': optimizer_step, 'pt2_optimizer_step': pt2_optimizer_step},
-            sub_label=f'{modelName}, {optim.__class__.__name__}, {device}',
-            description=pt2_description + defaults_to_str(defaults),
+            sub_label=sub_label,
+            description=description,
         ).blocked_autorange()
 
-        if maybe_pt2_:
-            # Clears the cache that dynamo had accumulated to prevent OOMs
-            # See https://github.com/pytorch/pytorch/issues/100264
-            torchdynamo.reset()
-            gc.collect()
-
-        return r
+        return r, compile_r
     except Exception as e:
         if not continue_on_error:
             raise e
@@ -426,12 +441,13 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
         with open('errors.txt', 'a') as f:
             f.write(f'{datetime.datetime.now()} python -m userbenchmark.optim.run -m {modelName} -d {device}' +
                     f' -o {Optim.__name__} --df "{defaults_to_str(defaults)}" -f {maybe_pt2_}{str(e)}\n')
-        return None
+        return None, None
 
 
 def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], devices: List[str],
-                   flags: List[str]) -> List[torch.utils.benchmark.utils.common.Measurement]:
+                   flags: List[str]) -> Tuple[List[torch.utils.benchmark.utils.common.Measurement], Dict[str, float]]:
     results = []
+    compile_metrics = {}
     optim_cfgs = [(O, defaults) for (O, defaults) in OPTIMIZERS if O.__name__ in optims and all(f in defaults_to_str(defaults) for f in flags)]
 
     if run_on_subset:
@@ -443,10 +459,13 @@ def run_benchmarks(optims: List[str], func_strs: List[str], models: List[str], d
     for mn, d, (O, defaults), func_str in itertools.product(models, devices, optim_cfgs, func_strs):
         if (not ignore_skips and is_excluded(mn, d, O.__name__, func_str, defaults)):
             continue
-        bm = run_model(mn, d, O, defaults, func_str)
-        if bm is not None:
-            results.append(bm)
-    return results
+        r, compile_r = run_model(mn, d, O, defaults, func_str)
+        if r is not None:
+            results.append(r)
+        if compile_r is not None:
+            metric_name, compile_time = compile_r
+            compile_metrics[metric_name] = compile_time
+    return results, compile_metrics
 
 
 def parse_args(args: List[str]):
@@ -541,13 +560,19 @@ def run(args: List[str]):
     if target_dir is not None:
         target_dir.mkdir(exist_ok=True, parents=True)
 
-    results = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
+    results, compile_metrics = run_benchmarks(args.optims, args.funcs, args.models, args.devices, args.default_flags)
     metrics: Dict[str, float] = get_metrics(results)
-    dump_output(BM_NAME, get_output_json(BM_NAME, metrics), target_dir=target_dir)
+    dump_output(BM_NAME, get_output_json(BM_NAME, {**metrics, **compile_metrics}), target_dir=target_dir)
+
+    print("----------------- RUNTIME RESULTS -----------------")
     compare = benchmark.Compare(results)
     compare.trim_significant_figures()
     compare.colorize(rowwise=True)
     compare.print()
+
+    print("----------------- COMPILE TIME RESULTS -----------------")
+    print(compile_metrics)
+
 
 if __name__ == '__main__':
     run(sys.argv[1:])
