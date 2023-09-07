@@ -8,7 +8,7 @@ from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.util.framework.huggingface.model_factory import HuggingFaceAuthMixin
 
 import torch
-from diffusers import DiffusionPipeline
+from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 
 
 class Model(BenchmarkModel, HuggingFaceAuthMixin):
@@ -24,23 +24,22 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
         HuggingFaceAuthMixin.__init__(self)
         super().__init__(test=test, device=device,
                          batch_size=batch_size, extra_args=extra_args)
-        model_id = "stabilityai/stable-diffusion-xl-base-1.0"
-        self.pipe = DiffusionPipeline.from_pretrained(model_id).to(device)
-        self.list_of_inputs = [
-            torch.randn(1, 4, 256, 256).to(self.device),
-            torch.tensor([1.0]).to(self.device),
-            torch.randn(1, 1, 2048).to(self.device),
-            {"text_embeds": torch.randn(1, 2560).to(self.device), "time_ids": torch.tensor([1]).to(self.device)}
-        ]
-
-
+        self.example_inputs = "a photo of an astronaut riding a horse on mars"
+        model_id = "stabilityai/stable-diffusion-2"
+        scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
+        self.pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)
+        self.pipe.to(self.device)
 
     def enable_fp16_half(self):
         pass
 
     
     def get_module(self):
-        self.pipe.unet, self.list_of_inputs
+        random_input = torch.randn(1, 4, 128, 128).to(self.device)
+        timestep = torch.tensor([1.0]).to(self.device)
+        encoder_hidden_states = torch.randn(1, 1, 1024).to(self.device)
+        return self.pipe.unet, [random_input, timestep, encoder_hidden_states]
+
 
     def train(self):
         raise NotImplementedError("Train test is not implemented for the stable diffusion model.")
