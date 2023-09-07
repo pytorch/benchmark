@@ -22,7 +22,10 @@ from torch import nn
 from torch.nn.parallel import DistributedDataParallel as NativeDDP
 
 from timm.models import create_model
-from timm.layers import convert_splitbn_model
+try:
+    from timm.layers import convert_splitbn_model
+except:
+    from timm.models.layers import convert_splitbn_model
 from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler
 from timm.utils import NativeScaler
