@@ -1,0 +1,36 @@
+[
+    {
+        "file": "/Users/xzhao9/20230908_041844_1.json",
+        "pytorch_version": "2.2.0.dev20230907+cu118",
+        "score": {
+            "total": 1062.1530182737836,
+            "delta": -1521.9586382685654,
+            "domain": {
+                "cuda-train-overall": 1129.3384742100159,
+                "cuda-train-nlp": 1000.0,
+                "cuda-train-classification": 1119.9386128429242,
+                "cuda-train-segmentation": 1923.7696803665747,
+                "cuda-train-speech": 1050.4523083493218,
+                "cuda-train-recommendation": 1118.376085566377,
+                "cuda-eval-overall": 1107.6154593386252,
+                "cuda-eval-nlp": 1000.0,
+                "cuda-eval-classification": 1141.9496873909172,
+                "cuda-eval-segmentation": 1414.5761908577006,
+                "cuda-eval-speech": 1000.0,
+                "cuda-eval-recommendation": 907.8772279732202,
+                "cpu-train-overall": 1080.0408835327037,
+                "cpu-train-nlp": 1184.2490203633165,
+                "cpu-train-classification": 989.9247889768146,
+                "cpu-train-segmentation": 918.6632263448597,
+                "cpu-train-speech": 2431.1619039977795,
+                "cpu-train-recommendation": 1000.0,
+                "cpu-eval-overall": 961.2816463289809,
+                "cpu-eval-nlp": 905.4293044244218,
+                "cpu-eval-classification": 1013.6451393539945,
+                "cpu-eval-segmentation": 883.8122498691683,
+                "cpu-eval-speech": 729.9324502023696,
+                "cpu-eval-recommendation": 1000.0
+            }
+        }
+    }
+]
