@@ -125,10 +125,16 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
 def parse_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', opt_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=list_backends(), help="enable backends")
+    parser.add_argument("--rank", help="rank of current process")
+    parser.add_argument("--world_size", help="world size of multiprocess")
     args, extra_args = parser.parse_known_args(opt_args)
     if args.backend:
         backend = BACKENDS[args.backend]
         model._enable_backend, extra_args = backend(model, backend_args=extra_args)
+    if args.rank:
+        model._rank = int(args.rank)
+    if args.world_size:
+        model._world_size = int(args.world_size)
     return args, extra_args
 
 def apply_opt_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace):
