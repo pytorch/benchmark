@@ -13,7 +13,8 @@ RUN sudo apt-get -y update && sudo apt -y update
 RUN sudo apt-get install -y git jq \
                             vim wget curl ninja-build cmake \
                             libgl1-mesa-glx libsndfile1-dev kmod libxml2-dev libxslt1-dev \
-                            fontconfig libfontconfig1-dev
+                            fontconfig libfontconfig1-dev \
+                            libpango-1.0-0 libpangoft2-1.0-0
 
 # get switch-cuda utility
 RUN sudo wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
