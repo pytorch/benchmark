@@ -23,6 +23,7 @@ if __name__ == "__main__":
         help="use the first json file in benchmark data dir instead of the reference yaml")
     parser.add_argument("--output-norm-only", action='store_true',
         help="use the benchmark data file specified to output reference norm yaml")
+    parser.add_argument("--output-json", required=True, help="Specify the output json file path.")
     args = parser.parse_args()
 
     if args.benchmark_data_file is None and args.benchmark_data_dir is None:
@@ -69,3 +70,5 @@ if __name__ == "__main__":
             print(f"Error when analyzing file {fname}: {e}")
 
     print(json.dumps(results, indent=4))
+    with open(args.output_json, "w") as fp:
+        fp.write(json.dumps(results, indent=4))
