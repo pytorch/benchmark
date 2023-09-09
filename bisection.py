@@ -1,7 +1,6 @@
 """bisection.py
 Runs bisection to determine PRs that cause performance change.
 It assumes that the pytorch, torchbench, torchvision, and torchaudio repositories provided are all clean with the latest code.
-By default, the torchaudio, torchvision packages will be fixed to the latest commit on the same pytorch commit date.
 
 Usage:
   python bisection.py --work-dir <WORK-DIR> \
@@ -27,7 +26,6 @@ from utils.cuda_utils import prepare_cuda_env, DEFAULT_CUDA_VERSION
 TORCH_GITREPO="https://github.com/pytorch/pytorch.git"
 TORCHBENCH_GITREPO="https://github.com/pytorch/benchmark.git"
 TORCHBENCH_DEPS = {
-    "torchdata": (os.path.expandvars("${HOME}/data"), "main"),
     "torchvision": (os.path.expandvars("${HOME}/vision"), "main"),
     "torchaudio": (os.path.expandvars("${HOME}/audio"), "main"),
 }
