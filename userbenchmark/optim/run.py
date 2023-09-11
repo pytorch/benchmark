@@ -51,7 +51,7 @@ SUBSET_OF_MODEL_NAMES: List[str] = [
 # PT2 dynamo tracing for the for-loop implementation takes over 30s.
 # This is known + NOT going to be improved anytime soon, see
 # https://github.com/pytorch/torchdynamo/issues/1803#issuecomment-1336688894
-MODELS_TO_RUN_ON_PT2: List[str] = ['resnet18', 'timm_vision_transformer', 'timm_vision_transformer_large']
+MODELS_TO_RUN_ON_PT2: List[str] = ['resnet18', 'timm_vision_transformer_large']
 
 # NOTE: While it is possible to run these benchmarks on CPU, we skip running on CPU in CI because CPU stats can be
 # unstable and we had stopped reporting them. You'll still be able to use this script to run CPU though, as it may
@@ -213,6 +213,7 @@ DENSE_MODELS = [
     'sage',
     'sam',
     'shufflenet_v2_x1_0',
+    'simple_gpt',
     'soft_actor_critic',
     'speech_transformer',
     'squeezenet1_1',
@@ -250,7 +251,10 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # 16h currently OOMs, but once it supports train, we should remove this line
     # See tracker https://github.com/pytorch/benchmark/issues/1793
     {'model': 'llama_v2_7b_16h'}
-] +[
+] + [
+    # Model needs to be run via dynamo torchbench and be provided distributed parameters
+    {'model': 'simple_gpt'}
+] + [
     # SparseAdam does not support dense gradients
     {'optim': 'SparseAdam', 'model': m} for m in DENSE_MODELS
 ] + [
@@ -306,7 +310,7 @@ EXCLUSIONS: List[Dict[str, Any]] = [
     # See GH issue: https://github.com/pytorch/pytorch/issues/97361
     {'model': m, 'device': 'cuda', 'func_str': 'pt2_', 'defaults': [df], 'optim': 'NAdam'} for m in [
        'densenet121', 'doctr_reco_predictor', 'fambench_xlmr', 'hf_Bart', 'hf_Bert_large', 'hf_GPT2_large','hf_Longformer',
-       'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152', 'timm_vision_transformer', 'yolov3'
+       'hf_T5_base', 'hf_T5_large', 'moco', 'resnet152', 'timm_vision_transformer', 'timm_vision_transformer_large', 'yolov3'
     ] for df in ['no_foreach', 'differentiable']
 ] + [
     # torch.compile()'d optimizer.step() has too many arguments in the generated
