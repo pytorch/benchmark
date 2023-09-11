@@ -1,7 +1,7 @@
 import argparse
 import subprocess
 
-DEFAULT_PYTHON_VERSION = "3.10"
+DEFAULT_PYTHON_VERSION = "3.11"
 
 PYTHON_VERSION_MAP = {
     "3.8": {

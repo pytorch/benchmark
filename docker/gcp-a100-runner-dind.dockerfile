@@ -85,11 +85,10 @@ RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.s
     chmod +x Miniconda3-latest-Linux-x86_64.sh && \
     bash ./Miniconda3-latest-Linux-x86_64.sh -b -u
 
-# Use Python 3.10 as default
+# Test activate miniconda
 RUN . ${HOME}/miniconda3/etc/profile.d/conda.sh && \
     conda activate base && \
-    conda init && \
-    conda install -y python=3.10
+    conda init
 
 RUN echo "\
 . \${HOME}/miniconda3/etc/profile.d/conda.sh\n\
