@@ -10,13 +10,13 @@ jobs:
     env:
       TORCHBENCH_VER: "v2"
       CONFIG_VER: "v2"
-      PYTHON_VER: "3.8"
-      CUDA_VER: "11.7"
-      MAGMA_VERSION: "magma-cuda117"
+      PYTHON_VER: "3.10"
+      CUDA_VER: "11.8"
+      MAGMA_VERSION: "magma-cuda118"
       CONDA_ENV_NAME:  "torchbench-v2-nightly-ci"
       OUTPUT_DIR: ".torchbench/v2-nightly-ci"
       BISECTION_ROOT: ".torchbench/v2-bisection-ci"
-      CUDA_VERSION: "cu117"
+      CUDA_VERSION: "cu118"
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -49,7 +49,7 @@ jobs:
           # Install magma
           conda install -y -c pytorch "${MAGMA_VERSION}"
           # Install PyTorch nightly from pip
-          pip install --no-cache-dir --pre torch torchvision torchaudio torchtext --index-url \
+          pip install --no-cache-dir --pre torch torchvision torchaudio --index-url \
             https://download.pytorch.org/whl/nightly/${CUDA_VERSION}
       - name: Install other TorchBench dependencies
         run: |
@@ -115,7 +115,7 @@ jobs:
           set -a; source "${CONFIG_ENV}"; set +a
           SCORE_FILE="./benchmark-result-${CONFIG_VER}-score-${TODAY}.json"
           # Generate score file
-          python compute_score.py --score_version "${CONFIG_VER}" --benchmark_data_file "${LATEST_RESULT}" > "${SCORE_FILE}"
+          python compute_score.py --score_version "${CONFIG_VER}" --benchmark_data_file "${LATEST_RESULT}" --output-json "${SCORE_FILE}"
           # Upload result to Scribe
           python scripts/upload_scribe_${CONFIG_VER}.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
       - name: Upload artifact
