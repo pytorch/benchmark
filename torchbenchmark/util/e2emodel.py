@@ -37,7 +37,7 @@ class E2EBenchmarkModel(metaclass=PostInitProcessor):
         if "--torchdynamo" in self.extra_args:
             self.dynamo = True
             from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
-            self.opt_args, self.extra_args = parse_torchdynamo_args(self, self.extra_args)
+            self.opt_args, self.extra_args = parse_torchdynamo_args(self.extra_args)
         else:
             self.dynamo = False
 
@@ -64,7 +64,7 @@ class E2EBenchmarkModel(metaclass=PostInitProcessor):
 
     def next_batch(self):
         raise NotImplementedError("Every E2EModel should implement a way to retrieve the next batch.")
-    
+
     def run_forward(self, input):
         raise NotImplementedError("Every E2EModel should implement a modular forward step.")
 

@@ -9,7 +9,7 @@ import torch
 import torch._dynamo as torchdynamo
 from torchbenchmark.util.model import is_staged_train_test
 
-def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dynamo_args: List[str]) -> argparse.Namespace:
+def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     available_backends = torchdynamo.list_backends(exclude_tags=None)
     parser.add_argument(
