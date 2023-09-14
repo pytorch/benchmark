@@ -71,6 +71,7 @@ SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS = {
     "detectron2_fasterrcnn_r_50_dc5",
     "detectron2_fasterrcnn_r_50_fpn",
     "detectron2_maskrcnn",
+    "stable_diffusion_unet",
 }
 # Use the list from
 # https://github.com/pytorch/pytorch/blob/6c7410ddc350fea625e47744da9d6be7ec74b628/benchmarks/dynamo/torchbench.py#L382

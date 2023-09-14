@@ -17,6 +17,8 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
+    # Skip deepcopy because it will oom on A100 40GB
+    DEEPCOPY = False
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
