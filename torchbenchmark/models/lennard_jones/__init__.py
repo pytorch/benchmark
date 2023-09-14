@@ -27,7 +27,7 @@ def lennard_jones_force(r):
 
 
 def make_prediction(model, drs):
-    norms = torch.norm(drs, dim=1).reshape(-1, 1)
+    norms = torch.linalg.norm(drs, dim=1).reshape(-1, 1)
     energies = model(norms)
 
     network_derivs = vmap(jacrev(model))(norms).squeeze(-1)
@@ -67,7 +67,7 @@ class Model(BenchmarkModel):
         self.drs = torch.outer(r, torch.tensor([1.0, 0, 0])).to(device=device)
 
         # Generate some dummy targets based off of some interpretation of the lennard_jones force.
-        norms = torch.norm(self.drs, dim=1).reshape(-1, 1)
+        norms = torch.linalg.norm(self.drs, dim=1).reshape(-1, 1)
         self.norms = norms
         # Create training energies
         self.training_energies = torch.stack(list(map(lennard_jones, norms))).reshape(-1, 1)
