@@ -116,7 +116,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             self.dynamo = False
             self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
-        self.determine_batch_size(batch_size)
+        self._determine_batch_size(batch_size)
 
     # Run the post processing for model acceleration
     def __post__init__(self):
@@ -164,7 +164,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 if skip_device == current_device_name and (not skip_test or skip_test == self.test):
                     raise NotImplementedError(f"The current device {current_device_name} is skipped by its `{self.name}/metadata.yaml`.")
 
-    def determine_batch_size(self, batch_size=None):
+    def _determine_batch_size(self, batch_size=None):
         # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
         # batch size priority for train tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > default
         self.batch_size = batch_size
@@ -218,7 +218,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.backward_contexts.append(context_fn)
         elif stage == TEST_STAGE.OPTIMIZER:
             self.optimizer_contexts.append(context_fn)
-
 
     # Common interface for all models extending BenchmarkModel to access the optimizer.
     # Some models have an opt attribute, others have an optimizer attribute; this
@@ -292,22 +291,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def eval_in_nograd(self):
         return True
 
-    def enable_channels_last(self):
-        model_name = self.name
-        try:
-            model, _ = self.get_module()
-            model = model.to(memory_format=torch.channels_last)
-        except RuntimeError:
-            warnings.warn(UserWarning(f"{model_name} doesn't support `channels_last` yet!"))
-            return
-        self.set_module(model)
-        tensor_cond = lambda x: x.dim() == 4
-        tensor_action = lambda x: x.to(memory_format=torch.channels_last)
-        if hasattr(self, 'example_inputs'):
-            self.example_inputs = inputs_cast(tensor_cond, tensor_action, self.example_inputs)
-        else:
-            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))
-
     def enable_fx_int8(self, quant_engine:str='x86'):
         torch.backends.quantized.engine = quant_engine
         try:
@@ -327,37 +310,34 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             print(e)
             raise RuntimeError(f"{self.name} doesn't support `fx_int8` yet!")
 
-    def enable_bf16(self):
+    def _cast_to(self, cond, action):
         model_name = self.name
         try:
             model, _ = self.get_module()
-            model = model.to(torch.bfloat16)
+            model = action(model)
         except RuntimeError:
-            warnings.warn(UserWarning(f"{model_name} doesn't support `to(torch.bfloat16)` yet!"))
+            warnings.warn(UserWarning(f"{model_name} doesn't support cast to {action} yet!"))
             return
         self.set_module(model)
+        if hasattr(self, 'example_inputs'):
+            self.example_inputs = inputs_cast(cond, action, self.example_inputs)
+        else:
+            warnings.warn(UserWarning(f"{model_name} example inputs doesn't cast to {action} yet!"))
+
+    def enable_bf16(self):
         tensor_cond = lambda x: x.dtype == torch.float32
         tensor_action = lambda x: x.to(torch.bfloat16)
-        if hasattr(self, 'example_inputs'):
-            self.example_inputs = inputs_cast(tensor_cond, tensor_action, self.example_inputs)
-        else:
-            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
+        self._cast_to(tensor_cond, tensor_action)
 
     def enable_fp16(self):
-        model_name = self.name
-        try:
-            model, _ = self.get_module()
-            model = model.half()
-        except RuntimeError:
-            warnings.warn(UserWarning(f"{model_name} doesn't support `to(torch.bfloat16)` yet!"))
-            return
-        self.set_module(model)
         tensor_cond = lambda x: x.dtype == torch.float32
         tensor_action = lambda x: x.half()
-        if hasattr(self, 'example_inputs'):
-            self.example_inputs = inputs_cast(tensor_cond, tensor_action, self.example_inputs)
-        else:
-            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
+        self._cast_to(tensor_cond, tensor_action)
+
+    def enable_channels_last(self):
+        tensor_cond = lambda x: x.dim() == 4
+        tensor_action = lambda x: x.to(memory_format=torch.channels_last)
+        self._cast_to(tensor_cond, tensor_action)
 
     def enable_amp(self):
         if not self.dynamo and self.opt_args.backend == 'cudagraph':
