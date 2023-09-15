@@ -1,13 +1,10 @@
 import importlib
-import os
 import torch
 from contextlib import contextmanager, ExitStack
 import warnings
-import inspect
 import yaml
 from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
-from torch.utils._pytree import tree_map
 from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \

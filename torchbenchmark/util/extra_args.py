@@ -88,16 +88,16 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
 def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dargs: argparse.Namespace):
     if dargs.channels_last:
         model.enable_channels_last()
-    if dargs.precision == "fp16" or dargs.precision == "bf16":
-        model.cast_to(dtype=dargs.precision)
+    if dargs.precision == "fp16":
+        model.enable_fp16()
+    elif dargs.precision == "bf16":
+        model.enable_bf16()
     elif dargs.precision == "tf32":
         import torch
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
     elif dargs.precision == "amp":
-        # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
-        if hasattr(model, "enable_amp"):
-            model.enable_amp()
+        model.enable_amp()
     elif dargs.precision == "fx_int8":
         assert model.device == "cpu" and model.test == "eval", f"fx_int8 only work for eval mode on cpu device."
         model.enable_fx_int8(dargs.quant_engine)
