@@ -1196,6 +1196,4 @@ def create_model(embed_dim=1536):
             decoder_learned_pos=True,
             dropout=0.1,
         )
-        .eval()
-        .cuda()
     )
