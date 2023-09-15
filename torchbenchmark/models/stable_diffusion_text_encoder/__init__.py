@@ -30,10 +30,11 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
         self.pipe.to(self.device)
         self.example_inputs = "a photo of an astronaut riding a horse on mars"
 
-    def enable_fp16_half(self):
+    def enable_fp16(self):
+        # The model is fp16 by default
+        # No need to cast to fp16
         pass
 
-    
     def get_module(self):
         batch_size = 1
         sequence_length = 10

@@ -15,6 +15,7 @@ from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
 from torchbenchmark.util.env_check import set_random_seed, is_hf_model, \
                                           save_deterministic_dict, load_deterministic_dict, check_accuracy
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
+from torchbenchmark.util.tensor_cast import inputs_cast
 
 SPECIAL_DEVICE_MAPPING = {
     "AMD Instinct MI210": "NVIDIA A100-SXM4-40GB"
@@ -300,16 +301,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             warnings.warn(UserWarning(f"{model_name} doesn't support `channels_last` yet!"))
             return
         self.set_module(model)
-        def inputs_convert(example_inputs):
-            if isinstance(example_inputs, torch.Tensor) and example_inputs.dim()==4:
-                return example_inputs.to(memory_format=torch.channels_last)
-            elif isinstance(example_inputs, (tuple, list, dict)):
-                return tree_map(lambda x: inputs_convert(x), example_inputs)
-            else:
-                warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))
-                return example_inputs
+        tensor_cond = lambda x: x.dim() == 4
+        tensor_action = lambda x: x.to(memory_format=torch.channels_last)
         if hasattr(self, 'example_inputs'):
-            self.example_inputs = inputs_convert(self.example_inputs)
+            self.example_inputs = inputs_cast(tensor_cond, tensor_action, self.example_inputs)
         else:
             warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `channels_last`!"))
 
@@ -341,16 +336,26 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             warnings.warn(UserWarning(f"{model_name} doesn't support `to(torch.bfloat16)` yet!"))
             return
         self.set_module(model)
-        def inputs_convert(example_inputs):
-            if isinstance(example_inputs, torch.Tensor) and example_inputs.dtype == torch.float32:
-                return example_inputs.to(torch.bfloat16)
-            elif isinstance(example_inputs, (tuple, list, dict)):
-                return tree_map(lambda x: inputs_convert(x), example_inputs)
-            else:
-                warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
-                return example_inputs
+        tensor_cond = lambda x: x.dtype == torch.float32
+        tensor_action = lambda x: x.to(torch.bfloat16)
         if hasattr(self, 'example_inputs'):
-            self.example_inputs = inputs_convert(self.example_inputs)
+            self.example_inputs = inputs_cast(tensor_cond, tensor_action, self.example_inputs)
+        else:
+            warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
+
+    def enable_fp16(self):
+        model_name = self.name
+        try:
+            model, _ = self.get_module()
+            model = model.half()
+        except RuntimeError:
+            warnings.warn(UserWarning(f"{model_name} doesn't support `to(torch.bfloat16)` yet!"))
+            return
+        self.set_module(model)
+        tensor_cond = lambda x: x.dtype == torch.float32
+        tensor_action = lambda x: x.half()
+        if hasattr(self, 'example_inputs'):
+            self.example_inputs = inputs_cast(tensor_cond, tensor_action, self.example_inputs)
         else:
             warnings.warn(UserWarning(f"{model_name} example inputs doesn't convert to `torch.bfloat16`!"))
 
