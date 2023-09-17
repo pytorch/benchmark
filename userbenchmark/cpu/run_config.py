@@ -40,7 +40,7 @@ with add_path(str(REPO_PATH)):
         result = get_output_json(BM_NAME, metrics)
         dump_output(BM_NAME, result, output_dir)
 
-    def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
+    def run_config(config: TorchBenchModelConfig, metrics: List[str], nwarmup: int, niter: int, dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
         """This function only handles NotImplementedError, all other errors will fail."""
         print(f"Running {config} ...", end='')
         if dryrun:
@@ -54,7 +54,7 @@ with add_path(str(REPO_PATH)):
                 # load the model instance within current process
                 model = load_model(config)
             # get the model test metrics
-            result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
+            result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics, nwarmup=nwarmup, num_iter=niter)
         except NotImplementedError as e:
             print(" [NotImplemented]")
             return None
@@ -74,7 +74,7 @@ with add_path(str(REPO_PATH)):
             extra_args=extra_args,
             extra_env=None)
         try:
-            metrics_res = run_config(config, metrics, dryrun=args.dryrun)
+            metrics_res = run_config(config, metrics, nwarmup=int(args.nwarmup), niter=int(args.niter), dryrun=args.dryrun)
         except KeyboardInterrupt:
             print("User keyboard interrupted!")
         if not args.dryrun:
@@ -92,6 +92,8 @@ with add_path(str(REPO_PATH)):
         parser.add_argument("--batch-size", "-b", default=None, type=int, help="Run the specifice batch size.")
         parser.add_argument("--output", "-o", default=None, help="Output dir.")
         parser.add_argument("--metrics", default="latencies", help="Benchmark metrics, split by comma.")
+        parser.add_argument("--nwarmup", default=20, help="Benchmark warmup iteration number.")
+        parser.add_argument("--niter", default=50, help="Benchmark iteration number.")
         parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
         args, extra_args = parser.parse_known_args()
         run(args, extra_args)
