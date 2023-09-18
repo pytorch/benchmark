@@ -1,2 +1,3 @@
 git+https://github.com/lucidrains/DALLE2-pytorch@00e07b7d61e21447d55e6d06d5c928cf8b67601d
+beartype==0.15.0
 tensorboard
