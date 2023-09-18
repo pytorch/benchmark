@@ -1,1 +1,1 @@
-git+https://github.com/huggingface/diffusers.git@56958e1
+diffusers==0.20.2
