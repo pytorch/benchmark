@@ -81,13 +81,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
     def __init__(self, test: str, device: str, batch_size: Optional[int]=None, extra_args: List[str]=[]):
-        self.metadata = self.load_metadata()
+        self.metadata = self._load_metadata()
         self.test = test
         assert self.test == "train" or self.test == "eval", \
             f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
         self.device = device
         self.extra_args = extra_args
         self.opt = None
+        self._skip_by_device_name()
         # contexts to run in the test function
         if self.test == "train":
             # In train test, there are run contexts that should only be applied for forward/backward/optimizer stage
@@ -151,6 +152,17 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if self.device == "cuda":
             torch.cuda.empty_cache()
 
+    def _skip_by_device_name(self):
+        if not self.device == "cuda":
+            return
+        current_device_name = torch.cuda.get_device_name()
+        if self.metadata and "not_implemented" in self.metadata and self.metadata["not_implemented"]:
+            for skip in self.metadata["not_implemented"]:
+                skip_test = skip["test"] if "test" in skip else None
+                skip_device = skip["device"] if "device" in skip else None
+                if skip_device == current_device_name and (not skip_test or skip_test == self.test):
+                    raise NotImplementedError(f"The current device {current_device_name} is skipped by its `{self.name}/metadata.yaml`.")
+
     def determine_batch_size(self, batch_size=None):
         # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
         # batch size priority for train tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > default
@@ -184,7 +196,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         elif self.dargs.accuracy:
             self.batch_size = 4 if self.batch_size > 4 else self.batch_size
 
-    def load_metadata(self):
+    def _load_metadata(self):
         relative_path = self.__class__.__module__.split(".")
         self.name = relative_path[-1]
         metadata_loc = Path(REPO_PATH).joinpath(*relative_path).joinpath("metadata.yaml")
