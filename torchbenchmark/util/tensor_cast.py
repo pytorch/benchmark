@@ -13,5 +13,7 @@ def inputs_cast(cond, action, example_inputs):
         isinstance(example_inputs, float):
         # Do not touch primitive types
         return example_inputs
+    elif isinstance(example_inputs, torch.Tensor):
+        return example_inputs
     else:
         raise RuntimeError(f"Unsupported input type: {type(example_inputs)}")
