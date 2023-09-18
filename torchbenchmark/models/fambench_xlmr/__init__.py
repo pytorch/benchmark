@@ -85,9 +85,6 @@ class Model(BenchmarkModel):
     def get_module(self):
         return WrappedModule(self.xlmr, 'extract_features'), self.x_l
 
-    def enable_fp16(self):
-        self.xmlr = self.xlmr.half()
-
     def train(self):
         for i, (x, y_true) in enumerate(zip(self.x_l, self.y_true_l)):
             y_pred = self.xlmr.extract_features(x)
