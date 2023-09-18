@@ -1,5 +1,5 @@
 """
-HuggingFace Stable Diffusion model.
+Stable Diffusion XL model
 It requires users to specify "HUGGINGFACE_AUTH_TOKEN" in environment variable
 to authorize login and agree HuggingFace terms and conditions.
 """
@@ -26,25 +26,25 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
                          batch_size=batch_size, extra_args=extra_args)
         model_id = "stabilityai/stable-diffusion-xl-base-1.0"
         self.pipe = DiffusionPipeline.from_pretrained(model_id).to(device)
-        self.list_of_inputs = [
-            torch.randn(1, 4, 256, 256).to(self.device),
-            torch.tensor([1.0]).to(self.device),
-            torch.randn(1, 1, 2048).to(self.device),
-            {"text_embeds": torch.randn(1, 2560).to(self.device), "time_ids": torch.tensor([1]).to(self.device)}
-        ]
+        random_input = torch.randn(1, 4, 256, 256).to(device)
+        timestep = torch.tensor([1.0]).to(device)
+        encoder_hidden_states = torch.randn(1, 1, 2048).to(device)
+        added_cond_kwargs = {
+            "text_embeds": torch.randn(1, 2560).to(device),  # Example tensor, adjust shape as needed
+            "time_ids": torch.tensor([1]).to(device)  # Replace 'some_value' with the appropriate value or tensor shape for time_ids
+        }
 
-
+        self.args_tuple = (random_input, timestep, encoder_hidden_states, added_cond_kwargs)
 
     def enable_fp16_half(self):
         pass
-
     
     def get_module(self):
-        self.pipe.unet, self.list_of_inputs
+        self.pipe.unet, self.args_tuple
 
     def train(self):
-        raise NotImplementedError("Train test is not implemented for the stable diffusion model.")
+        raise NotImplementedError("Train is not implemented for the stable diffusion XL model.")
 
     def eval(self):
-        image = self.pipe(self.example_inputs)
+        image = self.pipe.unet(*self.args_tuple)
         return (image, )
