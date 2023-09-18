@@ -9,7 +9,7 @@ pytest
 pytest-benchmark
 requests
 tabulate
-git+https://github.com/huggingface/pytorch-image-models.git@6635bc3
+git+https://github.com/huggingface/pytorch-image-models.git@730b907
 git+https://github.com/huggingface/transformers.git@6c26faa
 MonkeyType
 psutil
