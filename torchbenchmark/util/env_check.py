@@ -25,6 +25,7 @@ UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS = [
     "sam",
     "Super_SloMo",
     "vgg16",
+    "ig_ctr_30x",
 ]
 CI_SKIP_OPTIMIZER = {
     # TIMM
