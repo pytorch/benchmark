@@ -4,7 +4,7 @@ from contextlib import contextmanager, ExitStack
 import warnings
 import yaml
 from pathlib import Path
-from typing import ContextManager, Optional, List, Tuple, Iterator
+from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
@@ -12,7 +12,7 @@ from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
 from torchbenchmark.util.env_check import set_random_seed, is_hf_model, \
                                           save_deterministic_dict, load_deterministic_dict, check_accuracy
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
-from torchbenchmark.util.input import inputs_cast, ModelInputIterator, ModelInputDescriptor
+from torchbenchmark.util.input import input_cast, ModelInputDescriptor
 
 SPECIAL_DEVICE_MAPPING = {
     "AMD Instinct MI210": "NVIDIA A100-SXM4-40GB"
@@ -250,13 +250,22 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
-    def get_input_iter(self) -> ModelInputIterator:
+    def get_input_iter(self) -> Generator:
         """Return the dynamic input iterator for the model."""
         raise NotImplementedError(f"Default dynamic input iterator is not implemented. "
                                   "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}.")
 
-    def set_input_iter(self, dptr: ModelInputDescriptor) -> None:
+    def get_input_descriptor(self) -> ModelInputDescriptor:
+        if hasattr(self, 'input_descriptor') and isinstance(self.input_descriptor, ModelInputDescriptor):
+            return self.input_descriptor
+        raise NotImplementedError(f"Default dynamic input descriptor is not implemented. "
+                                  "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}.")
+
+    def set_input_descriptor(self, descriptor: ModelInputDescriptor) -> None:
         """Set the customized dynamic input descriptor for the model."""
+        if hasattr(self, 'input_descriptor') and isinstance(self.input_descriptor, ModelInputDescriptor):
+            self.input_descriptor = descriptor
+            return
         raise NotImplementedError(f"Default dynamic input descriptor is not implemented."
                                   "Please submit an issue if you need a dynamic shape input descriptor implementation for the model {self.name}.")
 
@@ -321,7 +330,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             return
         self.set_module(model)
         if hasattr(self, 'example_inputs'):
-            self.example_inputs = inputs_cast(cond, action, self.example_inputs)
+            self.example_inputs = input_cast(cond, action, self.example_inputs)
         else:
             warnings.warn(UserWarning(f"{model_name} example inputs doesn't cast to {action} yet!"))
 

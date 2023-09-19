@@ -9,7 +9,7 @@ from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 import transformers
 from transformers import AutoConfig, ReformerConfig, BertConfig, GenerationConfig, WhisperConfig, LlamaConfig
-from typing import Tuple
+from typing import Tuple, Generator
 
 class_models = {
     # 'name': (train_max_length, eval_max_length, config, model)
@@ -97,7 +97,6 @@ class HuggingFaceModel(BenchmarkModel):
 
         # populate these on-demand to avoid wasting memory when not used
         self.vocab_size = config.vocab_size
-        self.dynamic_example_inputs = None
 
         if test == "train":
             input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
@@ -126,24 +125,34 @@ class HuggingFaceModel(BenchmarkModel):
                     self.example_inputs['input_ids'], self.example_inputs[k])
         return self.model, (self.example_inputs["input_ids"], )
 
-    def get_dynamic_shapes_module(self):
-        if self.dynamic_example_inputs is None:
-            nbuckets = 8
-            nsamples = 32
-            n = int(math.log2(self.max_length))
-            buckets = [2**n for n in range(n - nbuckets, n)]
-            self.dynamic_example_inputs = [
+    def get_input_iter(self) -> Generator:
+        nbuckets = 8
+        n = int(math.log2(self.max_length))
+        buckets = [2**n for n in range(n - nbuckets, n)]
+        if class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
+            raise NotImplementedError("AutoModelForSeq2SeqLM is not yet supported")
+        def input_generator():
+            # randomize bucket_len
+            bucket_len = random.choice(buckets)
+            dict_input = {
                 {
                     'input_ids': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
-                    'labels': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device)}
-                for bucket_len in random.choices(buckets, k=nsamples)
-            ]
+                    'labels': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device)
+                }
+            }
+            yield dict_input
+        return input_generator
 
-        if class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
-            raise NotImplementedError("Not yet supported")
-
-        # TODO(whc) why is labels not passed through?
-        return self.model, [(i['input_ids'],) for i in self.dynamic_example_inputs]
+    def train_dynamic(self, num_batches: int=100):
+        input_generator = self.get_input_iter()
+        for _batch_num in range(num_batches):
+            input_batch = next(input_generator)
+            self.optimizer.zero_grad()
+            with self.amp_context():
+                outputs = self.model(**input_batch)
+            loss = outputs.loss
+            loss.backward()
+            self.optimizer.step()
 
     def train(self):
         with self.amp_context():
