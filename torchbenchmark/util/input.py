@@ -1,5 +1,13 @@
 import torch
 from torch.utils._pytree import tree_map
+from typing import Iterator
+
+class ModelInputDescriptor():
+    pass
+
+class ModelInputIterator(Iterator):
+    pass
+
 
 def inputs_cast(cond, action, example_inputs):
     """Traverse the input batch pytree, and cast tensor with `action` if it satisfies `cond`."""

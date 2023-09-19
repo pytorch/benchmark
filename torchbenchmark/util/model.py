@@ -4,7 +4,7 @@ from contextlib import contextmanager, ExitStack
 import warnings
 import yaml
 from pathlib import Path
-from typing import ContextManager, Optional, List, Tuple, Generator
+from typing import ContextManager, Optional, List, Tuple, Iterator
 from torchbenchmark import REPO_PATH
 from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
                                            parse_decoration_args, apply_decoration_args, is_staged_train_test, \
@@ -12,7 +12,7 @@ from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
 from torchbenchmark.util.env_check import set_random_seed, is_hf_model, \
                                           save_deterministic_dict, load_deterministic_dict, check_accuracy
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
-from torchbenchmark.util.tensor_cast import inputs_cast
+from torchbenchmark.util.input import inputs_cast, ModelInputIterator, ModelInputDescriptor
 
 SPECIAL_DEVICE_MAPPING = {
     "AMD Instinct MI210": "NVIDIA A100-SXM4-40GB"
@@ -250,11 +250,15 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
-    def gen_inputs(self, num_batches: int=1) -> Tuple[Generator, Optional[int]]:
-        """Generate a tuple of (iterator of model input, the size of the iterator).
-           If size is None, the input is randomly generated and has infinite size."""
-        raise NotImplementedError("Default input generation function is not implemented. "
-                                  "Please submit an issue if you need input iterator implementation for the model.")
+    def get_input_iter(self) -> ModelInputIterator:
+        """Return the dynamic input iterator for the model."""
+        raise NotImplementedError(f"Default dynamic input iterator is not implemented. "
+                                  "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}.")
+
+    def set_input_iter(self, dptr: ModelInputDescriptor) -> None:
+        """Set the customized dynamic input descriptor for the model."""
+        raise NotImplementedError(f"Default dynamic input descriptor is not implemented."
+                                  "Please submit an issue if you need a dynamic shape input descriptor implementation for the model {self.name}.")
 
     def invoke_staged_train_test(self) -> None:
         optimizer = self.get_optimizer()
