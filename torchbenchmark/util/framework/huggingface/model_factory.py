@@ -143,22 +143,15 @@ class HuggingFaceModel(BenchmarkModel):
             yield dict_input
         return input_generator
 
-    def train_dynamic(self, num_batches: int=100):
-        input_generator = self.get_input_iter()
-        for _batch_num in range(num_batches):
-            input_batch = next(input_generator)
-            self.optimizer.zero_grad()
-            with self.amp_context():
-                outputs = self.model(**input_batch)
-            loss = outputs.loss
-            loss.backward()
-            self.optimizer.step()
-
-    def train(self):
+    def forward(self):
         with self.amp_context():
             outputs = self.model(**self.example_inputs)
-        loss = outputs.loss
-        loss.backward()
+        return outputs.loss
+
+    def backward(self, losses):
+        losses.backward()
+
+    def optimizer_step(self):
         self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
