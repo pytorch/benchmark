@@ -19,37 +19,26 @@ class Model(BenchmarkModel):
         #     torch.randint(1, self.gpt_config.vocab_size, (self.batch_size, self.prompt_size)).to(self.device),
         # )
 
-        # from scratch
-        batch_size = 12
-
-        n_layer = 12
-        n_head = 12
-        n_embd = 768
-        block_size = 1024
-        bias = False
-        vocab_size=50304
-        dropout = 0.0
         prompt_size = 64
         learning_rate = 6e-4
         weight_decay = 1e-1
         beta1 = 0.9
         beta2 = 0.95
-        model_args = dict(n_layer=n_layer, n_head=n_head, n_embd=n_embd, block_size=block_size,
-                  bias=bias, vocab_size=vocab_size, dropout=dropout)
-        gptconf = GPTConfig(**model_args)
+        gptconf = GPTConfig()
 
         self.model = GPT(gptconf).to(device)
         self.optimizer = self.model.configure_optimizers(weight_decay, learning_rate, (beta1, beta2), device)
         self.example_inputs = (
-            torch.randint(1, gptconf.vocab_size, (batch_size, prompt_size)).to(self.device),
+            torch.randint(1, gptconf.vocab_size, (self.batch_size, prompt_size)).to(self.device),
         )
-        self.target_inputs = torch.randint(1, gptconf.vocab_size, (batch_size, prompt_size)).to(self.device)
+        self.target_inputs = torch.randint(1, gptconf.vocab_size, (self.batch_size, prompt_size)).to(self.device)
 
     def get_module(self):
         return self.model, self.example_inputs
 
     def train(self):
-        _, loss = self.model(*self.example_inputs, self.target_inputs)
+        logits = self.model(*self.example_inputs)
+        loss = logits.sum() / logits.numel()
         loss.backward()
         self.optimizer.step()
 
