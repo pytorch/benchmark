@@ -138,10 +138,8 @@ class HuggingFaceModel(BenchmarkModel):
             # randomize bucket_len
             bucket_len = random.choice(buckets)
             dict_input = {
-                {
-                    'input_ids': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
-                    'labels': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device)
-                }
+                'input_ids': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
+                'labels': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
             }
             yield dict_input
 
