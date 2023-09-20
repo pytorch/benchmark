@@ -115,6 +115,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.dynamo = False
             self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
         self._determine_batch_size(batch_size)
+        self.num_batch = self._determine_dynamic_num_batches(self.dargs.num_batch)
 
     # Run the post processing for model acceleration
     def __post__init__(self):
@@ -161,6 +162,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 skip_device = skip["device"] if "device" in skip else None
                 if skip_device == current_device_name and (not skip_test or skip_test == self.test):
                     raise NotImplementedError(f"The current device {current_device_name} is skipped by its `{self.name}/metadata.yaml`.")
+
+    def _determine_dynamic_num_batches(self, user_specified_num_batches: Optional[int]) -> int:
+        if self.test == "train" or self.test == "eval":
+            return 1
+        if user_specified_num_batches:
+            return user_specified_num_batches
+        assert hasattr(self, 'DEFAULT_NUM_BATCH'), f"We expect all models with dynamic shapes specify field `DEFAULT_NUM_BATCHES`."
+        return self.DEFAULT_NUM_BATCH
 
     def _determine_batch_size(self, batch_size=None):
         # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
@@ -286,11 +295,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     self.optimizer_step()
         return None
 
-    def invoke(self, num_batches: int=100) -> Optional[Tuple[torch.Tensor]]:
+    def invoke(self) -> Optional[Tuple[torch.Tensor]]:
         if self.test == "train" and is_staged_train_test(self):
-            return self._invoke_staged_train_test(num_batches=1)
+            return self._invoke_staged_train_test(num_batch=self.num_batch)
         if self.test == "train_dynamic":
-            return self.invoke_staged_train_dynamic_test(num_batches=num_batches)
+            return self._invoke_staged_train_test(num_batch=self.num_batch)
         out = None
         with nested(*self.run_contexts):
             if self.test == "train":
