@@ -28,6 +28,8 @@ All parameters of `cpu` userbenchmark as below,
 - `--metrics` benchmark metrics, split by comma. Current support metrics
   including `latencies`, `throughputs` and `cpu_peak_mem`, default value is
   `latencies`.
+- `--nwarmup` benchmark warmup iteration number. Default value is 20.
+- `--niter` benchmark iteration number. Default value is 30.
 - `--output, -o` output dir. By default will create folder under
   `.userbenchmark/cpu`.
 - `--timeout` limit single model test run time. Default `None` means no
