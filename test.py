@@ -63,8 +63,8 @@ def _load_test(path, device):
                 accuracy = task.get_model_attribute("accuracy")
                 assert accuracy == "pass" or accuracy == "eager_1st_run_OOM", f"Expected accuracy pass, get {accuracy}"
                 task.del_model_instance()
-            except NotImplementedError:
-                self.skipTest(f'Method `get_module()` on {device} is not implemented, skipping...')
+            except NotImplementedError as e:
+                self.skipTest(f'Method `get_module()` on {device} is not implemented because "{e}", skipping...')
 
     def train_fn(self):
         metadata = get_metadata_from_yaml(path)
@@ -78,8 +78,8 @@ def _load_test(path, device):
                 task.invoke()
                 task.check_details_train(device=device, md=metadata)
                 task.del_model_instance()
-            except NotImplementedError:
-                self.skipTest(f'Method train on {device} is not implemented, skipping...')
+            except NotImplementedError as e:
+                self.skipTest(f'Method train on {device} is not implemented because "{e}", skipping...')
 
     def eval_fn(self):
         metadata = get_metadata_from_yaml(path)
@@ -94,8 +94,8 @@ def _load_test(path, device):
                 task.check_details_eval(device=device, md=metadata)
                 task.check_eval_output()
                 task.del_model_instance()
-            except NotImplementedError:
-                self.skipTest(f'Method eval on {device} is not implemented, skipping...')
+            except NotImplementedError as e:
+                self.skipTest(f'Method eval on {device} is not implemented because "{e}", skipping...')
 
     def check_device_fn(self):
         task = ModelTask(path, timeout=TIMEOUT)
@@ -104,8 +104,8 @@ def _load_test(path, device):
                 task.make_model_instance(test="eval", device=device)
                 task.check_device()
                 task.del_model_instance()
-            except NotImplementedError:
-                self.skipTest(f'Method check_device on {device} is not implemented, skipping...')
+            except NotImplementedError as e:
+                self.skipTest(f'Method check_device on {device} is not implemented because "{e}", skipping...')
 
     name = os.path.basename(path)
     metadata = get_metadata_from_yaml(path)
