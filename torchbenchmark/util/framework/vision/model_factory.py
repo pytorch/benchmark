@@ -29,7 +29,7 @@ class TorchVisionModel(BenchmarkModel):
         else:
             self.model = getattr(models, model_name)(weights=weights).to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device), )
-        if test == "train":
+        if test == "train" or test == "train_dynamic":
             # compute loss
             with torch.no_grad():
                 self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )
@@ -72,15 +72,18 @@ class TorchVisionModel(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs
 
-    def train(self):
-        if self.opt and not self.SKIP_ZERO_GRAD:
-            self.opt.zero_grad()
+    def forward(self):
+        with torch.no_grad():
+            self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )
         for data, target in zip(self.example_inputs, self.example_outputs):
-            with self.amp_context():
-                pred = self.model(data)
-            self.loss_fn(pred, target).backward()
-            if self.opt:
-                self.opt.step()
+            pred = self.model(data)
+            return self.loss_fn(pred, target)
+
+    def backward(self, loss):
+        loss.backward()
+
+    def optimizer_step(self):
+        self.opt.step()
 
     def cudagraph_train(self):
         for data, target in zip(self.real_input, self.real_output):

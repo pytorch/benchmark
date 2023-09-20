@@ -74,7 +74,7 @@ class HuggingFaceModel(BenchmarkModel):
             self.is_generate = False
             self.unqual_name = name
         name = self.unqual_name  # we don't want to refer to the qualified name anymore
-        if test == "train":
+        if test == "train" or test == "train_dynamic":
             self.max_length = class_models[name][0]
         elif test == "eval":
             self.max_length = class_models[name][1]

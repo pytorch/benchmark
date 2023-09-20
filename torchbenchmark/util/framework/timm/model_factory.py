@@ -29,7 +29,7 @@ class TimmModel(BenchmarkModel):
         self.model.to(
             device=self.device
         )
-        if test == "train":
+        if test == "train" or test == "train_dynamic":
             self.model.train()
         elif test == "eval":
             self.model.eval()
