@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 
 @dataclass
 class ModelInputDescriptor:
-    extra_input_args: Dict[str, Any] = field(default={})
+    extra_input_args: Dict[str, Any] = field(default_factory==dict)
 
 def input_cast(cond, action, example_inputs):
     """Traverse the input batch pytree, and cast tensor with `action` if it satisfies `cond`."""
