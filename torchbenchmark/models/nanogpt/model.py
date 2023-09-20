@@ -124,13 +124,6 @@ class GPTConfig:
     bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
 
 
-@dataclass
-class GPTGenerationConfig:
-    max_new_tokens: int = 512  # max number of new tokens to generate
-    temperature: float = 1.0  # temperature for sampling. > 1.0: more exploring, < 1.0: more conservative.
-    top_k: Optional[int] = None  # top_k > 0: keep only top k tokens with highest probability (top-k filtering).
-
-
 class GPT(nn.Module):
 
     def __init__(self, config):
@@ -183,7 +176,7 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-    def forward(self, idx, targets=None):
+    def forward(self, idx):
         device = idx.device
         b, t = idx.size()
         assert t <= self.config.block_size, f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
@@ -197,16 +190,10 @@ class GPT(nn.Module):
             x = block(x)
         x = self.transformer.ln_f(x)
 
-        if targets is not None:
-            # if we are given some desired targets also calculate the loss
-            logits = self.lm_head(x)
-            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
-        else:
-            # inference-time mini-optimization: only forward the lm_head on the very last position
-            logits = self.lm_head(x[:, [-1], :]) # note: using list [-1] to preserve the time dim
-            loss = None
+        # inference-time mini-optimization: only forward the lm_head on the very last position
+        logits = self.lm_head(x[:, [-1], :]) # note: using list [-1] to preserve the time dim
 
-        return logits, loss
+        return logits
 
     def crop_block_size(self, block_size):
         # model surgery to decrease the block size if necessary
@@ -329,7 +316,7 @@ class GPT(nn.Module):
             # if the sequence context is growing too long we must crop it at block_size
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
             # forward the model to get the logits for the index in the sequence
-            logits, _ = self(idx_cond)
+            logits = self(idx_cond)
             # pluck the logits at the final step and scale by desired temperature
             logits = logits[:, -1, :] / temperature
             # optionally crop the logits to only the top k options
@@ -344,13 +331,3 @@ class GPT(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
 
         return idx
-
-
-class SequenceGeneratorNanoGPT(nn.Module):
-    def __init__(self, model, generate_config) -> None:
-        super().__init__()
-        self.base_model: GPT = model
-        self.generate_config: GPTGenerationConfig = generate_config
-
-    def forward(self, idx):
-        return self.base_model.generate(idx, self.generate_config.max_new_tokens, self.generate_config.temperature, self.generate_config.top_k)
