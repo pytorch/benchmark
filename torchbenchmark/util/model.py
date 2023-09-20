@@ -283,7 +283,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         optimizer = self.get_optimizer()
         input_generator = self.get_input_iter() if not num_batch == 1 else None
         for _batch_num in range(num_batch):
-            self.example_inputs = next(input_generator) if input_generator else self.example_inputs
+            if input_generator:
+                self.example_inputs = next(input_generator)
+                # cast inputs if needed
+                apply_decoration_args(self, self.dargs)
             if optimizer is not None:
                 optimizer.zero_grad()
             with nested(*self.forward_contexts):

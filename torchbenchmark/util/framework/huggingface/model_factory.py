@@ -114,7 +114,6 @@ class HuggingFaceModel(BenchmarkModel):
             if class_models[name][3] == 'AutoModelForSeq2SeqLM':
                 self.example_inputs['decoder_input_ids'] = eval_context
             self.model.eval()
-
         self.amp_context = nullcontext
 
     def get_module(self, wrap_model=True):

@@ -45,17 +45,6 @@ class TimmModel(BenchmarkModel):
             example_input = (self._gen_input(random_batch_size), )
             yield example_input
 
-    def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
-        def _gen_inputs():
-            while True:
-                result = []
-                for _i in range(num_batches):
-                    result.append((self._gen_input(self.batch_size), ))
-                if self.dargs.precision == "fp16":
-                    result = list(map(lambda x: (x[0].half(), ), result))
-                yield result
-        return (_gen_inputs(), None)
-
     def _gen_input(self, batch_size):
         return torch.randn((batch_size,) + self.cfg.input_size, device=self.device)
 
