@@ -72,10 +72,6 @@ class TimmModel(BenchmarkModel):
     def set_optimizer(self, optimizer) -> None:
         self.cfg.optimizer = optimizer
 
-    def enable_fp16_half(self):
-        self.model = self.model.half()
-        self.example_inputs = self.example_inputs.half()
-
     def enable_channels_last(self):
         self.model = self.model.to(memory_format=torch.channels_last)
         self.example_inputs = self.example_inputs.contiguous(memory_format=torch.channels_last)

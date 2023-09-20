@@ -32,7 +32,9 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
         self.example_inputs = "a photo of an astronaut riding a horse on mars"
         self.pipe.to(self.device)
 
-    def enable_fp16_half(self):
+    def enable_fp16(self):
+        # This model uses fp16 by default
+        # Make this function no-op.
         pass
 
     

@@ -157,7 +157,7 @@ class Detectron2Model(BenchmarkModel):
         self.optimizer = optimizer
         self.setup_train()
 
-    def enable_fp16_half(self):
+    def enable_fp16(self):
         assert self.dargs.precision == "fp16", f"Expected precision fp16, get {self.dargs.precision}"
         self.model = self.model.half()
         self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)

@@ -145,9 +145,6 @@ class HuggingFaceModel(BenchmarkModel):
         # TODO(whc) why is labels not passed through?
         return self.model, [(i['input_ids'],) for i in self.dynamic_example_inputs]
 
-    def enable_fp16_half(self):
-        self.model = self.model.half()
-
     def train(self):
         with self.amp_context():
             outputs = self.model(**self.example_inputs)

@@ -23,6 +23,6 @@ class Model(HuggingFaceModel):
         with torch.no_grad():
             self.model(self.example_inputs["input_ids"])
     
-    def enable_fp16_half(self):
+    def enable_fp16(self):
         self.model.half()
         self.example_inputs = {"input_features": self.input_features.half().to(self.device), "input_ids" : self.input_features.half().to(self.device)}

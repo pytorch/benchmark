@@ -17,7 +17,7 @@ def add_bool_arg(parser: argparse.ArgumentParser, name: str, default_value: bool
 
 def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision: str) -> bool:
     if precision == "fp16":
-        return model.device == 'cuda' and hasattr(model, "enable_fp16_half")
+        return model.device == 'cuda' and hasattr(model, "enable_fp16")
     if precision == "tf32":
         return model.device == "cuda"
     if precision == "amp":
@@ -75,7 +75,6 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
         raise NotImplementedError(f"precision value: {dargs.precision}, "
-                                  "fp16 is only supported if the model implements the `enable_fp16_half()` callback function."
                                   "amp is only supported if cuda+eval, or if `enable_amp` implemented,"
                                   "or if model uses staged train interfaces (forward, backward, optimizer).")
     if not check_memory_layout(model, dargs.channels_last):
@@ -90,21 +89,18 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
     if dargs.channels_last:
         model.enable_channels_last()
     if dargs.precision == "fp16":
-        model.enable_fp16_half()
+        model.enable_fp16()
+    elif dargs.precision == "bf16":
+        model.enable_bf16()
     elif dargs.precision == "tf32":
         import torch
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
     elif dargs.precision == "amp":
-        # model handles amp itself if it has 'enable_amp' callback function (e.g. pytorch_unet)
-        if hasattr(model, "enable_amp"):
-            model.enable_amp()
+        model.enable_amp()
     elif dargs.precision == "fx_int8":
         assert model.device == "cpu" and model.test == "eval", f"fx_int8 only work for eval mode on cpu device."
         model.enable_fx_int8(dargs.quant_engine)
-    elif dargs.precision == "bf16":
-        assert model.device == "cpu", f"bf16 only work on cpu device."
-        model.enable_bf16()
     elif dargs.precision == "amp_fp16":
         assert model.device == "cuda", f"{model.device} has no fp16 autocast."
         if model.test == "eval":

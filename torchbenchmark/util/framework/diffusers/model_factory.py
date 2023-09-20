@@ -22,7 +22,8 @@ class DiffuserModel(BenchmarkModel):
         # https://raw.githubusercontent.com/timothybrooks/instruct-pix2pix/main/imgs/example.jpg
         self.example_inputs = (prompt, torch.randn(self.batch_size, 3, 32, 32).to(self.device))
 
-    def enable_fp16_half(self):
+    def enable_fp16(self):
+        # No action needed to enable fp16, the model is fp16 by default
         pass
 
     def get_module(self):
