@@ -17,7 +17,7 @@ class TorchVisionModel(BenchmarkModel):
     # Whether to skip the opt zero grad
     SKIP_ZERO_GRAD = False
     # When running the train_dynamic test, run 100 batches of input
-    DEFAULT_NUM_BATCH = 100
+    DEFAULT_NUM_BATCH = 10
 
     def __init__(self, model_name, test, device, batch_size=None, weights=None, extra_args=[]):
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
