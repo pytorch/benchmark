@@ -9,7 +9,7 @@ from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 import transformers
 from transformers import AutoConfig, ReformerConfig, BertConfig, GenerationConfig, WhisperConfig, LlamaConfig
-from typing import Tuple, Generator
+from typing import Tuple
 
 class_models = {
     # 'name': (train_max_length, eval_max_length, config, model)
@@ -127,13 +127,14 @@ class HuggingFaceModel(BenchmarkModel):
                     self.example_inputs['input_ids'], self.example_inputs[k])
         return self.model, (self.example_inputs["input_ids"], )
 
-    def get_input_iter(self) -> Generator:
+    def get_input_iter(self):
+        """Yield randomized bucket length of inputs."""
         nbuckets = 8
         n = int(math.log2(self.max_length))
         buckets = [2**n for n in range(n - nbuckets, n)]
         if class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
             raise NotImplementedError("AutoModelForSeq2SeqLM is not yet supported")
-        def input_generator():
+        while True:
             # randomize bucket_len
             bucket_len = random.choice(buckets)
             dict_input = {
@@ -143,7 +144,6 @@ class HuggingFaceModel(BenchmarkModel):
                 }
             }
             yield dict_input
-        return input_generator
 
     def forward(self):
         with self.amp_context():

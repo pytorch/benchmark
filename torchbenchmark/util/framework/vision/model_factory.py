@@ -5,7 +5,6 @@ import torch.optim as optim
 import torchvision.models as models
 from contextlib import nullcontext
 from torchbenchmark.util.model import BenchmarkModel
-from typing import Tuple, Generator, Optional
 
 class TorchVisionModel(BenchmarkModel):
     # To recognize this is a torchvision model
@@ -17,6 +16,8 @@ class TorchVisionModel(BenchmarkModel):
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
     # Whether to skip the opt zero grad
     SKIP_ZERO_GRAD = False
+    # When running the train_dynamic test, run 100 batches of input
+    DEFAULT_NUM_BATCH = 100
 
     def __init__(self, model_name, test, device, batch_size=None, weights=None, extra_args=[]):
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
@@ -58,16 +59,15 @@ class TorchVisionModel(BenchmarkModel):
         self.flops = self.flops * FLOPS_FMA
         return self.flops
 
-    def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
-        def _gen_inputs():
-            while True:
-                result = []
-                for _i in range(num_batches):
-                    result.append((torch.randn((self.batch_size, 3, 224, 224)).to(self.device),))
-                if self.dargs.precision == "fp16":
-                    result = list(map(lambda x: (x[0].half(), ), result))
-                yield result
-        return (_gen_inputs(), None)
+    def get_input_iter(self):
+        """Yield randomized batch size of inputs."""
+        import math, random
+        n = int(math.log2(self.batch_size))
+        buckets = [2**n for n in range(n)]
+        while True:
+            random_batch_size = random.choice(buckets)
+            example_input = (torch.randn((random_batch_size, 3, 224, 224)).to(self.device), )
+            yield example_input
 
     def get_module(self):
         return self.model, self.example_inputs
