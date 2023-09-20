@@ -46,7 +46,6 @@ class Model(BenchmarkModel):
     # We use the same batch size for train and inference (96), ...
     # ... but runs only 1 batch
     DEFAULT_FAM_CONFIG = "fb-1dev-A"
-    DEFAULT_NUM_BATCHES = 1
     DEFAULT_TRAIN_BSIZE = 96
     DEFAULT_EVAL_BSIZE = 96
     DEFAULT_SEQ_LENGTH = 64
@@ -58,10 +57,11 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        num_batches = 1
         self.xlmr = fairseq.models.roberta.XLMRModel.from_pretrained("xlmr.large")
         parser = init_argparse()
         args = parser.parse_args([f"--famconfig={self.DEFAULT_FAM_CONFIG}",
-                                  f"--num-batches={self.DEFAULT_NUM_BATCHES}", f"--batch-size={self.batch_size} ", \
+                                  f"--num-batches={num_batches}", f"--batch-size={self.batch_size} ", \
                                   f"--sequence-length={self.DEFAULT_SEQ_LENGTH}", f"--vocab-size={self.DEFAULT_VOCAB_SIZE}"])
         if self.device == "cuda":
             args.use_gpu = True

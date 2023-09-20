@@ -279,10 +279,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         raise NotImplementedError(f"Default dynamic input descriptor is not implemented."
                                   "Please submit an issue if you need a dynamic shape input descriptor implementation for the model {self.name}.")
 
-    def _invoke_staged_train_test(self, num_batches: int) -> None:
+    def _invoke_staged_train_test(self, num_batch: int) -> None:
         optimizer = self.get_optimizer()
-        input_generator = self.get_input_iter() if not num_batches == 1 else None
-        for _batch_num in range(num_batches):
+        input_generator = self.get_input_iter() if not num_batch == 1 else None
+        for _batch_num in range(num_batch):
             self.example_inputs = next(input_generator) if input_generator else self.example_inputs
             if optimizer is not None:
                 optimizer.zero_grad()
