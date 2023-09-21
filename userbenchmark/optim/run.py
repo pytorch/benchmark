@@ -197,7 +197,7 @@ DENSE_MODELS = [
     'mobilenet_v2_quantized_qat',
     'mobilenet_v3_large',
     'moco',
-    'nanogpt_generate',
+    'nanogpt',
     'nvidia_deeprecommender',
     'opacus_cifar10',
     'phlippe_densenet',
