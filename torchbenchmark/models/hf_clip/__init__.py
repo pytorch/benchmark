@@ -44,8 +44,9 @@ class Model(BenchmarkModel):
         processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
         url = "http://images.cocodataset.org/val2017/000000039769.jpg"
         image = Image.open(requests.get(url, stream=True).raw)
-        images = [image, image]
-        self.inputs = processor(text=["a photo of a cat", "a photo of a dog"], images=images, return_tensors="pt", padding=True)
+        images = [image] * self.batch_size
+        texts = [text] * self.batch_size
+        self.inputs = processor(text=texts, images=images, return_tensors="pt", padding=True)
 
         # dict_keys(['input_ids', 'attention_mask', 'pixel_values'])
         for key in self.inputs:
