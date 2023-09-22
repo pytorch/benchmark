@@ -127,6 +127,26 @@ python run.py <model> [-d {cpu,cuda}] [-t {eval,train}] [--profile]
 ```
 Note: `<model>` can be a full, exact name, or a partial string match.
 
+### Using torchbench models as a library
+
+If you're integrating torchbench as part of your library or CI a helpful pattern to follow is the below
+
+```python
+import torch
+import importlib 
+import sys
+
+sys.path.append("benchmark")
+model_name = "torchbenchmark.models.stable_diffusion_text_encoder" # replace this by the name of the model you're working on
+module = importlib.import_module(model_name)
+
+benchmark_cls = getattr(module, "Model", None)
+benchmark = benchmark_cls(test="eval", device = "cuda") # cuda or cpu
+
+model, example = benchmark.get_module()
+model(*example)
+```
+
 ## Nightly CI runs
 
 Currently, the models run on nightly pytorch builds and push data to Meta's internal database.
