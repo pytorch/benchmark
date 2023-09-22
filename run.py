@@ -87,17 +87,13 @@ def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
-        if hasattr(model, "NUM_BATCHES"):
-            print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" %
-                  (gpu_time / model.NUM_BATCHES), sep=''))
-            print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" %
-                  (cpu_walltime / model.NUM_BATCHES), sep=''))
-        else:
-            print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % gpu_time, sep=''))
-            print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
+        print('{:<20} {:>20}'.format("GPU Time per batch:", "%.3f milliseconds" %
+                (gpu_time / model.num_batch), sep=''))
+        print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" %
+                (cpu_walltime / model.num_batch), sep=''))
     else:
         cpu_walltime = np.median(list(map(lambda x: x[0], result_summary)))
-        print('{:<20} {:>20}'.format("CPU Total Wall Time:", "%.3f milliseconds" % cpu_walltime, sep=''))
+        print('{:<20} {:>20}'.format("CPU Wall Time per batch:", "%.3f milliseconds" % (cpu_walltime / model.num_batch), sep=''))
     # if model_flops is not None, output the TFLOPs per sec
     if 'flops' in metrics_needed:
         if flops_model_analyzer.metrics_backend_mapping['flops'] == 'dcgm':
@@ -298,7 +294,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-t",
         "--test",
-        choices=["eval", "train"],
+        choices=["eval", "train", "train_dynamic"],
         default="eval",
         help="Which test to run.",
     )

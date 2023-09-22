@@ -56,6 +56,8 @@ class HuggingFaceModel(BenchmarkModel):
     HF_MODEL = True
     # Default eval precision on CUDA device is fp16(half mode)
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
+    # When running the train_dynamic test, run 100 batches of input
+    DEFAULT_NUM_BATCH = 10
 
     # If you suffix a model with '_generate', we will instead wrap the
     # unsuffixed model with GenerationWrapper which will make it do
@@ -72,7 +74,7 @@ class HuggingFaceModel(BenchmarkModel):
             self.is_generate = False
             self.unqual_name = name
         name = self.unqual_name  # we don't want to refer to the qualified name anymore
-        if test == "train":
+        if test == "train" or test == "train_dynamic":
             self.max_length = class_models[name][0]
         elif test == "eval":
             self.max_length = class_models[name][1]
@@ -97,7 +99,6 @@ class HuggingFaceModel(BenchmarkModel):
 
         # populate these on-demand to avoid wasting memory when not used
         self.vocab_size = config.vocab_size
-        self.dynamic_example_inputs = None
 
         if test == "train":
             input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
@@ -113,7 +114,6 @@ class HuggingFaceModel(BenchmarkModel):
             if class_models[name][3] == 'AutoModelForSeq2SeqLM':
                 self.example_inputs['decoder_input_ids'] = eval_context
             self.model.eval()
-
         self.amp_context = nullcontext
 
     def get_module(self, wrap_model=True):
@@ -126,30 +126,31 @@ class HuggingFaceModel(BenchmarkModel):
                     self.example_inputs['input_ids'], self.example_inputs[k])
         return self.model, (self.example_inputs["input_ids"], )
 
-    def get_dynamic_shapes_module(self):
-        if self.dynamic_example_inputs is None:
-            nbuckets = 8
-            nsamples = 32
-            n = int(math.log2(self.max_length))
-            buckets = [2**n for n in range(n - nbuckets, n)]
-            self.dynamic_example_inputs = [
-                {
-                    'input_ids': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
-                    'labels': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device)}
-                for bucket_len in random.choices(buckets, k=nsamples)
-            ]
-
+    def get_input_iter(self):
+        """Yield randomized bucket length of inputs."""
+        nbuckets = 8
+        n = int(math.log2(self.max_length))
+        buckets = [2**n for n in range(n - nbuckets, n)]
         if class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
-            raise NotImplementedError("Not yet supported")
+            raise NotImplementedError("AutoModelForSeq2SeqLM is not yet supported")
+        while True:
+            # randomize bucket_len
+            bucket_len = random.choice(buckets)
+            dict_input = {
+                'input_ids': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
+                'labels': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
+            }
+            yield dict_input
 
-        # TODO(whc) why is labels not passed through?
-        return self.model, [(i['input_ids'],) for i in self.dynamic_example_inputs]
-
-    def train(self):
+    def forward(self):
         with self.amp_context():
             outputs = self.model(**self.example_inputs)
-        loss = outputs.loss
-        loss.backward()
+        return outputs.loss
+
+    def backward(self, losses):
+        losses.backward()
+
+    def optimizer_step(self):
         self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:

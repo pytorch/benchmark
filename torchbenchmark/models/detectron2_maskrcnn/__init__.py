@@ -69,26 +69,25 @@ class Model(BenchmarkModel):
             self.model.eval()
             test_loader = instantiate(data_cfg.test)
             self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
-        self.NUM_BATCHES = len(self.example_inputs)
 
     def get_module(self):
         return self.model, (self.example_inputs[0], )
 
     def train(self):
         self.model.train()
+        idx = 0
         with EventStorage():
-            for idx in range(self.NUM_BATCHES):
-                losses = self.model(self.example_inputs[idx])
-                loss = sum(losses.values())
-                loss.backward()
-                self.optimizer.step()
-                self.optimizer.zero_grad()
+            losses = self.model(self.example_inputs[idx])
+            loss = sum(losses.values())
+            loss.backward()
+            self.optimizer.step()
+            self.optimizer.zero_grad()
 
     def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
+        idx = 0
         with torch.no_grad():
-            for idx in range(self.NUM_BATCHES):
-                out = self.model(self.example_inputs[idx])
+            out = self.model(self.example_inputs[idx])
         # retrieve output tensors
         outputs = []
         for item in out:

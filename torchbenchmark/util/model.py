@@ -12,7 +12,7 @@ from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
 from torchbenchmark.util.env_check import set_random_seed, is_hf_model, \
                                           save_deterministic_dict, load_deterministic_dict, check_accuracy
 from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
-from torchbenchmark.util.tensor_cast import inputs_cast
+from torchbenchmark.util.input import input_cast, ModelInputDescriptor
 
 SPECIAL_DEVICE_MAPPING = {
     "AMD Instinct MI210": "NVIDIA A100-SXM4-40GB"
@@ -81,14 +81,17 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def __init__(self, test: str, device: str, batch_size: Optional[int]=None, extra_args: List[str]=[]):
         self.metadata = self._load_metadata()
         self.test = test
-        assert self.test == "train" or self.test == "eval", \
-            f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
+        # sanity checks of the options
+        assert self.test == "train" or self.test == "eval" or self.test == "train_dynamic", \
+               f"Test must be 'train', 'train_dynamic', or 'eval', but provided {self.test}."
+        assert self.test == "train_dynamic" and is_staged_train_test(self) or (not self.test == "train_dynamic"), \
+               f"Dynamic shapes must be implemented with staged train test."
         self.device = device
         self.extra_args = extra_args
         self.opt = None
         self._skip_by_device_name()
         # contexts to run in the test function
-        if self.test == "train":
+        if self.test == "train" or self.test == "train_dynamic":
             # In train test, there are run contexts that should only be applied for forward/backward/optimizer stage
             # For example, amp only applies for the forward stage
             self.forward_contexts = []
@@ -99,8 +102,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         ]
 
         set_random_seed()
-        # sanity checks of the options
-        assert self.test == "train" or self.test == "eval", f"Test must be 'train' or 'eval', but provided {self.test}."
         # parse the args
         self.dargs, opt_args = parse_decoration_args(self, self.extra_args)
         if self.dargs.accuracy and not self.DISABLE_DETERMINISM:
@@ -114,6 +115,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.dynamo = False
             self.opt_args, self.extra_args = parse_opt_args(self, opt_args)
         self._determine_batch_size(batch_size)
+        self.num_batch = self._determine_dynamic_num_batches(self.dargs.num_batch)
 
     # Run the post processing for model acceleration
     def __post__init__(self):
@@ -160,6 +162,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 skip_device = skip["device"] if "device" in skip else None
                 if skip_device == current_device_name and (not skip_test or skip_test == self.test):
                     raise NotImplementedError(f"The current device {current_device_name} is skipped by its `{self.name}/metadata.yaml`.")
+
+    def _determine_dynamic_num_batches(self, user_specified_num_batches: Optional[int]) -> int:
+        if self.test == "train" or self.test == "eval":
+            return 1
+        if user_specified_num_batches:
+            return user_specified_num_batches
+        assert hasattr(self, 'DEFAULT_NUM_BATCH'), f"We expect all models with dynamic shapes specify field `DEFAULT_NUM_BATCHES`."
+        return self.DEFAULT_NUM_BATCH
 
     def _determine_batch_size(self, batch_size=None):
         # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
@@ -250,34 +260,50 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
-    def gen_inputs(self, num_batches: int=1) -> Tuple[Generator, Optional[int]]:
-        """Generate a tuple of (iterator of model input, the size of the iterator).
-           If size is None, the input is randomly generated and has infinite size."""
-        raise NotImplementedError("Default input generation function is not implemented. "
-                                  "Please submit an issue if you need input iterator implementation for the model.")
+    def get_input_iter(self) -> Generator:
+        """Return the dynamic input iterator for the model."""
+        raise NotImplementedError(f"Default dynamic input iterator is not implemented. "
+                                  "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}.")
 
-    def invoke_staged_train_test(self) -> None:
+    def get_input_descriptor(self) -> ModelInputDescriptor:
+        if hasattr(self, 'input_descriptor') and isinstance(self.input_descriptor, ModelInputDescriptor):
+            return self.input_descriptor
+        raise NotImplementedError(f"Default dynamic input descriptor is not implemented. "
+                                  "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}.")
+
+    def set_input_descriptor(self, descriptor: ModelInputDescriptor) -> None:
+        """Set the customized dynamic input descriptor for the model."""
+        if hasattr(self, 'input_descriptor') and isinstance(self.input_descriptor, ModelInputDescriptor):
+            self.input_descriptor = descriptor
+            return
+        raise NotImplementedError(f"Default dynamic input descriptor is not implemented."
+                                  "Please submit an issue if you need a dynamic shape input descriptor implementation for the model {self.name}.")
+
+    def _invoke_staged_train_test(self, num_batch: int) -> None:
         optimizer = self.get_optimizer()
-        if optimizer is not None:
-            optimizer.zero_grad()
-
-        with nested(*self.forward_contexts):
-            losses = self.forward()
-
-        with nested(*self.backward_contexts):
-            self.backward(losses)
-
-        if optimizer is not None:
-            with nested(*self.optimizer_contexts):
-                self.optimizer_step()
-
+        input_generator = self.get_input_iter() if not num_batch == 1 else None
+        for _batch_num in range(num_batch):
+            if input_generator:
+                self.example_inputs = next(input_generator)
+                # cast inputs if needed
+                apply_decoration_args(self, self.dargs)
+            if optimizer is not None:
+                optimizer.zero_grad()
+            with nested(*self.forward_contexts):
+                losses = self.forward()
+            with nested(*self.backward_contexts):
+                self.backward(losses)
+            if optimizer is not None:
+                with nested(*self.optimizer_contexts):
+                    self.optimizer_step()
         return None
 
     def invoke(self) -> Optional[Tuple[torch.Tensor]]:
-        out = None
         if self.test == "train" and is_staged_train_test(self):
-            self.invoke_staged_train_test()
-            return out
+            return self._invoke_staged_train_test(num_batch=self.num_batch)
+        if self.test == "train_dynamic":
+            return self._invoke_staged_train_test(num_batch=self.num_batch)
+        out = None
         with nested(*self.run_contexts):
             if self.test == "train":
                 self.train()
@@ -317,7 +343,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             return
         self.set_module(model)
         if hasattr(self, 'example_inputs'):
-            self.example_inputs = inputs_cast(cond, action, self.example_inputs)
+            self.example_inputs = input_cast(cond, action, self.example_inputs)
         else:
             warnings.warn(UserWarning(f"{model_name} example inputs doesn't cast to {action} yet!"))
 
@@ -345,6 +371,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.amp_context = lambda: torch.cpu.amp.autocast()
         elif self.device == "cuda":
             self.amp_context = lambda: torch.cuda.amp.autocast()
+        if is_staged_train_test(self):
+            self.forward_contexts.append(self.amp_context)
 
     @property
     def pt2_compilation_time(self):

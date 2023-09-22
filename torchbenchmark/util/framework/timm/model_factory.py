@@ -14,6 +14,8 @@ class TimmModel(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = None
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
+    # When running the train_dynamic test, run 100 batches of input
+    DEFAULT_NUM_BATCH = 10
 
     def __init__(self, model_name, test, device, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
@@ -27,22 +29,21 @@ class TimmModel(BenchmarkModel):
         self.model.to(
             device=self.device
         )
-        if test == "train":
+        if test == "train" or test == "train_dynamic":
             self.model.train()
         elif test == "eval":
             self.model.eval()
         self.amp_context = suppress
 
-    def gen_inputs(self, num_batches:int=1) -> Tuple[Generator, Optional[int]]:
-        def _gen_inputs():
-            while True:
-                result = []
-                for _i in range(num_batches):
-                    result.append((self._gen_input(self.batch_size), ))
-                if self.dargs.precision == "fp16":
-                    result = list(map(lambda x: (x[0].half(), ), result))
-                yield result
-        return (_gen_inputs(), None)
+    def get_input_iter(self):
+        """Yield randomized batch size of inputs."""
+        import math, random
+        n = int(math.log2(self.batch_size))
+        buckets = [2**n for n in range(n)]
+        while True:
+            random_batch_size = random.choice(buckets)
+            example_input = (self._gen_input(random_batch_size), )
+            yield example_input
 
     def _gen_input(self, batch_size):
         return torch.randn((batch_size,) + self.cfg.input_size, device=self.device)

@@ -100,7 +100,7 @@ class Detectron2Model(BenchmarkModel):
             self.model = instantiate(cfg.model).to(self.device)
 
         # setup model and return the dataloader
-        if self.test == "train":
+        if self.test == "train" or self.test == "train_dynamic":
             if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
                 raise NotImplementedError("FCOS train is not supported by upstream detectron2. " \
                                           "See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.")
@@ -110,8 +110,6 @@ class Detectron2Model(BenchmarkModel):
             loader = self.setup_eval(cfg, args)
 
         self.example_inputs = prefetch(itertools.islice(loader, 100), self.device)
-        # torchbench: only run 1 batch
-        self.NUM_BATCHES = 1
 
     def setup_train(self):
         if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
@@ -163,22 +161,22 @@ class Detectron2Model(BenchmarkModel):
         self.example_inputs = prefetch(self.example_inputs, self.device, self.dargs.precision)
 
     def train(self):
+        batch_id = 0
         with EventStorage():
-            for batch_id in range(self.NUM_BATCHES):
-                loss_dict = self.model(self.example_inputs[batch_id])
-                if isinstance(loss_dict, torch.Tensor):
-                    losses = loss_dict
-                    loss_dict = {"total_loss": loss_dict}
-                else:
-                    losses = sum(loss_dict.values())
-                self.optimizer.zero_grad()
-                losses.backward()
-                self.optimizer.step()
+            loss_dict = self.model(self.example_inputs[batch_id])
+            if isinstance(loss_dict, torch.Tensor):
+                losses = loss_dict
+                loss_dict = {"total_loss": loss_dict}
+            else:
+                losses = sum(loss_dict.values())
+            self.optimizer.zero_grad()
+            losses.backward()
+            self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
+        batch_id = 0
         with torch.no_grad():
-            for batch_id in range(self.NUM_BATCHES):
-                out = self.model(self.example_inputs[batch_id])
+            out = self.model(self.example_inputs[batch_id])
         # retrieve output tensors
         outputs = []
         for item in out:
