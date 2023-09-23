@@ -129,7 +129,7 @@ Note: `<model>` can be a full, exact name, or a partial string match.
 
 ### Using torchbench models as a library
 
-If you're integrating torchbench as part of your library or CI a helpful pattern to follow is the below
+If you're interested in using torchbench as a suite of models you can test, the easiest way to integrate it into your code/ci/tests would be something like
 
 ```python
 import torch
