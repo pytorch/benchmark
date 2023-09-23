@@ -10,6 +10,3 @@ class Model(HuggingFaceModel, HuggingFaceAuthMixin):
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         HuggingFaceAuthMixin.__init__(self)
         super().__init__(name="llama_v2_7b_16h", test=test, device=device, batch_size=batch_size, extra_args=extra_args)
-
-    def train(self):
-        return NotImplementedError("7b LLAMA model will OOM on CI GPU machines")
