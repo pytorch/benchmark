@@ -223,6 +223,7 @@ class Model(BenchmarkModel):
         loss.backward()
         self.optimizer.step()
         self.lr_scheduler.step()
+        self.optimizer.zero_grad()
 
     # get_optimizer override is important! This model has both a self.opt
     # _and_ a self.optimizer and we want just the optimizer
