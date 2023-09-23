@@ -136,6 +136,7 @@ import torch
 import importlib 
 import sys
 
+# If your directory looks like this_file.py, benchmark/
 sys.path.append("benchmark")
 model_name = "torchbenchmark.models.stable_diffusion_text_encoder" # replace this by the name of the model you're working on
 module = importlib.import_module(model_name)
