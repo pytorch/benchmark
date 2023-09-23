@@ -141,7 +141,7 @@ model_name = "torchbenchmark.models.stable_diffusion_text_encoder" # replace thi
 module = importlib.import_module(model_name)
 
 benchmark_cls = getattr(module, "Model", None)
-benchmark = benchmark_cls(test="eval", device = "cuda") # cuda or cpu
+benchmark = benchmark_cls(test="eval", device = "cuda") # test = train or eval device = cuda or cpu
 
 model, example = benchmark.get_module()
 model(*example)
