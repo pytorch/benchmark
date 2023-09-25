@@ -305,7 +305,7 @@ def clone_inputs(example_inputs):
     for i in range(len(res)):
         if isinstance(res[i], torch.Tensor):
             res[i] = clone_input(res[i])
-    return example_inputs
+    return res
 
 def init_optimizer(name, device, params, is_training):
     import torch
@@ -481,21 +481,21 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     with pick_grad(name, is_training):
         # Get results of native pytorch
         reset_rng_state()
-        # try:
-        model_copy = deepcopy_model(model, is_deepcopy)
-        optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
-        correct_result = run_n_iterations(
-            model_copy, clone_inputs(example_inputs), contexts, optimizer, is_training
-        )
-        # except Exception as e:
-        #     accuracy_status = (
-        #         "eager_1st_run_OOM"
-        #         if isinstance(e, torch.cuda.OutOfMemoryError)
-        #         else "eager_1st_run_fail"
-        #     )
-        #     print(e)
-        #     log.exception(e)
-        #     return accuracy_status
+        try:
+            model_copy = deepcopy_model(model, is_deepcopy)
+            optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
+            correct_result = run_n_iterations(
+                model_copy, clone_inputs(example_inputs), contexts, optimizer, is_training
+            )
+        except Exception as e:
+            accuracy_status = (
+                "eager_1st_run_OOM"
+                if isinstance(e, torch.cuda.OutOfMemoryError)
+                else "eager_1st_run_fail"
+            )
+            print(e)
+            log.exception(e)
+            return accuracy_status
 
         # Rerun native pytorch
         reset_rng_state()
