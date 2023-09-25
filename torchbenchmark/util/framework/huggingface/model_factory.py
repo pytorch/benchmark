@@ -95,6 +95,9 @@ class HuggingFaceModel(BenchmarkModel):
             capturable=bool(int(os.getenv("ADAM_CAPTURABLE", 0)
         )))
 
+        if name in ["llama_v2_7b_16h"]:
+            self.optimizer = optim.SGD(self.model.parameters(), lr= 0.001)
+
         # populate these on-demand to avoid wasting memory when not used
         self.vocab_size = config.vocab_size
         self.dynamic_example_inputs = None
