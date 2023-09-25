@@ -46,8 +46,8 @@ python install.py
 ### Building From Source
 Note that when building PyTorch from source, torchvision and torchaudio must also be built from source to make sure the C APIs match.
 
-See detailed instructions to install torchvision [here](https://github.com/pytorch/vision) and torchaudio [here](https://github.com/pytorch/audio).
-Make sure to enable CUDA (by `FORCE_CUDA=1`) if using CUDA.
+See detailed instructions to install torchvision [here](https://github.com/pytorch/vision/blob/main/CONTRIBUTING.md) and torchaudio [here](https://github.com/pytorch/audio/blob/main/CONTRIBUTING.md).
+Make sure to enable CUDA (by `USE_CUDA=1`) if using CUDA.
 Then,
 ```
 git clone https://github.com/pytorch/benchmark
