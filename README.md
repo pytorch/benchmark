@@ -48,12 +48,14 @@ python install.py
 if you're interested in running torchbench as a library you can
 
 ```bash
+python install.py
 pip install git+https://www.github.com:pytorch/benchmark.git
 ```
 
 or 
 
 ```bash
+python install.py
 pip install . # add -e for an editable installation
 ```
 
