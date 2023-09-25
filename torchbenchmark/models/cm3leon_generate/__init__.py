@@ -25,13 +25,26 @@ class Model(BenchmarkModel):
         self.example_inputs = (
             torch.randint(1, vocab_size, (self.batch_size, prompt_size)).to(self.device),
         )
+        self.criterion = torch.nn.CrossEntropyLoss()
+        self.optimizer = torch.optim.Adam(self.model.parameters())
 
     def get_module(self):
         return self.model, self.example_inputs
 
-    # The code included here is specialized for eval
     def train(self):
-        return NotImplementedError("training script not published")
+        self.model.train() 
+
+        outputs = self.model(*self.example_inputs)
+        
+        # This doesn't make semantic sense but works for demonstration.
+        loss = self.criterion(outputs, self.example_inputs[0])
+        
+        # Backward pass and optimization
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+        
+        return loss.item()
 
     def eval(self):
         with torch.no_grad():
