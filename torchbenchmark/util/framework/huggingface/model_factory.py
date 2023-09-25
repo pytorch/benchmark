@@ -29,7 +29,7 @@ class_models = {
     'hf_Bert_large': (512, 512, 'BertConfig(hidden_size=1024, num_hidden_layers=24, num_attention_heads=16)', 'AutoModelForMaskedLM'),
     'hf_Whisper': (1024, 1024, 'WhisperConfig()', 'AutoModelForAudioClassification'),
     # default num_hidden_layers=32 but that OOMs, feel free to change this config to something more real
-    'llama_v2_7b_16h' : (512,512, 'LlamaConfig(num_hidden_layers=16)', 'AutoModelForCausalLM'),
+    'llama_v2_7b_16h' : (128,512, 'LlamaConfig(num_hidden_layers=16)', 'AutoModelForCausalLM'),
     'hf_MPT_7b_instruct': (512, 512, 'AutoConfig.from_pretrained("mosaicml/mpt-7b-instruct", trust_remote_code=True)', 'AutoModelForCausalLM'),
     'llama_v2_7b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-7b-hf")', 'AutoModelForCausalLM'),
     'llama_v2_13b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-13b-hf")', 'AutoModelForCausalLM'),
@@ -96,6 +96,9 @@ class HuggingFaceModel(BenchmarkModel):
             # TODO resolve https://github.com/pytorch/torchdynamo/issues/1083
             capturable=bool(int(os.getenv("ADAM_CAPTURABLE", 0)
         )))
+
+        if name in ["llama_v2_7b_16h"]:
+            self.optimizer = optim.SGD(self.model.parameters(), lr= 0.001)
 
         # populate these on-demand to avoid wasting memory when not used
         self.vocab_size = config.vocab_size

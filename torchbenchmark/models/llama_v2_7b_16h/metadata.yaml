@@ -6,7 +6,6 @@ eval_deterministic: false
 eval_nograd: true
 not_implemented:
 - device: cpu
-- device: cuda
-  test: train
+- device: NVIDIA A10G
 train_benchmark: false
 train_deterministic: false
