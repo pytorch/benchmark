@@ -218,6 +218,8 @@ DENSE_MODELS = [
     'speech_transformer',
     'squeezenet1_1',
     'stable_diffusion',
+    'stable_diffusion_text_encoder',
+    'stable_diffusion_unet',
     'tacotron2',
     'timm_efficientdet',
     'timm_efficientnet',
