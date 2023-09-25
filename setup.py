@@ -5,12 +5,12 @@ setup(
     version='0.1',
     description='Benchmarking library for PyTorch',
     author='PyTorch Team',
-    url='https://github.com/pytorch/benchmark',  # replace with the actual URL of your project
+    url='https://github.com/pytorch/benchmark',
     packages=find_packages(include=['torchbenchmark*', 'userbenchmark*']),
     classifiers=[
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Build Tools',
-        'License :: OSI Approved :: BSD 3 License',  # assuming MIT License, modify accordingly
+        'License :: OSI Approved :: BSD 3 License',
         'Programming Language :: Python',
     ],
 )
