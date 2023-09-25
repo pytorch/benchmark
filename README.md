@@ -43,6 +43,28 @@ cd benchmark
 python install.py
 ```
 
+### Install torchbench as a library
+
+if you're interested in running torchbench as a library you can
+
+```bash
+pip install git+https://www.github.com:pytorch/benchmark.git
+```
+
+or 
+
+```bash
+pip install . # add -e for an editable installation
+```
+
+The above
+
+```python
+import torchbenchmark.models.densenet121
+model, example_inputs = torchbenchmark.models.densenet121.Model(test="eval", device="cuda", batch_size=1).get_module()
+model(*example_inputs)
+```
+
 ### Building From Source
 Note that when building PyTorch from source, torchvision and torchaudio must also be built from source to make sure the C APIs match.
 

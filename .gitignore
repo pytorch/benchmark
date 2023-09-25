@@ -20,3 +20,4 @@ te.json
 logs/
 scripts/scribe.py
 .userbenchmark/
+torchbench.egg-info/

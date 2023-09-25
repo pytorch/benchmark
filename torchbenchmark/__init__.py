@@ -17,6 +17,12 @@ import torch
 
 from components._impl.tasks import base as base_task
 from components._impl.workers import subprocess_worker
+from . import models
+from . import canary_models
+from . import data 
+from . import e2e_models
+from . import score 
+from . import util
 
 class ModelNotFoundError(RuntimeError):
     pass
