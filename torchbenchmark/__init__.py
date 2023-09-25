@@ -21,7 +21,6 @@ from . import models
 from . import canary_models
 from . import data 
 from . import e2e_models
-from . import score 
 from . import util
 
 class ModelNotFoundError(RuntimeError):
