@@ -284,6 +284,9 @@ class ModelTask(base_task.TaskBase):
     def model_details(self) -> bool:
         return self._details
 
+    def __str__(self) -> str:
+        return f"ModelTask(Model Path: {self._model_path}, Metadata: {self._details.metadata})"
+
     # =========================================================================
     # == Import Model in the child process ====================================
     # =========================================================================

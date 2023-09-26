@@ -9,6 +9,8 @@ import argparse
 import logging
 from contextlib import contextmanager, ExitStack
 from typing import Any, Dict, List, Optional
+from collections.abc import Mapping
+
 
 MAIN_RANDOM_SEED = 1337
 # rounds for stableness tests
@@ -292,7 +294,7 @@ def clone_input(x, *, dtype=None):
 
 def clone_inputs(example_inputs):
     import torch
-    if type(example_inputs) is dict:
+    if isinstance(example_inputs, Mapping):
         res = dict(example_inputs)
         for key, value in res.items():
             assert isinstance(value, torch.Tensor)
@@ -351,14 +353,22 @@ def optimizer_step(optimizer):
         optimizer.step()
 
 def forward_pass(mod, inputs, contexts, _collect_outputs=True):
+    cloned_inputs = clone_inputs(inputs)
     with nested(*contexts):
-        return mod(*inputs)
+        if isinstance(cloned_inputs, Mapping):
+            return mod(**inputs)
+        else:
+            return mod(*inputs)
+    
 
 def forward_and_backward_pass(mod, inputs, contexts, optimizer, collect_outputs=True):
     cloned_inputs = clone_inputs(inputs)
     optimizer_zero_grad(optimizer, mod)
     with nested(*contexts):
-        pred = mod(*cloned_inputs)
+        if isinstance(cloned_inputs, Mapping):
+            pred = mod(**cloned_inputs)
+        else:
+            pred = mod(*cloned_inputs)
         loss = compute_loss(pred)
     loss.backward(retain_graph=True)
     optimizer_step(optimizer)
