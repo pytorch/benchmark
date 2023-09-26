@@ -294,7 +294,7 @@ def clone_input(x, *, dtype=None):
 
 def clone_inputs(example_inputs):
     import torch
-    if type(example_inputs) is dict:
+    if isinstance(example_inputs, Mapping):
         res = dict(example_inputs)
         for key, value in res.items():
             assert isinstance(value, torch.Tensor)
@@ -355,6 +355,8 @@ def optimizer_step(optimizer):
 def forward_pass(mod, inputs, contexts, _collect_outputs=True):
     cloned_inputs = clone_inputs(inputs)
     with nested(*contexts):
+        print("====")
+        print(type(cloned_inputs))
         if isinstance(cloned_inputs, Mapping):
             return mod(**inputs)
         else:
@@ -481,21 +483,21 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
     with pick_grad(name, is_training):
         # Get results of native pytorch
         reset_rng_state()
-        try:
-            model_copy = deepcopy_model(model, is_deepcopy)
-            optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
-            correct_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs), contexts, optimizer, is_training
-            )
-        except Exception as e:
-            accuracy_status = (
-                "eager_1st_run_OOM"
-                if isinstance(e, torch.cuda.OutOfMemoryError)
-                else "eager_1st_run_fail"
-            )
-            print(e)
-            log.exception(e)
-            return accuracy_status
+        # try:
+        model_copy = deepcopy_model(model, is_deepcopy)
+        optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
+        correct_result = run_n_iterations(
+            model_copy, clone_inputs(example_inputs), contexts, optimizer, is_training
+        )
+        # except Exception as e:
+        #     accuracy_status = (
+        #         "eager_1st_run_OOM"
+        #         if isinstance(e, torch.cuda.OutOfMemoryError)
+        #         else "eager_1st_run_fail"
+        #     )
+            # print(e)
+            # log.exception(e)
+        return accuracy_status
 
         # Rerun native pytorch
         reset_rng_state()
