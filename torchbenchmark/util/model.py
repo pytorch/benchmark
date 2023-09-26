@@ -201,6 +201,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             default_batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
             self.batch_size = default_batch_size
 
+        if not self.batch_size:
+            raise NotImplementedError(f"Model's {'DEFAULT_TRAIN_BSIZE' if self.test == 'train' else 'DEFAULT_EVAL_BSIZE'} is not implemented.")
+
         # Check if specified batch size is supported by the model
         if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
             if self.test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
@@ -209,10 +212,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 raise NotImplementedError(f"Model doesn't support customizing batch size, but {self.test} test is providing a batch size other than DEFAULT_EVAL_BSIZE")
         elif self.dargs.accuracy:
             self.batch_size = 4 if self.batch_size > 4 else self.batch_size
-
-        if not self.batch_size:
-            raise NotImplementedError(f"Model's {'DEFAULT_TRAIN_BSIZE' if self.test == 'train' else 'DEFAULT_EVAL_BSIZE'} is not implemented.")
-
 
     def _load_metadata(self):
         relative_path = self.__class__.__module__.split(".")
