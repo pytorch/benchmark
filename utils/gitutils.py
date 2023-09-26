@@ -137,6 +137,8 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
         cleanup_local_changes(repo)
         command = ["git", "checkout", "--recurse-submodules", commit]
         subprocess.check_call(command, cwd=repo, shell=False)
+        command = ["git", "submodule", "update", "--init", "--recursive"]
+        subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
         # Sleep 5 seconds for concurrent git process, remove the index.lock file if exists, and try again
@@ -147,6 +149,8 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
                 os.remove(index_lock)
             cleanup_local_changes(repo)
             command = ["git", "checkout", "--recurse-submodules", commit]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            command = ["git", "submodule", "update", "--init", "--recursive"]
             subprocess.check_call(command, cwd=repo, shell=False)
             return True
         except subprocess.CalledProcessError:
