@@ -495,7 +495,7 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             )
             print(e)
             log.exception(e)
-        return accuracy_status
+            return accuracy_status
 
         # Rerun native pytorch
         reset_rng_state()
