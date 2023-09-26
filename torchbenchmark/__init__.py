@@ -142,7 +142,7 @@ def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool =
     if allow_canary:
         canary_model_paths = filter(lambda p: True if not models else os.path.basename(p).lower() in models, _list_canary_model_paths())
         model_paths = list(model_paths)
-        model_paths += list(canary_model_paths)
+        model_paths.extend(canary_model_paths)
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         if test_mode:
