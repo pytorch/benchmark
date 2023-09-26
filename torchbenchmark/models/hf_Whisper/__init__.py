@@ -4,6 +4,7 @@ import torch
 
 class Model(HuggingFaceModel):
     task = SPEECH.RECOGNITION
+    DEFAULT_TRAIN_BSIZE = 8
     DEFAULT_EVAL_BSIZE = 8
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
     

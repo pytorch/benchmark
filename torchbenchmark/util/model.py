@@ -171,36 +171,45 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         assert hasattr(self, 'DEFAULT_NUM_BATCH'), f"We expect all models with dynamic shapes specify field `DEFAULT_NUM_BATCHES`."
         return self.DEFAULT_NUM_BATCH
 
-    def _determine_batch_size(self, batch_size=None):
+    def _get_batch_size_from_metadata(self) -> Optional[str]:
+        if self.device != "cuda":
+            current_device_name = str(self.device)
+        else:
+            current_device_name = torch.cuda.get_device_name()
+            assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+            if current_device_name in SPECIAL_DEVICE_MAPPING:
+                current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
+
+        # use the device suggestion on CUDA inference tests, key should be either eval_batch_size or train_batch_size
+        device_batch_size_key = f"{self.test}_batch_size"
+        if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"] \
+                            and device_batch_size_key in self.metadata["devices"][current_device_name]:
+            batch_size = self.metadata["devices"][current_device_name][device_batch_size_key]
+            return batch_size
+
+    def _determine_batch_size(self, user_specified_batch_size=None):
         # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
         # batch size priority for train tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > default
-        self.batch_size = batch_size
-        if not batch_size:
-            self.batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
-            if self.device == "cuda":
-                current_device_name = torch.cuda.get_device_name()
-                assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
-                if current_device_name in SPECIAL_DEVICE_MAPPING:
-                    current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
-            else:
-                current_device_name = str(self.device)
-            # use the device suggestion on CUDA inference tests, key should be either eval_batch_size or train_batch_size
-            device_batch_size_key = f"{self.test}_batch_size"
-            if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"] \
-                             and device_batch_size_key in self.metadata["devices"][current_device_name]:
-                self.batch_size = self.metadata["devices"][current_device_name][device_batch_size_key]
-            # If the model doesn't implement test or eval test
-            # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
-            if not self.batch_size:
-                raise NotImplementedError(f"Test {self.test} is not implemented.")
-        else:
-            self.batch_size = batch_size
+
+        self.batch_size = user_specified_batch_size
+
+        if not self.batch_size:
+            device_specified_batch_size = self._get_batch_size_from_metadata()
+            self.batch_size = device_specified_batch_size
+
+        if not self.batch_size:
+            default_batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
+            self.batch_size = default_batch_size
+
+        if not self.batch_size:
+            raise NotImplementedError(f"Model's {'DEFAULT_TRAIN_BSIZE' if self.test == 'train' else 'DEFAULT_EVAL_BSIZE'} is not implemented.")
+
         # Check if specified batch size is supported by the model
         if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
             if self.test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
-                raise NotImplementedError("Model doesn't support customizing batch size.")
+                raise NotImplementedError(f"Model doesn't support customizing batch size, but {self.test} test is providing a batch size other than DEFAULT_TRAIN_BSIZE")
             elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
-                raise NotImplementedError("Model doesn't support customizing batch size.")
+                raise NotImplementedError(f"Model doesn't support customizing batch size, but {self.test} test is providing a batch size other than DEFAULT_EVAL_BSIZE")
         elif self.dargs.accuracy:
             self.batch_size = 4 if self.batch_size > 4 else self.batch_size
 
