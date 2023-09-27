@@ -359,7 +359,7 @@ def forward_pass(mod, inputs, contexts, _collect_outputs=True):
             return mod(**inputs)
         else:
             return mod(*inputs)
-    
+
 
 def forward_and_backward_pass(mod, inputs, contexts, optimizer, collect_outputs=True):
     cloned_inputs = clone_inputs(inputs)

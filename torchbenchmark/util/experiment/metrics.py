@@ -149,4 +149,6 @@ def get_model_accuracy(model_config: TorchBenchModelConfig, isolated: bool=True)
         return accuracy
     else:
         model = load_model(accuracy_model_config)
-        return model.accuracy
+        accuracy = model.accuracy
+        del model
+        return accuracy
