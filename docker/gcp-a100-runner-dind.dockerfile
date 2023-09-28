@@ -14,7 +14,8 @@ RUN sudo apt-get install -y git jq \
                             vim wget curl ninja-build cmake \
                             libgl1-mesa-glx libsndfile1-dev kmod libxml2-dev libxslt1-dev \
                             fontconfig libfontconfig1-dev \
-                            libpango-1.0-0 libpangoft2-1.0-0
+                            libpango-1.0-0 libpangoft2-1.0-0 \
+                            libsdl2-dev libsdl2-2.0-0
 
 # get switch-cuda utility
 RUN sudo wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
@@ -85,11 +86,10 @@ RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.s
     chmod +x Miniconda3-latest-Linux-x86_64.sh && \
     bash ./Miniconda3-latest-Linux-x86_64.sh -b -u
 
-# Use Python 3.10 as default
+# Test activate miniconda
 RUN . ${HOME}/miniconda3/etc/profile.d/conda.sh && \
     conda activate base && \
-    conda init && \
-    conda install -y python=3.10
+    conda init
 
 RUN echo "\
 . \${HOME}/miniconda3/etc/profile.d/conda.sh\n\

@@ -1,12 +1,19 @@
 # default base image: xzhao9/gcp-a100-runner-dind:latest
 ARG BASE_IMAGE=xzhao9/gcp-a100-runner-dind:latest
+
 FROM ${BASE_IMAGE}
 
 ENV CONDA_ENV=torchbench
 ENV SETUP_SCRIPT=/workspace/setup_instance.sh
+ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
+
+# Setup dependencies
+RUN sudo apt install -y libsdl2-dev libsdl2-2.0-0
 
 # Setup Conda env and CUDA
-RUN git clone https://github.com/pytorch/benchmark /workspace/benchmark
+RUN git clone -b "${TORCHBENCH_BRANCH}" --single-branch \
+ https://github.com/pytorch/benchmark /workspace/benchmark
+
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python ./utils/python_utils.py --create-conda-env ${CONDA_ENV} && \
