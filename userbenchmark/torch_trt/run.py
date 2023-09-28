@@ -195,7 +195,7 @@ def run(args: List[str]):
         ir_idx = unknown_args.index("--ir")
         selected_ir = unknown_args[ir_idx + 1]
     except (ValueError, IndexError):
-        selected_ir = "default"
+        selected_ir = "torch_compile"
 
     # Parse model string if specified, otherwise run all models
     # Adapted from benchmark/run.py
