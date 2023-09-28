@@ -15,9 +15,8 @@ MonkeyType
 psutil
 pyyaml
 # pytorch build script pins numpy version
-# https://github.com/pytorch/builder/blob/ae5c82e65cb3d8bac6df50e742a195019af91ad3/wheel/build_wheel.sh#L145
-numpy==1.21.2
-# https://github.com/opencv/opencv-python/issues/885
-opencv-python==4.7.0.72
+# https://github.com/pytorch/builder/blob/main/wheel/build_wheel.sh
+numpy==1.23.5
+opencv-python
 submitit
 pynvml
