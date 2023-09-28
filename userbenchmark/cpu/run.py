@@ -131,9 +131,10 @@ def run_benchmark(config, args):
     cmd.append("--niter")
     cmd.append(args.niter)
     cmd.append("-o")
-    cmd.append(str(args.output))
+    cmd.append(args.output)
+    cmd = list(map(str, cmd))
 
-    print(f"\nRunning benchmark: {' '.join(map(str, cmd))}")
+    print(f"\nRunning benchmark: {' '.join(cmd)}")
     if not args.dryrun:
         timeout = int(args.timeout) if args.timeout else None
         try:
