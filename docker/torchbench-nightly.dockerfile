@@ -1,12 +1,16 @@
 # default base image: xzhao9/gcp-a100-runner-dind:latest
 ARG BASE_IMAGE=xzhao9/gcp-a100-runner-dind:latest
+ARG TORCHBENCH_BRANCH=main
+
 FROM ${BASE_IMAGE}
 
 ENV CONDA_ENV=torchbench
 ENV SETUP_SCRIPT=/workspace/setup_instance.sh
 
 # Setup Conda env and CUDA
-RUN git clone https://github.com/pytorch/benchmark /workspace/benchmark
+RUN git clone -b ${TORCHBENCH_BRANCH} --single-branch \
+ https://github.com/pytorch/benchmark /workspace/benchmark
+
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python ./utils/python_utils.py --create-conda-env ${CONDA_ENV} && \

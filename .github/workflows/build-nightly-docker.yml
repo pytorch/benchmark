@@ -28,7 +28,8 @@ jobs:
           export TODAY=$(date +'%Y%m%d')
           export DOCKER_TAG=dev${TODAY}
           cd benchmark/docker
-          docker build . -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:${DOCKER_TAG}
+          echo "Github Ref: ${{ github.ref }}"
+          docker build . --build-arg TORCHBENCH_BRANCH="${{ github.ref }}" -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:${DOCKER_TAG}
           docker tag ghcr.io/pytorch/torchbench:${DOCKER_TAG} ghcr.io/pytorch/torchbench:latest
       - name: Push docker to remote
         if: ${{ env.WITH_PUSH == 'true' }}
