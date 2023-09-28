@@ -1,3 +1,2 @@
-gym==0.25.2
-# pygame 2.1.3 requires sdl2-config, which doesn't exist in our benchmark environment
-pygame==2.1.2
+gym
+pygame
