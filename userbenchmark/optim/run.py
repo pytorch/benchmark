@@ -187,6 +187,7 @@ DENSE_MODELS = [
     'hf_T5_generate',
     'hf_T5_large',
     'hf_Whisper',
+    'hf_clip',
     'lennard_jones',
     'llama',
     'llama_v2_7b_16h',
