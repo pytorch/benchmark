@@ -83,7 +83,8 @@ def run_one_step_with_cudastreams(func, streamcount):
         print('{:<20} {:>20}'.format("GPU Time:", "%.3f milliseconds" % start_event.elapsed_time(end_event)), sep='')
 
 
-def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_model_analyzer=None, model_flops=None, cpu_peak_mem=None, mem_device_id=None, gpu_peak_mem=None):
+def printResultSummaryTime(result_summary, model, metrics_needed=[], flops_model_analyzer=None, model_flops=None, cpu_peak_mem=None, mem_device_id=None, gpu_peak_mem=None):
+    assert (model is not None), "model can not be None."
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
         cpu_walltime = np.median(list(map(lambda x: x[1], result_summary)))
@@ -111,7 +112,7 @@ def printResultSummaryTime(result_summary, metrics_needed=[], model=None, flops_
         print('{:<20} {:>20}'.format("CPU Peak Memory:", "%.4f GB" % cpu_peak_mem, sep=''))
 
 
-def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_metrics_file=None, stress=0, metrics_needed=[], metrics_gpu_backend=None):
+def run_one_step(func, model, nwarmup=WARMUP_ROUNDS, num_iter=10, export_metrics_file=None, stress=0, metrics_needed=[], metrics_gpu_backend=None):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
         func()
@@ -184,10 +185,10 @@ def run_one_step(func, nwarmup=WARMUP_ROUNDS, num_iter=10, model=None, export_me
         cpu_peak_mem, mem_device_id, gpu_peak_mem = get_peak_memory(func, model.device, export_metrics_file=export_metrics_file, metrics_needed=metrics_needed, metrics_gpu_backend=metrics_gpu_backend)
     if 'model_flops' in metrics_needed:
         model_flops = get_model_flops(model)
-    printResultSummaryTime(result_summary, metrics_needed, model, flops_model_analyzer, model_flops, cpu_peak_mem, mem_device_id, gpu_peak_mem)
+    printResultSummaryTime(result_summary, model, metrics_needed, flops_model_analyzer, model_flops, cpu_peak_mem, mem_device_id, gpu_peak_mem)
 
 
-def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
+def profile_one_step(func, model, nwarmup=WARMUP_ROUNDS):
     activity_groups = []
     result_summary = []
     device_to_activity = {'cuda': profiler.ProfilerActivity.CUDA, 'cpu': profiler.ProfilerActivity.CPU}
@@ -259,7 +260,7 @@ def profile_one_step(func, nwarmup=WARMUP_ROUNDS):
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=30))
     print(f"Saved TensorBoard Profiler traces to {args.profile_folder}.")
 
-    printResultSummaryTime(result_summary)
+    printResultSummaryTime(result_summary, model=m)
 
 def _validate_devices(devices: str):
     devices_list = devices.split(",")
@@ -461,7 +462,10 @@ if __name__ == "__main__":
     else:
         export_metrics_file = None
     if args.profile:
-        profile_one_step(test)
+        profile_one_step(
+            test,
+            model=m
+        )
     elif args.cudastreams:
         run_one_step_with_cudastreams(test, 10)
     else:
