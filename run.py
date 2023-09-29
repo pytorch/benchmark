@@ -225,11 +225,11 @@ def profile_one_step(func, model, nwarmup=WARMUP_ROUNDS):
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=nwarmup, active=1, repeat=1),
         activities=activity_groups,
-        record_shapes=args.profile_detailed if args.profile_detailed else profile_opts["record_shapes"],
-        profile_memory=args.profile_detailed if args.profile_detailed else profile_opts["profile_memory"],
-        with_stack=args.profile_detailed if args.profile_detailed else profile_opts["with_stack"],
-        with_flops=args.profile_detailed if args.profile_detailed else profile_opts["with_flops"],
-        with_modules=args.profile_detailed if args.profile_detailed else profile_opts["with_modules"],
+        record_shapes=args.no_profile_detailed if args.no_profile_detailed else profile_opts["record_shapes"],
+        profile_memory=args.no_profile_detailed if args.no_profile_detailed else profile_opts["profile_memory"],
+        with_stack=args.no_profile_detailed if args.no_profile_detailed else profile_opts["with_stack"],
+        with_flops=args.no_profile_detailed if args.no_profile_detailed else profile_opts["with_flops"],
+        with_modules=args.no_profile_detailed if args.no_profile_detailed else profile_opts["with_modules"],
         on_trace_ready= partial(trace_handler, f"torchbench_{args.model}") if (not hasattr(torch.version, "git_version") and args.profile_export_chrome_trace) else profiler.tensorboard_trace_handler(args.profile_folder),
     ) as prof:
         if args.device == "cuda":
@@ -314,9 +314,9 @@ if __name__ == "__main__":
         help="Save profiling model traces to this directory.",
     )
     parser.add_argument(
-        "--profile-detailed",
-        action="store_true",
-        help=f"Enable all profile options, including {SUPPORT_PROFILE_LIST}. Overrides --profile-options.",
+        "--no-profile-detailed",
+        action="store_false",
+        help=f"Only profile GPU kernels, excluding {SUPPORT_PROFILE_LIST}. Overrides --profile-options.",
     )
     parser.add_argument(
         "--profile-export-chrome-trace",
