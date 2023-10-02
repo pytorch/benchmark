@@ -4,9 +4,13 @@ Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 import argparse
 import contextlib
 import distutils.util
+import os
+import warnings
 from typing import List
+
 import torch
 import torch._dynamo as torchdynamo
+import torchbenchmark
 from torchbenchmark.util.model import is_staged_train_test
 
 def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
@@ -54,6 +58,17 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         help="enable group fusion in Inductor"
     )
     parser.add_argument(
+        "--torchinductor_compile_threads",
+        type=int,
+        help="""
+            Here are the precedence to decide compile_threads
+            1. User can override it by TORCHINDUCTOR_COMPILE_THREADS.  One may want to disable async compiling by
+            setting this to 1 to make pdb happy.
+            2. Set to 1 if it's win32 platform or it's a fbcode build
+            3. decide by the number of CPU cores
+            """
+    )
+    parser.add_argument(
         "--torchinductor_enable_batch_fusion",
         action='store_true',
         help="enable batch fusion in Inductor"
@@ -96,6 +111,8 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             # torchinductor.config.triton.use_bmm = True
         if args.torchinductor_enable_group_fusion:
             torchinductor.config.group_fusion = True
+        if compile_threads := args.torchinductor_compile_threads:
+            os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
         if args.torchinductor_enable_batch_fusion:
             torchinductor.config.pattern_matcher = True
             torchinductor.config.batch_fusion = True
