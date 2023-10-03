@@ -60,7 +60,7 @@ DEVICES: List[str] = ['cuda', 'cpu']
 
 OPTIM_NAMES = [o.__name__ for o in [Adadelta, Adagrad, Adam, AdamW, Adamax, ASGD, SGD, RAdam, Rprop, RMSprop, NAdam, SparseAdam]]
 
-FUNC_STRS = ['']
+FUNC_STRS = ['', 'pt2_']
 
 OPTIMIZERS = [
     (Adadelta, {}),

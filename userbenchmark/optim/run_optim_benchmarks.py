@@ -25,6 +25,7 @@ with add_path(REPO_PATH):
 
 BM_NAME: str = 'optim'
 MODEL_NAMES: List[str] = list_models()
+FUNC_STRS: List[str] = [""]
 
 # NOTE: While it is possible to run these benchmarks on CPU, we skip running on CPU in CI because CPU stats can be
 # unstable and we had stopped reporting them. You'll still be able to use the run.py script to run CPU though, as
@@ -50,6 +51,14 @@ def parse_args() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
         default=DEVICES,
         choices=DEVICES,
         help='List of devices to run tests on')
+    parser.add_argument(
+        '--funcs', '-f',
+        nargs='*',
+        default=FUNC_STRS,
+        choices=FUNC_STRS,
+        help='What optimizer.step() function variations to benchmark. NOTE: there is an underscore ' +
+             'for "pt2_"!'
+    )
     return parser.parse_known_args()
 
 
@@ -59,9 +68,9 @@ def main() -> None:
            f'{OUTPUT_DIR} must be empty or nonexistent. Its contents will be wiped by this script.'
 
     # Run benchmarks in subprocesses to take isolate contexts and memory
-    for m, d in itertools.product(args.models, args.devices):
+    for m, d, f in itertools.product(args.models, args.devices, args.funcs):
         command = [sys.executable, '-m', 'userbenchmark.optim.run', '--continue-on-error',
-                   '--output-dir', OUTPUT_DIR, '--models', m, '--devices', d] + optim_bm_args
+                   '--output-dir', OUTPUT_DIR, '--models', m, '--devices', d, '--funcs', f] + optim_bm_args
         # Use check=True to force this process to go serially since our capacity
         # only safely allows 1 model at a time
         completed_process = subprocess.run(command, check=True)
