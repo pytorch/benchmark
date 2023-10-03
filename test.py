@@ -13,7 +13,7 @@ from unittest.mock import patch
 import yaml
 
 import torch
-from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
+from torchbenchmark import _list_model_paths, _list_canary_model_paths, ModelTask, get_metadata_from_yaml
 from torchbenchmark.util.metadata_utils import skip_by_metadata
 
 
@@ -125,8 +125,10 @@ def _load_tests():
         devices.append('mps')
     if device := os.getenv('ACCELERATOR'):
         devices.append(device)
-
-    for path in _list_model_paths():
+    model_paths = _list_model_paths()
+    if os.getenv('USE_CANARY_MODELS'):
+        model_paths.extend(_list_canary_model_paths())
+    for path in model_paths:
         # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
         # api, enable after PyTorch 1.13 release
         if "quantized" in path:
