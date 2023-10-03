@@ -8,12 +8,10 @@ EXAMPLES_DIR="${RESULT_DIR}/../examples"
 # get the directory of the current script
 CURRENT_DIR=$(dirname -- "$0")
 
-CORE_LIST="24-47"
-export GOMP_CPU_AFFINITY="24-47"
-
 PREFIX=""
 if [[ ${PLATFORM_NAME} == "aws_t4_metal" ]]; then
- PREFIX="taskset -c ${CORE_LIST}";
+ PREFIX="taskset -c 24-47";
+ export GOMP_CPU_AFFINITY="24-47"
 fi
 
 . switch-cuda.sh "${CUDA_VERSION}"
