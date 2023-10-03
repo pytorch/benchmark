@@ -29,7 +29,7 @@ def parse_torch_trt_args(backend_args: List[str]):
     arg_parser.add_argument(
         "--ir",
         type=str,
-        help="Which internal representation to use: {'ts', 'dynamo_compile', 'fx_ts_compat', ...}",
+        help="Which internal representation to use: {'torch_compile', 'dynamo', 'ts', ...}",
     )
     args, unknown = arg_parser.parse_known_args(backend_args)
 
@@ -125,6 +125,10 @@ def torch_trt(
             enabled_precisions={torch_dtype_precision},
             **torch_trt_kwargs,
         )
+
+        # Trigger compilation
+        trt_module(*example_inputs)
+
         model.set_module(trt_module)
 
     return _torch_trt, backend_args
