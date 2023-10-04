@@ -118,6 +118,9 @@ class Model(BenchmarkModel):
                 'image'], data['seg'], data['multi_fr'], data['seg-gt'], data['back-rnd']
             return self.netG, (image.to(self.device), bg.to(self.device), seg.to(self.device), multi_fr.to(self.device))
 
+    def set_module(self, module):
+        self.netG = module
+
     def train(self):
         self.netG.train()
         self.netD.train()

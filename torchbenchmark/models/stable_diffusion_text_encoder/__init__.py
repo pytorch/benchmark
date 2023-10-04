@@ -47,6 +47,8 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
         input_tensor = input_tensor.long().to(self.device)
         return self.pipe.text_encoder, [input_tensor]
 
+    def set_module(self, module):
+        self.pipe.text_encoder = module
 
     def train(self):
         raise NotImplementedError("Train test is not implemented for the stable diffusion model.")
