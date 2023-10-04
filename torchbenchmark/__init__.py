@@ -467,7 +467,7 @@ class ModelTask(base_task.TaskBase):
         model, inputs = instance.get_module()
         # test set_module
         instance.set_module(model)
-        model_name = model.name
+        model_name = instance.name
 
         # Check the model tensors are assigned to the expected device.
         for t in model.parameters():
