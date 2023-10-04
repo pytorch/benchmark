@@ -79,6 +79,11 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         help="enable split_cat_fx_pass in Inductor"
     )
     parser.add_argument(
+        "--torchinductor_triton_unique_kernel_names",
+        action='store_true',
+        help="set to generate unique triton kernel names in Inductor"
+    )
+    parser.add_argument(
         "--dynamo_disable_optimizer_step",
         type=distutils.util.strtobool,
         default="false",
@@ -118,6 +123,8 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             torchinductor.config.batch_fusion = True
         if args.torchinductor_enable_split_cat_fx_pass:
             torchinductor.config.split_cat_fx_passes = True
+        if args.torchinductor_triton_unique_kernel_names:
+            torchinductor.config.triton.unique_kernel_names = True
 
         # used for correctness checks, to avoid triton rand() behaving differently from torch rand().
         torchinductor.config.fallback_random = bool(args.torchinductor_fallback_random)
