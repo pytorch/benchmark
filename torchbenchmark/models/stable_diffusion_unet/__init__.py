@@ -37,13 +37,14 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
         # Make this function no-op.
         pass
 
-    
     def get_module(self):
         random_input = torch.randn(1, 4, 128, 128).to(self.device)
         timestep = torch.tensor([1.0]).to(self.device)
         encoder_hidden_states = torch.randn(1, 1, 1024).to(self.device)
         return self.pipe.unet, [random_input, timestep, encoder_hidden_states]
 
+    def set_module(self, module):
+        self.pipe.unet = module
 
     def train(self):
         raise NotImplementedError("Train test is not implemented for the stable diffusion model.")

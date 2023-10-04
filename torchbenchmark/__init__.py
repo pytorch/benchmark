@@ -465,7 +465,9 @@ class ModelTask(base_task.TaskBase):
             raise RuntimeError('Missing device in BenchmarkModel.')
 
         model, inputs = instance.get_module()
-        model_name = getattr(model, 'name', None)
+        # test set_module
+        instance.set_module(model)
+        model_name = model.name
 
         # Check the model tensors are assigned to the expected device.
         for t in model.parameters():
