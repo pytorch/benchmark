@@ -242,16 +242,6 @@ cuda:
     max_delta: '3.369349176462307'
     median_latency: '2.328034'
     stable: false
-  - model: fambench_xlmr
-    test: train
-    max_delta: '0.0005999296529231454'
-    median_latency: '717.635068'
-    stable: true
-  - model: fambench_xlmr
-    test: eval
-    max_delta: '0.031054978032257746'
-    median_latency: '26.735623'
-    stable: true
   - model: fastNLP_Bert
     test: train
     max_delta: '0.004716880677698651'
