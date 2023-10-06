@@ -34,7 +34,6 @@ def cli(args: List[str]):
     arg_parser.add_argument(
         "--bs",
         help="Input batch size to test.",
-        default=1,
         type=int,
     )
     arg_parser.add_argument(
@@ -269,8 +268,6 @@ def run(args: List[str]):
                     parsed_args["num_iter"],
                 )
 
-                all_metrics = {**all_metrics, **metrics}
-
                 # Delete model instance and clean up workspace
                 del Model
 
@@ -279,6 +276,10 @@ def run(args: List[str]):
                 print(
                     f"\nLoading model {model_name} failed with:\n{e}\nSkipping the model.\n"
                 )
-                continue
+                metrics = {
+                    model_name: f"Failed to run benchmark: {traceback.format_exc()}"
+                }
+
+            all_metrics = {**all_metrics, **metrics}
 
     save_metrics(all_metrics)
