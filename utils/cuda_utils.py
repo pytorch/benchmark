@@ -23,7 +23,7 @@ CUDA_VERSION_MAP = {
 PIN_CMAKE_VERSION = "3.22.*"
 # the numpy version needs to be consistent with
 # https://github.com/pytorch/builder/blob/e66e48f9b1968213c6a7ce3ca8df6621435f0a9c/wheel/build_wheel.sh#L146
-PIN_NUMPY_VERSION = "1.21.2"
+PIN_NUMPY_VERSION = "1.23.5"
 TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchvision", "torchaudio"]
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
