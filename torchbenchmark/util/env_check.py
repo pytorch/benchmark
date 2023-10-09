@@ -27,7 +27,7 @@ UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS = [
     "sam",
     "Super_SloMo",
     "vgg16",
-    "ig_ctr_30x",
+    "mtml_ctr_instagram_model",
 ]
 CI_SKIP_OPTIMIZER = {
     # TIMM
