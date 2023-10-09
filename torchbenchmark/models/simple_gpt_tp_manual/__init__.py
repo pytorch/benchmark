@@ -47,17 +47,17 @@ class Model(BenchmarkModel):
         # temporary workarounds
         torch._inductor.config.allow_buffer_reuse = False
         torch._inductor.config.inplace_buffers = False
-        torch.cuda.set_device(self._rank)
 
         model = LLaMA.from_name("7B")
 
         print("Applying tensor parallel to model ...")
-        apply_tp(model)
+        apply_tp(model, self._rank, self._world_size)
 
         max_batch_size = self.batch_size
-        model.setup_caches(
-            max_batch_size=max_batch_size, max_seq_length=model.config.block_size
-        )
+        with torch.device(device):
+            model.setup_caches(
+                max_batch_size=max_batch_size, max_seq_length=model.config.block_size
+            )
 
         self.model = model.to(device=device, dtype=torch.bfloat16)
 
