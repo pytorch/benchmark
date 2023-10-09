@@ -271,13 +271,27 @@ def run(args: List[str]):
                 # Delete model instance and clean up workspace
                 del Model
 
+            # Exceptions raised can be reported in a verbose manner
             except Exception as e:
                 traceback.print_exc()
                 print(
-                    f"\nLoading model {model_name} failed with:\n{e}\nSkipping the model.\n"
+                    f"\nBenchmarking model {model_name} failed with:\n{e}\nSkipping the model.\n"
                 )
                 metrics = {
                     model_name: f"Failed to run benchmark: {traceback.format_exc()}"
+                }
+
+            # Halt further model runs on KeyboardInterrupt
+            except KeyboardInterrupt:
+                break
+
+            # Any recoverable subprocess errors are caught and reported
+            except:
+                print(
+                    f"\nBenchmarking model {model_name} failed.\nSkipping the model.\n"
+                )
+                metrics = {
+                    model_name: f"Failed to run benchmark: Error"
                 }
 
             all_metrics = {**all_metrics, **metrics}
