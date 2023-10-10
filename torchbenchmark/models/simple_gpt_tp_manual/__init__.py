@@ -8,6 +8,7 @@ from torchbenchmark.tasks import NLP
 
 from ...util.model import BenchmarkModel
 from .model import LLaMA
+from .tp import apply_tp
 
 
 class Model(BenchmarkModel):
@@ -43,33 +44,22 @@ class Model(BenchmarkModel):
         if error:
             raise error
 
-        self.model = LLaMA.from_name("7B", self._world_size).to(device=device, dtype=torch.bfloat16)
+        # temporary workarounds
+        torch._inductor.config.allow_buffer_reuse = False
+        torch._inductor.config.inplace_buffers = False
 
-        # Tensor parallelism using DTensor
-        mesh = DeviceMesh("cuda", list(range(self._world_size)))
-        for block in self.model.transformer.h:
-            # prepare attention weights to be parallelized
-            block.attn.prepare_qkv_for_dtensor_tp()
+        model = LLaMA.from_name("7B")
 
-            parallelize_module(
-                module=block,
-                device_mesh=mesh,
-                parallelize_plan={
-                    "attn.c_attn_q": ColwiseParallel(),
-                    "attn.c_attn_k": ColwiseParallel(),
-                    "attn.c_attn_v": ColwiseParallel(),
-                    "attn.c_proj": RowwiseParallel(),
-                    "mlp.c_fc1": ColwiseParallel(),
-                    "mlp.c_fc2": ColwiseParallel(),
-                    "mlp.c_proj": RowwiseParallel(),
-                },
-                tp_mesh_dim=0,
-            )
+        print("Applying tensor parallel to model ...")
+        apply_tp(model, self._rank, self._world_size)
 
         max_batch_size = self.batch_size
-        self.model.setup_caches(
-            max_batch_size=max_batch_size, max_seq_length=self.model.config.block_size
-        )
+        with torch.device(device):
+            model.setup_caches(
+                max_batch_size=max_batch_size, max_seq_length=model.config.block_size
+            )
+
+        self.model = model.to(device=device, dtype=torch.bfloat16)
 
         prompt_size = 10
         idx = torch.randint(
