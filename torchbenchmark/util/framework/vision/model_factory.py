@@ -16,8 +16,6 @@ class TorchVisionModel(BenchmarkModel):
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
     # Whether to skip the opt zero grad
     SKIP_ZERO_GRAD = False
-    # When running the train_dynamic test, run 100 batches of input
-    DEFAULT_NUM_BATCH = 10
 
     def __init__(self, model_name, test, device, batch_size=None, weights=None, extra_args=[]):
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
@@ -29,7 +27,7 @@ class TorchVisionModel(BenchmarkModel):
         else:
             self.model = getattr(models, model_name)(weights=weights).to(self.device)
         self.example_inputs = (torch.randn((self.batch_size, 3, 224, 224)).to(self.device), )
-        if test == "train" or test == "train_dynamic":
+        if test == "train":
             # compute loss
             with torch.no_grad():
                 self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )

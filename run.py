@@ -295,7 +295,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-t",
         "--test",
-        choices=["eval", "train", "train_dynamic"],
+        choices=["eval", "train"],
         default="eval",
         help="Which test to run.",
     )

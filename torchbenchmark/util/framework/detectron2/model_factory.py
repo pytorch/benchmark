@@ -100,7 +100,7 @@ class Detectron2Model(BenchmarkModel):
             self.model = instantiate(cfg.model).to(self.device)
 
         # setup model and return the dataloader
-        if self.test == "train" or self.test == "train_dynamic":
+        if self.test == "train":
             if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:
                 raise NotImplementedError("FCOS train is not supported by upstream detectron2. " \
                                           "See GH Issue: https://github.com/facebookresearch/detectron2/issues/4369.")

@@ -82,16 +82,14 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.metadata = self._load_metadata()
         self.test = test
         # sanity checks of the options
-        assert self.test == "train" or self.test == "eval" or self.test == "train_dynamic", \
-               f"Test must be 'train', 'train_dynamic', or 'eval', but provided {self.test}."
-        assert self.test == "train_dynamic" and is_staged_train_test(self) or (not self.test == "train_dynamic"), \
-               f"Dynamic shapes must be implemented with staged train test."
+        assert self.test == "train" or self.test == "eval", \
+               f"Test must be 'train' or 'eval', but provided {self.test}."
         self.device = device
         self.extra_args = extra_args
         self.opt = None
         self._skip_by_device_name()
         # contexts to run in the test function
-        if self.test == "train" or self.test == "train_dynamic":
+        if self.test == "train":
             # In train test, there are run contexts that should only be applied for forward/backward/optimizer stage
             # For example, amp only applies for the forward stage
             self.forward_contexts = []
@@ -164,12 +162,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                     raise NotImplementedError(f"The current device {current_device_name} is skipped by its `{self.name}/metadata.yaml`.")
 
     def _determine_dynamic_num_batches(self, user_specified_num_batches: Optional[int]) -> int:
-        if self.test == "train" or self.test == "eval":
-            return 1
-        if user_specified_num_batches:
+        if user_specified_num_batches and not user_specified_num_batches == 1:
+            assert self.test == "train", "Only train test support multiple batches at this moment."
             return user_specified_num_batches
-        assert hasattr(self, 'DEFAULT_NUM_BATCH'), f"We expect all models with dynamic shapes specify field `DEFAULT_NUM_BATCHES`."
-        return self.DEFAULT_NUM_BATCH
+        # If user does not specify num_batch, run a single batch by default
+        return 1
 
     def _get_batch_size_from_metadata(self) -> Optional[str]:
         if self.device != "cuda":
@@ -310,8 +307,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def invoke(self) -> Optional[Tuple[torch.Tensor]]:
         if self.test == "train" and is_staged_train_test(self):
             return self._invoke_staged_train_test(num_batch=self.num_batch)
-        if self.test == "train_dynamic":
-            return self._invoke_staged_train_test(num_batch=self.num_batch)
+        assert self.num_batch == 1, "Only staged_train_test supports multiple-batch testing at this time."
         out = None
         with nested(*self.run_contexts):
             if self.test == "train":

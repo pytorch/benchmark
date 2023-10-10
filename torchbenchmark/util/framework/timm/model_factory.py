@@ -14,8 +14,6 @@ class TimmModel(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = None
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
-    # When running the train_dynamic test, run 100 batches of input
-    DEFAULT_NUM_BATCH = 10
 
     def __init__(self, model_name, test, device, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
@@ -29,7 +27,7 @@ class TimmModel(BenchmarkModel):
         self.model.to(
             device=self.device
         )
-        if test == "train" or test == "train_dynamic":
+        if test == "train":
             self.model.train()
         elif test == "eval":
             self.model.eval()

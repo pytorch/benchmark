@@ -72,7 +72,7 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     parser.add_argument("--accuracy", action="store_true", help="Check accuracy of the model only instead of running the performance test.")
     parser.add_argument("--use_cosine_similarity", action='store_true', help="use cosine similarity for correctness check")
     parser.add_argument("--quant-engine", choices=QUANT_ENGINES, default='x86', help=f"choose quantization engine for fx_int8 precision from {QUANT_ENGINES}")
-    parser.add_argument("--num-batch", type=int, help="Number of batches if running the train_dynamic test.")
+    parser.add_argument("--num-batch", type=int, help="Number of batches if running the multi-batch train test.")
     dargs, opt_args = parser.parse_known_args(extra_args)
     if not check_precision(model, dargs.precision):
         raise NotImplementedError(f"precision value: {dargs.precision}, "
