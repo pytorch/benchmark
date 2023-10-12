@@ -1,2 +1,2 @@
-git+https://github.com/mindee/doctr.git@acb9f64
+git+https://github.com/mindee/doctr.git@56c8356
 rapidfuzz==2.15.1
