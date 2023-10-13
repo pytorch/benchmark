@@ -103,6 +103,8 @@ def printResultSummaryTime(result_summary, model, metrics_needed=[], flops_model
             flops = model.get_flops()
             tflops = flops / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("GPU FLOPS:", "%.4f TFLOPs per second" % tflops, sep=''))
+    if 'ttfb' in metrics_needed:
+        print('{:<20} {:>20}'.format("Time to first batch:", "%.4f ms" % model.ttfb, sep=''))
     if model_flops is not None:
         tflops = model_flops / (cpu_walltime / 1.0e3) / 1.0e12
         print('{:<20} {:>20}'.format("Model Flops:", "%.4f TFLOPs per second" % tflops, sep=''))
@@ -356,8 +358,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--metrics",
         type=str,
-        default="cpu_peak_mem,gpu_peak_mem",
-        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,flops,model_flops]to be collected. You can also set `none` to disable all metrics. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.",
+        default="cpu_peak_mem,gpu_peak_mem,ttfb",
+        help="Specify metrics [cpu_peak_mem,gpu_peak_mem,ttfb,flops,model_flops]to be collected. You can also set `none` to disable all metrics. The metrics are separated by comma such as cpu_peak_mem,gpu_peak_mem.",
     )
     parser.add_argument(
         "--metrics-gpu-backend",

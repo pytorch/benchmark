@@ -20,6 +20,7 @@ class TorchBenchModelMetrics:
     throughputs: List[float]
     cpu_peak_mem: Optional[float]
     gpu_peak_mem: Optional[float]
+    ttfb: Optional[float] # time-to-first-batch
     pt2_compilation_time: Optional[float]
     pt2_graph_breaks: Optional[float]
     model_flops: Optional[float]
@@ -112,6 +113,7 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], 
     throughputs = None
     cpu_peak_mem = None
     gpu_peak_mem = None
+    ttfb = None
     pt2_compilation_time = None
     pt2_graph_breaks = None
     model_flops = None
@@ -133,7 +135,10 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], 
                            if isinstance(model, ModelTask) else model.pt2_graph_breaks
     if 'model_flops' in metrics:
         model_flops = get_model_flops(model)
-    return TorchBenchModelMetrics(latencies, throughputs, cpu_peak_mem, gpu_peak_mem, pt2_compilation_time, pt2_graph_breaks, model_flops)
+    if 'ttfb' in metrics:
+        ttfb = model.get_model_attribute('ttfb') \
+                if isinstance(model, ModelTask) else model.ttfb
+    return TorchBenchModelMetrics(latencies, throughputs, cpu_peak_mem, gpu_peak_mem, ttfb, pt2_compilation_time, pt2_graph_breaks, model_flops)
 
 def get_model_accuracy(model_config: TorchBenchModelConfig, isolated: bool=True) -> str:
     import copy

@@ -3,6 +3,7 @@ import torch
 from contextlib import contextmanager, ExitStack
 import warnings
 import yaml
+import time
 from pathlib import Path
 from typing import ContextManager, Optional, List, Tuple, Generator
 from torchbenchmark import REPO_PATH
@@ -79,6 +80,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
     def __init__(self, test: str, device: str, batch_size: Optional[int]=None, extra_args: List[str]=[]):
+        self._start_init_time = time.time_ns()
         self.metadata = self._load_metadata()
         self.test = test
         # sanity checks of the options
@@ -149,6 +151,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         # Need to clean up the cache because we run deep copy within correceness check
         if self.device == "cuda":
             torch.cuda.empty_cache()
+        self._end_init_time = time.time_ns()
 
     def _skip_by_device_name(self):
         if not self.device == "cuda":
@@ -390,3 +393,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         from torch._dynamo.utils import counters
         num_graph_breaks = len(counters["graph_break"].keys())
         return num_graph_breaks
+
+    @property
+    def ttfb(self):
+        """Return the time taken to the first batch in ms."""
+        return (self._end_init_time - self._start_init_time) / 1_000_000
