@@ -34,13 +34,13 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
             "time_ids": torch.tensor([1]).to(device)  # Replace 'some_value' with the appropriate value or tensor shape for time_ids
         }
 
-        self.args_tuple = (random_input, timestep, encoder_hidden_states, added_cond_kwargs)
+        self.args_tuple = (random_input, timestep, encoder_hidden_states, None, None, None, None, added_cond_kwargs)
 
     def enable_fp16_half(self):
         pass
     
     def get_module(self):
-        self.pipe.unet, self.args_tuple
+        return self.pipe.unet, self.args_tuple
 
     def train(self):
         raise NotImplementedError("Train is not implemented for the stable diffusion XL model.")
