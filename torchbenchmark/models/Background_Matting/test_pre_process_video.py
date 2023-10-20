@@ -61,7 +61,7 @@ def adjustExposure(img,back,mask):
 	kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
 	mask = cv2.dilate(mask, kernel, iterations=10)
 	mask1 = cv2.dilate(mask, kernel, iterations=300)
-	msk=mask1.astype(np.float32)/255-mask.astype(np.float32)/255; msk=msk.astype(np.bool)
+	msk=mask1.astype(np.float32)/255-mask.astype(np.float32)/255; msk=msk.astype(bool)
 
 	bias=np.zeros((1,3)); gain=np.ones((1,3))
 
