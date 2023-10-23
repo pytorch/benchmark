@@ -30,7 +30,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
     # Original train batch size: 16
     # Source: https://github.com/ultralytics/yolov3/blob/master/train.py#L447
-    DEFAULT_TRAIN_BSIZE = 16
+    DEFAULT_TRAIN_BSIZE = 8 # reduced from 16 to 8 due to OOM in TorchInductor dashboard
     DEFAULT_EVAL_BSIZE = 8
     # yolov3 CUDA inference test uses amp precision
     DEFAULT_EVAL_CUDA_PRECISION = "amp"
