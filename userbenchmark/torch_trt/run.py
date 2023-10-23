@@ -141,24 +141,17 @@ def run_one_step(
     # Run inference for the specified number of iterations
     for _ in range(num_iter):
         torch.cuda.synchronize()
-        start_event = torch.cuda.Event(enable_timing=True)
-        end_event = torch.cuda.Event(enable_timing=True)
 
         # Collect time_ns() instead of time() which does not provide better precision than 1
         # second according to https://docs.python.org/3/library/time.html#time.time.
         t0 = time.time_ns()
-        start_event.record()
         func()
-        end_event.record()
         torch.cuda.synchronize()
         t1 = time.time_ns()
-        result_summary.append(
-            (start_event.elapsed_time(end_event), (t1 - t0) / 1_000_000)
-        )
+        result_summary.append((t1 - t0) / 1_000_000)
 
     # Get median times for GPU and CPU Walltime
-    gpu_time = np.median([x[0] for x in result_summary])
-    cpu_walltime = np.median([x[1] for x in result_summary])
+    latency = np.median(result_summary)
 
     # Differentiate model attribute access based on input type
     if isinstance(model, ModelTask):
@@ -173,18 +166,16 @@ def run_one_step(
         precision = getattr(model, "precision", None)
 
     if num_batches is not None:
-        median_gpu_time_per_batch = gpu_time / num_batches
-        median_cpu_walltime_per_batch = cpu_walltime / num_batches
+        median_latency_per_batch = latency / num_batches
     else:
-        median_gpu_time_per_batch = gpu_time
-        median_cpu_walltime_per_batch = cpu_walltime
+        median_latency_per_batch = -1.0
 
     # Store metrics as dictionary
     metrics = {
         f"{name}.bs_{batch_size}.precision_{precision}."
-        + f"ir_{selected_ir}.median_gpu_time_ms_per_batch": median_gpu_time_per_batch,
+        + f"ir_{selected_ir}.median_latency_ms": latency,
         f"{name}.bs_{batch_size}.precision_{precision}."
-        + f"ir_{selected_ir}.median_cpu_walltime_ms_per_batch": median_cpu_walltime_per_batch,
+        + f"ir_{selected_ir}.median_latency_ms_per_batch": median_latency_per_batch,
     }
 
     return metrics
