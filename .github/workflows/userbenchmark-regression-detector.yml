@@ -74,7 +74,7 @@ jobs:
           done
       - name: Create the github issue
         continue-on-error: true
-        if: env.TORCHBENCH_REGRESSION_DETECTED
+        if: false
         uses: peter-evans/create-issue-from-file@v4
         with:
           title: Optim Perf Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_REGRESSION_DETECTED }}
