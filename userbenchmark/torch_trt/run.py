@@ -53,8 +53,11 @@ def cli(args: List[str]):
     return vars(parsed_args), unknown
 
 
-def save_metrics(metrics):
-    """Save metrics to a JSON file with formatted filename"""
+def save_metrics(metrics, error_logs):
+    """Save metrics to a JSON file with formatted filename.
+    
+    Save error logs to a text file
+    """
     metrics_json = {
         "name": "torch_trt",
         "environ": {
@@ -73,13 +76,25 @@ def save_metrics(metrics):
     os.makedirs(target_dir, exist_ok=True)
 
     # Format filename and path to save metrics
+    curr_time = time.time()
     metrics_file = "metrics-{}.json".format(
-        datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
+        datetime.fromtimestamp(curr_time).strftime("%Y%m%d%H%M%S")
     )
+    error_logs_file = "error-logs-{}.txt".format(
+        datetime.fromtimestamp(curr_time).strftime("%Y%m%d%H%M%S")
+    )
+
     metrics_save_path = os.path.join(target_dir, metrics_file)
+    error_save_path = os.path.join(target_dir, error_logs_file)
 
     with open(metrics_save_path, "w") as f:
         json.dump(metrics_json, f, indent=4)
+
+    with open(error_save_path, "w") as f:
+        for model, log in error_logs.items():
+            f.write(f"Model: {model} failed with error\n\n")
+            f.write(log)
+            f.write("\n++++++++++\n")
 
 
 def run_single_model(
@@ -195,6 +210,9 @@ def run(args: List[str]):
         unknown_args.append("--ir")
         unknown_args.append(selected_ir)
 
+
+    error_logs = {}
+
     # Parse model string if specified, otherwise run all models
     # Adapted from benchmark/run.py
     if parsed_args["model"]:
@@ -275,7 +293,7 @@ def run(args: List[str]):
                 print(
                     f"\nBenchmarking model {model_name} failed with:\n{e}\nSkipping the model.\n"
                 )
-                metrics = {model_name: -1.0}
+                error_logs[model_name] = f"Failed to run benchmark: {traceback.format_exc()}"
 
             # Halt further model runs on KeyboardInterrupt
             except KeyboardInterrupt:
@@ -286,8 +304,8 @@ def run(args: List[str]):
                 print(
                     f"\nBenchmarking model {model_name} failed.\nSkipping the model.\n"
                 )
-                metrics = {model_name: -1.0}
+                error_logs[model_name] = "Failed to run benchmark: Other Python error"
 
             all_metrics = {**all_metrics, **metrics}
 
-    save_metrics(all_metrics)
+    save_metrics(all_metrics, error_logs)
