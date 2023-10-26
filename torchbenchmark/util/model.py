@@ -178,7 +178,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             device_batch_size_key = f"{self.test}_batch_size"
             if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"] \
                              and device_batch_size_key in self.metadata["devices"][current_device_name]:
-                self.batch_size = self.metadata["devices"][current_device_name][device_batch_size_key]
+                # only use default device suggestion if we can customize
+                if getattr(self, "ALLOW_CUSTOMIZE_BSIZE", False):
+                    self.batch_size = self.metadata["devices"][current_device_name][device_batch_size_key]
             # If the model doesn't implement test or eval test
             # its DEFAULT_TRAIN_BSIZE or DEFAULT_EVAL_BSIZE will still be None
             if not self.batch_size:
@@ -186,7 +188,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         else:
             self.batch_size = batch_size
         # Check if specified batch size is supported by the model
-        if hasattr(self, "ALLOW_CUSTOMIZE_BSIZE") and (not getattr(self, "ALLOW_CUSTOMIZE_BSIZE")):
+        if not getattr(self, "ALLOW_CUSTOMIZE_BSIZE", True):
             if self.test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
                 raise NotImplementedError("Model doesn't support customizing batch size.")
             elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
