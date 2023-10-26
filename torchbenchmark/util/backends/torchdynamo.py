@@ -74,6 +74,11 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         help="enable batch fusion in Inductor"
     )
     parser.add_argument(
+        "--torchinductor_enable_max_autotune_gemm",
+        action='store_true',
+        help="Enable max autotune gemm"
+    )
+    parser.add_argument(
         "--torchinductor_enable_split_cat_fx_pass",
         action='store_true',
         help="enable split_cat_fx_pass in Inductor"
@@ -87,6 +92,12 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         "--dynamo_disable_optimizer_step",
         type=distutils.util.strtobool,
         default="false",
+    )
+    parser.add_argument(
+        "--dump_triton",
+        type=distutils.util.strtobool,
+        default="false",
+        help="Enable triton code dump by setting torch._inductor.config.debug",
     )
     args, extra_args = parser.parse_known_args(dynamo_args)
     return args, extra_args
@@ -108,6 +119,7 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
     if args.torchdynamo == "inductor":
         import torch._inductor as torchinductor
         torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
+        torch._inductor.config.debug = bool(args.dump_triton)
 
         # Setup torchinductor.config.triton.mm
         if args.tritonmm == "triton":
@@ -125,6 +137,8 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             torchinductor.config.split_cat_fx_passes = True
         if args.torchinductor_triton_unique_kernel_names:
             torchinductor.config.triton.unique_kernel_names = True
+        if args.torchinductor_enable_max_autotune_gemm:
+            torchinductor.config.max_autotune_gemm = True
 
         # used for correctness checks, to avoid triton rand() behaving differently from torch rand().
         torchinductor.config.fallback_random = bool(args.torchinductor_fallback_random)
