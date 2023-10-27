@@ -188,9 +188,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             return batch_size
 
     def _determine_batch_size(self, user_specified_batch_size=None):
-        # batch size priority for eval tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > device specified > default
-        # batch size priority for train tests: not ALLOW_CUSTOMIZE_BSIZE > user specified > default
-
         self.batch_size = user_specified_batch_size
 
         if not self.batch_size and getattr(self, "ALLOW_CUSTOMIZE_BSIZE", False):
