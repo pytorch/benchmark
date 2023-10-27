@@ -8,3 +8,4 @@ train_benchmark: false
 train_deterministic: false
 not_implemented:
   - device: NVIDIA A10G
+  - device: cpu
