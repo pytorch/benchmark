@@ -190,7 +190,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def _determine_batch_size(self, user_specified_batch_size=None):
         self.batch_size = user_specified_batch_size
 
-        if not self.batch_size and getattr(self, "ALLOW_CUSTOMIZE_BSIZE", False):
+        if not self.batch_size and getattr(self, "ALLOW_CUSTOMIZE_BSIZE", True):
             device_specified_batch_size = self._get_batch_size_from_metadata()
             self.batch_size = device_specified_batch_size
 
