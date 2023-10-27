@@ -25,7 +25,7 @@ def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision
     if precision == "fx_int8":
         return model.device == 'cpu' and hasattr(model, "enable_fx_int8")
     if precision == "bf16":
-        return model.device == 'cpu' and hasattr(model, "enable_bf16")
+        return True
     if precision == "amp_fp16":
         if model.test == 'eval' and model.device == 'cuda':
             return True
@@ -77,7 +77,7 @@ def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', ext
     if not check_precision(model, dargs.precision):
         raise NotImplementedError(f"precision value: {dargs.precision}, "
                                   "amp is only supported if cuda+eval, or if `enable_amp` implemented,"
-                                  "or if model uses staged train interfaces (forward, backward, optimizer).")
+                                  "or if model uses staged train interfaces (forward, backward, optimizer_step).")
     if not check_memory_layout(model, dargs.channels_last):
         raise NotImplementedError(f"Specified channels_last: {dargs.channels_last} ,"
                                   f" but the model doesn't implement the enable_channels_last() interface.")
