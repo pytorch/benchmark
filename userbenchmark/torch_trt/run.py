@@ -55,7 +55,7 @@ def cli(args: List[str]):
 
 def save_metrics(metrics, error_logs):
     """Save metrics to a JSON file with formatted filename.
-    
+
     Save error logs to a text file
     """
     metrics_json = {
@@ -175,7 +175,7 @@ def run_one_step(
         batch_size = model.get_model_attribute("batch_size")
         precision = model.get_model_attribute("dargs", "precision")
     else:
-        num_batches = getattr(model, "NUM_BATCHES", None)
+        num_batches = getattr(model, "num_batch", None)
         name = getattr(model, "name", None)
         batch_size = getattr(model, "batch_size", None)
         precision = getattr(model, "precision", None)
@@ -209,7 +209,6 @@ def run(args: List[str]):
         selected_ir = "torch_compile"
         unknown_args.append("--ir")
         unknown_args.append(selected_ir)
-
 
     error_logs = {}
 
@@ -258,6 +257,7 @@ def run(args: List[str]):
 
     else:
         all_metrics = {}
+        metrics = {}
 
         # For all models, use ModelTask instances
         for model_name in list_models():
@@ -293,7 +293,9 @@ def run(args: List[str]):
                 print(
                     f"\nBenchmarking model {model_name} failed with:\n{e}\nSkipping the model.\n"
                 )
-                error_logs[model_name] = f"Failed to run benchmark: {traceback.format_exc()}"
+                error_logs[
+                    model_name
+                ] = f"Failed to run benchmark: {traceback.format_exc()}"
 
             # Halt further model runs on KeyboardInterrupt
             except KeyboardInterrupt:
@@ -307,5 +309,6 @@ def run(args: List[str]):
                 error_logs[model_name] = "Failed to run benchmark: Other Python error"
 
             all_metrics = {**all_metrics, **metrics}
+            torch._dynamo.reset()
 
     save_metrics(all_metrics, error_logs)
