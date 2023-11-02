@@ -55,6 +55,7 @@ def remove_tools_directory():
 
 def install_detectron2(model_name, model_dir):
     s3_utils.checkout_s3_data("INPUT_TARBALLS", "coco128.tar.gz", decompress=True)
+    s3_utils.checkout_s3_data("INPUT_TARBALLS", "coco2017-minimal.tar.gz", decompress=True)
     install_model_weights(model_name, model_dir)
     pip_install_requirements()
     remove_tools_directory()
