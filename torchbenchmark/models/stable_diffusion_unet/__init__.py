@@ -16,7 +16,6 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
 
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
-    ALLOW_CUSTOMIZE_BSIZE = False
     # Skip deepcopy because it will oom on A100 40GB
     DEEPCOPY = False
     # Default eval precision on CUDA device is fp16
@@ -38,9 +37,9 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
         pass
 
     def get_module(self):
-        random_input = torch.randn(1, 4, 128, 128).to(self.device)
+        random_input = torch.randn(self.batch_size, 4, 128, 128).to(self.device)
         timestep = torch.tensor([1.0]).to(self.device)
-        encoder_hidden_states = torch.randn(1, 1, 1024).to(self.device)
+        encoder_hidden_states = torch.randn(self.batch_size, 1, 1024).to(self.device)
         return self.pipe.unet, [random_input, timestep, encoder_hidden_states]
 
     def set_module(self, module):
