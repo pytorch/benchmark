@@ -87,7 +87,8 @@ class HuggingFaceModel(BenchmarkModel):
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
         kwargs = {}
-        if name == "hf_Falcon_7b" or name == "hf_MPT_7b_instruct" or name == "phi_1_5" or name == "hf_Yi":
+        remote_code_required = ['hf_Falcon_7b', 'hf_MPT_7b_instruct', 'phi_1_5', 'hf_Yi']
+        if name in remote_code_required:
             kwargs["trust_remote_code"] = True
         self.model = class_ctor.from_config(config, **kwargs).to(device)
         self.optimizer = optim.Adam(
