@@ -249,8 +249,10 @@ class backWarp(nn.Module):
         
         # Use torch.meshgrid instead of np.meshgrid to imrpove performance
         # https://github.com/avinashpaliwal/Super-SloMo/pull/111
-        self.gridX, self.gridY = torch.meshgrid(torch.arange(W, requires_grad=False, device=device), 
-                                                torch.arange(H, requires_grad=False, device=device), indexing='xy')
+        gridX, gridY = torch.meshgrid(torch.arange(W, requires_grad=False, device=device), 
+                                      torch.arange(H, requires_grad=False, device=device), indexing='xy')
+        self.register_buffer("gridX", gridX)
+        self.register_buffer("gridY", gridY)
         
     def forward(self, img, flow):
         """
