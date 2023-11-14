@@ -14,6 +14,4 @@ class Model(HuggingFaceModel):
         return NotImplementedError("Not implemented")
 
     def eval(self):
-        if (self.device == "cpu"):
-            raise NotImplementedError("hf_Yi model is too slow on CPU - skip CPU test.")
         super().eval()
