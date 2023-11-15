@@ -87,7 +87,10 @@ def get_output_json(bm_name, metrics) -> Dict[str, Any]:
     import torch
     return {
         "name": bm_name,
-        "environ": {"pytorch_git_version": torch.version.git_version},
+        "environ": {
+            "pytorch_git_version": torch.version.git_version,
+            "pytorch_version": torch.__version__,
+        },
         "metrics": metrics,
     }
 
