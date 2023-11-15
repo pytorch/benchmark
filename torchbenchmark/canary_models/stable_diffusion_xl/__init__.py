@@ -36,7 +36,7 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
 
         self.args_tuple = (random_input, timestep, encoder_hidden_states, None, None, None, None, added_cond_kwargs)
 
-    def enable_fp16_half(self):
+    def enable_fp16(self):
         pass
     
     def get_module(self):
