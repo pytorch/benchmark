@@ -48,7 +48,7 @@ for c in $(seq 1 $NUM_ITER); do
     taskset -c "${CORE_LIST}" pytest test_bench.py -k "${BENCHMARK_FILTER}" \
             --benchmark-min-rounds "${NUM_ROUNDS}" \
             --benchmark-json ${DATA_DIR}/${DATA_JSON_PREFIX}_${c}.json \
-            --verbose
+            --verbose --ignore_machine_config
 done
 
 echo "Benchmark finished successfully. Output data dir is ${DATA_DIR}."
