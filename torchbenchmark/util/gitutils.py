@@ -94,10 +94,19 @@ def get_current_commit(repo: str) -> Optional[str]:
         print(f"Failed to get the current commit in repo {repo}")
         return None
 
+def cleanup_local_changes(repo: str):
+    print("Resetting git repository to HEAD...", end="", flush=True)
+    command = ["git", "reset", "--hard", "HEAD"]
+    subprocess.check_call(command, cwd=repo, shell=False)
+    print("Done", flush=True)
+
 def checkout_git_commit(repo: str, commit: str) -> bool:
     try:
         assert len(commit) != 0
+        cleanup_local_changes(repo)
         command = ["git", "checkout", "--recurse-submodules", commit]
+        subprocess.check_call(command, cwd=repo, shell=False)
+        command = ["git", "submodule", "update", "--init", "--recursive"]
         subprocess.check_call(command, cwd=repo, shell=False)
         return True
     except subprocess.CalledProcessError:
@@ -107,7 +116,10 @@ def checkout_git_commit(repo: str, commit: str) -> bool:
             index_lock = os.path.join(repo, ".git", "index.lock")
             if os.path.exists(index_lock):
                 os.remove(index_lock)
+            cleanup_local_changes(repo)
             command = ["git", "checkout", "--recurse-submodules", commit]
+            subprocess.check_call(command, cwd=repo, shell=False)
+            command = ["git", "submodule", "update", "--init", "--recursive"]
             subprocess.check_call(command, cwd=repo, shell=False)
             return True
         except subprocess.CalledProcessError:
