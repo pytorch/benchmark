@@ -4,20 +4,16 @@ import subprocess
 from pathlib import Path
 
 # defines the default CUDA version to compile against
-DEFAULT_CUDA_VERSION = "11.7"
+DEFAULT_CUDA_VERSION = "11.8"
 
 CUDA_VERSION_MAP = {
-    "11.3": {
-        "pytorch_url": "cu113",
-        "magma_version": "magma-cuda113",
+    "11.8": {
+         "pytorch_url": "cu118",
+         "magma_version": "magma-cuda118",
     },
-    "11.6": {
-         "pytorch_url": "cu116",
-         "magma_version": "magma-cuda116",
-    },
-    "11.7": {
-         "pytorch_url": "cu117",
-         "magma_version": "magma-cuda117",
+    "12.1": {
+         "pytorch_url": "cu121",
+         "magma_version": "magma-cuda121",
     }
 }
 
