@@ -50,7 +50,7 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
         print(f"Installing CUDA magma: {install_magma_cmd}")
     subprocess.check_call(install_magma_cmd, env=env)
     # step 4: install other torch build deps
-    install_torch_deps_cmd = ["pip", "install", "-y", "packaging"]
+    install_torch_deps_cmd = ["pip", "install", "packaging"]
     if dryrun:
         print(f"Installing other torch deps: {install_torch_deps_cmd}")
     subprocess.check_call(install_torch_deps_cmd, env=env)
