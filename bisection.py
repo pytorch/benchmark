@@ -425,6 +425,10 @@ if __name__ == "__main__":
                                     bisect_config=bisect_config,
                                     output_json=args.output,
                                     debug=args.debug)
+    if start_hash == end_hash:
+        print(f"Start and end hash are the same: {start_hash}. Skip bisection")
+        bisection.output()
+        exit(0)
     assert bisection.prep(), "The working condition of bisection is not satisfied."
     print("Preparation steps ok. Commit to bisect: " + " ".join([str(x) for x in bisection.target_repo.commits]))
     bisection.run()
