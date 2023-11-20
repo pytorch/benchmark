@@ -70,7 +70,6 @@ jobs:
           done
           rm -r ../benchmark-output || true
           cp -r ./.userbenchmark/torch-nightly ../benchmark-output
-
       - name: Copy artifact and upload to scribe and Amazon S3
         run: |
           . "${SETUP_SCRIPT}"
