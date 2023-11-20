@@ -81,7 +81,7 @@ jobs:
           python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
           # Upload the result json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --upload-file "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
-      - name: Copy regression results to Amazon S3
+      - name: Copy regression results to Amazon S3 and kick off bisection
         if: env.TORCHBENCH_REGRESSION_DETECTED
         run: |
           . "${SETUP_SCRIPT}"
