@@ -28,7 +28,7 @@ def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: Li
         name=model_name,
         device=device,
         test=test,
-        batch_size=batch_size,
+        batch_size=None if not batch_size else int(batch_size),
         extra_args=extra_args,
         extra_env=None,
     ) for device, test, batch_size, model_name in cfgs]
@@ -40,8 +40,8 @@ def get_metrics(config: TorchBenchModelConfig) -> List[str]:
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
 
 def config_to_str(config: TorchBenchModelConfig) -> str:
-    metrics_base = f"model={config.name}, test={config.test}, device={config.device}, \
-                         bs={config.batch_size}, extra_args='{config.extra_args}'"
+    metrics_base = f"model={config.name}, test={config.test}, device={config.device}," + \
+        f" bs={config.batch_size}, extra_args='{config.extra_args}'"
     return metrics_base
 
 def validate(candidates: List[str], choices: List[str]) -> List[str]:
@@ -66,7 +66,7 @@ def parse_str_to_list(candidates: Optional[str]) -> List[str]:
     if isinstance(candidates, list):
         return candidates
     elif candidates == None:
-        return []
+        return [""]
     candidates = list(map(lambda x: x.strip(), candidates.split(",")))
     return candidates
 
@@ -100,7 +100,7 @@ def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=F
         return dict.fromkeys(metrics, "not_implemented")    
 
 def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Dict[str, str]:
-    assert metrics == ["--accuracy"], f"When running accuracy test, others metrics are not supported."
+    assert metrics == ["accuracy"], f"When running accuracy test, others metrics are not supported: {metrics}."
     print(f"Running {config} ...", end='', flush=True)
     if dryrun:
         print(" [skip_by_dryrun]", flush=True)
@@ -115,10 +115,14 @@ def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryru
 
 def parse_known_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--device", "-d", default="cuda", help="Devices to run, splited by comma.")
+    default_device = "cuda" if "cuda" in list_devices() else "cpu"
+    parser.add_argument(
+        "models",
+        help="Name of models to run, split by comma.",
+    )
+    parser.add_argument("--device", "-d", default=default_device, help="Devices to run, splited by comma.")
     parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
     parser.add_argument("--bs", default=None, help="Optionally, specify the batch size.")
-    parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice models, splited by comma.")
     parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
     parser.add_argument("--run-bisect", help="Run with the output of regression detector.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
@@ -128,12 +132,12 @@ def parse_known_args(args):
 def run(args: List[str]):
     args, extra_args = parse_known_args(args)
     # If not specified, use the entire model set
-    if not args.model:
-        args.model = list_models()
+    if not args.models:
+        args.models = list_models()
     devices = validate(parse_str_to_list(args.device), list_devices())
     tests = validate(parse_str_to_list(args.test), list_tests())
-    batch_sizes = validate(parse_str_to_list(args.bs))
-    models = validate(parse_str_to_list(args.model), list_models())
+    batch_sizes = parse_str_to_list(args.bs)
+    models = validate(parse_str_to_list(args.models), list_models())
     configs = generate_model_configs(devices, tests, batch_sizes, model_names=models, extra_args=extra_args)
     results = {}
     try:
