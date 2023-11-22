@@ -1,15 +1,16 @@
 """
 Run PyTorch nightly benchmarking.
 """
-import re
 import argparse
 import itertools
+import pathlib
 import json
 import os
+import shutil
 import numpy
 
 from typing import List, Dict, Optional, Any, Union
-from ..utils import REPO_PATH, add_path, get_output_json, get_default_output_json_path
+from ..utils import REPO_PATH, add_path, get_output_json, get_default_output_json_path, get_default_debug_output_dir
 from . import BM_NAME
 
 with add_path(REPO_PATH):
@@ -18,6 +19,11 @@ with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics, get_model_accuracy
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+def config_to_str(config: TorchBenchModelConfig) -> str:
+    metrics_base = f"model={config.name}, test={config.test}, device={config.device}," + \
+        f" bs={config.batch_size}, extra_args='{config.extra_args}'"
+    return metrics_base
 
 def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: List[str], model_names: List[str], extra_args: List[str]) -> List[TorchBenchModelConfig]:
     """Use the default batch size and default mode."""
@@ -34,33 +40,27 @@ def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: Li
     ) for device, test, batch_size, model_name in cfgs]
     return result
 
+def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path):
+    result = []
+    for config in configs:
+        config_str = config_to_str(config)
+        config.output_dir = output_dir.joinpath(config_str)
+        if config.output_dir.exists():
+            shutil.rmtree(config.output_dir)
+        config.output_dir.mkdir(parents=True)
+        result.append(config)
+    return config
+
 def get_metrics(config: TorchBenchModelConfig) -> List[str]:
     if "--accuracy" in config.extra_args:
         return ["accuracy"]
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
-
-def config_to_str(config: TorchBenchModelConfig) -> str:
-    metrics_base = f"model={config.name}, test={config.test}, device={config.device}," + \
-        f" bs={config.batch_size}, extra_args='{config.extra_args}'"
-    return metrics_base
 
 def validate(candidates: List[str], choices: List[str]) -> List[str]:
     """Validate the candidates provided by the user is valid"""
     for candidate in candidates:
         assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
     return candidates
-
-def parse_test_name(test_name: str) -> TorchBenchModelConfig:
-    regex = "test_(.*)\[(.*)-(.*)-eager\]"
-    test, model, device = re.match(regex, test_name).groups()
-    return TorchBenchModelConfig(
-        name=model,
-        device=device,
-        test=test,
-        batch_size=None,
-        extra_args=[],
-        extra_env=None,
-    )
 
 def parse_str_to_list(candidates: Optional[str]) -> List[str]:
     if isinstance(candidates, list):
@@ -127,6 +127,7 @@ def parse_known_args(args):
     parser.add_argument("--run-bisect", help="Run with the output of regression detector.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     parser.add_argument("--output", default=get_default_output_json_path(BM_NAME), help="Specify the path of the output file")
+    parser.add_argument("--debug", action="store_true", help="Save the debug output.")
     return parser.parse_known_args(args)
 
 def run(args: List[str]):
@@ -134,11 +135,13 @@ def run(args: List[str]):
     # If not specified, use the entire model set
     if not args.models:
         args.models = list_models()
+    debug_output_dir = get_default_debug_output_dir(args.output) if args.debug else None
     devices = validate(parse_str_to_list(args.device), list_devices())
     tests = validate(parse_str_to_list(args.test), list_tests())
     batch_sizes = parse_str_to_list(args.bs)
     models = validate(parse_str_to_list(args.models), list_models())
     configs = generate_model_configs(devices, tests, batch_sizes, model_names=models, extra_args=extra_args)
+    configs = init_output_dir(configs, debug_output_dir) if debug_output_dir else configs
     results = {}
     try:
         for config in configs:

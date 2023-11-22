@@ -4,7 +4,7 @@ Functions in this file don't handle exceptions.
 They expect callers handle all exceptions.
 """
 import os
-import importlib
+import pathlib
 import dataclasses
 from typing import Optional, List, Dict
 from torchbenchmark.util.model import BenchmarkModel
@@ -21,6 +21,7 @@ class TorchBenchModelConfig:
     batch_size: Optional[int]
     extra_args: List[str]
     extra_env: Optional[Dict[str, str]] = None
+    output_dir: Optional[pathlib.Path] = None
 
 def _set_extra_env(extra_env):
     if not extra_env:
@@ -32,8 +33,8 @@ def inject_model_invoke(model_task: ModelTask, inject_function):
     model_task.replace_invoke(inject_function.__module__, inject_function.__name__)
 
 def load_model_isolated(config: TorchBenchModelConfig, timeout: float=WORKER_TIMEOUT) -> ModelTask:
-    """ Load and return the model in a subprocess. """
-    task = ModelTask(config.name, timeout=timeout, extra_env=config.extra_env)
+    """ Load and return the model in a subprocess. Optionally, save its stdout and stderr to the specified directory. """
+    task = ModelTask(config.name, timeout=timeout, extra_env=config.extra_env, save_output_dir=config.output_dir)
     if not task.model_details.exists:
         raise ValueError(f"Failed to import model task: {config.name}. Please run the model manually to make sure it succeeds, or report a bug.")
     task.make_model_instance(test=config.test, device=config.device, batch_size=config.batch_size, extra_args=config.extra_args)

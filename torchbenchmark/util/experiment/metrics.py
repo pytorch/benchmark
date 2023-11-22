@@ -3,6 +3,7 @@ Utilities to measure metrics of a model.
 """
 import torch
 import time
+import pathlib
 import dataclasses
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig
@@ -140,7 +141,7 @@ def get_model_test_metrics(model: Union[BenchmarkModel, ModelTask], metrics=[], 
                 if isinstance(model, ModelTask) else model.ttfb
     return TorchBenchModelMetrics(latencies, throughputs, cpu_peak_mem, gpu_peak_mem, ttfb, pt2_compilation_time, pt2_graph_breaks, model_flops)
 
-def get_model_accuracy(model_config: TorchBenchModelConfig, isolated: bool=True) -> str:
+def get_model_accuracy(model_config: TorchBenchModelConfig, isolated: bool=True, save_output_dir: Optional[pathlib.Path]=None) -> str:
     import copy
     from torchbenchmark.util.experiment.instantiator import load_model_isolated, load_model
     # Try load minimal batch size, if fail, load the default batch size

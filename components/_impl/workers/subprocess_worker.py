@@ -49,12 +49,18 @@ class SubprocessWorker(base.WorkerBase):
     """
 
     _working_dir: str
+    _user_save_output: bool = False
     _alive: bool = False
     _bootstrap_timeout: int = 10  # seconds
 
-    def __init__(self, timeout: typing.Optional[float] = None, extra_env: typing.Optional[typing.Dict[str, str]]=None) -> None:
+    def __init__(self, timeout: typing.Optional[float] = None,
+                 extra_env: typing.Optional[typing.Dict[str, str]]=None,
+                 save_output_dir: pathlib.Path=None) -> None:
         super().__init__()
 
+        if save_output_dir.exists() and save_output_dir.is_dir():
+            self._working_dir = save_output_dir.absolute()
+            self._user_save_output = True
         # Log inputs and outputs for debugging.
         self._command_log = os.path.join(self.working_dir, "commands.log")
         pathlib.Path(self._command_log).touch()
@@ -372,4 +378,5 @@ class SubprocessWorker(base.WorkerBase):
         self._stderr_f.close()
 
         # Finally, make sure we don't leak any files.
-        shutil.rmtree(self._working_dir, ignore_errors=True)
+        if not self._user_save_output:
+            shutil.rmtree(self._working_dir, ignore_errors=True)
