@@ -22,7 +22,11 @@ CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 def config_to_str(config: TorchBenchModelConfig) -> str:
     metrics_base = f"model={config.name}, test={config.test}, device={config.device}," + \
+<<<<<<< HEAD
         f" bs={config.batch_size}, extra_args={config.extra_args}"
+=======
+        f" bs={config.batch_size}, extra_args='{config.extra_args}'"
+>>>>>>> 7eea5a34 (Save output to user directory)
     return metrics_base
 
 def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: List[str], model_names: List[str], extra_args: List[str]) -> List[TorchBenchModelConfig]:
@@ -40,7 +44,11 @@ def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: Li
     ) for device, test, batch_size, model_name in cfgs]
     return result
 
+<<<<<<< HEAD
 def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path) -> List[TorchBenchModelConfig]:
+=======
+def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path):
+>>>>>>> 7eea5a34 (Save output to user directory)
     result = []
     for config in configs:
         config_str = config_to_str(config)
@@ -49,7 +57,11 @@ def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Pa
             shutil.rmtree(config.output_dir)
         config.output_dir.mkdir(parents=True)
         result.append(config)
+<<<<<<< HEAD
     return result
+=======
+    return config
+>>>>>>> 7eea5a34 (Save output to user directory)
 
 def get_metrics(config: TorchBenchModelConfig) -> List[str]:
     if "--accuracy" in config.extra_args:
