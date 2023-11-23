@@ -3,18 +3,15 @@ import datetime
 import io
 import os
 import marshal
-import pathlib
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
 import textwrap
-import time
-import typing
 from pathlib import Path
+from typing import Optional, Dict, List, Any, Tuple
 
-import components
 from components._impl.workers import base
 from components._impl.workers import subprocess_rpc
 
@@ -49,15 +46,21 @@ class SubprocessWorker(base.WorkerBase):
     """
 
     _working_dir: str
+    _user_save_output: bool = False
     _alive: bool = False
     _bootstrap_timeout: int = 10  # seconds
 
-    def __init__(self, timeout: typing.Optional[float] = None, extra_env: typing.Optional[typing.Dict[str, str]]=None) -> None:
+    def __init__(self, timeout: Optional[float] = None,
+                 extra_env: Optional[Dict[str, str]] = None,
+                 save_output_dir: Optional[Path] = None) -> None:
         super().__init__()
 
+        if save_output_dir and save_output_dir.is_dir():
+            self._working_dir = save_output_dir.absolute()
+            self._user_save_output = True
         # Log inputs and outputs for debugging.
         self._command_log = os.path.join(self.working_dir, "commands.log")
-        pathlib.Path(self._command_log).touch()
+        Path(self._command_log).touch()
 
         self._stdout_f: io.FileIO = io.FileIO(
             os.path.join(self.working_dir, "stdout.txt"), mode="w",
@@ -148,13 +151,13 @@ class SubprocessWorker(base.WorkerBase):
         return self._working_dir
 
     @property
-    def args(self) -> typing.List[str]:
+    def args(self) -> List[str]:
         return [sys.executable, "-i", "-u"]
 
     def run(self, snippet: str) -> None:
         self._run(snippet)
 
-    def store(self, name: str, value: typing.Any, in_memory: bool = False) -> None:
+    def store(self, name: str, value: Any, in_memory: bool = False) -> None:
         if in_memory:
             raise NotImplementedError("SubprocessWorker does not support `in_memory`")
 
@@ -165,7 +168,7 @@ class SubprocessWorker(base.WorkerBase):
             )
         """)
 
-    def load(self, name: str) -> typing.Any:
+    def load(self, name: str) -> Any:
         self._run(f"""
             {subprocess_rpc.WORKER_IMPL_NAMESPACE}["load_pipe"].write(
                 {subprocess_rpc.WORKER_IMPL_NAMESPACE}["marshal"].dumps({name})
@@ -278,7 +281,7 @@ class SubprocessWorker(base.WorkerBase):
         stdout_stat = os.stat(self._stdout_f.name)
         stderr_stat = os.stat(self._stderr_f.name)
 
-        def get() -> typing.Tuple[str, str]:
+        def get() -> Tuple[str, str]:
             with open(self._stdout_f.name, "rb") as f:
                 _ = f.seek(stdout_stat.st_size)
                 stdout = f.read().decode("utf-8").strip()
@@ -371,5 +374,8 @@ class SubprocessWorker(base.WorkerBase):
         self._stdout_f.close()
         self._stderr_f.close()
 
-        # Finally, make sure we don't leak any files.
-        shutil.rmtree(self._working_dir, ignore_errors=True)
+        # We deliberately keep the output files when user explicitly
+        # specifies the output file dir.
+        # Otherwise, delete all the subprocess files.
+        if not self._user_save_output:
+            shutil.rmtree(self._working_dir, ignore_errors=True)
