@@ -1,15 +1,18 @@
 """
 Run PyTorch nightly benchmarking.
 """
+import ast
 import argparse
 import itertools
 import pathlib
 import json
 import os
 import shutil
+import re
 import numpy
+import yaml
 
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Union
 from ..utils import REPO_PATH, add_path, get_output_json, get_default_output_json_path, get_default_debug_output_dir
 from . import BM_NAME
 
@@ -33,6 +36,18 @@ def config_to_str(config: TorchBenchModelConfig) -> str:
 >>>>>>> b0d741d4 (Fix a bug)
     return metrics_base
 
+def str_to_config(metric_name: str) -> TorchBenchModelConfig:
+    regex = "model=(.*), test=(.*), device=(.*), bs=(.*), extra_args=(.*)"
+    model, test, device, bs, extra_args = re.match(regex, metric_name).groups()
+    return TorchBenchModelConfig(
+        model=model,
+        test=test,
+        device=device,
+        batch_size=bs,
+        extra_args=ast.literal_eval(extra_args),
+        extra_env=None,
+    )
+
 def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: List[str], model_names: List[str], extra_args: List[str]) -> List[TorchBenchModelConfig]:
     """Use the default batch size and default mode."""
     if not model_names:
@@ -50,11 +65,24 @@ def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: Li
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path) -> List[TorchBenchModelConfig]:
 =======
 def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path):
 >>>>>>> 7eea5a34 (Save output to user directory)
 =======
+=======
+def generate_model_configs_from_bisect_yaml(bisect_yaml_file: str) -> List[TorchBenchModelConfig]:
+    with open(bisect_yaml_file, "r") as yf:
+        bisect_obj = yaml.safe_load(yf)
+    control_only_metrics = bisect_obj["control_only_metrics"].keys()
+    treatment_only_metrics = bisect_obj["treatment_only_metrics"].keys()
+    regression_metrics =  bisect_obj["details"].keys()
+    all_metrics = control_only_metrics | treatment_only_metrics | regression_metrics
+    configs = list(map(lambda x: str_to_config(x), all_metrics))
+    return configs
+
+>>>>>>> 0f80b62a (Allow string value in the metrics)
 def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path) -> List[TorchBenchModelConfig]:
 >>>>>>> 4c74fc6a (Add debug options to enable debugging)
     result = []
@@ -160,11 +188,14 @@ def run(args: List[str]):
     if not args.models:
         args.models = list_models()
     debug_output_dir = get_default_debug_output_dir(args.output) if args.debug else None
-    devices = validate(parse_str_to_list(args.device), list_devices())
-    tests = validate(parse_str_to_list(args.test), list_tests())
-    batch_sizes = parse_str_to_list(args.bs)
-    models = validate(parse_str_to_list(args.models), list_models())
-    configs = generate_model_configs(devices, tests, batch_sizes, model_names=models, extra_args=extra_args)
+    if args.run_bisect:
+        configs = generate_model_configs_from_bisect_yaml(args.run_bisect)
+    else:
+        devices = validate(parse_str_to_list(args.device), list_devices())
+        tests = validate(parse_str_to_list(args.test), list_tests())
+        batch_sizes = parse_str_to_list(args.bs)
+        models = validate(parse_str_to_list(args.models), list_models())
+        configs = generate_model_configs(devices, tests, batch_sizes, model_names=models, extra_args=extra_args)
     configs = init_output_dir(configs, debug_output_dir) if debug_output_dir else configs
     results = {}
     try:
