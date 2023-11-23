@@ -14,8 +14,6 @@ def run(control, treatment) -> TorchBenchABTestResult:
     for metric_names in control_metrics.keys():
         control_metric = control_metrics[metric_names]
         treatment_metric = treatment_metrics[metric_names]
-        print(type(control_metric))
-        print(type(treatment_metric))
         if (isinstance(control_metric, str) or isinstance(treatment_metric, str)):
             if control_metric == "skip_by_dryrun" or not control_metric == treatment_metric:
                 delta = f"{control_metric} -> {treatment_metric}"
