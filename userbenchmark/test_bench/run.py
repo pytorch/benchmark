@@ -23,10 +23,14 @@ CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 def config_to_str(config: TorchBenchModelConfig) -> str:
     metrics_base = f"model={config.name}, test={config.test}, device={config.device}," + \
 <<<<<<< HEAD
+<<<<<<< HEAD
         f" bs={config.batch_size}, extra_args={config.extra_args}"
 =======
         f" bs={config.batch_size}, extra_args='{config.extra_args}'"
 >>>>>>> 7eea5a34 (Save output to user directory)
+=======
+        f" bs={config.batch_size}, extra_args={config.extra_args}"
+>>>>>>> b0d741d4 (Fix a bug)
     return metrics_base
 
 def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: List[str], model_names: List[str], extra_args: List[str]) -> List[TorchBenchModelConfig]:
