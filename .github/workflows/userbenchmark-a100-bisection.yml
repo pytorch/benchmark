@@ -71,13 +71,15 @@ jobs:
           python utils/cuda_utils.py --install-torch-build-deps
           python utils/cuda_utils.py --install-torchbench-deps
           mkdir -p "${BISECT_WORKDIR}"
+          python utils/cuda_utils.py --install-torch-nightly
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
                  --output "${BISECT_WORKDIR}/metric-control.json"
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
                  --output "${BISECT_WORKDIR}/metric-treatment.json"
-          python regression_detector.py --name "${USERBENCHMARK_NAME}" --platform "${PLATFORM_NAME}" \
+          python regression_detector.py \
                  --control "${BISECT_WORKDIR}/metrics-control.json" --treatment "${BISECT_WORKDIR}/metrics-treatment.json" \
                  --output "${BISECT_WORKDIR}/regression-gh${GITHUB_RUN_ID}.yaml"
+          pip uninstall -y torch torchvision torchaudio torch_tensorrt
       - name: Bisection
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark

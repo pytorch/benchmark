@@ -14,13 +14,16 @@ def run(control, treatment) -> TorchBenchABTestResult:
     for metric_names in control_metrics.keys():
         control_metric = control_metrics[metric_names]
         treatment_metric = treatment_metrics[metric_names]
-        if (not isinstance(control_metric, float) or not isinstance(treatment_metric, float)) and \
-            not control_metric == treatment_metric:
-            delta = f"{control_metric} -> {treatment_metric}"
-            details[metric_names] = TorchBenchABTestMetric(control=control_metric, treatment=treatment_metric, delta=delta)
-        delta = (treatment_metric - control_metric) / control_metric
-        if abs(delta) > DEFAULT_REGRESSION_DELTA_THRESHOLD:
-            details[metric_names] = TorchBenchABTestMetric(control=control_metric, treatment=treatment_metric, delta=delta)
+        print(type(control_metric))
+        print(type(treatment_metric))
+        if (isinstance(control_metric, str) or isinstance(treatment_metric, str)):
+            if control_metric == "skip_by_dryrun" or not control_metric == treatment_metric:
+                delta = f"{control_metric} -> {treatment_metric}"
+                details[metric_names] = TorchBenchABTestMetric(control=control_metric, treatment=treatment_metric, delta=delta)
+        else:
+            delta = (treatment_metric - control_metric) / control_metric
+            if abs(delta) > DEFAULT_REGRESSION_DELTA_THRESHOLD:
+                details[metric_names] = TorchBenchABTestMetric(control=control_metric, treatment=treatment_metric, delta=delta)
     return TorchBenchABTestResult(name=BM_NAME,
                                   control_env=control_env, \
                                   treatment_env=treatment_env, \
