@@ -34,7 +34,8 @@ class_models = {
     'llama_v2_7b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-7b-hf")', 'AutoModelForCausalLM'),
     'llama_v2_13b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-13b-hf")', 'AutoModelForCausalLM'),
     'llama_v2_70b' : (512, 512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-70b-hf")', 'AutoModelForMaskedLM'),
-    'phi_1_5' : (512, 512, 'AutoConfig.from_pretrained("microsoft/phi-1_5", trust_remote_code=True)', 'AutoModelForCausalLM')
+    'phi_1_5' : (512, 512, 'AutoConfig.from_pretrained("microsoft/phi-1_5", trust_remote_code=True)', 'AutoModelForCausalLM'),
+    'hf_Yi' : (512, 512, 'AutoConfig.from_pretrained("01-ai/Yi-6B", trust_remote_code=True)', 'AutoModelForCausalLM'),
 }
 
 cpu_input_slice = {
@@ -86,7 +87,8 @@ class HuggingFaceModel(BenchmarkModel):
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
         kwargs = {}
-        if name == "hf_Falcon_7b" or name == "hf_MPT_7b_instruct" or name == "phi_1_5":
+        remote_code_required = ['hf_Falcon_7b', 'hf_MPT_7b_instruct', 'phi_1_5', 'hf_Yi']
+        if name in remote_code_required:
             kwargs["trust_remote_code"] = True
         self.model = class_ctor.from_config(config, **kwargs).to(device)
         self.optimizer = optim.Adam(
