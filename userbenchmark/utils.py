@@ -112,8 +112,8 @@ def get_default_output_json_path(bm_name: str, target_dir: Path=None) -> str:
 def get_default_debug_output_dir(metrics_json: str) -> Path:
     metrics_json_path = Path(metrics_json)
     metrics_json_dir = metrics_json_path.parent
-    metrics_datetime = datetime.strptime("metrics-%Y%m%d%H%M%S.json", metrics_json_path.name)
-    debug_output_dir = metrics_json_dir.joinpath(metrics_datetime)
+    metrics_datetime = datetime.strptime(metrics_json_path.name, "metrics-%Y%m%d%H%M%S.json")
+    debug_output_dir = metrics_json_dir.joinpath("output-" + datetime.strftime(metrics_datetime, "%Y%m%d%H%M%S"))
     return debug_output_dir
 
 def dump_output(bm_name: str, output: Any, target_dir: Path=None) -> None:

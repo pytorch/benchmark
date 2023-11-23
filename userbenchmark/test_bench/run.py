@@ -40,7 +40,7 @@ def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: Li
     ) for device, test, batch_size, model_name in cfgs]
     return result
 
-def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path):
+def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path) -> List[TorchBenchModelConfig]:
     result = []
     for config in configs:
         config_str = config_to_str(config)
@@ -49,7 +49,7 @@ def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Pa
             shutil.rmtree(config.output_dir)
         config.output_dir.mkdir(parents=True)
         result.append(config)
-    return config
+    return result
 
 def get_metrics(config: TorchBenchModelConfig) -> List[str]:
     if "--accuracy" in config.extra_args:
