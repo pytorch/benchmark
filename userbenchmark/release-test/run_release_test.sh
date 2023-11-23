@@ -17,7 +17,6 @@ fi
 . switch-cuda.sh "${CUDA_VERSION}"
 nvcc --version
 sudo apt-get install bc
-
 # run mnist
 mkdir -p "${RESULT_DIR}/mnist"
 pushd "${EXAMPLES_DIR}/mnist"
