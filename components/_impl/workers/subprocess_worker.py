@@ -52,10 +52,10 @@ class SubprocessWorker(base.WorkerBase):
 
     def __init__(self, timeout: Optional[float] = None,
                  extra_env: Optional[Dict[str, str]] = None,
-                 save_output_dir: Path=None) -> None:
+                 save_output_dir: Optional[Path] = None) -> None:
         super().__init__()
 
-        if save_output_dir.exists() and save_output_dir.is_dir():
+        if save_output_dir and save_output_dir.is_dir():
             self._working_dir = save_output_dir.absolute()
             self._user_save_output = True
         # Log inputs and outputs for debugging.
