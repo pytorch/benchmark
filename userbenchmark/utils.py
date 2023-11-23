@@ -113,12 +113,17 @@ def get_default_debug_output_dir(metrics_json: str) -> Path:
     metrics_json_path = Path(metrics_json)
     metrics_json_dir = metrics_json_path.parent
 <<<<<<< HEAD
+<<<<<<< HEAD
     metrics_datetime = datetime.strptime(metrics_json_path.name, "metrics-%Y%m%d%H%M%S.json")
     debug_output_dir = metrics_json_dir.joinpath("output-" + datetime.strftime(metrics_datetime, "%Y%m%d%H%M%S"))
 =======
     metrics_datetime = datetime.strptime("metrics-%Y%m%d%H%M%S.json", metrics_json_path.name)
     debug_output_dir = metrics_json_dir.joinpath(metrics_datetime)
 >>>>>>> 7eea5a34 (Save output to user directory)
+=======
+    metrics_datetime = datetime.strptime(metrics_json_path.name, "metrics-%Y%m%d%H%M%S.json")
+    debug_output_dir = metrics_json_dir.joinpath("output-" + datetime.strftime(metrics_datetime, "%Y%m%d%H%M%S"))
+>>>>>>> 4c74fc6a (Add debug options to enable debugging)
     return debug_output_dir
 
 def dump_output(bm_name: str, output: Any, target_dir: Path=None) -> None:

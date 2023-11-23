@@ -45,10 +45,14 @@ def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: Li
     return result
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path) -> List[TorchBenchModelConfig]:
 =======
 def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path):
 >>>>>>> 7eea5a34 (Save output to user directory)
+=======
+def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path) -> List[TorchBenchModelConfig]:
+>>>>>>> 4c74fc6a (Add debug options to enable debugging)
     result = []
     for config in configs:
         config_str = config_to_str(config)
@@ -58,10 +62,14 @@ def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Pa
         config.output_dir.mkdir(parents=True)
         result.append(config)
 <<<<<<< HEAD
+<<<<<<< HEAD
     return result
 =======
     return config
 >>>>>>> 7eea5a34 (Save output to user directory)
+=======
+    return result
+>>>>>>> 4c74fc6a (Add debug options to enable debugging)
 
 def get_metrics(config: TorchBenchModelConfig) -> List[str]:
     if "--accuracy" in config.extra_args:
