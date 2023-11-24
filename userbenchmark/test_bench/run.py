@@ -32,6 +32,7 @@ def str_to_config(metric_name: str) -> TorchBenchModelConfig:
     regex = "model=(.*), test=(.*), device=(.*), bs=(.*), extra_args=(.*), metric=(.*)"
     model, test, device, batch_size, extra_args, _metric = re.match(regex, metric_name).groups()
     extra_args = ast.literal_eval(extra_args)
+    batch_size = ast.literal_eval(batch_size)
     return TorchBenchModelConfig(
         name=model,
         test=test,
