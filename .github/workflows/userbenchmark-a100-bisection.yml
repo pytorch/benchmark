@@ -65,10 +65,13 @@ jobs:
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           cd benchmark
           mkdir -p "${BISECT_WORKDIR}"
+          PYTORCH_GIT_HASH=$(python -c 'import torch; print(torch.version.git_version)')
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
                  --output "${BISECT_WORKDIR}/metrics-control.json"
+          sed -i "s/${PYTORCH_GIT_HASH}/${{ github.event.inputs.start_commit }}/g" "${BISECT_WORKDIR}/metrics-control.json"
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
                  --output "${BISECT_WORKDIR}/metrics-treatment.json"
+          sed -i "s/${PYTORCH_GIT_HASH}/${{ github.event.inputs.end_commit }}/g" "${BISECT_WORKDIR}/metrics-treatment.json"
           python regression_detector.py \
                  --control "${BISECT_WORKDIR}/metrics-control.json" --treatment "${BISECT_WORKDIR}/metrics-treatment.json" \
                  --output "${BISECT_WORKDIR}/regression-gh${GITHUB_RUN_ID}.yaml"
