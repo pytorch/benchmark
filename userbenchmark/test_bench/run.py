@@ -155,10 +155,9 @@ def run(args: List[str]):
                 results[f"{config_str}, metric={metric}"] = metrics_dict[metric]
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
-    if not args.dryrun:
-        result = get_output_json(BM_NAME, results)
-        if args.device == 'cuda':
-            import torch
-            result["environ"]["device"] = torch.cuda.get_device_name()
-        with open(args.output, 'w') as f:
-            json.dump(result, f, indent=4)
+    result = get_output_json(BM_NAME, results)
+    if args.device == 'cuda':
+        import torch
+        result["environ"]["device"] = torch.cuda.get_device_name()
+    with open(args.output, 'w') as f:
+        json.dump(result, f, indent=4)

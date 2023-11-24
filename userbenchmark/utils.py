@@ -4,10 +4,9 @@ import yaml
 from datetime import datetime, timedelta
 import time
 import json
-import yaml
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Dict, List, Optional, Callable, Union
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
@@ -38,10 +37,9 @@ with add_path(str(REPO_PATH)):
 
 @dataclass
 class TorchBenchABTestMetric:
-    control: float
-    treatment: float
-    delta: float
-
+    control: Union[float, str]
+    treatment: Union[float, str]
+    delta: Union[float, str]
 
 @dataclass
 class TorchBenchABTestResult:

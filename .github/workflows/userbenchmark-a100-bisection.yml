@@ -1,0 +1,101 @@
+name: TorchBench A100 bisection
+on:
+  workflow_dispatch:
+    inputs:
+      start_commit:
+        description: "Start PyTorch commit hash"
+        required: true
+      end_commit:
+        description: "End PyTorch commit hash"
+        required: true
+      userbenchmark:
+        description: "Userbenchmark name"
+        required: true
+      userbenchmark_args:
+        description: "Userbenchmark arguments"
+        required: true
+
+jobs:
+  bisection:
+    environment: docker-s3-upload
+    env:
+      BASE_CONDA_ENV: "torchbench"
+      CONDA_ENV: "bisection-ci-a100"
+      PLATFORM_NAME: "gcp_a100"
+      SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      BISECT_WORKDIR: ".userbenchmark/${{ github.env.userbenchmark }}/bisection"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, a100-runner]
+    timeout-minutes: 2880 # 48 hours
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Checkout pytorch
+        uses: actions/checkout@v3
+        with:
+          repository: pytorch/pytorch
+          path: srcs/pytorch
+          fetch-depth: 0
+      - name: Checkout torchvision
+        uses: actions/checkout@v3
+        with:
+          repository: pytorch/vision
+          path: srcs/vision
+          fetch-depth: 0
+      - name: Checkout torchaudio
+        uses: actions/checkout@v3
+        with:
+          repository: pytorch/audio
+          path: srcs/audio
+          fetch-depth: 0
+      - name: Tune Nvidia GPU
+        run: |
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
+          nvidia-smi
+      - name: Install Deps
+        run: |
+          sudo apt-get -y update && sudo apt -y update
+      - name: Setup conda env
+        run: |
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+          cd benchmark
+          python ./utils/python_utils.py --create-conda-env "${CONDA_ENV}"
+      - name: Setup bisection environment
+        run: |
+          . "${SETUP_SCRIPT}"; cd benchmark
+          python utils/cuda_utils.py --install-torch-build-deps
+          python utils/cuda_utils.py --install-torchbench-deps
+          mkdir -p "${BISECT_WORKDIR}"
+          python utils/cuda_utils.py --install-torch-nightly
+          python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
+                 --output "${BISECT_WORKDIR}/metric-control.json"
+          python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
+                 --output "${BISECT_WORKDIR}/metric-treatment.json"
+          python regression_detector.py \
+                 --control "${BISECT_WORKDIR}/metrics-control.json" --treatment "${BISECT_WORKDIR}/metrics-treatment.json" \
+                 --output "${BISECT_WORKDIR}/regression-gh${GITHUB_RUN_ID}.yaml"
+          pip uninstall -y torch torchvision torchaudio torch_tensorrt
+      - name: Bisection
+        run: |
+          . "${SETUP_SCRIPT}"; cd benchmark
+          python bisection.py --work-dir "${BISECT_WORKDIR}" --torch-repos-path "${PWD}/../srcs" \
+                --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-gh${GITHUB_RUN_ID}.yaml" \
+                --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
+          cp -r "${BISECT_WORKDIR}" ../bisection-result
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Bisection result
+          path: bisection-result/
+      - name: Clean up Conda env
+        if: always()
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all

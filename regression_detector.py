@@ -104,9 +104,11 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
     troubled_tests = ""
     for test, stats in regressions_dict["details"].items():
         delta = stats["delta"]
-        if delta != 0:
+        if not isinstance(delta, str):
             sign = "+" if delta > 0 else ""
             troubled_tests += f"- {test}: {sign}{delta:.5%}\n"
+        else:
+            troubled_tests += f"- {test}: {delta}\n"
     
     control_only_tests = ""
     for test, stat in regressions_dict["control_only_metrics"].items():
