@@ -75,9 +75,9 @@ jobs:
           # The userbenchmark requires psutil
           pip install psutil
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
-                 --output "${BISECT_WORKDIR}/metric-control.json"
+                 --output "${BISECT_WORKDIR}/metrics-control.json"
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
-                 --output "${BISECT_WORKDIR}/metric-treatment.json"
+                 --output "${BISECT_WORKDIR}/metrics-treatment.json"
           python regression_detector.py \
                  --control "${BISECT_WORKDIR}/metrics-control.json" --treatment "${BISECT_WORKDIR}/metrics-treatment.json" \
                  --output "${BISECT_WORKDIR}/regression-gh${GITHUB_RUN_ID}.yaml"
