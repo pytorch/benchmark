@@ -72,6 +72,8 @@ jobs:
           python utils/cuda_utils.py --install-torchbench-deps
           mkdir -p "${BISECT_WORKDIR}"
           python utils/cuda_utils.py --install-torch-nightly
+          # The userbenchmark requires psutil
+          pip install psutil
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
                  --output "${BISECT_WORKDIR}/metric-control.json"
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
