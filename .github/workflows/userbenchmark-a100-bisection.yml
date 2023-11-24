@@ -64,16 +64,7 @@ jobs:
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           cd benchmark
-          python ./utils/python_utils.py --create-conda-env "${CONDA_ENV}"
-      - name: Setup bisection environment
-        run: |
-          . "${SETUP_SCRIPT}"; cd benchmark
-          python utils/cuda_utils.py --install-torch-build-deps
-          python utils/cuda_utils.py --install-torchbench-deps
           mkdir -p "${BISECT_WORKDIR}"
-          python utils/cuda_utils.py --install-torch-nightly
-          # The userbenchmark requires psutil
-          pip install psutil
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
                  --output "${BISECT_WORKDIR}/metrics-control.json"
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
@@ -81,7 +72,12 @@ jobs:
           python regression_detector.py \
                  --control "${BISECT_WORKDIR}/metrics-control.json" --treatment "${BISECT_WORKDIR}/metrics-treatment.json" \
                  --output "${BISECT_WORKDIR}/regression-gh${GITHUB_RUN_ID}.yaml"
-          pip uninstall -y torch torchvision torchaudio torch_tensorrt
+          python ./utils/python_utils.py --create-conda-env "${CONDA_ENV}"
+      - name: Setup bisection environment
+        run: |
+          . "${SETUP_SCRIPT}"; cd benchmark
+          python utils/cuda_utils.py --install-torch-build-deps
+          python utils/cuda_utils.py --install-torchbench-deps
       - name: Bisection
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
