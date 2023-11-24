@@ -43,11 +43,6 @@ TORCHBENCH_BISECTION_TARGETS = {
         "url": "https://github.com/pytorch/pytorch.git",
         "build_command": [sys.executable, "setup.py", "install"],
     },
-    "torchdata": {
-        "name": "data",
-        "url": "https://github.com/pytorch/data.git",
-        "build_command": [sys.executable, "setup.py", "install"],
-    },
     "torchvision": {
         "name": "vision",
         "url": "https://github.com/pytorch/vision.git",
