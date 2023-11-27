@@ -16,7 +16,7 @@ fi
 
 . switch-cuda.sh "${CUDA_VERSION}"
 
-if[[ "${CUDA_VERSION}" == "12.1" ]]; then
+if [[ ${CUDA_VERSION} == "12.1" ]]; then
     pip install nvidia-cuda-nvcc-cu12
 fi
 
