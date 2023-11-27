@@ -23,9 +23,10 @@ jobs:
       CONDA_ENV: "bisection-ci-a100"
       PLATFORM_NAME: "gcp_a100"
       SETUP_SCRIPT: "/workspace/setup_instance.sh"
-      BISECT_WORKDIR: ".userbenchmark/${{ github.env.userbenchmark }}/bisection"
+      BISECT_WORKDIR: ".userbenchmark/${{ github.event.inputs.userbenchmark }}/bisection"
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, a100-runner]
     timeout-minutes: 2880 # 48 hours
@@ -64,22 +65,23 @@ jobs:
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           cd benchmark
+          mkdir -p "${BISECT_WORKDIR}"
+          PYTORCH_GIT_HASH=$(python -c 'import torch; print(torch.version.git_version)')
+          python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
+                 --output "${BISECT_WORKDIR}/metrics-control.json"
+          sed -i "s/${PYTORCH_GIT_HASH}/${{ github.event.inputs.start_commit }}/g" "${BISECT_WORKDIR}/metrics-control.json"
+          python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
+                 --output "${BISECT_WORKDIR}/metrics-treatment.json"
+          sed -i "s/${PYTORCH_GIT_HASH}/${{ github.event.inputs.end_commit }}/g" "${BISECT_WORKDIR}/metrics-treatment.json"
+          python regression_detector.py \
+                 --control "${BISECT_WORKDIR}/metrics-control.json" --treatment "${BISECT_WORKDIR}/metrics-treatment.json" \
+                 --output "${BISECT_WORKDIR}/regression-gh${GITHUB_RUN_ID}.yaml"
           python ./utils/python_utils.py --create-conda-env "${CONDA_ENV}"
       - name: Setup bisection environment
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
           python utils/cuda_utils.py --install-torch-build-deps
           python utils/cuda_utils.py --install-torchbench-deps
-          mkdir -p "${BISECT_WORKDIR}"
-          python utils/cuda_utils.py --install-torch-nightly
-          python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
-                 --output "${BISECT_WORKDIR}/metric-control.json"
-          python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
-                 --output "${BISECT_WORKDIR}/metric-treatment.json"
-          python regression_detector.py \
-                 --control "${BISECT_WORKDIR}/metrics-control.json" --treatment "${BISECT_WORKDIR}/metrics-treatment.json" \
-                 --output "${BISECT_WORKDIR}/regression-gh${GITHUB_RUN_ID}.yaml"
-          pip uninstall -y torch torchvision torchaudio torch_tensorrt
       - name: Bisection
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
