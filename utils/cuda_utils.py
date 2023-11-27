@@ -45,6 +45,12 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
     env["LD_LIBRARY_PATH"] = f"{cuda_path_str}/lib64:{cuda_path_str}/extras/CUPTI/lib64:{env['LD_LIBRARY_PATH']}"
     if dryrun:
         print(f"CUDA_HOME is set to {env['CUDA_HOME']}")
+
+     # step 1.5: install the correct nvcc version
+    if cuda_version ==  "12.1":
+        install_nvcc = ["pip", "install", "nvidia-cuda-nvcc-cu12"]
+        subprocess.check_call(install_nvcc, env=env)
+
     # step 2: test call to nvcc to confirm the version is correct
     test_nvcc = ["nvcc", "--version"]
     if dryrun:
@@ -53,6 +59,7 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
         output = subprocess.check_output(test_nvcc, stderr=subprocess.STDOUT, env=env).decode()
         print(f"NVCC version output: {output}")
         assert _nvcc_output_match(output, cuda_version), f"Expected CUDA version {cuda_version}, getting nvcc test result {output}"
+
     # step 3: install the correct magma version
     install_magma_cmd = ["conda", "install", "-y", "-c", "pytorch", CUDA_VERSION_MAP[cuda_version]['magma_version']]
     if dryrun:
