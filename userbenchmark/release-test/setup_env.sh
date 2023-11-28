@@ -34,8 +34,9 @@ conda uninstall -y pytorch torchvision cudatoolkit
 pip uninstall -y torch torchvision
 
 # install magma
-conda install -y -c pytorch ${MAGMA_VERSION} numpy=1.17
+conda install -y -c pytorch ${MAGMA_VERSION}
 conda install --force-reinstall -v -y pytorch=${PYTORCH_VERSION} torchvision pytorch-cuda=${CUDA_VERSION} -c ${PYTORCH_CHANNEL} -c nvidia
+pip install --force-reinstall numpy
 
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
 
