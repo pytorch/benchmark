@@ -139,7 +139,8 @@ def parse_known_args(args):
     parser = argparse.ArgumentParser()
     default_device = "cuda" if "cuda" in list_devices() else "cpu"
     parser.add_argument(
-        "models",
+        "--models",
+        "-m",
         nargs="*",
         help="Name of models to run, split by comma.",
     )
