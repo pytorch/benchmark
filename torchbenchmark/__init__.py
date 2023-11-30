@@ -42,22 +42,13 @@ class add_path():
             pass
 
 with add_path(str(REPO_PATH)):
-    from utils import TORCH_DEPS, get_pkg_versions, proxy_suggestion
+    from utils import TORCH_DEPS, get_pkg_versions
 
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = 'models'
 internal_model_dir = "fb"
 canary_model_dir = "canary_models"
 install_file = 'install.py'
-
-
-def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> bool:
-    try:
-        request.urlopen(test_url, timeout=timeout)
-    except OSError:
-        return False
-    return True
-
 
 def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
     from .util.env_check import get_pkg_versions
@@ -135,10 +126,6 @@ def _is_canary_model(model_name: str) -> bool:
     return False
 
 def setup(models: List[str] = [], verbose: bool = True, continue_on_fail: bool = False, test_mode: bool = False, allow_canary: bool = False) -> bool:
-    if not _test_https():
-        print(proxy_suggestion)
-        sys.exit(-1)
-
     failures = {}
     models = list(map(lambda p: p.lower(), models))
     model_paths = filter(lambda p: True if not models else os.path.basename(p).lower() in models, _list_model_paths())
