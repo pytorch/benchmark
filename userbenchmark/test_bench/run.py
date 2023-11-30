@@ -111,10 +111,11 @@ def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=F
         metrics_output: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics)
         result = {}
         for metric in metrics:
-            if metric == "latency" and metrics_output.latencies:
+            if metric == "latencies" and metrics_output.latencies:
                 result[metric] = numpy.median(metrics_output.latencies)
-            if not result[metric]:
-                result[metric] = "failed"
+            else:
+                result[metric] = getattr(metrics_output, metric, None)
+                result[metric] = "failed" if result[metric] == None else result[metric]
         print(" [done]", flush=True)
         return result
     except NotImplementedError as e:
