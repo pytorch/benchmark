@@ -3,6 +3,7 @@ HuggingFace Stable Diffusion model.
 It requires users to specify "HUGGINGFACE_AUTH_TOKEN" in environment variable
 to authorize login and agree HuggingFace terms and conditions.
 """
+from torch import nn
 from torchbenchmark.tasks import COMPUTER_VISION
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.util.framework.huggingface.model_factory import HuggingFaceAuthMixin
@@ -10,6 +11,13 @@ from torchbenchmark.util.framework.huggingface.model_factory import HuggingFaceA
 import torch
 from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
 
+class SDPipelineWrapper(nn.Module):
+    def __init__(self, pipe):
+        super().__init__()
+        self.pipe = pipe
+
+    def forward(self, x):
+        return self.pipe(x)
 
 class Model(BenchmarkModel, HuggingFaceAuthMixin):
     task = COMPUTER_VISION.GENERATION
@@ -17,6 +25,8 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
+    # Skip deepcopy because it will oom on A100 40GB
+    DEEPCOPY = False
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
@@ -26,33 +36,24 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
                          batch_size=batch_size, extra_args=extra_args)
         model_id = "stabilityai/stable-diffusion-2"
         scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-        self.pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)
-        self.pipe.to(self.device)
+        pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)
+        self.model = SDPipelineWrapper(pipe).to(self.device)
         self.example_inputs = "a photo of an astronaut riding a horse on mars"
 
     def enable_fp16(self):
-        # The model is fp16 by default
-        # No need to cast to fp16
+        # This model uses fp16 by default
+        # Make this function no-op.
         pass
 
     def get_module(self):
-        batch_size = 1
-        sequence_length = 10
-        vocab_size = 32000
-
-        # Generate random indices within the valid range
-        input_tensor = torch.randint(low=0, high=vocab_size, size=(batch_size, sequence_length))
-
-        # Make sure the tensor has the correct data type
-        input_tensor = input_tensor.long().to(self.device)
-        return self.pipe.text_encoder, [input_tensor]
+        return self.model, self.example_inputs
 
     def set_module(self, module):
-        self.pipe.text_encoder = module
+        self.model = module
 
     def train(self):
         raise NotImplementedError("Train test is not implemented for the stable diffusion model.")
 
     def eval(self):
-        image = self.pipe(self.example_inputs)
-        return (image, )
+        images = self.model(self.example_inputs)
+        return (images, )
