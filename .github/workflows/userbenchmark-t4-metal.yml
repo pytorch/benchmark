@@ -78,9 +78,15 @@ jobs:
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           fi
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: TorchBench result
+          path: benchmark-output/
       - name: Upload result jsons to Scribe
         run: |
           . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          conda install -y six
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
@@ -88,11 +94,6 @@ jobs:
             python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
             python ./scripts/userbenchmark/upload_s3.py --upload-file "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
           done
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: TorchBench result
-          path: benchmark-output/
       - name: Remove conda environment
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"

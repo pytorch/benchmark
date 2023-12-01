@@ -15,7 +15,13 @@ if [[ ${PLATFORM_NAME} == "aws_t4_metal" ]]; then
 fi
 
 . switch-cuda.sh "${CUDA_VERSION}"
+
+if [[ ${CUDA_VERSION} == "12.1" ]]; then
+    pip install nvidia-cuda-nvcc-cu12
+fi
+
 nvcc --version
+sudo apt-get install bc
 # run mnist
 mkdir -p "${RESULT_DIR}/mnist"
 pushd "${EXAMPLES_DIR}/mnist"

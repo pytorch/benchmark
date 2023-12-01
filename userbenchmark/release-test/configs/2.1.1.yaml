@@ -1,0 +1,8 @@
+cuda:
+  - version: 12.1
+    magma_version: magma-cuda121
+pytorch:
+  - version: 2.1.1
+    conda_channel: pytorch
+  - version: 2.1.0
+    conda_channel: pytorch
