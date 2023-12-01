@@ -11,31 +11,45 @@ Usage:
 """
 
 import argparse
-import os
-import sys
 import json
-import time
+import os
 import shutil
-import yaml
-from pathlib import Path
 import subprocess
-from datetime import datetime
+import sys
+import time
 from dataclasses import asdict
-from typing import Optional, List, Dict, Tuple, Any, Callable
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import yaml
 
 from userbenchmark.utils import (
+    parse_abtest_result_from_regression_file_for_bisect,
     TorchBenchABTestResult,
-    parse_abtest_result_from_regression_file_for_bisect
 )
-from regression_detector import generate_regression_result
-from utils import gitutils
-from utils.build_utils import (
-    setup_bisection_build_env,
-    build_repo,
-    cleanup_torch_packages,
-    TorchRepo,
-)
-from utils.cuda_utils import prepare_cuda_env, DEFAULT_CUDA_VERSION
+
+try:
+    # OSS utils
+    from regression_detector import generate_regression_result
+    from utils import gitutils
+    from utils.build_utils import (
+        build_repo,
+        cleanup_torch_packages,
+        setup_bisection_build_env,
+        TorchRepo,
+    )
+    from utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
+    IS_FBCODE = False
+except (ImportError, ModuleNotFoundError):
+    # Meta-Internal imports
+    from .regression_detector import generate_regression_result
+    from .utils.build_utils import setup_bisection_build_env, TorchRepo
+    from .utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
+    from .utils.fb import hgutils
+    from .utils.fb.build_utils import setup_fbcode_repo, get_fbcode_build_artifact_dir, \
+                                      build_fbcode_repo, FBCODE_URL, FBCODE_BUILD_COMMAND
+    IS_FBCODE = True
 
 TORCHBENCH_BISECTION_TARGETS = {
     "pytorch": {
@@ -58,6 +72,11 @@ TORCHBENCH_BISECTION_TARGETS = {
         "url": "https://github.com/pytorch/benchmark.git",
         "build_command": [sys.executable, "install.py"],
     },
+    "fbcode": {
+        "name": "fbcode",
+        "url": FBCODE_URL,
+        "build_command": FBCODE_BUILD_COMMAND,
+    }
 }
 SKIP_INSTALL_TORCHBENCH = False
 
@@ -86,6 +105,8 @@ def get_latest_non_empty_file(directory: str, cond: Callable) -> Optional[str]:
 def get_updated_clean_torch_repos(pytorch_repos_path: str,
                                   torchbench_repo_path: Optional[str]=None,
                                   skip_update_repos: Optional[List[str]]=None) -> Dict[str, TorchRepo]:
+    if IS_FBCODE:
+        return setup_fbcode_repo(pytorch_repos_path)
     all_repos = {}
     def _gen_torch_repo(repo_name: str, repo_path: str):
         assert repo_path.exists() and repo_path.is_dir(), f"{str(repo_path)} is not an existing directory."
@@ -96,7 +117,7 @@ def get_updated_clean_torch_repos(pytorch_repos_path: str,
             assert gitutils.update_git_repo(repo_path.absolute(), main_branch)
             assert gitutils.clean_git_repo(repo_path.absolute())
         cur_commit = gitutils.get_current_commit(repo_path.absolute())
-        return TorchRepo(name=repo_name, 
+        return TorchRepo(name=repo_name,
                          origin_url=TORCHBENCH_BISECTION_TARGETS[repo_name]["url"],
                          main_branch=main_branch,
                          src_path=repo_path,
@@ -150,14 +171,19 @@ class BisectionTargetRepo:
             print("done.")
 
     def prep(self) -> bool:
-        base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
-        self.bisection_env = setup_bisection_build_env(base_build_env)
-        commits = gitutils.get_git_commits(self.repo.src_path, self.start, self.end)
+        if not IS_FBCODE:
+            base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
+            self.bisection_env = setup_bisection_build_env(base_build_env)
+            commits = gitutils.get_git_commits(self.repo.src_path, self.start, self.end)
+        else:
+            self.bisection_env = os.environ.copy()
+            commits = hgutils.get_hg_commits_between(self.repo.src_path, self.start, self.end)
         if not commits or len(commits) < 2:
             print(f"Failed to retrieve commits from {self.start} to {self.end} in {self.repo.src_path}.")
             return False
         for count, commit in enumerate(commits):
-            ctime = gitutils.get_git_commit_date(self.repo.src_path, commit)
+            ctime = hgutils.get_commit_date(self.repo.src_path, commit) if IS_FBCODE else \
+                    gitutils.get_git_commit_date(self.repo.src_path, commit)
             self.commits.append(Commit(sha=commit, ctime=ctime))
             self.commit_dict[commit] = count
         return True
@@ -172,17 +198,20 @@ class BisectionTargetRepo:
 
     def build(self, commit: Commit):
         # checkout target repo commit
-        print(f"====================== [TORCHBENCH] Checking out target repo {self.repo.name} commit {commit.sha} " \
+        print(f"====================== [TORCHBENCH] Checking out and building target repo {self.repo.name} commit {commit.sha} " \
               "=======================", flush=True)
-        assert gitutils.checkout_git_commit(self.repo.src_path.absolute(), commit.sha)
-        # checkout non-target repos commit
-        ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
-        self._checkout_non_target_repos(ctime)
-        # build target repo
-        build_repo(self.repo, self.bisection_env)
-        # build non target repos
-        for repo in self.non_target_repos:
-            build_repo(repo, self.bisection_env)
+        if not IS_FBCODE:
+            assert gitutils.checkout_git_commit(self.repo.src_path.absolute(), commit.sha)
+            ctime = datetime.strptime(commit.ctime.split(" ")[0], "%Y-%m-%d")
+            self._checkout_non_target_repos(ctime)
+            # build target repo
+            build_repo(self.repo, self.bisection_env)
+            # build non target repos
+            for repo in self.non_target_repos:
+                build_repo(repo, self.bisection_env)
+        else:
+            assert hgutils.checkout_commit(self.repo.src_path.absolute(), commit.sha)
+            build_fbcode_repo(self.repo, self.bisection_env, commit.sha)
 
 class TorchBenchRepo:
     repo: TorchRepo
@@ -219,15 +248,19 @@ class TorchBenchRepo:
             shutil.rmtree(output_dir)
         os.mkdir(output_dir)
         # If the first time to run benchmark, install the dependencies first
-        if self.first_time and not SKIP_INSTALL_TORCHBENCH:
+        if self.first_time and not SKIP_INSTALL_TORCHBENCH and not IS_FBCODE:
             self._install_benchmark()
             self.first_time = False
         bm_name = bisect_config.name
         output_file = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
         output_file_path = os.path.join(output_dir, output_file)
         print(f"===================== [TORCHBENCH] Running TorchBench for commit: {commit.sha} START =====================", flush=True)
-        command = [sys.executable, "run_benchmark.py", bm_name, "--run-bisect", bisect_config.bisection_config_file_path, "--output", output_file_path]
-        subprocess.check_call(command, cwd=self.repo.src_path, env=self.bisection_env)
+        if IS_FBCODE:
+            self.bisection_env["CURRENT_HG_COMMIT_HASH"] = commit.sha
+        command = [sys.executable, "run_benchmark.py", bm_name, "--run-bisect", bisect_config.bisection_config_file_path, "--output", output_file_path] \
+                  if not IS_FBCODE else [f"./run_benchmark.par", bm_name, "--run-bisect", bisect_config.bisection_config_file_path, "--output", output_file_path]
+        work_directory = self.repo.src_path if not IS_FBCODE else get_fbcode_build_artifact_dir(self.repo, commit.sha)
+        subprocess.check_call(command, cwd=work_directory, env=self.bisection_env)
         print(f"===================== [TORCHBENCH] Running TorchBench for commit: {commit.sha} END. OUTPUT: {output_file_path} =====================", flush=True)
         return output_file_path
 
@@ -267,8 +300,10 @@ class TorchBenchBisection:
     torchbench: TorchBenchRepo
     bisect_config: TorchBenchABTestResult
     output_json: str
+    # Run in debug mode.
+    # If true, will try to resume from the previous failed run.
     debug: bool
-    # left commit, right commit, TorchBenchABTestResult to test
+    # left commit, right commit, TorchBenchABTestResult to test.
     bisectq: List[Tuple[Commit, Commit, TorchBenchABTestResult]]
     result: List[Tuple[Commit, Commit]]
 
@@ -285,8 +320,9 @@ class TorchBenchBisection:
         self.workdir = Path(workdir)
         self.torch_repos = torch_repos
         non_target_repos = list(filter(lambda x: not x.name == target_repo.name and not x.name == "torchbench", torch_repos.values()))
+        torchbench_repo_key = "torchbench" if not IS_FBCODE else "fbcode"
         self.target_repo = BisectionTargetRepo(repo=target_repo, start=start, end=end, non_target_repos=non_target_repos)
-        self.torchbench = TorchBenchRepo(repo=torch_repos["torchbench"],
+        self.torchbench = TorchBenchRepo(repo=torch_repos[torchbench_repo_key],
                                          target_repo=self.target_repo,
                                          workdir=self.workdir)
         self.bisect_config = bisect_config
@@ -296,7 +332,8 @@ class TorchBenchBisection:
         self.debug = debug
 
     def prep(self) -> bool:
-        cleanup_torch_packages()
+        if not IS_FBCODE:
+            cleanup_torch_packages()
         if not self.target_repo.prep():
             return False
         if not self.torchbench.prep(self.target_repo.bisection_env):
@@ -319,7 +356,7 @@ class TorchBenchBisection:
             rf.write(yaml.safe_dump(asdict(regression_result)))
         regression_result.bisection_config_file_path = regression_file_full_path
         return regression_result
-        
+
     def run(self):
         while len(self.bisectq):
             (left, right, abtest_result) = self.bisectq.pop(0)
@@ -335,7 +372,7 @@ class TorchBenchBisection:
                 else:
                     self.bisectq.append((left, mid, updated_abtest_result))
                     self.bisectq.append((mid, right, updated_abtest_result))
- 
+
     def output(self):
         json_obj = dict()
         json_obj["target_repo"] = self.target_repo.repo.name
@@ -365,7 +402,7 @@ if __name__ == "__main__":
                         type=exist_dir_path)
     parser.add_argument("--torch-repos-path",
                         required=True,
-                        help="the directory of pytorch/* source code repositories",
+                        help="the directory of pytorch/* source code repositories, or fbcode repo if running internally",
                         type=exist_dir_path)
     parser.add_argument("--torchbench-repo-path",
                         default=None,
@@ -409,12 +446,14 @@ if __name__ == "__main__":
     # load, update, and clean the repo directories
     torch_repos: Dict[str, TorchRepo] = get_updated_clean_torch_repos(args.torch_repos_path, args.torchbench_repo_path, skip_update_repos)
     target_repo = torch_repos[bisect_config.bisection]
-    start_hash = gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.control_env["git_commit_hash"])
-    end_hash =  gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.treatment_env["git_commit_hash"])
+    start_hash = gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.control_env["git_commit_hash"]) \
+                 if not IS_FBCODE else bisect_config.control_env["git_commit_hash"]
+    end_hash =  gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.treatment_env["git_commit_hash"]) \
+                 if not IS_FBCODE else bisect_config.treatment_env["git_commit_hash"]
 
     bisection = TorchBenchBisection(workdir=args.work_dir,
                                     torch_repos=torch_repos,
-                                    target_repo=torch_repos[bisect_config.bisection],
+                                    target_repo=target_repo,
                                     start=start_hash,
                                     end=end_hash,
                                     bisect_config=bisect_config,

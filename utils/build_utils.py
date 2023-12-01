@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Dict
 
 CLEANUP_ROUND = 5
+FBCODE_URL = "FBCODE_URL_PLACEHOLDER"
 
 @dataclass
 class TorchRepo:

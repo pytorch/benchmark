@@ -17,19 +17,22 @@ NIGHTLY_COMMIT_MSG = "nightly release \((.*)\)"
 
 
 def get_torch_main_commit(pytorch_repo: str, nightly_commit: str):
-    repo = git.Repo(pytorch_repo)
-    msg = repo.commit(nightly_commit).message
-    # There are two possibilities of the hash `nightly_commit`:
-    # 1. The hash belongs to the nightly branch
-    #    If so, the git commit message should match `NIGHTLY_COMMIT_MSG`
-    # 2. The hash belongs to the master/main branch
-    #    We can directly use this hash in this case
-    nightly_commit_regex = re.compile(NIGHTLY_COMMIT_MSG)
-    search_result = nightly_commit_regex.search(msg)
-    if search_result:
-        return search_result.group(1)
-    # We now believe the commit now belongs to the master/main branch
-    # Unfortunately, there is no way to map a commit back to a branch with gitpython
+    try:
+        repo = git.Repo(pytorch_repo)
+        msg = repo.commit(nightly_commit).message
+        # There are two possibilities of the hash `nightly_commit`:
+        # 1. The hash belongs to the nightly branch
+        #    If so, the git commit message should match `NIGHTLY_COMMIT_MSG`
+        # 2. The hash belongs to the master/main branch
+        #    We can directly use this hash in this case
+        nightly_commit_regex = re.compile(NIGHTLY_COMMIT_MSG)
+        search_result = nightly_commit_regex.search(msg)
+        if search_result:
+            return search_result.group(1)
+        # We now believe the commit now belongs to the master/main branch
+        # Unfortunately, there is no way to map a commit back to a branch with gitpython
+    except Exception as e:
+        return nightly_commit
     return nightly_commit
 
 def clean_git_repo(repo: str) -> bool:
@@ -60,7 +63,7 @@ def get_git_commit_on_date(repo: str, date: datetime) -> Optional[str]:
     except subprocess.CalledProcessError:
         print(f"Failed to get the last commit on date {formatted_date} in repo {repo}")
         return None
- 
+
 def check_git_exist_local_branch(repo: str, branch: str) -> bool:
     command = f"git rev-parse --verify {branch} &> /dev/null "
     retcode = subprocess.call(command, cwd=repo, shell=True)
@@ -74,7 +77,7 @@ def get_git_commit_date(repo: str, commit: str) -> str:
     except subprocess.CalledProcessError:
         print(f"Failed to get date of commit {commit} in repo {repo}")
         return None
-    
+
 def checkout_git_branch(repo: str, branch: str) -> bool:
     try:
         if check_git_exist_local_branch(repo, branch):
