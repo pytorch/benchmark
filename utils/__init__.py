@@ -5,10 +5,6 @@ from typing import List, Dict
 
 TORCH_DEPS = ['torch', 'torchvision', 'torchaudio']
 
-proxy_suggestion = "Unable to verify https connectivity, " \
-                   "required for setup.\n" \
-                   "Do you need to use a proxy?"
-
 class add_path():
     def __init__(self, path):
         self.path = path
@@ -30,10 +26,3 @@ def get_pkg_versions(packages: List[str], reload: bool=False) -> Dict[str, str]:
             module = importlib.reload(module)
         versions[module.__name__] = module.__version__
     return versions
-
-def _test_https(test_url: str = 'https://github.com', timeout: float = 0.5) -> bool:
-    try:
-        request.urlopen(test_url, timeout=timeout)
-    except OSError:
-        return False
-    return True

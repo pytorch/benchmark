@@ -2,16 +2,13 @@ import argparse
 import subprocess
 import os
 import sys
-from utils import TORCH_DEPS, proxy_suggestion, get_pkg_versions, _test_https
+from utils import TORCH_DEPS, get_pkg_versions
 from userbenchmark import list_userbenchmarks
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent
 
 def pip_install_requirements(requirements_txt="requirements.txt"):
-    if not _test_https():
-        print(proxy_suggestion)
-        sys.exit(-1)
     try:
         subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '-r', requirements_txt],
                         check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
