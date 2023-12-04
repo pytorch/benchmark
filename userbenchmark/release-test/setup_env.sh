@@ -38,10 +38,11 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 
 # install pip version of pytorch and torchvision
 if [[ ${PYTORCH_CHANNEL} == "pytorch-test" ]]; then
-    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/test/cu${CUDA_VERSION//./}
-    pip3 install nvidia-cublas-cu12==12.1.0.26
+    # pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu${CUDA_VERSION//./}
+    pip3 install --force-reinstall torch torchvision
+    pip3 install --force-reinstall nvidia-cublas-cu12==12.1.0.26
 else
-    pip3 install torch torchvision
+    pip3 install --force-reinstall torch torchvision
 fi
 
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
