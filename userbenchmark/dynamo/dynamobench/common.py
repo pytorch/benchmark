@@ -73,6 +73,12 @@ from torch._subclasses.fake_tensor import FakeTensorMode
 
 from torch.utils import _pytree as pytree
 from torch.utils._pytree import tree_map, tree_map_only
+import torchao
+from torchao.quantization import (
+    change_linear_weights_to_int8_dqtensors,
+    change_linear_weights_to_int8_woqtensors,
+    change_linear_weights_to_int4_woqtensors
+)
 
 from tqdm.auto import tqdm, trange
 
@@ -2715,10 +2721,16 @@ def parse_args(args=None):
         help="Create n processes based on the number of devices (distributed use case).",
     )
     parser.add_argument(
+        "--quantization",
+        choices=["int8dynamic", "int8weightonly", "int4weightonly"],
+        help="Apply quantization to the model before running it",
+    )
+    parser.add_argument(
         "--ddp",
         action="store_true",
         help="Wraps model in DDP before running it, and uses dynamo DDPOptmizer (graph breaks) by default.",
     )
+
     parser.add_argument(
         "--fsdp",
         action="store_true",
@@ -3547,6 +3559,18 @@ def run(runner, args, original_dir=None):
                                     batch_size=batch_size,
                                     extra_args=extra_args,
                                 )
+                            if args.quantization:
+                                assert "cuda" in device
+                                if args.quantization=="int8dynamic":
+                                    torch._inductor.config.force_fuse_int_mm_with_mul = True
+                                    change_linear_weights_to_int8_dqtensors(model)
+                                elif args.quantization=="int8weightonly":
+                                    torch._inductor.config.use_mixed_mm = True
+                                    change_linear_weights_to_int8_woqtensors(model)
+                                elif args.quantization=="int4weightonly":
+                                    change_linear_weights_to_int4_woqtensors(model)
+
+
                 except NotImplementedError as e:
                     print(e)
                     import traceback
