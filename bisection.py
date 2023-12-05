@@ -29,28 +29,6 @@ from userbenchmark.utils import (
     TorchBenchABTestResult,
 )
 
-try:
-    # OSS utils
-    from regression_detector import generate_regression_result
-    from utils import gitutils
-    from utils.build_utils import (
-        build_repo,
-        cleanup_torch_packages,
-        setup_bisection_build_env,
-        TorchRepo,
-    )
-    from utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
-    IS_FBCODE = False
-except (ImportError, ModuleNotFoundError):
-    # Meta-Internal imports
-    from .regression_detector import generate_regression_result
-    from .utils.build_utils import setup_bisection_build_env, TorchRepo
-    from .utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
-    from .utils.fb import hgutils
-    from .utils.fb.build_utils import setup_fbcode_repo, get_fbcode_build_artifact_dir, \
-                                      build_fbcode_repo, FBCODE_URL, FBCODE_BUILD_COMMAND
-    IS_FBCODE = True
-
 TORCHBENCH_BISECTION_TARGETS = {
     "pytorch": {
         "name": "pytorch",
@@ -72,12 +50,35 @@ TORCHBENCH_BISECTION_TARGETS = {
         "url": "https://github.com/pytorch/benchmark.git",
         "build_command": [sys.executable, "install.py"],
     },
-    "fbcode": {
+}
+
+try:
+    # OSS utils
+    from regression_detector import generate_regression_result
+    from utils import gitutils
+    from utils.build_utils import (
+        build_repo,
+        cleanup_torch_packages,
+        setup_bisection_build_env,
+        TorchRepo,
+    )
+    from utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
+    IS_FBCODE = False
+except (ImportError, ModuleNotFoundError):
+    # Meta-Internal imports
+    from .regression_detector import generate_regression_result
+    from .utils.build_utils import setup_bisection_build_env, TorchRepo
+    from .utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
+    from .utils.fb import hgutils
+    from .utils.fb.build_utils import setup_fbcode_repo, get_fbcode_build_artifact_dir, \
+                                      build_fbcode_repo, FBCODE_URL, FBCODE_BUILD_COMMAND
+    IS_FBCODE = True
+    TORCHBENCH_BISECTION_TARGETS["fbcode"] = {
         "name": "fbcode",
         "url": FBCODE_URL,
         "build_command": FBCODE_BUILD_COMMAND,
     }
-}
+
 SKIP_INSTALL_TORCHBENCH = False
 
 def exist_dir_path(string):
