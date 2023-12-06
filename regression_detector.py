@@ -55,8 +55,11 @@ def generate_regression_result(control: Dict[str, Any], treatment: Dict[str, Any
     assert control["name"] == treatment["name"], f'Expected the same userbenchmark name from metrics files, \
                                                 but getting {control["name"]} and {treatment["name"]}.'
     bm_name = control["name"]
-    detector = importlib.import_module(f"userbenchmark.{bm_name}.regression_detector").run
-
+    try:
+        detector = importlib.import_module(f"userbenchmark.{bm_name}.regression_detector").run
+    except:
+        # fbcode
+        detector = importlib.import_module(f"userbenchmark.fb.{bm_name}.regression_detector").run
     # Process control and treatment to include only shared keys
     filtered_control_metrics = {}
     control_only_metrics = {}
@@ -97,7 +100,7 @@ def process_regressions_into_yaml(regression_result: TorchBenchABTestResult, out
     with open(output_path, "w") as ofptr:
         ofptr.write(output_yaml_str)
     print(f"Wrote above yaml to {output_path}.")
-        
+
 
 def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult, owner: str, output_path: str, errors_path: str) -> None:
     regressions_dict = asdict(regression_result)
@@ -109,7 +112,7 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
             troubled_tests += f"- {test}: {sign}{delta:.5%}\n"
         else:
             troubled_tests += f"- {test}: {delta}\n"
-    
+
     control_only_tests = ""
     for test, stat in regressions_dict["control_only_metrics"].items():
         control_only_tests += f"- {test}: {stat}\n"
@@ -155,7 +158,7 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
         "github_run_url": github_run_url,
         "owner": owner
     }
-    
+
     issue_body = GITHUB_ISSUE_TEMPLATE.format(**issue_config)
     print(issue_body)
     with open(output_path, "w") as f:

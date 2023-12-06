@@ -290,8 +290,9 @@ class TorchBenchRepo:
         # Run benchmark, return the output json file
         result_json = self._run_benchmark_for_commit(commit, abtest_result)
         commit.digest = self._gen_digest(result_json)
-        print(f"================== [TORCHBENCH] Cleaning up packages for commit {commit.sha} ==================", flush=True)
-        cleanup_torch_packages()
+        if not IS_FBCODE:
+            print(f"================== [TORCHBENCH] Cleaning up packages for commit {commit.sha} ==================", flush=True)
+            cleanup_torch_packages()
         return commit.digest
 
 class TorchBenchBisection:
