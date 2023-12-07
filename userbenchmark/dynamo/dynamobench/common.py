@@ -3560,6 +3560,9 @@ def run(runner, args, original_dir=None):
                                     extra_args=extra_args,
                                 )
                             if args.quantization:
+                                torch._dynamo.config.automatic_dynamic_shapes = False
+                                torch._dynamo.config.force_parameter_static_shapes = False
+                                torch._dynamo.config.cache_size_limit = 1000
                                 assert "cuda" in device
                                 if args.quantization=="int8dynamic":
                                     torch._inductor.config.force_fuse_int_mm_with_mul = True
@@ -3569,7 +3572,6 @@ def run(runner, args, original_dir=None):
                                     change_linear_weights_to_int8_woqtensors(model)
                                 elif args.quantization=="int4weightonly":
                                     change_linear_weights_to_int4_woqtensors(model)
-
 
                 except NotImplementedError as e:
                     print(e)
