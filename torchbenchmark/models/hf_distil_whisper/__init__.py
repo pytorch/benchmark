@@ -8,6 +8,8 @@ class Model(HuggingFaceModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
+        if test == "train":
+            raise NotImplementedError("Training is not implemented.")
         super().__init__(name="hf_distil_whisper", test=test, device=device, batch_size=batch_size, extra_args=extra_args)
         self.feature_size = 80
         self.sequence_length = 3000
