@@ -131,8 +131,10 @@ def processTrainArgState(args) :
   
   if args.use_cuda and args.forcecpu:
     args.use_cuda = False
+    device = 'cpu'
   if args.use_xpu and args.forcecpu:
     args.use_xpu = False
+    device = 'cpu'
   
   if not args.silent:
     if args.use_cuda:
@@ -188,7 +190,6 @@ class DeepRecommenderTrainBenchmark:
 
   def __init__(self, device="cpu", jit=False, batch_size=256, processCommandLine = False):
     self.TrainInit(device, jit, batch_size, processCommandLine)
-    print("device:", device)
 
 
   def TrainInit(self, device="cpu", jit=False, batch_size=256, processCommandLine = False):
@@ -227,7 +228,6 @@ class DeepRecommenderTrainBenchmark:
       self.args.forcecuda = forcecuda
       self.args.forcecpu = forcecpu
       self.args.forcexpu = forcexpu
-      print("forcexpu:", forcexpu)
 
     self.args = processTrainArgState(self.args)
 
@@ -302,7 +302,6 @@ class DeepRecommenderTrainBenchmark:
       self.toyinputs = self.toyinputs.to(device)
 
     if self.args.use_xpu:
-      print("-----using xpu devices----")
       self.rencoder = self.rencoder.xpu()
       self.toyinputs = self.toyinputs.to('xpu')
 
