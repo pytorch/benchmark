@@ -44,6 +44,8 @@ def getCommandLineArgs() :
                       help='jit-ify model before running')
   parser.add_argument('--forcecuda', action='store_true',
                       help='force cuda use')
+  parser.add_argument('--forcexpu', action='store_true',
+                      help='force xpu use')
   parser.add_argument('--forcecpu', action='store_true',
                       help='force cpu use')
   parser.add_argument('--nooutput', action='store_true',
@@ -57,7 +59,7 @@ def getCommandLineArgs() :
 
   return args
 
-def getBenchmarkArgs(forceCuda):
+def getBenchmarkArgs(forceCuda, forceXpu):
 
   class Args:
     pass
@@ -76,7 +78,8 @@ def getBenchmarkArgs(forceCuda):
   args.batch_size         = 1
   args.jit                = False
   args.forcecuda          = forceCuda
-  args.forcecpu           = not forceCuda
+  args.forcexpu           = forceXpu
+  args.forcecpu           = not (forceCuda or forceXpu)
   args.nooutput           = True
   args.silent             = True
   args.profile            = False
@@ -93,20 +96,26 @@ def processArgState(args) :
       quit()
   
   args.use_cuda = torch.cuda.is_available() # global flag
+  args.use_xpu = torch.xpu.is_available() # global flag
   if not args.silent:
-    if args.use_cuda:
+    if args.use_cuda or args.use_xpu:
       print('GPU is available.') 
     else: 
       print('GPU is not available.')
   
   if args.use_cuda and args.forcecpu:
       args.use_cuda = False
+      device = 'cpu'
+  
+  if args.use_xpu and args.forcecpu:
+      args.use_xpu = False
+      device = 'cpu'
   
   if not args.silent:
-    if args.use_cuda:
+    if args.use_cuda or args.use_xpu:
       print('Running On GPU')
     else:
-      print('Running On CUDA')
+      print('Running On CPU')
   
     if args.profile:
       print('Profiler Enabled')
@@ -127,18 +136,24 @@ class DeepRecommenderInferenceBenchmark:
     if self.toytest:
       self.toyinputs = torch.randn(self.batch_size,self.node_count).to(device)
 
+    print("device:", device)
     if usecommandlineargs:
       self.args = getCommandLineArgs()
     else:
       if device == "cpu":
         forcecuda = False
+        forcexpu = False
       elif device == "cuda":
         forcecuda = True
+        forcexpu = False
+      elif device == "xpu":
+        forcecuda = False
+        forcexpu = True
       else:
         # unknown device string, quit init
         return
 
-      self.args = getBenchmarkArgs(forcecuda)
+      self.args = getBenchmarkArgs(forcecuda, forcexpu)
 
     args = processArgState(self.args)
 
@@ -199,6 +214,7 @@ class DeepRecommenderInferenceBenchmark:
 
   
     if self.args.use_cuda: self.rencoder = self.rencoder.cuda()
+    if self.args.use_xpu: self.rencoder = self.rencoder.xpu()
 
     if self.toytest == False:
       self.inv_userIdMap = {v: k for k, v in self.data_layer.userIdMap.items()}
@@ -214,7 +230,7 @@ class DeepRecommenderInferenceBenchmark:
         continue
 
       for i, ((out, src), majorInd) in enumerate(self.eval_data_layer.iterate_one_epoch_eval(for_inf=True)):
-        inputs = Variable(src.cuda().to_dense() if self.args.use_cuda else src.to_dense())
+        inputs = Variable(src.to(device).to_dense())
         targets_np = out.to_dense().numpy()[0, :]
   
         out = self.rencoder(inputs)

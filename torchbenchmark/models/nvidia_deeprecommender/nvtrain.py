@@ -101,6 +101,8 @@ def getTrainCommandLineArgs() :
                       help='disable all messages')
   parser.add_argument('--forcecuda', action='store_true',
                       help='force cuda use')
+  parser.add_argument('--forcexpu', action='store_true',
+                      help='force xpu use')
   parser.add_argument('--forcecpu', action='store_true',
                       help='force cpu use')
   parser.add_argument('--profile', action='store_true',
@@ -120,18 +122,23 @@ def processTrainArgState(args) :
     quit()
 
   args.use_cuda = torch.cuda.is_available() # global flag
+  args.use_xpu = torch.xpu.is_available() # global flag
   if not args.silent:
-    if args.use_cuda:
+    if args.use_cuda or args.use_xpu:
       print('GPU is available.') 
     else: 
       print('GPU is not available.')
   
   if args.use_cuda and args.forcecpu:
     args.use_cuda = False
+  if args.use_xpu and args.forcecpu:
+    args.use_xpu = False
   
   if not args.silent:
     if args.use_cuda:
       print('Running On CUDA')
+    elif args.use_xpu:
+      print('Running On XPU')
     else:
       print('Running On CPU')
 
@@ -164,13 +171,13 @@ def log_var_and_grad_summaries(logger, layers, global_step, prefix, log_histogra
       logger.histo_summary(tag="Gradients/{}_{}".format(prefix, ind), values=w.grad.data.cpu().numpy(),
                          step=global_step)
 
-def DoTrainEval(encoder, evaluation_data_layer, use_cuda):
+def DoTrainEval(encoder, evaluation_data_layer, device):
   encoder.eval()
   denom = 0.0
   total_epoch_loss = 0.0
   for i, (eval, src) in enumerate(evaluation_data_layer.iterate_one_epoch_eval()):
-    inputs = Variable(src.cuda().to_dense() if use_cuda else src.to_dense())
-    targets = Variable(eval.cuda().to_dense() if use_cuda else eval.to_dense())
+    inputs = Variable(src.to(device).to_dense())
+    targets = Variable(eval.to(device).to_dense())
     outputs = encoder(inputs)
     loss, num_ratings = model.MSEloss(outputs, targets)
     total_epoch_loss += loss.item()
@@ -181,6 +188,7 @@ class DeepRecommenderTrainBenchmark:
 
   def __init__(self, device="cpu", jit=False, batch_size=256, processCommandLine = False):
     self.TrainInit(device, jit, batch_size, processCommandLine)
+    print("device:", device)
 
 
   def TrainInit(self, device="cpu", jit=False, batch_size=256, processCommandLine = False):
@@ -201,14 +209,25 @@ class DeepRecommenderTrainBenchmark:
 
       if device == "cpu":
         forcecuda = False
+        forcecpu = True
+        forcexpu = False
       elif device == "cuda":
         forcecuda = True
+        forcecpu = False
+        forcexpu = False
+      elif device == 'xpu':
+        forcecuda = False
+        forcecpu = False
+        forcexpu = True
       else:
         # unknown device string, quit init
+        print('warning: skip by unknown device:', device)
         return
 
       self.args.forcecuda = forcecuda
-      self.args.forcecpu = not forcecuda
+      self.args.forcecpu = forcecpu
+      self.args.forcexpu = forcexpu
+      print("forcexpu:", forcexpu)
 
     self.args = processTrainArgState(self.args)
 
@@ -274,7 +293,7 @@ class DeepRecommenderTrainBenchmark:
       gpu_ids = [int(g) for g in self.args.gpu_ids.split(',')]
       if not self.args.silent:
         print('Using GPUs: {}'.format(gpu_ids))
-      
+
       if len(gpu_ids)>1:
         self.rencoder = nn.DataParallel(self.rencoder,
                                    device_ids=gpu_ids)
@@ -282,7 +301,11 @@ class DeepRecommenderTrainBenchmark:
       self.rencoder = self.rencoder.cuda()
       self.toyinputs = self.toyinputs.to(device)
 
-  
+    if self.args.use_xpu:
+      print("-----using xpu devices----")
+      self.rencoder = self.rencoder.xpu()
+      self.toyinputs = self.toyinputs.to('xpu')
+
     if self.args.optimizer == "adam":
       self.optimizer = optim.Adam(self.rencoder.parameters(),
                                   lr=self.args.lr,
@@ -326,7 +349,7 @@ class DeepRecommenderTrainBenchmark:
   
     for i, mb in enumerate(self.data_layer.iterate_one_epoch()):
   
-      inputs = Variable(mb.cuda().to_dense() if self.args.use_cuda else mb.to_dense())
+      inputs = Variable(mb.to(device).to_dense())
 
       self.optimizer.zero_grad()
   
@@ -404,7 +427,7 @@ class DeepRecommenderTrainBenchmark:
         self.logger.scalar_summary("Training_RMSE_per_epoch", sqrt(self.total_epoch_loss/self.denom), self.epoch)
         self.logger.scalar_summary("Epoch_time", e_end_time - e_start_time, self.epoch)
         if self.epoch % self.args.save_every == 0 or self.epoch == self.args.num_epochs - 1:
-          eval_loss = DoTrainEval(self.rencoder, self.eval_data_layer, self.args.use_cuda)
+          eval_loss = DoTrainEval(self.rencoder, self.eval_data_layer, device)
           print('Epoch {} EVALUATION LOSS: {}'.format(self.epoch, eval_loss))
   
           self.logger.scalar_summary("EVALUATION_RMSE", eval_loss, self.epoch) 
@@ -417,13 +440,13 @@ class DeepRecommenderTrainBenchmark:
   
       # save to onnx
       dummy_input = Variable(torch.randn(self.params['batch_size'], self.data_layer.vector_dim).type(torch.float))
-      torch.onnx.export(self.rencoder.float(), dummy_input.cuda() if self.args.use_cuda else dummy_input, 
+      torch.onnx.export(self.rencoder.float(), dummy_input.to(device),
                         self.model_checkpoint + ".onnx", verbose=True)
       print("ONNX model saved to {}!".format(self.model_checkpoint + ".onnx"))
 
   def TimedTrainingRun(self):
       if self.args.profile:
-        with profiler.profile(record_shapes=True, use_cuda=self.args.use_cuda) as prof:
+        with profiler.profile(record_shapes=True, use_cuda=self.args.use_cuda, use_xpu=self.args.use_xpu) as prof:
           with profiler.record_function("training_epoch"):
             self.train(self.args.num_epochs)
       else:
