@@ -14,7 +14,7 @@ def prLightGray(prt): print("\033[97m {}\033[00m" .format(prt))
 def prBlack(prt): print("\033[98m {}\033[00m" .format(prt))
 
 def to_numpy(var):
-    return var.cpu().data.numpy() if USE_CUDA else var.data.numpy()
+    return var.cpu().data.numpy()
 
 def to_tensor(ndarray, device):
     return torch.tensor(ndarray, dtype=torch.float, device=device)
