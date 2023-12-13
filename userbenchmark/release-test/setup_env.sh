@@ -29,9 +29,9 @@ conda update --all -y
 
 sudo ln -sf /usr/local/cuda-${CUDA_VERSION} /usr/local/cuda
 conda uninstall -y pytorch torchvision pytorch-cuda
-conda uninstall -y pytorch torchvision torchaudiog
+conda uninstall -y pytorch torchvision torchaudio
 # make sure we have a clean environment without pytorch
-pip uninstall -y torch torchvision torchaudio
+pip uninstall -y torch torchvision torchaudio torch-tensorrt
 
 # install magma
 conda install -y -c pytorch ${MAGMA_VERSION}
@@ -39,9 +39,8 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 # install pip version of pytorch and torchvision
 if [[ ${PYTORCH_CHANNEL} == "pytorch-test" ]]; then
     pip3 install --force-reinstall  torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/test/cu${CUDA_VERSION//./}
-    # pip3 install --force-reinstall torch==2.1.2 torchvision
 else
-    pip3 install --force-reinstall torch torchvision
+    pip3 install --force-reinstall torch torchvision torchaudio
 fi
 
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
