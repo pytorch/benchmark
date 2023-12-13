@@ -136,7 +136,6 @@ class DeepRecommenderInferenceBenchmark:
     if self.toytest:
       self.toyinputs = torch.randn(self.batch_size,self.node_count).to(device)
 
-    print("device:", device)
     if usecommandlineargs:
       self.args = getCommandLineArgs()
     else:
@@ -253,7 +252,7 @@ class DeepRecommenderInferenceBenchmark:
       e_start_time = time.time()
   
       if self.args.profile:
-        with profiler.profile(record_shapes=True, use_cuda=True) as prof:
+        with profiler.profile(record_shapes=True, use_cuda=self.args.use_cuda, use_xpu=self.args.use_xpu) as prof:
           with profiler.record_function("Inference"):
             self.eval()
       else:
