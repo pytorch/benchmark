@@ -71,7 +71,15 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 
 def load_model(hparams):
-    model = Tacotron2(hparams).cuda()
+    use_xpu =  torch.xpu.is_available()
+    use_cuda =  torch.cuda.is_available()
+    if use_xpu:
+       device = 'xpu'
+    elif use_cuda:
+       device = 'cuda'
+    else:
+       device = 'cpu'
+    model = Tacotron2(hparams).to(device)
     if hparams.fp16_run:
         model.decoder.attention_layer.score_mask_value = finfo('float16').min
 
