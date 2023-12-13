@@ -73,6 +73,12 @@ from torch._subclasses.fake_tensor import FakeTensorMode
 
 from torch.utils import _pytree as pytree
 from torch.utils._pytree import tree_map, tree_map_only
+import torchao
+from torchao.quantization import (
+    change_linear_weights_to_int8_dqtensors,
+    change_linear_weights_to_int8_woqtensors,
+    change_linear_weights_to_int4_woqtensors
+)
 
 from tqdm.auto import tqdm, trange
 
@@ -576,7 +582,7 @@ def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
         first_fields.append(kwargs["tag"])
     headers = first_headers + ["speedup", "abs_latency"]
     row = first_fields + [float(speedup), median[1] * 1000]
-    msg = f"{speedup:.3f}x"
+    msg = f"{speedup*1000:.3f}ms"
     if args.baseline:
         headers.extend(
             [
@@ -2066,7 +2072,7 @@ class BenchmarkRunner:
         return model
 
     def check_accuracy(
-        self, name, model, example_inputs, optimize_ctx, experiment, tag
+        self, name, model, example_inputs, optimize_ctx, experiment, tag, res=None
     ):
         """
         Checks accuracy.
@@ -2238,6 +2244,10 @@ class BenchmarkRunner:
             finally:
                 del model_copy
 
+            sqnr = "err"
+            if res is not None and isinstance(res, torch.Tensor):
+                sqnr = 20 * torch.log10(torch.linalg.norm(res) / torch.linalg.norm(res - new_result)).item()
+
             if name in self.skip_accuracy_check_as_eager_non_deterministic:
                 return record_status("pass_due_to_skip", dynamo_start_stats=start_stats)
 
@@ -2276,9 +2286,7 @@ class BenchmarkRunner:
                     accuracy_status = "pass_due_to_skip"
                 else:
                     accuracy_status = "fail_accuracy"
-                return record_status(accuracy_status, dynamo_start_stats=start_stats)
-
-        return record_status(accuracy_status, dynamo_start_stats=start_stats)
+        return record_status(accuracy_status+f"-sqnr-{sqnr:.3f}", dynamo_start_stats=start_stats)
 
     def check_tolerance(
         self, name, model, example_inputs, optimize_ctx, base_device="cpu"
@@ -2496,6 +2504,7 @@ class BenchmarkRunner:
         experiment,
         explain=False,
         tag=None,
+        res=None,
     ):
         mode = "train" if self.args.training else "eval"
         msg = f"{current_device:4} {mode:5} {current_name:34} "
@@ -2507,7 +2516,7 @@ class BenchmarkRunner:
 
         if self.args.accuracy:
             status = self.check_accuracy(
-                name, model, example_inputs, optimize_ctx, experiment, tag
+                name, model, example_inputs, optimize_ctx, experiment, tag, res,
             )
             print(status)
             if status == "fail_accuracy" and self.args.minify:
@@ -2713,6 +2722,11 @@ def parse_args(args=None):
         "--multiprocess",
         action="store_true",
         help="Create n processes based on the number of devices (distributed use case).",
+    )
+    parser.add_argument(
+        "--quantization",
+        choices=["int8dynamic", "int8weightonly", "int4weightonly"],
+        help="Apply quantization to the model before running it",
     )
     parser.add_argument(
         "--ddp",
@@ -3535,6 +3549,7 @@ def run(runner, args, original_dir=None):
                                     extra_args=extra_args,
                                 )
                             else:
+                                print(model_name)
                                 (
                                     device,
                                     name,
@@ -3547,6 +3562,24 @@ def run(runner, args, original_dir=None):
                                     batch_size=batch_size,
                                     extra_args=extra_args,
                                 )
+                            res = None
+                            if args.quantization:
+                                if args.accuracy:
+                                    res=model(*example_inputs) # to later calculate SQNR
+
+                                torch._dynamo.config.automatic_dynamic_shapes = False
+                                torch._dynamo.config.force_parameter_static_shapes = False
+                                torch._dynamo.config.cache_size_limit = 1000
+                                assert "cuda" in device
+                                if args.quantization=="int8dynamic":
+                                    torch._inductor.config.force_fuse_int_mm_with_mul = True
+                                    change_linear_weights_to_int8_dqtensors(model)
+                                elif args.quantization=="int8weightonly":
+                                    torch._inductor.config.use_mixed_mm = True
+                                    change_linear_weights_to_int8_woqtensors(model)
+                                elif args.quantization=="int4weightonly":
+                                    change_linear_weights_to_int4_woqtensors(model)
+
                 except NotImplementedError as e:
                     print(e)
                     import traceback
@@ -3614,6 +3647,7 @@ def run(runner, args, original_dir=None):
                 experiment,
                 explain=args.explain,
                 tag=args.tag,
+                res=res,
             )
         if args.generate_aot_autograd_stats:
             stats_file = output_filename.split(".csv")[0] + "_stats.csv"
@@ -3629,8 +3663,8 @@ def run(runner, args, original_dir=None):
             )
     else:
         metrics.purge_old_log_files()
-        if output_filename and os.path.exists(output_filename):
-            os.unlink(output_filename)
+        # if output_filename and os.path.exists(output_filename):
+            # os.unlink(output_filename)
         if original_dir:
             os.chdir(original_dir)
         model_names = list(runner.iter_model_names(args))
