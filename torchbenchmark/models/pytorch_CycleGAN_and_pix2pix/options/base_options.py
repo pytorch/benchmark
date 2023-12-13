@@ -22,7 +22,7 @@ class BaseOptions():
         # basic parameters
         parser.add_argument('--dataroot', required=True, help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
         parser.add_argument('--name', type=str, default='experiment_name', help='name of the experiment. It decides where to store samples and models')
-        parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
+        parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU, use -2 for XPU')
         parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
         # model parameters
         parser.add_argument('--model', type=str, default='cycle_gan', help='chooses which model to use. [cycle_gan | pix2pix | test | colorization]')
@@ -123,11 +123,14 @@ class BaseOptions():
         # set gpu ids
         str_ids = opt.gpu_ids.split(',')
         opt.gpu_ids = []
+        opt.use_xpu = False
         for str_id in str_ids:
             id = int(str_id)
             if id >= 0:
                 opt.gpu_ids.append(id)
-        if len(opt.gpu_ids) > 0:
+            if id == -2:
+                opt.use_xpu = True
+        if len(opt.gpu_ids) > 0 and torch.cuda.avaliable():
             torch.cuda.set_device(opt.gpu_ids[0])
 
         self.opt = opt
