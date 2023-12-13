@@ -257,7 +257,7 @@ MAX_BATCH_SIZE_FOR_ACCURACY_CHECK = {
     "pytorch_unet": 2,
 }
 
-FORCE_FP32_FOR_FP16_BF16_MODELS = {
+FORCE_AMP_FOR_FP16_BF16_MODELS = {
     "DALLE2_pytorch",
     "doctr_det_predictor",
     "doctr_reco_predictor",
@@ -265,12 +265,20 @@ FORCE_FP32_FOR_FP16_BF16_MODELS = {
     "tts_angular",
     "pyhpc_turbulent_kinetic_energy",
     "detectron2_fcos_r_50_fpn",
-    "vision_maskrcnn", # fails without quantization for fp16
+    "detectron2_fasterrcnn_r_101_dc5"
+    "detectron2_fasterrcnn_r_50_c4",
+    "detectron2_fasterrcnn_r_101_c4",
+    "detectron2_fasterrcnn_r_101_fpn",
+    "detectron2_fasterrcnn_r_50_dc5",
+    "detectron2_fasterrcnn_r_50_fpn",
+    "detectron2_maskrcnn_r_101_c4",
+    "detectron2_maskrcnn_r_101_fpn",
+    "detectron2_maskrcnn_r_50_c4",
+    "detectron2_maskrcnn_r_50_fpn",
+    "demucs",
 }
 
-FORCE_AMP_FOR_FP16_BF16_MODELS = {}
-
-FORCE_FP16_FOR_BF16_MODELS = {}
+FORCE_FP16_FOR_BF16_MODELS = {"vision_maskrcnn"}
 
 # models in canary_models that we should run anyway
 CANARY_MODELS = {
@@ -321,10 +329,6 @@ class TorchBenchmarkRunner(BenchmarkRunner):
     @property
     def failing_fx2trt_models(self):
         return TRT_NOT_YET_WORKING
-
-    @property
-    def fp32_only_models(self):
-        return FORCE_FP32_FOR_FP16_BF16_MODELS
 
     @property
     def force_amp_for_fp16_bf16_models(self):

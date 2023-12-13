@@ -582,7 +582,7 @@ def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
         first_fields.append(kwargs["tag"])
     headers = first_headers + ["speedup", "abs_latency"]
     row = first_fields + [float(speedup), median[1] * 1000]
-    msg = f"{speedup:.3f}x"
+    msg = f"{speedup*1000:.3f}ms"
     if args.baseline:
         headers.extend(
             [
@@ -2072,7 +2072,7 @@ class BenchmarkRunner:
         return model
 
     def check_accuracy(
-        self, name, model, example_inputs, optimize_ctx, experiment, tag
+        self, name, model, example_inputs, optimize_ctx, experiment, tag, res=None
     ):
         """
         Checks accuracy.
@@ -2244,6 +2244,10 @@ class BenchmarkRunner:
             finally:
                 del model_copy
 
+            sqnr = "err"
+            if res is not None and isinstance(res, torch.Tensor):
+                sqnr = 20 * torch.log10(torch.linalg.norm(res) / torch.linalg.norm(res - new_result)).item()
+
             if name in self.skip_accuracy_check_as_eager_non_deterministic:
                 return record_status("pass_due_to_skip", dynamo_start_stats=start_stats)
 
@@ -2282,9 +2286,7 @@ class BenchmarkRunner:
                     accuracy_status = "pass_due_to_skip"
                 else:
                     accuracy_status = "fail_accuracy"
-                return record_status(accuracy_status, dynamo_start_stats=start_stats)
-
-        return record_status(accuracy_status, dynamo_start_stats=start_stats)
+        return record_status(accuracy_status+f"-sqnr-{sqnr:.3f}", dynamo_start_stats=start_stats)
 
     def check_tolerance(
         self, name, model, example_inputs, optimize_ctx, base_device="cpu"
@@ -2502,6 +2504,7 @@ class BenchmarkRunner:
         experiment,
         explain=False,
         tag=None,
+        res=None,
     ):
         mode = "train" if self.args.training else "eval"
         msg = f"{current_device:4} {mode:5} {current_name:34} "
@@ -2513,7 +2516,7 @@ class BenchmarkRunner:
 
         if self.args.accuracy:
             status = self.check_accuracy(
-                name, model, example_inputs, optimize_ctx, experiment, tag
+                name, model, example_inputs, optimize_ctx, experiment, tag, res,
             )
             print(status)
             if status == "fail_accuracy" and self.args.minify:
@@ -2730,7 +2733,6 @@ def parse_args(args=None):
         action="store_true",
         help="Wraps model in DDP before running it, and uses dynamo DDPOptmizer (graph breaks) by default.",
     )
-
     parser.add_argument(
         "--fsdp",
         action="store_true",
@@ -3547,6 +3549,7 @@ def run(runner, args, original_dir=None):
                                     extra_args=extra_args,
                                 )
                             else:
+                                print(model_name)
                                 (
                                     device,
                                     name,
@@ -3559,7 +3562,11 @@ def run(runner, args, original_dir=None):
                                     batch_size=batch_size,
                                     extra_args=extra_args,
                                 )
+                            res = None
                             if args.quantization:
+                                if args.accuracy:
+                                    res=model(*example_inputs) # to later calculate SQNR
+
                                 torch._dynamo.config.automatic_dynamic_shapes = False
                                 torch._dynamo.config.force_parameter_static_shapes = False
                                 torch._dynamo.config.cache_size_limit = 1000
@@ -3640,6 +3647,7 @@ def run(runner, args, original_dir=None):
                 experiment,
                 explain=args.explain,
                 tag=args.tag,
+                res=res,
             )
         if args.generate_aot_autograd_stats:
             stats_file = output_filename.split(".csv")[0] + "_stats.csv"
@@ -3655,8 +3663,8 @@ def run(runner, args, original_dir=None):
             )
     else:
         metrics.purge_old_log_files()
-        if output_filename and os.path.exists(output_filename):
-            os.unlink(output_filename)
+        # if output_filename and os.path.exists(output_filename):
+            # os.unlink(output_filename)
         if original_dir:
             os.chdir(original_dir)
         model_names = list(runner.iter_model_names(args))
