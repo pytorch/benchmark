@@ -38,9 +38,9 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 
 # install pip version of pytorch and torchvision
 if [[ ${PYTORCH_CHANNEL} == "pytorch-test" ]]; then
-    pip3 install --force-reinstall  torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/test/cu${CUDA_VERSION//./}
+    pip3 install --force-reinstall --no-cache-dir  torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 torch-tensorrt --index-url https://download.pytorch.org/whl/test/cu${CUDA_VERSION//./}
 else
-    pip3 install --force-reinstall torch torchvision torchaudio
+    pip3 install --force-reinstall --no-cache-dir torch torchvision torchaudio torch-tensorrt
 fi
 
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
