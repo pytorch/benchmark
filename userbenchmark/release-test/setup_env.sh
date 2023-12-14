@@ -31,17 +31,20 @@ sudo ln -sf /usr/local/cuda-${CUDA_VERSION} /usr/local/cuda
 conda uninstall -y pytorch torchvision pytorch-cuda
 conda uninstall -y pytorch torchvision torchaudio
 # make sure we have a clean environment without pytorch
-pip uninstall -y torch torchvision torchaudio torch-tensorrt
+pip3 uninstall -y torch torchvision torchaudio torch-tensorrt
 
 # install magma
 conda install -y -c pytorch ${MAGMA_VERSION}
 
 # install pip version of pytorch and torchvision
 if [[ ${PYTORCH_CHANNEL} == "pytorch-test" ]]; then
-    conda install -y pytorch=2.1.2 torchvision=0.16.2 torchaudio=2.1.2 pytorch-cuda=12.1 -c pytorch-test -c nvidia
+    pip3 install --pre torch==2.1.2 --extra-index-url https://download.pytorch.org/whl/test/cu121_pypi_cudnn
+    pip3 install --pre torchvision=0.16.2 torchaudio=2.1.2 --extra-index-url https://download.pytorch.org/whl/test/cu121
+    #conda install -y pytorch=2.1.2 torchvision=0.16.2 torchaudio=2.1.2 pytorch-cuda=12.1 -c pytorch-test -c nvidia
     #pip3 install --force-reinstall --no-cache-dir  torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/test/cu${CUDA_VERSION//./}
 else
-    conda install -y pytorch=2.1.1 torchvision=0.16.1 torchaudio=2.1.1 pytorch-cuda=12.1 -c pytorch -c nvidia
+    pip3 install --force-reinstall --no-cache-dir torch torchvision torchaudio
+    #conda install -y pytorch=2.1.1 torchvision=0.16.1 torchaudio=2.1.1 pytorch-cuda=12.1 -c pytorch -c nvidia
 fi
 
 python -c 'import torch; print(torch.__version__); print(torch.version.git_version)'
