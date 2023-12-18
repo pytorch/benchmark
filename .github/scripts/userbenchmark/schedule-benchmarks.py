@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 import subprocess
 from pathlib import Path
 
@@ -25,6 +26,15 @@ with add_path(str(REPO_ROOT)):
 
 def run_userbenchmark(ub_name, dryrun=True):
     workdir = REPO_ROOT
+
+    # Check if userbenchmark has an installer
+    candidate_installer_path = os.path.join(workdir, "userbenchmark", ub_name, "install.py")
+    if os.path.exists(candidate_installer_path):
+        install_command = [sys.executable, "install.py"]
+        print(f"Running user benchmark installer: {command}")
+        if not dryrun:
+            subprocess.check_call(install_command, cwd=Path(candidate_installer_path).parent.resolve())
+
     command = [sys.executable, "run_benchmark.py", ub_name]
     print(f"Running user benchmark command: {command}")
     if not dryrun:
