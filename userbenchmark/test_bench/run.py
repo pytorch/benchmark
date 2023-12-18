@@ -125,7 +125,7 @@ def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=F
         print(" [oserror]", flush=True)
         result = {}
         for metric in metrics:
-            result[metric] = e
+            result[metric] = str(e)
         return result
 
 def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Dict[str, str]:
@@ -143,7 +143,7 @@ def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryru
         return {"accuracy": "not_implemented"}
     except OSError as e:
         print(" [oserror]", flush=True)
-        return {"accuracy": f"{e.__str__}"}
+        return {"accuracy": str(e)}
 
 def parse_known_args(args):
     parser = argparse.ArgumentParser()
