@@ -123,10 +123,7 @@ def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=F
         return dict.fromkeys(metrics, "not_implemented")
     except OSError as e:
         print(" [oserror]", flush=True)
-        result = {}
-        for metric in metrics:
-            result[metric] = str(e)
-        return result
+        return dict.fromkeys(metrics, str(e))
 
 def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Dict[str, str]:
     assert metrics == ["accuracy"], f"When running accuracy test, others metrics are not supported: {metrics}."
