@@ -32,12 +32,12 @@ RUN cd /workspace/benchmark && \
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     if [ "${FORCE_DATE}" = "skip_check" ]; then \
-        true \
+        echo "torch version check skipped"; \
     elif [ -z "${FORCE_DATE}" ]; then \
         FORCE_DATE=$(date '+%Y%m%d') \
-        python utils/cuda_utils.py --check-torch-nightly-version --force-date "${FORCE_DATE}" \
+        python utils/cuda_utils.py --check-torch-nightly-version --force-date "${FORCE_DATE}"; \
     else \
-        python utils/cuda_utils.py --check-torch-nightly-version --force-date "${FORCE_DATE}" \
+        python utils/cuda_utils.py --check-torch-nightly-version --force-date "${FORCE_DATE}"; \
     fi
 
 # Install TorchBench conda and python dependencies
