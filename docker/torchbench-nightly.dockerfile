@@ -6,6 +6,7 @@ FROM ${BASE_IMAGE}
 ENV CONDA_ENV=torchbench
 ENV SETUP_SCRIPT=/workspace/setup_instance.sh
 ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
+ARG FORCE_DATE=${FORCE_DATE}
 
 # Setup Conda env and CUDA
 RUN git clone -b "${TORCHBENCH_BRANCH}" --single-branch \
@@ -25,9 +26,19 @@ RUN cd /workspace/benchmark && \
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python utils/cuda_utils.py --install-torch-deps && \
-    python utils/cuda_utils.py --install-torch-nightly && \
-    TODAY_STR=$(date +'%Y%m%d') && \
-    python utils/cuda_utils.py --check-torch-nightly-version --force-date ${TODAY_STR}
+    python utils/cuda_utils.py --install-torch-nightly
+
+# Check the installed version of nightly if needed
+RUN cd /workspace/benchmark && \
+    . ${SETUP_SCRIPT} && \
+    if [ "${FORCE_DATE}" = "skip_check" ]; then \
+        echo "torch version check skipped"; \
+    elif [ -z "${FORCE_DATE}" ]; then \
+        FORCE_DATE=$(date '+%Y%m%d') \
+        python utils/cuda_utils.py --check-torch-nightly-version --force-date "${FORCE_DATE}"; \
+    else \
+        python utils/cuda_utils.py --check-torch-nightly-version --force-date "${FORCE_DATE}"; \
+    fi
 
 # Install TorchBench conda and python dependencies
 RUN cd /workspace/benchmark && \

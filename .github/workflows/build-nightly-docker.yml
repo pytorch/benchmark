@@ -4,6 +4,10 @@ on:
     # Push the nightly docker daily at 3 PM UTC
     - cron: '0 15 * * *'
   workflow_dispatch:
+    inputs:
+      nightly_date:
+        description: "PyTorch nightly version"
+        required: false
 env:
   WITH_PUSH: "true"
 jobs:
@@ -25,13 +29,19 @@ jobs:
           password: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
       - name: Build TorchBench nightly docker
         run: |
-          export TODAY=$(date +'%Y%m%d')
-          export DOCKER_TAG=dev${TODAY}
+          export NIGHTLY_DATE="${{ github.event.inputs.nightly_date }}"
+          if [ -z "${NIGHTLY_DATE}" ]; then
+            export TODAY=$(date +'%Y%m%d')
+            export DOCKER_TAG=dev${TODAY}
+          else
+            export DOCKER_TAG=dev${NIGHTLY_DATE}
+          fi
           cd benchmark/docker
           full_ref="${{ github.ref }}"
           prefix="refs/heads/"
           branch_name=${full_ref#$prefix}
-          docker build . --build-arg TORCHBENCH_BRANCH="${branch_name}" -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:${DOCKER_TAG}
+          docker build . --build-arg TORCHBENCH_BRANCH="${branch_name}" --build-arg FORCE_DATE="${NIGHTLY_DATE}" \
+              -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:${DOCKER_TAG}
           docker tag ghcr.io/pytorch/torchbench:${DOCKER_TAG} ghcr.io/pytorch/torchbench:latest
       - name: Push docker to remote
         if: ${{ env.WITH_PUSH == 'true' }}
