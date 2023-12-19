@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       nightly_date:
-        description: "Date of the regression"
+        description: "PyTorch nightly version"
         required: false
 env:
   WITH_PUSH: "true"
@@ -35,7 +35,7 @@ jobs:
           full_ref="${{ github.ref }}"
           prefix="refs/heads/"
           branch_name=${full_ref#$prefix}
-          docker build . --build-arg TORCHBENCH_BRANCH="${branch_name}" FORCE_DATE="${nightly_date}" \
+          docker build . --build-arg TORCHBENCH_BRANCH="${branch_name}" --build-arg FORCE_DATE="${nightly_date}" \
               -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:${DOCKER_TAG}
           docker tag ghcr.io/pytorch/torchbench:${DOCKER_TAG} ghcr.io/pytorch/torchbench:latest
       - name: Push docker to remote
