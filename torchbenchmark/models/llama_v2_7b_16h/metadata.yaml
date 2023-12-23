@@ -7,5 +7,9 @@ eval_nograd: true
 not_implemented:
 - device: cpu
 - device: NVIDIA A10G
+# TODO: llama_v2_7b_16h accuracy test will cause "CUBLAS_STATUS_NOT_INITIALIZED" Error
+# https://github.com/pytorch/benchmark/issues/2064
+- device: NVIDIA A100-SXM4-40GB
+  test: eval
 train_benchmark: false
 train_deterministic: false
