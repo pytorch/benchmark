@@ -235,6 +235,12 @@ CI_USE_SGD = {
     "mobilevit_s",
     "pytorch_CycleGAN_and_pix2pix",
     "vision_maskrcnn",
+    "resmlp_12_224",
+    "dlrm",
+    "resnet50",
+    "dm_nfnet_f0",
+    "pit_b_224",
+    "tf_mixnet_l",
 }
 
 
@@ -1974,7 +1980,9 @@ class BenchmarkRunner:
             if (name in CI_USE_SGD and self.args.ci) or name in BENCHMARK_USE_SGD:
                 self.optimizer = torch.optim.SGD(params, lr=0.01, foreach=True)
             else:
-                self.optimizer = torch.optim.Adam(params, lr=0.01, foreach=True)
+                self.optimizer = torch.optim.Adam(
+                    params, lr=0.01, capturable=True, foreach=True
+                )
         else:
             self.optimizer = None
 
@@ -2165,7 +2173,6 @@ class BenchmarkRunner:
         else:
             mod.zero_grad(True)
 
-    @torch._disable_dynamo(recursive=True)
     def optimizer_step(self):
         if self.optimizer is not None:
             self.optimizer.step()
