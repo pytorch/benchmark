@@ -31,7 +31,7 @@ def run_userbenchmark(ub_name, dryrun=True):
     candidate_installer_path = os.path.join(workdir, "userbenchmark", ub_name, "install.py")
     if os.path.exists(candidate_installer_path):
         install_command = [sys.executable, "install.py"]
-        print(f"Running user benchmark installer: {command}")
+        print(f"Running user benchmark installer: {install_command}")
         if not dryrun:
             subprocess.check_call(install_command, cwd=Path(candidate_installer_path).parent.resolve())
 
