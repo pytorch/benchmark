@@ -302,7 +302,10 @@ def profile_one_step(func, model, nwarmup=WARMUP_ROUNDS):
     for opt in SUPPORT_PROFILE_LIST:
         profile_opts[opt] = False if args.no_profile_detailed else True
         # options can be overriden by disable-profile-options
-        if args.disable_profile_options is not None and opt in args.disable_profile_options:
+        if (
+            args.disable_profile_options is not None
+            and opt in args.disable_profile_options
+        ):
             profile_opts[opt] = False
 
     if args.profile_eg:
@@ -393,7 +396,8 @@ def _validate_profile_options(profile_options: str):
     return profile_options_list
 
 
-if __name__ == "__main__":
+def main() -> None:
+    global m, args
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument(
         "model",
@@ -617,3 +621,7 @@ if __name__ == "__main__":
             )
     except:
         pass
+
+
+if __name__ == "__main__":
+    main()  # pragma: no cover

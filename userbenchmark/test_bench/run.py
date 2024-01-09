@@ -120,7 +120,10 @@ def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=F
         return result
     except NotImplementedError as e:
         print(" [not_implemented]", flush=True)
-        return dict.fromkeys(metrics, "not_implemented")    
+        return dict.fromkeys(metrics, "not_implemented")
+    except OSError as e:
+        print(" [oserror]", flush=True)
+        return dict.fromkeys(metrics, str(e))
 
 def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Dict[str, str]:
     assert metrics == ["accuracy"], f"When running accuracy test, others metrics are not supported: {metrics}."
@@ -135,6 +138,9 @@ def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryru
     except NotImplementedError:
         print(" [not_implemented]", flush=True)
         return {"accuracy": "not_implemented"}
+    except OSError as e:
+        print(" [oserror]", flush=True)
+        return {"accuracy": str(e)}
 
 def parse_known_args(args):
     parser = argparse.ArgumentParser()

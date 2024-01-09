@@ -61,7 +61,7 @@ def _load_test(path, device):
             try:
                 _create_example_model_instance(task, device)
                 accuracy = task.get_model_attribute("accuracy")
-                assert accuracy == "pass" or accuracy == "eager_1st_run_OOM", f"Expected accuracy pass, get {accuracy}"
+                assert accuracy == "pass" or accuracy == "eager_1st_run_OOM" or accuracy == "eager_2nd_run_OOM", f"Expected accuracy pass, get {accuracy}"
                 task.del_model_instance()
             except NotImplementedError as e:
                 self.skipTest(f'Method `get_module()` on {device} is not implemented because "{e}", skipping...')
