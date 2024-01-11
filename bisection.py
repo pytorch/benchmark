@@ -21,12 +21,21 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
-
 import yaml
 
 from userbenchmark.utils import (
     parse_abtest_result_from_regression_file_for_bisect,
     TorchBenchABTestResult,
+    parse_abtest_result_from_regression_file_for_bisect
+)
+from regression_detector import generate_regression_result
+from utils import gitutils
+from utils.github import process_bisection_into_gh_issue
+from utils.build_utils import (
+    setup_bisection_build_env,
+    build_repo,
+    cleanup_torch_packages,
+    TorchRepo,
 )
 
 TORCHBENCH_BISECTION_TARGETS = {
@@ -173,21 +182,26 @@ class Commit:
 
 class BisectionTargetRepo:
     repo: TorchRepo
+    # Start and end git hash
     start: str
     end: str
+    # Start and end version
+    start_version: str
+    end_version: str
     non_target_repos: List[TorchRepo]
     # generated in prep()
     bisection_env: os._Environ
     commits: List[Commit]
     # Map from commit SHA to its index in commits
     commit_dict: Dict[str, int]
-
-    def __init__(
-        self, repo: TorchRepo, start: str, end: str, non_target_repos: List[TorchRepo]
-    ):
+    def __init__(self, repo: TorchRepo, start: str, end: str,
+                 start_version: str, end_version: str,
+                 non_target_repos: List[TorchRepo]):
         self.repo = repo
         self.start = start
         self.end = end
+        self.start_version = start_version
+        self.end_version = end_version
         self.non_target_repos = non_target_repos
         self.commits = []
         self.commit_dict = dict()
@@ -488,7 +502,9 @@ class TorchBenchBisection:
         json_obj = dict()
         json_obj["target_repo"] = self.target_repo.repo.name
         json_obj["start"] = self.target_repo.start
+        json_obj["start_version"] = self.target_repo.start_version
         json_obj["end"] = self.target_repo.end
+        json_obj["end_version"] = self.target_repo.end_version
         json_obj["result"] = []
         for res in self.result:
             r = dict()
@@ -501,49 +517,35 @@ class TorchBenchBisection:
             json_obj["result"].append(r)
         with open(self.output_json, "w") as outfile:
             json.dump(json_obj, outfile, indent=2)
-        print(f"Bisection successful. Result saved to {self.output_json}:")
+        print(f"Bisection successful. Result saved to {self.output_json}.")
         print(json_obj)
 
 
 def main() -> None:
     global SKIP_INSTALL_TORCHBENCH
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--work-dir",
-        required=True,
-        help="bisection working directory for logs and results",
-        type=exist_dir_path,
-    )
-    parser.add_argument(
-        "--torch-repos-path",
-        required=True,
-        help="the directory of pytorch/* source code repositories, or fbcode repo if running internally",
-        type=exist_dir_path,
-    )
-    parser.add_argument(
-        "--torchbench-repo-path",
-        default=None,
-        help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
-        type=exist_dir_path,
-    )
-    parser.add_argument(
-        "--config",
-        required=True,
-        help="the regression dict output of regression_detector.py in YAML",
-        type=exist_file_path,
-    )
-    parser.add_argument(
-        "--skip-install-torchbench",
-        action="store_true",
-        help="Skip installing torchbench",
-    )
-    parser.add_argument("--output", required=True, help="the output json file")
-    parser.add_argument(
-        "--skip-update",
-        type=str,
-        default="torchbench",
-        help="Repositories to skip update.",
-    )
+    parser.add_argument("--work-dir",
+                        required=True,
+                        help="bisection working directory for logs and results",
+                        type=exist_dir_path)
+    parser.add_argument("--torch-repos-path",
+                        required=True,
+                        help="the directory of pytorch/* source code repositories",
+                        type=exist_dir_path)
+    parser.add_argument("--torchbench-repo-path",
+                        default=None,
+                        help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
+                        type=exist_dir_path)
+    parser.add_argument("--config",
+                        required=True,
+                        help="the regression dict output of regression_detector.py in YAML",
+                        type=exist_file_path)
+    parser.add_argument("--skip-install-torchbench", action="store_true", help="Skip installing torchbench")
+    parser.add_argument("--output",
+                        required=True,
+                        help="the output json file")
+    parser.add_argument("--skip-update", type=str, default="torchbench", help="Repositories to skip update.")
+    parser.add_argument("--gh-issue-path", default="gh-issue.md", help="Output path to print the issue body")
     # by default, debug mode is disabled
     parser.add_argument(
         "--debug",
@@ -587,33 +589,21 @@ def main() -> None:
         args.torch_repos_path, args.torchbench_repo_path, skip_update_repos
     )
     target_repo = torch_repos[bisect_config.bisection]
-    start_hash = (
-        gitutils.get_torch_main_commit(
-            target_repo.src_path.absolute(),
-            bisect_config.control_env["git_commit_hash"],
-        )
-        if not IS_FBCODE
-        else bisect_config.control_env["git_commit_hash"]
-    )
-    end_hash = (
-        gitutils.get_torch_main_commit(
-            target_repo.src_path.absolute(),
-            bisect_config.treatment_env["git_commit_hash"],
-        )
-        if not IS_FBCODE
-        else bisect_config.treatment_env["git_commit_hash"]
-    )
+    start_hash = gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.control_env["git_commit_hash"])
+    end_hash =  gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.treatment_env["git_commit_hash"])
 
-    bisection = TorchBenchBisection(
-        workdir=args.work_dir,
-        torch_repos=torch_repos,
-        target_repo=target_repo,
-        start=start_hash,
-        end=end_hash,
-        bisect_config=bisect_config,
-        output_json=args.output,
-        debug=args.debug,
-    )
+    bisection = TorchBenchBisection(workdir=args.work_dir,
+                                    torch_repos=torch_repos,
+                                    target_repo=torch_repos[bisect_config.bisection],
+                                    start=start_hash,
+                                    end=end_hash,
+                                    start_version=bisect_config.control_env["pytorch_version"]
+                                        if "pytorch_version" in bisect_config.control_env else "N/A",
+                                    end_version=bisect_config.treatment_env["pytorch_version"]
+                                        if "pytorch_version" in bisect_config.treatment_env else "N/A",
+                                    bisect_config=bisect_config,
+                                    output_json=args.output,
+                                    debug=args.debug)
     if start_hash == end_hash:
         print(f"Start and end hash are the same: {start_hash}. Skip bisection")
         bisection.output()
@@ -625,7 +615,9 @@ def main() -> None:
     )
     bisection.run()
     bisection.output()
-
+    # Format the output into a github issue if the bisector finds the root cause commit
+    if bisection.result:
+        process_bisection_into_gh_issue(bisection.output_json, args.gh_issue_path)
 
 if __name__ == "__main__":
     main()  # pragma: no cover

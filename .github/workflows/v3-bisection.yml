@@ -81,6 +81,15 @@ jobs:
                 --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml" \
                 --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
           cp -r "${BISECT_WORKDIR}" ../bisection-result
+      - name: Create the github issue
+        continue-on-error: true
+        if: env.TORCHBENCH_BISECTION_COMMIT_FOUND
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: V3 Performance Signal Detected by TorchBench Userbenchmark "torch-nightly" on ${{ env.TORCHBENCH_BISECTION_COMMIT_FOUND }}
+          content-filepath: ./benchmark/gh-issue.md
+          labels: |
+            torchbench-perf-report
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v3
