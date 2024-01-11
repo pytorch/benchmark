@@ -21,21 +21,12 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
 import yaml
 
 from userbenchmark.utils import (
     parse_abtest_result_from_regression_file_for_bisect,
     TorchBenchABTestResult,
-    parse_abtest_result_from_regression_file_for_bisect
-)
-from regression_detector import generate_regression_result
-from utils import gitutils
-from utils.github import process_bisection_into_gh_issue
-from utils.build_utils import (
-    setup_bisection_build_env,
-    build_repo,
-    cleanup_torch_packages,
-    TorchRepo,
 )
 
 TORCHBENCH_BISECTION_TARGETS = {
@@ -72,7 +63,7 @@ try:
         TorchRepo,
     )
     from utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
-
+    from utils.github import process_bisection_into_gh_issue
     IS_FBCODE = False
 except (ImportError, ModuleNotFoundError):
     # Meta-Internal imports
