@@ -2,11 +2,13 @@
 Run PyTorch nightly benchmarking.
 """
 import argparse
+import dataclasses
 import itertools
 import pathlib
 import json
 import os
 import shutil
+import copy
 import yaml
 import re
 import ast
@@ -16,12 +18,22 @@ from typing import List, Dict, Optional, Any, Union
 from ..utils import REPO_PATH, add_path, get_output_json, get_default_output_json_path, get_default_debug_output_dir
 from . import BM_NAME
 
-with add_path(REPO_PATH):
-    from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig, \
-                                                            list_devices, list_tests
-    from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics, get_model_accuracy
+from torchbenchmark.util.experiment.instantiator import list_models, load_model_isolated, TorchBenchModelConfig, \
+                                                        list_devices, list_tests
+from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics, get_model_accuracy
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+DEFAULT_CONFIG_DIR = os.path.join(CURRENT_DIR, "configs")
+
+@dataclasses.dataclass
+class TorchBenchGroupBenchConfig:
+    baseline_config: TorchBenchModelConfig
+    metrics: List[str]
+    group_configs: Dict[str, List[TorchBenchModelConfig]]
+
+    @property
+    def configs(self):
+        return [ c for configs in self.group_configs.values() for c in configs ]
 
 def config_to_str(config: TorchBenchModelConfig) -> str:
     metrics_base = f"model={config.name}, test={config.test}, device={config.device}," + \
@@ -56,12 +68,6 @@ def generate_model_configs(devices: List[str], tests: List[str], batch_sizes: Li
     ) for device, test, batch_size, model_name in cfgs]
     return result
 
-def generate_model_configs_from_bisect_yaml(bisect_yaml: str) -> List[TorchBenchModelConfig]:
-    with open(bisect_yaml, "r") as fp:
-        bisect = yaml.safe_load(fp)
-    result = list(map(lambda x: str_to_config(x), bisect["details"].keys()))
-    return result
-
 def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Path) -> List[TorchBenchModelConfig]:
     result = []
     for config in configs:
@@ -73,7 +79,9 @@ def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Pa
         result.append(config)
     return result
 
-def get_metrics(config: TorchBenchModelConfig) -> List[str]:
+def get_metrics(metrics: List[str], config: TorchBenchModelConfig) -> List[str]:
+    if metrics:
+        return metrics
     if "--accuracy" in config.extra_args:
         return ["accuracy"]
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
@@ -118,7 +126,7 @@ def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=F
                 result[metric] = "failed" if result[metric] == None else result[metric]
         print(" [done]", flush=True)
         return result
-    except NotImplementedError as e:
+    except NotImplementedError:
         print(" [not_implemented]", flush=True)
         return dict.fromkeys(metrics, "not_implemented")
     except OSError as e:
@@ -142,44 +150,50 @@ def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryru
         print(" [oserror]", flush=True)
         return {"accuracy": str(e)}
 
-def parse_known_args(args):
-    parser = argparse.ArgumentParser()
-    default_device = "cuda" if "cuda" in list_devices() else "cpu"
-    parser.add_argument(
-        "--models",
-        "-m",
-        nargs="*",
-        help="Name of models to run, split by comma.",
+def load_group_config(config_file: str) -> TorchBenchGroupBenchConfig:
+    if not os.path.exists(config_file):
+        config_file = os.path.join(DEFAULT_CONFIG_DIR, config_file)
+    with open(config_file, "r") as fp:
+        data = yaml.safe_load(fp)
+    baseline_config = TorchBenchModelConfig(
+        name=data["model"],
+        test=data["test"],
+        device=data["device"],
+        batch_size=data["batch_size"] if "batch_size" in data else None,
+        extra_args=data["extra_args"].split(" ") if "extra_args" in data else [],
     )
-    parser.add_argument("--device", "-d", default=default_device, help="Devices to run, splited by comma.")
-    parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
-    parser.add_argument("--bs", default=None, help="Optionally, specify the batch size.")
-    parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
-    parser.add_argument("--run-bisect", help="Run with the output of regression detector.")
+    metrics = data["metrics"] if "metrics" in data else []
+    group_configs = {}
+    for group_name in data["test_group"]:
+        group_configs[group_name] = []
+        group_extra_args = data["test_group"][group_name]["extra_args"].split(" ")
+        subgroup_extra_args_list = list(map(lambda x: x["extra_args"].split(" "), data["test_group"][group_name]["subgroup"]))
+        for subgroup_extra_args in subgroup_extra_args_list:
+            subgroup_config = copy.deepcopy(baseline_config)
+            subgroup_config.extra_args.extend(group_extra_args)
+            subgroup_config.extra_args.extend(subgroup_extra_args)
+            group_configs[group_name].append(subgroup_config)
+    return TorchBenchGroupBenchConfig(baseline_config, metrics, group_configs)
+
+def parse_args(args: List[str]):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", "-c", required=True, help="YAML config to specify group of tests to run.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
-    parser.add_argument("--output", default=get_default_output_json_path(BM_NAME), help="Specify the path of the output file")
     parser.add_argument("--debug", action="store_true", help="Save the debug output.")
-    return parser.parse_known_args(args)
+    parser.add_argument("--output", default=f"/tmp/{BM_NAME}", help="Output torchbench userbenchmark metrics file path.")
+    return parser.parse_args(args)
 
 def run(args: List[str]):
-    args, extra_args = parse_known_args(args)
-    if args.run_bisect:
-        configs = generate_model_configs_from_bisect_yaml(args.run_bisect)
-    else:
-        # If not specified, use the entire model set
-        if not args.models:
-            args.models = list_models()
-        devices = validate(parse_str_to_list(args.device), list_devices())
-        tests = validate(parse_str_to_list(args.test), list_tests())
-        batch_sizes = parse_str_to_list(args.bs)
-        models = validate(parse_str_to_list(args.models), list_models())
-        configs = generate_model_configs(devices, tests, batch_sizes, model_names=models, extra_args=extra_args)
+    args = parse_args(args)
+    group_config: TorchBenchGroupBenchConfig = load_group_config(args.config)
     debug_output_dir = get_default_debug_output_dir(args.output) if args.debug else None
-    configs = init_output_dir(configs, debug_output_dir) if debug_output_dir else configs
+    if debug_output_dir:
+        init_output_dir(group_config.configs, debug_output_dir)
+
     results = {}
     try:
-        for config in configs:
-            metrics = get_metrics(config)
+        for config in group_config.configs:
+            metrics = get_metrics(group_config.metrics, config)
             if "accuracy" in metrics:
                 metrics_dict = run_config_accuracy(config, metrics, dryrun=args.dryrun)
             else:
@@ -190,8 +204,9 @@ def run(args: List[str]):
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
     result = get_output_json(BM_NAME, results)
-    if args.device == 'cuda':
+    if group_config.baseline_config.device == 'cuda':
         import torch
         result["environ"]["device"] = torch.cuda.get_device_name()
     with open(args.output, 'w') as f:
         json.dump(result, f, indent=4)
+    print(json.dumps(result))

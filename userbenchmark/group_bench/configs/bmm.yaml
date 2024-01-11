@@ -1,0 +1,26 @@
+# Common args across all test groups
+model: test_module
+test: eval
+device: cuda
+metrics:
+  - latencies
+test_group:
+  test_module-cuda-L128-M128-N128-K128:
+    # Common args across all test subgroups
+    extra_args: -L 128 -M 128 -N 128 -K 128
+    subgroup:
+      - extra_args: --module test_mm
+      - extra_args: --module test_bmm
+      - extra_args: --module test_mm --torchdynamo inductor --torchinductor_cudagraph 0 --torchinductor_post_grad_batch_fusion 1
+  test_module-cuda-L30-M1024-N1024-K17792:
+    extra_args: -L 30 -M 1024 -N 1024 -K 17792
+    subgroup:
+      - extra_args: --module test_mm
+      - extra_args: --module test_bmm
+      - extra_args: --module test_mm --torchdynamo inductor --torchinductor_cudagraph 0 --torchinductor_post_grad_batch_fusion 1
+  test_module-L16-M96-N235520-K192:
+    extra_args: -L 16 -M 96 -N 235520 -K 192
+    subgroup:
+      - extra_args: --module test_mm
+      - extra_args: --module test_bmm
+      - extra_args: --module test_mm --torchdynamo inductor --torchinductor_cudagraph 0 --torchinductor_post_grad_batch_fusion 1

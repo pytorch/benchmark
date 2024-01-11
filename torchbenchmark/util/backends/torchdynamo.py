@@ -125,7 +125,7 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         import torch._inductor as torchinductor
         torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
         if bool(args.torchinductor_post_grad_batch_fusion):
-            torchinductor.config.post_grad_fusion_options["batch_linear"] = {}
+            torchinductor.config.post_grad_fusion_options["batch_linear_post_grad"] = {}
         torch._inductor.config.debug = bool(args.dump_triton)
 
         # Setup torchinductor.config.triton.mm
