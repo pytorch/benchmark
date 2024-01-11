@@ -104,21 +104,20 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[], device='cpu'):
         init_type (str)    -- the name of an initialization method: normal | xavier | kaiming | orthogonal
         gain (float)       -- scaling factor for normal, xavier and orthogonal.
         gpu_ids (int list) -- which GPUs the network runs on: e.g., 0,1,2
-        device             -- device type: cpu/cuda/xpu
+        device (str)       -- device type: cpu/cuda/xpu
 
     Return an initialized network.
     """
     if len(gpu_ids) > 0:
-        assert(torch.cuda.is_available())
-        net.to(gpu_ids[0])
+        assert(hasattr(torch, device))
+        assert(getattr(torch, device).is_available())
+        net.to('{}:{}'.format(device, gpu_ids[0]))
         net = torch.nn.DataParallel(net, gpu_ids)  # multi-GPUs
-    else:
-        net.to(device)
     init_weights(net, init_type, init_gain=init_gain)
     return net
 
 
-def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[], device=torch.device('cpu')):
+def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[], device='cpu'):
     """Create a generator
 
     Parameters:
@@ -131,7 +130,7 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
         init_type (str)    -- the name of our initialization method.
         init_gain (float)  -- scaling factor for normal, xavier and orthogonal.
         gpu_ids (int list) -- which GPUs the network runs on: e.g., 0,1,2
-        device (torch.device) -- device type: cpu/cuda/xpu
+        device (str)       -- device type: cpu/cuda/xpu
 
     Returns a generator
 
@@ -162,7 +161,7 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
     return init_net(net, init_type, init_gain, gpu_ids, device)
 
 
-def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[], device=torch.device('cpu')):
+def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[], device='cpu'):
     """Create a discriminator
 
     Parameters:
@@ -174,7 +173,7 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
         init_type (str)       -- the name of the initialization method.
         init_gain (float)     -- scaling factor for normal, xavier and orthogonal.
         gpu_ids (int list)    -- which GPUs the network runs on: e.g., 0,1,2
-        device (torch.device) -- device type: cpu/cuda/xpu
+        device (str)          -- device type: cpu/cuda/xpu
 
     Returns a discriminator
 
@@ -286,7 +285,7 @@ def cal_gradient_penalty(netD, real_data, fake_data, device, type='mixed', const
         netD (network)              -- discriminator network
         real_data (tensor array)    -- real images
         fake_data (tensor array)    -- generated images from the generator
-        device (str)                -- GPU / CPU /XPU
+        device (str)                -- cpu / cuda / xpu
         type (str)                  -- if we mix real and fake data or not [real | fake | mixed].
         constant (float)            -- the constant used in formula ( ||gradient||_2 - constant)^2
         lambda_gp (float)           -- weight for this loss
