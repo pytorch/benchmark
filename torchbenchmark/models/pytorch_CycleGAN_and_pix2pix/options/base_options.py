@@ -130,7 +130,6 @@ class BaseOptions():
                 opt.gpu_ids.append(id)
         if len(opt.gpu_ids) > 0:
             assert(hasattr(torch, opt.device))
-            print("device:", opt.device)
             assert(hasattr(getattr(torch, opt.device), 'set_device'))
             getattr(torch, opt.device).set_device(opt.gpu_ids[0])
 

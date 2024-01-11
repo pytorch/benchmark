@@ -109,6 +109,7 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[], device='cpu'):
     Return an initialized network.
     """
     if len(gpu_ids) > 0:
+        assert(device != 'cpu')
         assert(hasattr(torch, device))
         assert(getattr(torch, device).is_available())
         net.to('{}:{}'.format(device, gpu_ids[0]))
