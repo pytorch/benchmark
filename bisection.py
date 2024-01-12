@@ -599,21 +599,35 @@ def main() -> None:
         args.torch_repos_path, args.torchbench_repo_path, skip_update_repos
     )
     target_repo = torch_repos[bisect_config.bisection]
-    start_hash = gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.control_env["git_commit_hash"])
-    end_hash =  gitutils.get_torch_main_commit(target_repo.src_path.absolute(), bisect_config.treatment_env["git_commit_hash"])
+    start_hash = (
+        gitutils.get_torch_main_commit(
+            target_repo.src_path.absolute(),
+            bisect_config.control_env["git_commit_hash"],
+        )
+        if not IS_FBCODE
+        else bisect_config.control_env["git_commit_hash"]
+    )
+    end_hash = (
+        gitutils.get_torch_main_commit(
+            target_repo.src_path.absolute(),
+            bisect_config.treatment_env["git_commit_hash"],
+        )
+        if not IS_FBCODE
+        else bisect_config.treatment_env["git_commit_hash"]
+    )
 
-    bisection = TorchBenchBisection(workdir=args.work_dir,
-                                    torch_repos=torch_repos,
-                                    target_repo=torch_repos[bisect_config.bisection],
-                                    start=start_hash,
-                                    end=end_hash,
-                                    start_version=bisect_config.control_env["pytorch_version"]
-                                        if "pytorch_version" in bisect_config.control_env else "N/A",
-                                    end_version=bisect_config.treatment_env["pytorch_version"]
-                                        if "pytorch_version" in bisect_config.treatment_env else "N/A",
-                                    bisect_config=bisect_config,
-                                    output_json=args.output,
-                                    debug=args.debug)
+    bisection = TorchBenchBisection(
+        workdir=args.work_dir,
+        torch_repos=torch_repos,
+        target_repo=target_repo,
+        start=start_hash,
+        end=end_hash,
+        start_version=bisect_config.control_env.get("pytorch_version", "N/A"),
+        end_version=bisect_config.treatment_env.get("pytorch_version", "N/A"),
+        bisect_config=bisect_config,
+        output_json=args.output,
+        debug=args.debug,
+    )
     if start_hash == end_hash:
         print(f"Start and end hash are the same: {start_hash}. Skip bisection")
         bisection.output()
