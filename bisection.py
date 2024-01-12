@@ -515,28 +515,47 @@ class TorchBenchBisection:
 def main() -> None:
     global SKIP_INSTALL_TORCHBENCH
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--work-dir",
-                        required=True,
-                        help="bisection working directory for logs and results",
-                        type=exist_dir_path)
-    parser.add_argument("--torch-repos-path",
-                        required=True,
-                        help="the directory of pytorch/* source code repositories",
-                        type=exist_dir_path)
-    parser.add_argument("--torchbench-repo-path",
-                        default=None,
-                        help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
-                        type=exist_dir_path)
-    parser.add_argument("--config",
-                        required=True,
-                        help="the regression dict output of regression_detector.py in YAML",
-                        type=exist_file_path)
-    parser.add_argument("--skip-install-torchbench", action="store_true", help="Skip installing torchbench")
-    parser.add_argument("--output",
-                        required=True,
-                        help="the output json file")
-    parser.add_argument("--skip-update", type=str, default="torchbench", help="Repositories to skip update.")
-    parser.add_argument("--gh-issue-path", default="gh-issue.md", help="Output path to print the issue body")
+    parser.add_argument(
+        "--work-dir",
+        required=True,
+        help="bisection working directory for logs and results",
+        type=exist_dir_path,
+    )
+    parser.add_argument(
+        "--torch-repos-path",
+        required=True,
+        help="the directory of pytorch/* source code repositories, or fbcode repo if running internally",
+        type=exist_dir_path,
+    )
+    parser.add_argument(
+        "--torchbench-repo-path",
+        default=None,
+        help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
+        type=exist_dir_path,
+    )
+    parser.add_argument(
+        "--config",
+        required=True,
+        help="the regression dict output of regression_detector.py in YAML",
+        type=exist_file_path,
+    )
+    parser.add_argument(
+        "--skip-install-torchbench",
+        action="store_true",
+        help="Skip installing torchbench",
+    )
+    parser.add_argument("--output", required=True, help="the output json file")
+    parser.add_argument(
+        "--skip-update",
+        type=str,
+        default="torchbench",
+        help="Repositories to skip update.",
+    )
+    parser.add_argument(
+        "--gh-issue-path",
+        default="gh-issue.md",
+        help="Output path to print the issue body"
+    )
     # by default, debug mode is disabled
     parser.add_argument(
         "--debug",
