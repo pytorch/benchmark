@@ -35,16 +35,12 @@ class Model(BenchmarkModel):
         results_arg = f"--results_dir {results_dir}"
         data_root = os.path.join(DATA_PATH, "pytorch_CycleGAN_and_pix2pix_inputs")
         device_arg = ""
-        device_type = ""
+        device_type = f"--device_type {self.device}"
         if self.device == "cpu":
             device_arg = "--gpu_ids -1"
-            device_type = "--device cpu"
-        elif self.device == "cuda":
+        else:
             device_arg = "--gpu_ids 0"
-            device_type = "--device cuda"
-        elif self.device == "xpu":
-            device_arg = "--gpu_ids 0"
-            device_type = "--device xpu"
+
         if self.test == "train":
             train_args = f"--tb_device {self.device} --dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 " + \
                          f"--n_epochs_decay 3 {device_type} {device_arg} {checkpoints_arg}"
