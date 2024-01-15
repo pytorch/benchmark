@@ -63,7 +63,7 @@ try:
         TorchRepo,
     )
     from utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
-
+    from utils.github import process_bisection_into_gh_issue
     IS_FBCODE = False
 except (ImportError, ModuleNotFoundError):
     # Meta-Internal imports
@@ -173,21 +173,26 @@ class Commit:
 
 class BisectionTargetRepo:
     repo: TorchRepo
+    # Start and end git hash
     start: str
     end: str
+    # Start and end version
+    start_version: str
+    end_version: str
     non_target_repos: List[TorchRepo]
     # generated in prep()
     bisection_env: os._Environ
     commits: List[Commit]
     # Map from commit SHA to its index in commits
     commit_dict: Dict[str, int]
-
-    def __init__(
-        self, repo: TorchRepo, start: str, end: str, non_target_repos: List[TorchRepo]
-    ):
+    def __init__(self, repo: TorchRepo, start: str, end: str,
+                 start_version: str, end_version: str,
+                 non_target_repos: List[TorchRepo]):
         self.repo = repo
         self.start = start
         self.end = end
+        self.start_version = start_version
+        self.end_version = end_version
         self.non_target_repos = non_target_repos
         self.commits = []
         self.commit_dict = dict()
@@ -488,7 +493,9 @@ class TorchBenchBisection:
         json_obj = dict()
         json_obj["target_repo"] = self.target_repo.repo.name
         json_obj["start"] = self.target_repo.start
+        json_obj["start_version"] = self.target_repo.start_version
         json_obj["end"] = self.target_repo.end
+        json_obj["end_version"] = self.target_repo.end_version
         json_obj["result"] = []
         for res in self.result:
             r = dict()
@@ -501,7 +508,7 @@ class TorchBenchBisection:
             json_obj["result"].append(r)
         with open(self.output_json, "w") as outfile:
             json.dump(json_obj, outfile, indent=2)
-        print(f"Bisection successful. Result saved to {self.output_json}:")
+        print(f"Bisection successful. Result saved to {self.output_json}.")
         print(json_obj)
 
 
@@ -543,6 +550,11 @@ def main() -> None:
         type=str,
         default="torchbench",
         help="Repositories to skip update.",
+    )
+    parser.add_argument(
+        "--gh-issue-path",
+        default="gh-issue.md",
+        help="Output path to print the issue body"
     )
     # by default, debug mode is disabled
     parser.add_argument(
@@ -610,6 +622,8 @@ def main() -> None:
         target_repo=target_repo,
         start=start_hash,
         end=end_hash,
+        start_version=bisect_config.control_env.get("pytorch_version", "N/A"),
+        end_version=bisect_config.treatment_env.get("pytorch_version", "N/A"),
         bisect_config=bisect_config,
         output_json=args.output,
         debug=args.debug,
@@ -625,7 +639,9 @@ def main() -> None:
     )
     bisection.run()
     bisection.output()
-
+    # Format the output into a github issue if the bisector finds the root cause commit
+    if bisection.result:
+        process_bisection_into_gh_issue(bisection.output_json, args.gh_issue_path)
 
 if __name__ == "__main__":
     main()  # pragma: no cover

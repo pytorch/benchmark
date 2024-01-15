@@ -70,15 +70,6 @@ jobs:
           done
           rm -r ../benchmark-output || true
           cp -r ./.userbenchmark/torch-nightly ../benchmark-output
-      - name: Create the github issue
-        continue-on-error: true
-        if: env.TORCHBENCH_REGRESSION_DETECTED
-        uses: peter-evans/create-issue-from-file@v4
-        with:
-          title: V3 Performance Signal Detected by TorchBench Userbenchmark "torch-nightly" on ${{ env.TORCHBENCH_REGRESSION_DETECTED }}
-          content-filepath: ./benchmark/gh-issue.md
-          labels: |
-            torchbench-perf-report
       - name: Copy artifact and upload to scribe and Amazon S3
         run: |
           . "${SETUP_SCRIPT}"
@@ -89,7 +80,7 @@ jobs:
           python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
           # Upload the result json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --upload-file "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
-      - name: Copy regression results to Amazon S3
+      - name: Copy regression results to Amazon S3 and kick off bisection
         if: env.TORCHBENCH_REGRESSION_DETECTED
         run: |
           . "${SETUP_SCRIPT}"
@@ -97,6 +88,14 @@ jobs:
           LATEST_REGRESSION_RESULT=$(find ../benchmark-output/ -name "regression-*.yaml" | sort -r | head -1)
           # Upload the regression json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --upload-file "${LATEST_REGRESSION_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
+          # Get the workflow ID from
+          # https://api.github.com/repos/pytorch/benchmark/actions/workflows
+          # And dispatch the bisection workflow
+          curl -u xuzhao9:${{ secrets.TORCHBENCH_ACCESS_TOKEN }} \
+            -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/pytorch/benchmark/actions/workflows/57994037/dispatches \
+            -d '{"ref": "main", "inputs": {"regression_date": "${{ env.TORCHBENCH_REGRESSION_DETECTED }}" } }'
       - name: Upload result to GH Actions Artifact
         uses: actions/upload-artifact@v3
         with:

@@ -6,11 +6,12 @@ import argparse
 import importlib
 from dataclasses import asdict
 import os
+import re
 import yaml
 from pathlib import Path
 import time
 from datetime import datetime
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Tuple, Optional
 from userbenchmark.utils import PLATFORMS, USERBENCHMARK_OUTPUT_PREFIX, REPO_PATH, \
                                 TorchBenchABTestResult, get_date_from_metrics, \
                                 get_ub_name, get_latest_files_in_s3_from_last_n_days, get_date_from_metrics_s3_key
@@ -19,17 +20,19 @@ from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_O
 GITHUB_ISSUE_TEMPLATE = """
 TorchBench CI has detected a performance signal or runtime regression.
 
-Base PyTorch commit: {start}
+Control PyTorch commit: {control_commit}
+Control PyTorch version: {control_version}
 
-Affected PyTorch commit: {end}
+Treatment PyTorch commit: {treatment_commit}
+Treatment PyTorch version: {treatment_version}
 
 Affected Tests:
 {test_details}
 
-Tests that were no longer run on affected commit:
+Tests that were no longer run on treatment commit:
 {control_only_tests}
 
-Tests that were newly added on affected commit:
+Tests that were newly added on treatment commit:
 {treatment_only_tests}
 
 Runtime regressions found?
@@ -103,6 +106,15 @@ def process_regressions_into_yaml(regression_result: TorchBenchABTestResult, out
 
 
 def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult, owner: str, output_path: str, errors_path: str) -> None:
+    def _parse_date_from_pytorch_version(pytorch_version: str) -> Optional[str]:
+        # example pytorch nightly version: "2.2.0.dev20231116+cu118"
+        # return a date string like "2023-11-16"
+        ver_regex = "dev[0-9+]\+"
+        s = re.search(ver_regex, pytorch_version)
+        if not s or not s.groups():
+            return None
+        return datetime.strftime(datetime.strptime(s.groups[0], "%Y%m%d"), "%Y-%m-%d")
+
     regressions_dict = asdict(regression_result)
     troubled_tests = ""
     for test, stats in regressions_dict["details"].items():
@@ -122,7 +134,9 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
         treatment_only_tests += f"- {test}: {stat}\n"
 
     control_commit = regressions_dict["control_env"]["pytorch_git_version"]
+    control_version = regressions_dict["control_env"]["pytorch_version"]
     treatment_commit = regressions_dict["treatment_env"]["pytorch_git_version"]
+    treatment_version = regressions_dict["treatment_env"]["pytorch_version"]
 
     runtime_regressions_msg = "No runtime errors were found in the " + \
                               "new benchmarks run--you are all good there!"
@@ -138,7 +152,11 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
 
     if "GITHUB_ENV" in os.environ:
         fname = os.environ["GITHUB_ENV"]
-        content = f"TORCHBENCH_REGRESSION_DETECTED='{treatment_commit}'\n"
+        treatment_date = _parse_date_from_pytorch_version(treatment_version)
+        # If can't parse the version date from pytorch version, use today
+        if not treatment_date:
+            treatment_date = datetime.today().strftime("%Y-%m-%d")
+        content = f"TORCHBENCH_REGRESSION_DETECTED='{treatment_date}'\n"
         with open(fname, 'a') as fo:
             fo.write(content)
 
@@ -149,8 +167,10 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
         github_run_url = f"https://github.com/pytorch/benchmark/actions/runs/{github_run_id}"
 
     issue_config: Dict[str, str] = {
-        "start": control_commit,
-        "end": treatment_commit,
+        "control_commit": control_commit,
+        "treatment_commit": treatment_commit,
+        "control_version": control_version,
+        "treatment_version": treatment_version,
         "test_details": troubled_tests,
         "control_only_tests": control_only_tests,
         "treatment_only_tests": treatment_only_tests,
@@ -174,7 +194,7 @@ def get_best_start_date(latest_metrics_jsons: List[str], end_date: datetime) -> 
     return None
 
 
-def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime):
+def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime) -> Tuple[Any, str]:
     pick_metrics_json_key: Optional[str] = None
     for metrics_json_key in latest_metrics_jsons:
         metric_datetime = get_date_from_metrics_s3_key(metrics_json_key)
