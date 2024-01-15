@@ -180,7 +180,7 @@ def parse_args(args: List[str]):
     parser.add_argument("--config", "-c", required=True, help="YAML config to specify group of tests to run.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     parser.add_argument("--debug", action="store_true", help="Save the debug output.")
-    parser.add_argument("--output", default=f"/tmp/{BM_NAME}", help="Output torchbench userbenchmark metrics file path.")
+    parser.add_argument("--output", default=get_default_output_json_path(BM_NAME), help="Output torchbench userbenchmark metrics file path.")
     return parser.parse_args(args)
 
 def run(args: List[str]):

@@ -1,0 +1,6 @@
+name: dynamo
+base_args: --bfloat16 --inductor --performance --inference --inductor-compile-mode max-autotune
+test_group:
+  test_default_batch_size:
+    subgroup:
+      - extra_args: --tag baseline
