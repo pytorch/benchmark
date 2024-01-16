@@ -92,7 +92,7 @@ class HuggingFaceModel(BenchmarkModel):
             config.num_buckets = 128
         class_ctor = getattr(transformers, class_models[name][3])
         kwargs = {}
-        hugging_face_models_requiring_trust_remote_code = ["hf_Falcon_7b", "hf_MPT_7b_instruct", "phi_1_5", "hf_Yi"]
+        hugging_face_models_requiring_trust_remote_code = ["hf_Falcon_7b", "hf_MPT_7b_instruct", "phi_1_5", "phi_2", "hf_Yi"]
         if name in hugging_face_models_requiring_trust_remote_code:
             kwargs["trust_remote_code"] = True
         self.model = class_ctor.from_config(config, **kwargs).to(device)
