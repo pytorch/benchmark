@@ -18,7 +18,7 @@ jobs:
       IS_GHA: 1
       BUILD_ENVIRONMENT: benchmark-nightly
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, a100-runner]
+    runs-on: [a100-runner]
     steps:
       - name: Checkout TorchBench v3.0 branch
         uses: actions/checkout@v3
