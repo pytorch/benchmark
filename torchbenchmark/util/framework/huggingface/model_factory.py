@@ -89,6 +89,12 @@ class HuggingFaceModel(BenchmarkModel):
         if class_models[name][2] == "ReformerConfig()" and not config.num_buckets:
             # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
             config.num_buckets = 128
+        if name in {"llama_v2_7b_16h", "llama_v2_7b", "llama_v2_13b", "llama_v2_70b"}:
+            # Workaround for the following error:
+            #   Attention using SDPA can not be traced with torch.jit.trace when no attention_mask is provided.
+            #   To solve this issue, please either load your model with the argument attn_implementation="eager" or
+            #   pass an attention_mask input when tracing the model.
+            config._attn_implementation = "eager"
         class_ctor = getattr(transformers, class_models[name][3])
         kwargs = {}
         hugging_face_models_requiring_trust_remote_code = ["hf_Falcon_7b", "hf_MPT_7b_instruct", "phi_1_5", "hf_Yi"]
