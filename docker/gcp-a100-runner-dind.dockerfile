@@ -11,7 +11,7 @@ ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 RUN sudo apt-get -y update && sudo apt -y update
 # fontconfig: needed by model doctr_det_predictor
-RUN sudo apt-get install -y git jq \
+RUN sudo apt-get install -y git jq gcc g++ \
                             vim wget curl ninja-build cmake \
                             libgl1-mesa-glx libsndfile1-dev kmod libxml2-dev libxslt1-dev \
                             fontconfig libfontconfig1-dev \
