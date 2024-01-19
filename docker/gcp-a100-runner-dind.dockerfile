@@ -5,9 +5,9 @@ FROM ${BASE_IMAGE}
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 # GKE version: 1.28.5-gke.1217000
-# GKE release notes: https://cloud.google.com/kubernetes-engine/docs/release-notes#current_versions
-# Default NVIDIA driver version: 535.129.03
-# We assume that the host driver libraries are mapped to the docker filesystem
+# NVIDIA driver version: 535.104.05
+# NVIDIA drivers list available at gs://ubuntu_nvidia_packages/
+# We assume that the host NVIDIA driver binaries and libraries are mapped to the docker filesystem
 
 RUN sudo apt-get -y update && sudo apt -y update
 # fontconfig: needed by model doctr_det_predictor
