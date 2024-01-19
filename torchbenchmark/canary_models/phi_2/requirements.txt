@@ -1,0 +1,2 @@
+einops
+flash_attn
