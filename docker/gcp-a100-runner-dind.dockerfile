@@ -1,6 +1,6 @@
 # default base image: ghcr.io/actions/actions-runner:latest
 # base image: Ubuntu 22.04 jammy
-ARG BASE_IMAGE=summerwind/actions-runner-dind:latest
+ARG BASE_IMAGE=ghcr.io/actions/actions-runner:latest
 FROM ${BASE_IMAGE}
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
