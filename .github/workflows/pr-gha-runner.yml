@@ -13,7 +13,7 @@ jobs:
       CONDA_ENV: "pr-ci-a100"
       SETUP_SCRIPT: "/workspace/setup_instance.sh"
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
-    runs-on: [self-hosted, a100-runner]
+    runs-on: [a100-runner]
     timeout-minutes: 1440 # 24 hours
     environment: docker-s3-upload
     steps:

@@ -28,7 +28,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, a100-runner]
+    runs-on: [a100-runner]
     timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
