@@ -77,7 +77,7 @@ def run_benchmark(run_scripts, work_dir):
         try:
             cmnd = f"bash {str(run_script_path)}"
             output = subprocess.check_output(
-                cmnd, stderr=subprocess.STDOUT, shell=True, timeout=3,
+                cmnd, stderr=subprocess.STDOUT, shell=True,
                 universal_newlines=True)
         except subprocess.CalledProcessError as exc:
             print("Status : FAIL", exc.returncode, exc.output)
