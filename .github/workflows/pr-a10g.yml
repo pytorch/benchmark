@@ -38,6 +38,7 @@ jobs:
         uses: pytorch/test-infra/.github/actions/setup-nvidia@main
       - name: Install and Test TorchBench
         run: |
+          df -h
           container_name=$(docker run \
             -e CONDA_ENV="${CONDA_ENV}" \
             -e SETUP_SCRIPT="${SETUP_SCRIPT}" \
@@ -52,9 +53,8 @@ jobs:
             tail -f /dev/null
           )
           echo "Container name: ${container_name}"
-          df -h
-          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
           docker exec -t -w "/benchmark" "${container_name}" df -h
+          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
           docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_test.sh
       - name: Teardown Linux
         uses: pytorch/test-infra/.github/actions/teardown-linux@main
