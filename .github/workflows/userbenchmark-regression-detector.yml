@@ -11,7 +11,7 @@ on:
 
 jobs:
   run-userbenchmark:
-    runs-on: [self-hosted, a100-runner]
+    runs-on: [a100-runner]
     timeout-minutes: 1440 # 24 hours
     environment: docker-s3-upload
     env:
