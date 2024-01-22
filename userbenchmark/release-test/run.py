@@ -74,7 +74,17 @@ def run_benchmark(run_scripts, work_dir):
         run_script_path = work_dir.joinpath(run_key, "run.sh")
         # run the benchmark
         print(f"Running benchmark {run_key} ...")
-        subprocess.check_call(["bash", str(run_script_path)])
+        try:
+            cmnd = f"bash {str(run_script_path)}"
+            output = subprocess.check_output(
+                cmnd, stderr=subprocess.STDOUT, shell=True,
+                universal_newlines=True)
+        except subprocess.CalledProcessError as exc:
+            print("Status : FAIL", exc.returncode, exc.output)
+        else:
+            print("Output: \n{}\n".format(output))
+
+        # subprocess.check_call(["bash", str(run_script_path)])
 
 def get_config(config_name: str):
     if os.path.exists(os.path.join(DEFAULT_CONFIG_PATH, config_name)):
