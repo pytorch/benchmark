@@ -1,0 +1,13 @@
+model: "*"
+test: eval
+device: cuda
+extra_args: --precision bf16 --torchdynamo inductor --inductor-compile-mode max-autotune
+metrics:
+  - latencies
+test_group:
+  test_batch_size_default:
+    subgroup:
+      - extra_args:
+      - extra_args: --quantization int8dynamic
+      - extra_args: --quantization int8weightonly
+      - extra_args: --quantization int4weightonly

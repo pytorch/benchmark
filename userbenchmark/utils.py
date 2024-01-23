@@ -93,10 +93,14 @@ def get_output_json(bm_name, metrics) -> Dict[str, Any]:
     }
 
 
-def get_output_dir(bm_name) -> Path:
-    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-    target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
-    target_dir.mkdir(exist_ok=True, parents=True)
+def get_output_dir(bm_name: str) -> Path:
+    import torch
+    IS_FBCODE = False if hasattr(torch.version, "git_version") else True
+    if not IS_FBCODE:
+        current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+        target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
+    else:
+        target_dir = Path(f"/tmp/{bm_name}")
     return target_dir
 
 

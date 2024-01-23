@@ -79,6 +79,12 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         help="Enable max autotune gemm"
     )
     parser.add_argument(
+        "--inductor-compile-mode",
+        default=None,
+        choices=['max-autotune'],
+        help="torch.compile mode argument for inductor runs.",
+    )
+    parser.add_argument(
         "--torchinductor_enable_split_cat_fx_pass",
         action='store_true',
         help="enable split_cat_fx_pass in Inductor"
@@ -104,6 +110,11 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         default="false",
         help="Enable triton code dump by setting torch._inductor.config.debug",
     )
+    parser.add_argument(
+        "--quantization",
+        choices=["int8dynamic", "int8weightonly", "int4weightonly"],
+        help="Apply quantization to the model before running it",
+    )
     args, extra_args = parser.parse_known_args(dynamo_args)
     return args, extra_args
 
@@ -123,6 +134,9 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
 
     if args.torchdynamo == "inductor":
         import torch._inductor as torchinductor
+        if args.inductor_compile_mode == "max-autotune":
+            torchinductor.config.max_autotune = True
+            torchinductor.config.triton.cudagraphs = True
         torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
         if bool(args.torchinductor_post_grad_batch_fusion):
             torchinductor.config.post_grad_fusion_options["batch_linear_post_grad"] = {}
@@ -146,6 +160,26 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             torchinductor.config.triton.unique_kernel_names = True
         if args.torchinductor_enable_max_autotune_gemm:
             torchinductor.config.max_autotune_gemm = True
+        if args.quantization:
+            import torchao
+            from torchao.quantization import (
+                change_linear_weights_to_int8_dqtensors,
+                change_linear_weights_to_int8_woqtensors,
+                change_linear_weights_to_int4_woqtensors
+            )
+            torch._dynamo.config.automatic_dynamic_shapes = False
+            torch._dynamo.config.force_parameter_static_shapes = False
+            torch._dynamo.config.cache_size_limit = 1000
+            assert "cuda" in model.device
+            module, example_inputs = model.get_module()
+            if args.quantization == "int8dynamic":
+                torch._inductor.config.force_fuse_int_mm_with_mul = True
+                change_linear_weights_to_int8_dqtensors(module)
+            elif args.quantization == "int8weightonly":
+                torch._inductor.config.use_mixed_mm = True
+                change_linear_weights_to_int8_woqtensors(module)
+            elif args.quantization == "int4weightonly":
+                change_linear_weights_to_int4_woqtensors(module)
 
         # used for correctness checks, to avoid triton rand() behaving differently from torch rand().
         torchinductor.config.fallback_random = bool(args.torchinductor_fallback_random)

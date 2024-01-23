@@ -27,7 +27,7 @@ DEFAULT_CONFIG_DIR = os.path.join(CURRENT_DIR, "configs")
 
 @dataclasses.dataclass
 class TorchBenchGroupBenchConfig:
-    baseline_config: TorchBenchModelConfig
+    baseline_configs: List[TorchBenchModelConfig]
     metrics: List[str]
     group_configs: Dict[str, List[TorchBenchModelConfig]]
 
@@ -37,7 +37,7 @@ class TorchBenchGroupBenchConfig:
 
 def config_to_str(config: TorchBenchModelConfig) -> str:
     metrics_base = f"model={config.name}, test={config.test}, device={config.device}," + \
-        f" bs={config.batch_size}, extra_args={config.extra_args}"
+        f" bs={config.batch_size}, extra_args={' '.join(config.extra_args)}"
     return metrics_base
 
 def str_to_config(metric_name: str) -> TorchBenchModelConfig:
@@ -80,10 +80,10 @@ def init_output_dir(configs: List[TorchBenchModelConfig], output_dir: pathlib.Pa
     return result
 
 def get_metrics(metrics: List[str], config: TorchBenchModelConfig) -> List[str]:
-    if metrics:
-        return metrics
     if "--accuracy" in config.extra_args:
         return ["accuracy"]
+    if metrics:
+        return metrics
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
 
 def validate(candidates: List[str], choices: List[str]) -> List[str]:
@@ -150,37 +150,52 @@ def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryru
         print(" [oserror]", flush=True)
         return {"accuracy": str(e)}
 
+def models_from_config(config) -> List[str]:
+    assert "model" in config, f"We expect users to define models in config file."
+    if isinstance(config["model"], str):
+        if config["model"] == "*":
+            return list_models()
+        else:
+            return [config["model"]]
+    assert isinstance(config["model", list]), "Config model must be a list or string."
+    return config["model"]
+
 def load_group_config(config_file: str) -> TorchBenchGroupBenchConfig:
     if not os.path.exists(config_file):
         config_file = os.path.join(DEFAULT_CONFIG_DIR, config_file)
     with open(config_file, "r") as fp:
         data = yaml.safe_load(fp)
-    baseline_config = TorchBenchModelConfig(
-        name=data["model"],
-        test=data["test"],
-        device=data["device"],
-        batch_size=data["batch_size"] if "batch_size" in data else None,
-        extra_args=data["extra_args"].split(" ") if "extra_args" in data else [],
-    )
+    baseline_configs = [
+        TorchBenchModelConfig(
+            name=model,
+            test=data["test"],
+            device=data["device"],
+            batch_size=data["batch_size"] if "batch_size" in data else None,
+            extra_args=data["extra_args"].split(" ") if "extra_args" in data else [],
+        ) for model in models_from_config(data)
+    ]
     metrics = data["metrics"] if "metrics" in data else []
     group_configs = {}
     for group_name in data["test_group"]:
-        group_configs[group_name] = []
-        group_extra_args = data["test_group"][group_name]["extra_args"].split(" ")
-        subgroup_extra_args_list = list(map(lambda x: x["extra_args"].split(" "), data["test_group"][group_name]["subgroup"]))
-        for subgroup_extra_args in subgroup_extra_args_list:
-            subgroup_config = copy.deepcopy(baseline_config)
-            subgroup_config.extra_args.extend(group_extra_args)
-            subgroup_config.extra_args.extend(subgroup_extra_args)
-            group_configs[group_name].append(subgroup_config)
-    return TorchBenchGroupBenchConfig(baseline_config, metrics, group_configs)
+            group_configs[group_name] = []
+            group_extra_args = list(filter(lambda x: bool(x), data["test_group"][group_name].get("extra_args", "").split(" ")))
+            for subgroup in data["test_group"][group_name]["subgroup"]:
+                subgroup_extra_args = subgroup.get("extra_args", "")
+                subgroup_extra_args = "" if subgroup_extra_args == None else subgroup_extra_args
+                subgroup_extra_args_list = list(filter(lambda x: bool(x), subgroup_extra_args.split(" ")))
+                for baseline_config in baseline_configs:
+                    subgroup_config = copy.deepcopy(baseline_config)
+                    subgroup_config.extra_args.extend(group_extra_args)
+                    subgroup_config.extra_args.extend(subgroup_extra_args_list)
+                    group_configs[group_name].append(subgroup_config)
+    return TorchBenchGroupBenchConfig(baseline_configs, metrics, group_configs)
 
 def parse_args(args: List[str]):
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", "-c", required=True, help="YAML config to specify group of tests to run.")
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     parser.add_argument("--debug", action="store_true", help="Save the debug output.")
-    parser.add_argument("--output", default=f"/tmp/{BM_NAME}", help="Output torchbench userbenchmark metrics file path.")
+    parser.add_argument("--output", default=get_default_output_json_path(BM_NAME), help="Output torchbench userbenchmark metrics file path.")
     return parser.parse_args(args)
 
 def run(args: List[str]):
