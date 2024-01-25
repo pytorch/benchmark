@@ -41,6 +41,7 @@ class_models = {
     # as per this page https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1 trust_remote_code=True is not required
     'mistral_7b_instruct' : (128, 128, 'AutoConfig.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1")', 'AutoModelForCausalLM'),
     'hf_Yi' : (512, 512, 'AutoConfig.from_pretrained("01-ai/Yi-6B", trust_remote_code=True)', 'AutoModelForCausalLM'),
+    'orca_2' : (512, 512, 'AutoConfig.from_pretrained("microsoft/Orca-2-13b")', 'AutoModelForCausalLM'),
 }
 
 cpu_input_slice = {
