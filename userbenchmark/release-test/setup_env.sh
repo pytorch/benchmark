@@ -27,7 +27,13 @@ conda clean --all -y
 conda update --all -y
 
 
-sudo ln -sf /usr/local/cuda-${CUDA_VERSION} /usr/local/cuda
+# There is a conflict when all three packages are installed:
+# 1. pip package nvidia-cu11-*
+# 2. pip package nvidia-cu12-*
+# 3. system-level CUDA installation at /usr/local/cuda
+# In the release test, both 1 and 2 will be installed,
+# Therefore, we have to remove 3, and skip setup the cuda link
+# sudo ln -sf /usr/local/cuda-${CUDA_VERSION} /usr/local/cuda
 conda uninstall -y pytorch torchvision pytorch-cuda
 conda uninstall -y pytorch torchvision torchaudio
 # make sure we have a clean environment without pytorch
