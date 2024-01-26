@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 # defines the default CUDA version to compile against
-DEFAULT_CUDA_VERSION = "11.8"
+DEFAULT_CUDA_VERSION = "12.1"
 
 CUDA_VERSION_MAP = {
     "11.8": {
