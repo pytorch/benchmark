@@ -119,7 +119,7 @@ def install_torchbench_deps():
     # ubuntu 22.04 does not need this hack
     # conda_deps = ["glib"]
     # cmd = ["conda", "install", "-y"] + conda_deps
-    subprocess.check_call(cmd)
+    # subprocess.check_call(cmd)
     cmd = ["pip", "install", "unittest-xml-reporting", "boto3"]
     subprocess.check_call(cmd)
 
