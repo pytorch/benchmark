@@ -185,8 +185,12 @@ class BisectionTargetRepo:
     commits: List[Commit]
     # Map from commit SHA to its index in commits
     commit_dict: Dict[str, int]
-    def __init__(self, repo: TorchRepo, start: str, end: str,
-                 start_version: str, end_version: str,
+    def __init__(self,
+                 repo: TorchRepo,
+                 start: str,
+                 end: str,
+                 start_version: str,
+                 end_version: str,
                  non_target_repos: List[TorchRepo]):
         self.repo = repo
         self.start = start
@@ -414,6 +418,8 @@ class TorchBenchBisection:
         target_repo: TorchRepo,
         start: str,
         end: str,
+        start_version: str,
+        end_version: str,
         bisect_config: TorchBenchABTestResult,
         output_json: str,
         debug: bool = False,
@@ -428,7 +434,12 @@ class TorchBenchBisection:
         )
         torchbench_repo_key = "torchbench" if not IS_FBCODE else "fbcode"
         self.target_repo = BisectionTargetRepo(
-            repo=target_repo, start=start, end=end, non_target_repos=non_target_repos
+            repo=target_repo,
+            start=start,
+            end=end,
+            start_version=start_version,
+            end_version=end_version,
+            non_target_repos=non_target_repos,
         )
         self.torchbench = TorchBenchRepo(
             repo=torch_repos[torchbench_repo_key],
