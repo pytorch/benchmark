@@ -34,7 +34,7 @@ def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str
 
     if "GITHUB_ENV" in os.environ:
         fname = os.environ["GITHUB_ENV"]
-        content = f"TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED='{bisection.target_repo.end}'\n"
+        content = f"TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED='{treatment_version}'\n"
         with open(fname, 'a') as fo:
             fo.write(content)
 
