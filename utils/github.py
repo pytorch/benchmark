@@ -27,7 +27,6 @@ def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str
     with open(bisection_output_json, "r") as fp:
         bisection = json.load(fp)
 
-    result = json.dump(bisection, indent=4)
     control_commit = bisection["start"]
     control_version = bisection["start_version"]
     treatment_commit = bisection["end"]
@@ -38,7 +37,6 @@ def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str
         content = f"TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED='{bisection.target_repo.end}'\n"
         with open(fname, 'a') as fo:
             fo.write(content)
-        process_bisection_into_gh_issue(bisection.output_json)
 
     github_run_id = os.environ.get("GITHUB_RUN_ID", None)
     github_run_url = "No URL found, please look for the failing action in " + \
