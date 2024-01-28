@@ -18,8 +18,19 @@ RUN sudo apt-get install -y git jq gcc g++ \
 RUN sudo wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
 RUN sudo chmod +x /usr/bin/switch-cuda.sh
 
-# Install miniconda
 RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
+
+# GKE version: 1.28.5-gke.1217000
+# NVIDIA driver version: 535.104.05
+# NVIDIA drivers list available at gs://ubuntu_nvidia_packages/
+# We assume that the host NVIDIA driver binaries and libraries are mapped to the docker filesystem
+
+# Source of the CUDA installation scripts:
+RUN cd /workspace; git clone https://github.com/pytorch/builder.git
+RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_118'
+RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_121'
+
+# Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh
 RUN cd /workspace && \
     chmod +x Miniconda3-latest-Linux-x86_64.sh && \
@@ -30,33 +41,13 @@ RUN . ${HOME}/miniconda3/etc/profile.d/conda.sh && \
     conda activate base && \
     conda init
 
-RUN <<EOF
-#!/usr/bin/env bash
-cat >/workspace/setup_instance.sh <<EOL
-. ${HOME}/miniconda3/etc/profile.d/conda.sh
-conda activate base
-export CONDA_HOME=${HOME}/miniconda3
-export CUDA_HOME=/usr/local/cuda
-export PATH=\${CUDA_HOME}/bin${PATH:+:${PATH}}
-export LD_LIBRARY_PATH=\${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-export LIBRARY_PATH=\${CUDA_HOME}/lib64${LIBRARY_PATHPATH:+:${LIBRARY_PATHPATH}}
-EOL
-EOF
+RUN echo "\
+. \${HOME}/miniconda3/etc/profile.d/conda.sh\n\
+conda activate base\n\
+export CONDA_HOME=\${HOME}/miniconda3\n\
+export CUDA_HOME=/usr/local/cuda\n\
+export PATH=\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n\
+export LD_LIBRARY_PATH=\${CUDA_HOME}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n\
+export LIBRARY_PATH=\${CUDA_HOME}/lib64\${LIBRARY_PATHPATH:+:\${LIBRARY_PATHPATH}}\n" >> /workspace/setup_instance.sh
 
-RUN <<EOF
-#!/usr/bin/env bash
-cat <<EOT >> ${HOME}/.bashrc
-. /workspace/setup_instance.sh
-EOT
-EOF
-
-# GKE version: 1.28.5-gke.1217000
-# NVIDIA driver version: 535.104.05
-# NVIDIA drivers list available at gs://ubuntu_nvidia_packages/
-# We assume that the host NVIDIA driver binaries and libraries are mapped to the docker filesystem
-
-
-# Source of the CUDA installation scripts:
-RUN cd /workspace; git clone https://github.com/pytorch/builder.git
-RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_118'
-RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_121'
+RUN echo ". /workspace/setup_instance.sh\n" >> ${HOME}/.bashrc
