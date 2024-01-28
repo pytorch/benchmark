@@ -42,13 +42,17 @@ RUN . ${HOME}/miniconda3/etc/profile.d/conda.sh && \
     conda activate base && \
     conda init
 
-RUN echo "\
-. \${HOME}/miniconda3/etc/profile.d/conda.sh\n\
-conda activate base\n\
-export CONDA_HOME=\${HOME}/miniconda3\n\
-export CUDA_HOME=/usr/local/cuda\n\
-export PATH=\${CUDA_HOME}/bin\${PATH:+:\${PATH}}\n\
-export LD_LIBRARY_PATH=\${CUDA_HOME}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}\n\
-export LIBRARY_PATH=\${CUDA_HOME}/lib64\${LIBRARY_PATHPATH:+:\${LIBRARY_PATHPATH}}\n" >> /workspace/setup_instance.sh
+RUN cat >/workspace/setup_instance.sh <<EOL
+. ${HOME}/miniconda3/etc/profile.d/conda.sh
+conda activate base
+export CONDA_HOME=${HOME}/miniconda3
+export CUDA_HOME=/usr/local/cuda
+export PATH=${CUDA_HOME}/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=${CUDA_HOME}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export LIBRARY_PATH=${CUDA_HOME}/lib64${LIBRARY_PATHPATH:+:${LIBRARY_PATHPATH}}
+EOL
 
-RUN echo ". /workspace/setup_instance.sh\n" >> ${HOME}/.bashrc
+
+RUN cat <<EOT >> ${HOME}/.bashrc
+. /workspace/setup_instance.sh
+EOT
