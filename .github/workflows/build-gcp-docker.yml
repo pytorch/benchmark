@@ -28,7 +28,7 @@ jobs:
       - name: Build TorchBench Nightly GCP Base Docker
         run: |
           cd benchmark/docker
-          docker build . \
+          docker buildx build . \
               -f gcp-a100-runner-dind.dockerfile -t xzhao9/gcp-a100-runner-dind:latest
       - name: Push docker to remote
         if: ${{ env.WITH_PUSH == 'true' }}
