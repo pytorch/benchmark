@@ -25,7 +25,7 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 # NVIDIA drivers list available at gs://ubuntu_nvidia_packages/
 # We assume that the host NVIDIA driver binaries and libraries are mapped to the docker filesystem
 
-# Source of the CUDA installation scripts:
+# Use the CUDA installation scripts from pytorch/builder
 RUN cd /workspace; git clone https://github.com/pytorch/builder.git
 RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_118'
 RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_121'
