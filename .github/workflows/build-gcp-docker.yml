@@ -25,7 +25,7 @@ jobs:
           registry: docker.io
           username: xzhao9
           password: ${{ secrets.DOCKER_PERSONAL_ACCESS_TOKEN }}
-      - name: Build TorchBench nightly docker
+      - name: Build TorchBench Nightly GCP Base Docker
         run: |
           cd benchmark/docker
           docker build . \
