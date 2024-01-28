@@ -23,7 +23,7 @@ cc {owner}
 
 DEFAULT_GH_ISSUE_OWNER = "@xuzhao9"
 
-def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str, github_owner:str=DEFAULT_GH_ISSUE_OWNER) -> None:
+def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str, github_owner: str=DEFAULT_GH_ISSUE_OWNER) -> None:
     with open(bisection_output_json, "r") as fp:
         bisection = json.load(fp)
 
