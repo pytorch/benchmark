@@ -4,6 +4,8 @@ ARG BASE_IMAGE=ghcr.io/actions/actions-runner:latest
 FROM ${BASE_IMAGE}
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+SHELL ["/bin/bash", "-c"]
+
 # GKE version: 1.28.5-gke.1217000
 # NVIDIA driver version: 535.104.05
 # NVIDIA drivers list available at gs://ubuntu_nvidia_packages/
@@ -26,8 +28,8 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 
 # Source of the CUDA installation scripts:
 RUN cd /workspace; git clone https://github.com/pytorch/builder.git
-RUN cd /workspace/builder/common; source install_cuda.sh; install_118
-RUN cd /workspace/builder/common; source install_cuda.sh; install_121
+RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_118'
+RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_121'
 
 # Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh && \
