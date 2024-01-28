@@ -23,7 +23,7 @@ cc {owner}
 
 DEFAULT_GH_ISSUE_OWNER = "@xuzhao9"
 
-def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str) -> None:
+def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str, github_owner:str=DEFAULT_GH_ISSUE_OWNER) -> None:
     with open(bisection_output_json, "r") as fp:
         bisection = json.load(fp)
 
@@ -49,9 +49,9 @@ def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str
         "treatment_commit": treatment_commit,
         "control_version": control_version,
         "treatment_version": treatment_version,
-        "result": result,
+        "result": bisection["result"],
         "github_run_url": github_run_url,
-        "owner": DEFAULT_GH_ISSUE_OWNER
+        "owner": github_owner,
     }
 
     issue_body = GITHUB_ISSUE_TEMPLATE.format(**issue_config)
