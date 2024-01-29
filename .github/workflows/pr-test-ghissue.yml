@@ -25,7 +25,7 @@ jobs:
           echo "Test performance file" > ./benchmark/gh-issue.md
       - name: Create the github issue
         continue-on-error: true
-        uses: peter-evans/create-issue-from-file@v5
+        uses: peter-evans/create-issue-from-file@v4
         with:
           title: Test Performance Issue Creation
           token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
