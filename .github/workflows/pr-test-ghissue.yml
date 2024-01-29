@@ -30,7 +30,8 @@ jobs:
         continue-on-error: true
         uses: peter-evans/create-issue-from-file@v5
         with:
-          title: Test Performance Issue creation
+          title: Test Performance Issue Creation
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
           content-filepath: ./benchmark/gh-issue.md
           labels: |
             torchbench-perf-report
