@@ -1,12 +1,10 @@
 name: TorchBench Nightly GCP Base Docker Build
 on:
   workflow_dispatch:
-    inputs:
-      nightly_date:
-        description: "PyTorch nightly version"
-        required: false
+
 env:
   WITH_PUSH: "true"
+
 jobs:
   build-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}

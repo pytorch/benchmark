@@ -11,29 +11,29 @@ except for the torch products which are intended to be installed separately so
 different torch versions can be benchmarked.
 
 ### Using Pre-built Packages
-We support Python 3.8+, and 3.10 is recommended. Conda is optional but suggested. To start with Python 3.10 in conda:
+We support Python 3.8+, and 3.11 is recommended. Conda is optional but suggested. To start with Python 3.11 in conda:
 ```
 # Using your current conda environment:
-conda install -y python=3.10
+conda install -y python=3.11
 
 # Or, using a new conda environment:
-conda create -n torchbenchmark python=3.10
+conda create -n torchbenchmark python=3.11
 conda activate torchbenchmark
 ```
 
-If you are running NVIDIA GPU tests, we support CUDA 11.8+, and use CUDA 11.8 as default:
+If you are running NVIDIA GPU tests, we support both CUDA 11.8 and 12.1, and use CUDA 12.1 as default:
 ```
-conda install -y -c pytorch magma-cuda118
+conda install -y -c pytorch magma-cuda121
 ```
 
 Then install pytorch, torchvision, and torchaudio using conda:
 ```
-conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch-nightly -c nvidia
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch-nightly -c nvidia
 ```
 Or use pip:
 (but don't mix and match pip and conda for the torch family of libs! - [see notes below](#notes))
 ```
-pip install --pre torch torchvision torchaudio -i https://download.pytorch.org/whl/nightly/cu118
+pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
 ```
 
 Install the benchmark suite, which will recursively install dependencies for all the models.  Currently, the repo is intended to be installed from the source tree.

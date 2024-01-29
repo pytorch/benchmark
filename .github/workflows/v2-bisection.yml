@@ -62,6 +62,7 @@ jobs:
       - name: Create the github issue
         if: env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL
         uses: peter-evans/create-issue-from-file@v4
+        token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
         with:
           title: V2 Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL }}
           content-filepath: ./bisection-result/gh-issue.md
