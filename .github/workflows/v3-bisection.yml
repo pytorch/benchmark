@@ -83,10 +83,10 @@ jobs:
           cp -r "${BISECT_WORKDIR}" ../bisection-result
       - name: Create the github issue
         continue-on-error: true
-        if: env.TORCHBENCH_BISECTION_COMMIT_FOUND
+        if: env.TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED
         uses: peter-evans/create-issue-from-file@v4
         with:
-          title: V3 Performance Signal Detected by TorchBench Userbenchmark "torch-nightly" on ${{ env.TORCHBENCH_BISECTION_COMMIT_FOUND }}
+          title: V3 Performance Signal Detected by TorchBench Userbenchmark "torch-nightly" on ${{ env.TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED }}
           content-filepath: ./benchmark/gh-issue.md
           labels: |
             torchbench-perf-report

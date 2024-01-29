@@ -23,11 +23,10 @@ cc {owner}
 
 DEFAULT_GH_ISSUE_OWNER = "@xuzhao9"
 
-def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str) -> None:
+def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str, github_owner: str=DEFAULT_GH_ISSUE_OWNER) -> None:
     with open(bisection_output_json, "r") as fp:
         bisection = json.load(fp)
 
-    result = json.dump(bisection, indent=4)
     control_commit = bisection["start"]
     control_version = bisection["start_version"]
     treatment_commit = bisection["end"]
@@ -35,10 +34,9 @@ def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str
 
     if "GITHUB_ENV" in os.environ:
         fname = os.environ["GITHUB_ENV"]
-        content = f"TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED='{bisection.target_repo.end}'\n"
+        content = f"TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED='{treatment_version}'\n"
         with open(fname, 'a') as fo:
             fo.write(content)
-        process_bisection_into_gh_issue(bisection.output_json)
 
     github_run_id = os.environ.get("GITHUB_RUN_ID", None)
     github_run_url = "No URL found, please look for the failing action in " + \
@@ -51,9 +49,9 @@ def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str
         "treatment_commit": treatment_commit,
         "control_version": control_version,
         "treatment_version": treatment_version,
-        "result": result,
+        "result": bisection["result"],
         "github_run_url": github_run_url,
-        "owner": DEFAULT_GH_ISSUE_OWNER
+        "owner": github_owner,
     }
 
     issue_body = GITHUB_ISSUE_TEMPLATE.format(**issue_config)
