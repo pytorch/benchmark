@@ -78,6 +78,7 @@ jobs:
         uses: peter-evans/create-issue-from-file@v4
         with:
           title: Optim Perf Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_REGRESSION_DETECTED }}
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
           content-filepath: ./benchmark/gh-issue.md
           labels: |
             torchbench-perf-report
