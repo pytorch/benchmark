@@ -11,12 +11,12 @@ jobs:
       TORCHBENCH_VER: "v2"
       CONFIG_VER: "v2"
       PYTHON_VER: "3.10"
-      CUDA_VER: "11.8"
-      MAGMA_VERSION: "magma-cuda118"
+      CUDA_VER: "12.1"
+      MAGMA_VERSION: "magma-cuda121"
       CONDA_ENV_NAME:  "torchbench-v2-nightly-ci"
       OUTPUT_DIR: ".torchbench/v2-nightly-ci"
       BISECTION_ROOT: ".torchbench/v2-bisection-ci"
-      CUDA_VERSION: "cu118"
+      CUDA_VERSION: "cu121"
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
