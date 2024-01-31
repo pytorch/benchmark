@@ -15,11 +15,11 @@ jobs:
       BISECT_DIR: ".torchbench/v2-bisection-ci"
       BISECT_BRANCH: "v2.0"
       PYTHON_VER: "3.10"
-      CUDA_VER: "11.8"
+      CUDA_VER: "12.1"
       NUMPY_VER: "1.21.2"
       CMAKE_VER: "3.26"
       MKL_VER: "2021.2.0"
-      MAGMA_VER: "magma-cuda118"
+      MAGMA_VER: "magma-cuda121"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
@@ -62,10 +62,10 @@ jobs:
       - name: Create the github issue
         if: env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL
         uses: peter-evans/create-issue-from-file@v4
-        token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
         with:
           title: V2 Performance Signal Detected by TorchBench CI on ${{ env.TORCHBENCH_PERF_BISECTION_NONEMPTY_SIGNAL }}
           content-filepath: ./bisection-result/gh-issue.md
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
           labels: |
             torchbench-perf-report
       - name: Upload artifact
