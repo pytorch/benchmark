@@ -2,7 +2,7 @@ import os
 import torch
 from torch.autograd import Variable
 
-USE_CUDA = torch.cuda.is_available()
+USE_CUDA = torch.cuda.is_available() or torch.backends.mps.is_available()
 
 def prRed(prt): print("\033[91m {}\033[00m" .format(prt))
 def prGreen(prt): print("\033[92m {}\033[00m" .format(prt))

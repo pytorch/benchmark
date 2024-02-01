@@ -100,6 +100,7 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     if torch.cuda.is_available(): torch.cuda.manual_seed_all(args.seed)
+    if torch.backends.mps.is_available(): torch.mps.manual_seed(args.seed)
     random.seed(args.seed)
     torch.backends.cudnn.deterministic = False
     torch.backends.cudnn.benchmark = False
