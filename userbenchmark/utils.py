@@ -31,9 +31,6 @@ class add_path():
             pass
 
 
-with add_path(str(REPO_PATH)):
-    from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT
-
 
 @dataclass
 class TorchBenchABTestMetric:
@@ -155,6 +152,8 @@ def get_latest_files_in_s3_from_last_n_days(bm_name: str, platform_name: str, da
     """Retrieves the most recent n day metrics json filenames from S3 before the given date, inclusive of that date.
        If fewer than n days are found, returns all found items without erroring, even if there were no items.
        Returns maximum 100 results by default. """
+    with add_path(str(REPO_PATH)):
+        from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
     directory = f'{bm_name}/{platform_name}'
 
