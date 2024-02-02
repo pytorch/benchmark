@@ -407,6 +407,9 @@ class TorchBenchBisection:
     # Run in debug mode.
     # If true, will try to resume from the previous failed run.
     debug: bool
+    # Run in interactive mode.
+    # If true, skip running and manually specify good and bad commits.
+    interacitve: bool
     # left commit, right commit, TorchBenchABTestResult to test.
     bisectq: List[Tuple[Commit, Commit, TorchBenchABTestResult]]
     result: List[Tuple[Commit, Commit]]
@@ -423,6 +426,7 @@ class TorchBenchBisection:
         bisect_config: TorchBenchABTestResult,
         output_json: str,
         debug: bool = False,
+        interacitve: bool = False,
     ):
         self.workdir = Path(workdir)
         self.torch_repos = torch_repos
@@ -451,8 +455,11 @@ class TorchBenchBisection:
         self.result = list()
         self.output_json = output_json
         self.debug = debug
+        self.interacitve = interacitve
 
     def prep(self) -> bool:
+        if self.interatcive:
+            return True
         if not IS_FBCODE:
             cleanup_torch_packages()
         if not self.target_repo.prep():
@@ -482,17 +489,34 @@ class TorchBenchBisection:
         regression_result.bisection_config_file_path = regression_file_full_path
         return regression_result
 
+    def is_signal(self, abtest_result) -> bool:
+        return len(abtest_result.details) \
+                or len(abtest_result.control_only_metrics) \
+                or len(abtest_result.treatment_only_metrics)
+
+    def interactive_signal(self, commit: Commit) -> bool:
+        """Prompt for good or bad commit from user input."""
+        val = input(f"Commit {commit.sha} good or bad (G/B)?").strip()
+        if val == "G":
+            return True
+        elif val == "B":
+            return False
+        else:
+            assert False, "We only accept G or B as user input."
+
     def run(self):
         while len(self.bisectq):
             (left, right, abtest_result) = self.bisectq.pop(0)
-            self.torchbench.get_digest_for_commit(left, abtest_result, self.debug)
-            self.torchbench.get_digest_for_commit(right, abtest_result, self.debug)
-            updated_abtest_result = self.regression_detection(left, right)
-            if (
-                len(updated_abtest_result.details)
-                or len(updated_abtest_result.control_only_metrics)
-                or len(updated_abtest_result.treatment_only_metrics)
-            ):
+            if self.interactive:
+                left_signal = self.interactive_signal(left)
+                right_signal = self.interactive_signal(right)
+                signal = (left_signal == right_signal)
+            else:
+                self.torchbench.get_digest_for_commit(left, abtest_result, self.debug)
+                self.torchbench.get_digest_for_commit(right, abtest_result, self.debug)
+                updated_abtest_result = self.regression_detection(left, right)
+                signal = self.is_signal(updated_abtest_result)
+            if signal:
                 mid = self.target_repo.get_mid_commit(left, right)
                 if mid == None:
                     self.result.append((left, right))
@@ -573,6 +597,11 @@ def main() -> None:
         help="run in debug mode, if the result json exists, use it directly",
         action="store_true",
     )
+    parser.add_argument(
+        "--interactive",
+        help="run in interactive mode, manually specify good and bad commits",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     bisect_config = parse_abtest_result_from_regression_file_for_bisect(args.config)
@@ -638,6 +667,7 @@ def main() -> None:
         bisect_config=bisect_config,
         output_json=args.output,
         debug=args.debug,
+        interacrive=args.interactive,
     )
     if start_hash == end_hash:
         print(f"Start and end hash are the same: {start_hash}. Skip bisection")
