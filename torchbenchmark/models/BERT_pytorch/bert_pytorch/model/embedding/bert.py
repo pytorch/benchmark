@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 from .token import TokenEmbedding
 from .position import PositionalEmbedding

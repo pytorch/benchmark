@@ -1,8 +1,5 @@
-import argparse
 import random
 import torch
-
-import numpy as np
 
 from torchbenchmark.util.env_check import set_random_seed
 
@@ -21,6 +18,7 @@ from torchbenchmark.tasks import NLP
 
 import io
 
+
 class CorpusGenerator(io.TextIOBase):
     """
     Class to Generate Random Corpus in Lieu of Using Fixed File Data.
@@ -36,7 +34,6 @@ class CorpusGenerator(io.TextIOBase):
     file.
     """
 
-
     def __init__(self, words, lines):
         self.lines_read = 0
         self.lines = lines
@@ -51,23 +48,24 @@ class CorpusGenerator(io.TextIOBase):
     def readline(self):
 
         self.lines_read = self.lines_read + 1
-        if (self.lines_read > self.lines):
-          return ""
+        if self.lines_read > self.lines:
+            return ""
 
         newline = ""
-        for j in range(random.randrange(1,4)):
+        for j in range(random.randrange(1, 4)):
             newline += str(random.randrange(self.words)) + " "
 
         newline += "\\t "
 
-        for j in range(random.randrange(1,4)):
+        for j in range(random.randrange(1, 4)):
             newline += str(random.randrange(self.words)) + " "
 
         newline += "\n"
 
-        #print(newline)
+        # print(newline)
 
         return newline
+
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
@@ -77,15 +75,23 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         if device == "cpu":
             self.DEFAULT_EVAL_BSIZE = max(1, int(self.DEFAULT_EVAL_BSIZE / 8))
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         debug_print = False
         root = str(Path(__file__).parent)
-        args = parse_args(args=[
-            '--train_dataset', f'{root}/data/corpus.small',
-            '--test_dataset', f'{root}/data/corpus.small',
-            '--vocab_path', f'{root}/data/vocab.small',
-            '--output_path', 'bert.model',
-        ]) # Avoid reading sys.argv here
+        args = parse_args(
+            args=[
+                "--train_dataset",
+                f"{root}/data/corpus.small",
+                "--test_dataset",
+                f"{root}/data/corpus.small",
+                "--vocab_path",
+                f"{root}/data/vocab.small",
+                "--output_path",
+                "bert.model",
+            ]
+        )  # Avoid reading sys.argv here
         args.device = self.device
         args.script = False
         args.on_memory = True
@@ -112,9 +118,9 @@ class Model(BenchmarkModel):
         set_random_seed()
         vocab = WordVocab(CorpusGenerator(vocab_size, args.corpus_lines))
 
-        #with open(args.train_dataset, "r", encoding="utf-8") as f:
+        # with open(args.train_dataset, "r", encoding="utf-8") as f:
         #  vocab = WordVocab(f)
-        #vocab = WordVocab.load_vocab(args.vocab_path)
+        # vocab = WordVocab.load_vocab(args.vocab_path)
 
         if debug_print:
             print("seq_len:")
@@ -130,32 +136,72 @@ class Model(BenchmarkModel):
             print(type(vocab))
 
         set_random_seed()
-        train_dataset = BERTDataset(args.train_dataset, vocab, seq_len=args.seq_len,
-                                    corpus_lines=args.corpus_lines, on_memory=args.on_memory, generator = CorpusGenerator(vocab_size, args.corpus_lines))
+        train_dataset = BERTDataset(
+            args.train_dataset,
+            vocab,
+            seq_len=args.seq_len,
+            corpus_lines=args.corpus_lines,
+            on_memory=args.on_memory,
+            generator=CorpusGenerator(vocab_size, args.corpus_lines),
+        )
 
         set_random_seed()
-        test_dataset = BERTDataset(args.test_dataset, vocab, seq_len=args.seq_len, on_memory=args.on_memory, generator = CorpusGenerator(vocab_size, args.corpus_lines)) \
-            if args.test_dataset is not None else None
+        test_dataset = (
+            BERTDataset(
+                args.test_dataset,
+                vocab,
+                seq_len=args.seq_len,
+                on_memory=args.on_memory,
+                generator=CorpusGenerator(vocab_size, args.corpus_lines),
+            )
+            if args.test_dataset is not None
+            else None
+        )
 
         set_random_seed()
 
-        train_data_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers)
-        test_data_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers) \
-            if test_dataset is not None else None
+        train_data_loader = DataLoader(
+            train_dataset, batch_size=args.batch_size, num_workers=args.num_workers
+        )
+        test_data_loader = (
+            DataLoader(
+                test_dataset, batch_size=args.batch_size, num_workers=args.num_workers
+            )
+            if test_dataset is not None
+            else None
+        )
 
-        bert = BERT(len(vocab), hidden=args.hidden, n_layers=args.layers, attn_heads=args.attn_heads)
+        bert = BERT(
+            len(vocab),
+            hidden=args.hidden,
+            n_layers=args.layers,
+            attn_heads=args.attn_heads,
+        )
 
-        trainer = BERTTrainer(bert, len(vocab), train_dataloader=train_data_loader, test_dataloader=test_data_loader,
-                                   lr=args.lr, betas=(args.adam_beta1, args.adam_beta2), weight_decay=args.adam_weight_decay,
-                                   device=args.device, device_ids=args.device_ids, log_freq=args.log_freq, debug=args.debug)
+        trainer = BERTTrainer(
+            bert,
+            len(vocab),
+            train_dataloader=train_data_loader,
+            test_dataloader=test_data_loader,
+            lr=args.lr,
+            betas=(args.adam_beta1, args.adam_beta2),
+            weight_decay=args.adam_weight_decay,
+            device=args.device,
+            device_ids=args.device_ids,
+            log_freq=args.log_freq,
+            debug=args.debug,
+        )
 
         if test == "eval":
             bert.eval()
 
         example_batch = next(iter(train_data_loader))
-        self.example_inputs = example_batch['bert_input'].to(self.device)[:self.batch_size], example_batch['segment_label'].to(self.device)[:self.batch_size]
-        self.is_next = example_batch['is_next'].to(self.device)[:self.batch_size]
-        self.bert_label = example_batch['bert_label'].to(self.device)[:self.batch_size]
+        self.example_inputs = (
+            example_batch["bert_input"].to(self.device)[: self.batch_size],
+            example_batch["segment_label"].to(self.device)[: self.batch_size],
+        )
+        self.is_next = example_batch["is_next"].to(self.device)[: self.batch_size]
+        self.bert_label = example_batch["bert_label"].to(self.device)[: self.batch_size]
         self.model = trainer
 
     def get_module(self):

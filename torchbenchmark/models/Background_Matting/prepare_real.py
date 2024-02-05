@@ -3,7 +3,7 @@
 # segmentations. Also takes a path of background videos. Creates a training CSV file with lines of the following format,
 # by using all but the last 80 frames of each video and iterating repeatedly over the background frames as needed.
 
-#$image;$captured_back;$segmentation;$image+20frames;$image+2*20frames;$image+3*20frames;$image+4*20frames;$target_back
+# $image;$captured_back;$segmentation;$image+20frames;$image+2*20frames;$image+3*20frames;$image+4*20frames;$target_back
 
 path = "ak/"
 background_path = "ak/"
@@ -12,8 +12,6 @@ output_csv = "Video_data_train.csv"
 #######################################
 
 import os
-from itertools import cycle
-from tqdm import tqdm
 
 with open(output_csv, "w") as f:
     video = "ak"
