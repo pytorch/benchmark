@@ -490,11 +490,6 @@ class TorchBenchBisection:
         regression_result.bisection_config_file_path = regression_file_full_path
         return regression_result
 
-    def is_signal(self, abtest_result) -> bool:
-        return len(abtest_result.details) \
-                or len(abtest_result.control_only_metrics) \
-                or len(abtest_result.treatment_only_metrics)
-
     def interactive_signal(self, commit: Commit) -> bool:
         """Prompt for good or bad commit from user input."""
         val = input(f"Commit {commit.sha} good or bad (G/B)? ").strip()
@@ -517,7 +512,7 @@ class TorchBenchBisection:
                 self.torchbench.get_digest_for_commit(left, abtest_result, self.debug)
                 self.torchbench.get_digest_for_commit(right, abtest_result, self.debug)
                 updated_abtest_result = self.regression_detection(left, right)
-                signal = self.is_signal(updated_abtest_result)
+                signal = bool(len(updated_abtest_result.details))
             print(f"Left commit: {left.sha}, right commit: {right.sha}, signal: {signal}")
             if signal:
                 mid = self.target_repo.get_mid_commit(left, right)
