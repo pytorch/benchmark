@@ -3,18 +3,19 @@ import numpy as np
 import kornia
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class ReplayBuffer:
     """Buffer to store environment transitions."""
+
     def __init__(self, obs_shape, action_shape, capacity, image_pad, device):
         self.capacity = capacity
         self.device = device
 
         self.aug_trans = nn.Sequential(
             nn.ReplicationPad2d(image_pad),
-            kornia.augmentation.RandomCrop((obs_shape[-1], obs_shape[-1])))
+            kornia.augmentation.RandomCrop((obs_shape[-1], obs_shape[-1])),
+        )
 
         self.obses = np.empty((capacity, *obs_shape), dtype=np.uint8)
         self.next_obses = np.empty((capacity, *obs_shape), dtype=np.uint8)
@@ -42,9 +43,9 @@ class ReplayBuffer:
 
     def sample(self, batch_size):
         x = self.capacity if self.full else self.idx
-        idxs = np.random.randint(0,
-                                 self.capacity if self.full else self.idx,
-                                 size=batch_size)
+        idxs = np.random.randint(
+            0, self.capacity if self.full else self.idx, size=batch_size
+        )
 
         obses = self.obses[idxs]
         next_obses = self.next_obses[idxs]
@@ -54,12 +55,12 @@ class ReplayBuffer:
         obses = torch.as_tensor(obses, device=self.device).float()
         next_obses = torch.as_tensor(next_obses, device=self.device).float()
         obses_aug = torch.as_tensor(obses_aug, device=self.device).float()
-        next_obses_aug = torch.as_tensor(next_obses_aug,
-                                         device=self.device).float()
+        next_obses_aug = torch.as_tensor(next_obses_aug, device=self.device).float()
         actions = torch.as_tensor(self.actions[idxs], device=self.device)
         rewards = torch.as_tensor(self.rewards[idxs], device=self.device)
-        not_dones_no_max = torch.as_tensor(self.not_dones_no_max[idxs],
-                                           device=self.device)
+        not_dones_no_max = torch.as_tensor(
+            self.not_dones_no_max[idxs], device=self.device
+        )
 
         obses = self.aug_trans(obses)
         next_obses = self.aug_trans(next_obses)
@@ -67,4 +68,12 @@ class ReplayBuffer:
         obses_aug = self.aug_trans(obses_aug)
         next_obses_aug = self.aug_trans(next_obses_aug)
 
-        return obses, actions, rewards, next_obses, not_dones_no_max, obses_aug, next_obses_aug
+        return (
+            obses,
+            actions,
+            rewards,
+            next_obses,
+            not_dones_no_max,
+            obses_aug,
+            next_obses_aug,
+        )
