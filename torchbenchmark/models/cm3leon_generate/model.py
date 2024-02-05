@@ -4,10 +4,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.utils.benchmark as benchmark
 from torch import Tensor
 from typing import Optional, Dict, Any
-from tqdm import tqdm
 
 
 # torch.set_float32_matmul_precision("high")
@@ -133,9 +131,8 @@ def PositionalEmbedding(
 
 
 from typing import Tuple
-from torch.nn import Parameter, init
+from torch.nn import Parameter
 import math
-import uuid
 
 
 def softmax(x, dim: int):
@@ -538,7 +535,7 @@ class MultiheadAttention(nn.Module):
         return self.set_incremental_state(incremental_state, "attn_state", buffer)
 
 
-from typing import Callable, List
+from typing import Callable
 
 
 class ActivationFn(nn.Module):
@@ -1183,17 +1180,15 @@ class SequenceGeneratorFixedSize(nn.Module):
 
 def create_model(embed_dim=1536):
     embed_tokens = torch.nn.Embedding(2048, embed_dim, padding_idx=-1)
-    return (
-        TransformerDecoder(
-            embed_tokens,
-            decoder_layers=24,
-            decoder_attention_heads=16,
-            max_target_positions=2048,
-            embed_dim=embed_dim,
-            decoder_ffn_embed_dim=embed_dim * 4,
-            no_scale_embedding=True,
-            share_decoder_input_output_embed=True,
-            decoder_learned_pos=True,
-            dropout=0.1,
-        )
+    return TransformerDecoder(
+        embed_tokens,
+        decoder_layers=24,
+        decoder_attention_heads=16,
+        max_target_positions=2048,
+        embed_dim=embed_dim,
+        decoder_ffn_embed_dim=embed_dim * 4,
+        no_scale_embedding=True,
+        share_decoder_input_output_embed=True,
+        decoder_learned_pos=True,
+        dropout=0.1,
     )

@@ -1,7 +1,4 @@
-import json
 import torch
-import random
-import numpy as np
 from fractions import Fraction
 
 from .demucs.model import Demucs
@@ -13,10 +10,11 @@ from torchbenchmark.tasks import OTHER
 from torch import Tensor
 from torch.nn.modules.container import Sequential
 from torchbenchmark.models.demucs.demucs.model import Demucs
-from typing import Optional, Tuple
+from typing import Tuple
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
+
 
 class DemucsWrapper(torch.nn.Module):
     def __init__(self, model: Demucs, augment: Sequential) -> None:
@@ -43,7 +41,9 @@ class Model(BenchmarkModel):
         # see: https://github.com/pytorch/benchmark/issues/895
         if device == "cpu":
             self.DEFAULT_EVAL_BSIZE = max(1, int(self.DEFAULT_EVAL_BSIZE / 8))
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.parser = get_parser()
         self.args = self.parser.parse_args([])
@@ -61,20 +61,26 @@ class Model(BenchmarkModel):
             self.criterion = torch.nn.L1Loss()
 
         if args.augment:
-            self.augment = torch.nn.Sequential(FlipSign(), FlipChannels(), Shift(args.data_stride),
-                                    Remix(group_size=args.remix_group_size)).to(device)
+            self.augment = torch.nn.Sequential(
+                FlipSign(),
+                FlipChannels(),
+                Shift(args.data_stride),
+                Remix(group_size=args.remix_group_size),
+            ).to(device)
         else:
             self.augment = Shift(args.data_stride)
 
         self.model = DemucsWrapper(model, self.augment)
-        
+
         if test == "train":
             self.model.train()
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
         elif test == "eval":
             self.model.eval()
 
-        self.example_inputs = (torch.rand([self.batch_size, 5, 2, 426888], device=device),)
+        self.example_inputs = (
+            torch.rand([self.batch_size, 5, 2, 426888], device=device),
+        )
 
     def get_module(self) -> Tuple[DemucsWrapper, Tuple[Tensor]]:
         return self.model, self.example_inputs

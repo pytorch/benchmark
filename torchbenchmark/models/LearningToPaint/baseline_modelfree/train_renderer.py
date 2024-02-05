@@ -1,9 +1,7 @@
-import cv2
 import torch
 import numpy as np
 
 import torch.nn as nn
-import torch.nn.functional as F
 from utils.tensorboard import TensorBoard
 from Renderer.model import FCN
 from Renderer.stroke_gen import *

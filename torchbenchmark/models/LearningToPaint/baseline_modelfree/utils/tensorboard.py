@@ -1,8 +1,8 @@
 import PIL
-import scipy.misc
 from io import BytesIO
 import tensorboardX as tb
 from tensorboardX.summary import Summary
+
 
 class TensorBoard:
     def __init__(self, model_dir):

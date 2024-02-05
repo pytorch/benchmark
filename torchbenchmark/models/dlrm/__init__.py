@@ -1,12 +1,4 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-
-# miscellaneous
-import builtins
-import functools
-# import bisect
-# import shutil
-import time
-import json
 from typing import Tuple
 import sys
 
@@ -18,17 +10,12 @@ import numpy as np
 
 # pytorch
 import torch
-import torch.nn as nn
-from torch.nn.parallel.parallel_apply import parallel_apply
-from torch.nn.parallel.replicate import replicate
-from torch.nn.parallel.scatter_gather import gather, scatter
 
 # quotient-remainder trick
 from .tricks.qr_embedding_bag import QREmbeddingBag
+
 # mixed-dimension trick
 from .tricks.md_embedding_bag import PrEmbeddingBag, md_solver
-
-from torch.optim.lr_scheduler import _LRScheduler
 
 from .dlrm_s_pytorch import DLRM_Net, LRPolicyScheduler
 from argparse import Namespace
@@ -42,11 +29,15 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 2048
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         # Train architecture: use the configuration in the paper.
         # Source: https://arxiv.org/pdf/1906.00091.pdf
-        arch_embedding_size = "1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000"
+        arch_embedding_size = (
+            "1000000-1000000-1000000-1000000-1000000-1000000-1000000-1000000"
+        )
         arch_sparse_feature_size = 64
         arch_mlp_bot = "512-512-64"
         arch_mlp_top = "1024-1024-1024-1"
@@ -55,55 +46,57 @@ class Model(BenchmarkModel):
         num_batches = 1
         num_indicies_per_lookup = 100
 
-        self.opt = Namespace(**{
-            'm_spa' : None,
-            'ln_emb': None,
-            'ln_bot': None,
-            'ln_top': None,
-            'arch_interaction_op': "dot",
-            'arch_interaction_itself': False,
-            'sigmoid_bot': -1,
-            'sigmoid_top': -1,
-            'sync_dense_params': True,
-            'loss_threshold': 0.0,
-            'ndevices': -1,
-            'qr_flag': False,
-            'qr_operation': "mult",
-            'qr_collisions': 0,
-            'qr_threshold': 200,
-            'md_flag': False,
-            'md_threshold': 200,
-            'md_temperature': 0.3,
-            'activation_function': "relu",
-            'loss_function': "bce",
-            'loss_weights': "1.0-1.0",
-            'loss_threshold': 0.0,
-            'round_targets': False,
-            'data_size': 6,
-            'data_generation': data_generation,
-            'data_trace_file': "./input/dist_emb_j.log",
-            'raw_data_file': "",
-            'processed_data_file': "",
-            'data_randomize': "total",
-            'data_trace_enable_padding': False,
-            'max_ind_range': -1,
-            'num_workers': 0,
-            'memory_map': False,
-            'data_sub_sample_rate': 0.0,
-            'learning_rate': 0.01,
-            'lr_num_warmup_steps': 0,
-            'lr_decay_start_step': 0,
-            'lr_num_decay_steps': 0,
-            'arch_embedding_size': arch_embedding_size,
-            'arch_sparse_feature_size': arch_sparse_feature_size,
-            'arch_mlp_bot': arch_mlp_bot,
-            'arch_mlp_top': arch_mlp_top,
-            'mini_batch_size': mini_batch_size,
-            'num_batches': num_batches,
-            'num_indices_per_lookup': num_indicies_per_lookup,
-            'num_indices_per_lookup_fixed': True,
-            'numpy_rand_seed': 123,
-        })
+        self.opt = Namespace(
+            **{
+                "m_spa": None,
+                "ln_emb": None,
+                "ln_bot": None,
+                "ln_top": None,
+                "arch_interaction_op": "dot",
+                "arch_interaction_itself": False,
+                "sigmoid_bot": -1,
+                "sigmoid_top": -1,
+                "sync_dense_params": True,
+                "loss_threshold": 0.0,
+                "ndevices": -1,
+                "qr_flag": False,
+                "qr_operation": "mult",
+                "qr_collisions": 0,
+                "qr_threshold": 200,
+                "md_flag": False,
+                "md_threshold": 200,
+                "md_temperature": 0.3,
+                "activation_function": "relu",
+                "loss_function": "bce",
+                "loss_weights": "1.0-1.0",
+                "loss_threshold": 0.0,
+                "round_targets": False,
+                "data_size": 6,
+                "data_generation": data_generation,
+                "data_trace_file": "./input/dist_emb_j.log",
+                "raw_data_file": "",
+                "processed_data_file": "",
+                "data_randomize": "total",
+                "data_trace_enable_padding": False,
+                "max_ind_range": -1,
+                "num_workers": 0,
+                "memory_map": False,
+                "data_sub_sample_rate": 0.0,
+                "learning_rate": 0.01,
+                "lr_num_warmup_steps": 0,
+                "lr_decay_start_step": 0,
+                "lr_num_decay_steps": 0,
+                "arch_embedding_size": arch_embedding_size,
+                "arch_sparse_feature_size": arch_sparse_feature_size,
+                "arch_mlp_bot": arch_mlp_bot,
+                "arch_mlp_top": arch_mlp_top,
+                "mini_batch_size": mini_batch_size,
+                "num_batches": num_batches,
+                "num_indices_per_lookup": num_indicies_per_lookup,
+                "num_indices_per_lookup_fixed": True,
+                "numpy_rand_seed": 123,
+            }
+        )
 
         if self.device == "cuda":
             torch.cuda.manual_seed_all(self.opt.numpy_rand_seed)
@@ -113,9 +106,13 @@ class Model(BenchmarkModel):
         self.opt.ln_bot = np.fromstring(self.opt.arch_mlp_bot, dtype=int, sep="-")
 
         # Input and target at random
-        self.opt.ln_emb = np.fromstring(self.opt.arch_embedding_size, dtype=int, sep="-")
+        self.opt.ln_emb = np.fromstring(
+            self.opt.arch_embedding_size, dtype=int, sep="-"
+        )
         self.opt.m_den = self.opt.ln_bot[0]
-        train_data, self.train_ld = dp.make_random_data_and_loader(self.opt, self.opt.ln_emb, self.opt.m_den)
+        train_data, self.train_ld = dp.make_random_data_and_loader(
+            self.opt, self.opt.ln_emb, self.opt.m_den
+        )
         self.opt.nbatches = len(self.train_ld)
 
         self.opt.m_spa = self.opt.arch_sparse_feature_size
@@ -163,10 +160,16 @@ class Model(BenchmarkModel):
         # Preparing data
         X, lS_o, lS_i, self.targets = next(iter(self.train_ld))
         X = X.to(self.device)
-        lS_i = [S_i.to(self.device) for S_i in lS_i] if isinstance(lS_i, list) \
+        lS_i = (
+            [S_i.to(self.device) for S_i in lS_i]
+            if isinstance(lS_i, list)
             else lS_i.to(self.device)
-        lS_o = [S_o.to(self.device) for S_o in lS_o] if isinstance(lS_o, list) \
+        )
+        lS_o = (
+            [S_o.to(self.device) for S_o in lS_o]
+            if isinstance(lS_o, list)
             else lS_o.to(self.device)
+        )
         self.targets = self.targets.to(self.device)
 
         # Setting Loss Function
@@ -175,21 +178,29 @@ class Model(BenchmarkModel):
         elif self.opt.loss_function == "bce":
             self.loss_fn = torch.nn.BCELoss(reduction="mean")
         elif self.opt.loss_function == "wbce":
-            self.loss_ws = torch.tensor(np.fromstring(self.opt.loss_weights, dtype=float, sep="-"))
+            self.loss_ws = torch.tensor(
+                np.fromstring(self.opt.loss_weights, dtype=float, sep="-")
+            )
             self.loss_fn = torch.nn.BCELoss(reduction="none")
         else:
-            sys.exit("ERROR: --loss-function=" + self.opt.loss_function + " is not supported")
+            sys.exit(
+                "ERROR: --loss-function=" + self.opt.loss_function + " is not supported"
+            )
 
         self.model = dlrm.to(self.device)
         self.example_inputs = (X, lS_o, lS_i)
         if test == "train":
             self.model.train()
             self.loss_fn = torch.nn.MSELoss(reduction="mean")
-            self.optimizer = torch.optim.SGD(dlrm.parameters(), lr=self.opt.learning_rate)
-            self.lr_scheduler = LRPolicyScheduler(self.optimizer,
-                                                self.opt.lr_num_warmup_steps,
-                                                self.opt.lr_decay_start_step,
-                                                self.opt.lr_num_decay_steps)
+            self.optimizer = torch.optim.SGD(
+                dlrm.parameters(), lr=self.opt.learning_rate
+            )
+            self.lr_scheduler = LRPolicyScheduler(
+                self.optimizer,
+                self.opt.lr_num_warmup_steps,
+                self.opt.lr_decay_start_step,
+                self.opt.lr_num_decay_steps,
+            )
         elif test == "eval":
             self.model.eval()
 
@@ -203,14 +214,16 @@ class Model(BenchmarkModel):
 
     def set_optimizer(self, optimizer) -> None:
         self.optimizer = optimizer
-        self.lr_scheduler = LRPolicyScheduler(self.optimizer,
-                                              self.opt.lr_num_warmup_steps,
-                                              self.opt.lr_decay_start_step,
-                                              self.opt.lr_num_decay_steps)
+        self.lr_scheduler = LRPolicyScheduler(
+            self.optimizer,
+            self.opt.lr_num_warmup_steps,
+            self.opt.lr_decay_start_step,
+            self.opt.lr_num_decay_steps,
+        )
 
     def eval(self) -> Tuple[torch.Tensor]:
         out = self.model(*self.example_inputs)
-        return (out, )
+        return (out,)
 
     def train(self):
         gen = self.model(*self.example_inputs)
