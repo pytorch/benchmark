@@ -16,15 +16,14 @@
 ##
 
 from ctypes import *
-from ctypes.util import find_library
 from . import dcgm_structs
 
 # Provides access to functions
 dcgmFP = dcgm_structs._dcgmGetFunctionPointer
 
 
-#internal-only fields
-DCGM_FI_DEV_MEM_COPY_UTIL_SAMPLES          = 210 #Memory utilization samples
-DCGM_FI_DEV_GPU_UTIL_SAMPLES               = 211 #SM utilization samples
-DCGM_FI_DEV_GRAPHICS_PIDS                  = 220 #Graphics processes running on the GPU.
-DCGM_FI_DEV_COMPUTE_PIDS                   = 221 #Compute processes running on the GPU.
+# internal-only fields
+DCGM_FI_DEV_MEM_COPY_UTIL_SAMPLES = 210  # Memory utilization samples
+DCGM_FI_DEV_GPU_UTIL_SAMPLES = 211  # SM utilization samples
+DCGM_FI_DEV_GRAPHICS_PIDS = 220  # Graphics processes running on the GPU.
+DCGM_FI_DEV_COMPUTE_PIDS = 221  # Compute processes running on the GPU.

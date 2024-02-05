@@ -1,5 +1,4 @@
 import os
-import subprocess
 import sys
 import signal
 import textwrap
@@ -14,37 +13,37 @@ try:
     from components._impl.workers import subprocess_worker
     from components._impl.workers import subprocess_rpc
 except (ImportError, ModuleNotFoundError):
-    print(f"""
+    print(
+        f"""
         This test must be run from the repo root directory as
         `python -m components.test.{os.path.splitext(os.path.basename(__file__))[0]}`
-    """)
+    """
+    )
     raise
 
 
 class CustomClass:
     """Used to test handline of non-builtin objects."""
+
     pass
 
 
 class TestBenchmarkWorker(TestCase):
-
     def _test_namespace_isolation(self, worker: base_worker.WorkerBase):
         worker_global_vars: typing.Dict[str, str] = worker.load_stmt(
-            r"{k: repr(type(v)) for k, v in globals().items()}")
+            r"{k: repr(type(v)) for k, v in globals().items()}"
+        )
         allowed_keys = {
             "__builtins__",
             subprocess_rpc.WORKER_IMPL_NAMESPACE,
         }
         extra_vars = {
-            k: v for k, v in worker_global_vars.items()
-            if k not in allowed_keys
+            k: v for k, v in worker_global_vars.items() if k not in allowed_keys
         }
         self.assertDictEqual(extra_vars, {})
 
     def _subtest_cleanup(
-        self,
-        worker: base_worker.WorkerBase,
-        test_vars: typing.Tuple[str, ...]
+        self, worker: base_worker.WorkerBase, test_vars: typing.Tuple[str, ...]
     ) -> None:
         worker.run("\n".join([f"del {v}" for v in test_vars]))
         self._test_namespace_isolation(worker)
@@ -62,12 +61,14 @@ class TestBenchmarkWorker(TestCase):
         with self.assertRaisesRegex(ValueError, "unmarshallable object"):
             worker.store("my_class", CustomClass())
 
-        worker.run("""
+        worker.run(
+            """
             class CustomClass:
                 pass
 
             my_class = CustomClass()
-        """)
+        """
+        )
         with self.assertRaisesRegex(ValueError, "unmarshallable object"):
             worker.load("my_class")
 
@@ -81,7 +82,8 @@ class TestBenchmarkWorker(TestCase):
         self._subtest_cleanup(worker, ())
 
     def _check_complex_stmts(self, worker: base_worker.WorkerBase) -> None:
-        worker.run("""
+        worker.run(
+            """
             def test_fn():
                 x = 10
                 y = 2
@@ -89,7 +91,8 @@ class TestBenchmarkWorker(TestCase):
                 # Make sure we can handle blank lines.
                 return x + y
             z = test_fn()
-        """)
+        """
+        )
         self.assertEqual(worker.load("z"), 12)
 
         # Ensure variables persist across invocations. (In this case, `f`)
@@ -98,12 +101,14 @@ class TestBenchmarkWorker(TestCase):
 
         # Ensure invocations have access to global variables.
         worker.store("captured_var", 5)
-        worker.run("""
+        worker.run(
+            """
             def test_fn():
                 # Make sure closures work properly
                 return captured_var + 1
             z = test_fn()
-        """)
+        """
+        )
         self.assertEqual(worker.load("z"), 6)
 
         self._subtest_cleanup(worker, ("captured_var", "z", "test_fn"))
@@ -113,14 +118,16 @@ class TestBenchmarkWorker(TestCase):
         # may not resolve, or may resolve to incorrect paths. As a result, the
         # worker must ensure that it faithfully reproduces the caller's
         # environment.
-        worker.run("""
+        worker.run(
+            """
             import os
             import sys
 
             cwd = os.getcwd()
             sys_executable = sys.executable
             sys_path = sys.path
-        """)
+        """
+        )
         self.assertEqual(worker.load("cwd"), os.getcwd())
         self.assertEqual(worker.load("sys_executable"), sys.executable)
         self.assertEqual(worker.load("sys_path"), sys.path)
@@ -128,10 +135,12 @@ class TestBenchmarkWorker(TestCase):
         # Environment parity is especially important for `torch`, since
         # importing an incorrect version will result in silently garbage
         # results.
-        worker.run("""
+        worker.run(
+            """
             import torch
             torch_file = torch.__file__
-        """)
+        """
+        )
         self.assertEqual(worker.load("torch_file"), torch.__file__)
 
         self._subtest_cleanup(
@@ -152,11 +161,13 @@ class TestBenchmarkWorker(TestCase):
     ) -> None:
         try:
             worker.run("print('This should not appear.')")
-            worker.run("""
+            worker.run(
+                """
                 print("This is not going to work")
                 with open("this_file_does_not_exist") as f:
                     pass
-            """)
+            """
+            )
             self.fail("Worker should have raised.")
 
         except FileNotFoundError as e:
@@ -172,15 +183,17 @@ class TestBenchmarkWorker(TestCase):
             # Make sure the worker provided a stack trace.
             self.assertRegex(
                 extra_debug_info,
-                textwrap.dedent(r"""
+                textwrap.dedent(
+                    r"""
                 Traceback \(most recent call last\):
                 \s+ File.*subprocess_rpc.*
-                """).strip()
+                """
+                ).strip(),
             )
 
             self.assertRegex(
                 extra_debug_info,
-                r"No such file or directory: .this_file_does_not_exist."
+                r"No such file or directory: .this_file_does_not_exist.",
             )
 
             # Make sure stdout / stderr were plumbed from the worker.
@@ -220,20 +233,26 @@ class TestBenchmarkWorker(TestCase):
 
     def test_subprocess_worker_segv_handling(self):
         worker = subprocess_worker.SubprocessWorker(timeout=1)
-        with self.assertRaisesRegex(OSError, f"Subprocess terminates with code {int(signal.SIGSEGV)}"):
-            worker.run("""
+        with self.assertRaisesRegex(
+            OSError, f"Subprocess terminates with code {int(signal.SIGSEGV)}"
+        ):
+            worker.run(
+                """
                 import os
                 import signal
                 os.kill(os.getpid(), signal.SIGSEGV)
-            """)
+            """
+            )
 
     def test_subprocess_worker_fault_handling(self):
         worker = subprocess_worker.SubprocessWorker(timeout=1)
         with self.assertRaisesRegex(OSError, "Exceeded timeout"):
-            worker.run("""
+            worker.run(
+                """
                 import os
                 os._exit(0)
-            """)
+            """
+            )
 
         self.assertFalse(worker.alive)
         with self.assertRaisesRegex(AssertionError, "Process has exited"):
@@ -241,10 +260,12 @@ class TestBenchmarkWorker(TestCase):
 
         worker = subprocess_worker.SubprocessWorker(timeout=1)
         with self.assertRaisesRegex(OSError, "Exceeded timeout"):
-            worker.run("""
+            worker.run(
+                """
                 import time
                 time.sleep(2)
-            """)
+            """
+            )
 
         # Once a command times out, the integrity of the underlying subprocess
         # cannot be guaranteed and the worker neeeds to refuse future work.
@@ -260,10 +281,12 @@ class TestBenchmarkWorker(TestCase):
 
     def test_subprocess_worker_sys_exit(self):
         worker = subprocess_worker.SubprocessWorker(timeout=1)
-        with self.assertRaisesRegex(subprocess_rpc.UnserializableException, "SystemExit"):
+        with self.assertRaisesRegex(
+            subprocess_rpc.UnserializableException, "SystemExit"
+        ):
             worker.run("import sys")
             worker.run("sys.exit()")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_tests()

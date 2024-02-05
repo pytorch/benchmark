@@ -1,15 +1,9 @@
 import time
 from .monitor import Monitor
 from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
-from ..tb_dcgm_types.gpu_tensoractive import GPUTensorActive
 from ..tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
 from ..tb_dcgm_types.gpu_utilization import GPUUtilization
 from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
-from ..tb_dcgm_types.gpu_fp32active import GPUFP32Active
-from ..tb_dcgm_types.gpu_dram_active import GPUDRAMActive
-from ..tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
-from ..tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
-from ..tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 
 
 from . import dcgm_agent
@@ -68,9 +62,11 @@ class NVMLMonitor(Monitor):
         # check pynvml version, if it is less than 11.5.0, convert uuid to bytes
         current_version = version.parse(pynvml.__version__)
         if current_version < version.parse("11.5.0"):
-            self._nvmlDeviceGetHandleByUUID=self._nvmlDeviceGetHandleByUUID_for_older_pynvml
+            self._nvmlDeviceGetHandleByUUID = (
+                self._nvmlDeviceGetHandleByUUID_for_older_pynvml
+            )
         else:
-            self._nvmlDeviceGetHandleByUUID=self._nvml.nvmlDeviceGetHandleByUUID
+            self._nvmlDeviceGetHandleByUUID = self._nvml.nvmlDeviceGetHandleByUUID
 
     def _nvmlDeviceGetHandleByUUID_for_older_pynvml(self, uuid):
         return self._nvml.nvmlDeviceGetHandleByUUID(uuid.encode("ascii"))
@@ -94,13 +90,19 @@ class NVMLMonitor(Monitor):
                     # used_mem = info.used
                     # reserved_mem = info.reserved
                     # self._records[gpu][metric].append((atimestamp, used_mem - reserved_mem))
-                    self._records[gpu][metric].append((atimestamp, float(getattr(info, nvml_field)/1024/1024)))
+                    self._records[gpu][metric].append(
+                        (atimestamp, float(getattr(info, nvml_field) / 1024 / 1024))
+                    )
                 elif metric == GPUFreeMemory:
                     info = self._nvml.nvmlDeviceGetMemoryInfo(handle)
-                    self._records[gpu][metric].append((atimestamp, float(getattr(info, nvml_field)/1024/1024)))
+                    self._records[gpu][metric].append(
+                        (atimestamp, float(getattr(info, nvml_field) / 1024 / 1024))
+                    )
                 elif metric == GPUUtilization:
                     info = self._nvml.nvmlDeviceGetUtilizationRates(handle)
-                    self._records[gpu][metric].append((atimestamp, getattr(info, nvml_field)))
+                    self._records[gpu][metric].append(
+                        (atimestamp, getattr(info, nvml_field))
+                    )
                 elif metric == GPUPowerUsage:
                     info = self._nvml.nvmlDeviceGetPowerUsage(handle)
                     self._records[gpu][metric].append((atimestamp, info))
@@ -110,10 +112,15 @@ class NVMLMonitor(Monitor):
         for gpu in self._gpus:
             for metric_type in self._metrics:
                 for measurement in self._records[gpu][metric_type]:
-                    records.append(metric_type(value=float(measurement[1]),
-                                   timestamp=measurement[0], device_uuid=gpu.device_uuid()))
+                    records.append(
+                        metric_type(
+                            value=float(measurement[1]),
+                            timestamp=measurement[0],
+                            device_uuid=gpu.device_uuid(),
+                        )
+                    )
         return records
-    
+
     def destroy(self):
         self._nvml.nvmlShutdown()
         super().destroy()

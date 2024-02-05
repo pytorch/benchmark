@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 # @Yueming Hao: TODO: Replace this with nvml API
 from .da_exceptions import TorchBenchAnalyzerException
 from numba import cuda
+
 
 class Device:
     """
@@ -53,12 +53,21 @@ class GPUDevice(Device):
             if gpu._device.uuid == device_uuid:
                 self._device = gpu
         if self._device is None:
-            raise TorchBenchAnalyzerException('Failed to find GPU with UUID: {}'.format(device_uuid))
+            raise TorchBenchAnalyzerException(
+                "Failed to find GPU with UUID: {}".format(device_uuid)
+            )
         self._sm_count = self._device.MULTIPROCESSOR_COUNT
-        fma_count = ConvertSMVer2Cores(self._device.COMPUTE_CAPABILITY_MAJOR, self._device.COMPUTE_CAPABILITY_MINOR)
+        fma_count = ConvertSMVer2Cores(
+            self._device.COMPUTE_CAPABILITY_MAJOR, self._device.COMPUTE_CAPABILITY_MINOR
+        )
         if fma_count == 0:
-            raise TorchBenchAnalyzerException('Unsupported GPU arch with CC%d.%d. Please check ConvertSMVer2Cores function.'
-             %(self._device.COMPUTE_CAPABILITY_MAJOR, self._device.COMPUTE_CAPABILITY_MINOR))
+            raise TorchBenchAnalyzerException(
+                "Unsupported GPU arch with CC%d.%d. Please check ConvertSMVer2Cores function."
+                % (
+                    self._device.COMPUTE_CAPABILITY_MAJOR,
+                    self._device.COMPUTE_CAPABILITY_MINOR,
+                )
+            )
         self._fma_count = fma_count
         self._frequency = self._device.CLOCK_RATE
 
@@ -111,28 +120,29 @@ class GPUDevice(Device):
         """
         return self._sm_count
 
+
 def ConvertSMVer2Cores(major, minor):
     # Returns the number of CUDA cores per multiprocessor for a given
     # Compute Capability version. There is no way to retrieve that via
     # the API, so it needs to be hard-coded.
     # Refer to https://github.com/NVIDIA/cuda-samples/blob/master/Common/helper_cuda.h
-    return {(3, 0): 192,  # Kepler
-            (3, 2): 192,
-            (3, 5): 192,
-            (3, 7): 192,
-            (5, 0): 128,  # Maxwell
-            (5, 2): 128,
-            (5, 3): 128,
-            (6, 0): 64,   # Pascal
-            (6, 1): 128,
-            (6, 2): 128,
-            (7, 0): 64,   # Volta
-            (7, 2): 64,
-            (7, 5): 64,   # Turing
-            (8, 0): 64,   # Ampere
-            (8, 6): 128,
-            (8, 7): 128,
-            (8, 9): 128,  # Ada
-            (9, 0): 128,  # Hopper
-            }.get((major, minor), 0)
-
+    return {
+        (3, 0): 192,  # Kepler
+        (3, 2): 192,
+        (3, 5): 192,
+        (3, 7): 192,
+        (5, 0): 128,  # Maxwell
+        (5, 2): 128,
+        (5, 3): 128,
+        (6, 0): 64,  # Pascal
+        (6, 1): 128,
+        (6, 2): 128,
+        (7, 0): 64,  # Volta
+        (7, 2): 64,
+        (7, 5): 64,  # Turing
+        (8, 0): 64,  # Ampere
+        (8, 6): 128,
+        (8, 7): 128,
+        (8, 9): 128,  # Ada
+        (9, 0): 128,  # Hopper
+    }.get((major, minor), 0)

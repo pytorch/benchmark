@@ -9,13 +9,9 @@ DANGER: make sure to `python install.py` first or otherwise make sure the benchm
 Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
-import logging
-import random
-import string
 import time
 
 import traceback
-from datetime import datetime
 from functools import partial
 
 import numpy as np
