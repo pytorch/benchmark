@@ -29,8 +29,8 @@ from . import dcgm_agent
 from . import dcgm_fields
 from . import dcgm_field_helpers
 from . import dcgm_structs as structs
-
-
+from packaging.version import Version
+    
 class DCGMMonitor(Monitor):
     """
     Use DCGM to monitor GPU metrics
@@ -67,6 +67,7 @@ class DCGMMonitor(Monitor):
         super().__init__(frequency, metrics)
         structs._dcgmInit(dcgmPath)
         dcgm_agent.dcgmInit()
+        self.dcgm_version = self.get_dcgm_version()
 
         self._gpus = gpus
 
@@ -134,3 +135,15 @@ class DCGMMonitor(Monitor):
 
         dcgm_agent.dcgmShutdown()
         super().destroy()
+
+    def get_dcgm_version(self):
+        """
+        Get DCGM version
+        """
+        dcgm_version = Version(dcgm_agent.dcgmVersionInfo().rawBuildInfoString.split(';')[0].split(':')[1])
+        if dcgm_version.major < 2:
+            raise TorchBenchAnalyzerException(
+                f'DCGM version {dcgm_version.major}.{dcgm_version.minor}.{dcgm_version.micro} is not supported by Model Analyzer DCGM Monitor'
+            )
+        return dcgm_version
+        
