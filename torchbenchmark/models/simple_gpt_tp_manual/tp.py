@@ -1,8 +1,7 @@
-from typing import Optional, List
+from typing import List
 
 import torch
 from torch import nn
-import torch.distributed as dist
 from torch.distributed import _functional_collectives as funcol
 from .model import LLaMA, CausalSelfAttention, MLP
 
@@ -19,21 +18,21 @@ def _get_world_size() -> int:
     return LOCAL_WORLD_SIZE
 
 
-def _apply_tp_linear(linear: nn.Linear, style: str, weight_splits: List[int] = []) -> None:
+def _apply_tp_linear(
+    linear: nn.Linear, style: str, weight_splits: List[int] = []
+) -> None:
     rank = _get_rank()
     world_size = _get_world_size()
 
     # Linear's weight matrix is transposed, and is of shape
     # (linear.out_features, linear.in_features)
-    dim_lookup = {
-        "colwise": (0, "out_features"),
-        "rowwise": (1, "in_features")
-    }
+    dim_lookup = {"colwise": (0, "out_features"), "rowwise": (1, "in_features")}
     assert style in dim_lookup
     shard_dim, size_attr = dim_lookup[style]
 
     # ensure we can shard evenly
     assert getattr(linear, size_attr) % world_size == 0
+
     def shard(x, dim):
         assert x.size(dim=dim) % world_size == 0
         return torch.tensor_split(x, world_size, dim=dim)[rank]
@@ -43,7 +42,7 @@ def _apply_tp_linear(linear: nn.Linear, style: str, weight_splits: List[int] = [
         q = shard(q, dim)
         k = shard(k, dim)
         v = shard(v, dim)
-        return torch.cat((q,k,v))
+        return torch.cat((q, k, v))
 
     # shard
     if weight_splits:
@@ -57,7 +56,6 @@ def _apply_tp_linear(linear: nn.Linear, style: str, weight_splits: List[int] = [
         sharded_weight = shard(linear.weight, shard_dim)
         if hasattr(linear, "scales") and style == "colwise":
             linear.scales = shard(linear.scales, 0)
-
 
     # overwrite
     linear.weight = nn.Parameter(sharded_weight, requires_grad=False)
@@ -77,8 +75,11 @@ def _apply_tp_mlp(mlp: MLP) -> None:
     _apply_tp_linear(mlp.proj, "rowwise")
 
     world_size = _get_world_size()
-    mlp.register_forward_hook(lambda _module, _input, output: funcol.all_reduce(
-        output, "sum", list(range(world_size))))
+    mlp.register_forward_hook(
+        lambda _module, _input, output: funcol.all_reduce(
+            output, "sum", list(range(world_size))
+        )
+    )
 
 
 def _apply_tp_attn(attn: CausalSelfAttention) -> None:
@@ -96,8 +97,12 @@ def _apply_tp_attn(attn: CausalSelfAttention) -> None:
     attn.head_dim = attn.n_embd // attn.n_head
     attn.n_query_groups = attn.n_query_groups // world_size
 
-    attn.register_forward_hook(lambda _module, _input, output: (funcol.all_reduce(
-        output[0], "sum", list(range(world_size))), output[1]))
+    attn.register_forward_hook(
+        lambda _module, _input, output: (
+            funcol.all_reduce(output[0], "sum", list(range(world_size))),
+            output[1],
+        )
+    )
 
 
 def _apply_tp_llama(llama: LLaMA) -> None:

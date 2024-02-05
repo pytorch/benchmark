@@ -1,4 +1,3 @@
-import argparse
 import random
 from collections import deque
 import math
@@ -58,7 +57,10 @@ class NormalizeContinuousActionSpace(gym.ActionWrapper):
         super().__init__(env)
         self._true_action_space = env.action_space
         self.action_space = gym.spaces.Box(
-            low=-1.0, high=1.0, shape=self._true_action_space.shape, dtype=np.float32,
+            low=-1.0,
+            high=1.0,
+            shape=self._true_action_space.shape,
+            dtype=np.float32,
         )
 
     def action(self, action):
@@ -131,7 +133,6 @@ def highway_env(env_id):
     highway_env: https://highway-env.readthedocs.io/en/latest/index.html
     """
     import gym
-    import highway_env
 
     env = gym.make(env_id)
     env.configure({"action": {"type": "ContinuousAction"}})
@@ -225,8 +226,7 @@ def load_gym(env_id="CartPole-v1", seed=None, normalize_action_space=True, **_):
     """
     # optional pybullet import
     try:
-        import pybullet
-        import pybulletgym
+        pass
     except ImportError:
         pass
     env = gym.make(env_id)
@@ -337,7 +337,7 @@ def load_dmc(
     **_,
 ):
     """
-    Load a task from the deepmind control suite. 
+    Load a task from the deepmind control suite.
 
     Uses dmc2gym (https://github.com/denisyarats/dmc2gym)
 

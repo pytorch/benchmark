@@ -1,9 +1,4 @@
-import os
-
 import torch
-from torch.distributed._tensor import DeviceMesh
-from torch.distributed.tensor.parallel import parallelize_module
-from torch.distributed.tensor.parallel.style import ColwiseParallel, RowwiseParallel
 from torchbenchmark.tasks import NLP
 
 from ...util.model import BenchmarkModel
@@ -23,7 +18,9 @@ class Model(BenchmarkModel):
             return NotImplementedError("Model requires BF16")
 
         if not hasattr(self, "_world_size"):
-            return NotImplementedError("Model needs to be run via dynamo torchbench and be provided distributed parameters")
+            return NotImplementedError(
+                "Model needs to be run via dynamo torchbench and be provided distributed parameters"
+            )
 
         if self._world_size != torch.cuda.device_count():
             return NotImplementedError(
@@ -78,4 +75,6 @@ class Model(BenchmarkModel):
         raise NotImplementedError("Training not supported for this model")
 
     def eval(self):
-        raise NotImplementedError("Model needs to be run via dynamo torchbench and be provided distributed parameters")
+        raise NotImplementedError(
+            "Model needs to be run via dynamo torchbench and be provided distributed parameters"
+        )

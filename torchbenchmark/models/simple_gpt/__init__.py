@@ -1,5 +1,3 @@
-import os
-
 import torch
 from torch.distributed._tensor import DeviceMesh
 from torch.distributed.tensor.parallel import parallelize_module
@@ -22,7 +20,9 @@ class Model(BenchmarkModel):
             return NotImplementedError("Model requires BF16")
 
         if not hasattr(self, "_world_size"):
-            return NotImplementedError("Model needs to be run via dynamo torchbench and be provided distributed parameters")
+            return NotImplementedError(
+                "Model needs to be run via dynamo torchbench and be provided distributed parameters"
+            )
 
         if self._world_size != torch.cuda.device_count():
             return NotImplementedError(
@@ -43,7 +43,9 @@ class Model(BenchmarkModel):
         if error:
             raise error
 
-        self.model = LLaMA.from_name("7B", self._world_size).to(device=device, dtype=torch.bfloat16)
+        self.model = LLaMA.from_name("7B", self._world_size).to(
+            device=device, dtype=torch.bfloat16
+        )
 
         # Tensor parallelism using DTensor
         mesh = DeviceMesh("cuda", list(range(self._world_size)))
@@ -88,4 +90,6 @@ class Model(BenchmarkModel):
         raise NotImplementedError("Training not supported for this model")
 
     def eval(self):
-        raise NotImplementedError("Model needs to be run via dynamo torchbench and be provided distributed parameters")
+        raise NotImplementedError(
+            "Model needs to be run via dynamo torchbench and be provided distributed parameters"
+        )
