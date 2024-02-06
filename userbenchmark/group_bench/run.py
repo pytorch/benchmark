@@ -222,6 +222,6 @@ def run(args: List[str]):
     if group_config.baseline_configs[0].device == 'cuda':
         import torch
         result["environ"]["device"] = torch.cuda.get_device_name()
-    print(json.dumps(result))
+    print(json.dumps(result, indent=4))
     with open(args.output, 'w') as f:
         json.dump(result, f, indent=4)
