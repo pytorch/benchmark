@@ -129,8 +129,11 @@ def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=F
     except NotImplementedError:
         print(" [not_implemented]", flush=True)
         return dict.fromkeys(metrics, "not_implemented")
+    except RuntimeError as e:
+        print(" [runtime_error]", flush=True)
+        return dict.fromkeys(metrics, str(e))
     except OSError as e:
-        print(" [oserror]", flush=True)
+        print(" [os_error]", flush=True)
         return dict.fromkeys(metrics, str(e))
 
 def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Dict[str, str]:
@@ -146,8 +149,11 @@ def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryru
     except NotImplementedError:
         print(" [not_implemented]", flush=True)
         return {"accuracy": "not_implemented"}
+    except RuntimeError as e:
+        print(" [runtime_error]", flush=True)
+        return {"accuracy": str(e)}
     except OSError as e:
-        print(" [oserror]", flush=True)
+        print(" [os_error]", flush=True)
         return {"accuracy": str(e)}
 
 def models_from_config(config) -> List[str]:
