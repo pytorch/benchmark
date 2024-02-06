@@ -160,9 +160,9 @@ def models_from_config(config) -> List[str]:
     assert isinstance(config["model", list]), "Config model must be a list or string."
     return config["model"]
 
-def load_group_config(config_file: str) -> TorchBenchGroupBenchConfig:
+def load_group_config(config_file: str, config_dir: str=DEFAULT_CONFIG_DIR) -> TorchBenchGroupBenchConfig:
     if not os.path.exists(config_file):
-        config_file = os.path.join(DEFAULT_CONFIG_DIR, config_file)
+        config_file = os.path.join(config_dir, config_file)
     with open(config_file, "r") as fp:
         data = yaml.safe_load(fp)
     baseline_configs = [

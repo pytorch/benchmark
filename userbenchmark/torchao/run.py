@@ -41,7 +41,7 @@ def parse_args(args: List[str]):
 
 def run(args: List[str]):
     args = parse_args(args)
-    group_config: TorchBenchGroupBenchConfig = load_group_config(args.config)
+    group_config: TorchBenchGroupBenchConfig = load_group_config(args.config, config_dir=DEFAULT_CONFIG_DIR)
     debug_output_dir = get_default_debug_output_dir(args.output) if args.debug else None
     if debug_output_dir:
         init_output_dir(group_config.configs, debug_output_dir)
