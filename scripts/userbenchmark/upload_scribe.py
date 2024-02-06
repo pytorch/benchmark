@@ -11,6 +11,8 @@ import requests
 from collections import defaultdict
 from datetime import datetime
 
+DEFAULT_STR_VALUE = -1.0
+
 def get_metrics_date_from_file(fname: str) -> str:
     bname = os.path.basename(fname)
     dt = datetime.strptime(bname, "metrics-%Y%m%d%H%M%S.json")
@@ -29,6 +31,10 @@ class ScribeUploader:
             elif field in self.schema['int']:
                 message['int'][field] = int(value)
             elif field in self.schema['float']:
+                # If the metrics value is string
+                # Assign the float value to be -1.0
+                if isinstance(value, str):
+                    value = DEFAULT_STR_VALUE
                 message['float'][field] = float(value)
             else:
                 raise ValueError("Field {} is not currently used, "
