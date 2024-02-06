@@ -217,10 +217,13 @@ class BisectionTargetRepo:
             ), f"Failed to checkout commit {dep_commit} of {repo.name}"
             print("done.")
 
-    def prep(self) -> bool:
+    def prep(self, interactive: bool = False) -> bool:
         if not IS_FBCODE:
-            base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
-            self.bisection_env = setup_bisection_build_env(base_build_env)
+            if not interactive:
+                base_build_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
+                self.bisection_env = setup_bisection_build_env(base_build_env)
+            else:
+                self.bisection_env = os.environ.copy()
             commits = gitutils.get_git_commits(self.repo.src_path, self.start, self.end)
         else:
             self.bisection_env = os.environ.copy()
@@ -407,6 +410,9 @@ class TorchBenchBisection:
     # Run in debug mode.
     # If true, will try to resume from the previous failed run.
     debug: bool
+    # Run in interactive mode.
+    # If true, skip running and manually specify good and bad commits.
+    interactive: bool
     # left commit, right commit, TorchBenchABTestResult to test.
     bisectq: List[Tuple[Commit, Commit, TorchBenchABTestResult]]
     result: List[Tuple[Commit, Commit]]
@@ -423,6 +429,7 @@ class TorchBenchBisection:
         bisect_config: TorchBenchABTestResult,
         output_json: str,
         debug: bool = False,
+        interactive: bool = False,
     ):
         self.workdir = Path(workdir)
         self.torch_repos = torch_repos
@@ -451,11 +458,12 @@ class TorchBenchBisection:
         self.result = list()
         self.output_json = output_json
         self.debug = debug
+        self.interactive = interactive
 
     def prep(self) -> bool:
         if not IS_FBCODE:
             cleanup_torch_packages()
-        if not self.target_repo.prep():
+        if not self.target_repo.prep(self.interactive):
             return False
         if not self.torchbench.prep(self.target_repo.bisection_env):
             return False
@@ -472,7 +480,7 @@ class TorchBenchBisection:
         # If uncalculated, commit.digest will be None
         assert left.digest, "Commit {left.sha} must have a digest"
         assert right.digest, "Commit {right.sha} must have a digest"
-        regression_result = generate_regression_result(left.digest, right.digest)
+        regression_result = generate_regression_result(left.digest.copy(), right.digest.copy())
         regression_file = f"regression-{left.sha}-{right.sha}.yaml"
         regression_file_full_path = os.path.join(
             self.workdir.absolute(), regression_file
@@ -482,17 +490,31 @@ class TorchBenchBisection:
         regression_result.bisection_config_file_path = regression_file_full_path
         return regression_result
 
+    def interactive_signal(self, commit: Commit) -> bool:
+        """Prompt for good or bad commit from user input."""
+        val = input(f"Commit {commit.sha} good or bad (G/B)? ").strip()
+        if val == "G":
+            return True
+        elif val == "B":
+            return False
+        else:
+            assert False, "We only accept G or B as user input."
+
     def run(self):
         while len(self.bisectq):
             (left, right, abtest_result) = self.bisectq.pop(0)
-            self.torchbench.get_digest_for_commit(left, abtest_result, self.debug)
-            self.torchbench.get_digest_for_commit(right, abtest_result, self.debug)
-            updated_abtest_result = self.regression_detection(left, right)
-            if (
-                len(updated_abtest_result.details)
-                or len(updated_abtest_result.control_only_metrics)
-                or len(updated_abtest_result.treatment_only_metrics)
-            ):
+            if self.interactive:
+                left_signal = self.interactive_signal(left)
+                right_signal = self.interactive_signal(right)
+                signal = not (left_signal == right_signal)
+                updated_abtest_result = None
+            else:
+                self.torchbench.get_digest_for_commit(left, abtest_result, self.debug)
+                self.torchbench.get_digest_for_commit(right, abtest_result, self.debug)
+                updated_abtest_result = self.regression_detection(left, right)
+                signal = bool(len(updated_abtest_result.details))
+            print(f"Left commit: {left.sha}, right commit: {right.sha}, signal: {signal}")
+            if signal:
                 mid = self.target_repo.get_mid_commit(left, right)
                 if mid == None:
                     self.result.append((left, right))
@@ -539,16 +561,16 @@ def main() -> None:
         type=exist_dir_path,
     )
     parser.add_argument(
-        "--torchbench-repo-path",
-        default=None,
-        help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
-        type=exist_dir_path,
-    )
-    parser.add_argument(
         "--config",
         required=True,
         help="the regression dict output of regression_detector.py in YAML",
         type=exist_file_path,
+    )
+    parser.add_argument(
+        "--torchbench-repo-path",
+        default=None,
+        help="the directory of torchbench source code git repository, if None, use `args.torch_repo_path/benchmark`.",
+        type=exist_dir_path,
     )
     parser.add_argument(
         "--skip-install-torchbench",
@@ -571,6 +593,11 @@ def main() -> None:
     parser.add_argument(
         "--debug",
         help="run in debug mode, if the result json exists, use it directly",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--interactive",
+        help="run in interactive mode, manually specify good and bad commits",
         action="store_true",
     )
     args = parser.parse_args()
@@ -638,6 +665,7 @@ def main() -> None:
         bisect_config=bisect_config,
         output_json=args.output,
         debug=args.debug,
+        interactive=args.interactive,
     )
     if start_hash == end_hash:
         print(f"Start and end hash are the same: {start_hash}. Skip bisection")
