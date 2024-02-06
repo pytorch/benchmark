@@ -174,6 +174,12 @@ def run_config(
     except OSError as e:
         print(" [oserror]", flush=True)
         return dict.fromkeys(metrics, str(e))
+    except KeyboardInterrupt:
+        print(" [user_interrupt]")
+        exit(1)
+    except Exception as e:
+        print(" [runtime_error]", flush=True)
+        return dict.fromkeys(metrics, str(e))
 
 
 def run_config_accuracy(
@@ -196,7 +202,12 @@ def run_config_accuracy(
     except OSError as e:
         print(" [oserror]", flush=True)
         return {"accuracy": str(e)}
-
+    except KeyboardInterrupt:
+        print(" [user_interrupt]")
+        exit(1)
+    except Exception as e:
+        print(" [runtime_error]", flush=True)
+        return {"accuracy": str(e)}
 
 def parse_known_args(args):
     parser = argparse.ArgumentParser()
