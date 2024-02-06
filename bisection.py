@@ -480,7 +480,7 @@ class TorchBenchBisection:
         # If uncalculated, commit.digest will be None
         assert left.digest, "Commit {left.sha} must have a digest"
         assert right.digest, "Commit {right.sha} must have a digest"
-        regression_result = generate_regression_result(left.digest, right.digest)
+        regression_result = generate_regression_result(left.digest.copy(), right.digest.copy())
         regression_file = f"regression-{left.sha}-{right.sha}.yaml"
         regression_file_full_path = os.path.join(
             self.workdir.absolute(), regression_file
