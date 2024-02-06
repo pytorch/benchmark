@@ -49,7 +49,7 @@ def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str
         "treatment_commit": treatment_commit,
         "control_version": control_version,
         "treatment_version": treatment_version,
-        "result": bisection["result"],
+        "result": json.dumps(bisection["result"], indent=4),
         "github_run_url": github_run_url,
         "owner": github_owner,
     }
