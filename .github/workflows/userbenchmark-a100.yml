@@ -67,6 +67,9 @@ jobs:
               mkdir ../benchmark-output
             fi
           else
+            if [ -e ./userbenchmark/"${{ github.event.inputs.userbenchmark_name }}"/install.py ]; then
+              python ./userbenchmark/"${{ github.event.inputs.userbenchmark_name }}"/install.py
+            fi
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
             cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
           fi
