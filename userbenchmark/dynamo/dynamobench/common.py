@@ -75,9 +75,11 @@ from torch.utils import _pytree as pytree
 from torch.utils._pytree import tree_map, tree_map_only
 import torchao
 from torchao.quantization import (
+    apply_dynamic_quant,
     change_linear_weights_to_int8_dqtensors,
     change_linear_weights_to_int8_woqtensors,
-    change_linear_weights_to_int4_woqtensors
+    change_linear_weights_to_int4_woqtensors,
+    swap_conv2d_1x1_to_linear,
 )
 
 from tqdm.auto import tqdm, trange
@@ -540,15 +542,8 @@ def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
             maybe_mark_step(args)
 
             # interleave the runs to handle frequency scaling and load changes
-            with maybe_mark_profile(p=p, mark="expected"):
-                timings[rep, 0], expected_output = timed(
-                    model,
-                    model_iter_fn,
-                    inputs,
-                    return_result=True,
-                    times=times,
-                    collect_outputs=args.collect_outputs,
-                )
+            # with maybe_mark_profile(p=p, mark="expected"):
+            timings[rep, 0] = 1
 
             # call mark_step between the 2 calls to make the comparison fair.
             maybe_mark_step(args)
@@ -562,6 +557,9 @@ def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
                     times=times,
                     collect_outputs=args.collect_outputs,
                 )
+
+    sqnr = kwargs.get("sqnr", None)
+    sqnr = sqnr if sqnr is not None and sqnr != [] else ["error"]
 
     if args.export_profiler_trace:
         name = args.profiler_trace_name + "_" + model.name + ".json"
@@ -580,9 +578,10 @@ def speedup_experiment(args, model_iter_fn, model, example_inputs, **kwargs):
     if "tag" in kwargs:
         first_headers.append("tag")
         first_fields.append(kwargs["tag"])
-    headers = first_headers + ["speedup", "abs_latency"]
-    row = first_fields + [float(speedup), median[1] * 1000]
-    msg = f"{speedup*1000:.3f}ms"
+    headers = first_headers + ["abs_latency", "sqnr"]
+    sqnr = ";".join(sqnr)
+    row = first_fields + [median[1] * 1000, sqnr]
+    msg = f"perf: {median[1] * 1000:.3f} ms sqnr: {sqnr}"
     if args.baseline:
         headers.extend(
             [
@@ -1928,10 +1927,11 @@ class BenchmarkRunner:
         example_inputs = clone_inputs(example_inputs)
         model, example_inputs = self.cast_based_on_args(model, example_inputs)
         try:
-            self.model_iter_fn(model, example_inputs)
+            return self.model_iter_fn(model, example_inputs, collect_outputs=True)
         except Exception as e:
             print(f"Original Error: {str(e)}")
             raise NotImplementedError("Eager model failed to run") from e
+        return None
 
     def maybe_cast(self, model, example_inputs):
         model = self.deepcopy_model(model)
@@ -2072,7 +2072,7 @@ class BenchmarkRunner:
         return model
 
     def check_accuracy(
-        self, name, model, example_inputs, optimize_ctx, experiment, tag, res=None
+        self, name, model, example_inputs, optimize_ctx, experiment, tag
     ):
         """
         Checks accuracy.
@@ -2244,10 +2244,6 @@ class BenchmarkRunner:
             finally:
                 del model_copy
 
-            sqnr = "err"
-            if res is not None and isinstance(res, torch.Tensor):
-                sqnr = 20 * torch.log10(torch.linalg.norm(res) / torch.linalg.norm(res - new_result)).item()
-
             if name in self.skip_accuracy_check_as_eager_non_deterministic:
                 return record_status("pass_due_to_skip", dynamo_start_stats=start_stats)
 
@@ -2286,7 +2282,9 @@ class BenchmarkRunner:
                     accuracy_status = "pass_due_to_skip"
                 else:
                     accuracy_status = "fail_accuracy"
-        return record_status(accuracy_status+f"-sqnr-{sqnr:.3f}", dynamo_start_stats=start_stats)
+                return record_status(accuracy_status, dynamo_start_stats=start_stats)
+
+        return record_status(accuracy_status, dynamo_start_stats=start_stats)
 
     def check_tolerance(
         self, name, model, example_inputs, optimize_ctx, base_device="cpu"
@@ -2362,7 +2360,7 @@ class BenchmarkRunner:
         return tolerance_status
 
     def run_performance_test(
-        self, name, model, example_inputs, optimize_ctx, experiment, tag=None
+        self, name, model, example_inputs, optimize_ctx, experiment, tag=None, sqnr=None
     ):
         if self.args.xla:
             with self.pick_grad(name, self.args.training):
@@ -2440,6 +2438,7 @@ class BenchmarkRunner:
                 experiment_kwargs["eager_peak_mem"] = eager_peak_mem
                 experiment_kwargs["dynamo_peak_mem"] = dynamo_peak_mem
                 experiment_kwargs["dynamo_stats"] = dynamo_stats
+                experiment_kwargs["sqnr"]=sqnr
 
             if experiment.func is coverage_experiment:
                 ok, total = Stats.reset_counters()
@@ -2504,7 +2503,7 @@ class BenchmarkRunner:
         experiment,
         explain=False,
         tag=None,
-        res=None,
+        sqnr=None,
     ):
         mode = "train" if self.args.training else "eval"
         msg = f"{current_device:4} {mode:5} {current_name:34} "
@@ -2516,7 +2515,7 @@ class BenchmarkRunner:
 
         if self.args.accuracy:
             status = self.check_accuracy(
-                name, model, example_inputs, optimize_ctx, experiment, tag, res,
+                name, model, example_inputs, optimize_ctx, experiment, tag
             )
             print(status)
             if status == "fail_accuracy" and self.args.minify:
@@ -2528,7 +2527,7 @@ class BenchmarkRunner:
             print(status)
         elif self.args.performance:
             status = self.run_performance_test(
-                name, model, example_inputs, optimize_ctx, experiment, tag
+                name, model, example_inputs, optimize_ctx, experiment, tag, sqnr
             )
             print(status)
         if self.args.timing:
@@ -2722,6 +2721,11 @@ def parse_args(args=None):
         "--multiprocess",
         action="store_true",
         help="Create n processes based on the number of devices (distributed use case).",
+    )
+    parser.add_argument(
+        "--custom_find_batchsize",
+        action="store_true",
+        help="find the biggest batchsize",
     )
     parser.add_argument(
         "--quantization",
@@ -3091,6 +3095,92 @@ def process_entry(rank, runner, original_dir, args):
             run, (args.cold_start_latency and args.only) or args.ci
         )(runner, args, original_dir)
 
+def get_sqnr(ref, act):
+    from torch._dynamo.utils import is_numpy_ndarray, is_numpy_int_type, is_numpy_float_type
+    if not type(ref)==type(act):
+        return ["not same type"]
+
+    if isinstance(ref, (torch.Tensor, float)) or is_numpy_ndarray(ref) or is_numpy_int_type(ref) or is_numpy_float_type(ref):
+        try:
+            ref = ref.item()
+            act = act.item()
+        except:
+            pass
+
+        try:
+            ref = torch.tensor(ref)
+            act = torch.tensor(act)
+            if ref.is_sparse:
+                ref = ref.to_dense()
+                act = act.to_dense()
+        except:
+            pass
+
+        if ref.numel() == 0 or ref.numel() != act.numel():
+            return ["not same dim"]
+
+        try:
+            return [f"{20 * torch.log10(torch.linalg.norm(ref) / torch.linalg.norm(ref - act)).item():.1f}"]
+        except:
+            return ["calc error"]
+
+    if type(ref).__name__ in (
+        "MaskedLMOutput",
+        "Seq2SeqLMOutput",
+        "CausalLMOutputWithCrossAttentions",
+        "LongformerMaskedLMOutput",
+        "Instances",
+        "SquashedNormal",
+        "Boxes",
+        "Normal",
+        "TanhTransform",
+        "Foo",
+        "Variable",
+    ):
+        ref = ref.__dict__
+        act = act.__dict__
+
+    if (
+        isinstance(ref, dict) and
+        set(ref.keys())==set(act.keys())
+    ):
+        sort_keys = sorted(ref.keys())
+        ref = [ref[x] for x in sort_keys]
+        act = [act[x] for x in sort_keys]
+
+    if isinstance(act, (list, tuple)) and isinstance(ref, (list, tuple)) and len(act)==len(ref):
+        sqnr = []
+        for r, a in zip(ref, act):
+            sqnr += get_sqnr(r, a)
+        return sqnr
+
+    return []
+
+def dynamic_quant_filter_fn(mod, *args):
+    return (
+        isinstance(mod, torch.nn.Linear)
+        and mod.in_features > 16
+        and (mod.in_features, mod.out_features)
+        not in [
+            (768, 768),
+        ]
+    )
+
+def quantize(device, model, args):
+    torch._dynamo.config.automatic_dynamic_shapes = False
+    torch._dynamo.config.force_parameter_static_shapes = False
+    torch._dynamo.config.cache_size_limit = 10000
+    torch._inductor.config.epilogue_fusion = False
+    assert "cuda" in device
+    torch._inductor.config.force_fuse_int_mm_with_mul = True
+    torch._inductor.config.use_mixed_mm = True
+    swap_conv2d_1x1_to_linear(model)
+    if args.quantization=="int8dynamic":
+        change_linear_weights_to_int8_dqtensors(model, dynamic_quant_filter_fn)
+    elif args.quantization=="int8weightonly":
+        change_linear_weights_to_int8_woqtensors(model)
+    elif args.quantization=="int4weightonly":
+        change_linear_weights_to_int4_woqtensors(model)
 
 def main(runner, original_dir=None, args=None):
     if original_dir:
@@ -3508,6 +3598,7 @@ def run(runner, args, original_dir=None):
                 )
             else:
                 try:
+                    print(model_name)
                     with tqdm(desc="loading model"):
                         extra_args = []
                         if hasattr(args, "rank") and hasattr(args, "world_size"):
@@ -3548,37 +3639,69 @@ def run(runner, args, original_dir=None):
                                     batch_size=batch_size,
                                     extra_args=extra_args,
                                 )
-                            else:
-                                print(model_name)
-                                (
-                                    device,
-                                    name,
-                                    model,
-                                    example_inputs,
-                                    batch_size,
-                                ) = runner.load_model(
-                                    device,
-                                    model_name,
-                                    batch_size=batch_size,
-                                    extra_args=extra_args,
-                                )
-                            res = None
-                            if args.quantization:
-                                if args.accuracy:
-                                    res=model(*example_inputs) # to later calculate SQNR
+                        # calculate SQNR
+                        sqnr = None
+                        if False and args.quantization:
+                            (
+                                _,
+                                name,
+                                model,
+                                example_inputs,
+                                batch_size,
+                            ) = runner.load_model(
+                                device,
+                                model_name,
+                                batch_size=batch_size,
+                                extra_args=extra_args,
+                            )
+                            ref = runner.validate_model(model, example_inputs)
+                            quantize(device, model, args)
+                            act = runner.validate_model(model, example_inputs)
+                            sqnr = get_sqnr(ref, act)
+                            print("SQNR", sqnr)
 
-                                torch._dynamo.config.automatic_dynamic_shapes = False
-                                torch._dynamo.config.force_parameter_static_shapes = False
-                                torch._dynamo.config.cache_size_limit = 1000
-                                assert "cuda" in device
-                                if args.quantization=="int8dynamic":
-                                    torch._inductor.config.force_fuse_int_mm_with_mul = True
-                                    change_linear_weights_to_int8_dqtensors(model)
-                                elif args.quantization=="int8weightonly":
-                                    torch._inductor.config.use_mixed_mm = True
-                                    change_linear_weights_to_int8_woqtensors(model)
-                                elif args.quantization=="int4weightonly":
-                                    change_linear_weights_to_int4_woqtensors(model)
+                        # find batchsize
+                        if args.custom_find_batchsize:
+                            batch_size = 128
+                            res = None
+                            while res is None and batch_size > 0:
+                                print(f"trying batch_size {batch_size}")
+                                try:
+                                    (
+                                        device,
+                                        name,
+                                        model,
+                                        example_inputs,
+                                        _,
+                                    ) = runner.load_model(
+                                        device,
+                                        model_name,
+                                        batch_size=batch_size,
+                                        extra_args=extra_args,
+                                    )
+                                    if args.quantization:
+                                        quantize(device, model, args)
+                                    res = runner.validate_model(model, example_inputs)
+                                except:
+                                    res = None
+                                    batch_size = batch_size // 2
+                        else:
+                            (
+                                device,
+                                name,
+                                model,
+                                example_inputs,
+                                batch_size,
+                            ) = runner.load_model(
+                                device,
+                                model_name,
+                                batch_size=batch_size,
+                                extra_args=extra_args,
+                            )
+                            if args.quantization:
+                                quantize(device, model, args)
+                        print(model_name, "batchsize", batch_size)
+
 
                 except NotImplementedError as e:
                     print(e)
@@ -3647,7 +3770,7 @@ def run(runner, args, original_dir=None):
                 experiment,
                 explain=args.explain,
                 tag=args.tag,
-                res=res,
+                sqnr=sqnr,
             )
         if args.generate_aot_autograd_stats:
             stats_file = output_filename.split(".csv")[0] + "_stats.csv"
