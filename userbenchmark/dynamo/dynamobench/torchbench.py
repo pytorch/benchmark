@@ -265,8 +265,6 @@ FORCE_AMP_FOR_FP16_BF16_MODELS = {
     "tts_angular",
     "pyhpc_turbulent_kinetic_energy",
     "detectron2_fcos_r_50_fpn",
-    "detectron2_fasterrcnn_r_101_dc5"
-    "detectron2_fasterrcnn_r_50_c4",
     "detectron2_fasterrcnn_r_101_c4",
     "detectron2_fasterrcnn_r_101_fpn",
     "detectron2_fasterrcnn_r_50_dc5",
@@ -278,7 +276,11 @@ FORCE_AMP_FOR_FP16_BF16_MODELS = {
     "demucs",
 }
 
-FORCE_FP16_FOR_BF16_MODELS = {"vision_maskrcnn"}
+FORCE_FP16_FOR_BF16_MODELS = {
+    "vision_maskrcnn",
+    "detectron2_fasterrcnn_r_101_dc5",
+    "detectron2_fasterrcnn_r_50_c4",
+}
 
 # models in canary_models that we should run anyway
 CANARY_MODELS = {
@@ -366,6 +368,7 @@ class TorchBenchmarkRunner(BenchmarkRunner):
         part=None,
         extra_args=None,
     ):
+        breakpoint()
         if self.args.enable_activation_checkpointing:
             raise NotImplementedError(
                 "Activation checkpointing not implemented for Torchbench models"

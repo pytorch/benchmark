@@ -1,0 +1,199 @@
+BERT_pytorch
+loading model: 0it [00:00, ?it/s][W Module.cpp:156] symbolizing C++ stack trace for exception; if this hangs, rerun with TORCH_DISABLE_ADDR2LINE=1...
+
+loading model: 0it [00:34, ?it/s]
+SQNR ['35.0']
+BERT_pytorch batchsize 128
+cuda eval  BERT_pytorch                        int8dynamic-epi           
+AUTOTUNE int_mm(16384x768, 768x768, 16384x768)
+  triton_mm_9 0.1026 ms 100.0%
+  triton_mm_8 0.1160 ms 88.4%
+  triton_mm_1 0.1164 ms 88.1%
+  triton_mm_2 0.1371 ms 74.8%
+  triton_mm_3 0.1390 ms 73.8%
+  triton_mm_0 0.1524 ms 67.3%
+  triton_mm_7 0.1589 ms 64.5%
+  triton_mm_4 0.1595 ms 64.3%
+  triton_mm_10 0.1731 ms 59.3%
+  triton_mm_6 0.3018 ms 34.0%
+SingleProcess AUTOTUNE takes 2.0636 seconds
+AUTOTUNE bmm(1536x128x64, 1536x64x128)
+  triton_bmm_30 0.0725 ms 100.0%
+  triton_bmm_23 0.0739 ms 98.2%
+  triton_bmm_24 0.0754 ms 96.2%
+  triton_bmm_25 0.0771 ms 94.1%
+  triton_bmm_26 0.0790 ms 91.9%
+  bmm 0.0824 ms 88.0%
+  triton_bmm_22 0.0836 ms 86.8%
+  triton_bmm_32 0.0843 ms 86.1%
+  triton_bmm_29 0.0916 ms 79.2%
+  triton_bmm_33 0.0951 ms 76.3%
+SingleProcess AUTOTUNE takes 1.6065 seconds
+AUTOTUNE bmm(1536x128x128, 1536x128x64)
+  triton_bmm_47 0.0775 ms 100.0%
+  triton_bmm_46 0.0787 ms 98.4%
+  triton_bmm_49 0.0789 ms 98.2%
+  triton_bmm_53 0.0791 ms 97.9%
+  triton_bmm_48 0.0797 ms 97.1%
+  triton_bmm_52 0.0814 ms 95.1%
+  triton_bmm_45 0.0816 ms 95.0%
+  triton_bmm_51 0.0831 ms 93.2%
+  bmm 0.0863 ms 89.7%
+  triton_bmm_55 0.0877 ms 88.4%
+SingleProcess AUTOTUNE takes 1.5922 seconds
+AUTOTUNE int_mm(16384x768, 768x3072, 16384x3072)
+  triton_mm_77 0.3461 ms 100.0%
+  triton_mm_69 0.4061 ms 85.2%
+  triton_mm_76 0.4309 ms 80.3%
+  triton_mm_70 0.4879 ms 70.9%
+  triton_mm_71 0.5020 ms 69.0%
+  triton_mm_68 0.5176 ms 66.9%
+  triton_mm_75 0.5216 ms 66.4%
+  triton_mm_72 0.5839 ms 59.3%
+  triton_mm_78 0.6185 ms 56.0%
+  triton_mm_74 1.1828 ms 29.3%
+SingleProcess AUTOTUNE takes 1.5006 seconds
+AUTOTUNE int_mm(16384x3072, 3072x768, 16384x768)
+  triton_mm_88 0.2087 ms 100.0%
+  triton_mm_89 0.2860 ms 73.0%
+  triton_mm_87 0.3379 ms 61.8%
+  triton_mm_80 0.3466 ms 60.2%
+  triton_mm_81 0.3612 ms 57.8%
+  triton_mm_82 0.3898 ms 53.5%
+  triton_mm_83 0.4113 ms 50.7%
+  triton_mm_86 0.4154 ms 50.2%
+  triton_mm_79 0.4978 ms 41.9%
+  triton_mm_85 1.0247 ms 20.4%
+SingleProcess AUTOTUNE takes 1.4745 seconds
+running benchmark:   0%|          | 0/30 [00:00<?, ?it/s]running benchmark:   7%|▋         | 2/30 [00:00<00:01, 18.82it/s]running benchmark:  23%|██▎       | 7/30 [00:00<00:00, 33.95it/s]running benchmark:  40%|████      | 12/30 [00:00<00:00, 38.57it/s]running benchmark:  57%|█████▋    | 17/30 [00:00<00:00, 40.76it/s]running benchmark:  73%|███████▎  | 22/30 [00:00<00:00, 41.98it/s]running benchmark:  90%|█████████ | 27/30 [00:00<00:00, 42.76it/s]running benchmark: 100%|██████████| 30/30 [00:00<00:00, 40.46it/s]
+perf: 22.472 ms sqnr: 35.0
+
+Summary for tag=int8dynamic:
+abs_latency         gmean=22.25x mean=22.254x
+compilation_latency mean=41.150 seconds
+compression_ratio   mean=0.998x
+eager_peak_mem      gmean=22.66x mean=22.659x
+dynamo_peak_mem     gmean=22.70x mean=22.704x
+calls_captured      gmean=538.00x mean=538.000x
+unique_graphs       gmean=1.00x mean=1.000x
+graph_breaks        gmean=0.00x mean=0.000x
+unique_graph_breaks gmean=0.00x mean=0.000x
+
+Summary for tag=int8dynamic-epi:
+abs_latency         gmean=22.58x mean=22.578x
+compilation_latency mean=46.187 seconds
+compression_ratio   mean=0.998x
+eager_peak_mem      gmean=22.66x mean=22.659x
+dynamo_peak_mem     gmean=22.70x mean=22.704x
+calls_captured      gmean=538.00x mean=538.000x
+unique_graphs       gmean=1.00x mean=1.000x
+graph_breaks        gmean=0.00x mean=0.000x
+unique_graph_breaks gmean=0.00x mean=0.000x
+
+Summary for tag=baseline-epi:
+abs_latency         gmean=21.07x mean=21.071x
+compilation_latency mean=30.487 seconds
+compression_ratio   mean=0.936x
+eager_peak_mem      gmean=0.72x mean=0.718x
+dynamo_peak_mem     gmean=0.77x mean=0.767x
+calls_captured      gmean=538.00x mean=538.000x
+unique_graphs       gmean=1.00x mean=1.000x
+graph_breaks        gmean=0.00x mean=0.000x
+unique_graph_breaks gmean=0.00x mean=0.000x
+
+Summary for tag=baseline:
+abs_latency         gmean=21.46x mean=21.456x
+compilation_latency mean=46.004 seconds
+compression_ratio   mean=0.936x
+eager_peak_mem      gmean=0.72x mean=0.718x
+dynamo_peak_mem     gmean=0.77x mean=0.767x
+calls_captured      gmean=538.00x mean=538.000x
+unique_graphs       gmean=1.00x mean=1.000x
+graph_breaks        gmean=0.00x mean=0.000x
+unique_graph_breaks gmean=0.00x mean=0.000x
+BERT_pytorch
+loading model: 0it [00:00, ?it/s]loading model: 0it [00:04, ?it/s]
+BERT_pytorch batchsize 128
+cuda eval  BERT_pytorch                        baseline                  
+AUTOTUNE mm(16384x768, 768x768)
+  mm 0.1005 ms 100.0%
+  triton_mm_2 0.1109 ms 90.6%
+  triton_mm_1 0.1121 ms 89.7%
+  triton_mm_4 0.1265 ms 79.5%
+  triton_mm_3 0.1287 ms 78.1%
+  triton_mm_8 0.1477 ms 68.0%
+  triton_mm_0 0.1501 ms 67.0%
+  triton_mm_7 0.1719 ms 58.4%
+  triton_mm_10 0.2439 ms 41.2%
+  triton_mm_9 0.2650 ms 37.9%
+SingleProcess AUTOTUNE takes 2.3225 seconds
+AUTOTUNE mm(16384x768, 768x3072)
+  mm 0.3579 ms 100.0%
+  triton_mm_73 0.4274 ms 83.7%
+  triton_mm_74 0.4278 ms 83.7%
+  triton_mm_76 0.4787 ms 74.8%
+  triton_mm_75 0.4802 ms 74.5%
+  triton_mm_72 0.5633 ms 63.5%
+  triton_mm_80 0.5878 ms 60.9%
+  triton_mm_79 0.5947 ms 60.2%
+  triton_mm_82 0.8552 ms 41.9%
+  triton_mm_81 1.0499 ms 34.1%
+SingleProcess AUTOTUNE takes 1.7781 seconds
+AUTOTUNE mm(16384x3072, 3072x768)
+  mm 0.3476 ms 100.0%
+  triton_mm_85 0.4254 ms 81.7%
+  triton_mm_86 0.4292 ms 81.0%
+  triton_mm_87 0.4988 ms 69.7%
+  triton_mm_88 0.5033 ms 69.1%
+  triton_mm_84 0.5697 ms 61.0%
+  triton_mm_92 0.5810 ms 59.8%
+  triton_mm_91 0.7369 ms 47.2%
+  triton_mm_94 0.9367 ms 37.1%
+  triton_mm_93 0.9872 ms 35.2%
+SingleProcess AUTOTUNE takes 1.7927 seconds
+running benchmark:   0%|          | 0/30 [00:00<?, ?it/s]running benchmark:   7%|▋         | 2/30 [00:00<00:01, 19.63it/s]running benchmark:  23%|██▎       | 7/30 [00:00<00:00, 35.82it/s]running benchmark:  40%|████      | 12/30 [00:00<00:00, 40.95it/s]running benchmark:  57%|█████▋    | 17/30 [00:00<00:00, 43.24it/s]running benchmark:  73%|███████▎  | 22/30 [00:00<00:00, 44.51it/s]running benchmark:  90%|█████████ | 27/30 [00:00<00:00, 45.20it/s]running benchmark: 100%|██████████| 30/30 [00:00<00:00, 42.77it/s]
+perf: 21.135 ms sqnr: error
+
+Summary for tag=int8dynamic:
+abs_latency         gmean=22.25x mean=22.254x
+compilation_latency mean=41.150 seconds
+compression_ratio   mean=0.998x
+eager_peak_mem      gmean=22.66x mean=22.659x
+dynamo_peak_mem     gmean=22.70x mean=22.704x
+calls_captured      gmean=538.00x mean=538.000x
+unique_graphs       gmean=1.00x mean=1.000x
+graph_breaks        gmean=0.00x mean=0.000x
+unique_graph_breaks gmean=0.00x mean=0.000x
+
+Summary for tag=int8dynamic-epi:
+abs_latency         gmean=22.58x mean=22.578x
+compilation_latency mean=46.187 seconds
+compression_ratio   mean=0.998x
+eager_peak_mem      gmean=22.66x mean=22.659x
+dynamo_peak_mem     gmean=22.70x mean=22.704x
+calls_captured      gmean=538.00x mean=538.000x
+unique_graphs       gmean=1.00x mean=1.000x
+graph_breaks        gmean=0.00x mean=0.000x
+unique_graph_breaks gmean=0.00x mean=0.000x
+
+Summary for tag=baseline-epi:
+abs_latency         gmean=21.07x mean=21.071x
+compilation_latency mean=30.487 seconds
+compression_ratio   mean=0.936x
+eager_peak_mem      gmean=0.72x mean=0.718x
+dynamo_peak_mem     gmean=0.77x mean=0.767x
+calls_captured      gmean=538.00x mean=538.000x
+unique_graphs       gmean=1.00x mean=1.000x
+graph_breaks        gmean=0.00x mean=0.000x
+unique_graph_breaks gmean=0.00x mean=0.000x
+
+Summary for tag=baseline:
+abs_latency         gmean=21.30x mean=21.296x
+compilation_latency mean=38.313 seconds
+compression_ratio   mean=0.787x
+eager_peak_mem      gmean=0.72x mean=0.718x
+dynamo_peak_mem     gmean=0.93x mean=0.945x
+calls_captured      gmean=538.00x mean=538.000x
+unique_graphs       gmean=1.00x mean=1.000x
+graph_breaks        gmean=0.00x mean=0.000x
+unique_graph_breaks gmean=0.00x mean=0.000x
