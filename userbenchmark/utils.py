@@ -104,6 +104,7 @@ def get_output_dir(bm_name: str) -> Path:
 def get_default_output_json_path(bm_name: str, target_dir: Path=None) -> str:
     if target_dir is None:
         target_dir = get_output_dir(bm_name)
+    target_dir.mkdir(exist_ok=True, parents=True)
     fname = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
     full_fname = os.path.join(target_dir, fname)
     return full_fname
