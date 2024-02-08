@@ -1,7 +1,7 @@
 name: TorchBench Userbenchmark on A100
 on:
   schedule:
-    - cron: '30 16 * * *' # run at 4:30 PM UTC
+    - cron: '00 17 * * *' # run at 5:00 PM UTC
   workflow_dispatch:
     inputs:
       userbenchmark_name:
