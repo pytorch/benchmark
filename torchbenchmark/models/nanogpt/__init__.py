@@ -43,14 +43,23 @@ class Model(BenchmarkModel):
             torch.randint(1, self.gpt_config.vocab_size, (self.batch_size, prompt_size)).to(self.device),
         )
 
+        if self.test == "train":
+            self.model.train()
+        else:
+            self.model.eval()
+
     def get_module(self):
         return self.model, self.example_inputs
 
-    def train(self):
-        self.model.train()
+    def forward(self):
         logits = self.model(*self.example_inputs)
         loss = logits.sum() / logits.numel()
+        return loss
+
+    def backward(self, loss):
         loss.backward()
+
+    def optimizer_step(self):
         self.optimizer.step()
 
     def eval(self):

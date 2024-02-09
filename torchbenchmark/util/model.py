@@ -267,9 +267,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
     def get_input_iter(self) -> Generator:
-        """Return the dynamic input iterator for the model."""
-        raise NotImplementedError(f"Default dynamic input iterator is not implemented. "
-                                  "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}.")
+        """Return the dynamic input iterator for the model. By default, always return the same batch of input."""
+        model, example_inputs = self.get_module()
+        while True:
+            yield example_inputs
 
     def get_input_descriptor(self) -> ModelInputDescriptor:
         if hasattr(self, 'input_descriptor') and isinstance(self.input_descriptor, ModelInputDescriptor):
