@@ -9,6 +9,8 @@ jobs:
     environment: docker-s3-upload
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [a100-runner]
+    env:
+      DOCKER_HOST:        "unix:///run/docker/docker.sock"
     container:
       image: ghcr.io/pytorch/torchbench:latest
       env:
