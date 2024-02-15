@@ -240,6 +240,8 @@ template:
           mountPath: /dev/nvidiactl
         - name: dshm
           mountPath: /dev/shm
+        - name: dind-sock
+          mountPath: /var/run/docker.sock
       resources:
         requests:
           nvidia.com/gpu: 1 # requesting 1 GPU
@@ -269,6 +271,8 @@ template:
     - name: dshm
       emptyDir:
         medium: Memory
+    - name: dind-sock
+      mountPath: /var/run/docker.sock
 ## Optional controller service account that needs to have required Role and RoleBinding
 ## to operate this gha-runner-scale-set installation.
 ## The helm chart will try to find the controller deployment and its service account at installation time.
