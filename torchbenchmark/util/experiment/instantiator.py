@@ -32,6 +32,29 @@ def _set_extra_env(extra_env):
 def inject_model_invoke(model_task: ModelTask, inject_function):
     model_task.replace_invoke(inject_function.__module__, inject_function.__name__)
 
+def load_model_servicelab(config: TorchBenchModelConfig) -> BenchmarkModel:
+    """Load and return a model instance in the same process. """
+    import importlib
+    Model = module = importlib.import_module(f".models.fb.{config.name}", package="torchbenchmark")
+
+    Model = getattr(module, "Model", None)
+    if Model is None:
+        print(f"Warning: {module} does not define attribute Model, skip it")
+        return None
+    if not hasattr(Model, "name"):
+        Model.name = config.name
+
+    model_instance = Model(test=config.test, device=config.device, batch_size=config.batch_size, extra_args=config.extra_args)
+    # check name
+    if not model_instance.name == config.name:
+        raise ValueError(f"Required model {config.name}, loaded {model_instance.name}.")
+    # check batch size if not measuring accuracy
+    if config.batch_size and (not config.batch_size == model_instance.batch_size) and not model_instance.dargs.accuracy:
+        raise ValueError(f"User specify batch size {config.batch_size}," +
+                         f"but model {model_instance.name} runs with batch size {model_instance.batch_size}. Please report a bug.")
+    _set_extra_env(config.extra_env)
+    return model_instance
+
 def load_model_isolated(config: TorchBenchModelConfig, timeout: float=WORKER_TIMEOUT) -> ModelTask:
     """ Load and return the model in a subprocess. Optionally, save its stdout and stderr to the specified directory. """
     task = ModelTask(config.name, timeout=timeout, extra_env=config.extra_env, save_output_dir=config.output_dir)
