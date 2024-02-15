@@ -224,6 +224,7 @@ template:
     - name: runner
       # image: ghcr.io/actions/actions-runner:latest
       image: ghcr.io/pytorch/torchbench:latest
+      imagePullPolicy: Always
       command: ["sh", "-c", "sudo cp -r /usr/bin/nvidia/* /usr/bin; sudo cp -r /usr/lib/x86_64-linux-gnu/nvidia/* /usr/lib/x86_64-linux-gnu; bash /home/runner/run.sh"]
       securityContext:
         privileged: true
