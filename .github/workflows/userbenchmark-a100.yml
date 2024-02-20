@@ -1,7 +1,7 @@
 name: TorchBench Userbenchmark on A100
 on:
   schedule:
-    - cron: '00 17 * * *' # run at 5:00 PM UTC
+    - cron: '00 18 * * *' # run at 6:00 PM UTC, K8s containers will roll out at 12PM EST
   workflow_dispatch:
     inputs:
       userbenchmark_name:
