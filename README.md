@@ -40,7 +40,7 @@ Install the benchmark suite, which will recursively install dependencies for all
 ```
 git clone https://github.com/pytorch/benchmark
 cd benchmark
-python install.py
+python3 install.py
 ```
 
 ### Install torchbench as a library
@@ -48,14 +48,14 @@ python install.py
 if you're interested in running torchbench as a library you can
 
 ```bash
-python install.py
+python3 install.py
 pip install git+https://www.github.com:pytorch/benchmark.git
 ```
 
 or 
 
 ```bash
-python install.py
+python3 install.py
 pip install . # add -e for an editable installation
 ```
 
@@ -76,7 +76,7 @@ Then,
 ```
 git clone https://github.com/pytorch/benchmark
 cd benchmark
-python install.py
+python3 install.py
 ```
 
 ### Notes
@@ -111,11 +111,11 @@ There are multiple ways for running the model benchmarks.
 In each model repo, the assumption is that the user would already have all of the torch family of packages installed (torch, torchvision, torchaudio...) but it installs the rest of the dependencies for the model.
 
 ### Using `test.py`
-`python test.py` will execute the APIs for each model, as a sanity check.  For benchmarking, use `test_bench.py`.  It is based on unittest, and supports filtering via CLI.
+`python3 test.py` will execute the APIs for each model, as a sanity check.  For benchmarking, use `test_bench.py`.  It is based on unittest, and supports filtering via CLI.
 
 For instance, to run the BERT model on CPU for the train execution mode:
 ```
-python test.py -k "test_BERT_pytorch_train_cpu"
+python3 test.py -k "test_BERT_pytorch_train_cpu"
 ```
 
 The test name follows the following pattern:
@@ -147,7 +147,7 @@ The `userbenchmark` allows you to develop your customized benchmarks with TorchB
 Sometimes you may want to just run train or eval on a particular model, e.g. for debugging or profiling.  Rather than relying on __main__ implementations inside each model, `run.py` provides a lightweight CLI for this purpose, building on top of the standard BenchmarkModel API.
 
 ```
-python run.py <model> [-d {cpu,cuda}] [-t {eval,train}] [--profile]
+python3 run.py <model> [-d {cpu,cuda}] [-t {eval,train}] [--profile]
 ```
 Note: `<model>` can be a full, exact name, or a partial string match.
 
