@@ -306,7 +306,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         return None
 
     def invoke(self) -> Optional[Tuple[torch.Tensor]]:
-        if self.test == "train" and is_staged_train_test(self):
+        if self.test == "train" and is_staged_train_test(self) and (getattr(self, "train", None) == None):
             return self._invoke_staged_train_test(num_batch=self.num_batch)
         assert self.num_batch == 1, "Only staged_train_test supports multiple-batch testing at this time."
         out = None

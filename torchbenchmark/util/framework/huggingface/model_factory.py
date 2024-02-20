@@ -125,10 +125,6 @@ class HuggingFaceModel(BenchmarkModel):
                 self.example_inputs['decoder_input_ids'] = eval_context
             self.model.eval()
         self.amp_context = nullcontext
-        if test == "train" and hasattr(self, "train"):
-           # users might implement a placeholder train function that throws NotImplementedError
-           # in this case, try invoking this function to skip the run.
-           self.train()
 
     def get_module(self, wrap_model=True):
         if not self.is_generate and class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
