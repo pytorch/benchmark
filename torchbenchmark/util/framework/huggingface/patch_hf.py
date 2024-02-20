@@ -6,7 +6,7 @@ import subprocess
 import sys
 from .model_factory import class_models
 from transformers import AutoConfig, ReformerConfig, BigBirdConfig, BertConfig, WhisperConfig, LlamaConfig, PhiConfig
-
+import inspect
 
 PATCH_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "patches")
 
@@ -14,10 +14,13 @@ def cache_model(name: str, **kwargs):
     import transformers
     model_config = eval(class_models[name][2])
     model_ctor = getattr(transformers, class_models[name][3])
-    if hasattr(model_config, "from_config"):
-        model_ctor.from_config(model_config, **kwargs)
-    else:
+    print(model_config.__class__.__name__)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    if (model_config.__class__.__name__ is "PhiConfig" or "LlavaConfig"):
         model_ctor(model_config, **kwargs)
+    else:
+        model_ctor.from_config(model_config, **kwargs)
+        
 
 def patch_transformers():
     import transformers
