@@ -10,3 +10,6 @@ not_implemented:
   - device: NVIDIA A10G
   # CPU OOM on the CI runner
   - device: cpu
+  # accuracy test OOM on A100
+  - device: NVIDIA A100-SXM4-40GB
+    test: example
