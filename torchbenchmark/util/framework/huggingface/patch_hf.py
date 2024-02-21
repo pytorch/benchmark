@@ -14,7 +14,7 @@ def cache_model(name: str, **kwargs):
     import transformers
     model_config = eval(class_models[name][2])
     model_ctor = getattr(transformers, class_models[name][3])
-    if (model_config.__class__.__name__ is "PhiConfig" or "LlavaConfig"):
+    if not hasattr(model_ctor, "from_config"):
         model_ctor(model_config, **kwargs)
     else:
         model_ctor.from_config(model_config, **kwargs)
