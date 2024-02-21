@@ -110,7 +110,7 @@ class GNNModel(BenchmarkModel):
             for example_output in self.example_outputs:
                 yield example_output
 
-    
+
     def forward(self):
         pred = self.model(**self.example_inputs)
         outputs = next(self.output_generator)
