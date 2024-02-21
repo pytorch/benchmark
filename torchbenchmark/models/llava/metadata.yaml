@@ -8,3 +8,5 @@ train_benchmark: false
 train_deterministic: false
 not_implemented:
   - device: NVIDIA A10G
+  # CPU OOM on the CI runner
+  - device: cpu
