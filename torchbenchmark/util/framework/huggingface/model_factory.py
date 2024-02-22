@@ -8,7 +8,12 @@ import torch.nn as nn
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 import transformers
-from transformers import AutoConfig, ReformerConfig, BertConfig, GenerationConfig, WhisperConfig, LlamaConfig, PhiConfig
+from transformers import AutoConfig, ReformerConfig, BertConfig, GenerationConfig, WhisperConfig, LlamaConfig
+# PhiConfig is only available in newer version of transformers
+try:
+    from transformers import PhiConfig
+except:
+    pass
 from typing import Tuple
 
 class_models = {
