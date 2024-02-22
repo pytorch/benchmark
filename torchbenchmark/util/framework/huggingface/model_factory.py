@@ -9,6 +9,11 @@ from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
 import transformers
 from transformers import AutoConfig, ReformerConfig, BertConfig, GenerationConfig, WhisperConfig, LlamaConfig
+# PhiConfig is only available in newer version of transformers
+try:
+    from transformers import PhiConfig
+except:
+    pass
 from typing import Tuple
 
 class_models = {
@@ -33,11 +38,13 @@ class_models = {
     # default num_hidden_layers=32 but that OOMs, feel free to change this config to something more real
     'llama_v2_7b_16h' : (128,512, 'LlamaConfig(num_hidden_layers=16)', 'AutoModelForCausalLM'),
     'hf_MPT_7b_instruct': (512, 512, 'AutoConfig.from_pretrained("mosaicml/mpt-7b-instruct", trust_remote_code=True)', 'AutoModelForCausalLM'),
+    'llava' : (512,512, 'AutoConfig.from_pretrained("liuhaotian/llava-v1.5-13b")', 'LlavaForConditionalGeneration'),
     'llama_v2_7b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-7b-hf")', 'AutoModelForCausalLM'),
     'llama_v2_13b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-13b-hf")', 'AutoModelForCausalLM'),
     'llama_v2_70b' : (512, 512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-70b-hf")', 'AutoModelForMaskedLM'),
     'phi_1_5' : (512, 512, 'AutoConfig.from_pretrained("microsoft/phi-1_5", trust_remote_code=True)', 'AutoModelForCausalLM'),
     'phi_2' : (512, 512, 'AutoConfig.from_pretrained("microsoft/phi-2", trust_remote_code=True)', 'AutoModelForCausalLM'),
+    'moondream' : (512, 512, 'PhiConfig.from_pretrained("vikhyatk/moondream1")', 'PhiForCausalLM'),
     # as per this page https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1 trust_remote_code=True is not required
     'mistral_7b_instruct' : (128, 128, 'AutoConfig.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1")', 'AutoModelForCausalLM'),
     'hf_Yi' : (512, 512, 'AutoConfig.from_pretrained("01-ai/Yi-6B", trust_remote_code=True)', 'AutoModelForCausalLM'),
@@ -96,7 +103,10 @@ class HuggingFaceModel(BenchmarkModel):
         hugging_face_models_requiring_trust_remote_code = ["hf_Falcon_7b", "hf_MPT_7b_instruct", "phi_1_5", "phi_2", "hf_Yi"]
         if name in hugging_face_models_requiring_trust_remote_code:
             kwargs["trust_remote_code"] = True
-        self.model = class_ctor.from_config(config, **kwargs).to(device)
+        if hasattr(class_ctor, "from_config"):
+            self.model = class_ctor.from_config(config, **kwargs).to(device)
+        else:
+            self.model = class_ctor(config, **kwargs).to(device)
         self.optimizer = optim.Adam(
             self.model.parameters(),
             lr=0.001,
