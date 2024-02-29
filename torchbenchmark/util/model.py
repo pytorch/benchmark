@@ -175,8 +175,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if self.device != "cuda":
             current_device_name = str(self.device)
         else:
-            current_device_name = torch.cuda.get_device_name()
-            assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+            current_device_name = torch.cuda.get_device_name() if torch.cuda.get_device_name() else "UNKNOWN"
             if current_device_name in SPECIAL_DEVICE_MAPPING:
                 current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
 
