@@ -25,6 +25,7 @@ UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS = [
     "pytorch_CycleGAN_and_pix2pix",
     "pytorch_unet",
     "sam",
+    "sam_fast",
     "Super_SloMo",
     "vgg16",
     "mtml_ctr_instagram_model",

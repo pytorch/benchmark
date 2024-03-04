@@ -39,6 +39,8 @@ class Model(BenchmarkModel):
             {
                 "image": self.sample_image,
                 "original_size": (256, 256),
+                "point_coords": torch.tensor([[[1,1]]], device=self.device),
+                "point_labels": torch.tensor([[1]], device=self.device),
             }
         ]
 
