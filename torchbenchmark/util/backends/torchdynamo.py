@@ -68,6 +68,11 @@ def parse_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', dy
         action='store_true',
         help="enable qat quantization for inductor",
     )
+    parser.add_argument(
+        "--is_dynamic",
+        action='store_true',
+        help="enable dynamic quantization for inductor",
+    )
     args, extra_args = parser.parse_known_args(dynamo_args)
     return args, extra_args
 
@@ -93,7 +98,7 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         if model.device == "cuda":
             torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
         if model.device == "cpu" and model.test == "eval" and args.quantize:
-            enable_inductor_quant(model, args.is_qat)
+            enable_inductor_quant(model, args.is_qat, args.is_dynamic)
         # Setup torchinductor.config.triton.mm
         if args.tritonmm == "triton":
             torchinductor.config.triton.mm = "triton"
@@ -141,14 +146,14 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
 
     torchdynamo.reset()
 
-def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_qat: 'bool'=False):
+def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_qat: 'bool'=False, is_dynamic: 'bool'=False):
     from torch.ao.quantization.quantize_pt2e import prepare_pt2e, prepare_qat_pt2e, convert_pt2e
     import torch.ao.quantization.quantizer.x86_inductor_quantizer as xiq
     from torch._export import capture_pre_autograd_graph
     module, example_inputs = model.get_module()
     # Create X86InductorQuantizer
     quantizer = xiq.X86InductorQuantizer()
-    quantizer.set_global(xiq.get_default_x86_inductor_quantization_config(is_qat=is_qat))
+    quantizer.set_global(xiq.get_default_x86_inductor_quantization_config(is_qat=is_qat, is_dynamic=is_dynamic))
     if is_qat:
         module.train()
     # Generate the FX Module
