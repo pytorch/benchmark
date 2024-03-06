@@ -8,3 +8,5 @@ train_benchmark: false
 train_deterministic: false
 not_implemented:
 - device: cpu
+- device: cuda
+  test: example
