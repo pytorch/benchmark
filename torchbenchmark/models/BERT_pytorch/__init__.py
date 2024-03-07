@@ -205,7 +205,7 @@ class Model(BenchmarkModel):
         self.model = trainer
 
     def get_module(self):
-        return self.model.bert, self.example_inputs
+        return self.model.model, self.example_inputs
 
     def set_module(self, new_model):
         self.model.bert = new_model
