@@ -208,7 +208,7 @@ class Model(BenchmarkModel):
         return self.model.model, self.example_inputs
 
     def set_module(self, new_model):
-        self.model.bert = new_model
+        self.model.model = new_model
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
         model = self.model
