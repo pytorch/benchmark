@@ -42,9 +42,11 @@ class BERTTrainer:
         # Initialize the BERT Language Model, with BERT model
         self.model = BERTLM(bert, vocab_size).to(self.device)
 
+        # torchbench: by default, we assume the model runs on single GPU
+        # and we handle data parallel in the framework level
         # Distributed GPU training if CUDA can detect more than 1 GPU
-        if self.device.type == "cuda" and torch.cuda.device_count() > 1:
-            self.model = nn.DataParallel(self.model, device_ids=device_ids)
+        # if self.device.type == "cuda" and torch.cuda.device_count() > 1:
+        #     self.model = nn.DataParallel(self.model, device_ids=device_ids)
 
         # Setting the train and test data loader
         self.train_data = train_dataloader
