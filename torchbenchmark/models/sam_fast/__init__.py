@@ -15,7 +15,7 @@ class Model(BenchmarkModel):
     task = COMPUTER_VISION.SEGMENTATION
     DEFAULT_EVAL_BSIZE = 32
 
-    def __init__(self, test, device, batch_size=1, extra_args=[]):
+    def __init__(self, test, device, batch_size=1, dtype=torch.bfloat16, extra_args=[]):
         super().__init__(
             test=test, device=device, batch_size=batch_size, extra_args=extra_args
         )
@@ -24,23 +24,23 @@ class Model(BenchmarkModel):
         data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
         sam_checkpoint = os.path.join(data_folder, "sam_vit_h_4b8939.pth")
         model_type = "vit_h"
-
-        self.model = sam_model_fast_registry[model_type](checkpoint=sam_checkpoint)
+        self.model = sam_model_fast_registry[model_type](dtype=dtype, checkpoint=sam_checkpoint)
         self.model.to(device=device)
         data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
 
         image_path = os.path.join(data_folder, "truck.jpg")
         self.image = cv2.imread(image_path)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
-        self.sample_image = torch.randn((3, 256, 256)).to(device)
+        self.dtype = dtype
+        self.sample_image = torch.randn((3, 256, 256)).to(device=device, dtype=dtype)
 
     def get_module(self):
         example_input = [
             {
                 "image": self.sample_image,
                 "original_size": (256, 256),
-                "point_coords": torch.tensor([[[1,1]]], device=self.device),
-                "point_labels": torch.tensor([[1]], device=self.device),
+                "point_coords": torch.tensor([[[1,1]]], device=self.device, dtype=self.dtype),
+                "point_labels": torch.tensor([[1]], device=self.device, dtype=self.dtype),
             }
         ]
 
