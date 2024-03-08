@@ -5,27 +5,63 @@ import argparse
 import contextlib
 import distutils.util
 import os
+import functools
 import warnings
 from typing import List
 
 import torch
-import torch._dynamo as torchdynamo
 import torchbenchmark
 from torchbenchmark.util.model import is_staged_train_test
 
+INDUCTOR_CONFIG_KEYS = [
+    "triton.cudagraphs",
+    "triton.unique_kernel_names",
+    "fallback_random",
+    "max_autotune_gemm",
+    "split_cat_fx_passes",
+    "group_fusion",
+    "batch_fusion",
+    "debug",
+]
+
 def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    available_backends = torchdynamo.list_backends(exclude_tags=None)
     parser.add_argument(
-        "--torchdynamo", choices=available_backends, help="Specify torchdynamo backends"
+        "--torchdynamo",
+        choices=["inductor"],
+        default=None,
+        help="Measure metrics with TorchInductor",
     )
     parser.add_argument(
-        "--tritonmm", type=str, help="torchinductor.config.triton.mm configuration"
+        "--inductor",
+        action="store_true",
+        help="Measure metrics with TorchInductor",
     )
     parser.add_argument(
-        "--dynamic_shapes",
-        action='store_true',
-        help="dynamic shape and symbolic tracing",
+        "--inductor-compile-mode",
+        default=None,
+        choices=['max-autotune'],
+        help="torch.compile mode argument for inductor runs.",
+    )
+    parser.add_argument(
+        "--nopython",
+        action="store_true",
+        help="Turn graph breaks into errors"
+    )
+    parser.add_argument(
+        "--dynamic-shapes",
+        action="store_true",
+        help="Runs a dynamic shapes version of the benchmark, if available.",
+    )
+    parser.add_argument(
+        "--dynamic-batch-only",
+        action="store_true",
+        help="Only assume batch dimension is dynamic.  Implies --dynamic-shapes",
+    )
+    parser.add_argument(
+        "--dynamo_disable_optimizer_step",
+        type=distutils.util.strtobool,
+        default="false",
     )
     parser.add_argument(
         "--pt2_debug_log",
@@ -33,29 +69,9 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         help="enable debug log for PT2 (dynamo, inductor, AOTAutograd)",
     )
     parser.add_argument(
-        "--full_graph",
-        action='store_true',
-        help="capture full graph and no python",
-    )
-    parser.add_argument(
-        "--optimize_dynamo_ddp",
-        action='store_true',
-        help="enable extra optimizations for DDP + dynamo"
-    )
-    parser.add_argument(
-        "--torchinductor_cudagraph",
-        type=distutils.util.strtobool,
-        default="true",
-    )
-    parser.add_argument(
-        "--torchinductor_fallback_random",
-        type=distutils.util.strtobool,
-        default="false",
-    )
-    parser.add_argument(
-        "--torchinductor_enable_group_fusion",
-        action='store_true',
-        help="enable group fusion in Inductor"
+        "--quantization",
+        choices=["int8dynamic", "int8weightonly", "int4weightonly"],
+        help="Apply quantization to the model before running it",
     )
     parser.add_argument(
         "--torchinductor_compile_threads",
@@ -69,97 +85,65 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
             """
     )
     parser.add_argument(
-        "--torchinductor_enable_batch_fusion",
-        action='store_true',
-        help="enable batch fusion in Inductor"
-    )
-    parser.add_argument(
-        "--torchinductor_enable_max_autotune_gemm",
-        action='store_true',
-        help="Enable max autotune gemm"
-    )
-    parser.add_argument(
-        "--inductor-compile-mode",
-        default=None,
-        choices=['max-autotune'],
-        help="torch.compile mode argument for inductor runs.",
-    )
-    parser.add_argument(
-        "--torchinductor_enable_split_cat_fx_pass",
-        action='store_true',
-        help="enable split_cat_fx_pass in Inductor"
-    )
-    parser.add_argument(
-        "--torchinductor_triton_unique_kernel_names",
-        action='store_true',
-        help="set to generate unique triton kernel names in Inductor"
-    )
-    parser.add_argument(
         "--torchinductor_post_grad_batch_fusion",
-        type=distutils.util.strtobool,
-        help="Enable BMM Linear Fusion."
+        action="store_true",
+        help="Enable post grad horizontal batch fusion",
     )
-    parser.add_argument(
-        "--dynamo_disable_optimizer_step",
-        type=distutils.util.strtobool,
-        default="false",
-    )
-    parser.add_argument(
-        "--dump_triton",
-        type=distutils.util.strtobool,
-        default="false",
-        help="Enable triton code dump by setting torch._inductor.config.debug",
-    )
-    parser.add_argument(
-        "--quantization",
-        choices=["int8dynamic", "int8weightonly", "int4weightonly"],
-        help="Apply quantization to the model before running it",
-    )
+
+    # inductor boolean configs
+    inductor_config_dict = torch._inductor.config.shallow_copy_dict()
+    for inductor_config_key in INDUCTOR_CONFIG_KEYS:
+        inductor_config_key_arg = inductor_config_key.replace(".", "-")
+        parser.add_argument(
+            f"--pt2-{inductor_config_key_arg}",
+            action="store_true",
+            default=inductor_config_dict[inductor_config_key],
+        )
+        parser.add_argument(
+            f"--no-pt2-{inductor_config_key_arg}",
+            action="store_false",
+            default=None,
+        )
     args, extra_args = parser.parse_known_args(dynamo_args)
+    # --torchdynamo inductor and --inductor are equivalent
+    if args.torchdynamo == "inductor":
+        args.inductor = True
+    if args.inductor:
+        args.torchdynamo = "inductor"
     return args, extra_args
 
 def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
-    if args.torchdynamo == "fx2trt" and precision == "fp16":
-        dynamo_optimizer = torchdynamo.optimize(torchdynamo.optimizations.backends.fx2trt_compiler_fp16)
-    else:
-        dynamo_kwargs = {}
+    if args.inductor:
+        optimize_ctx = functools.partial(
+            torch.compile,
+            backend="inductor",
+            fullgraph=args.nopython,
+            mode=args.inductor_compile_mode,
+        )
+        if args.dynamic_batch_only:
+            args.dynamic_shapes = True
+            torch._dynamo.config.assume_static_by_default = True
         if args.dynamic_shapes:
-            dynamo_kwargs["dynamic"] = True
-        if args.full_graph:
-            dynamo_kwargs["nopython"] = True
-        dynamo_optimizer = torchdynamo.optimize(args.torchdynamo, **dynamo_kwargs)
+            if not args.dynamic_batch_only:
+                torch._dynamo.config.assume_static_by_default = False
         if args.pt2_debug_log:
             import logging
             torch._logging.set_logs(dynamo=logging.DEBUG, inductor=logging.DEBUG, aot=logging.DEBUG)
-
-    if args.torchdynamo == "inductor":
-        import torch._inductor as torchinductor
-        if args.inductor_compile_mode == "max-autotune":
-            torchinductor.config.max_autotune = True
-            torchinductor.config.triton.cudagraphs = True
-        torchinductor.config.triton.cudagraphs = bool(args.torchinductor_cudagraph)
+        # Load inductor configs
         if bool(args.torchinductor_post_grad_batch_fusion):
-            torchinductor.config.post_grad_fusion_options["batch_linear_post_grad"] = {}
-        torch._inductor.config.debug = bool(args.dump_triton)
-
-        # Setup torchinductor.config.triton.mm
-        if args.tritonmm == "triton":
-            torchinductor.config.triton.mm = "triton"
-            # currently can't pass correctness with use_bmm = True
-            # torchinductor.config.triton.use_bmm = True
-        if args.torchinductor_enable_group_fusion:
-            torchinductor.config.group_fusion = True
+            torch._inductor.config.post_grad_fusion_options["batch_linear_post_grad"] = {}
         if compile_threads := args.torchinductor_compile_threads:
             os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
-        if args.torchinductor_enable_batch_fusion:
-            torchinductor.config.pattern_matcher = True
-            torchinductor.config.batch_fusion = True
-        if args.torchinductor_enable_split_cat_fx_pass:
-            torchinductor.config.split_cat_fx_passes = True
-        if args.torchinductor_triton_unique_kernel_names:
-            torchinductor.config.triton.unique_kernel_names = True
-        if args.torchinductor_enable_max_autotune_gemm:
-            torchinductor.config.max_autotune_gemm = True
+        # Deal with boolean inductor configs
+        inductor_config_dict = torch._inductor.config.shallow_copy_dict()
+        for inductor_config_key in INDUCTOR_CONFIG_KEYS:
+            inductor_config_key_arg = inductor_config_key.replace(".", "_")
+            if getattr(args, f"no_pt2_{inductor_config_key_arg}", None) == False:
+                torch._inductor.config.__setattr__(inductor_config_key, False)
+            else:
+                torch._inductor.config.__setattr__(inductor_config_key,
+                    getattr(args, f"pt2_{inductor_config_key_arg}", inductor_config_dict[inductor_config_key]))
+
         if args.quantization:
             import torchao
             from torchao.quantization import (
@@ -181,9 +165,6 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             elif args.quantization == "int4weightonly":
                 change_linear_weights_to_int4_woqtensors(module)
 
-        # used for correctness checks, to avoid triton rand() behaving differently from torch rand().
-        torchinductor.config.fallback_random = bool(args.torchinductor_fallback_random)
-
     if bool(args.dynamo_disable_optimizer_step):
         found_optimizer_step = False
         try:
@@ -203,21 +184,10 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
 
     if model.test == "train":
         if is_staged_train_test(model):
-            model.forward = dynamo_optimizer(model.forward)
+            model.forward = optimize_ctx(model.forward)
         else:
-            model.train = dynamo_optimizer(model.train)
+            model.train = optimize_ctx(model.train)
     else:
-        model.eval = dynamo_optimizer(model.eval)
+        model.eval = optimize_ctx(model.eval)
 
-    if args.optimize_dynamo_ddp:
-        @contextlib.contextmanager
-        def optimize_ddp_ctx(val: bool):
-            old_value = torchdynamo.config.optimize_ddp
-            try:
-                torchdynamo.config.optimize_ddp = val
-                yield
-            finally:
-                torchdynamo.config.optimize_ddp = old_value
-        model.add_context(lambda: optimize_ddp_ctx(True))
-
-    torchdynamo.reset()
+    torch._dynamo.reset()

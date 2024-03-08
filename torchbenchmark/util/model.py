@@ -107,7 +107,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if self.dargs.accuracy and not self.DISABLE_DETERMINISM:
             self.deterministic_dict = save_deterministic_dict(self.name)
         # if the args contain "--torchdynamo", parse torchdynamo args
-        if "--torchdynamo" in opt_args:
+        if "--torchdynamo" in opt_args or "--inductor" in opt_args:
             self.dynamo = True
             from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
             self.opt_args, self.extra_args = parse_torchdynamo_args(opt_args)

@@ -490,9 +490,6 @@ def main() -> None:
         - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().
         - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""",
     )
-    parser.add_argument(
-        "--channels-last", action="store_true", help="enable torch.channels_last()"
-    )
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
@@ -541,9 +538,6 @@ def main() -> None:
     if "--accuracy" in extra_args:
         print("{:<20} {:>20}".format("Accuracy: ", str(m.accuracy)), sep="")
         exit(0)
-
-    if args.channels_last:
-        m.enable_channels_last()
 
     test = m.invoke
     if args.amp:
