@@ -112,7 +112,7 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--quantization",
-        choices=["int8dynamic", "int8weightonly", "int4weightonly"],
+        choices=["int8dynamic", "int8weightonly", "int4weightonly", "autoquant", "noquant"],
         help="Apply quantization to the model before running it",
     )
     args, extra_args = parser.parse_known_args(dynamo_args)
@@ -165,21 +165,30 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             from torchao.quantization import (
                 change_linear_weights_to_int8_dqtensors,
                 change_linear_weights_to_int8_woqtensors,
-                change_linear_weights_to_int4_woqtensors
+                change_linear_weights_to_int4_woqtensors,
+                do_autoquant
             )
-            torch._dynamo.config.automatic_dynamic_shapes = False
-            torch._dynamo.config.force_parameter_static_shapes = False
-            torch._dynamo.config.cache_size_limit = 1000
+            # torch._dynamo.config.automatic_dynamic_shapes = False
+            # torch._dynamo.config.cache_size_limit = 100000
+            torch._inductor.config.force_fuse_int_mm_with_mul = True
+            # torch._inductor.config.coordinate_descent_tuning = True
+            # torch._inductor.config.coordinate_descent_check_all_directions = True
+            torch._inductor.config.use_mixed_mm = True
+            # torch._inductor.config.epilogue_fusion = False
             assert "cuda" in model.device
             module, example_inputs = model.get_module()
+            if isinstance(example_inputs, tuple([tuple, list])):
+                example_inputs = tuple([x.to(torch.bfloat16) if isinstance(x, torch.Tensor) and x.dtype in [torch.float32, torch.float16] else x for x in example_inputs])
+            module=module.to(torch.bfloat16)
+            module(*example_inputs)
             if args.quantization == "int8dynamic":
-                torch._inductor.config.force_fuse_int_mm_with_mul = True
                 change_linear_weights_to_int8_dqtensors(module)
             elif args.quantization == "int8weightonly":
-                torch._inductor.config.use_mixed_mm = True
                 change_linear_weights_to_int8_woqtensors(module)
             elif args.quantization == "int4weightonly":
                 change_linear_weights_to_int4_woqtensors(module)
+            elif args.quantization == "autoquant":
+                do_autoquant(module, example_inputs, error_on_unseen=False)
 
         # used for correctness checks, to avoid triton rand() behaving differently from torch rand().
         torchinductor.config.fallback_random = bool(args.torchinductor_fallback_random)
