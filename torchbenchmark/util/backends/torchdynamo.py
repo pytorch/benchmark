@@ -91,7 +91,8 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     )
 
     # inductor boolean configs
-    inductor_config_dict = torch._inductor.config.shallow_copy_dict()
+    from torch._inductor import config as inductor_config
+    inductor_config_dict = inductor_config.shallow_copy_dict()
     for inductor_config_key in INDUCTOR_CONFIG_KEYS:
         inductor_config_key_arg = inductor_config_key.replace(".", "-")
         parser.add_argument(
