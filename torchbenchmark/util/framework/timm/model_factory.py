@@ -2,9 +2,25 @@ from contextlib import suppress
 import torch
 import typing
 import timm
+import os
 from torchbenchmark.util.model import BenchmarkModel
 from .timm_config import TimmConfig
-from typing import Generator, Tuple, Optional
+from userbenchmark.dynamo import DYNAMOBENCH_PATH
+
+TIMM_MODELS = dict()
+filename = os.path.join(DYNAMOBENCH_PATH, "timm_models_list.txt")
+with open(filename) as fh:
+    lines = fh.readlines()
+    lines = [line.rstrip() for line in lines]
+    for line in lines:
+        model_name, batch_size = line.split(" ")
+        TIMM_MODELS[model_name] = int(batch_size)
+
+def is_extended_timm_models(model_name: str) -> bool:
+    return model_name in TIMM_MODELS
+
+def list_extended_timm_models() -> typing.List[str]:
+    return TIMM_MODELS.keys()
 
 class TimmModel(BenchmarkModel):
     # To recognize this is a timm model
@@ -20,7 +36,28 @@ class TimmModel(BenchmarkModel):
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
 
-        self.model = timm.create_model(model_name, pretrained=False, scriptable=True)
+        # If batch size is still None, need to read it from the dynamobench
+        if self.batch_size == None:
+            assert model_name in TIMM_MODELS.keys(), f"{model_name} is not an available TIMM Model."
+            from .extended_configs import BATCH_SIZE_DIVISORS
+            # Determine the batch size
+            recorded_batch_size = TIMM_MODELS[model_name]
+            if model_name in BATCH_SIZE_DIVISORS:
+                recorded_batch_size = max(
+                    int(recorded_batch_size / BATCH_SIZE_DIVISORS[model_name]), 1
+                )
+
+        self.model = timm.create_model(
+            model_name,
+            in_chans=3,
+            scriptable=False,
+            num_classes=None,
+            drop_rate=0.0,
+            drop_path_rate=None,
+            drop_block_rate=None,
+            pretrained=True,
+        )
+
         self.cfg = TimmConfig(model = self.model, device = device)
         self.example_inputs = self._gen_input(self.batch_size)
 

@@ -1,6 +1,34 @@
+# Extended huggingface model configs from Dynamobench
 import logging
 import torch
+import os
 import importlib
+from typing import List
+from userbenchmark.dynamo import DYNAMOBENCH_PATH
+
+# These models contain the models present in huggingface_models_list. It is a
+# combination of models supported by HF Fx parser and some manually supplied
+# models. For these models, we already know the largest batch size that can fit
+# on A100 GPUs - 40 GB.
+BATCH_SIZE_KNOWN_MODELS = dict()
+
+# Get the list of models and their batch sizes
+MODELS_FILENAME = os.path.join(DYNAMOBENCH_PATH, "huggingface_models_list.txt")
+assert os.path.exists(MODELS_FILENAME)
+with open(MODELS_FILENAME, "r") as fh:
+    lines = fh.readlines()
+    lines = [line.rstrip() for line in lines]
+    for line in lines:
+        model_name, batch_size = line.split(",")
+        batch_size = int(batch_size)
+        BATCH_SIZE_KNOWN_MODELS[model_name] = batch_size
+assert len(BATCH_SIZE_KNOWN_MODELS)
+
+def is_extended_huggingface_models(model_name: str) -> bool:
+    return model_name in BATCH_SIZE_KNOWN_MODELS
+
+def list_extended_huggingface_models() -> List[str]:
+    return BATCH_SIZE_KNOWN_MODELS.keys()
 
 imports = [
     "AlbertForPreTraining",
@@ -36,11 +64,22 @@ imports = [
 
 mod = importlib.import_module("transformers")
 for cls in imports:
-    if not hasattr(mod, cls):
-        raise ModuleNotFoundError
+    exec(f"from transformers import {cls}")
 
 
 log = logging.getLogger(__name__)
+
+SKIP = {
+    # Difficult to setup accuracy test because .eval() not supported
+    "Reformer",
+    # Fails deepcopy
+    "BlenderbotForConditionalGeneration",
+    "GPTNeoForCausalLM",
+    "GPTNeoForSequenceClassification",
+    # Fails with even batch size = 1
+    "GPTJForCausalLM",
+    "GPTJForQuestionAnswering",
+}
 
 # TODO - Fails even after fake tensors
 BATCH_SIZE_DIVISORS = {
@@ -332,3 +371,45 @@ def generate_inputs_for_model(
             )
 
     return input_dict
+
+def get_module_cls_by_model_name(model_cls_name):
+    _module_by_model_name = {
+        "Speech2Text2Decoder": "transformers.models.speech_to_text_2.modeling_speech_to_text_2",
+        "TrOCRDecoder": "transformers.models.trocr.modeling_trocr",
+    }
+    module_name = _module_by_model_name.get(model_cls_name, "transformers")
+    module = importlib.import_module(module_name)
+    return getattr(module, model_cls_name)
+
+def _get_model_cls_and_config(self, model_name):
+    if model_name not in EXTRA_MODELS:
+        model_cls = get_module_cls_by_model_name(model_name)
+        config_cls = model_cls.config_class
+        config = config_cls()
+
+        # NB: some models need a pad token defined to handle BS > 1
+        if (
+            model_cls
+            in [
+                GPT2ForSequenceClassification,
+                GPTNeoForSequenceClassification,
+                GPTJForSequenceClassification,
+            ]
+            or model_cls.__name__.startswith("Roberta")
+            or model_cls.__name__.startswith("Marian")
+        ):
+            config.pad_token_id = 0
+
+    else:
+        config, model_cls = EXTRA_MODELS[model_name]
+
+    return model_cls, config
+
+def download_model(model_name):
+    model_cls, config = _get_model_cls_and_config(model_name)
+    if "auto" in model_cls.__module__:
+        # Handle auto classes
+        model = model_cls.from_config(config)
+    else:
+        model = model_cls(config)
+    return model

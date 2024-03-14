@@ -1,3 +1,5 @@
+# Extended timm model configs from Dynamobench
+
 # TODO - Figure out the reason of cold start memory spike
 BATCH_SIZE_DIVISORS = {
     "beit_base_patch16_224": 2,
