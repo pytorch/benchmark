@@ -24,6 +24,15 @@ INDUCTOR_CONFIG_KEYS = [
     "debug",
 ]
 
+def _try_get_inductor_config():
+    try:
+        return torch._inductor.config.shallow_copy_dict()
+    except AttributeError:
+        # access torch inductor config directly
+        # if torch._inductor module does not has config attribute
+        from torch._inductor import config as inductor_config
+        return inductor_config.shallow_copy_dict()
+
 def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -91,8 +100,7 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     )
 
     # inductor boolean configs
-    from torch._inductor import config as inductor_config
-    inductor_config_dict = inductor_config.shallow_copy_dict()
+    inductor_config_dict = _try_get_inductor_config()
     for inductor_config_key in INDUCTOR_CONFIG_KEYS:
         inductor_config_key_arg = inductor_config_key.replace(".", "-")
         parser.add_argument(
@@ -136,7 +144,7 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
         if compile_threads := args.torchinductor_compile_threads:
             os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
         # Deal with boolean inductor configs
-        inductor_config_dict = torch._inductor.config.shallow_copy_dict()
+        inductor_config_dict = _try_get_inductor_config()
         for inductor_config_key in INDUCTOR_CONFIG_KEYS:
             inductor_config_key_arg = inductor_config_key.replace(".", "_")
             if getattr(args, f"no_pt2_{inductor_config_key_arg}", None) == False:
