@@ -4,12 +4,12 @@ Patch the transformer source code to enable optimizations.
 import os
 import subprocess
 import sys
-from .basic_configs import load_model
+from .basic_configs import download_model
 
 PATCH_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "patches")
 
 def cache_model(name: str):
-    load_model(name)
+    download_model(name)
 
 def patch_transformers():
     import transformers

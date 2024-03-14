@@ -86,8 +86,8 @@ def generate_inputs_for_model(
             max_length = int(max_length / CPU_INPUT_SLICE[model_name])
         eval_context = torch.randint(0, model.config.vocab_size, (bs, max_length)).to(device)
         example_inputs = {'input_ids': eval_context, }
-        if model_cls in [
-            AutoModelForSeq2SeqLM
+        if model_cls.__name__ in [
+            "AutoModelForSeq2SeqLM"
         ]:
             example_inputs['decoder_input_ids'] = eval_context
     return example_inputs
@@ -115,7 +115,7 @@ def generate_input_iter_for_model(
         }
         yield dict_input
 
-def load_model(model_name):
+def download_model(model_name):
     def _extract_config_cls_name(config_cls_ctor: str) -> str:
         """Extract the class name from the given string of config object creation.
             For example,

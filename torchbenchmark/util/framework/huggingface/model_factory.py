@@ -35,8 +35,9 @@ class HuggingFaceModel(BenchmarkModel):
         name = self.unqual_name  # we don't want to refer to the qualified name anymore
         is_training = self.test == "train"
         if is_basic_huggingface_models(name):
-            from .basic_configs import load_model, generate_inputs_for_model, generate_optimizer_for_model
-            self.model_cls, self.model = load_model(name).to(self.device)
+            from .basic_configs import download_model, generate_inputs_for_model, generate_optimizer_for_model
+            self.model_cls, self.model = download_model(name)
+            self.model = self.model.to(self.device)
             self.example_inputs = generate_inputs_for_model(
                 self.model_cls,
                 self.model,
@@ -51,6 +52,7 @@ class HuggingFaceModel(BenchmarkModel):
             from .extended_configs import download_model, generate_inputs_for_model
             self.model = download_model(name)
             self.example_inputs = generate_inputs_for_model(self.model)
+            # TODO: generate optimizer
         else:
             assert False, f"Huggingface model {name} is not supported yet."
         
