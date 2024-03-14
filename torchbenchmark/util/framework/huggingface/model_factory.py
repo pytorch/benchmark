@@ -10,8 +10,8 @@ from torchbenchmark.tasks import NLP
 from typing import Tuple
 from transformers import GenerationConfig
 
-from .basic_configs import list_basic_huggingface_models, is_basic_huggingface_model
-from .extended_configs import list_extended_huggingface_models, is_extended_huggingface_model
+from .basic_configs import is_basic_huggingface_models
+from .extended_configs import is_extended_huggingface_models
 
 class HuggingFaceModel(BenchmarkModel):
     HF_MODEL = True
@@ -34,7 +34,7 @@ class HuggingFaceModel(BenchmarkModel):
             self.unqual_name = name
         name = self.unqual_name  # we don't want to refer to the qualified name anymore
         is_training = self.test == "train"
-        if is_basic_huggingface_model(name):
+        if is_basic_huggingface_models(name):
             from .basic_configs import load_model, generate_inputs_for_model, generate_optimizer_for_model
             self.model_cls, self.model = load_model(name).to(self.device)
             self.example_inputs = generate_inputs_for_model(
@@ -47,7 +47,7 @@ class HuggingFaceModel(BenchmarkModel):
             )
             if is_training:
                 self.optimizer = generate_optimizer_for_model(name, self.model)
-        elif is_extended_huggingface_model(name):
+        elif is_extended_huggingface_models(name):
             from .extended_configs import download_model, generate_inputs_for_model
             self.model = download_model(name)
             self.example_inputs = generate_inputs_for_model(self.model)

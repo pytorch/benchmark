@@ -4,4 +4,4 @@ from torchbenchmark.util.framework.huggingface.patch_hf import patch_transformer
 if __name__ == '__main__':
     patch_transformers()
     model_name = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
-    cache_model(model_name, trust_remote_code=True)
+    cache_model(model_name)
