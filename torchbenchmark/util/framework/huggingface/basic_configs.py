@@ -54,6 +54,7 @@ HUGGINGFACE_MODELS_REQUIRING_TRUST_REMOTE_CODE = [
     "phi_1_5",
     "phi_2",
     "hf_Yi",
+    "hf_mixtral",
 ]
 
 HUGGINGFACE_MODELS_SGD_OPTIMIZER = [
@@ -122,7 +123,7 @@ def load_model(model_name):
             if the constructor runs like `LlamaConfig(num_hidden_layers=16)`, return "LlamaConfig"."""
         pattern = r'([A-Za-z0-9_]*)[\(\.].*'
         m = re.match(pattern, config_cls_ctor)
-        return m.groups[0]
+        return m.groups()[0]
     config_cls_name = _extract_config_cls_name(HUGGINGFACE_MODELS[model_name][2])
     exec(f"from transformers import {config_cls_name}")
     config = eval(HUGGINGFACE_MODELS[model_name][2])
