@@ -49,10 +49,18 @@ class HuggingFaceModel(BenchmarkModel):
             if is_training:
                 self.optimizer = generate_optimizer_for_model(self.model, name)
         elif is_extended_huggingface_models(name):
-            from .extended_configs import download_model, generate_inputs_for_model
-            self.model = download_model(name)
-            self.example_inputs = generate_inputs_for_model(self.model)
-            # TODO: generate optimizer
+            from .extended_configs import download_model, generate_inputs_for_model, generate_optimizer_for_model
+            self.model_cls, self.model = download_model(name)
+            self.example_inputs = generate_inputs_for_model(
+                self.model_cls,
+                self.model,
+                name,
+                self.batch_size,
+                self.device,
+                include_loss_args=True
+            )
+            if is_training:
+                self.optimizer = generate_optimizer_for_model(self.model, name)
         else:
             assert False, f"Huggingface model {name} is not supported yet."
         

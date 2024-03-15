@@ -5,6 +5,7 @@ import os
 import importlib
 from typing import List
 from userbenchmark.dynamo import DYNAMOBENCH_PATH
+from userbenchmark.dynamo.dynamobench.common import BENCHMARK_USE_SGD
 
 # These models contain the models present in huggingface_models_list. It is a
 # combination of models supported by HF Fx parser and some manually supplied
@@ -412,4 +413,11 @@ def download_model(model_name):
         model = model_cls.from_config(config)
     else:
         model = model_cls(config)
-    return model
+    return model_cls, model
+
+def generate_optimizer_for_model(model, model_name):
+    if model_name in BENCHMARK_USE_SGD:
+        return torch.optim.SGD(model.parameters(), lr=0.01, foreach=True)
+    return torch.optim.Adam(
+        model.parameters(), lr=0.01, capturable=True, foreach=True
+    )
