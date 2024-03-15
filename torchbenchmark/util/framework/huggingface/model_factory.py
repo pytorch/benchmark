@@ -160,3 +160,13 @@ class GenerationWrapper(nn.Module):
 
     def forward(self, inputs):
         return self.model.generate(inputs, self.generation_config)
+
+class ExtendedHuggingFaceModel(HuggingFaceModel):
+    MODEL_NAME: str = ""
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(
+            model_name=ExtendedHuggingFaceModel.MODEL_NAME,
+            test=test,
+            device=device,
+            batch_size=batch_size,
+            extra_args=extra_args)

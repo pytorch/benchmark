@@ -1,4 +1,5 @@
 # Extended timm model configs from Dynamobench
+from typing import List
 
 # TODO - Figure out the reason of cold start memory spike
 BATCH_SIZE_DIVISORS = {
@@ -59,3 +60,6 @@ FORCE_AMP_FOR_FP16_BF16_MODELS = {
 SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS = {
     "xcit_large_24_p8_224",
 }
+
+def list_extended_timm_models() -> List[str]:
+    return BATCH_SIZE_DIVISORS.keys()

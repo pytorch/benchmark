@@ -36,7 +36,7 @@ class TimmModel(BenchmarkModel):
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
 
-        # If batch size is still None, need to read it from the dynamobench
+        # If the batch size is still None, we need to read the default batch from dynamobench
         if self.batch_size == None:
             assert model_name in TIMM_MODELS.keys(), f"{model_name} is not an available TIMM Model."
             from .extended_configs import BATCH_SIZE_DIVISORS
@@ -123,3 +123,13 @@ class TimmModel(BenchmarkModel):
             with self.amp_context():
                 out = self._step_eval()
         return (out, )
+
+class ExtendedTimmModel(TimmModel):
+    MODEL_NAME: str = ""
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        super().__init__(
+            model_name=ExtendedTimmModel.MODEL_NAME,
+            test=test,
+            device=device,
+            batch_size=batch_size,
+            extra_args=extra_args)
