@@ -141,6 +141,7 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
             use_cache=True,
         )
         self.model = GenerationWrapper(self.model, generation_config)
+        self.example_inputs = (self.example_inputs['input_ids'], )
 
     def train(self):
         raise NotImplementedError("_generate variant doesn't train")
@@ -148,7 +149,7 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
             with self.amp_context():
-                out = self.model(self.example_inputs['input_ids'])
+                out = self.model(*self.example_inputs)
         return (out,)
 
 
