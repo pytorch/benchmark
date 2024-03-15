@@ -47,7 +47,7 @@ class HuggingFaceModel(BenchmarkModel):
                 is_training,
             )
             if is_training:
-                self.optimizer = generate_optimizer_for_model(name, self.model)
+                self.optimizer = generate_optimizer_for_model(self.model, name)
         elif is_extended_huggingface_models(name):
             from .extended_configs import download_model, generate_inputs_for_model
             self.model = download_model(name)
