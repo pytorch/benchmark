@@ -17,9 +17,12 @@ class Model(HuggingFaceModel):
         self.example_inputs = {"input_features": self.input_features.to(self.device), "input_ids" : self.input_features.to(self.device)}
         self.model.to(self.device)
 
+    def get_module(self):
+        return self.model, (self.example_inputs["input_ids"], )
+
     def train(self):
         raise NotImplementedError("Training is not implemented.")
-    
+
     def eval(self):
         self.model.eval()
         with torch.no_grad():
