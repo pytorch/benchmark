@@ -682,11 +682,11 @@ def load_model_by_name(model_name: str):
         from torchbenchmark.util.framework.timm.extended_configs import (
             list_extended_timm_models
         )
-        if model_name in list_extended_huggingface_models:
+        if model_name in list_extended_huggingface_models():
             cls_name = "ExtendedHuggingFaceModel"
             module_path = ".util.framework.huggingface.model_factory"
             models.append(model_name)
-        elif model_name in list_extended_timm_models:
+        elif model_name in list_extended_timm_models():
             cls_name = "ExtendedTimmModel"
             module_path = ".util.framework.timm.model_factory"
             models.append(model_name)
@@ -710,8 +710,6 @@ def load_model_by_name(model_name: str):
     if Model is None:
         print(f"Warning: {module} does not define attribute Model, skip it")
         return None
-    if "Extended" in Model.__name__:
-        setattr(Model, "MODEL_NAME", model_name)
     if not hasattr(Model, "name"):
         Model.name = model_name
     return Model

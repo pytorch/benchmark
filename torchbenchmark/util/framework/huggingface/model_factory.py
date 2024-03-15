@@ -11,7 +11,7 @@ from typing import Tuple
 from transformers import GenerationConfig
 
 from .basic_configs import is_basic_huggingface_models
-from .extended_configs import is_extended_huggingface_models
+from .extended_configs import is_extended_huggingface_models, BATCH_SIZE_KNOWN_MODELS, BATCH_SIZE_DIVISORS
 
 class HuggingFaceModel(BenchmarkModel):
     HF_MODEL = True
@@ -162,10 +162,18 @@ class GenerationWrapper(nn.Module):
         return self.model.generate(inputs, self.generation_config)
 
 class ExtendedHuggingFaceModel(HuggingFaceModel):
-    MODEL_NAME: str = ""
+    DEFAULT_TRAIN_BSIZE = None
+    DEFAULT_EVAL_BSIZE = None
     def __init__(self, test, device, batch_size=None, extra_args=[]):
+        recorded_batch_size = BATCH_SIZE_KNOWN_MODELS[self.name]
+        if self.name in BATCH_SIZE_DIVISORS:
+            recorded_batch_size = max(
+                int(recorded_batch_size / BATCH_SIZE_DIVISORS[self.name]), 1
+            )
+        self.DEFAULT_TRAIN_BSIZE = recorded_batch_size
+        self.DEFAULT_EVAL_BSIZE = recorded_batch_size
         super().__init__(
-            model_name=ExtendedHuggingFaceModel.MODEL_NAME,
+            name=self.name,
             test=test,
             device=device,
             batch_size=batch_size,

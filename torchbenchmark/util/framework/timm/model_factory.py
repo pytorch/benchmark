@@ -5,7 +5,14 @@ import timm
 import os
 from torchbenchmark.util.model import BenchmarkModel
 from .timm_config import TimmConfig
+from .extended_configs import BATCH_SIZE_DIVISORS
 from userbenchmark.dynamo import DYNAMOBENCH_PATH
+
+# No pretrained weights exist for specific TIMM models
+DISABLE_PRETRAINED_WEIGHTS = [
+    "vovnet39a",
+    "vit_giant_patch14_224",
+]
 
 TIMM_MODELS = dict()
 filename = os.path.join(DYNAMOBENCH_PATH, "timm_models_list.txt")
@@ -36,17 +43,7 @@ class TimmModel(BenchmarkModel):
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
 
-        # If the batch size is still None, we need to read the default batch from dynamobench
-        if self.batch_size == None:
-            assert model_name in TIMM_MODELS.keys(), f"{model_name} is not an available TIMM Model."
-            from .extended_configs import BATCH_SIZE_DIVISORS
-            # Determine the batch size
-            recorded_batch_size = TIMM_MODELS[model_name]
-            if model_name in BATCH_SIZE_DIVISORS:
-                recorded_batch_size = max(
-                    int(recorded_batch_size / BATCH_SIZE_DIVISORS[model_name]), 1
-                )
-
+        pretrained_weights = True if not model_name in DISABLE_PRETRAINED_WEIGHTS else False
         self.model = timm.create_model(
             model_name,
             in_chans=3,
@@ -55,7 +52,7 @@ class TimmModel(BenchmarkModel):
             drop_rate=0.0,
             drop_path_rate=None,
             drop_block_rate=None,
-            pretrained=True,
+            pretrained=pretrained_weights,
         )
 
         self.cfg = TimmConfig(model = self.model, device = device)
@@ -125,10 +122,18 @@ class TimmModel(BenchmarkModel):
         return (out, )
 
 class ExtendedTimmModel(TimmModel):
-    MODEL_NAME: str = ""
+    DEFAULT_TRAIN_BSIZE = None
+    DEFAULT_EVAL_BSIZE = None
     def __init__(self, test, device, batch_size=None, extra_args=[]):
+        recorded_batch_size = TIMM_MODELS[self.name]
+        if self.name in BATCH_SIZE_DIVISORS:
+            recorded_batch_size = max(
+                int(recorded_batch_size / BATCH_SIZE_DIVISORS[self.name]), 1
+            )
+        self.DEFAULT_EVAL_BSIZE = recorded_batch_size
+        self.DEFAULT_TRAIN_BSIZE = recorded_batch_size
         super().__init__(
-            model_name=ExtendedTimmModel.MODEL_NAME,
+            model_name=self.name,
             test=test,
             device=device,
             batch_size=batch_size,

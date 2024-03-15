@@ -5,7 +5,6 @@ import os
 import importlib
 from typing import List
 from userbenchmark.dynamo import DYNAMOBENCH_PATH
-from userbenchmark.dynamo.dynamobench.common import BENCHMARK_USE_SGD
 
 # These models contain the models present in huggingface_models_list. It is a
 # combination of models supported by HF Fx parser and some manually supplied
@@ -80,6 +79,76 @@ SKIP = {
     # Fails with even batch size = 1
     "GPTJForCausalLM",
     "GPTJForQuestionAnswering",
+}
+
+# These models currently fail accuracy with eager Adam optimizer
+# so we use SGD when running the full benchmarks
+# https://github.com/pytorch/pytorch/issues/115966
+BENCHMARK_USE_SGD = {
+    # TorchBench
+    "BERT_pytorch",
+    "LearningToPaint",
+    "alexnet",
+    "dcgan",
+    "demucs",
+    "densenet121",
+    "dlrm",
+    "fastNLP_Bert",
+    "mobilenet_v2",
+    "phlippe_densenet",
+    "phlippe_resnet",
+    "pytorch_stargan",
+    "resnet18",
+    "shufflenet_v2_x1_0",
+    "speech_transformer",
+    "squeezenet1_1",
+    "stable_diffusion_text_encoder",
+    "timm_efficientdet",
+    "timm_nfnet",
+    "timm_regnet",
+    "timm_vision_transformer",
+    "timm_vovnet",
+    "vgg16",
+    "hf_T5",  # Fails dynamic https://github.com/pytorch/pytorch/issues/115968
+    # HF
+    "AlbertForMaskedLM",
+    "BartForCausalLM",
+    "BartForConditionalGeneration",
+    "BlenderbotSmallForCausalLM",
+    "BlenderbotSmallForConditionalGeneration",
+    "DebertaV2ForQuestionAnswering",  # eager OOM
+    "ElectraForCausalLM",
+    "M2M100ForConditionalGeneration",
+    "MBartForCausalLM",
+    "MBartForConditionalGeneration",
+    "OPTForCausalLM",
+    "PLBartForCausalLM",
+    "PLBartForConditionalGeneration",
+    "PegasusForCausalLM",
+    "Speech2Text2ForCausalLM",
+    "TrOCRForCausalLM",
+    "XGLMForCausalLM",
+    # TIMM
+    "adv_inception_v3",
+    "botnet26t_256",
+    "cait_m36_384",  # OOM
+    "coat_lite_mini",
+    "convit_base",
+    "dpn107",
+    "fbnetv3_b",
+    "gernet_l",
+    "lcnet_050",
+    "mixnet_l",
+    "res2net101_26w_4s",
+    "res2net50_14w_8s",
+    "res2next50",
+    "resnest101e",
+    "sebotnet33ts_256",
+    "swsl_resnext101_32x16d",
+    "tf_efficientnet_b0",
+    "ghostnet_100",
+    "gmixer_24_224",
+    "tinynet_a",
 }
 
 # TODO - Fails even after fake tensors
