@@ -28,7 +28,7 @@ def is_extended_huggingface_models(model_name: str) -> bool:
     return model_name in BATCH_SIZE_KNOWN_MODELS
 
 def list_extended_huggingface_models() -> List[str]:
-    return BATCH_SIZE_KNOWN_MODELS.keys()
+    return list(BATCH_SIZE_KNOWN_MODELS.keys())
 
 imports = [
     "AlbertForPreTraining",

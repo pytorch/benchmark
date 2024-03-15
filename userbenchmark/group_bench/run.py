@@ -152,13 +152,23 @@ def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryru
 
 def models_from_config(config) -> List[str]:
     assert "model" in config, f"We expect users to define models in config file."
+    basic_models_list = []
     if isinstance(config["model"], str):
         if config["model"] == "*":
-            return list_models()
+            basic_models_list = list_models()
         else:
-            return [config["model"]]
+            basic_models_list = [config["model"]]
     assert isinstance(config["model", list]), "Config model must be a list or string."
-    return config["model"]
+    basic_models_list = config["model"]
+    extended_models_list = []
+    if "extended_models" in config:
+        from torchbenchmark.util.experiment.instantiator import list_extended_models
+        for extended_model in config["extended_models"]:
+            if extended_model == "huggingface" or extended_model == "timm":
+                extended_models_list.extend(list_extended_models(extended_model))
+            else:
+                extended_models_list.append(extended_model)
+    return basic_models_list + extended_models_list
 
 def load_group_config(config_file: str) -> TorchBenchGroupBenchConfig:
     if not os.path.exists(config_file):

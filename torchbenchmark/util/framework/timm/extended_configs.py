@@ -62,4 +62,4 @@ SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS = {
 }
 
 def list_extended_timm_models() -> List[str]:
-    return BATCH_SIZE_DIVISORS.keys()
+    return list(BATCH_SIZE_DIVISORS.keys())

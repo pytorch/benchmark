@@ -25,6 +25,7 @@ from . import BM_NAME
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import (
         list_models,
+        list_extended_models,
         load_model_isolated,
         TorchBenchModelConfig,
         list_devices,
@@ -251,13 +252,14 @@ def run(args: List[str]):
     if args.run_bisect:
         configs = generate_model_configs_from_bisect_yaml(args.run_bisect)
     else:
-        # If not specified, use the entire model set
+        # If not specified, use the entire model + extended model set
+        modelset = list_models() + list_extended_models()
         if not args.models:
-            args.models = list_models()
+            args.models = modelset
         devices = validate(parse_str_to_list(args.device), list_devices())
         tests = validate(parse_str_to_list(args.test), list_tests())
         batch_sizes = parse_str_to_list(args.bs)
-        models = validate(parse_str_to_list(args.models), list_models())
+        models = validate(parse_str_to_list(args.models), modelset)
         configs = generate_model_configs(
             devices, tests, batch_sizes, model_names=models, extra_args=extra_args
         )
@@ -281,7 +283,6 @@ def run(args: List[str]):
     result = get_output_json(BM_NAME, results)
     if args.device == "cuda":
         import torch
-
         result["environ"]["device"] = torch.cuda.get_device_name()
     with open(args.output, "w") as f:
         json.dump(result, f, indent=4)
