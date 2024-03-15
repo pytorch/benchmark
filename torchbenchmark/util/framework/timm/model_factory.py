@@ -2,32 +2,15 @@ from contextlib import suppress
 import torch
 import typing
 import timm
-import os
 from torchbenchmark.util.model import BenchmarkModel
 from .timm_config import TimmConfig
-from .extended_configs import BATCH_SIZE_DIVISORS
-from userbenchmark.dynamo import DYNAMOBENCH_PATH
+from .extended_configs import BATCH_SIZE_DIVISORS, TIMM_MODELS
 
 # No pretrained weights exist for specific TIMM models
 DISABLE_PRETRAINED_WEIGHTS = [
     "vovnet39a",
     "vit_giant_patch14_224",
 ]
-
-TIMM_MODELS = dict()
-filename = os.path.join(DYNAMOBENCH_PATH, "timm_models_list.txt")
-with open(filename) as fh:
-    lines = fh.readlines()
-    lines = [line.rstrip() for line in lines]
-    for line in lines:
-        model_name, batch_size = line.split(" ")
-        TIMM_MODELS[model_name] = int(batch_size)
-
-def is_extended_timm_models(model_name: str) -> bool:
-    return model_name in TIMM_MODELS
-
-def list_extended_timm_models() -> typing.List[str]:
-    return TIMM_MODELS.keys()
 
 class TimmModel(BenchmarkModel):
     # To recognize this is a timm model

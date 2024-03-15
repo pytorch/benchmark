@@ -1,5 +1,25 @@
 # Extended timm model configs from Dynamobench
 from typing import List
+import os
+import torch
+from userbenchmark.dynamo import DYNAMOBENCH_PATH
+
+TIMM_MODELS = dict()
+# Only load the extended models in OSS
+if hasattr(torch.version, "git_version"):
+    filename = os.path.join(DYNAMOBENCH_PATH, "timm_models_list.txt")
+    with open(filename) as fh:
+        lines = fh.readlines()
+        lines = [line.rstrip() for line in lines]
+        for line in lines:
+            model_name, batch_size = line.split(" ")
+            TIMM_MODELS[model_name] = int(batch_size)
+
+def is_extended_timm_models(model_name: str) -> bool:
+    return model_name in TIMM_MODELS
+
+def list_extended_timm_models() -> List[str]:
+    return TIMM_MODELS.keys()
 
 # TODO - Figure out the reason of cold start memory spike
 BATCH_SIZE_DIVISORS = {
@@ -60,6 +80,3 @@ FORCE_AMP_FOR_FP16_BF16_MODELS = {
 SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS = {
     "xcit_large_24_p8_224",
 }
-
-def list_extended_timm_models() -> List[str]:
-    return list(BATCH_SIZE_DIVISORS.keys())
