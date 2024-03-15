@@ -71,8 +71,7 @@ class TorchVisionModel(BenchmarkModel):
         return self.model, self.example_inputs
 
     def forward(self):
-        with torch.no_grad():
-            self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )
+        self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )
         for data, target in zip(self.example_inputs, self.example_outputs):
             pred = self.model(data)
             return self.loss_fn(pred, target)
