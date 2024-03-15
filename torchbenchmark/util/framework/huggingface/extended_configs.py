@@ -208,40 +208,44 @@ BATCH_SIZE_DIVISORS = {
     "YituTechConvBert": 2,
 }
 
-EXTRA_MODELS = {
-    "AllenaiLongformerBase": (
-        AutoConfig.from_pretrained("allenai/longformer-base-4096"),
-        AutoModelForMaskedLM,
-    ),
-    "Reformer": (
-        ReformerConfig(),
-        AutoModelForMaskedLM,
-    ),
-    "T5Small": (
-        AutoConfig.from_pretrained("t5-small"),
-        AutoModelForSeq2SeqLM,
-    ),
-    # "BigBird": (
-    #     BigBirdConfig(attention_type="block_sparse"),
-    #     AutoModelForMaskedLM,
-    # ),
-    "DistillGPT2": (
-        AutoConfig.from_pretrained("distilgpt2"),
-        AutoModelForCausalLM,
-    ),
-    "GoogleFnet": (
-        AutoConfig.from_pretrained("google/fnet-base"),
-        AutoModelForMaskedLM,
-    ),
-    "YituTechConvBert": (
-        AutoConfig.from_pretrained("YituTech/conv-bert-base"),
-        AutoModelForMaskedLM,
-    ),
-    "CamemBert": (
-        AutoConfig.from_pretrained("camembert-base"),
-        AutoModelForMaskedLM,
-    ),
-}
+try:
+    EXTRA_MODELS = {
+        "AllenaiLongformerBase": (
+            AutoConfig.from_pretrained("allenai/longformer-base-4096"),
+            AutoModelForMaskedLM,
+        ),
+        "Reformer": (
+            ReformerConfig(),
+            AutoModelForMaskedLM,
+        ),
+        "T5Small": (
+            AutoConfig.from_pretrained("t5-small"),
+            AutoModelForSeq2SeqLM,
+        ),
+        # "BigBird": (
+        #     BigBirdConfig(attention_type="block_sparse"),
+        #     AutoModelForMaskedLM,
+        # ),
+        "DistillGPT2": (
+            AutoConfig.from_pretrained("distilgpt2"),
+            AutoModelForCausalLM,
+        ),
+        "GoogleFnet": (
+            AutoConfig.from_pretrained("google/fnet-base"),
+            AutoModelForMaskedLM,
+        ),
+        "YituTechConvBert": (
+            AutoConfig.from_pretrained("YituTech/conv-bert-base"),
+            AutoModelForMaskedLM,
+        ),
+        "CamemBert": (
+            AutoConfig.from_pretrained("camembert-base"),
+            AutoModelForMaskedLM,
+        ),
+    }
+except OSError:
+    # Extra models are only available when Internet access is available
+    EXTRA_MODELS = {}
 
 SKIP_ACCURACY_CHECK_MODELS = {
     # Models too large to have eager, dynamo and fp64_numbers simultaneosuly
