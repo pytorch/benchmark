@@ -451,7 +451,7 @@ def get_module_cls_by_model_name(model_cls_name):
     module = importlib.import_module(module_name)
     return getattr(module, model_cls_name)
 
-def _get_model_cls_and_config(self, model_name):
+def _get_model_cls_and_config(model_name):
     if model_name not in EXTRA_MODELS:
         model_cls = get_module_cls_by_model_name(model_name)
         config_cls = model_cls.config_class

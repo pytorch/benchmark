@@ -1,5 +1,5 @@
 model: "*"
-model_suites:
+extended_models:
   - huggingface
   - timm
 test: eval
