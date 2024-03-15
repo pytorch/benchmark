@@ -51,6 +51,7 @@ class HuggingFaceModel(BenchmarkModel):
         elif is_extended_huggingface_models(name):
             from .extended_configs import download_model, generate_inputs_for_model, generate_optimizer_for_model
             self.model_cls, self.model = download_model(name)
+            self.model = self.model.to(self.device)
             self.example_inputs = generate_inputs_for_model(
                 self.model_cls,
                 self.model,
