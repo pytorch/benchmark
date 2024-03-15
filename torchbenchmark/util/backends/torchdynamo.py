@@ -98,6 +98,11 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         action="store_true",
         help="Enable post grad horizontal batch fusion",
     )
+    parser.add_argument(
+        "--freeze_prepack_weights",
+        action='store_true',
+        help="set to freeze the graph and prepack weights",
+    )
 
     # inductor boolean configs
     inductor_config_dict = _try_get_inductor_config()
@@ -173,6 +178,10 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
                 change_linear_weights_to_int8_woqtensors(module)
             elif args.quantization == "int4weightonly":
                 change_linear_weights_to_int4_woqtensors(module)
+
+        if args.freeze_prepack_weights:
+            torch._inductor.config.freezing=True
+            torch._inductor.config.cpp.weight_prepack=True
 
     if bool(args.dynamo_disable_optimizer_step):
         found_optimizer_step = False
