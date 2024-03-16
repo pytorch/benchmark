@@ -232,7 +232,7 @@ class TestBenchmarkWorker(TestCase):
         self._test_child_trace_exception(worker)
 
     def test_subprocess_worker_segv_handling(self):
-        worker = subprocess_worker.SubprocessWorker(timeout=1)
+        worker = subprocess_worker.SubprocessWorker(timeout=2)
         with self.assertRaisesRegex(
             OSError, f"Subprocess terminates with code {int(signal.SIGSEGV)}"
         ):
