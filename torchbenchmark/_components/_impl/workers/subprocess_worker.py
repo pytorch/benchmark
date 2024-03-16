@@ -12,8 +12,8 @@ import textwrap
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 
-from components._impl.workers import base
-from components._impl.workers import subprocess_rpc
+from torchbenchmark._components._impl.workers import base
+from torchbenchmark._components._impl.workers import subprocess_rpc
 
 
 class SubprocessWorker(base.WorkerBase):
@@ -211,7 +211,7 @@ class SubprocessWorker(base.WorkerBase):
                 # The parent gets priority, but a subclass could set PYTHONPATH
                 # so we have to respect extra paths.
                 sys.path.extend([i for i in sys_path_old if i and i not in sys.path])
-                from components._impl.workers import subprocess_rpc
+                from torchbenchmark._components._impl.workers import subprocess_rpc
                 output_pipe = subprocess_rpc.Pipe(
                     write_handle={self._output_pipe.write_handle})
                 output_pipe.write(subprocess_rpc.BOOTSTRAP_IMPORT_SUCCESS)

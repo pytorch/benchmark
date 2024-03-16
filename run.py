@@ -175,7 +175,7 @@ def run_one_step(
     result_summary = []
     flops_model_analyzer = None
     if "flops" in metrics_needed:
-        from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
+        from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
 
         flops_model_analyzer = ModelAnalyzer(
             export_metrics_file, ["flops"], metrics_gpu_backend
@@ -554,11 +554,11 @@ def main() -> None:
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
         if metrics_gpu_backend == "dcgm":
-            from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
+            from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import check_dcgm
 
             check_dcgm()
         elif "gpu_peak_mem" in metrics_needed:
-            from components.model_analyzer.TorchBenchAnalyzer import check_nvml
+            from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import check_nvml
 
             check_nvml()
         if "gpu_peak_mem" in metrics_needed or (

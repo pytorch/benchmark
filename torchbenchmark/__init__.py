@@ -14,8 +14,8 @@ from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 
 import torch
 
-from components._impl.tasks import base as base_task
-from components._impl.workers import subprocess_worker
+from ._components._impl.tasks import base as base_task
+from ._components._impl.workers import subprocess_worker
 from . import models
 from . import canary_models
 from . import e2e_models

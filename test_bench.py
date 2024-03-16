@@ -15,7 +15,7 @@ import os
 import pytest
 import time
 import torch
-from components._impl.workers import subprocess_worker
+from torchbenchmark._components._impl.workers import subprocess_worker
 from torchbenchmark import _list_model_paths, ModelTask, get_metadata_from_yaml
 from torchbenchmark.util.machine_config import get_machine_state
 from torchbenchmark.util.metadata_utils import skip_by_metadata
