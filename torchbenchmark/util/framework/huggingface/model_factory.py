@@ -127,6 +127,8 @@ class HuggingFaceModel(BenchmarkModel):
             self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
             self.model.train()
         elif test == "eval":
+            # disbale grad globally to trigger graph rewrite during torch compilation
+            torch.autograd.set_grad_enabled(False)
             # Cut the length of sentence when running on CPU, to reduce test time
             if self.device == "cpu" and name in cpu_input_slice:
                 self.max_length = int(self.max_length / cpu_input_slice[name])
