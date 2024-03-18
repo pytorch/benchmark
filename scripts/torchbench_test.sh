@@ -17,8 +17,8 @@ parent_dir=$(dirname "$(readlink -f "$0")")/..
 cd ${parent_dir}
 
 # Test subprocess worker
-python -m components.test.test_subprocess
-python -m components.test.test_worker
+python -m torchbenchmark._components.test.test_subprocess
+python -m torchbenchmark._components.test.test_worker
 
 # Test models
 python test.py -v

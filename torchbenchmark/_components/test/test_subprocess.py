@@ -14,8 +14,8 @@ import typing
 from torch.testing._internal.common_utils import TestCase, run_tests
 
 try:
-    from components._impl.tasks import base as task_base
-    from components._impl.workers import subprocess_rpc
+    from torchbenchmark._components._impl.tasks import base as task_base
+    from torchbenchmark._components._impl.workers import subprocess_rpc
 except (ImportError, ModuleNotFoundError):
     print(f"""
         This test must be run from the repo root directory as
