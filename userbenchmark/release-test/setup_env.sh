@@ -44,8 +44,8 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 
 # install pip version of pytorch and torchvision
 if [[ ${PYTORCH_CHANNEL} == "pytorch-test" ]]; then
-    pip3 install --pre torch==2.2.1 --extra-index-url https://download.pytorch.org/whl/test/cu121
-    pip3 install --pre torchvision==0.17.1 torchaudio==2.2.1 --extra-index-url https://download.pytorch.org/whl/test/cu121
+    pip3 install --pre torch==2.2.2 --extra-index-url https://download.pytorch.org/whl/test/cu121
+    pip3 install --pre torchvision==0.17.2 torchaudio==2.2.2 --extra-index-url https://download.pytorch.org/whl/test/cu121
     #conda install -y pytorch=2.1.2 torchvision=0.16.2 torchaudio=2.1.2 pytorch-cuda=12.1 -c pytorch-test -c nvidia
     #pip3 install --force-reinstall --no-cache-dir  torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/test/cu${CUDA_VERSION//./}
 else
