@@ -97,6 +97,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.forward_contexts = []
             self.backward_contexts = []
             self.optimizer_contexts = []
+        # disbale grad globally to trigger graph rewrite during torch compilation
+        # disabling only for selective models to skip maml and other models that might need
+        # gradient calculations during inference as well
+        if (self.test == "eval" and (self.name == "BERT_pytorch" or self.name == "fastNLP_Bert")):
+            torch.autograd.set_grad_enabled(False)
         self.run_contexts = [
             enable_profiling_executor  # force JIT profiling executor to be enabled by default
         ]
