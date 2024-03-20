@@ -1,0 +1,13 @@
+eval_benchmark: false
+eval_deterministic: false
+eval_nograd: true
+train_benchmark: false
+train_deterministic: false
+not_implemented:
+  # hf_GPTJ model doesn't support JIT
+  - jit: true
+  # OOMs on torchbench CI
+  - device: cuda
+  # CPU OOM on torchbench CI
+  - device: cpu
+    test: train
