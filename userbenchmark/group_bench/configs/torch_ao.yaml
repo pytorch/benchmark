@@ -1,4 +1,7 @@
 model: "*"
+extended_models:
+  - huggingface
+  - timm
 test: eval
 device: cuda
 extra_args: --precision bf16 --torchdynamo inductor --inductor-compile-mode max-autotune

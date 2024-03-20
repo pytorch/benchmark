@@ -4,7 +4,13 @@ import typing
 import timm
 from torchbenchmark.util.model import BenchmarkModel
 from .timm_config import TimmConfig
-from typing import Generator, Tuple, Optional
+from .extended_configs import BATCH_SIZE_DIVISORS, TIMM_MODELS
+
+# No pretrained weights exist for specific TIMM models
+DISABLE_PRETRAINED_WEIGHTS = [
+    "vovnet39a",
+    "vit_giant_patch14_224",
+]
 
 class TimmModel(BenchmarkModel):
     # To recognize this is a timm model
@@ -20,7 +26,18 @@ class TimmModel(BenchmarkModel):
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
 
-        self.model = timm.create_model(model_name, pretrained=False, scriptable=True)
+        pretrained_weights = True if not model_name in DISABLE_PRETRAINED_WEIGHTS else False
+        self.model = timm.create_model(
+            model_name,
+            in_chans=3,
+            scriptable=False,
+            num_classes=None,
+            drop_rate=0.0,
+            drop_path_rate=None,
+            drop_block_rate=None,
+            pretrained=pretrained_weights,
+        )
+
         self.cfg = TimmConfig(model = self.model, device = device)
         self.example_inputs = self._gen_input(self.batch_size)
 
@@ -86,3 +103,21 @@ class TimmModel(BenchmarkModel):
             with self.amp_context():
                 out = self._step_eval()
         return (out, )
+
+class ExtendedTimmModel(TimmModel):
+    DEFAULT_TRAIN_BSIZE = None
+    DEFAULT_EVAL_BSIZE = None
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        recorded_batch_size = TIMM_MODELS[self.name]
+        if self.name in BATCH_SIZE_DIVISORS:
+            recorded_batch_size = max(
+                int(recorded_batch_size / BATCH_SIZE_DIVISORS[self.name]), 1
+            )
+        self.DEFAULT_EVAL_BSIZE = recorded_batch_size
+        self.DEFAULT_TRAIN_BSIZE = recorded_batch_size
+        super().__init__(
+            model_name=self.name,
+            test=test,
+            device=device,
+            batch_size=batch_size,
+            extra_args=extra_args)

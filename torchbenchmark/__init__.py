@@ -667,26 +667,46 @@ def list_models(model_match=None):
     return models
 
 
-def load_model_by_name(model):
+def load_model_by_name(model_name: str):
     models = filter(
-        lambda x: model.lower() == x.lower(),
+        lambda x: model_name.lower() == x.lower(),
         map(lambda y: os.path.basename(y), _list_model_paths()),
     )
     models = list(models)
+    cls_name = "Model"
     if not models:
-        raise ModelNotFoundError(f"{model} is not found in the core model list.")
+        # If the model is in TIMM or Huggingface extended model list
+        from torchbenchmark.util.framework.huggingface.extended_configs import (
+            list_extended_huggingface_models
+        )
+        from torchbenchmark.util.framework.timm.extended_configs import (
+            list_extended_timm_models
+        )
+        if model_name in list_extended_huggingface_models():
+            cls_name = "ExtendedHuggingFaceModel"
+            module_path = ".util.framework.huggingface.model_factory"
+            models.append(model_name)
+        elif model_name in list_extended_timm_models():
+            cls_name = "ExtendedTimmModel"
+            module_path = ".util.framework.timm.model_factory"
+            models.append(model_name)
+        else:
+            raise ModelNotFoundError(f"{model_name} is not found in the core model list.")
+    else:
+        model_name = models[0]
+        model_pkg = (
+            model_name
+            if not _is_internal_model(model_name)
+            else f"{internal_model_dir}.{model_name}"
+        )
+        module_path = f".models.{model_pkg}"
     assert (
         len(models) == 1
-    ), f"Found more than one models {models} with the exact name: {model}"
-    model_name = models[0]
-    model_pkg = (
-        model_name
-        if not _is_internal_model(model_name)
-        else f"{internal_model_dir}.{model_name}"
-    )
-    module = importlib.import_module(f".models.{model_pkg}", package=__name__)
+    ), f"Found more than one models {models} with the exact name: {model_name}"
+    
+    module = importlib.import_module(module_path, package=__name__)
 
-    Model = getattr(module, "Model", None)
+    Model = getattr(module, cls_name, None)
     if Model is None:
         print(f"Warning: {module} does not define attribute Model, skip it")
         return None

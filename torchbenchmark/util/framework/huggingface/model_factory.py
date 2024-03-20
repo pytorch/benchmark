@@ -3,70 +3,15 @@ import random
 import os
 import torch
 from contextlib import nullcontext
-from torch import optim
+
 import torch.nn as nn
 from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import NLP
-import transformers
-from transformers import AutoConfig, ReformerConfig, BertConfig, GenerationConfig, WhisperConfig, LlamaConfig
-# PhiConfig is only available in newer version of transformers
-try:
-    from transformers import PhiConfig
-except:
-    pass
 from typing import Tuple
+from transformers import GenerationConfig
 
-class_models = {
-    # 'name': (train_max_length, eval_max_length, config, model)
-    'hf_GPT2': (512, 1024, 'AutoConfig.from_pretrained("gpt2")', 'AutoModelForCausalLM'),
-    'hf_GPT2_large': (512, 1024, 'AutoConfig.from_pretrained("gpt2-large")', 'AutoModelForCausalLM'),
-    'hf_T5': (1024, 2048, 'AutoConfig.from_pretrained("t5-small")', 'AutoModelForSeq2SeqLM'),
-    'hf_T5_base': (1024, 2048, 'AutoConfig.from_pretrained("t5-base")', 'AutoModelForSeq2SeqLM'),
-    'hf_T5_large': (512, 512, 'AutoConfig.from_pretrained("t5-large")', 'AutoModelForSeq2SeqLM'),
-    'hf_Bart': (512, 512, 'AutoConfig.from_pretrained("facebook/bart-base")', 'AutoModelForSeq2SeqLM'),
-    'hf_Reformer': (4096, 4096, 'ReformerConfig()', 'AutoModelForMaskedLM'),
-    'hf_BigBird': (1024, 4096, 'BigBirdConfig(attention_type="block_sparse",)', 'AutoModelForMaskedLM'),
-    'hf_Albert': (512, 512, 'AutoConfig.from_pretrained("albert-base-v2")', 'AutoModelForMaskedLM'),
-    'hf_DistilBert': (512, 512, 'AutoConfig.from_pretrained("distilbert-base-uncased")', 'AutoModelForMaskedLM'),
-    'hf_Longformer': (1024, 4096, 'AutoConfig.from_pretrained("allenai/longformer-base-4096")', 'AutoModelForMaskedLM'),
-    'hf_Bert': (512, 512, 'BertConfig()', 'AutoModelForMaskedLM'),
-    # see https://huggingface.co/bert-large-cased
-    'hf_Bert_large': (512, 512, 'BertConfig(hidden_size=1024, num_hidden_layers=24, num_attention_heads=16)', 'AutoModelForMaskedLM'),
-    'hf_Whisper': (1024, 1024, 'WhisperConfig()', 'AutoModelForAudioClassification'),
-    'hf_distil_whisper': (1024, 1024, 'AutoConfig.from_pretrained("distil-whisper/distil-medium.en")', 'AutoModelForAudioClassification'),
-    'hf_mixtral' : (512,512, 'AutoConfig.from_pretrained("mistralai/Mixtral-8x7B-v0.1")', 'AutoModelForCausalLM'),
-    # default num_hidden_layers=32 but that OOMs, feel free to change this config to something more real
-    'llama_v2_7b_16h' : (128,512, 'LlamaConfig(num_hidden_layers=16)', 'AutoModelForCausalLM'),
-    'hf_MPT_7b_instruct': (512, 512, 'AutoConfig.from_pretrained("mosaicml/mpt-7b-instruct", trust_remote_code=True)', 'AutoModelForCausalLM'),
-    'llava' : (512,512, 'AutoConfig.from_pretrained("liuhaotian/llava-v1.5-13b")', 'LlavaForConditionalGeneration'),
-    'llama_v2_7b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-7b-hf")', 'AutoModelForCausalLM'),
-    'llama_v2_13b' : (512,512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-13b-hf")', 'AutoModelForCausalLM'),
-    'llama_v2_70b' : (512, 512, 'AutoConfig.from_pretrained("meta-llama/Llama-2-70b-hf")', 'AutoModelForMaskedLM'),
-    'codellama' : (512,512, 'AutoConfig.from_pretrained("codellama/CodeLlama-7b-hf")', 'AutoModelForCausalLM'),
-    'phi_1_5' : (512, 512, 'AutoConfig.from_pretrained("microsoft/phi-1_5", trust_remote_code=True)', 'AutoModelForCausalLM'),
-    'phi_2' : (512, 512, 'AutoConfig.from_pretrained("microsoft/phi-2", trust_remote_code=True)', 'AutoModelForCausalLM'),
-    'moondream' : (512, 512, 'PhiConfig.from_pretrained("vikhyatk/moondream1")', 'PhiForCausalLM'),
-    # as per this page https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1 trust_remote_code=True is not required
-    'mistral_7b_instruct' : (128, 128, 'AutoConfig.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1")', 'AutoModelForCausalLM'),
-    'hf_Yi' : (512, 512, 'AutoConfig.from_pretrained("01-ai/Yi-6B", trust_remote_code=True)', 'AutoModelForCausalLM'),
-    'orca_2' : (512, 512, 'AutoConfig.from_pretrained("microsoft/Orca-2-13b")', 'AutoModelForCausalLM'),
-}
-
-cpu_input_slice = {
-    'hf_BigBird': 5,
-    'hf_Longformer': 8,
-    'hf_T5': 4,
-    'hf_GPT2': 4,
-    'hf_Reformer': 2,
-}
-
-class ArgsToKwargsWrapper(torch.nn.Module):
-    def __init__(self, model):
-        super(ArgsToKwargsWrapper, self).__init__()
-        self.model = model
-
-    def forward(self, input_ids, decoder_input_ids):
-        return self.model(input_ids=input_ids, decoder_input_ids=decoder_input_ids)
+from .basic_configs import is_basic_huggingface_models
+from .extended_configs import is_extended_huggingface_models, BATCH_SIZE_KNOWN_MODELS, BATCH_SIZE_DIVISORS
 
 class HuggingFaceModel(BenchmarkModel):
     HF_MODEL = True
@@ -88,80 +33,59 @@ class HuggingFaceModel(BenchmarkModel):
             self.is_generate = False
             self.unqual_name = name
         name = self.unqual_name  # we don't want to refer to the qualified name anymore
-        if test == "train":
-            self.max_length = class_models[name][0]
-        elif test == "eval":
-            self.max_length = class_models[name][1]
-        # workaround the bigbird config import
-        if name == "hf_BigBird":
-            from transformers import BigBirdConfig
-        config = eval(class_models[name][2])
-        if class_models[name][2] == "ReformerConfig()" and not config.num_buckets:
-            # silence "config.num_buckets is not set. Setting config.num_buckets to 128"
-            config.num_buckets = 128
-        class_ctor = getattr(transformers, class_models[name][3])
-        kwargs = {}
-        hugging_face_models_requiring_trust_remote_code = ["hf_Falcon_7b", "hf_MPT_7b_instruct", "phi_1_5", "phi_2", "hf_Yi"]
-        if name in hugging_face_models_requiring_trust_remote_code:
-            kwargs["trust_remote_code"] = True
-        if hasattr(class_ctor, "from_config"):
-            self.model = class_ctor.from_config(config, **kwargs).to(device)
+        is_training = self.test == "train"
+        if is_basic_huggingface_models(name):
+            from .basic_configs import download_model, generate_inputs_for_model, generate_optimizer_for_model
+            self.model_cls, self.model = download_model(name)
+            self.model = self.model.to(self.device)
+            self.example_inputs = generate_inputs_for_model(
+                self.model_cls,
+                self.model,
+                name,
+                self.batch_size,
+                self.device,
+                is_training,
+            )
+            if is_training:
+                self.optimizer = generate_optimizer_for_model(self.model, name)
+        elif is_extended_huggingface_models(name):
+            from .extended_configs import download_model, generate_inputs_for_model, generate_optimizer_for_model
+            self.model_cls, self.model = download_model(name)
+            self.model = self.model.to(self.device)
+            self.example_inputs = generate_inputs_for_model(
+                self.model_cls,
+                self.model,
+                name,
+                self.batch_size,
+                self.device,
+                include_loss_args=True
+            )
+            if is_training:
+                self.optimizer = generate_optimizer_for_model(self.model, name)
         else:
-            self.model = class_ctor(config, **kwargs).to(device)
-        self.optimizer = optim.Adam(
-            self.model.parameters(),
-            lr=0.001,
-            # TODO resolve https://github.com/pytorch/torchdynamo/issues/1083
-            capturable=bool(int(os.getenv("ADAM_CAPTURABLE", 0)
-        )))
-
-        if name in ["llama_v2_7b_16h"]:
-            self.optimizer = optim.SGD(self.model.parameters(), lr= 0.001)
-
-        # populate these on-demand to avoid wasting memory when not used
-        self.vocab_size = config.vocab_size
-
-        if test == "train":
-            input_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
-            decoder_ids = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
-            self.example_inputs = {'input_ids': input_ids, 'labels': decoder_ids}
+            assert False, f"Huggingface model {name} is not supported yet."
+        
+        if is_training:
             self.model.train()
-        elif test == "eval":
-            # Cut the length of sentence when running on CPU, to reduce test time
-            if self.device == "cpu" and name in cpu_input_slice:
-                self.max_length = int(self.max_length / cpu_input_slice[name])
-            eval_context = torch.randint(0, config.vocab_size, (self.batch_size, self.max_length)).to(device)
-            self.example_inputs = {'input_ids': eval_context, }
-            if class_models[name][3] == 'AutoModelForSeq2SeqLM':
-                self.example_inputs['decoder_input_ids'] = eval_context
+        else:
             self.model.eval()
         self.amp_context = nullcontext
 
-    def get_module(self, wrap_model=True):
-        if not self.is_generate and class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
-            k = 'labels' if self.test == 'train' else 'decoder_input_ids'
-            if not wrap_model:
-                return self.model, (
-                    self.example_inputs['input_ids'], self.example_inputs[k])
-            return ArgsToKwargsWrapper(self.model), (
-                    self.example_inputs['input_ids'], self.example_inputs[k])
-        return self.model, (self.example_inputs["input_ids"], )
+    def get_module(self):
+        return self.model, self.example_inputs
 
     def get_input_iter(self):
         """Yield randomized bucket length of inputs."""
-        nbuckets = 8
-        n = int(math.log2(self.max_length))
-        buckets = [2**n for n in range(n - nbuckets, n)]
-        if class_models[self.unqual_name][3] == 'AutoModelForSeq2SeqLM':
-            raise NotImplementedError("AutoModelForSeq2SeqLM is not yet supported")
-        while True:
-            # randomize bucket_len
-            bucket_len = random.choice(buckets)
-            dict_input = {
-                'input_ids': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
-                'labels': torch.randint(0, self.vocab_size, (self.batch_size, bucket_len)).to(self.device),
-            }
-            yield dict_input
+        from .basic_configs import generate_input_iter_for_model
+        generator = generate_input_iter_for_model(
+            self.model_cls,
+            self.model,
+            self.unqual_name,
+            self.batch_size,
+            self.device,
+            self.test == "train",
+        )
+        yield next(generator)
 
     def forward(self):
         with self.amp_context():
@@ -187,6 +111,7 @@ class HuggingFaceModel(BenchmarkModel):
             return (out.logits, )
         else:
             return (out["logits"], )
+
 
 class HuggingFaceAuthMixin:
     def __init__(self):
@@ -217,6 +142,7 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
             use_cache=True,
         )
         self.model = GenerationWrapper(self.model, generation_config)
+        self.example_inputs = (self.example_inputs['input_ids'], )
 
     def train(self):
         raise NotImplementedError("_generate variant doesn't train")
@@ -224,7 +150,7 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
             with self.amp_context():
-                out = self.model(self.example_inputs['input_ids'])
+                out = self.model(*self.example_inputs)
         return (out,)
 
 
@@ -236,3 +162,21 @@ class GenerationWrapper(nn.Module):
 
     def forward(self, inputs):
         return self.model.generate(inputs, self.generation_config)
+
+class ExtendedHuggingFaceModel(HuggingFaceModel):
+    DEFAULT_TRAIN_BSIZE = None
+    DEFAULT_EVAL_BSIZE = None
+    def __init__(self, test, device, batch_size=None, extra_args=[]):
+        recorded_batch_size = BATCH_SIZE_KNOWN_MODELS[self.name]
+        if self.name in BATCH_SIZE_DIVISORS:
+            recorded_batch_size = max(
+                int(recorded_batch_size / BATCH_SIZE_DIVISORS[self.name]), 1
+            )
+        self.DEFAULT_TRAIN_BSIZE = recorded_batch_size
+        self.DEFAULT_EVAL_BSIZE = recorded_batch_size
+        super().__init__(
+            name=self.name,
+            test=test,
+            device=device,
+            batch_size=batch_size,
+            extra_args=extra_args)

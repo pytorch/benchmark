@@ -77,7 +77,7 @@ def _load_test(path, device):
                 task.del_model_instance()
             except NotImplementedError as e:
                 self.skipTest(
-                    f'Method `get_module()` on {device} is not implemented because "{e}", skipping...'
+                    f'Accuracy check on {device} is not implemented because "{e}", skipping...'
                 )
 
     def train_fn(self):

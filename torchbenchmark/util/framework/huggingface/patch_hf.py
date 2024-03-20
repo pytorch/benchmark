@@ -4,21 +4,12 @@ Patch the transformer source code to enable optimizations.
 import os
 import subprocess
 import sys
-from .model_factory import class_models
-from transformers import AutoConfig, ReformerConfig, BigBirdConfig, BertConfig, WhisperConfig, LlamaConfig, PhiConfig
-import inspect
+from .basic_configs import download_model
 
 PATCH_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "patches")
 
-def cache_model(name: str, **kwargs):
-    import transformers
-    model_config = eval(class_models[name][2])
-    model_ctor = getattr(transformers, class_models[name][3])
-    if not hasattr(model_ctor, "from_config"):
-        model_ctor(model_config, **kwargs)
-    else:
-        model_ctor.from_config(model_config, **kwargs)
-        
+def cache_model(name: str):
+    download_model(name)
 
 def patch_transformers():
     import transformers

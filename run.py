@@ -10,8 +10,6 @@ Wall time provided for sanity but is not a sane benchmark measurement.
 """
 import argparse
 import time
-
-import traceback
 from functools import partial
 
 import numpy as np
@@ -23,6 +21,7 @@ from torchbenchmark import (
     load_model_by_name,
     ModelNotFoundError,
 )
+from torchbenchmark.util.experiment.instantiator import load_model, TorchBenchModelConfig
 from torchbenchmark.util.experiment.metrics import get_model_flops, get_peak_memory
 
 
@@ -498,34 +497,14 @@ def main() -> None:
     # Log the tool usage
     usage_report_logger()
 
-    found = False
-    Model = None
-
-    try:
-        Model = load_model_by_name(args.model)
-    except ModuleNotFoundError:
-        traceback.print_exc()
-        exit(-1)
-    except ModelNotFoundError:
-        print(f"Warning: The model {args.model} cannot be found at core set.")
-    if not Model:
-        try:
-            Model = load_canary_model_by_name(args.model)
-        except ModuleNotFoundError:
-            traceback.print_exc()
-            exit(-1)
-        except ModelNotFoundError:
-            print(
-                f"Error: The model {args.model} cannot be found at either core or canary model set."
-            )
-            exit(-1)
-
-    m = Model(
-        device=args.device,
+    config = TorchBenchModelConfig(
+        name=args.model,
         test=args.test,
+        device=args.device,
         batch_size=args.bs,
         extra_args=extra_args,
     )
+    m = load_model(config)
     if m.dynamo:
         mode = f"dynamo {m.opt_args.torchdynamo}"
     elif m.opt_args.backend:
@@ -533,7 +512,7 @@ def main() -> None:
     else:
         mode = "eager"
     print(
-        f"Running {args.test} method from {Model.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}."
+        f"Running {args.test} method from {m.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}."
     )
     if "--accuracy" in extra_args:
         print("{:<20} {:>20}".format("Accuracy: ", str(m.accuracy)), sep="")

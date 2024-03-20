@@ -1,9 +1,8 @@
 import logging
 import warnings
 
-from torchbenchmark import add_path, REPO_PATH
-
-DYNAMOBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "dynamo", "dynamobench")
+from torchbenchmark import add_path
+from . import DYNAMOBENCH_PATH
 
 try:
     # OSS Import

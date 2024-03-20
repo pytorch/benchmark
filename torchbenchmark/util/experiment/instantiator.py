@@ -76,3 +76,15 @@ def list_models() -> List[str]:
     model_paths = _list_model_paths()
     model_names = list(map(lambda x: os.path.basename(x), model_paths))
     return model_names
+
+def list_extended_models(suite_name: str="all") -> List[str]:
+    from torchbenchmark.util.framework.huggingface.extended_configs import list_extended_huggingface_models
+    from torchbenchmark.util.framework.timm.extended_configs import list_extended_timm_models
+    if suite_name == "huggingface":
+        return list_extended_huggingface_models()
+    elif suite_name == "timm":
+        return list_extended_timm_models()
+    elif suite_name == "all":
+        return list_extended_huggingface_models() + list_extended_timm_models()
+    else:
+        assert False, "Currently, we only support extended model set huggingface or timm."
