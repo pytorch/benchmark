@@ -6,7 +6,6 @@ import torch.nn.functional as F
 from torch import optim
 from typing import Tuple
 
-torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 from .pytorch_unet.unet import UNet
@@ -89,6 +88,7 @@ class Model(BenchmarkModel):
             self.model = torch.jit.script(self.model)
 
     def eval(self) -> Tuple[torch.Tensor]:
+        torch.backends.cudnn.deterministic = True
         self.model.eval()
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=self.args.amp):
