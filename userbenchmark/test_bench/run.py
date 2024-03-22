@@ -198,7 +198,7 @@ def run_config(
         return dict.fromkeys(metrics, str(e))
 
 
-def run_config_cuda_leak(config: TorchBenchModelConfig):
+def run_config_memleak(config: TorchBenchModelConfig):
     def assertEqual(x, y):
         assert x == y, f"{x} != {y}"
     model_name = config.name
@@ -222,11 +222,11 @@ def run_config_cuda_leak(config: TorchBenchModelConfig):
             task.check_details_eval(device=config.device, md=metadata)
             task.check_eval_output()
             task.del_model_instance()
-            result = {"cuda_memory_leak": "False"}
+            result = {"memleak": "False"}
         except NotImplementedError as e:
-            result = {"cuda_memory_leak": "not_impleted"}
+            result = {"memleak": "not_implemented"}
         except AssertionError:
-            result = {"cuda_memory_leak": "True"}
+            result = {"memleak": "True"}
         finally:
             return result
 
@@ -322,7 +322,7 @@ def run(args: List[str]):
             if "accuracy" in metrics:
                 metrics_dict = run_config_accuracy(config, metrics, dryrun=args.dryrun)
             elif "memleak" in metrics:
-                metrics_dict = run_config_accuracy(config)
+                metrics_dict = run_config_memleak(config)
             else:
                 metrics_dict = run_config(config, metrics, dryrun=args.dryrun)
             config_str = config_to_str(config)
