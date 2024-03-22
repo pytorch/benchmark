@@ -198,7 +198,7 @@ def run_config(
         return dict.fromkeys(metrics, str(e))
 
 
-def run_config_memleak(config: TorchBenchModelConfig):
+def run_config_memleak(config: TorchBenchModelConfig) -> Dict[str, str]:
     def assertEqual(x, y):
         assert x == y, f"{x} != {y}"
     model_name = config.name
@@ -210,25 +210,30 @@ def run_config_memleak(config: TorchBenchModelConfig):
     )
     # to speedup test, use batch size 1 if possible
     batch_size = 1 if allow_customize_batch_size else None
-    with task.watch_cuda_memory(
-        skip=False,
-        assert_equal=assertEqual,
-    ):
-        try:
+    try:
+        with task.watch_cuda_memory(
+            skip=False,
+            assert_equal=assertEqual,
+        ):
             task.make_model_instance(
-                test=config.test, device=config.device, batch_size=batch_size
+                test=config.test,
+                device=config.device,
+                batch_size=batch_size,
             )
             task.invoke()
-            task.check_details_eval(device=config.device, md=metadata)
-            task.check_eval_output()
+            if config.test == "train":
+                task.check_details_train(device=config.device, md=metadata)
+            else:
+                task.check_details_eval(device=config.device, md=metadata)
+                task.check_eval_output()
             task.del_model_instance()
             result = {"memleak": "False"}
-        except NotImplementedError as e:
-            result = {"memleak": "not_implemented"}
-        except AssertionError:
-            result = {"memleak": "True"}
-        finally:
-            return result
+    except NotImplementedError as e:
+        result = {"memleak": "not_implemented"}
+    except AssertionError:
+        result = {"memleak": "True"}
+    finally:
+        return result
 
 
 def run_config_accuracy(
