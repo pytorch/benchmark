@@ -62,9 +62,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get update -y
-          sudo apt-get install libjpeg-dev
-          sudo apt-get install zlib1g-dev
-          sudo apt-get install libpng-dev
+          sudo apt-get install -y libjpeg-dev zlib1g-dev libpng-dev
           sudo ldconfig
           sudo ldconfig
       - name: Setup conda env
