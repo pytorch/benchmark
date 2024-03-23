@@ -198,7 +198,7 @@ def run_config(
         return dict.fromkeys(metrics, str(e))
 
 
-def run_config_memleak(config: TorchBenchModelConfig) -> Dict[str, str]:
+def run_config_memleak(config: TorchBenchModelConfig, dryrun: bool=False) -> Dict[str, str]:
     def assertEqual(x, y):
         assert x == y, f"{x} != {y}"
     model_name = config.name
@@ -210,6 +210,9 @@ def run_config_memleak(config: TorchBenchModelConfig) -> Dict[str, str]:
     )
     # to speedup test, use batch size 1 if possible
     batch_size = 1 if allow_customize_batch_size else None
+    if dryrun:
+        print(" [skip_by_dryrun] ", flush=True)
+        return {"memleak": "skip_by_dryrun"}
     try:
         with task.watch_cuda_memory(
             skip=False,
@@ -327,7 +330,7 @@ def run(args: List[str]):
             if "accuracy" in metrics:
                 metrics_dict = run_config_accuracy(config, metrics, dryrun=args.dryrun)
             elif "memleak" in metrics:
-                metrics_dict = run_config_memleak(config)
+                metrics_dict = run_config_memleak(config, dryrun=args.dryrun)
             else:
                 metrics_dict = run_config(config, metrics, dryrun=args.dryrun)
             config_str = config_to_str(config)
