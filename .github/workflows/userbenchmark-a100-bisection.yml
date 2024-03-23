@@ -62,6 +62,7 @@ jobs:
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           cd benchmark
+          python install.py
           mkdir -p "${BISECT_WORKDIR}"
           PYTORCH_GIT_HASH=$(python -c 'import torch; print(torch.version.git_version)')
           python run_benchmark.py ${{ github.event.inputs.userbenchmark }} ${{ github.event.inputs.userbenchmark_args }} --dryrun \
@@ -79,8 +80,6 @@ jobs:
           . "${SETUP_SCRIPT}"; cd benchmark
           python utils/cuda_utils.py --install-torch-build-deps
           python utils/cuda_utils.py --install-torchbench-deps
-          # Install torchbench
-          python install.py
       - name: Bisection
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
