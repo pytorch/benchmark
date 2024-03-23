@@ -58,9 +58,6 @@ jobs:
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
-      - name: Install Deps
-        run: |
-          sudo apt-get -y update && sudo apt -y update
       - name: Setup conda env
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
@@ -82,6 +79,8 @@ jobs:
           . "${SETUP_SCRIPT}"; cd benchmark
           python utils/cuda_utils.py --install-torch-build-deps
           python utils/cuda_utils.py --install-torchbench-deps
+          # Install torchbench
+          python install.py
       - name: Bisection
         run: |
           . "${SETUP_SCRIPT}"; cd benchmark
