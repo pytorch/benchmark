@@ -58,6 +58,13 @@ jobs:
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
+      - name: Install devel packages
+        run: |
+          sudo apt-get update -y
+          sudo apt-get update -y
+          sudo apt-get install libjpeg-dev
+          sudo apt-get install zlib1g-dev
+          sudo apt-get install libpng-dev
           sudo ldconfig
           sudo ldconfig
       - name: Setup conda env
