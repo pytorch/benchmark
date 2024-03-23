@@ -339,5 +339,7 @@ def run(args: List[str]):
     if args.device == "cuda":
         import torch
         result["environ"]["device"] = torch.cuda.get_device_name()
+    o = json.dumps(result, indent=4)
+    print(o)
     with open(args.output, "w") as f:
-        json.dump(result, f, indent=4)
+        f.write(o)
