@@ -14,7 +14,7 @@ RUN sudo apt-get install -y git jq gcc g++ \
                             fontconfig libfontconfig1-dev \
                             libpango-1.0-0 libpangoft2-1.0-0 \
                             libsdl2-dev libsdl2-2.0-0 \
-                            libjpeg-dev libpng-dev
+                            libjpeg-dev libpng-dev zlib1g-dev
 
 # get switch-cuda utility
 RUN sudo wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
