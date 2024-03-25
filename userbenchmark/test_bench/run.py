@@ -21,6 +21,19 @@ from ..utils import (
     get_default_debug_output_dir,
 )
 from . import BM_NAME
+from torchbenchmark import (
+    ModelTask,
+    get_metadata_from_yaml,
+    REPO_PATH,
+)
+
+# Some of the models have very heavyweight setup, so we have to set a very
+# generous limit. That said, we don't want the entire test suite to hang if
+# a single test encounters an extreme failure, so we give up after a test is
+# unresponsive to 5 minutes by default. (Note: this does not require that the
+# entire test case completes in 5 minutes. It requires that if the worker is
+# unresponsive for 5 minutes the parent will presume it dead / incapacitated.)
+TIMEOUT = int(os.getenv("TIMEOUT", 300))  # Seconds
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import (
@@ -115,6 +128,8 @@ def init_output_dir(
 def get_metrics(config: TorchBenchModelConfig) -> List[str]:
     if "--accuracy" in config.extra_args:
         return ["accuracy"]
+    if "--memleak" in config.extra_args:
+        return ["memleak"]
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
 
 
@@ -181,6 +196,47 @@ def run_config(
     except Exception as e:
         print(" [runtime_error]", flush=True)
         return dict.fromkeys(metrics, str(e))
+
+
+def run_config_memleak(config: TorchBenchModelConfig, dryrun: bool=False) -> Dict[str, str]:
+    def assertEqual(x, y):
+        assert x == y, f"{x} != {y}"
+    model_name = config.name
+    model_path = os.path.join(REPO_PATH, "torchbenchmark", "models", model_name)
+    metadata = get_metadata_from_yaml(model_path)
+    task = ModelTask(model_path, timeout=TIMEOUT)
+    allow_customize_batch_size = task.get_model_attribute(
+        "ALLOW_CUSTOMIZE_BSIZE", classattr=True
+    )
+    # to speedup test, use batch size 1 if possible
+    batch_size = 1 if allow_customize_batch_size else None
+    if dryrun:
+        print(" [skip_by_dryrun] ", flush=True)
+        return {"memleak": "skip_by_dryrun"}
+    try:
+        with task.watch_cuda_memory(
+            skip=False,
+            assert_equal=assertEqual,
+        ):
+            task.make_model_instance(
+                test=config.test,
+                device=config.device,
+                batch_size=batch_size,
+            )
+            task.invoke()
+            if config.test == "train":
+                task.check_details_train(device=config.device, md=metadata)
+            else:
+                task.check_details_eval(device=config.device, md=metadata)
+                task.check_eval_output()
+            task.del_model_instance()
+            result = {"memleak": "False"}
+    except NotImplementedError as e:
+        result = {"memleak": "not_implemented"}
+    except AssertionError:
+        result = {"memleak": "True"}
+    finally:
+        return result
 
 
 def run_config_accuracy(
@@ -273,6 +329,8 @@ def run(args: List[str]):
             metrics = get_metrics(config)
             if "accuracy" in metrics:
                 metrics_dict = run_config_accuracy(config, metrics, dryrun=args.dryrun)
+            elif "memleak" in metrics:
+                metrics_dict = run_config_memleak(config, dryrun=args.dryrun)
             else:
                 metrics_dict = run_config(config, metrics, dryrun=args.dryrun)
             config_str = config_to_str(config)
@@ -284,5 +342,7 @@ def run(args: List[str]):
     if args.device == "cuda":
         import torch
         result["environ"]["device"] = torch.cuda.get_device_name()
+    o = json.dumps(result, indent=4)
+    print(o)
     with open(args.output, "w") as f:
-        json.dump(result, f, indent=4)
+        f.write(o)
