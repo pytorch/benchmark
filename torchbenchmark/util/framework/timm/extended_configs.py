@@ -19,7 +19,7 @@ def is_extended_timm_models(model_name: str) -> bool:
     return model_name in TIMM_MODELS
 
 def list_extended_timm_models() -> List[str]:
-    return TIMM_MODELS.keys()
+    return list(TIMM_MODELS.keys())
 
 # TODO - Figure out the reason of cold start memory spike
 BATCH_SIZE_DIVISORS = {

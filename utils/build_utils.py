@@ -48,8 +48,14 @@ def build_pytorch_repo(repo: TorchRepo, build_env: Dict[str, str]):
     if os.path.exists(version_py_path):
         os.remove(version_py_path)
     try:
+        # Build and test triton
+        build_triton_command = ["make", "triton"]
+        subprocess.check_call(build_triton_command, cwd=repo.src_path.absolute(), env=build_env)
+        command_testbuild = [sys.executable, "-c", "'import triton'"]
+        subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env)
+        # Build and test pytorch
         subprocess.check_call(repo.build_command, cwd=repo.src_path.absolute(), env=build_env)
-        command_testbuild = [sys.executable, "-c", "'import torch'"]
+        command_testbuild = [sys.executable, "-c", "'import torch; import triton'"]
         subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env)
     except subprocess.CalledProcessError:
         _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} 2ND TRY")
