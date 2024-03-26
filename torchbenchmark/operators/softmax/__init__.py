@@ -2,7 +2,7 @@ import torch
 import triton
 import triton.language as tl
 
-from torchbenchmark.util.operator import (
+from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
     register_benchmark,
