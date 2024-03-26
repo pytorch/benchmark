@@ -97,3 +97,7 @@ jobs:
       - name: Remove conda environment
         run: |
           conda env remove --name "${CONDA_ENV_NAME}"
+      - name: Cleanup repo
+        if: always()
+        run: |
+          sudo rm -rf benchmark || true
