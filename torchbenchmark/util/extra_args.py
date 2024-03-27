@@ -32,7 +32,10 @@ def check_precision(model: 'torchbenchmark.util.model.BenchmarkModel', precision
         if model.test == 'train' and model.device == 'cuda':
             return hasattr(model, 'enable_amp') or is_staged_train_test(model)
     if precision == "amp_bf16":
-        return model.device == 'cpu'
+        if model.test == 'eval' and model.device == 'cpu':
+            return True
+        if model.test == 'train' and model.device == 'cpu':
+            return hasattr(model, 'enable_amp') or is_staged_train_test(model)
     assert precision == "fp32", f"Expected precision to be one of {AVAILABLE_PRECISIONS}, but get {precision}"
     return True
 
@@ -113,8 +116,19 @@ def apply_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', dar
             import torch
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16), stage=TEST_STAGE.FORWARD)
     elif dargs.precision == "amp_bf16":
-        import torch
-        model.add_context(lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16))
+        assert model.device == "cpu", "amp_bf16 is only supported on cpu device."
+        if model.test == "eval":
+            import torch
+            model.add_context(lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16))
+        elif model.test == "train":
+            if is_staged_train_test(model):
+                import torch
+                model.add_context(lambda: torch.cpu.amp.autocast(dtype=torch.bfloat16), stage=TEST_STAGE.FORWARD)
+            else:
+                if hasattr(model, 'enable_amp'):
+                    model.enable_amp()
+                else:
+                    assert False, f"model has no enable_amp()"
     elif not dargs.precision == "fp32":
         assert False, f"Get an invalid precision option: {dargs.precision}. Please report a bug."
 

@@ -74,8 +74,11 @@ class TorchVisionModel(BenchmarkModel):
         with torch.no_grad():
             self.example_outputs = (torch.rand_like(self.model(*self.example_inputs)), )
         for data, target in zip(self.example_inputs, self.example_outputs):
-            pred = self.model(data)
-            return self.loss_fn(pred, target)
+            # Alexnet returns non-grad tensors in forward pass
+            # Force to call requires_grad_(True) here
+            pred = self.model(data).requires_grad_(True)
+            u = self.loss_fn(pred, target)
+            return u
 
     def backward(self, loss):
         loss.backward()
