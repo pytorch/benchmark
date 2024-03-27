@@ -119,9 +119,7 @@ class StochasticActor(nn.Module):
                 self.log_std_high - self.log_std_low
             ) * (log_std + 1)
             std = log_std.exp()
-            tanh_transform_clamp_min = -0.99
-            tanh_transform_clamp_max = 0.99
-            dist = SquashedNormal(mu, std, tanh_transform_clamp_min, tanh_transform_clamp_max)
+            dist = SquashedNormal(mu, std, tanh_transform_clamp=(-0.99, 0.99))
         elif self.dist_impl == "beta":
             out = 1.0 + F.softplus(out)
             alpha, beta = out.chunk(2, dim=1)

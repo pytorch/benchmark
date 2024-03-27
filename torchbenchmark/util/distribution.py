@@ -15,10 +15,9 @@ class TanhTransform(pyd.transforms.Transform):
     bijective = True
     sign = +1
 
-    def __init__(self, cache_size=1, clamp_min=None, clamp_max=None):
+    def __init__(self, cache_size=1, clamp=None):
         super().__init__(cache_size=cache_size)
-        self.clamp_min = clamp_min
-        self.clamp_max = clamp_max
+        self.clamp = clamp
 
     @staticmethod
     def atanh(x):
@@ -33,7 +32,7 @@ class TanhTransform(pyd.transforms.Transform):
     def _inverse(self, y):
         # We do not clamp to the boundary here as it may degrade the performance of certain algorithms.
         # one should use `cache_size=1` instead
-        return self.atanh(y.clamp(self.clamp_min, self.clamp_max))
+        return self.atanh(y.clamp(self.clamp))
 
     def log_abs_det_jacobian(self, x, y):
         # We use a formula that is more numerically stable, see details in the following link
@@ -42,12 +41,12 @@ class TanhTransform(pyd.transforms.Transform):
 
 
 class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
-    def __init__(self, loc, scale, tanh_transform_clamp_min=None, tanh_transform_clamp_max=None):
+    def __init__(self, loc, scale, tanh_transform_clamp=None):
         self.loc = loc
         self.scale = scale
-        self.tanh_transform_clamp = (tanh_transform_clamp_min, tanh_transform_clamp_max)
+        self.tanh_transform_clamp = tanh_transform_clamp
         self.base_dist = pyd.Normal(loc, scale)
-        transforms = [TanhTransform(clamp_min=tanh_transform_clamp_min, clamp_max=tanh_transform_clamp_max)]
+        transforms = [TanhTransform(clamp=tanh_transform_clamp)]
         super().__init__(self.base_dist, transforms)
 
     @property
@@ -58,10 +57,10 @@ class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
         return mu
 
 def _squashed_normal_flatten(t: SquashedNormal):
-    return [t.loc, t.scale, t.tanh_transform_clamp[0], t.tanh_transform_clamp[1]], None
+    return [t.loc, t.scale], t.tanh_transform_clamp
 
 def _squashed_normal_unflatten(values, context):
-    return SquashedNormal(*values)
+    return SquashedNormal(*values, context)
 
 torch.utils._pytree.register_pytree_node(
     SquashedNormal,
