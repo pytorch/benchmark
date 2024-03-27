@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from . import drqutils
-
+from torchbenchmark.util.distribution import SquashedNormal
 
 class Encoder(nn.Module):
     """Convolutional encoder for image-based observations."""
@@ -106,7 +106,7 @@ class Actor(nn.Module):
         self.outputs["mu"] = mu
         self.outputs["std"] = std
 
-        dist = drqutils.SquashedNormal(mu, std)
+        dist = SquashedNormal(mu, std)
         return dist
 
     def log(self, logger, step):
