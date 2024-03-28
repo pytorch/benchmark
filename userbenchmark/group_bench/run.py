@@ -130,7 +130,13 @@ def run_config(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=F
         print(" [not_implemented]", flush=True)
         return dict.fromkeys(metrics, "not_implemented")
     except OSError as e:
-        print(" [oserror]", flush=True)
+        print(" [os_error]", flush=True)
+        return dict.fromkeys(metrics, str(e))
+    except KeyboardInterrupt as e:
+        print(" [user_interrupt]", flush=True)
+        exit(1)
+    except Exception as e:
+        print(" [runtime_error]", flush=True)
         return dict.fromkeys(metrics, str(e))
 
 def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryrun: bool=False) -> Dict[str, str]:
@@ -147,7 +153,13 @@ def run_config_accuracy(config: TorchBenchModelConfig, metrics: List[str], dryru
         print(" [not_implemented]", flush=True)
         return {"accuracy": "not_implemented"}
     except OSError as e:
-        print(" [oserror]", flush=True)
+        print(" [os_error]", flush=True)
+        return {"accuracy": str(e)}
+    except KeyboardInterrupt as e:
+        print(" [user_interrupt]", flush=True)
+        exit(1)
+    except Exception as e:
+        print(" [runtime_error]", flush=True)
         return {"accuracy": str(e)}
 
 def models_from_config(config) -> List[str]:
@@ -170,9 +182,9 @@ def models_from_config(config) -> List[str]:
                 extended_models_list.append(extended_model)
     return basic_models_list + extended_models_list
 
-def load_group_config(config_file: str) -> TorchBenchGroupBenchConfig:
+def load_group_config(config_file: str, config_dir: str=DEFAULT_CONFIG_DIR) -> TorchBenchGroupBenchConfig:
     if not os.path.exists(config_file):
-        config_file = os.path.join(DEFAULT_CONFIG_DIR, config_file)
+        config_file = os.path.join(config_dir, config_file)
     with open(config_file, "r") as fp:
         data = yaml.safe_load(fp)
     baseline_configs = [
@@ -232,6 +244,6 @@ def run(args: List[str]):
     if group_config.baseline_configs[0].device == 'cuda':
         import torch
         result["environ"]["device"] = torch.cuda.get_device_name()
-    print(json.dumps(result))
+    print(json.dumps(result, indent=4))
     with open(args.output, 'w') as f:
         json.dump(result, f, indent=4)
