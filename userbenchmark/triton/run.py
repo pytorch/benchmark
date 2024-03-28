@@ -17,6 +17,8 @@ def parse_args(args):
     parser.add_argument("--device", default="cuda", help="Device to benchmark.")
     parser.add_argument("--warmup", default=DEFAULT_WARMUP, help="Device to benchmark.")
     parser.add_argument("--iter", default=DEFAULT_RUN_ITERS, help="Device to benchmark.")
+    parser.add_argument("--csv", action="store_true", help="Dump result as csv.")
+    parser.add_argument("--plot", action="store_true", help="Plot the result.")
     return parser.parse_known_args(args)
 
 
@@ -32,9 +34,12 @@ def run(args: List[str]=[]):
         extra_args=extra_args,
     )
     metrics = opbench.run(args.warmup, args.iter)
-    print(metrics)
-    print(metrics.csv)
-    try:
-        opbench.plot()
-    except NotImplementedError:
-        print(f"Plotting is not implemented for {args.op}")
+    if args.csv:
+        print(metrics.csv)
+    else:
+        print(metrics)
+    if args.plot:
+        try:
+            opbench.plot()
+        except NotImplementedError:
+            print(f"Plotting is not implemented for {args.op}")

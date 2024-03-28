@@ -26,8 +26,8 @@ DEFAULT_METRICS = "latency"
 @dataclass
 class BenchmarkOperatorMetrics:
     # latency in ms
-    latency: List[float]
-    tflops: List[float]
+    latency: Optional[List[float]]
+    tflops: Optional[List[float]]
     # speedup over baseline
     speedup: Optional[float]
     # accuracy over baseline
@@ -329,8 +329,8 @@ class BenchmarkOperator():
                 metric.extra_metrics = extra_metrics
         except torch.cuda.OutOfMemoryError:
             metric = BenchmarkOperatorMetrics(
-                latency=[],
-                tflops=[],
+                latency=None,
+                tflops=None,
                 speedup=None,
                 accuracy=None,
                 error_msg="CUDA OOM",
