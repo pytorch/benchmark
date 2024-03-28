@@ -8,7 +8,7 @@ import pathlib
 import dataclasses
 from typing import Optional, List, Dict
 from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark import _list_model_paths, load_model_by_name, ModelTask
+from torchbenchmark import _list_model_paths, load_model_by_name, load_canary_model_by_name, ModelTask, ModelNotFoundError
 
 WORKER_TIMEOUT = 3600 # seconds
 BS_FIELD_NAME = "batch_size"
@@ -47,7 +47,20 @@ def load_model_isolated(config: TorchBenchModelConfig, timeout: float=WORKER_TIM
 
 def load_model(config: TorchBenchModelConfig) -> BenchmarkModel:
     """Load and return a model instance in the same process. """
-    Model = load_model_by_name(config.name)
+    Model = None
+    try:
+        Model = load_model_by_name(config.name)
+    except ModelNotFoundError:
+        print(f"Warning: The model {config.name} cannot be found at core set.")
+    if not Model:
+        try:
+            Model = load_canary_model_by_name(config.name)
+        except ModelNotFoundError:
+            print(
+                f"Error: The model {config.name} cannot be found at either core or canary model set."
+            )
+            exit(-1)
+
     model_instance = Model(test=config.test, device=config.device, batch_size=config.batch_size, extra_args=config.extra_args)
     # check name
     if not model_instance.name == config.name:
