@@ -54,6 +54,8 @@ def get_precision_default(model: 'torchbenchmark.util.model.BenchmarkModel') -> 
         return model.DEFAULT_EVAL_CUDA_PRECISION
     if hasattr(model, "DEFAULT_TRAIN_CUDA_PRECISION") and model.test == 'train' and model.device == 'cuda':
         return model.DEFAULT_TRAIN_CUDA_PRECISION
+    if hasattr(model, "DEFAULT_PRECISION"):
+        return model.DEFAULT_PRECISION
     return "fp32"
 
 def parse_decoration_args(model: 'torchbenchmark.util.model.BenchmarkModel', extra_args: List[str]) -> Tuple[argparse.Namespace, List[str]]:

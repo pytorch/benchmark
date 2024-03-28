@@ -703,7 +703,7 @@ def load_model_by_name(model_name: str):
     assert (
         len(models) == 1
     ), f"Found more than one models {models} with the exact name: {model_name}"
-    
+
     module = importlib.import_module(module_path, package=__name__)
 
     Model = getattr(module, cls_name, None)
