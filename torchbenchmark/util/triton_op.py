@@ -108,7 +108,7 @@ class BenchmarkOperatorResult:
 
     def __str__(self):
         headers, table = self._table()
-        table = tabulate.tabulate(table, headers=headers)
+        table = tabulate.tabulate(table, headers=headers, stralign="right")
         return table
 
 def register_benchmark(baseline: bool=False, enabled: bool=True, preprocess: Optional[Callable]=None):
@@ -127,14 +127,18 @@ def register_benchmark(baseline: bool=False, enabled: bool=True, preprocess: Opt
         return _inner
     return decorator
 
-def register_metric(func):
-    operator_name = func.__module__.split(".")[-1]
-    if not operator_name in REGISTERED_METRICS:
-        REGISTERED_METRICS[operator_name] = []
-    REGISTERED_METRICS[operator_name].append(func.__name__)
-    def _inner(self, *args, **kwargs):
-        return func(self, *args, **kwargs)
-    return _inner
+def register_metric(skip_baseline: bool=False):
+    def decorator(func):
+        operator_name = func.__module__.split(".")[-1]
+        if not operator_name in REGISTERED_METRICS:
+            REGISTERED_METRICS[operator_name] = []
+        REGISTERED_METRICS[operator_name].append(func.__name__)
+        if skip_baseline:
+            BASELINE_SKIP_METRICS.append(func.__name__)
+        def _inner(self, *args, **kwargs):
+            return func(self, *args, **kwargs)
+        return _inner
+    return decorator
 
 def parse_args(op_name: str, args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
@@ -338,7 +342,7 @@ class BenchmarkOperator():
             )
         return metric
 
-    @register_metric
+    @register_metric()
     def tflops(self, latency: List[float], func: Optional[Callable]=None) -> List[float]:
         def _get_flops(self, func: Callable) -> float:
             """By default, use the torch.__dispatch__ based flops counter."""

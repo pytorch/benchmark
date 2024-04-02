@@ -101,7 +101,7 @@ class Operator(BenchmarkOperator):
         shape = example_inputs[0].size()
         return float(shape[1])
 
-    @register_metric
+    @register_metric()
     def gbps(self, example_inputs, metrics: BenchmarkOperatorMetrics) -> float:
         gbps = lambda ms: 2 * example_inputs[0].nelement() * example_inputs[0].element_size() * 1e-9 / (ms * 1e-3)
         return list(map(gbps, metrics.latency))
