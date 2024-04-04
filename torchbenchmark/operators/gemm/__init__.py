@@ -1,7 +1,7 @@
 import argparse
 import os
 import statistics
-from typing import Callable, Generator, List, Optional
+from typing import Callable, Generator, List, Optional, Any
 
 import numpy
 import torch
@@ -95,7 +95,7 @@ class Operator(BenchmarkOperator):
         return intensity
 
     @register_metric()
-    def gbps(self, fn, example_inputs, metrics: BenchmarkOperatorMetrics) -> float:
+    def gbps(self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> float:
         a, w = example_inputs
         numel = a.numel() + w.numel() + (torch.mm(a, w).numel())
         numel = numel * a.element_size() / 1e9
@@ -103,14 +103,14 @@ class Operator(BenchmarkOperator):
         return statistics.median(gbps)
 
     @register_metric(skip_baseline=True)
-    def xShape(self, fn, example_inputs, metrics: BenchmarkOperatorMetrics) -> list[int]:
+    def xShape(self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> list[int]:
         a, w = example_inputs
         m, k = a.size()
         k, n = w.size()
         return [m, k, n]
 
     @register_metric()
-    def tflops(self, fn, example_inputs, metrics: BenchmarkOperatorMetrics) -> float:
+    def tflops(self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> float:
         a, w = example_inputs
         m, k = a.size()
         k, n = w.size()

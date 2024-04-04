@@ -187,6 +187,7 @@ class BenchmarkOperator():
             assert mode == "bwd", f"We only accept 3 test modes: fwd(eval), fwd_bwd(train), or bwd."
             self.mode = Mode.BWD
         self.dargs, unprocessed_args = parse_decoration_args(self, extra_args)
+        # This will be changed by the time we apply the decoration args
         self.dtype = PRECISION_DTYPE_MAPPING.get(self.dargs.precision, None)
         if self.dargs.num_batch == None:
             self.dargs.num_batch = self.DEFAULT_NUM_BATCH
@@ -200,7 +201,10 @@ class BenchmarkOperator():
         fwd_fn_lambda = getattr(self, bm_func_name, None)
         assert fwd_fn_lambda, \
             f"Could not find benchmark {bm_func_name} registered in {self.name}. Please report a bug."
-        fwd_fn = fwd_fn_lambda(*self.example_inputs)
+        if isinstance(self.example_inputs, dict):
+            fwd_fn = fwd_fn_lambda(**self.example_inputs)
+        else:
+            fwd_fn = fwd_fn_lambda(*self.example_inputs)
         if self.mode == Mode.FWD:
             return fwd_fn
         elif self.mode == Mode.BWD:
@@ -244,7 +248,7 @@ class BenchmarkOperator():
                     quantiles=quantiles,
                     baseline=True,
                 )
-            benchmarks = [ bm for bm in REGISTERED_BENCHMARKS[self.name] if not bm == BASELINE_BENCHMARKS[self.name] ] \
+            benchmarks = [ bm for bm in REGISTERED_BENCHMARKS[self.name] if not bm == BASELINE_BENCHMARKS.get(self.name, None) ] \
                 if self.name in REGISTERED_BENCHMARKS else []
             # get metrics for for each registered benchmark
             def _reduce_benchmarks(acc, bm_name: str):
@@ -394,7 +398,7 @@ class BenchmarkOperator():
 
 
     @register_metric()
-    def tflops(self, fn: Callable, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> List[float]:
+    def tflops(self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> List[float]:
         def _get_flops(self, func: Callable) -> float:
             """By default, use the torch.__dispatch__ based flops counter."""
             from torch.utils.flop_counter import FlopCounterMode
@@ -410,6 +414,7 @@ class BenchmarkOperator():
                 work_func()
             total_flops = sum([v for _, v in flop_counter.flop_counts["Global"].items()])
             return total_flops
+        fn = self._get_bm_func(fn_name)
         if not fn in self._op_flops:
             self._op_flops[fn] = _get_flops(self, fn)
         op_flops = self._op_flops[fn]
