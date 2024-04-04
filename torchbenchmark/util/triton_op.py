@@ -2,6 +2,7 @@ import functools
 import numpy
 from enum import Enum
 import argparse
+import random
 import triton
 import torch
 import gc
@@ -303,6 +304,50 @@ class BenchmarkOperator():
         tensor_action = lambda x: x.half()
         self.dtype = torch.float16
         self.example_inputs = input_cast(tensor_cond, tensor_action, self.example_inputs)
+
+
+    # a function copied from https://fburl.com/code/hdypvhjw, which generate offsets
+    # for jagged tensors with the given load_factor
+    def generate_offsets(
+        self,
+        batch_size: int,
+        max_seq_len: int,
+        load_factor: float,
+        offsets_dtype: torch.dtype,
+    ) -> torch.Tensor:
+        total_length = int(batch_size * max_seq_len * load_factor)
+        avg_length = total_length // batch_size
+        std = avg_length // 3  # rather arbitrary, but likely reasonable
+        lengths = [random.gauss(avg_length, std) for _ in range(batch_size)]
+        lengths = [int(min(max_seq_len, max(L, 0))) for L in lengths]
+    
+        if load_factor == 1.0:
+            lengths = [max_seq_len] * batch_size
+    
+        diff = sum(lengths) - total_length
+        idx_and_lengths = list(enumerate(lengths))
+        random.shuffle(idx_and_lengths)
+    
+        for i, length in idx_and_lengths:
+            if diff == 0:
+                break
+            elif diff > 0:
+                delta = min(length, diff)
+                lengths[i] -= delta
+                diff -= delta
+            else:
+                delta = min(max_seq_len - length, -diff)
+                lengths[i] += delta
+                diff += delta
+    
+        offsets = [0]
+        for length in lengths:
+            offsets.append(offsets[-1] + length)
+    
+        return torch.tensor(
+            offsets,
+            dtype=offsets_dtype,
+        )
 
 
     def enable_channels_last(self):
