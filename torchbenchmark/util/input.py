@@ -23,3 +23,14 @@ def input_cast(cond, action, example_inputs):
         return example_inputs
     else:
         raise RuntimeError(f"Unsupported input type: {type(example_inputs)}")
+
+def input_filter(cond, example_inputs):
+    """Traverse the input batch pytree, and return the first element that satisfies cond."""
+    if isinstance(example_inputs, dict):
+        return input_filter(cond, example_inputs.items())
+    elif isinstance(example_inputs, (tuple, list)):
+        return next(item for item in example_inputs if input_filter(cond, item) is not None)
+    elif cond(example_inputs):
+        return example_inputs
+    else:
+        return None

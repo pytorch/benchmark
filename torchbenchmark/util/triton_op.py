@@ -1,5 +1,6 @@
 import functools
 import numpy
+from enum import Enum
 import argparse
 import triton
 import torch
@@ -21,12 +22,24 @@ REGISTERED_METRICS: Dict[str, List[str]] = {}
 BASELINE_BENCHMARKS: Dict[str, str] = {}
 BUILTIN_METRICS = ["latency", "tflops", "speedup", "accuracy"]
 BASELINE_SKIP_METRICS = ["speedup", "accuracy"]
-DEFAULT_METRICS = "latency"
+PRECISION_DTYPE_MAPPING = {
+    "fp32": torch.float32,
+    "tf32": torch.float32,
+    "fp16": torch.float16,
+    "bf16": torch.bfloat16,
+}
+
+class Mode(Enum):
+    FWD = 1
+    BWD = 2
+    FWD_BWD = 3
+    FWD_NO_GRAD = 4
 
 @dataclass
 class BenchmarkOperatorMetrics:
     # latency in ms
     latency: Optional[List[float]]
+    # tflops
     tflops: Optional[List[float]]
     # speedup over baseline
     speedup: Optional[float]
@@ -111,7 +124,7 @@ class BenchmarkOperatorResult:
         table = tabulate.tabulate(table, headers=headers, stralign="right")
         return table
 
-def register_benchmark(baseline: bool=False, enabled: bool=True, preprocess: Optional[Callable]=None):
+def register_benchmark(baseline: bool=False, enabled: bool=True):
     def decorator(function):
         if enabled:
             operator_name = function.__module__.split(".")[-1]
@@ -122,8 +135,6 @@ def register_benchmark(baseline: bool=False, enabled: bool=True, preprocess: Opt
                 BASELINE_BENCHMARKS[operator_name] = function.__name__
         def _inner(self, *args, **kwargs):
             return function(self, *args, **kwargs)
-        if preprocess:
-            setattr(_inner, "_preprocess", preprocess)
         return _inner
     return decorator
 
@@ -140,41 +151,64 @@ def register_metric(skip_baseline: bool=False):
         return _inner
     return decorator
 
-def parse_args(op_name: str, args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
+def parse_args(default_metrics: List[str], args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
-    default_metrics = DEFAULT_METRICS + "," + ",".join(REGISTERED_METRICS.get(op_name, []))
-    parser.add_argument("--metrics", default=default_metrics)
+    parser.add_argument("--metrics", default=",".join(default_metrics), \
+        help="Metrics to collect, split with comma. E.g., --metrics latency,tflops,speedup.")
     return parser.parse_known_args(args)
 
 class BenchmarkOperator():
+    mode: Mode = Mode.FWD
     test: str = "eval"
     device: str = "cuda"
     _input_iter: Optional[Generator] = None
     extra_args: List[str] = []
     example_inputs: Any = None
 
+    # By default, only collect latency metrics
+    # Each operator can override to define their own default metrics
+    DEFAULT_METRICS = ["latency"]
     # By default, generate 100 data points
     DEFAULT_NUM_BATCH = 100
 
     """
     A base class for adding operators to torch benchmark.
     """
-    def __init__(self, test: str, device: str, extra_args: List[str]=[]):
+    def __init__(self, mode: str, device: str, extra_args: List[str]=[]):
         relative_path = self.__class__.__module__.split(".")
         set_random_seed()
         self.name = relative_path[-1]
-        self.is_training = self.test == "train"
+        # we accept both "fwd" and "eval"
+        if mode == "fwd":
+            self.mode = Mode.FWD
+        elif mode == "fwd_bwd":
+            self.mode = Mode.FWD_BWD
+        else:
+            assert mode == "bwd", f"We only accept 3 test modes: fwd(eval), fwd_bwd(train), or bwd."
+            self.mode = Mode.BWD
         self.dargs, unprocessed_args = parse_decoration_args(self, extra_args)
+        self.dtype = PRECISION_DTYPE_MAPPING.get(self.dargs.precision, None)
         if self.dargs.num_batch == None:
             self.dargs.num_batch = self.DEFAULT_NUM_BATCH
-        self.tb_args, self.extra_args = parse_args(self.name, unprocessed_args)
+        self.DEFAULT_METRICS.extend(REGISTERED_METRICS.get(self.name, []))
+        self.DEFAULT_METRICS = list(set(self.DEFAULT_METRICS))
+        self.tb_args, self.extra_args = parse_args(self.DEFAULT_METRICS, unprocessed_args)
         self.required_metrics = list(set(self.tb_args.metrics.split(",")))
 
-    def _preprocess_inputs(self, fn: Callable, example_inputs):
-        if hasattr(fn, "_preprocess"):
-            return (getattr(fn, "_preprocess")(*([self] + list(example_inputs))), )
-        else:
-            return example_inputs
+
+    def _get_bm_func(self, bm_func_name: str):
+        fwd_fn_lambda = getattr(self, bm_func_name, None)
+        assert fwd_fn_lambda, \
+            f"Could not find benchmark {bm_func_name} registered in {self.name}. Please report a bug."
+        fwd_fn = fwd_fn_lambda(*self.example_inputs)
+        if self.mode == Mode.FWD:
+            return fwd_fn
+        elif self.mode == Mode.BWD:
+            return self.get_bwd_fn(fwd_fn)
+        elif self.mode == Mode.FWD_BWD:
+            bwd_fn = self.get_bwd_fn(fwd_fn)
+            return lambda: (fwd_fn(), bwd_fn())
+
 
     def run(self,
             warmup=DEFAULT_WARMUP,
@@ -196,37 +230,35 @@ class BenchmarkOperator():
                 self.example_inputs,
             )
             self.baseline_fn = None
+            self.baseline_metrics = None
             self._op_flops = {}
             # Cast the input precisions
             apply_decoration_args(self, self.dargs)
             x_val = self.get_x_val(self.example_inputs)
             # Run the baseline first
-            baseline_metrics = None
             if self.name in BASELINE_BENCHMARKS:
-                inputs = self._preprocess_inputs(self.baseline_fn, self.example_inputs)
-                fn = lambda: getattr(self, BASELINE_BENCHMARKS[self.name])(*inputs)
-                self.baseline_fn = fn
-                baseline_metrics = self._do_bench(fn=fn,warmup=warmup, rep=rep, quantiles=quantiles)
-            benchmarks = [ bm for bm in REGISTERED_BENCHMARKS[self.name] if not bm == BASELINE_BENCHMARKS[self.name] ] \
-                if self.name in REGISTERED_BENCHMARKS else []
-            # get metrics for for each registered benchmark
-            def _reduce_benchmarks(acc, bm_name):
-                bm_func = getattr(self, bm_name, None)
-                assert bm_func, f"Could not find benchmark {bm_name} registered in {self.name}. Please report a bug."
-                inputs = self._preprocess_inputs(bm_func, self.example_inputs)
-                fn = lambda: bm_func(*inputs)
-                acc[bm_name] = self._do_bench(
-                    fn=fn,
+                self.baseline_metrics = self._do_bench(
+                    fn_name=BASELINE_BENCHMARKS[self.name],
                     warmup=warmup,
                     rep=rep,
                     quantiles=quantiles,
-                    baseline_fn=self.baseline_fn,
-                    baseline_metrics=baseline_metrics,
+                    baseline=True,
+                )
+            benchmarks = [ bm for bm in REGISTERED_BENCHMARKS[self.name] if not bm == BASELINE_BENCHMARKS[self.name] ] \
+                if self.name in REGISTERED_BENCHMARKS else []
+            # get metrics for for each registered benchmark
+            def _reduce_benchmarks(acc, bm_name: str):
+                acc[bm_name] = self._do_bench(
+                    fn_name=bm_name,
+                    warmup=warmup,
+                    rep=rep,
+                    quantiles=quantiles,
+                    baseline=False,
                 )
                 return acc
             y_vals: Dict[str, BenchmarkOperatorMetrics] = functools.reduce(_reduce_benchmarks, benchmarks, {})
-            if baseline_metrics:
-                y_vals[BASELINE_BENCHMARKS[self.name]] = baseline_metrics
+            if self.baseline_metrics:
+                y_vals[BASELINE_BENCHMARKS[self.name]] = self.baseline_metrics
             metrics[x_val] = y_vals
             del self.example_inputs
             gc.collect()
@@ -242,6 +274,9 @@ class BenchmarkOperator():
         raise NotImplementedError("Each operator must implement its own input to x_val mapping.")
 
 
+    def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
+        raise NotImplementedError("Each operator must implement its own backward function.")
+
     def get_input_iter(self) -> Generator:
         """Return the dynamic input iterator for the model."""
         raise NotImplementedError("Each operator must implement its own input iterator.")
@@ -255,12 +290,14 @@ class BenchmarkOperator():
     def enable_bf16(self):
         tensor_cond = lambda x: x.dtype == torch.float32
         tensor_action = lambda x: x.to(torch.bfloat16)
+        self.dtype = torch.bfloat16
         self.example_inputs = input_cast(tensor_cond, tensor_action, self.example_inputs)
 
 
     def enable_fp16(self):
         tensor_cond = lambda x: x.dtype == torch.float32
         tensor_action = lambda x: x.half()
+        self.dtype = torch.float16
         self.example_inputs = input_cast(tensor_cond, tensor_action, self.example_inputs)
 
 
@@ -280,12 +317,18 @@ class BenchmarkOperator():
 
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
-        output, loss = fn()
-        baseline_output, baseline_loss = baseline_fn()
+        output = fn()
+        baseline_output = baseline_fn()
         accuracy = True
         try:
-            torch.testing.assert_close(output, baseline_output)
-            if not (loss == None and baseline_loss == None):
+            if self.mode == Mode.FWD:
+                torch.testing.assert_close(output, baseline_output)
+            elif self.mode == Mode.BWD:
+                torch.testing.assert_close(output.grad, baseline_output.grad)
+            else:
+                fwd_output, loss = output
+                baseline_fwd_output, baseline_loss = baseline_output
+                torch.testing.assert_close(fwd_output, baseline_fwd_output)
                 torch.testing.assert_close(loss.grad, baseline_loss.grad)
         except AssertionError:
             # either the output tensor or the loss grad tensor does not match
@@ -295,33 +338,40 @@ class BenchmarkOperator():
 
 
     def _do_bench(self,
-                  fn: Callable,
+                  fn_name: str,
                   warmup=DEFAULT_WARMUP,
                   rep=DEFAULT_RUN_ITERS,
                   quantiles=DEFAULT_QUANTILES,
-                  baseline_fn: Optional[Callable]=None,
-                  baseline_metrics: Optional[BenchmarkOperatorMetrics]=None) -> BenchmarkOperatorMetrics:
+                  baseline: bool=False,) -> BenchmarkOperatorMetrics:
         latency = []
         tflops = []
         speedup = None
         accuracy = None
+        error_msg = None
         try:
+            fn = self._get_bm_func(fn_name)
+            if baseline:
+                self.baseline_fn = fn
             if set(["latency", "tflops", "speedup"]) & set(self.required_metrics):
                 latency = triton.testing.do_bench(fn, warmup=warmup, rep=rep, quantiles=quantiles)
-            if "tflops" in self.required_metrics:
-                tflops = self.tflops(latency, fn)
             if "speedup" in self.required_metrics:
-                speedup = numpy.median(baseline_metrics.latency) / numpy.median(latency) if baseline_metrics else None
+                speedup = numpy.median(self.baseline_metrics.latency) / numpy.median(latency) \
+                    if self.baseline_metrics and self.baseline_metrics.latency else None
+                error_msg = self.baseline_metrics.error_msg \
+                    if self.baseline_metrics and self.baseline_metrics.error_msg else None
             if "accuracy" in self.required_metrics:
-                accuracy = self._get_accuracy(fn, baseline_fn) if baseline_fn else None
+                accuracy = self._get_accuracy(fn, self.baseline_fn) if self.baseline_fn else None
             metric = BenchmarkOperatorMetrics(
                 latency=latency,
-                tflops=tflops,
+                tflops=None,
                 speedup=speedup,
                 accuracy=accuracy,
-                error_msg=None,
+                error_msg=error_msg,
                 extra_metrics={},
             )
+            if "tflops" in self.required_metrics:
+                tflops = self.tflops(fn, self.example_inputs, metric)
+                metric.tflops = tflops
             # generate customized metrics
             extra_metrics = {}
             if self.name in REGISTERED_METRICS:
@@ -329,7 +379,7 @@ class BenchmarkOperator():
                     if metric_name in BUILTIN_METRICS:
                         continue
                     func = getattr(self, metric_name)
-                    extra_metrics[metric_name] = func(self.example_inputs, metric)
+                    extra_metrics[metric_name] = func(fn, self.example_inputs, metric)
                 metric.extra_metrics = extra_metrics
         except torch.cuda.OutOfMemoryError:
             metric = BenchmarkOperatorMetrics(
@@ -342,8 +392,9 @@ class BenchmarkOperator():
             )
         return metric
 
+
     @register_metric()
-    def tflops(self, latency: List[float], func: Optional[Callable]=None) -> List[float]:
+    def tflops(self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> List[float]:
         def _get_flops(self, func: Callable) -> float:
             """By default, use the torch.__dispatch__ based flops counter."""
             from torch.utils.flop_counter import FlopCounterMode
@@ -359,7 +410,8 @@ class BenchmarkOperator():
                 work_func()
             total_flops = sum([v for _, v in flop_counter.flop_counts["Global"].items()])
             return total_flops
-        if not func in self._op_flops:
-            self._op_flops[func] = _get_flops(self, func)
-        op_flops = self._op_flops[func]
-        return list(map(lambda x: op_flops / x / 1e12 * 1e3, latency))
+        fn = self._get_bm_func(fn_name)
+        if not fn in self._op_flops:
+            self._op_flops[fn] = _get_flops(self, fn)
+        op_flops = self._op_flops[fn]
+        return list(map(lambda x: op_flops / x / 1e12 * 1e3, metrics.latency))

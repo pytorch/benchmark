@@ -63,7 +63,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
 class Operator(BenchmarkOperator):
     USE_BUILTIN_SHAPES = True
 
-    def __init__(self, test: str, device: str, extra_args: List[str] = []):
+    def __init__(self, mode: str, device: str, extra_args: List[str] = []):
         if not extra_args:
             self.USE_BUILTIN_SHAPES = True
             self.DEFAULT_NUM_BATCH = len(BUILDIN_SHAPES)
@@ -72,18 +72,18 @@ class Operator(BenchmarkOperator):
             self.USE_BUILTIN_SHAPES = False
             self.DEFAULT_NUM_BATCH = 1
             self.tbargs = parse_args(self.extra_args)
-        super().__init__(test=test, device=device, extra_args=extra_args)
+        super().__init__(mode=mode, device=device, extra_args=extra_args)
         self.required_metrics = list(
             set(self.required_metrics + self.extra_builtin_metrics)
         )
 
     @register_benchmark()
-    def triton_matmul(self, a, b):
-        return triton_matmul(a, b), a
+    def triton_matmul(self, a, b) -> Callable:
+        return lambda: triton_matmul(a, b)
 
     @register_benchmark(baseline=True)
-    def aten_matmul(self, a, b):
-        return torch.matmul(a, b), a
+    def aten_matmul(self, a, b) -> Callable:
+        return lambda: torch.matmul(a, b)
 
     def get_x_val(self, example_inputs) -> float:
         # x-value: computation intensity
@@ -95,7 +95,7 @@ class Operator(BenchmarkOperator):
         return intensity
 
     @register_metric()
-    def gbps(self, example_inputs, metrics: BenchmarkOperatorMetrics) -> float:
+    def gbps(self, fn, example_inputs, metrics: BenchmarkOperatorMetrics) -> float:
         a, w = example_inputs
         numel = a.numel() + w.numel() + (torch.mm(a, w).numel())
         numel = numel * a.element_size() / 1e9
@@ -103,14 +103,14 @@ class Operator(BenchmarkOperator):
         return statistics.median(gbps)
 
     @register_metric(skip_baseline=True)
-    def xShape(self, example_inputs, metrics: BenchmarkOperatorMetrics) -> list[int]:
+    def xShape(self, fn, example_inputs, metrics: BenchmarkOperatorMetrics) -> list[int]:
         a, w = example_inputs
         m, k = a.size()
         k, n = w.size()
         return [m, k, n]
 
     @register_metric()
-    def _tflops(self, example_inputs, metrics: BenchmarkOperatorMetrics) -> float:
+    def tflops(self, fn, example_inputs, metrics: BenchmarkOperatorMetrics) -> float:
         a, w = example_inputs
         m, k = a.size()
         k, n = w.size()
@@ -136,8 +136,8 @@ class Operator(BenchmarkOperator):
             yield torch.randn_like(meta_tensor, device=self.device).requires_grad(False)
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
-        output, loss = fn()
-        baseline_output, baseline_loss = baseline_fn()
+        output = fn()
+        baseline_output = baseline_fn()
         accuracy = True
         try:
             torch.testing.assert_close(output, baseline_output, rol=1e-5)
