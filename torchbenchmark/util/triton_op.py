@@ -87,15 +87,15 @@ class BenchmarkOperatorResult:
                 for metric in key_metrics[k]:
                     if metrics_dict["error_msg"]:
                         row.append(metrics_dict["error_msg"])
-                    elif metric in metrics_dict:
-                        if isinstance(metrics_dict[metric], list):
-                            row.append(numpy.median(metrics_dict[metric]))
-                        elif isinstance(metrics_dict[metric], bool):
-                            row.append(1.0 if metrics_dict[metric] else 0.0)
-                        else:
-                            row.append(metrics_dict[metric])
-                    elif metric in metrics_dict["extra_metrics"]:
-                        row.append(metrics_dict["extra_metrics"][metric])
+                        continue
+                    _metrics_dict = metrics_dict["extra_metrics"] \
+                        if metric in metrics_dict["extra_metrics"] else metrics_dict
+                    if isinstance(_metrics_dict[metric], list):
+                        row.append(numpy.median(_metrics_dict[metric]))
+                    elif isinstance(_metrics_dict[metric], bool):
+                        row.append(1.0 if _metrics_dict[metric] else 0.0)
+                    else:
+                        row.append(_metrics_dict[metric])
             table.append(row)
         return headers, table
 
@@ -326,14 +326,14 @@ class BenchmarkOperator():
         std = avg_length // 3  # rather arbitrary, but likely reasonable
         lengths = [random.gauss(avg_length, std) for _ in range(batch_size)]
         lengths = [int(min(max_seq_len, max(L, 0))) for L in lengths]
-    
+
         if load_factor == 1.0:
             lengths = [max_seq_len] * batch_size
-    
+
         diff = sum(lengths) - total_length
         idx_and_lengths = list(enumerate(lengths))
         random.shuffle(idx_and_lengths)
-    
+
         for i, length in idx_and_lengths:
             if diff == 0:
                 break
@@ -345,11 +345,11 @@ class BenchmarkOperator():
                 delta = min(max_seq_len - length, -diff)
                 lengths[i] += delta
                 diff += delta
-    
+
         offsets = [0]
         for length in lengths:
             offsets.append(offsets[-1] + length)
-    
+
         return torch.tensor(
             offsets,
             dtype=offsets_dtype,

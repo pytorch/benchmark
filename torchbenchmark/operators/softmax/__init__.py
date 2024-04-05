@@ -8,7 +8,7 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
 )
-from typing import Generator
+from typing import Generator, List
 
 class Operator(BenchmarkOperator):
 
@@ -30,18 +30,18 @@ class Operator(BenchmarkOperator):
         y = torch.empty_like(x)
         # Enqueue kernel. The 1D launch grid is simple: we have one kernel instance per row o
         # f the input matrix
-        Operator.softmax_kernel[(n_rows, )](
-            y,
-            x,
-            x.stride(0),
-            y.stride(0),
-            n_cols,
-            num_warps=num_warps,
-            BLOCK_SIZE=BLOCK_SIZE,
-        )
-        if self.is_training:
-            y.sum().backward()
-        return y, x
+        def _inner():
+            Operator.softmax_kernel[(n_rows, )](
+                y,
+                x,
+                x.stride(0),
+                y.stride(0),
+                n_cols,
+                num_warps=num_warps,
+                BLOCK_SIZE=BLOCK_SIZE,
+            )
+            return y
+        return _inner
 
     @triton.jit
     def softmax_kernel(output_ptr, input_ptr, input_row_stride, output_row_stride, n_cols, BLOCK_SIZE: tl.constexpr):
@@ -72,20 +72,20 @@ class Operator(BenchmarkOperator):
         We subtract the maximum element in order to avoid overflows. Softmax is invariant to
         this shift.
         """
-        # read  MN elements ; write M  elements
-        x_max = x.max(dim=1)[0]
-        # read MN + M elements ; write MN elements
-        z = x - x_max[:, None]
-        # read  MN elements ; write MN elements
-        numerator = torch.exp(z)
-        # read  MN elements ; write M  elements
-        denominator = numerator.sum(dim=1)
-        # read MN + M elements ; write MN elements
-        ret = numerator / denominator[:, None]
-        # in total: read 5MN + 2M elements ; wrote 3MN + 2M elements
-        if self.is_training:
-            ret.sum().backward()
-        return ret, x
+        def _inner():
+            # read  MN elements ; write M  elements
+            x_max = x.max(dim=1)[0]
+            # read MN + M elements ; write MN elements
+            z = x - x_max[:, None]
+            # read  MN elements ; write MN elements
+            numerator = torch.exp(z)
+            # read  MN elements ; write M  elements
+            denominator = numerator.sum(dim=1)
+            # read MN + M elements ; write MN elements
+            ret = numerator / denominator[:, None]
+            # in total: read 5MN + 2M elements ; wrote 3MN + 2M elements
+            return ret
+        return _inner
 
     def get_input_iter(self):
         i = 1
@@ -102,7 +102,7 @@ class Operator(BenchmarkOperator):
         return float(shape[1])
 
     @register_metric()
-    def gbps(self, example_inputs, metrics: BenchmarkOperatorMetrics) -> float:
+    def gbps(self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics) -> List[float]:
         gbps = lambda ms: 2 * example_inputs[0].nelement() * example_inputs[0].element_size() * 1e-9 / (ms * 1e-3)
         return list(map(gbps, metrics.latency))
 
