@@ -56,13 +56,14 @@ class BenchmarkOperatorResult:
     # Print the result in a table format
     op_name: str
     metrics: List[str]
-    result: Dict[Number, Dict[str, BenchmarkOperatorMetrics]]
+    result: List[Tuple[Number, Dict[str, BenchmarkOperatorMetrics]]]
+    _result_dict: Optional[Dict[Number, Dict[str, BenchmarkOperatorMetrics]]] = None
 
     def _table(self):
         table = []
         # generate headers
         headers = ["x_val"]
-        y_val = self.result[list(self.result.keys())[0]]
+        y_val = self.result[0][1]
         y_val_keys = list(y_val.keys())
         # move the baseline benchmark to the front of the list if exists
         if BASELINE_BENCHMARKS[self.op_name] in y_val_keys:
@@ -78,11 +79,9 @@ class BenchmarkOperatorResult:
                 # add extra metrics
                 headers.append(f"{k}_{metric}")
         # generate rows
-        x_val_list = sorted(self.result.keys())
-        for x_val in x_val_list:
+        for x_val, y_val in self.result:
             row = []
             row.append(x_val)
-            y_val = self.result[x_val]
             for k in y_val_keys:
                 metrics_dict = asdict(y_val[k])
                 for metric in key_metrics[k]:
@@ -109,16 +108,23 @@ class BenchmarkOperatorResult:
 
     @property
     def x_vals(self):
-        return sorted(self.result.keys())
+        return sorted(self._get_result_dict().keys())
 
     def get_y_vals(self, x_val, provider, metric_name: str):
-        y_vals = self.result[x_val][provider]
+        y_vals = self._get_result_dict()[x_val][provider]
         metrics_dict = asdict(y_vals)
         if metric_name in metrics_dict:
             return metrics_dict[metric_name]
         assert metric_name in metrics_dict["extra_metrics"], \
             f"Metric {metric_name} could not be found."
         return metrics_dict["extra_metrics"][metric_name]
+
+    def _get_result_dict(self):
+        if not self._result_dict:
+            self._result_dict = {}
+            for x_val, y_val in self.result:
+                self._result_dict[x_val] = y_val
+        return self._result_dict
 
     def __str__(self):
         headers, table = self._table()
@@ -220,7 +226,7 @@ class BenchmarkOperator():
             rep=DEFAULT_RUN_ITERS,
             quantiles=DEFAULT_QUANTILES) -> BenchmarkOperatorResult:
         """Benchmarking the operator and returning its metrics."""
-        metrics = {}
+        metrics = []
         for _dp in range(self.dargs.num_batch):
             self.example_inputs =  self.get_example_inputs()
             if self.example_inputs == None:
@@ -264,7 +270,7 @@ class BenchmarkOperator():
             y_vals: Dict[str, BenchmarkOperatorMetrics] = functools.reduce(_reduce_benchmarks, benchmarks, {})
             if self.baseline_metrics:
                 y_vals[BASELINE_BENCHMARKS[self.name]] = self.baseline_metrics
-            metrics[x_val] = y_vals
+            metrics.append((x_val, y_vals))
             del self.example_inputs
             gc.collect()
         self.output = BenchmarkOperatorResult(
@@ -426,6 +432,8 @@ class BenchmarkOperator():
             if self.name in REGISTERED_METRICS:
                 for metric_name in REGISTERED_METRICS[self.name]:
                     if metric_name in BUILTIN_METRICS:
+                        continue
+                    if not metric_name in self.required_metrics:
                         continue
                     func = getattr(self, metric_name)
                     extra_metrics[metric_name] = func(fn, self.example_inputs, metric)
