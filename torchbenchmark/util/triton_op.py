@@ -292,6 +292,8 @@ class BenchmarkOperator():
         """Return the dynamic input iterator for the model."""
         raise NotImplementedError("Each operator must implement its own input iterator.")
 
+    def get_grad_to_none(self, args):
+        return None
 
     def plot(self):
         """Plot the comparison between different operator implementations."""
@@ -408,7 +410,13 @@ class BenchmarkOperator():
             if baseline:
                 self.baseline_fn = fn
             if set(["latency", "tflops", "speedup"]) & set(self.required_metrics):
-                latency = triton.testing.do_bench(fn, warmup=warmup, rep=rep, quantiles=quantiles)
+                latency = triton.testing.do_bench(
+                    fn,
+                    warmup=warmup,
+                    rep=rep,
+                    quantiles=quantiles,
+                    grad_to_none=self.get_grad_to_none(self.example_inputs),
+                )
             if "speedup" in self.required_metrics:
                 speedup = numpy.median(self.baseline_metrics.latency) / numpy.median(latency) \
                     if self.baseline_metrics and self.baseline_metrics.latency else None

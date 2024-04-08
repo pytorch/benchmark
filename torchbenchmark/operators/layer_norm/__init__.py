@@ -9,7 +9,7 @@ from torchbenchmark.util.triton_op import (
     register_metric,
 )
 
-from typing import Callable
+from typing import Callable, List
 
 from . import tutorial
 
@@ -28,6 +28,10 @@ class Operator(BenchmarkOperator):
         dy = 0.1 * torch.randn_like(y)
         return lambda: y.backward(dy, retain_graph=True)
 
+    def get_grad_to_none(self, args) -> List[torch.Tensor]:
+        x = args[0]
+        return [x]
+
     def get_input_iter(self):
         M = 4096
         eps = 1e-5
@@ -35,8 +39,11 @@ class Operator(BenchmarkOperator):
             x_shape = (M, N)
             w_shape = (x_shape[-1],)
             x = -2.3 + 0.5 * torch.randn(
-                x_shape, dtype=self.dtype, device="cuda", requires_grad=True
+                x_shape,
+                dtype=self.dtype,
+                device="cuda",
             )
+            x.requires_grad_()
             weight = torch.rand(
                 w_shape, dtype=self.dtype, device="cuda", requires_grad=True
             )
