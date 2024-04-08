@@ -385,7 +385,7 @@ class BenchmarkOperator():
                 baseline_fwd_output, baseline_loss = baseline_output
                 torch.testing.assert_close(fwd_output, baseline_fwd_output)
                 torch.testing.assert_close(loss.grad, baseline_loss.grad)
-        except AssertionError:
+        except Exception:
             # either the output tensor or the loss grad tensor does not match
             accuracy = False
         finally:
@@ -414,7 +414,7 @@ class BenchmarkOperator():
                     if self.baseline_metrics and self.baseline_metrics.latency else None
                 error_msg = self.baseline_metrics.error_msg \
                     if self.baseline_metrics and self.baseline_metrics.error_msg else None
-            if "accuracy" in self.required_metrics:
+            if not baseline and "accuracy" in self.required_metrics:
                 accuracy = self._get_accuracy(fn, self.baseline_fn) if self.baseline_fn else None
             metric = BenchmarkOperatorMetrics(
                 latency=latency,
