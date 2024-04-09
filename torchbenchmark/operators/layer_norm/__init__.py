@@ -23,6 +23,14 @@ class Operator(BenchmarkOperator):
     def torch_layer_norm(self, *args):
         return lambda: F.layer_norm(*args)
 
+    @register_benchmark()
+    def torch_compile_layer_norm(self, *args):
+        @torch.compile
+        def inner(*args):
+            return F.layer_norm(*args)
+
+        return lambda: inner(*args)
+
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()
         dy = 0.1 * torch.randn_like(y)
