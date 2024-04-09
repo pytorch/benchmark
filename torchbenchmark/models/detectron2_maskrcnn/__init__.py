@@ -1,7 +1,6 @@
 import torch
 import os
 import itertools
-import random
 import itertools
 from pathlib import Path
 from typing import Tuple
@@ -18,9 +17,11 @@ MODEL_DIR = os.path.abspath(os.path.dirname(__file__))
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-minimal")
-assert os.path.exists(DATA_DIR), "Couldn't find coco2017 minimal data dir, please run install.py again."
-if not 'DETECTRON2_DATASETS' in os.environ:
-    os.environ['DETECTRON2_DATASETS'] = DATA_DIR
+assert os.path.exists(
+    DATA_DIR
+), "Couldn't find coco2017 minimal data dir, please run install.py again."
+if not "DETECTRON2_DATASETS" in os.environ:
+    os.environ["DETECTRON2_DATASETS"] = DATA_DIR
 
 from detectron2.config import instantiate
 from detectron2 import model_zoo
@@ -30,12 +31,21 @@ from torch.utils._pytree import tree_map
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
 
+
 def prefetch(dataloader, device, precision="fp32"):
     r = []
     dtype = torch.float16 if precision == "fp16" else torch.float32
     for batch in dataloader:
-        r.append(tree_map(lambda x: x.to(device, dtype=dtype) if isinstance(x, torch.Tensor) else x, batch))
+        r.append(
+            tree_map(
+                lambda x: x.to(device, dtype=dtype)
+                if isinstance(x, torch.Tensor)
+                else x,
+                batch,
+            )
+        )
     return r
+
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.DETECTION
@@ -47,7 +57,9 @@ class Model(BenchmarkModel):
     SKIP_CORRECTNESS_CHECK = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         model_cfg = model_zoo.get_config("common/models/mask_rcnn_fpn.py").model
         data_cfg = model_zoo.get_config("common/data/coco.py").dataloader
@@ -58,8 +70,10 @@ class Model(BenchmarkModel):
             data_cfg.train.total_batch_size = self.batch_size
             self.model = instantiate(model_cfg).to(self.device)
             train_loader = instantiate(data_cfg.train)
-            self.example_inputs = prefetch(itertools.islice(train_loader, 100), self.device)
-            self.optimizer = torch.optim.SGD(self.model.parameters(), 0.)
+            self.example_inputs = prefetch(
+                itertools.islice(train_loader, 100), self.device
+            )
+            self.optimizer = torch.optim.SGD(self.model.parameters(), 0.0)
         elif test == "eval":
             data_cfg.test.dataset.names = "coco_2017_val_100"
             data_cfg.test.batch_size = self.batch_size
@@ -68,10 +82,12 @@ class Model(BenchmarkModel):
             DetectionCheckpointer(self.model).load(self.model_file)
             self.model.eval()
             test_loader = instantiate(data_cfg.test)
-            self.example_inputs = prefetch(itertools.islice(test_loader, 100), self.device)
+            self.example_inputs = prefetch(
+                itertools.islice(test_loader, 100), self.device
+            )
 
     def get_module(self):
-        return self.model, (self.example_inputs[0], )
+        return self.model, (self.example_inputs[0],)
 
     def train(self):
         self.model.train()

@@ -18,7 +18,7 @@ from torchrec import EmbeddingBagCollection
 from torchrec.datasets.criteo import DEFAULT_CAT_NAMES, DEFAULT_INT_NAMES
 from torchrec.distributed import TrainPipelineSparseDist
 from torchrec.distributed.shard import shard_modules
-from torchrec.models.dlrm import DLRM, DLRM_DCN, DLRM_Projection, DLRMTrain
+from torchrec.models.dlrm import DLRM_DCN, DLRMTrain
 from torchrec.modules.embedding_configs import EmbeddingBagConfig
 from torchrec.optim.apply_optimizer_in_backward import apply_optimizer_in_backward
 from torchrec.optim.keyed import CombinedOptimizer, KeyedOptimizerWrapper
@@ -38,7 +38,9 @@ class Model(BenchmarkModel):
     DEEPCOPY = False
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         args = parse_args(self.extra_args)
         backend = "nccl" if self.device == "cuda" else "gloo"
         device = torch.device(self.device)
@@ -60,13 +62,29 @@ class Model(BenchmarkModel):
         self.iterator = itertools.cycle(iter(loader))
         self.example_inputs = next(self.iterator).to(device)
         # parse the args
-        args.dense_arch_layer_sizes = [int(x) for x in args.dense_arch_layer_sizes.split(',') if x.strip().isdigit()]
-        args.over_arch_layer_sizes = [int(x) for x in args.over_arch_layer_sizes.split(',') if x.strip().isdigit()]
-        args.interaction_branch1_layer_sizes = [int(x) for x in args.interaction_branch1_layer_sizes.split(',') if x.strip().isdigit()]
-        args.interaction_branch2_layer_sizes = [int(x) for x in args.interaction_branch2_layer_sizes.split(',') if x.strip().isdigit()]
+        args.dense_arch_layer_sizes = [
+            int(x)
+            for x in args.dense_arch_layer_sizes.split(",")
+            if x.strip().isdigit()
+        ]
+        args.over_arch_layer_sizes = [
+            int(x) for x in args.over_arch_layer_sizes.split(",") if x.strip().isdigit()
+        ]
+        args.interaction_branch1_layer_sizes = [
+            int(x)
+            for x in args.interaction_branch1_layer_sizes.split(",")
+            if x.strip().isdigit()
+        ]
+        args.interaction_branch2_layer_sizes = [
+            int(x)
+            for x in args.interaction_branch2_layer_sizes.split(",")
+            if x.strip().isdigit()
+        ]
 
-        assert args.in_memory_binary_criteo_path == None and args.synthetic_multi_hot_criteo_path == None, \
-            f"Torchbench only supports random data inputs."
+        assert (
+            args.in_memory_binary_criteo_path == None
+            and args.synthetic_multi_hot_criteo_path == None
+        ), f"Torchbench only supports random data inputs."
 
         eb_configs = [
             EmbeddingBagConfig(
@@ -102,10 +120,7 @@ class Model(BenchmarkModel):
         )
 
         if args.shard_model:
-            self.model = shard_modules(
-                module=train_model,
-                device=device
-            ).to(device)
+            self.model = shard_modules(module=train_model, device=device).to(device)
         else:
             self.model = train_model.to(device)
         dense_optimizer = KeyedOptimizerWrapper(
@@ -129,7 +144,7 @@ class Model(BenchmarkModel):
             self.model.eval()
 
     def get_module(self):
-        return self.model, (self.example_inputs, )
+        return self.model, (self.example_inputs,)
 
     def train(self):
         self.train_pipeline.progress(self.iterator)

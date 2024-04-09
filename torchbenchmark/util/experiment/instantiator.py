@@ -8,7 +8,7 @@ import pathlib
 import dataclasses
 from typing import Optional, List, Dict
 from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark import _list_model_paths, load_model_by_name, ModelTask
+from torchbenchmark import _list_model_paths, load_model_by_name, load_canary_model_by_name, ModelTask, ModelNotFoundError
 
 WORKER_TIMEOUT = 3600 # seconds
 BS_FIELD_NAME = "batch_size"
@@ -47,7 +47,20 @@ def load_model_isolated(config: TorchBenchModelConfig, timeout: float=WORKER_TIM
 
 def load_model(config: TorchBenchModelConfig) -> BenchmarkModel:
     """Load and return a model instance in the same process. """
-    Model = load_model_by_name(config.name)
+    Model = None
+    try:
+        Model = load_model_by_name(config.name)
+    except ModelNotFoundError:
+        print(f"Warning: The model {config.name} cannot be found at core set.")
+    if not Model:
+        try:
+            Model = load_canary_model_by_name(config.name)
+        except ModelNotFoundError:
+            print(
+                f"Error: The model {config.name} cannot be found at either core or canary model set."
+            )
+            exit(-1)
+
     model_instance = Model(test=config.test, device=config.device, batch_size=config.batch_size, extra_args=config.extra_args)
     # check name
     if not model_instance.name == config.name:
@@ -76,3 +89,15 @@ def list_models() -> List[str]:
     model_paths = _list_model_paths()
     model_names = list(map(lambda x: os.path.basename(x), model_paths))
     return model_names
+
+def list_extended_models(suite_name: str="all") -> List[str]:
+    from torchbenchmark.util.framework.huggingface.extended_configs import list_extended_huggingface_models
+    from torchbenchmark.util.framework.timm.extended_configs import list_extended_timm_models
+    if suite_name == "huggingface":
+        return list_extended_huggingface_models()
+    elif suite_name == "timm":
+        return list_extended_timm_models()
+    elif suite_name == "all":
+        return list_extended_huggingface_models() + list_extended_timm_models()
+    else:
+        assert False, "Currently, we only support extended model set huggingface or timm."

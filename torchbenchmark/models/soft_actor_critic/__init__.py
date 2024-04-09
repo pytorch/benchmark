@@ -1,7 +1,6 @@
 import torch
 import os
 import copy
-import pickle
 import math
 from itertools import chain
 
@@ -14,6 +13,7 @@ from .envs import load_gym
 from .sac import SACAgent
 from .replay import PrioritizedReplayBuffer, ReplayBuffer
 from .utils import hard_update, soft_update
+
 
 def learn_standard(
     buffer,
@@ -68,7 +68,7 @@ def learn_standard(
     agent_critic2_pred = agent.critic2(state_batch, action_batch)
     td_error1 = td_target - agent_critic1_pred
     td_error2 = td_target - agent_critic2_pred
-    critic_loss = 0.5 * (td_error1 ** 2 + td_error2 ** 2)
+    critic_loss = 0.5 * (td_error1**2 + td_error2**2)
     if per:
         critic_loss *= imp_weights
     critic_loss = critic_loss.mean()
@@ -112,6 +112,7 @@ def learn_standard(
         new_priorities = (abs(td_error1) + 1e-5).cpu().detach().squeeze(1).numpy()
         buffer.update_priorities(priority_idxs, new_priorities)
 
+
 class Model(BenchmarkModel):
     task = REINFORCEMENT_LEARNING.OTHER_RL
     # Original train batch size: 256
@@ -122,7 +123,9 @@ class Model(BenchmarkModel):
     ALLOW_CUSTOMIZE_BSIZE = False
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.args = SACConfig()
         self.args.batch_size = self.batch_size
@@ -132,8 +135,13 @@ class Model(BenchmarkModel):
         self.test_env = load_gym(self.args.env_id, self.args.seed)
         self.obs_shape = self.train_env.observation_space.shape
         self.actions_shape = self.train_env.action_space.shape
-        self.agent = SACAgent(self.obs_shape[0], self.actions_shape[0],
-                              self.args.log_std_low, self.args.log_std_high, self.device)
+        self.agent = SACAgent(
+            self.obs_shape[0],
+            self.actions_shape[0],
+            self.args.log_std_low,
+            self.args.log_std_high,
+            self.device,
+        )
         if self.args.prioritized_replay:
             buffer_t = PrioritizedReplayBuffer
         else:
@@ -155,7 +163,10 @@ class Model(BenchmarkModel):
             hard_update(self.target_agent.critic2, self.agent.critic2)
             self.target_agent.train()
         self.critic_optimizer = torch.optim.Adam(
-            chain(self.agent.critic1.parameters(), self.agent.critic2.parameters(),),
+            chain(
+                self.agent.critic1.parameters(),
+                self.agent.critic2.parameters(),
+            ),
             lr=self.args.critic_lr,
             weight_decay=self.args.critic_l2,
             betas=(0.9, 0.999),
@@ -168,7 +179,9 @@ class Model(BenchmarkModel):
         )
         self.log_alpha = torch.Tensor([math.log(self.args.init_alpha)]).to(device)
         self.log_alpha.requires_grad = True
-        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.args.alpha_lr, betas=(0.5, 0.999))
+        self.log_alpha_optimizer = torch.optim.Adam(
+            [self.log_alpha], lr=self.args.alpha_lr, betas=(0.5, 0.999)
+        )
         if not self.args.discrete_actions:
             self.target_entropy = -self.train_env.action_space.shape[0]
         else:
@@ -176,10 +189,12 @@ class Model(BenchmarkModel):
         if self.args.self_regularized:
             # the critic target improvement ratio is annealed during training
             self.critic_target_imp_slope = (
-                self.args.sr_critic_target_improvement_final - self.args.sr_critic_target_improvement_init
+                self.args.sr_critic_target_improvement_final
+                - self.args.sr_critic_target_improvement_init
             ) / self.args.num_steps
             self.current_target_imp = lambda step: min(
-                self.args.sr_critic_target_improvement_init + self.critic_target_imp_slope * step,
+                self.args.sr_critic_target_improvement_init
+                + self.critic_target_imp_slope * step,
                 self.args.sr_critic_target_improvement_final,
             )
 
@@ -192,11 +207,11 @@ class Model(BenchmarkModel):
         batch = self.buffer.sample(self.args.batch_size)
         state_batch, action_batch, reward_batch, next_state_batch, done_batch = batch
         state_batch = state_batch.to(self.device)
-        return model, (state_batch, )
+        return model, (state_batch,)
 
     def set_module(self, new_model):
         self.agent.actor = new_model
-        
+
     def train(self):
         # Setup
         self.target_agent.train()
@@ -229,18 +244,22 @@ class Model(BenchmarkModel):
                     critic_clip=self.args.critic_clip,
                     actor_clip=self.args.actor_clip,
                     update_policy=step % self.args.actor_delay == 0,
-                    device=self.device
+                    device=self.device,
                 )
 
             # move target model towards training model
             if not self.args.self_regularized and (step % self.args.target_delay == 0):
-                soft_update(self.target_agent.critic1, self.agent.critic1, self.args.tau)
-                soft_update(self.target_agent.critic2, self.agent.critic2, self.args.tau)
+                soft_update(
+                    self.target_agent.critic1, self.agent.critic1, self.args.tau
+                )
+                soft_update(
+                    self.target_agent.critic2, self.agent.critic2, self.args.tau
+                )
 
     def eval(self) -> Tuple[torch.Tensor]:
         niter = 1
         with torch.no_grad():
-            discount= 1.0
+            discount = 1.0
             episode_return_history = []
             for episode in range(niter):
                 episode_return = 0.0
@@ -251,13 +270,17 @@ class Model(BenchmarkModel):
                         break
                     action = self.agent.forward(state)
                     state, reward, done, info, _unused = self.test_env.step(action)
-                    episode_return += reward * (discount ** step_num)
+                    episode_return += reward * (discount**step_num)
                 episode_return_history.append(episode_return)
             retval = torch.tensor(episode_return_history)
-        return (torch.tensor(action), )
+        return (torch.tensor(action),)
 
     def get_optimizer(self):
         return (self.actor_optimizer, self.critic_optimizer, self.log_alpha_optimizer)
 
     def set_optimizer(self, optimizer) -> None:
-        self.actor_optimizer, self.critic_optimizer, self.log_alpha_optimizer = optimizer
+        (
+            self.actor_optimizer,
+            self.critic_optimizer,
+            self.log_alpha_optimizer,
+        ) = optimizer

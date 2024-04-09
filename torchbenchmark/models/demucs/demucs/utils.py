@@ -18,7 +18,7 @@ import torch as th
 import tqdm
 from torch import Tensor, distributed
 from torch.nn import functional as F
-from typing import Callable, Any
+from typing import Callable
 
 
 def center_trim(tensor: Tensor, reference: Tensor) -> Tensor:
@@ -32,21 +32,21 @@ def center_trim(tensor: Tensor, reference: Tensor) -> Tensor:
     if delta < 0:
         raise ValueError("tensor must be larger than reference. " f"Delta is {delta}.")
     if delta:
-        tensor = tensor[..., delta // 2:-(delta - delta // 2)]
+        tensor = tensor[..., delta // 2 : -(delta - delta // 2)]
     return tensor
 
 
-def average_metric(metric, count=1.):
+def average_metric(metric, count=1.0):
     """
     Average `metric` which should be a float across all hosts. `count` should be
     the weight for this particular host (i.e. number of examples).
     """
-    metric = th.tensor([count, count * metric], dtype=th.float32, device='cuda')
+    metric = th.tensor([count, count * metric], dtype=th.float32, device="cuda")
     distributed.all_reduce(metric, op=distributed.ReduceOp.SUM)
     return metric[1].item() / metric[0].item()
 
 
-def free_port(host='', low=20000, high=40000):
+def free_port(host="", low=20000, high=40000):
     """
     Return a port number that is most likely free.
     This could suffer from a race condition although
@@ -64,25 +64,25 @@ def free_port(host='', low=20000, high=40000):
         return port
 
 
-def sizeof_fmt(num, suffix='B'):
+def sizeof_fmt(num, suffix="B"):
     """
     Given `num` bytes, return human readable size.
     Taken from https://stackoverflow.com/a/1094933
     """
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
-    return "%.1f%s%s" % (num, 'Yi', suffix)
+    return "%.1f%s%s" % (num, "Yi", suffix)
 
 
-def human_seconds(seconds, display='.2f'):
+def human_seconds(seconds, display=".2f"):
     """
     Given `seconds` seconds, return human readable duration.
     """
     value = seconds * 1e6
     ratios = [1e3, 1e3, 60, 60, 24]
-    names = ['us', 'ms', 's', 'min', 'hrs', 'days']
+    names = ["us", "ms", "s", "min", "hrs", "days"]
     last = names.pop(0)
     for name, ratio in zip(names, ratios):
         if value / ratio < 0.3:
@@ -114,11 +114,11 @@ def apply_model(model, mix, shifts=None, split=False, progress=False):
         offsets = range(0, length, shift)
         scale = 10
         if progress:
-            offsets = tqdm.tqdm(offsets, unit_scale=scale, ncols=120, unit='seconds')
+            offsets = tqdm.tqdm(offsets, unit_scale=scale, ncols=120, unit="seconds")
         for offset in offsets:
-            chunk = mix[..., offset:offset + shift]
+            chunk = mix[..., offset : offset + shift]
             chunk_out = apply_model(model, chunk, shifts=shifts)
-            out[..., offset:offset + shift] = chunk_out
+            out[..., offset : offset + shift] = chunk_out
             offset += shift
         return out
     elif shifts:
@@ -128,9 +128,9 @@ def apply_model(model, mix, shifts=None, split=False, progress=False):
         random.shuffle(offsets)
         out = 0
         for offset in offsets[:shifts]:
-            shifted = mix[..., offset:offset + length + max_shift]
+            shifted = mix[..., offset : offset + length + max_shift]
             shifted_out = apply_model(model, shifted)
-            out += shifted_out[..., max_shift - offset:max_shift - offset + length]
+            out += shifted_out[..., max_shift - offset : max_shift - offset + length]
         out /= shifts
         return out
     else:
@@ -161,7 +161,7 @@ def load_model(path):
         load_from = path
         if str(path).endswith(".gz"):
             load_from = gzip.open(path, "rb")
-        klass, args, kwargs, state = th.load(load_from, 'cpu')
+        klass, args, kwargs, state = th.load(load_from, "cpu")
     model = klass(*args, **kwargs)
     model.load_state_dict(state)
     return model
@@ -170,7 +170,7 @@ def load_model(path):
 def save_model(model, path):
     args, kwargs = model._init_args_kwargs
     klass = model.__class__
-    state = {k: p.data.to('cpu') for k, p in model.state_dict().items()}
+    state = {k: p.data.to("cpu") for k, p in model.state_dict().items()}
     save_to = path
     if str(path).endswith(".gz"):
         save_to = gzip.open(path, "wb", compresslevel=5)

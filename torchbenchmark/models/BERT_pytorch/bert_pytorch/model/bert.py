@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 from .transformer import TransformerBlock
@@ -32,7 +31,11 @@ class BERT(nn.Module):
 
         # multi-layers transformer blocks, deep network
         self.transformer_blocks = nn.ModuleList(
-            [TransformerBlock(hidden, attn_heads, hidden * 4, dropout) for _ in range(n_layers)])
+            [
+                TransformerBlock(hidden, attn_heads, hidden * 4, dropout)
+                for _ in range(n_layers)
+            ]
+        )
 
     def forward(self, x, segment_info):
         # attention masking for padded token

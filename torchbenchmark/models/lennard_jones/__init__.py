@@ -3,7 +3,6 @@
 # here: https://www.gnu.org/licenses/gpl-3.0.en.html .
 
 import torch
-import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 from functorch import vmap, jacrev
@@ -14,11 +13,11 @@ from torchbenchmark.tasks import OTHER
 
 
 sigma = 0.5
-epsilon = 4.
+epsilon = 4.0
 
 
 def lennard_jones(r):
-    return epsilon * ((sigma / r)**12 - (sigma / r)**6)
+    return epsilon * ((sigma / r) ** 12 - (sigma / r) ** 6)
 
 
 def lennard_jones_force(r):
@@ -36,7 +35,10 @@ def make_prediction(model, drs):
 
 
 def loss_fn(energies, forces, predicted_energies, predicted_forces):
-    return F.mse_loss(energies, predicted_energies) + 0.01 * F.mse_loss(forces, predicted_forces) / 3
+    return (
+        F.mse_loss(energies, predicted_energies)
+        + 0.01 * F.mse_loss(forces, predicted_forces) / 3
+    )
 
 
 class Model(BenchmarkModel):
@@ -45,7 +47,9 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1000
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.model = nn.Sequential(
             nn.Linear(1, 16),
@@ -56,7 +60,7 @@ class Model(BenchmarkModel):
             nn.Tanh(),
             nn.Linear(16, 16),
             nn.Tanh(),
-            nn.Linear(16, 1)
+            nn.Linear(16, 1),
         )
         self.model = self.model.to(device)
 
@@ -70,16 +74,18 @@ class Model(BenchmarkModel):
         norms = torch.linalg.norm(self.drs, dim=1).reshape(-1, 1)
         self.norms = norms
         # Create training energies
-        self.training_energies = torch.stack(list(map(lennard_jones, norms))).reshape(-1, 1)
+        self.training_energies = torch.stack(list(map(lennard_jones, norms))).reshape(
+            -1, 1
+        )
         # Create forces with random direction vectors
-        self.training_forces = torch.stack([
-            force * dr for force, dr in zip(map(lennard_jones_force, norms), self.drs)
-        ])
+        self.training_forces = torch.stack(
+            [force * dr for force, dr in zip(map(lennard_jones_force, norms), self.drs)]
+        )
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
 
     def get_module(self):
-        return self.model, (self.norms, )
+        return self.model, (self.norms,)
 
     def train(self):
         model = self.model

@@ -20,7 +20,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, a100-runner]
+    runs-on: [a100-runner]
     timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
@@ -81,6 +81,16 @@ jobs:
                 --torchbench-repo-path "${PWD}" --config "${BISECT_WORKDIR}/regression-${REGRESSION_DATE}.yaml" \
                 --output "${BISECT_WORKDIR}/bisect-output-gh${GITHUB_RUN_ID}.json"
           cp -r "${BISECT_WORKDIR}" ../bisection-result
+      - name: Create the github issue
+        continue-on-error: true
+        if: env.TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: V3 Performance Signal Detected by TorchBench Userbenchmark "torch-nightly" on ${{ env.TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED }}
+          content-filepath: ./benchmark/gh-issue.md
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+          labels: |
+            torchbench-perf-report
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v3

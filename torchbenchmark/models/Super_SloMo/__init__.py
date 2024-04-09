@@ -1,16 +1,12 @@
 from .dataloader import SuperSloMo
 from .model_wrapper import Model as ModelWrapper
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as transforms
-import random
 from typing import Tuple
 import os
-import numpy as np
 
 from argparse import Namespace
-from pathlib import Path
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
 
@@ -26,6 +22,7 @@ def _prefetch(data, device):
         result.append(item.to(device))
     return tuple(result)
 
+
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.VIDEO_INTERPOLATION
     # Original code config:
@@ -38,31 +35,33 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 6
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.model = ModelWrapper(device)
         root = os.path.join(DATA_PATH, "Super_SloMo_inputs")
-        self.args = args = Namespace(**{
-            'dataset_root': f'{root}/dataset',
-            'batch_size': self.batch_size,
-            'init_learning_rate': 0.0001,
-        })
+        self.args = args = Namespace(
+            **{
+                "dataset_root": f"{root}/dataset",
+                "batch_size": self.batch_size,
+                "init_learning_rate": 0.0001,
+            }
+        )
 
-        self.optimizer = optim.Adam(self.model.parameters(),
-                                    lr=args.init_learning_rate)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=args.init_learning_rate)
 
         mean = [0.429, 0.431, 0.397]
         std = [1, 1, 1]
-        normalize = transforms.Normalize(mean=mean,
-                                         std=std)
+        normalize = transforms.Normalize(mean=mean, std=std)
         transform = transforms.Compose([transforms.ToTensor(), normalize])
 
-        trainset = SuperSloMo(root=args.dataset_root + '/train',
-                                         transform=transform, train=True)
+        trainset = SuperSloMo(
+            root=args.dataset_root + "/train", transform=transform, train=True
+        )
         loader = torch.utils.data.DataLoader(
-            trainset,
-            batch_size=self.args.batch_size,
-            shuffle=False)
+            trainset, batch_size=self.args.batch_size, shuffle=False
+        )
 
         data, frameIndex = next(iter(loader))
         data = _prefetch(data, self.device)

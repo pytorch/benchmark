@@ -1,11 +1,11 @@
 import importlib
 import sys
-from urllib import request
 from typing import List, Dict
 
-TORCH_DEPS = ['torch', 'torchvision', 'torchaudio']
+TORCH_DEPS = ["torch", "torchvision", "torchaudio"]
 
-class add_path():
+
+class add_path:
     def __init__(self, path):
         self.path = path
 
@@ -18,7 +18,8 @@ class add_path():
         except ValueError:
             pass
 
-def get_pkg_versions(packages: List[str], reload: bool=False) -> Dict[str, str]:
+
+def get_pkg_versions(packages: List[str], reload: bool = False) -> Dict[str, str]:
     versions = {}
     for module in packages:
         module = importlib.import_module(module)

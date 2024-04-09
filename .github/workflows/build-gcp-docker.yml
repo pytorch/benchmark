@@ -1,0 +1,37 @@
+name: TorchBench Nightly GCP Base Docker Build
+on:
+  workflow_dispatch:
+
+env:
+  WITH_PUSH: "true"
+
+jobs:
+  build-push-docker:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, linux.4xlarge]
+    environment: docker-s3-upload
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Login to Docker Container Registry
+        if: ${{ env.WITH_PUSH == 'true' }}
+        uses: docker/login-action@v2
+        with:
+          registry: docker.io
+          username: xzhao9
+          password: ${{ secrets.DOCKER_PERSONAL_ACCESS_TOKEN }}
+      - name: Build TorchBench Nightly GCP Base Docker
+        run: |
+          cd benchmark/docker
+          docker build . \
+              -f gcp-a100-runner-dind.dockerfile -t xzhao9/gcp-a100-runner-dind:latest
+      - name: Push docker to remote
+        if: ${{ env.WITH_PUSH == 'true' }}
+        run: |
+          docker push xzhao9/gcp-a100-runner-dind:latest
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true

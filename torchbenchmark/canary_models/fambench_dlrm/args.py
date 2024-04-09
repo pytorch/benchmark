@@ -4,6 +4,7 @@ import sys
 import torch
 import argparse
 
+
 def dash_separated_ints(value):
     vals = value.split("-")
     for val in vals:
@@ -29,6 +30,7 @@ def dash_separated_floats(value):
 
     return value
 
+
 def validate_fambench_args(args):
     if args.weighted_pooling is not None:
         if args.qr_flag:
@@ -44,11 +46,9 @@ def validate_fambench_args(args):
             sys.exit(
                 "ERROR: 4 and 8-bit quantization with mixed dimensions is not supported"
             )
-    if args.quantize_emb_with_bit in [4, 8, 16] and (
-            not args.use_fbgemm_gpu
-        ):
+    if args.quantize_emb_with_bit in [4, 8, 16] and (not args.use_fbgemm_gpu):
         try:
-            import fbgemm_gpu
+            pass
         except ImportError:
             sys.exit("Failed to import fbgemm_gpu module.\n")
         extra_info = ""
@@ -82,7 +82,10 @@ def validate_fambench_args(args):
     # we don't support torch2trt for mlp
     assert not args.use_torch2trt_for_mlp, "torch2trt for mlp is not supported."
     # we only support random dataset for now
-    assert args.data_generation == "random", f"only random data generator is supported right now, but get {args.data_generation}."
+    assert (
+        args.data_generation == "random"
+    ), f"only random data generator is supported right now, but get {args.data_generation}."
+
 
 def parse_fambench_args(args):
     ### parse arguments ###
@@ -216,7 +219,9 @@ def parse_fambench_args(args):
     parser.add_argument("--lr-decay-start-step", type=int, default=0)
     parser.add_argument("--lr-num-decay-steps", type=int, default=0)
 
-    parser.add_argument("--precache-ml-data", type=int, nargs='?', default=None, const=sys.maxsize)
+    parser.add_argument(
+        "--precache-ml-data", type=int, nargs="?", default=None, const=sys.maxsize
+    )
     parser.add_argument("--warmup-steps", type=int, default=0)
     # FB5 Logging
     parser.add_argument("--fb5logger", type=str, default=None)

@@ -2,6 +2,7 @@ import torch
 import sys
 import typing
 from contextlib import nullcontext
+import copy
 from torchbenchmark.util.model import BenchmarkModel
 
 import torch_geometric
@@ -42,7 +43,6 @@ class GNNModel(BenchmarkModel):
             data = torch.load(f'{root}/data/.data/Reddit_minimal/sub_reddit_sparse.pt')
         else:
             data = torch.load(f'{root}/data/.data/Reddit_minimal/sub_reddit.pt')
-        print(data)
         mask = None
         sampler = None
         kwargs = {
@@ -82,9 +82,12 @@ class GNNModel(BenchmarkModel):
             tmp_example_outputs.append(batch.y.to(device))
         self.example_inputs = tmp_example_inputs
         self.example_outputs = tmp_example_outputs
+        self.starter_inputs = copy.copy(self.example_inputs) # important to rerun the input generator
 
         if test == "train":
+            self.output_generator = self._gen_target()
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
+            self.loss_fn = torch.nn.CrossEntropyLoss()
             self.model.train()
         elif test == "eval":
             self.model.eval()
@@ -93,13 +96,34 @@ class GNNModel(BenchmarkModel):
     def get_module(self):
         return self.model, self.example_inputs[0]
 
-    def train(self):
-        for batch_id in range(self.num_batch):
-            self.optimizer.zero_grad()
-            out = self.model(**self.example_inputs[batch_id])
-            loss = F.cross_entropy(out, self.example_outputs[batch_id])
-            loss.backward()
-            self.optimizer.step()
+    def get_input_iter(self):
+        """Yield batch of inputs."""
+
+        while True:
+            for example_input in self.starter_inputs:
+                yield example_input
+
+    def _gen_target(self):
+        """Yield batch of targets"""
+
+        while True:
+            for example_output in self.example_outputs:
+                yield example_output
+
+
+    def forward(self):
+        pred = self.model(**self.example_inputs)
+        outputs = next(self.output_generator)
+
+        return self.loss_fn(pred, outputs)
+
+
+    def backward(self, loss):
+        loss.backward()
+
+
+    def optimizer_step(self):
+        self.optimizer.step()
 
 
     def eval(self) -> typing.Tuple[torch.Tensor]:

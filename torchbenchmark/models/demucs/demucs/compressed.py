@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-from concurrent import futures
 
 import musdb
 
@@ -18,7 +17,9 @@ def get_musdb_tracks(root, *args, **kwargs):
 
 
 class StemsSet:
-    def __init__(self, tracks, metadata, duration=None, stride=1, samplerate=44100, channels=2):
+    def __init__(
+        self, tracks, metadata, duration=None, stride=1, samplerate=44100, channels=2
+    ):
 
         self.metadata = []
         for name, path in tracks.items():
@@ -27,7 +28,9 @@ class StemsSet:
             meta["name"] = name
             self.metadata.append(meta)
             if duration is not None and meta["duration"] < duration:
-                raise ValueError(f"Track {name} duration is too small {meta['duration']}")
+                raise ValueError(
+                    f"Track {name} duration is too small {meta['duration']}"
+                )
         self.metadata.sort(key=lambda x: x["name"])
         self.duration = duration
         self.stride = stride
@@ -57,10 +60,12 @@ class StemsSet:
             if index >= examples:
                 index -= examples
                 continue
-            streams = AudioFile(meta["path"]).read(seek_time=index * self.stride,
-                                                   duration=self.duration,
-                                                   channels=self.channels,
-                                                   samplerate=self.samplerate)
+            streams = AudioFile(meta["path"]).read(
+                seek_time=index * self.stride,
+                duration=self.duration,
+                channels=self.channels,
+                samplerate=self.samplerate,
+            )
             return (streams - meta["mean"]) / meta["std"]
 
 
@@ -69,7 +74,11 @@ def _get_track_metadata(path):
     # normalized but it should be good enough.
     audio = AudioFile(path)
     mix = audio.read(streams=0, channels=1, samplerate=44100)
-    return {"duration": audio.duration, "std": mix.std().item(), "mean": mix.mean().item()}
+    return {
+        "duration": audio.duration,
+        "std": mix.std().item(),
+        "mean": mix.mean().item(),
+    }
 
 
 def build_metadata(tracks):

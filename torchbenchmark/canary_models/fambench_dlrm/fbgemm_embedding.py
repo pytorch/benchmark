@@ -2,12 +2,7 @@
 # Note that FAMBench does support it.
 import torch.nn as nn
 import torch
-import os
-import sys
 import numpy as np
-from torchbenchmark import REPO_PATH
-# This file assumes fbgemm_gpu is installed
-import fbgemm_gpu
 from fbgemm_gpu import split_table_batched_embeddings_ops
 from fbgemm_gpu.split_table_batched_embeddings_ops import (
     CacheAlgorithm,
@@ -86,6 +81,7 @@ def quantize_fbgemm_gpu_embedding_bag(model, quantize_type, device):
             q_model.split_embedding_weights()[t][0].data.copy_(weights)
             q_model.split_embedding_weights()[t][1].data.copy_(scale_shift)
     return q_model
+
 
 def create_fbgemm_gpu_emb_bag(
     device,
@@ -199,6 +195,7 @@ def create_fbgemm_gpu_emb_bag(
         torch.set_grad_enabled(False)
 
     return fbgemm_gpu_emb_bag
+
 
 # The purpose of this wrapper is to encapsulate the format conversions to/from fbgemm_gpu
 # so parallel_apply() executes the format-in -> fbgemm_gpu op -> format-out instructions

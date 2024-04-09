@@ -52,6 +52,7 @@ jobs:
             tail -f /dev/null
           )
           echo "Container name: ${container_name}"
+          docker exec -t -w "/" "${container_name}" bash -c "sudo chown -R runner /benchmark; sudo chgrp -R runner /benchmark"
           docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
           docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_test.sh
       - name: Teardown Linux

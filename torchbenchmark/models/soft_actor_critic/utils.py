@@ -1,9 +1,5 @@
 import math
 import os
-import random
-from collections import namedtuple
-
-import gym
 import numpy as np
 import torch
 
@@ -50,7 +46,7 @@ def compute_conv_output(
     inp_shape, kernel_size, padding=(0, 0), dilation=(1, 1), stride=(1, 1)
 ):
     """
-    Compute the shape of the output of a torch Conv2d layer using 
+    Compute the shape of the output of a torch Conv2d layer using
     the formula from the docs.
 
     every argument is a tuple corresponding to (height, width), e.g. kernel_size=(3, 4)

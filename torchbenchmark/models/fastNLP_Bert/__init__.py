@@ -8,9 +8,7 @@ The program runs only for benchmark purposes and doesn't provide correctness res
 import logging
 from typing import Tuple
 import torch
-import random
 import inspect
-import numpy as np
 from fastNLP.embeddings import BertEmbedding
 from fastNLP.models import BertForQuestionAnswering
 from fastNLP.core.callback import CallbackManager
@@ -43,23 +41,37 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.input_dir = CMRC2018_DIR
         # Generate input data files
         # FastNLP loader requires both train and eval files, so we need to generate both of them
         if test == "train":
-            generate_inputs(train_batch_size=self.batch_size, eval_batch_size=self.DEFAULT_EVAL_BSIZE)
+            generate_inputs(
+                train_batch_size=self.batch_size,
+                eval_batch_size=self.DEFAULT_EVAL_BSIZE,
+            )
         elif test == "eval":
-            generate_inputs(train_batch_size=self.DEFAULT_TRAIN_BSIZE, eval_batch_size=self.batch_size)
+            generate_inputs(
+                train_batch_size=self.DEFAULT_TRAIN_BSIZE,
+                eval_batch_size=self.batch_size,
+            )
         data_bundle = CMRC2018BertPipe().process_from_file(paths=self.input_dir)
-        data_bundle.rename_field('chars', 'words')
-        self.embed = BertEmbedding(data_bundle.get_vocab('words'),
-                                   model_dir_or_name=CMRC2018_CONFIG_DIR,
-                                   requires_grad=True,
-                                   include_cls_sep=False, auto_truncate=True,
-                                   dropout=0.5, word_dropout=0.01)
-        self.model = self._move_model_to_device(BertForQuestionAnswering(self.embed), device=device)
+        data_bundle.rename_field("chars", "words")
+        self.embed = BertEmbedding(
+            data_bundle.get_vocab("words"),
+            model_dir_or_name=CMRC2018_CONFIG_DIR,
+            requires_grad=True,
+            include_cls_sep=False,
+            auto_truncate=True,
+            dropout=0.5,
+            word_dropout=0.01,
+        )
+        self.model = self._move_model_to_device(
+            BertForQuestionAnswering(self.embed), device=device
+        )
 
         if self._model_contains_inner_module(self.model):
             self._forward_func = self.model.module.forward
@@ -72,29 +84,34 @@ class Model(BenchmarkModel):
         if self.test == "train":
             self.model.train()
             self.trainer = self.model
-            self.train_data = data_bundle.get_dataset('train')
+            self.train_data = data_bundle.get_dataset("train")
             self.data = self.train_data
             self.losser = CMRC2018Loss()
             self.metrics = CMRC2018Metric()
             self.update_every = 10
-            wm_callback = WarmupCallback(schedule='linear')
-            gc_callback = GradientClipCallback(clip_value=1, clip_type='norm')
+            wm_callback = WarmupCallback(schedule="linear")
+            gc_callback = GradientClipCallback(clip_value=1, clip_type="norm")
             callbacks = [wm_callback, gc_callback]
             self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
-            self.callback_manager = CallbackManager(env={"trainer":self}, callbacks=callbacks)
+            self.callback_manager = CallbackManager(
+                env={"trainer": self}, callbacks=callbacks
+            )
         elif self.test == "eval":
             self.model.eval()
-            self.data = data_bundle.get_dataset('dev')
+            self.data = data_bundle.get_dataset("dev")
 
-        example_inputs = DataSetIter(dataset=self.data,
-                                     batch_size=self.batch_size,
-                                     sampler=None,
-                                     num_workers=self.num_workers, drop_last=False)
+        example_inputs = DataSetIter(
+            dataset=self.data,
+            batch_size=self.batch_size,
+            sampler=None,
+            num_workers=self.num_workers,
+            drop_last=False,
+        )
         self.example_inputs = self._prefetch(example_inputs)
 
     def get_module(self):
         batch_x, _batch_y = list(self.example_inputs)[0]
-        return self.model, (batch_x["words"], )
+        return self.model, (batch_x["words"],)
 
     # Sliced version of fastNLP.Tester._test()
     def eval(self) -> Tuple[torch.Tensor]:
@@ -104,7 +121,7 @@ class Model(BenchmarkModel):
             for batch_x, _batch_y in self.example_inputs:
                 pred_dict = self._data_forward(self._predict_func, batch_x)
         # return a tuple of Tensors
-        return (pred_dict['pred_start'], pred_dict['pred_end'] )
+        return (pred_dict["pred_start"], pred_dict["pred_end"])
 
     # Sliced version of fastNLP.Trainer._train()
     def train(self):
@@ -145,8 +162,12 @@ class Model(BenchmarkModel):
         if spect.defaults is not None:
             defaults = [arg for arg in spect.defaults]
         start_idx = len(spect.args) - len(defaults)
-        output = {name: default for name, default in zip(spect.args[start_idx:], defaults)}
-        output.update({name: val for name, val in kwargs.items() if name in needed_args})
+        output = {
+            name: default for name, default in zip(spect.args[start_idx:], defaults)
+        }
+        output.update(
+            {name: val for name, val in kwargs.items() if name in needed_args}
+        )
         return output
 
     def _move_dict_value_to_device(self, *args, device, non_blocking=False):
@@ -160,7 +181,10 @@ class Model(BenchmarkModel):
 
     def _model_contains_inner_module(self, model):
         if isinstance(model, torch.nn.Module):
-            if isinstance(model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)):
+            if isinstance(
+                model,
+                (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel),
+            ):
                 return True
         return False
 
@@ -181,8 +205,7 @@ class Model(BenchmarkModel):
             model.train()
 
     def _update(self):
-        r"""Perform weight update on a model.
-        """
+        r"""Perform weight update on a model."""
         if self.step % self.update_every == 0:
             self.optimizer.step()
 
@@ -191,7 +214,8 @@ class Model(BenchmarkModel):
         y = network(**x)
         if not isinstance(y, dict):
             raise TypeError(
-                f"The return value of {_get_func_signature(self._forward_func)} should be dict, got {type(y)}.")
+                f"The return value of {_get_func_signature(self._forward_func)} should be dict, got {type(y)}."
+            )
         return y
 
     def _grad_backward(self, loss):
@@ -201,7 +225,7 @@ class Model(BenchmarkModel):
 
         For PyTorch, just do "loss.backward()"
         """
-        if (self.step-1) % self.update_every == 0:
+        if (self.step - 1) % self.update_every == 0:
             self.model.zero_grad()
         loss.backward()
 

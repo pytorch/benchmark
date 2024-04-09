@@ -1,6 +1,3 @@
-import numpy as np
-import random
-import time
 import torch
 from argparse import Namespace
 from .meta import Meta
@@ -24,53 +21,75 @@ class Model(BenchmarkModel):
     SKIP_CORRECTNESS_CHECK = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         # load from disk or synthesize data
         use_data_file = False
         debug_print = False
         root = str(Path(__file__).parent)
-        args = Namespace(**{
-            'n_way': 5,
-            'k_spt': 1,
-            'k_qry': 15,
-            'imgsz': 28,
-            'imgc': 1,
-            'task_num': 32,
-            'meta_lr': 1e-3,
-            'update_lr': 0.4,
-            'update_step': 5,
-            'update_step_test': 10
-        })
+        args = Namespace(
+            **{
+                "n_way": 5,
+                "k_spt": 1,
+                "k_qry": 15,
+                "imgsz": 28,
+                "imgc": 1,
+                "task_num": 32,
+                "meta_lr": 1e-3,
+                "update_lr": 0.4,
+                "update_step": 5,
+                "update_step_test": 10,
+            }
+        )
         config = [
-            ('conv2d', [64, args.imgc, 3, 3, 2, 0]),
-            ('relu', [True]),
-            ('bn', [64]),
-            ('conv2d', [64, 64, 3, 3, 2, 0]),
-            ('relu', [True]),
-            ('bn', [64]),
-            ('conv2d', [64, 64, 3, 3, 2, 0]),
-            ('relu', [True]),
-            ('bn', [64]),
-            ('conv2d', [64, 64, 2, 2, 1, 0]),
-            ('relu', [True]),
-            ('bn', [64]),
-            ('flatten', []),
-            ('linear', [args.n_way, 64])
+            ("conv2d", [64, args.imgc, 3, 3, 2, 0]),
+            ("relu", [True]),
+            ("bn", [64]),
+            ("conv2d", [64, 64, 3, 3, 2, 0]),
+            ("relu", [True]),
+            ("bn", [64]),
+            ("conv2d", [64, 64, 3, 3, 2, 0]),
+            ("relu", [True]),
+            ("bn", [64]),
+            ("conv2d", [64, 64, 2, 2, 1, 0]),
+            ("relu", [True]),
+            ("bn", [64]),
+            ("flatten", []),
+            ("linear", [args.n_way, 64]),
         ]
 
         self.module = Meta(args, config).to(device)
 
         if use_data_file:
-            self.example_inputs = torch.load(f'{root}/batch.pt')
-            self.example_inputs = tuple([torch.from_numpy(i).to(self.device) for i in self.example_inputs])
+            self.example_inputs = torch.load(f"{root}/batch.pt")
+            self.example_inputs = tuple(
+                [torch.from_numpy(i).to(self.device) for i in self.example_inputs]
+            )
         else:
             # synthesize data parameterized by arg values
             self.example_inputs = (
-                torch.randn(args.task_num, args.n_way, args.imgc, args.imgsz, args.imgsz).to(device),
-                torch.randint(0, args.n_way, [args.task_num, args.n_way], dtype=torch.long).to(device),
-                torch.randn(args.task_num, args.n_way * args.k_qry, args.imgc, args.imgsz, args.imgsz).to(device),
-                torch.randint(0, args.n_way, [args.task_num, args.n_way * args.k_qry], dtype=torch.long).to(device))
+                torch.randn(
+                    args.task_num, args.n_way, args.imgc, args.imgsz, args.imgsz
+                ).to(device),
+                torch.randint(
+                    0, args.n_way, [args.task_num, args.n_way], dtype=torch.long
+                ).to(device),
+                torch.randn(
+                    args.task_num,
+                    args.n_way * args.k_qry,
+                    args.imgc,
+                    args.imgsz,
+                    args.imgsz,
+                ).to(device),
+                torch.randint(
+                    0,
+                    args.n_way,
+                    [args.task_num, args.n_way * args.k_qry],
+                    dtype=torch.long,
+                ).to(device),
+            )
 
         # print input shapes
         if debug_print:
@@ -82,7 +101,7 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         out = self.module(*self.example_inputs)
-        return (out, )
+        return (out,)
 
     def train(self):
         raise NotImplementedError("MAML model doesn't support train.")

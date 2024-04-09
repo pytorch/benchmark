@@ -1,16 +1,10 @@
-import argparse
-import copy
-import math
 import os
-from itertools import chain
 
 import numpy as np
-import tensorboardX
 import torch
-import torch.nn.functional as F
-import tqdm
 
 from . import envs, nets, replay, utils
+
 
 class SACAgent:
     def __init__(
@@ -114,4 +108,3 @@ class SACDAgent(SACAgent):
             act = torch.argmax(act_dist.probs, dim=1)
         self.actor.train()
         return self.process_act(act)
-

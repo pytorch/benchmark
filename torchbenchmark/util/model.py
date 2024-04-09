@@ -107,7 +107,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if self.dargs.accuracy and not self.DISABLE_DETERMINISM:
             self.deterministic_dict = save_deterministic_dict(self.name)
         # if the args contain "--torchdynamo", parse torchdynamo args
-        if "--torchdynamo" in opt_args:
+        if "--torchdynamo" in opt_args or "--inductor" in opt_args:
             self.dynamo = True
             from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
             self.opt_args, self.extra_args = parse_torchdynamo_args(opt_args)
@@ -175,8 +175,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if self.device != "cuda":
             current_device_name = str(self.device)
         else:
-            current_device_name = torch.cuda.get_device_name()
-            assert current_device_name, f"torch.cuda.get_device_name() returns None when device is set to cuda, please double check."
+            current_device_name = torch.cuda.get_device_name() if torch.cuda.get_device_name() else "UNKNOWN"
             if current_device_name in SPECIAL_DEVICE_MAPPING:
                 current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
 
@@ -212,7 +211,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     def _load_metadata(self):
         relative_path = self.__class__.__module__.split(".")
-        self.name = relative_path[-1]
+        if getattr(self, "name", None) == None:
+            self.name = relative_path[-1]
         metadata_loc = Path(REPO_PATH).joinpath(*relative_path).joinpath("metadata.yaml")
         if not metadata_loc.exists():
             return None
@@ -267,9 +267,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
 
     def get_input_iter(self) -> Generator:
-        """Return the dynamic input iterator for the model."""
-        raise NotImplementedError(f"Default dynamic input iterator is not implemented. "
-                                  "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}.")
+        """Return the dynamic input iterator for the model. By default, always return the same batch of input."""
+        model, example_inputs = self.get_module()
+        while True:
+            yield example_inputs
 
     def get_input_descriptor(self) -> ModelInputDescriptor:
         if hasattr(self, 'input_descriptor') and isinstance(self.input_descriptor, ModelInputDescriptor):
@@ -305,7 +306,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         return None
 
     def invoke(self) -> Optional[Tuple[torch.Tensor]]:
-        if self.test == "train" and is_staged_train_test(self):
+        if self.test == "train" and is_staged_train_test(self) and (getattr(self, "train", None) == None):
             return self._invoke_staged_train_test(num_batch=self.num_batch)
         assert self.num_batch == 1, "Only staged_train_test supports multiple-batch testing at this time."
         out = None

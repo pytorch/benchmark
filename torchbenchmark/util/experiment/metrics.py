@@ -51,7 +51,7 @@ def get_latencies(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_I
 
 def get_peak_memory(func, device: str, num_iter=MEMPROF_ITER, export_metrics_file='', metrics_needed=[], metrics_gpu_backend='dcgm', cpu_monitored_pid=None) -> Tuple[Optional[float], Optional[str], Optional[float]]:
     "Run one step of the model, and return the peak memory in MB."
-    from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
+    from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
     new_metrics_needed = [_ for _ in metrics_needed if _ in ['cpu_peak_mem', 'gpu_peak_mem']]
     if not new_metrics_needed:
         raise ValueError(f"Expected metrics_needed to be non-empty, get: {metrics_needed}")
