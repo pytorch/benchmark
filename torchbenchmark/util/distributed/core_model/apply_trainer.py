@@ -1,14 +1,16 @@
-from io import UnsupportedOperation
 import os
+from io import UnsupportedOperation
+
 import torch
-from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 
 def apply_trainer(model, trainer):
     local_rank = int(os.getenv("LOCAL_RANK", -1))
 
     if trainer == "ddp" or trainer == "ddp_no_static_graph":
-        static_graph = (trainer == "ddp")
+        static_graph = trainer == "ddp"
         ddp_model = DDP(
             model,
             device_ids=[local_rank],
@@ -22,9 +24,8 @@ def apply_trainer(model, trainer):
         )
         return ddp_model
     elif trainer == "fsdp":
-        fsdp_model = FSDP(
-            model,
-            device_id = torch.cuda.current_device()
-        )
+        fsdp_model = FSDP(model, device_id=torch.cuda.current_device())
         return fsdp_model
-    raise UnsupportedOperation(f"Only DDP, FSDP are currently supported, but tried to use {trainer}")
+    raise UnsupportedOperation(
+        f"Only DDP, FSDP are currently supported, but tried to use {trainer}"
+    )

@@ -1,3 +1,5 @@
+from typing import Callable, List
+
 import torch
 import torch.nn.functional as F
 import triton
@@ -8,8 +10,6 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
 )
-
-from typing import Callable, List
 
 from . import tutorial
 

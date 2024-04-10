@@ -1,28 +1,30 @@
-import torch
+import copy
 import sys
 import typing
 from contextlib import nullcontext
-import copy
-from torchbenchmark.util.model import BenchmarkModel
+from pathlib import Path
+from typing import List
+
+import torch
+import torch.nn.functional as F
 
 import torch_geometric
-from torch_geometric.nn import GAT, GCN, GraphSAGE, GIN, EdgeCNN
-from torchbenchmark.tasks import GNN
-import torch.nn.functional as F
-from tqdm import tqdm
-from pathlib import Path
-from torch_geometric.loader import NeighborLoader
-from torchbenchmark.util.framework.gnn.config import parse_tb_args
-from typing import List
 from torch import Tensor
+from torch_geometric.loader import NeighborLoader
+from torch_geometric.nn import EdgeCNN, GAT, GCN, GIN, GraphSAGE
+from torchbenchmark.tasks import GNN
+from torchbenchmark.util.framework.gnn.config import parse_tb_args
+from torchbenchmark.util.model import BenchmarkModel
+from tqdm import tqdm
 
 models_dict = {
-    'gat': GAT,
-    'gcn': GCN,
-    'edgecnn': EdgeCNN,
-    'gin': GIN,
-    'sage': GraphSAGE,
+    "gat": GAT,
+    "gcn": GCN,
+    "edgecnn": EdgeCNN,
+    "gin": GIN,
+    "sage": GraphSAGE,
 }
+
 
 class GNNModel(BenchmarkModel):
     # To recognize this is a GNN model
@@ -33,22 +35,24 @@ class GNNModel(BenchmarkModel):
     # Default eval precision on CUDA device is fp16
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
-    def __init__(self, model_name, test, device, batch_size = None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+    def __init__(self, model_name, test, device, batch_size=None, extra_args=[]):
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         self.tb_args, self.extra_args = parse_tb_args(self.extra_args)
 
         root = str(Path(__file__).parent.parent.parent.parent)
         sparse = True if self.tb_args.graph_type == "sparse" else False
         if sparse:
-            data = torch.load(f'{root}/data/.data/Reddit_minimal/sub_reddit_sparse.pt')
+            data = torch.load(f"{root}/data/.data/Reddit_minimal/sub_reddit_sparse.pt")
         else:
-            data = torch.load(f'{root}/data/.data/Reddit_minimal/sub_reddit.pt')
+            data = torch.load(f"{root}/data/.data/Reddit_minimal/sub_reddit.pt")
         mask = None
         sampler = None
         kwargs = {
-            'batch_size': self.batch_size,
-            'shuffle': False,
-            'num_workers': 0,
+            "batch_size": self.batch_size,
+            "shuffle": False,
+            "num_workers": 0,
         }
         self.subgraph_loader = NeighborLoader(
             data,
@@ -62,27 +66,39 @@ class GNNModel(BenchmarkModel):
         num_layers = 1
         hidden_channels = 64
         input_channels = data.num_features
-        out_channels = 41 # num_classes
+        out_channels = 41  # num_classes
         if model_name == "gat":
             num_heads = 2
-            self.model = Model(input_channels, hidden_channels, num_layers, out_channels, heads=num_heads)
+            self.model = Model(
+                input_channels,
+                hidden_channels,
+                num_layers,
+                out_channels,
+                heads=num_heads,
+            )
         else:
-            self.model = Model(input_channels, hidden_channels, num_layers, out_channels)
+            self.model = Model(
+                input_channels, hidden_channels, num_layers, out_channels
+            )
         self.model = self.model.to(device)
         tmp_example_inputs = []
         tmp_example_outputs = []
         self.num_batch = 0
         for batch in self.subgraph_loader:
             self.num_batch += 1
-            if hasattr(batch, 'adj_t'):
+            if hasattr(batch, "adj_t"):
                 edge_index = batch.adj_t.to(device)
             else:
                 edge_index = batch.edge_index.to(device)
-            tmp_example_inputs.append({"x": batch.x.to(device), "edge_index": edge_index})
+            tmp_example_inputs.append(
+                {"x": batch.x.to(device), "edge_index": edge_index}
+            )
             tmp_example_outputs.append(batch.y.to(device))
         self.example_inputs = tmp_example_inputs
         self.example_outputs = tmp_example_outputs
-        self.starter_inputs = copy.copy(self.example_inputs) # important to rerun the input generator
+        self.starter_inputs = copy.copy(
+            self.example_inputs
+        )  # important to rerun the input generator
 
         if test == "train":
             self.output_generator = self._gen_target()
@@ -110,21 +126,17 @@ class GNNModel(BenchmarkModel):
             for example_output in self.example_outputs:
                 yield example_output
 
-
     def forward(self):
         pred = self.model(**self.example_inputs)
         outputs = next(self.output_generator)
 
         return self.loss_fn(pred, outputs)
 
-
     def backward(self, loss):
         loss.backward()
 
-
     def optimizer_step(self):
         self.optimizer.step()
-
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
         with self.amp_context():
@@ -134,7 +146,8 @@ class GNNModel(BenchmarkModel):
                 x = self.model(**self.example_inputs[batch_id])
                 xs.append(x.cpu())
             result = torch.cat(xs, dim=0)
-        return (result, )
+        return (result,)
+
 
 # Variation of GNNModel based off of test/nn/models/test_basic_gnn.py; the
 # difference is we don't bother with data loading or optimizer step
@@ -144,8 +157,11 @@ class BasicGNNModel(BenchmarkModel):
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
     task = GNN.CLASSIFICATION
-    def __init__(self, model_name, test, device, batch_size = None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+
+    def __init__(self, model_name, test, device, batch_size=None, extra_args=[]):
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         Model = models_dict[model_name]
         self.model = Model(64, 64, num_layers=3).to(device)
         # Apply some global side effects to library (throw out the compiled

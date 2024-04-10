@@ -1,4 +1,5 @@
 import math
+
 import torch
 import torch.nn.functional as F
 from torch import distributions as pyd
@@ -56,11 +57,14 @@ class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
             mu = tr(mu)
         return mu
 
+
 def _squashed_normal_flatten(t: SquashedNormal):
     return [t.loc, t.scale], t.tanh_transform_clamp
 
+
 def _squashed_normal_unflatten(values, context):
     return SquashedNormal(*values, context)
+
 
 torch.utils._pytree.register_pytree_node(
     SquashedNormal,

@@ -2,14 +2,15 @@
 PyTorch benchmark env check utils.
 This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
+
+import argparse
 import copy
 import importlib
-import os
-import argparse
 import logging
+import os
+from collections.abc import Mapping
 from contextlib import contextmanager, ExitStack
 from typing import Any, Dict, List, Optional
-from collections.abc import Mapping
 
 
 MAIN_RANDOM_SEED = 1337
@@ -84,16 +85,16 @@ SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS = {
 }
 # Use the list from
 # https://github.com/pytorch/pytorch/blob/6c7410ddc350fea625e47744da9d6be7ec74b628/benchmarks/dynamo/torchbench.py#L382
-USE_GRAD_IN_INFERENCE = [
-    "maml"
-]
+USE_GRAD_IN_INFERENCE = ["maml"]
 HAS_NUMPY = True
 
 log = logging.getLogger(__name__)
 
+
 class DummyGradScaler:
     def scale(self, loss):
         return loss
+
 
 @contextmanager
 def nested(*contexts):
@@ -105,18 +106,22 @@ def nested(*contexts):
             stack.enter_context(ctx())
         yield contexts
 
+
 def pick_grad(name: str, is_training: bool):
     import torch
+
     if is_training or name in USE_GRAD_IN_INFERENCE:
         return torch.enable_grad()
     else:
         return torch.no_grad()
 
+
 def set_random_seed():
     """Make torch manual seed deterministic. Helps with accuracy testing."""
-    import torch
     import random
+
     import numpy
+    import torch
 
     def deterministic_torch_manual_seed(*args, **kwargs):
         from torch._C import default_generator
@@ -133,6 +138,7 @@ def set_random_seed():
     numpy.random.seed(MAIN_RANDOM_SEED)
     torch.manual_seed = deterministic_torch_manual_seed
 
+
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
     for module in packages:
@@ -140,40 +146,61 @@ def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
         versions[module] = module.__version__
     return versions
 
+
 def has_native_amp() -> bool:
     import torch
+
     try:
-        if getattr(torch.cuda.amp, 'autocast') is not None:
+        if getattr(torch.cuda.amp, "autocast") is not None:
             return True
     except AttributeError:
         pass
     return False
 
-def is_timm_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'TIMM_MODEL') and model.TIMM_MODEL
 
-def is_torchvision_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'TORCHVISION_MODEL') and model.TORCHVISION_MODEL
+def is_timm_model(model: "torchbenchmark.util.model.BenchmarkModel") -> bool:
+    return hasattr(model, "TIMM_MODEL") and model.TIMM_MODEL
 
-def is_hf_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'HF_MODEL') and model.HF_MODEL
 
-def is_fambench_model(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'FAMBENCH_MODEL') and model.FAMBENCH_MODEL
+def is_torchvision_model(model: "torchbenchmark.util.model.BenchmarkModel") -> bool:
+    return hasattr(model, "TORCHVISION_MODEL") and model.TORCHVISION_MODEL
 
-def is_staged_train_test(model: 'torchbenchmark.util.model.BenchmarkModel') -> bool:
-    return hasattr(model, 'forward') and hasattr(model, 'backward') and hasattr(model, 'optimizer_step')
+
+def is_hf_model(model: "torchbenchmark.util.model.BenchmarkModel") -> bool:
+    return hasattr(model, "HF_MODEL") and model.HF_MODEL
+
+
+def is_fambench_model(model: "torchbenchmark.util.model.BenchmarkModel") -> bool:
+    return hasattr(model, "FAMBENCH_MODEL") and model.FAMBENCH_MODEL
+
+
+def is_staged_train_test(model: "torchbenchmark.util.model.BenchmarkModel") -> bool:
+    return (
+        hasattr(model, "forward")
+        and hasattr(model, "backward")
+        and hasattr(model, "optimizer_step")
+    )
+
 
 def save_deterministic_dict(name: str):
     determinism_dict = {}
     if "CUBLAS_WORKSPACE_CONFIG" in os.environ:
-        determinism_dict["CUBLAS_WORKSPACE_CONFIG"] = os.environ["CUBLAS_WORKSPACE_CONFIG"]
+        determinism_dict["CUBLAS_WORKSPACE_CONFIG"] = os.environ[
+            "CUBLAS_WORKSPACE_CONFIG"
+        ]
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     import torch
-    determinism_dict["torch.use_deterministic_algorithms"] = torch.are_deterministic_algorithms_enabled()
-    determinism_dict["torch.backends.cudnn.allow_tf32"] = torch.backends.cudnn.allow_tf32
+
+    determinism_dict["torch.use_deterministic_algorithms"] = (
+        torch.are_deterministic_algorithms_enabled()
+    )
+    determinism_dict["torch.backends.cudnn.allow_tf32"] = (
+        torch.backends.cudnn.allow_tf32
+    )
     determinism_dict["torch.backends.cudnn.benchmark"] = torch.backends.cudnn.benchmark
-    determinism_dict["torch.backends.cuda.matmul.allow_tf32"] = torch.backends.cuda.matmul.allow_tf32
+    determinism_dict["torch.backends.cuda.matmul.allow_tf32"] = (
+        torch.backends.cuda.matmul.allow_tf32
+    )
 
     if not name in UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS:
         torch.use_deterministic_algorithms(True)
@@ -183,20 +210,32 @@ def save_deterministic_dict(name: str):
     torch.backends.cuda.matmul.allow_tf32 = False
     return determinism_dict
 
+
 def load_deterministic_dict(determinism_dict: Dict[str, bool]):
     if "CUBLAS_WORKSPACE_CONFIG" in determinism_dict:
-        os.environ["CUBLAS_WORKSPACE_CONFIG"] = determinism_dict["CUBLAS_WORKSPACE_CONFIG"]
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = determinism_dict[
+            "CUBLAS_WORKSPACE_CONFIG"
+        ]
     elif "CUBLAS_WORKSPACE_CONFIG" in os.environ:
         del os.environ["CUBLAS_WORKSPACE_CONFIG"]
     import torch
-    torch.use_deterministic_algorithms(determinism_dict["torch.use_deterministic_algorithms"])
-    torch.backends.cudnn.allow_tf32 = determinism_dict["torch.backends.cudnn.allow_tf32"]
+
+    torch.use_deterministic_algorithms(
+        determinism_dict["torch.use_deterministic_algorithms"]
+    )
+    torch.backends.cudnn.allow_tf32 = determinism_dict[
+        "torch.backends.cudnn.allow_tf32"
+    ]
     torch.backends.cudnn.benchmark = determinism_dict["torch.backends.cudnn.benchmark"]
-    torch.backends.cuda.matmul.allow_tf32 = determinism_dict["torch.backends.cuda.matmul.allow_tf32"]
+    torch.backends.cuda.matmul.allow_tf32 = determinism_dict[
+        "torch.backends.cuda.matmul.allow_tf32"
+    ]
+
 
 def cast_to(dtype, model, inputs):
     import torch
     from torch.utils._pytree import tree_map
+
     # cast model and inputs to fp16
     if dtype == torch.float16:
         model = model.half()
@@ -204,15 +243,17 @@ def cast_to(dtype, model, inputs):
         model = model.to(dtype)
 
     inputs = tree_map(
-        lambda x: x.to(dtype)
-        if isinstance(x, torch.Tensor) and x.is_floating_point()
-        else x,
+        lambda x: (
+            x.to(dtype) if isinstance(x, torch.Tensor) and x.is_floating_point() else x
+        ),
         inputs,
     )
     return model, inputs
 
+
 def collect_results(model, prediction, loss, example_inputs):
     import torch
+
     results = []
     results.append(prediction)
     results.append(loss)
@@ -251,9 +292,11 @@ def collect_results(model, prediction, loss, example_inputs):
                 results.append(example.grad)
     return results
 
+
 def clone_input(x, *, dtype=None):
     """copy while preserving strides"""
     import torch
+
     # TODO: this is questionable
     if isinstance(x, torch._subclasses.FakeTensor):
         # this func fails on fake tensors in __torch_dispatch__
@@ -302,8 +345,10 @@ def clone_input(x, *, dtype=None):
             result._dynamo_dynamic_indices = x._dynamo_dynamic_indices.copy()
         return result
 
+
 def clone_inputs(example_inputs):
     import torch
+
     if isinstance(example_inputs, Mapping):
         res = dict(example_inputs)
         for key, value in res.items():
@@ -317,17 +362,21 @@ def clone_inputs(example_inputs):
             res[i] = clone_input(res[i])
     return res
 
+
 def init_optimizer(name, device, params, is_training):
     import torch
+
     if device == "cuda" and is_training and name not in CI_SKIP_OPTIMIZER:
         optimizer = torch.optim.SGD(params, lr=0.01)
     else:
         optimizer = None
     return optimizer
 
+
 def reduce_to_scalar_loss(out):
     """Reduce the output of a model to get scalar loss"""
     import torch
+
     if isinstance(out, torch.Tensor):
         # Mean does not work on integer tensors
         return out.sum() / out.numel()
@@ -349,8 +398,10 @@ def reduce_to_scalar_loss(out):
         return 0.0
     raise NotImplementedError("Don't know how to reduce", type(out))
 
+
 def compute_loss(pred):
     return reduce_to_scalar_loss(pred)
+
 
 def optimizer_zero_grad(optimizer, mod):
     if optimizer is not None:
@@ -358,9 +409,11 @@ def optimizer_zero_grad(optimizer, mod):
     else:
         mod.zero_grad(True)
 
+
 def optimizer_step(optimizer):
     if optimizer is not None:
         optimizer.step()
+
 
 def forward_pass(mod, inputs, contexts, _collect_outputs=True):
     cloned_inputs = clone_inputs(inputs)
@@ -386,15 +439,27 @@ def forward_and_backward_pass(mod, inputs, contexts, optimizer, collect_outputs=
         return collect_results(mod, pred, loss, cloned_inputs)
     return None
 
-def run_n_iterations(mod, inputs, contexts, optimizer=None, is_training=False, iterations=STABLENESS_CHECK_ROUNDS):
+
+def run_n_iterations(
+    mod,
+    inputs,
+    contexts,
+    optimizer=None,
+    is_training=False,
+    iterations=STABLENESS_CHECK_ROUNDS,
+):
     def _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs):
         if is_training:
-            return forward_and_backward_pass(mod, inputs, contexts, optimizer, collect_outputs)
+            return forward_and_backward_pass(
+                mod, inputs, contexts, optimizer, collect_outputs
+            )
         else:
             return forward_pass(mod, inputs, contexts, collect_outputs)
+
     for _ in range(iterations - 1):
         _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs=False)
     return _model_iter_fn(mod, inputs, contexts, optimizer, collect_outputs=True)
+
 
 def get_tolerance_and_cosine_flag(model, is_training, current_device, name):
     tolerance = 1e-4
@@ -419,16 +484,19 @@ def get_tolerance_and_cosine_flag(model, is_training, current_device, name):
             tolerance = 8 * 1e-2
     return tolerance, cosine
 
+
 def skip_accuracy_check_as_eager_non_deterministic(is_training):
     if is_training:
         return SKIP_ACCURACY_CHECK_AS_EAGER_NON_DETERMINISTIC_MODELS
     return set()
 
-def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
-    import torch
+
+def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
     import functools
-    from torch.utils._pytree import tree_map
+
+    import torch
     from torch._dynamo.utils import same
+    from torch.utils._pytree import tree_map
 
     def _equal_nan_p(precision):
         equal_nan = True
@@ -470,7 +538,11 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
 
     if tbmodel.device == "cuda" and tbmodel.dargs.precision == "amp" and is_training:
         contexts.append(torch.cuda.amp.autocast)
-    elif tbmodel.dargs.precision == "amp" and tbmodel.dargs.precision == "bf16" and tbmodel.device == "cpu":
+    elif (
+        tbmodel.dargs.precision == "amp"
+        and tbmodel.dargs.precision == "bf16"
+        and tbmodel.device == "cpu"
+    ):
         contexts.append(torch.cpu.amp.autocast)
 
     # Collect the fp64 reference outputs to be used later for accuracy checking.
@@ -481,12 +553,18 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             deepcopy_model(model, is_deepcopy=True),
             clone_inputs(example_inputs),
         )
-        optimizer = init_optimizer(name, current_device, model_fp64.parameters(), is_training)
-        fp64_outputs = run_n_iterations(model_fp64, inputs_fp64, contexts, optimizer, is_training)
+        optimizer = init_optimizer(
+            name, current_device, model_fp64.parameters(), is_training
+        )
+        fp64_outputs = run_n_iterations(
+            model_fp64, inputs_fp64, contexts, optimizer, is_training
+        )
         fp64_outputs = tree_map(
-            lambda x: x.to(torch.float64)
-            if isinstance(x, torch.Tensor) and x.is_floating_point()
-            else x,
+            lambda x: (
+                x.to(torch.float64)
+                if isinstance(x, torch.Tensor) and x.is_floating_point()
+                else x
+            ),
             fp64_outputs,
         )
     except Exception:
@@ -498,18 +576,24 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
         fp64_outputs = None
 
     tolerance, cos_similarity = get_tolerance_and_cosine_flag(
-            tbmodel, is_training, current_device, name
+        tbmodel, is_training, current_device, name
     )
-     # Cast the model to float16/float32 as necessary
+    # Cast the model to float16/float32 as necessary
     model, example_inputs = maybe_cast(tbmodel, model, example_inputs)
     with pick_grad(name, is_training):
         # Get results of native pytorch
         reset_rng_state()
         try:
             model_copy = deepcopy_model(model, is_deepcopy)
-            optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
+            optimizer = init_optimizer(
+                name, current_device, model_copy.parameters(), is_training
+            )
             correct_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs), contexts, optimizer, is_training
+                model_copy,
+                clone_inputs(example_inputs),
+                contexts,
+                optimizer,
+                is_training,
             )
         except Exception as e:
             accuracy_status = (
@@ -525,9 +609,15 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
         reset_rng_state()
         try:
             model_copy = deepcopy_model(model, is_deepcopy)
-            optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
+            optimizer = init_optimizer(
+                name, current_device, model_copy.parameters(), is_training
+            )
             correct_rerun_result = run_n_iterations(
-                model_copy, clone_inputs(example_inputs), contexts, optimizer, is_training
+                model_copy,
+                clone_inputs(example_inputs),
+                contexts,
+                optimizer,
+                is_training,
             )
         except Exception as e:
             accuracy_status = (
@@ -540,16 +630,15 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
         # Two eager runs should have exactly same result
         is_same = True
         try:
-            if (
-                name not in skip_accuracy_check_as_eager_non_deterministic(is_training)
-                and not same(
-                    correct_result,
-                    correct_rerun_result,
-                    fp64_ref=None,
-                    cos_similarity=False,
-                    tol=0,
-                    equal_nan=equal_nan,
-                )
+            if name not in skip_accuracy_check_as_eager_non_deterministic(
+                is_training
+            ) and not same(
+                correct_result,
+                correct_rerun_result,
+                fp64_ref=None,
+                cos_similarity=False,
+                tol=0,
+                equal_nan=equal_nan,
             ):
                 is_same = False
         except Exception as e:
@@ -560,7 +649,10 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
             accuracy_status = "eager_two_runs_differ"
             return accuracy_status
 
-        if not hasattr(tbmodel.opt_args, 'torchdynamo') or not tbmodel.opt_args.torchdynamo:
+        if (
+            not hasattr(tbmodel.opt_args, "torchdynamo")
+            or not tbmodel.opt_args.torchdynamo
+        ):
             return accuracy_status
 
         correct_rerun_result = None
@@ -576,15 +668,17 @@ def check_accuracy(tbmodel: 'torchbenchmark.util.model.BenchmarkModel') -> str:
         )
         try:
             model_copy = deepcopy_model(model, is_deepcopy)
-            optimizer = init_optimizer(name, current_device, model_copy.parameters(), is_training)
+            optimizer = init_optimizer(
+                name, current_device, model_copy.parameters(), is_training
+            )
             optimized_model_iter_fn = optimize_ctx(run_n_iterations)
-            new_result = optimized_model_iter_fn(model_copy, example_inputs, contexts, optimizer, is_training)
+            new_result = optimized_model_iter_fn(
+                model_copy, example_inputs, contexts, optimizer, is_training
+            )
         except Exception as e:
             log.exception(e)
             accuracy_status = (
-                "OOM"
-                if isinstance(e, torch.cuda.OutOfMemoryError)
-                else "fail_to_run"
+                "OOM" if isinstance(e, torch.cuda.OutOfMemoryError) else "fail_to_run"
             )
             return accuracy_status
 

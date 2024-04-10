@@ -1,12 +1,13 @@
-import os
 import importlib
+import os
 import pathlib
+from typing import List
 
 from torchbenchmark import dir_contains_file
-from typing import List
 
 OPBENCH_DIR = "operators"
 INTERNAL_OPBENCH_DIR = "fb"
+
 
 def _is_internal_model(op_name: str) -> bool:
     p = (
@@ -19,14 +20,14 @@ def _is_internal_model(op_name: str) -> bool:
         return True
     return False
 
+
 def _list_opbench_paths() -> List[str]:
     p = pathlib.Path(__file__).parent.parent.joinpath(OPBENCH_DIR)
     # Only load the model directories that contain a "__init.py__" file
     opbench = sorted(
         str(child.absolute())
         for child in p.iterdir()
-        if child.is_dir()
-        and dir_contains_file(child, "__init__.py")
+        if child.is_dir() and dir_contains_file(child, "__init__.py")
     )
     p = p.joinpath(INTERNAL_OPBENCH_DIR)
     if p.exists():
@@ -37,6 +38,7 @@ def _list_opbench_paths() -> List[str]:
         )
         opbench.extend(o)
     return opbench
+
 
 def load_opbench_by_name(op_name: str):
     opbench_list = filter(

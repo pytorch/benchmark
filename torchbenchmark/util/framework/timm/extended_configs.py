@@ -1,6 +1,7 @@
 # Extended timm model configs from Dynamobench
-from typing import List
 import os
+from typing import List
+
 import torch
 from userbenchmark.dynamo import DYNAMOBENCH_PATH
 
@@ -15,11 +16,14 @@ if hasattr(torch.version, "git_version"):
             model_name, batch_size = line.split(" ")
             TIMM_MODELS[model_name] = int(batch_size)
 
+
 def is_extended_timm_models(model_name: str) -> bool:
     return model_name in TIMM_MODELS
 
+
 def list_extended_timm_models() -> List[str]:
     return list(TIMM_MODELS.keys())
+
 
 # TODO - Figure out the reason of cold start memory spike
 BATCH_SIZE_DIVISORS = {

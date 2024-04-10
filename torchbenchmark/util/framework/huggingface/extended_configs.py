@@ -1,9 +1,10 @@
 # Extended huggingface model configs from Dynamobench
-import logging
-import torch
-import os
 import importlib
+import logging
+import os
 from typing import List
+
+import torch
 from userbenchmark.dynamo import DYNAMOBENCH_PATH
 
 # These models contain the models present in huggingface_models_list. It is a
@@ -26,11 +27,14 @@ if hasattr(torch.version, "git_version"):
             BATCH_SIZE_KNOWN_MODELS[model_name] = batch_size
     assert len(BATCH_SIZE_KNOWN_MODELS)
 
+
 def is_extended_huggingface_models(model_name: str) -> bool:
     return model_name in BATCH_SIZE_KNOWN_MODELS
 
+
 def list_extended_huggingface_models() -> List[str]:
     return list(BATCH_SIZE_KNOWN_MODELS.keys())
+
 
 imports = [
     "AlbertForPreTraining",
@@ -281,6 +285,7 @@ FP32_ONLY_MODELS = {
     "GoogleFnet",
 }
 
+
 def get_sequence_length(model_cls, model_name):
     if model_name.startswith(("Blenderbot",)):
         seq_length = 128
@@ -448,6 +453,7 @@ def generate_inputs_for_model(
 
     return input_dict
 
+
 def get_module_cls_by_model_name(model_cls_name):
     _module_by_model_name = {
         "Speech2Text2Decoder": "transformers.models.speech_to_text_2.modeling_speech_to_text_2",
@@ -456,6 +462,7 @@ def get_module_cls_by_model_name(model_cls_name):
     module_name = _module_by_model_name.get(model_cls_name, "transformers")
     module = importlib.import_module(module_name)
     return getattr(module, model_cls_name)
+
 
 def _get_model_cls_and_config(model_name):
     if model_name not in EXTRA_MODELS:
@@ -481,6 +488,7 @@ def _get_model_cls_and_config(model_name):
 
     return model_cls, config
 
+
 def download_model(model_name):
     model_cls, config = _get_model_cls_and_config(model_name)
     if "auto" in model_cls.__module__:
@@ -490,9 +498,8 @@ def download_model(model_name):
         model = model_cls(config)
     return model_cls, model
 
+
 def generate_optimizer_for_model(model, model_name):
     if model_name in BENCHMARK_USE_SGD:
         return torch.optim.SGD(model.parameters(), lr=0.01, foreach=True)
-    return torch.optim.Adam(
-        model.parameters(), lr=0.01, capturable=True, foreach=True
-    )
+    return torch.optim.Adam(model.parameters(), lr=0.01, capturable=True, foreach=True)

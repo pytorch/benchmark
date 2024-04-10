@@ -1,6 +1,7 @@
-import re
-import tabulate
 import argparse
+import re
+
+import tabulate
 
 MAGIC_PREFIX = "STABLE_TEST_MODEL: "
 THRESHOLD = 7
@@ -25,9 +26,11 @@ def _parse_repeated_test_log(log, csv):
     for line in log.splitlines():
         matches = list(
             map(
-                lambda x: None
-                if not regex_dict[x].search(line)
-                else regex_dict[x].search(line).groups(),
+                lambda x: (
+                    None
+                    if not regex_dict[x].search(line)
+                    else regex_dict[x].search(line).groups()
+                ),
                 regex_keys,
             )
         )

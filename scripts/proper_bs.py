@@ -1,16 +1,24 @@
-import pathlib
-import torch
-from typing import Optional, List, Tuple
-from torchbenchmark import ModelTask
 import os
+import pathlib
 import sys
 import time
+from typing import List, Optional, Tuple
+
 import numpy
+import torch
 from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
-from run_sweep import WORKER_TIMEOUT, WARMUP_ROUNDS, ModelTestResult, NANOSECONDS_PER_MILLISECONDS
+from run_sweep import (
+    ModelTestResult,
+    NANOSECONDS_PER_MILLISECONDS,
+    WARMUP_ROUNDS,
+    WORKER_TIMEOUT,
+)
+from torchbenchmark import ModelTask
 
 
-def run_one_step_flops(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10, flops=True) -> Tuple[float, float, Optional[Tuple[torch.Tensor]]]:
+def run_one_step_flops(
+    func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10, flops=True
+) -> Tuple[float, float, Optional[Tuple[torch.Tensor]]]:
     "Run one step of the model, and return the latency in milliseconds."
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
@@ -38,14 +46,32 @@ def run_one_step_flops(func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=10, fl
         model_analyzer.stop_monitor()
         model_analyzer.aggregate()
         tflops = model_analyzer.calculate_flops()
-        
+
     wall_latency = numpy.median(result_summary)
     return (wall_latency, tflops)
 
-def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, jit: bool, batch_size: Optional[int], extra_args: List[str]) -> ModelTestResult:
-    assert test == "train" or test == "eval", f"Test must be either 'train' or 'eval', but get {test}."
-    result = ModelTestResult(name=model_path.name, test=test, device=device, extra_args=extra_args, batch_size=None, precision="fp32",
-                             status="OK", results={})
+
+def _run_model_test_proper_bs(
+    model_path: pathlib.Path,
+    test: str,
+    device: str,
+    jit: bool,
+    batch_size: Optional[int],
+    extra_args: List[str],
+) -> ModelTestResult:
+    assert (
+        test == "train" or test == "eval"
+    ), f"Test must be either 'train' or 'eval', but get {test}."
+    result = ModelTestResult(
+        name=model_path.name,
+        test=test,
+        device=device,
+        extra_args=extra_args,
+        batch_size=None,
+        precision="fp32",
+        status="OK",
+        results={},
+    )
 
     # Run the benchmark test in a separate process
     print(f"Running model {model_path.name} ... ", flush=True)
@@ -53,27 +79,41 @@ def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, 
     bs_name = "batch_size"
     correctness_name = "correctness"
     error_message: Optional[str] = None
-    result.results['details'] = []
+    result.results["details"] = []
     task = ModelTask(os.path.basename(model_path), timeout=WORKER_TIMEOUT)
     MAX_EXP = 30
     for batch_size_exp in range(MAX_EXP):
-        batch_size = 2 ** batch_size_exp
+        batch_size = 2**batch_size_exp
         try:
-            print(f"Batch Size {batch_size} ", end='')
+            print(f"Batch Size {batch_size} ", end="")
             latency_ms_cur = 0
             if not task.model_details.exists:
                 status = "NotExist"
                 return
-            task.make_model_instance(test=test, device=device, jit=jit, batch_size=batch_size, extra_args=extra_args)
+            task.make_model_instance(
+                test=test,
+                device=device,
+                jit=jit,
+                batch_size=batch_size,
+                extra_args=extra_args,
+            )
             if task.get_model_attribute("ALLOW_CUSTOMIZE_BSIZE") == False:
                 raise ValueError(f"Model does not support tuning batch size")
             result.precision = task.get_model_attribute("dargs", "precision")
             # Check the batch size in the model matches the specified value
             if batch_size and (not task.get_model_attribute(bs_name) == batch_size):
-                raise ValueError(f"User specify batch size {batch_size}, but model {result.name} runs with batch size {task.get_model_attribute(bs_name)}. Please report a bug.")
+                raise ValueError(
+                    f"User specify batch size {batch_size}, but model {result.name} runs with batch size {task.get_model_attribute(bs_name)}. Please report a bug."
+                )
             latency_ms_cur, tflops_cur = run_one_step_flops(task.invoke, device)
             latency_ms_cur = latency_ms_cur / batch_size
-            result.results['details'].append({'batch_size': batch_size, "latency_ms": latency_ms_cur, "tflops": tflops_cur})
+            result.results["details"].append(
+                {
+                    "batch_size": batch_size,
+                    "latency_ms": latency_ms_cur,
+                    "tflops": tflops_cur,
+                }
+            )
             # if the model provides eager eval result, save it for cosine similarity
             correctness = task.get_model_attribute(correctness_name)
             if correctness is not None:
@@ -81,7 +121,9 @@ def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, 
         except NotImplementedError as e:
             status = "NotImplemented"
             error_message = str(e)
-        except TypeError as e: # TypeError is raised when the model doesn't support variable batch sizes
+        except (
+            TypeError
+        ) as e:  # TypeError is raised when the model doesn't support variable batch sizes
             status = "TypeError"
             error_message = str(e)
         except KeyboardInterrupt as e:
@@ -100,10 +142,14 @@ def _run_model_test_proper_bs(model_path: pathlib.Path, test: str, device: str, 
                 result.results["error_message"] = error_message
             if status == "UserInterrupted":
                 sys.exit(1)
-            if status != 'OK':
-                if result.results['details']:
-                    result.results['optimal_tflops_bs'] = max(result.results['details'], key=lambda x:x['tflops'])['batch_size']
+            if status != "OK":
+                if result.results["details"]:
+                    result.results["optimal_tflops_bs"] = max(
+                        result.results["details"], key=lambda x: x["tflops"]
+                    )["batch_size"]
                 return result
     # find the best case
-    result.results['optimal_tflops_bs'] = max(result.results['details'], key=lambda x:x['tflops'])['batch_size']
+    result.results["optimal_tflops_bs"] = max(
+        result.results["details"], key=lambda x: x["tflops"]
+    )["batch_size"]
     return result

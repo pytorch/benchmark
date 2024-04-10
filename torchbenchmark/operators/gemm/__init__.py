@@ -1,12 +1,16 @@
 import argparse
-import os
-import statistics
-from typing import Callable, Generator, List, Optional, Any
 
 import csv
+import os
+import statistics
+from typing import Any, Callable, Generator, List, Optional
+
 import numpy
 import torch
 import triton
+from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
+
+from torchbenchmark import REPO_PATH
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -15,8 +19,6 @@ from torchbenchmark.util.triton_op import (
     register_metric,
 )
 
-from torchbenchmark import REPO_PATH
-from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
 from .triton_matmul import matmul as triton_matmul
 
 BUILDIN_SHAPES = [
@@ -32,24 +34,20 @@ BUILDIN_SHAPES = [
     (1408, 1408, 1408, None),
     (1536, 1536, 1536, None),
     (1664, 1664, 1664, None),
-
     # FIXME: triton_matmul failed with accuracy check for fb16 inputs on A100:
     # Mismatched elements: 882 / 3211264 (0.0%)
     # Greatest absolute difference: 0.03125 at index (169, 218) (up to 0.01 allowed)
     # Greatest relative difference: 35.21875 at index (1169, 1720) (up to 0.01 allowed)
     # (1792, 1792, 1792, None),
-
     (1920, 1920, 1920, None),
     (2048, 2048, 2048, None),
     (2176, 2176, 2176, None),
     (2304, 2304, 2304, None),
-
     # FIXME: triton_matmul failed with accuracy check for fb16 inputs on A100:
     # Mismatched elements: 2479 / 5914624 (0.0%)
     # Greatest absolute difference: 0.03173828125 at index (171, 1067) (up to 0.01 allowed)
     # Greatest relative difference: 95.875 at index (2423, 2312) (up to 0.01 allowed)
     # (2432, 2432, 2432, None),
-
     (2560, 2560, 2560, None),
     (2688, 2688, 2688, None),
     (2816, 2816, 2816, None),
@@ -59,13 +57,11 @@ BUILDIN_SHAPES = [
     (3328, 3328, 3328, None),
     (3456, 3456, 3456, None),
     (3584, 3584, 3584, None),
-
     # FIXME: triton_matmul failed with accuracy check for fb16 inputs on A100:
     # Mismatched elements: 619 / 13778944 (0.0%)
     # Greatest absolute difference: 0.06005859375 at index (622, 69) (up to 0.02 allowed)
     # Greatest relative difference: 20.546875 at index (3609, 685) (up to 0.02 allowed)
     # (3712, 3712, 3712, None),
-
     (3840, 3840, 3840, None),
     (3968, 3968, 3968, None),
     (4096, 4096, 4096, None),
@@ -83,14 +79,17 @@ def parse_args(args: List[str]) -> argparse.Namespace:
 
 
 def read_shapes_from_csv(csv_path: str) -> List[List[int]]:
-    input_file_path = os.path.join(REPO_PATH, "torchbenchmark", "operators", "gemm", csv_path)
+    input_file_path = os.path.join(
+        REPO_PATH, "torchbenchmark", "operators", "gemm", csv_path
+    )
     shapes = []
     with open(input_file_path, "r") as f:
         reader = csv.reader(f)
         _header = next(reader)
         for row in reader:
-            shapes.append([ int(x) if x else None for x in row])
+            shapes.append([int(x) if x else None for x in row])
     return shapes
+
 
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
@@ -109,7 +108,6 @@ class Operator(BenchmarkOperator):
                 self.shapes = [(self.tb_args.m, self.tbargs.k, self.tbargs.n)]
             self.DEFAULT_NUM_BATCH = len(self.shapes)
 
-
     @register_benchmark()
     def triton_matmul(self, a, b, bias) -> Callable:
         if not bias == None:
@@ -117,14 +115,12 @@ class Operator(BenchmarkOperator):
         else:
             return lambda: triton_matmul(a, b)
 
-
     @register_benchmark(baseline=True)
     def aten_matmul(self, a, b, bias) -> Callable:
         if not bias == None:
             return lambda: torch.matmul(a, b) + bias
         else:
             return lambda: torch.matmul(a, b)
-
 
     @register_benchmark()
     def hstu_triton_matmul(self, a, b, bias) -> Callable:
@@ -143,7 +139,9 @@ class Operator(BenchmarkOperator):
         return intensity
 
     @register_metric()
-    def gbps(self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> float:
+    def gbps(
+        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
+    ) -> float:
         a, w, bias = example_inputs
         numel = a.numel() + w.numel() + (torch.mm(a, w).numel())
         numel = numel * a.element_size() / 1e9
@@ -151,7 +149,9 @@ class Operator(BenchmarkOperator):
         return statistics.median(gbps)
 
     @register_metric(skip_baseline=True)
-    def xShape(self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> list[int]:
+    def xShape(
+        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
+    ) -> list[int]:
         a, w, bias = example_inputs
         m, k = a.size()
         k, n = w.size()
@@ -160,7 +160,9 @@ class Operator(BenchmarkOperator):
         return [m, k, n]
 
     @register_metric()
-    def tflops(self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> float:
+    def tflops(
+        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
+    ) -> float:
         a, w, bias = example_inputs
         m, k = a.size()
         k, n = w.size()

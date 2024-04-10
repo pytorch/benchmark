@@ -1,11 +1,12 @@
 """
 Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 """
+
 import argparse
 import contextlib
 import distutils.util
-import os
 import functools
+import os
 import warnings
 from typing import List
 
@@ -24,6 +25,7 @@ INDUCTOR_CONFIG_KEYS = [
     "debug",
 ]
 
+
 def _try_get_inductor_config():
     try:
         return torch._inductor.config.shallow_copy_dict()
@@ -31,7 +33,9 @@ def _try_get_inductor_config():
         # access torch inductor config directly
         # if torch._inductor module does not has config attribute
         from torch._inductor import config as inductor_config
+
         return inductor_config.shallow_copy_dict()
+
 
 def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -49,13 +53,11 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--inductor-compile-mode",
         default=None,
-        choices=['max-autotune'],
+        choices=["max-autotune"],
         help="torch.compile mode argument for inductor runs.",
     )
     parser.add_argument(
-        "--nopython",
-        action="store_true",
-        help="Turn graph breaks into errors"
+        "--nopython", action="store_true", help="Turn graph breaks into errors"
     )
     parser.add_argument(
         "--dynamic-shapes",
@@ -74,7 +76,7 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--pt2_debug_log",
-        action='store_true',
+        action="store_true",
         help="enable debug log for PT2 (dynamo, inductor, AOTAutograd)",
     )
     parser.add_argument(
@@ -91,7 +93,7 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
             setting this to 1 to make pdb happy.
             2. Set to 1 if it's win32 platform or it's a fbcode build
             3. decide by the number of CPU cores
-            """
+            """,
     )
     parser.add_argument(
         "--torchinductor_post_grad_batch_fusion",
@@ -100,7 +102,7 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--freeze_prepack_weights",
-        action='store_true',
+        action="store_true",
         help="set to freeze the graph and prepack weights",
     )
 
@@ -126,7 +128,12 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         args.torchdynamo = "inductor"
     return args, extra_args
 
-def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', args: argparse.Namespace, precision: str):
+
+def apply_torchdynamo_args(
+    model: "torchbenchmark.util.model.BenchmarkModel",
+    args: argparse.Namespace,
+    precision: str,
+):
     if args.inductor:
         optimize_ctx = functools.partial(
             torch.compile,
@@ -142,10 +149,15 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
                 torch._dynamo.config.assume_static_by_default = False
         if args.pt2_debug_log:
             import logging
-            torch._logging.set_logs(dynamo=logging.DEBUG, inductor=logging.DEBUG, aot=logging.DEBUG)
+
+            torch._logging.set_logs(
+                dynamo=logging.DEBUG, inductor=logging.DEBUG, aot=logging.DEBUG
+            )
         # Load inductor configs
         if bool(args.torchinductor_post_grad_batch_fusion):
-            torch._inductor.config.post_grad_fusion_options["batch_linear_post_grad"] = {}
+            torch._inductor.config.post_grad_fusion_options[
+                "batch_linear_post_grad"
+            ] = {}
         if compile_threads := args.torchinductor_compile_threads:
             os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(compile_threads)
         # Deal with boolean inductor configs
@@ -155,16 +167,23 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             if getattr(args, f"no_pt2_{inductor_config_key_arg}", None) == False:
                 torch._inductor.config.__setattr__(inductor_config_key, False)
             else:
-                torch._inductor.config.__setattr__(inductor_config_key,
-                    getattr(args, f"pt2_{inductor_config_key_arg}", inductor_config_dict[inductor_config_key]))
+                torch._inductor.config.__setattr__(
+                    inductor_config_key,
+                    getattr(
+                        args,
+                        f"pt2_{inductor_config_key_arg}",
+                        inductor_config_dict[inductor_config_key],
+                    ),
+                )
 
         if args.quantization:
             import torchao
             from torchao.quantization import (
+                change_linear_weights_to_int4_woqtensors,
                 change_linear_weights_to_int8_dqtensors,
                 change_linear_weights_to_int8_woqtensors,
-                change_linear_weights_to_int4_woqtensors
             )
+
             torch._dynamo.config.automatic_dynamic_shapes = False
             torch._dynamo.config.force_parameter_static_shapes = False
             torch._dynamo.config.cache_size_limit = 1000
@@ -180,8 +199,8 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
                 change_linear_weights_to_int4_woqtensors(module)
 
         if args.freeze_prepack_weights:
-            torch._inductor.config.freezing=True
-            torch._inductor.config.cpp.weight_prepack=True
+            torch._inductor.config.freezing = True
+            torch._inductor.config.cpp.weight_prepack = True
 
     if bool(args.dynamo_disable_optimizer_step):
         found_optimizer_step = False
@@ -198,7 +217,9 @@ def apply_torchdynamo_args(model: 'torchbenchmark.util.model.BenchmarkModel', ar
             pass
 
         if not found_optimizer_step:
-            warnings.warn("--dynamo_disable_optimizer_step is set to True, but the optimizer could not be found on this model")
+            warnings.warn(
+                "--dynamo_disable_optimizer_step is set to True, but the optimizer could not be found on this model"
+            )
 
     if model.test == "train":
         if is_staged_train_test(model):

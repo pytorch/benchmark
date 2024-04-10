@@ -1,16 +1,19 @@
-from contextlib import suppress
-import torch
 import typing
+from contextlib import suppress
+
 import timm
+import torch
 from torchbenchmark.util.model import BenchmarkModel
-from .timm_config import TimmConfig
+
 from .extended_configs import BATCH_SIZE_DIVISORS, TIMM_MODELS
+from .timm_config import TimmConfig
 
 # No pretrained weights exist for specific TIMM models
 DISABLE_PRETRAINED_WEIGHTS = [
     "vovnet39a",
     "vit_giant_patch14_224",
 ]
+
 
 class TimmModel(BenchmarkModel):
     # To recognize this is a timm model
@@ -22,11 +25,15 @@ class TimmModel(BenchmarkModel):
     DEFAULT_EVAL_CUDA_PRECISION = "fp16"
 
     def __init__(self, model_name, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
 
-        pretrained_weights = True if not model_name in DISABLE_PRETRAINED_WEIGHTS else False
+        pretrained_weights = (
+            True if not model_name in DISABLE_PRETRAINED_WEIGHTS else False
+        )
         self.model = timm.create_model(
             model_name,
             in_chans=3,
@@ -38,12 +45,10 @@ class TimmModel(BenchmarkModel):
             pretrained=pretrained_weights,
         )
 
-        self.cfg = TimmConfig(model = self.model, device = device)
+        self.cfg = TimmConfig(model=self.model, device=device)
         self.example_inputs = self._gen_input(self.batch_size)
 
-        self.model.to(
-            device=self.device
-        )
+        self.model.to(device=self.device)
         if test == "train":
             self.model.train()
         elif test == "eval":
@@ -53,11 +58,12 @@ class TimmModel(BenchmarkModel):
     def get_input_iter(self):
         """Yield randomized batch size of inputs."""
         import math, random
+
         n = int(math.log2(self.batch_size))
         buckets = [2**n for n in range(n)]
         while True:
             random_batch_size = random.choice(buckets)
-            example_input = (self._gen_input(random_batch_size), )
+            example_input = (self._gen_input(random_batch_size),)
             yield example_input
 
     def _gen_input(self, batch_size):
@@ -65,8 +71,8 @@ class TimmModel(BenchmarkModel):
 
     def _gen_target(self, batch_size):
         return torch.empty(
-            (batch_size,) + self.cfg.target_shape,
-            device=self.device, dtype=torch.long).random_(self.cfg.num_classes)
+            (batch_size,) + self.cfg.target_shape, device=self.device, dtype=torch.long
+        ).random_(self.cfg.num_classes)
 
     def _step_train(self):
         self.cfg.optimizer.zero_grad()
@@ -90,7 +96,9 @@ class TimmModel(BenchmarkModel):
 
     def enable_channels_last(self):
         self.model = self.model.to(memory_format=torch.channels_last)
-        self.example_inputs = self.example_inputs.contiguous(memory_format=torch.channels_last)
+        self.example_inputs = self.example_inputs.contiguous(
+            memory_format=torch.channels_last
+        )
 
     def get_module(self):
         return self.model, (self.example_inputs,)
@@ -102,11 +110,13 @@ class TimmModel(BenchmarkModel):
         with torch.no_grad():
             with self.amp_context():
                 out = self._step_eval()
-        return (out, )
+        return (out,)
+
 
 class ExtendedTimmModel(TimmModel):
     DEFAULT_TRAIN_BSIZE = None
     DEFAULT_EVAL_BSIZE = None
+
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         recorded_batch_size = TIMM_MODELS[self.name]
         if self.name in BATCH_SIZE_DIVISORS:
@@ -120,4 +130,5 @@ class ExtendedTimmModel(TimmModel):
             test=test,
             device=device,
             batch_size=batch_size,
-            extra_args=extra_args)
+            extra_args=extra_args,
+        )

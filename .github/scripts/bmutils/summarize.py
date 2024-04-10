@@ -1,10 +1,11 @@
+import argparse
 import json
 import os
 import re
 from pathlib import Path
-import argparse
 
 ATTRIBUTES = ["batch_size", "precision"]
+
 
 def get_nonempty_json(d):
     r = []
@@ -13,6 +14,7 @@ def get_nonempty_json(d):
         if os.stat(fullpath).st_size:
             r.append(fullpath)
     return r
+
 
 def process_json(result, f, base_key):
     with open(f, "r") as jf:
@@ -30,6 +32,7 @@ def process_json(result, f, base_key):
         result[k][key]["status"] = status
         result[k][key]["results"] = test["results"]
 
+
 def insert_if_nonexist(arr, k, loc=None):
     if k in arr:
         return
@@ -37,6 +40,7 @@ def insert_if_nonexist(arr, k, loc=None):
         arr.append(k)
         return
     arr.insert(loc, k)
+
 
 # Result header
 # Model (<test>, <device>); <base arg>; <arg1>; <arg2>; ...; <argn>
@@ -48,7 +52,9 @@ def generate_header(result, base_key):
     base_arg = None
     for t in result:
         assert t[1] == test, f"Both {t[1]} and {test} exist in result, can't analyze."
-        assert t[2] == device, f"Both {t[2]} and {device} exist in result, can't analyze."
+        assert (
+            t[2] == device
+        ), f"Both {t[2]} and {device} exist in result, can't analyze."
         result_keys = result[t].keys()
         for k in filter(lambda x: not x in ATTRIBUTES, result_keys):
             if k == base_key:
@@ -63,13 +69,16 @@ def generate_header(result, base_key):
     header.extend(args)
     return header
 
+
 def split_header(header):
     regex = "(.*) \(([a-z]+)\)"
     g = re.match(regex, header).groups()
     return (g[0], g[1])
 
+
 def is_ok(r):
     return r["status"] == "OK"
+
 
 def find_result_by_header(r, header, base_arg):
     # tp: correct, latency, or speedup
@@ -86,11 +95,15 @@ def find_result_by_header(r, header, base_arg):
             return r[args]["status"]
     elif tp == "speedup":
         if is_ok(r[base_arg]) and is_ok(r[args]):
-            return round(r[base_arg]["results"]["latency_ms"] / r[args]["results"]["latency_ms"], 3)
+            return round(
+                r[base_arg]["results"]["latency_ms"] / r[args]["results"]["latency_ms"],
+                3,
+            )
         else:
             return "N/A"
     else:
         assert False, f"Found unknown type {tp}"
+
 
 # Dump the result to csv, so that can be used in Google Sheets
 def dump_result(result, header, base_key):
@@ -103,11 +116,14 @@ def dump_result(result, header, base_key):
         s.append(";".join(rt) + "\n")
     return "".join(s)
 
+
 def analyze_result(result_dir: str, base_key: str) -> str:
     files = get_nonempty_json(result_dir)
     # make sure the baseline file exists
     file_keys = list(map(lambda x: Path(x).stem, files))
-    assert base_key in file_keys, f"Baseline key {base_key} is not found in all files: {file_keys}."
+    assert (
+        base_key in file_keys
+    ), f"Baseline key {base_key} is not found in all files: {file_keys}."
     result = {}
     for f in files:
         process_json(result, f, base_key)
@@ -115,10 +131,15 @@ def analyze_result(result_dir: str, base_key: str) -> str:
     s = dump_result(result, header, base_key)
     return s
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--result-dir", required=True, help="Specify the result directory")
-    parser.add_argument("-b", "--base-key", default="eager", help="Specify the baseline key")
+    parser.add_argument(
+        "-r", "--result-dir", required=True, help="Specify the result directory"
+    )
+    parser.add_argument(
+        "-b", "--base-key", default="eager", help="Specify the baseline key"
+    )
     args = parser.parse_args()
     s = analyze_result(args.result_dir, args.base_key)
     print(s)

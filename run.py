@@ -8,6 +8,7 @@ DANGER: make sure to `python install.py` first or otherwise make sure the benchm
 
 Wall time provided for sanity but is not a sane benchmark measurement.
 """
+
 import argparse
 import time
 from functools import partial
@@ -21,7 +22,10 @@ from torchbenchmark import (
     load_model_by_name,
     ModelNotFoundError,
 )
-from torchbenchmark.util.experiment.instantiator import load_model, TorchBenchModelConfig
+from torchbenchmark.util.experiment.instantiator import (
+    load_model,
+    TorchBenchModelConfig,
+)
 from torchbenchmark.util.experiment.metrics import get_model_flops, get_peak_memory
 
 
@@ -174,7 +178,9 @@ def run_one_step(
     result_summary = []
     flops_model_analyzer = None
     if "flops" in metrics_needed:
-        from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
+        from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
+            ModelAnalyzer,
+        )
 
         flops_model_analyzer = ModelAnalyzer(
             export_metrics_file, ["flops"], metrics_gpu_backend
@@ -326,12 +332,14 @@ def profile_one_step(func, model, nwarmup=WARMUP_ROUNDS):
         with_stack=profile_opts["with_stack"],
         with_flops=profile_opts["with_flops"],
         with_modules=profile_opts["with_modules"],
-        on_trace_ready=partial(trace_handler, f"torchbench_{args.model}")
-        if (
-            not hasattr(torch.version, "git_version")
-            and args.profile_export_chrome_trace
-        )
-        else profiler.tensorboard_trace_handler(args.profile_folder),
+        on_trace_ready=(
+            partial(trace_handler, f"torchbench_{args.model}")
+            if (
+                not hasattr(torch.version, "git_version")
+                and args.profile_export_chrome_trace
+            )
+            else profiler.tensorboard_trace_handler(args.profile_folder)
+        ),
     ) as prof:
         if args.device == "cuda":
             start_event = torch.cuda.Event(enable_timing=True)
@@ -533,11 +541,15 @@ def main() -> None:
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
         if metrics_gpu_backend == "dcgm":
-            from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import check_dcgm
+            from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
+                check_dcgm,
+            )
 
             check_dcgm()
         elif "gpu_peak_mem" in metrics_needed:
-            from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import check_nvml
+            from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
+                check_nvml,
+            )
 
             check_nvml()
         if "gpu_peak_mem" in metrics_needed or (

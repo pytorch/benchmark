@@ -1,16 +1,18 @@
 """
 Utilities for building pytorch and torch* domain packages
 """
+
 import os
-import sys
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
 CLEANUP_ROUND = 5
 FBCODE_URL = "FBCODE_URL_PLACEHOLDER"
+
 
 @dataclass
 class TorchRepo:
@@ -20,6 +22,7 @@ class TorchRepo:
     src_path: Path
     cur_commit: str
     build_command: List[str]
+
 
 def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
     env["USE_CUDA"] = "1"
@@ -38,8 +41,13 @@ def setup_bisection_build_env(env: Dict[str, str]) -> Dict[str, str]:
     env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
     return env
 
+
 def _print_info(info: str):
-    print(f"===========================   {info}   ===========================", flush=True)
+    print(
+        f"===========================   {info}   ===========================",
+        flush=True,
+    )
+
 
 def build_pytorch_repo(repo: TorchRepo, build_env: Dict[str, str]):
     # Check if version.py exists, if it does, remove it.
@@ -50,11 +58,15 @@ def build_pytorch_repo(repo: TorchRepo, build_env: Dict[str, str]):
     try:
         # Build and test triton
         build_triton_command = ["make", "triton"]
-        subprocess.check_call(build_triton_command, cwd=repo.src_path.absolute(), env=build_env)
+        subprocess.check_call(
+            build_triton_command, cwd=repo.src_path.absolute(), env=build_env
+        )
         command_testbuild = [sys.executable, "-c", "'import triton'"]
         subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env)
         # Build and test pytorch
-        subprocess.check_call(repo.build_command, cwd=repo.src_path.absolute(), env=build_env)
+        subprocess.check_call(
+            repo.build_command, cwd=repo.src_path.absolute(), env=build_env
+        )
         command_testbuild = [sys.executable, "-c", "'import torch; import triton'"]
         subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env)
     except subprocess.CalledProcessError:
@@ -63,7 +75,10 @@ def build_pytorch_repo(repo: TorchRepo, build_env: Dict[str, str]):
         build_path = os.path.join(repo.src_path.absolute(), "build")
         if os.path.exists(build_path):
             shutil.rmtree(build_path)
-        subprocess.check_call(repo.build_command, cwd=repo.src_path.absolute(), env=build_env)
+        subprocess.check_call(
+            repo.build_command, cwd=repo.src_path.absolute(), env=build_env
+        )
+
 
 def build_repo(repo: TorchRepo, build_env: Dict[str, str]):
     _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} START")
@@ -73,7 +88,8 @@ def build_repo(repo: TorchRepo, build_env: Dict[str, str]):
         subprocess.check_call(repo.build_command, cwd=repo.src_path, env=build_env)
     _print_info(f"BUILDING {repo.name.upper()} commit {repo.cur_commit} END")
 
-def cleanup_torch_packages(pkgs: List[str]=[]):
+
+def cleanup_torch_packages(pkgs: List[str] = []):
     if not len(pkgs):
         pkgs = ["torch", "torchvision", "torchaudio", "torchdata"]
     for _ in range(CLEANUP_ROUND):

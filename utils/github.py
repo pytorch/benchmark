@@ -23,7 +23,12 @@ cc {owner}
 
 DEFAULT_GH_ISSUE_OWNER = "@xuzhao9"
 
-def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str, github_owner: str=DEFAULT_GH_ISSUE_OWNER) -> None:
+
+def process_bisection_into_gh_issue(
+    bisection_output_json: str,
+    output_path: str,
+    github_owner: str = DEFAULT_GH_ISSUE_OWNER,
+) -> None:
     with open(bisection_output_json, "r") as fp:
         bisection = json.load(fp)
 
@@ -35,14 +40,18 @@ def process_bisection_into_gh_issue(bisection_output_json: str, output_path: str
     if "GITHUB_ENV" in os.environ:
         fname = os.environ["GITHUB_ENV"]
         content = f"TORCHBENCH_BISECTION_COMMIT_FOUND_OR_FAILED='{treatment_version}'\n"
-        with open(fname, 'a') as fo:
+        with open(fname, "a") as fo:
             fo.write(content)
 
     github_run_id = os.environ.get("GITHUB_RUN_ID", None)
-    github_run_url = "No URL found, please look for the failing action in " + \
-                     "https://github.com/pytorch/benchmark/actions"
+    github_run_url = (
+        "No URL found, please look for the failing action in "
+        + "https://github.com/pytorch/benchmark/actions"
+    )
     if github_run_id is not None:
-        github_run_url = f"https://github.com/pytorch/benchmark/actions/runs/{github_run_id}"
+        github_run_url = (
+            f"https://github.com/pytorch/benchmark/actions/runs/{github_run_id}"
+        )
 
     issue_config: Dict[str, str] = {
         "control_commit": control_commit,

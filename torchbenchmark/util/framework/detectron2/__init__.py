@@ -1,9 +1,10 @@
 import os
 import shutil
-import sys
 import subprocess
+import sys
 from pathlib import Path
 from urllib import request
+
 from utils import s3_utils
 
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -26,7 +27,9 @@ MODEL_WEIGHTS_MAP = {
 
 
 def install_model_weights(model_name, model_dir):
-    assert model_name in MODEL_WEIGHTS_MAP, f"Model {model_name} is not in MODEL_WEIGHTS_MAP. Cannot download the model weights file."
+    assert (
+        model_name in MODEL_WEIGHTS_MAP
+    ), f"Model {model_name} is not in MODEL_WEIGHTS_MAP. Cannot download the model weights file."
     model_full_path = Path(os.path.join(model_dir, ".data", f"{model_name}.pkl"))
     if model_name in MODEL_WEIGHTS_MAP and MODEL_WEIGHTS_MAP[model_name]:
         # download the file if not exists
@@ -36,15 +39,20 @@ def install_model_weights(model_name, model_dir):
         model_full_path.parent.mkdir(parents=True, exist_ok=True)
         request.urlretrieve(MODEL_WEIGHTS_MAP[model_name], model_full_path)
 
+
 def pip_install_requirements():
     requirements_file = os.path.join(CURRENT_DIR, "requirements.txt")
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', requirements_file])
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "-q", "-r", requirements_file]
+    )
+
 
 # This is to workaround https://github.com/facebookresearch/detectron2/issues/3934
 def remove_tools_directory():
     try:
-        import tools
         import detectron2
+        import tools
+
         d2_dir_path = Path(detectron2.__file__).parent
         assumed_tools_path = d2_dir_path.parent.joinpath("tools")
         if tools.__file__ and assumed_tools_path.exists():
@@ -53,8 +61,11 @@ def remove_tools_directory():
         # if the "tools" package doesn't exist, do nothing
         pass
 
+
 def install_detectron2(model_name, model_dir):
-    s3_utils.checkout_s3_data("INPUT_TARBALLS", "coco2017-minimal.tar.gz", decompress=True)
+    s3_utils.checkout_s3_data(
+        "INPUT_TARBALLS", "coco2017-minimal.tar.gz", decompress=True
+    )
     install_model_weights(model_name, model_dir)
     pip_install_requirements()
     remove_tools_directory()

@@ -14,12 +14,10 @@ from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 
 import torch
 
+from . import canary_models, e2e_models, models, util
+
 from ._components._impl.tasks import base as base_task
 from ._components._impl.workers import subprocess_worker
-from . import models
-from . import canary_models
-from . import e2e_models
-from . import util
 
 
 class ModelNotFoundError(RuntimeError):
@@ -45,7 +43,7 @@ class add_path:
 
 
 with add_path(str(REPO_PATH)):
-    from utils import TORCH_DEPS, get_pkg_versions
+    from utils import get_pkg_versions, TORCH_DEPS
 
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = "models"
@@ -677,11 +675,12 @@ def load_model_by_name(model_name: str):
     if not models:
         # If the model is in TIMM or Huggingface extended model list
         from torchbenchmark.util.framework.huggingface.extended_configs import (
-            list_extended_huggingface_models
+            list_extended_huggingface_models,
         )
         from torchbenchmark.util.framework.timm.extended_configs import (
-            list_extended_timm_models
+            list_extended_timm_models,
         )
+
         if model_name in list_extended_huggingface_models():
             cls_name = "ExtendedHuggingFaceModel"
             module_path = ".util.framework.huggingface.model_factory"
@@ -691,7 +690,9 @@ def load_model_by_name(model_name: str):
             module_path = ".util.framework.timm.model_factory"
             models.append(model_name)
         else:
-            raise ModelNotFoundError(f"{model_name} is not found in the core model list.")
+            raise ModelNotFoundError(
+                f"{model_name} is not found in the core model list."
+            )
     else:
         model_name = models[0]
         model_pkg = (

@@ -4,7 +4,8 @@ from pathlib import Path
 CURRENT_DIR = Path(__file__).parent
 REPO_ROOT = str(CURRENT_DIR.parent.parent.parent)
 
-class add_path():
+
+class add_path:
     def __init__(self, path):
         self.path = path
 

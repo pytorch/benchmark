@@ -1,12 +1,14 @@
-import time
-import torch
 import argparse
 import json
+import time
 from dataclasses import asdict
-from torchbenchmark.e2e import E2EBenchmarkResult, load_e2e_model_by_name
 from typing import Dict
 
+import torch
+from torchbenchmark.e2e import E2EBenchmarkResult, load_e2e_model_by_name
+
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
+
 
 def run(func) -> Dict[str, float]:
     if torch.cuda.is_available():
@@ -22,11 +24,18 @@ def run(func) -> Dict[str, float]:
     result["latency_ms"] = (t2 - t0) / 1_000_000.0
     return result
 
+
 def gen_result(m, run_result):
     num_epochs = getattr(m, "num_epochs", 1)
-    r = E2EBenchmarkResult(device=m.device, device_num=m.device_num,
-                           test=m.test, num_examples=m.num_examples,
-                           num_epochs=num_epochs, batch_size=m.batch_size, result=dict())
+    r = E2EBenchmarkResult(
+        device=m.device,
+        device_num=m.device_num,
+        test=m.test,
+        num_examples=m.num_examples,
+        num_epochs=num_epochs,
+        batch_size=m.batch_size,
+        result=dict(),
+    )
     r.result["latency"] = run_result["latency_ms"] / 1000.0
     r.result["qps"] = r.num_examples / r.result["latency"] * r.num_epochs
     # add accuracy result if available
@@ -34,10 +43,17 @@ def gen_result(m, run_result):
         r.result["accuracy"] = m.accuracy
     return r
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("model", help="Full name of the end-to-end model.")
-    parser.add_argument("-t", "--test", choices=["eval", "train"], default="eval", help="Which test to run.")
+    parser.add_argument(
+        "-t",
+        "--test",
+        choices=["eval", "train"],
+        default="eval",
+        help="Which test to run.",
+    )
     parser.add_argument("--bs", type=int, help="Specify batch size.")
     args, extra_args = parser.parse_known_args()
 

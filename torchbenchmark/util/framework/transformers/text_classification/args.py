@@ -2,7 +2,9 @@
 Hacked from https://github.com/huggingface/transformers/blob/6fc38adff272ea3148e05888edf67eeb00170453/examples/pytorch/text-classification/run_glue.py
 It runs HuggingFace transformer models on the GLUE benchmark
 """
+
 import argparse
+
 from transformers import SchedulerType
 
 task_to_keys = {
@@ -17,22 +19,37 @@ task_to_keys = {
     "wnli": ("sentence1", "sentence2"),
 }
 
+
 def parse_torchbench_args(extra_args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task_name", default="cola", choices=task_to_keys.keys(), help="Name of task to run")
-    # validate in train by default
-    parser.add_argument("--validate_in_train", action="store_false", help="Validate result in train")
-    # use fp16 mixed precision by default
-    parser.add_argument("--fp16", default="amp", choices=["amp", "no"], help="Enable mixed precision")
     parser.add_argument(
-        "--distributed", default="none", choices=["ddp", "fsdp", "deepspeed", "none"],
-        help="distributed training paradigm, by default using DDP"
+        "--task_name",
+        default="cola",
+        choices=task_to_keys.keys(),
+        help="Name of task to run",
+    )
+    # validate in train by default
+    parser.add_argument(
+        "--validate_in_train", action="store_false", help="Validate result in train"
+    )
+    # use fp16 mixed precision by default
+    parser.add_argument(
+        "--fp16", default="amp", choices=["amp", "no"], help="Enable mixed precision"
+    )
+    parser.add_argument(
+        "--distributed",
+        default="none",
+        choices=["ddp", "fsdp", "deepspeed", "none"],
+        help="distributed training paradigm, by default using DDP",
     )
     tb_args = parser.parse_args(extra_args)
     return tb_args
 
+
 def parse_args(in_args):
-    parser = argparse.ArgumentParser(description="Finetune a transformers model on a text classification task")
+    parser = argparse.ArgumentParser(
+        description="Finetune a transformers model on a text classification task"
+    )
     parser.add_argument(
         "--task_name",
         type=str,
@@ -41,10 +58,16 @@ def parse_args(in_args):
         choices=list(task_to_keys.keys()),
     )
     parser.add_argument(
-        "--train_file", type=str, default=None, help="A csv or a json file containing the training data."
+        "--train_file",
+        type=str,
+        default=None,
+        help="A csv or a json file containing the training data.",
     )
     parser.add_argument(
-        "--validation_file", type=str, default=None, help="A csv or a json file containing the validation data."
+        "--validation_file",
+        type=str,
+        default=None,
+        help="A csv or a json file containing the validation data.",
     )
     parser.add_argument(
         "--max_length",
@@ -89,8 +112,15 @@ def parse_args(in_args):
         default=5e-5,
         help="Initial learning rate (after the potential warmup period) to use.",
     )
-    parser.add_argument("--weight_decay", type=float, default=0.0, help="Weight decay to use.")
-    parser.add_argument("--num_train_epochs", type=int, default=3, help="Total number of training epochs to perform.")
+    parser.add_argument(
+        "--weight_decay", type=float, default=0.0, help="Weight decay to use."
+    )
+    parser.add_argument(
+        "--num_train_epochs",
+        type=int,
+        default=3,
+        help="Total number of training epochs to perform.",
+    )
     parser.add_argument(
         "--max_train_steps",
         type=int,
@@ -108,29 +138,61 @@ def parse_args(in_args):
         type=SchedulerType,
         default="linear",
         help="The scheduler type to use.",
-        choices=["linear", "cosine", "cosine_with_restarts", "polynomial", "constant", "constant_with_warmup"],
+        choices=[
+            "linear",
+            "cosine",
+            "cosine_with_restarts",
+            "polynomial",
+            "constant",
+            "constant_with_warmup",
+        ],
     )
     parser.add_argument(
-        "--num_warmup_steps", type=int, default=0, help="Number of steps for the warmup in the lr scheduler."
+        "--num_warmup_steps",
+        type=int,
+        default=0,
+        help="Number of steps for the warmup in the lr scheduler.",
     )
-    parser.add_argument("--output_dir", type=str, default=None, help="Where to store the final model.")
-    parser.add_argument("--seed", type=int, default=None, help="A seed for reproducible training.")
-    parser.add_argument("--push_to_hub", action="store_true", help="Whether or not to push the model to the Hub.")
     parser.add_argument(
-        "--hub_model_id", type=str, help="The name of the repository to keep in sync with the local `output_dir`."
+        "--output_dir", type=str, default=None, help="Where to store the final model."
     )
-    parser.add_argument("--hub_token", type=str, help="The token to use to push to the Model Hub.")
+    parser.add_argument(
+        "--seed", type=int, default=None, help="A seed for reproducible training."
+    )
+    parser.add_argument(
+        "--push_to_hub",
+        action="store_true",
+        help="Whether or not to push the model to the Hub.",
+    )
+    parser.add_argument(
+        "--hub_model_id",
+        type=str,
+        help="The name of the repository to keep in sync with the local `output_dir`.",
+    )
+    parser.add_argument(
+        "--hub_token", type=str, help="The token to use to push to the Model Hub."
+    )
     args = parser.parse_args(in_args)
 
     # Sanity checks
-    if args.task_name is None and args.train_file is None and args.validation_file is None:
+    if (
+        args.task_name is None
+        and args.train_file is None
+        and args.validation_file is None
+    ):
         raise ValueError("Need either a task name or a training/validation file.")
     else:
         if args.train_file is not None:
             extension = args.train_file.split(".")[-1]
-            assert extension in ["csv", "json"], "`train_file` should be a csv or a json file."
+            assert extension in [
+                "csv",
+                "json",
+            ], "`train_file` should be a csv or a json file."
         if args.validation_file is not None:
             extension = args.validation_file.split(".")[-1]
-            assert extension in ["csv", "json"], "`validation_file` should be a csv or a json file."
+            assert extension in [
+                "csv",
+                "json",
+            ], "`validation_file` should be a csv or a json file."
 
     return args

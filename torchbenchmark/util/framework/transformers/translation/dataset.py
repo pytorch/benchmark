@@ -1,5 +1,6 @@
 from datasets import load_dataset
 
+
 def prep_dataset(hf_args):
     # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
     # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
@@ -26,6 +27,7 @@ def prep_dataset(hf_args):
 
     return raw_datasets
 
+
 def preprocess_dataset(hf_args, raw_datasets, tokenizer, prefix, accelerator):
     # Preprocessing the datasets.
     # First we tokenize all the texts.
@@ -45,17 +47,25 @@ def preprocess_dataset(hf_args, raw_datasets, tokenizer, prefix, accelerator):
         inputs = [ex[source_lang] for ex in examples["translation"]]
         targets = [ex[target_lang] for ex in examples["translation"]]
         inputs = [prefix + inp for inp in inputs]
-        model_inputs = tokenizer(inputs, max_length=hf_args.max_source_length, padding=padding, truncation=True)
+        model_inputs = tokenizer(
+            inputs,
+            max_length=hf_args.max_source_length,
+            padding=padding,
+            truncation=True,
+        )
 
         # Setup the tokenizer for targets
         with tokenizer.as_target_tokenizer():
-            labels = tokenizer(targets, max_length=max_target_length, padding=padding, truncation=True)
+            labels = tokenizer(
+                targets, max_length=max_target_length, padding=padding, truncation=True
+            )
 
         # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
         # padding in the loss.
         if padding == "max_length" and hf_args.ignore_pad_token_for_loss:
             labels["input_ids"] = [
-                [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
+                [(l if l != tokenizer.pad_token_id else -100) for l in label]
+                for label in labels["input_ids"]
             ]
 
         model_inputs["labels"] = labels["input_ids"]

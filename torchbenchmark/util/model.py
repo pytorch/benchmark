@@ -1,29 +1,44 @@
 import importlib
-import torch
-from contextlib import contextmanager, ExitStack
-import warnings
-import yaml
 import time
+import warnings
+from contextlib import contextmanager, ExitStack
 from pathlib import Path
-from typing import ContextManager, Optional, List, Tuple, Generator
+from typing import ContextManager, Generator, List, Optional, Tuple
+
+import torch
+import yaml
 from torchbenchmark import REPO_PATH
-from torchbenchmark.util.extra_args import parse_opt_args, apply_opt_args, \
-                                           parse_decoration_args, apply_decoration_args, is_staged_train_test, \
-                                           TEST_STAGE
-from torchbenchmark.util.env_check import set_random_seed, is_hf_model, \
-                                          save_deterministic_dict, load_deterministic_dict, check_accuracy
-from torchbenchmark.util.fx_int8 import get_sub_module, prepare_sub_module, convert_sub_module
+from torchbenchmark.util.env_check import (
+    check_accuracy,
+    is_hf_model,
+    load_deterministic_dict,
+    save_deterministic_dict,
+    set_random_seed,
+)
+from torchbenchmark.util.extra_args import (
+    apply_decoration_args,
+    apply_opt_args,
+    is_staged_train_test,
+    parse_decoration_args,
+    parse_opt_args,
+    TEST_STAGE,
+)
+from torchbenchmark.util.fx_int8 import (
+    convert_sub_module,
+    get_sub_module,
+    prepare_sub_module,
+)
 from torchbenchmark.util.input import input_cast, ModelInputDescriptor
 
-SPECIAL_DEVICE_MAPPING = {
-    "AMD Instinct MI210": "NVIDIA A100-SXM4-40GB"
-}
+SPECIAL_DEVICE_MAPPING = {"AMD Instinct MI210": "NVIDIA A100-SXM4-40GB"}
+
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
         obj = type.__call__(cls, *args, **kwargs)
         obj.__post__init__()
         return obj
+
 
 @contextmanager
 def no_grad(val):
@@ -37,6 +52,7 @@ def no_grad(val):
     finally:
         torch.set_grad_enabled(old_state)
 
+
 @contextmanager
 def nested(*contexts):
     """
@@ -46,6 +62,7 @@ def nested(*contexts):
         for ctx in contexts:
             stack.enter_context(ctx())
         yield contexts
+
 
 # enable JIT profiling executor
 @contextmanager
@@ -59,6 +76,7 @@ def enable_profiling_executor():
         torch._C._jit_set_profiling_mode(profiling_mode)
         torch._C._jit_set_profiling_executor(profiling_executor)
         torch._C._get_graph_executor_optimize(graph_executor)
+
 
 class BenchmarkModel(metaclass=PostInitProcessor):
     DEFAULT_TRAIN_BSIZE: Optional[int] = None
@@ -79,13 +97,21 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     A base class for adding models to torch benchmark.
     See [Adding Models](#../models/ADDING_MODELS.md)
     """
-    def __init__(self, test: str, device: str, batch_size: Optional[int]=None, extra_args: List[str]=[]):
+
+    def __init__(
+        self,
+        test: str,
+        device: str,
+        batch_size: Optional[int] = None,
+        extra_args: List[str] = [],
+    ):
         self._start_init_time = time.time_ns()
         self.metadata = self._load_metadata()
         self.test = test
         # sanity checks of the options
-        assert self.test == "train" or self.test == "eval", \
-               f"Test must be 'train' or 'eval', but provided {self.test}."
+        assert (
+            self.test == "train" or self.test == "eval"
+        ), f"Test must be 'train' or 'eval', but provided {self.test}."
         self.device = device
         self.extra_args = extra_args
         self.opt = None
@@ -110,6 +136,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if "--torchdynamo" in opt_args or "--inductor" in opt_args:
             self.dynamo = True
             from torchbenchmark.util.backends.torchdynamo import parse_torchdynamo_args
+
             self.opt_args, self.extra_args = parse_torchdynamo_args(opt_args)
         else:
             self.dynamo = False
@@ -120,7 +147,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     # Run the post processing for model acceleration
     def __post__init__(self):
         # All arguments should be parsed at this point.
-        assert not self.extra_args, f"Expected no unknown args at this point, found {self.extra_args}"
+        assert (
+            not self.extra_args
+        ), f"Expected no unknown args at this point, found {self.extra_args}"
         if self.dargs.accuracy:
             self.accuracy = check_accuracy(self)
             if not self.DISABLE_DETERMINISM:
@@ -131,6 +160,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         # apply optimization args
         if self.dynamo:
             from torchbenchmark.util.backends.torchdynamo import apply_torchdynamo_args
+
             apply_torchdynamo_args(self, self.opt_args, self.dargs.precision)
         else:
             apply_opt_args(self, self.opt_args)
@@ -139,9 +169,13 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             if self.dargs.distributed_wrap_fn:
                 pos = self.dargs.distributed_wrap_fn.rfind(".")
                 module = importlib.import_module(self.dargs.distributed_wrap_fn[:pos])
-                apply_trainer = getattr(module, self.dargs.distributed_wrap_fn[(pos+1):])
+                apply_trainer = getattr(
+                    module, self.dargs.distributed_wrap_fn[(pos + 1) :]
+                )
             else:
-                from torchbenchmark.util.distributed.core_model.apply_trainer import apply_trainer
+                from torchbenchmark.util.distributed.core_model.apply_trainer import (
+                    apply_trainer,
+                )
             if is_hf_model(self):
                 # DDP requires to use unwrapped model for huggingface
                 module, _inputs = self.get_module(wrap_model=False)
@@ -157,16 +191,28 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if not self.device == "cuda":
             return
         current_device_name = torch.cuda.get_device_name()
-        if self.metadata and "not_implemented" in self.metadata and self.metadata["not_implemented"]:
+        if (
+            self.metadata
+            and "not_implemented" in self.metadata
+            and self.metadata["not_implemented"]
+        ):
             for skip in self.metadata["not_implemented"]:
                 skip_test = skip["test"] if "test" in skip else None
                 skip_device = skip["device"] if "device" in skip else None
-                if skip_device == current_device_name and (not skip_test or skip_test == self.test):
-                    raise NotImplementedError(f"The current device {current_device_name} is skipped by its `{self.name}/metadata.yaml`.")
+                if skip_device == current_device_name and (
+                    not skip_test or skip_test == self.test
+                ):
+                    raise NotImplementedError(
+                        f"The current device {current_device_name} is skipped by its `{self.name}/metadata.yaml`."
+                    )
 
-    def _determine_dynamic_num_batches(self, user_specified_num_batches: Optional[int]) -> int:
+    def _determine_dynamic_num_batches(
+        self, user_specified_num_batches: Optional[int]
+    ) -> int:
         if user_specified_num_batches and not user_specified_num_batches == 1:
-            assert self.test == "train", "Only train test support multiple batches at this moment."
+            assert (
+                self.test == "train"
+            ), "Only train test support multiple batches at this moment."
             return user_specified_num_batches
         # If user does not specify num_batch, run a single batch by default
         return 1
@@ -175,15 +221,25 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if self.device != "cuda":
             current_device_name = str(self.device)
         else:
-            current_device_name = torch.cuda.get_device_name() if torch.cuda.get_device_name() else "UNKNOWN"
+            current_device_name = (
+                torch.cuda.get_device_name()
+                if torch.cuda.get_device_name()
+                else "UNKNOWN"
+            )
             if current_device_name in SPECIAL_DEVICE_MAPPING:
                 current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
 
         # use the device suggestion on CUDA inference tests, key should be either eval_batch_size or train_batch_size
         device_batch_size_key = f"{self.test}_batch_size"
-        if self.metadata and "devices" in self.metadata and current_device_name in self.metadata["devices"] \
-                            and device_batch_size_key in self.metadata["devices"][current_device_name]:
-            batch_size = self.metadata["devices"][current_device_name][device_batch_size_key]
+        if (
+            self.metadata
+            and "devices" in self.metadata
+            and current_device_name in self.metadata["devices"]
+            and device_batch_size_key in self.metadata["devices"][current_device_name]
+        ):
+            batch_size = self.metadata["devices"][current_device_name][
+                device_batch_size_key
+            ]
             return batch_size
 
     def _determine_batch_size(self, user_specified_batch_size=None):
@@ -194,18 +250,32 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.batch_size = device_specified_batch_size
 
         if not self.batch_size:
-            default_batch_size = self.DEFAULT_TRAIN_BSIZE if self.test == "train" else self.DEFAULT_EVAL_BSIZE
+            default_batch_size = (
+                self.DEFAULT_TRAIN_BSIZE
+                if self.test == "train"
+                else self.DEFAULT_EVAL_BSIZE
+            )
             self.batch_size = default_batch_size
 
         if not self.batch_size:
-            raise NotImplementedError(f"Model's {'DEFAULT_TRAIN_BSIZE' if self.test == 'train' else 'DEFAULT_EVAL_BSIZE'} is not implemented.")
+            raise NotImplementedError(
+                f"Model's {'DEFAULT_TRAIN_BSIZE' if self.test == 'train' else 'DEFAULT_EVAL_BSIZE'} is not implemented."
+            )
 
         # Check if specified batch size is supported by the model
         if not getattr(self, "ALLOW_CUSTOMIZE_BSIZE", True):
-            if self.test == "train" and (not self.batch_size == self.DEFAULT_TRAIN_BSIZE):
-                raise NotImplementedError(f"Model doesn't support customizing batch size, but {self.test} test is providing a batch size other than DEFAULT_TRAIN_BSIZE")
-            elif self.test == "eval" and (not self.batch_size == self.DEFAULT_EVAL_BSIZE):
-                raise NotImplementedError(f"Model doesn't support customizing batch size, but {self.test} test is providing a batch size other than DEFAULT_EVAL_BSIZE")
+            if self.test == "train" and (
+                not self.batch_size == self.DEFAULT_TRAIN_BSIZE
+            ):
+                raise NotImplementedError(
+                    f"Model doesn't support customizing batch size, but {self.test} test is providing a batch size other than DEFAULT_TRAIN_BSIZE"
+                )
+            elif self.test == "eval" and (
+                not self.batch_size == self.DEFAULT_EVAL_BSIZE
+            ):
+                raise NotImplementedError(
+                    f"Model doesn't support customizing batch size, but {self.test} test is providing a batch size other than DEFAULT_EVAL_BSIZE"
+                )
         elif self.dargs.accuracy:
             self.batch_size = 4 if self.batch_size > 4 else self.batch_size
 
@@ -213,7 +283,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         relative_path = self.__class__.__module__.split(".")
         if getattr(self, "name", None) == None:
             self.name = relative_path[-1]
-        metadata_loc = Path(REPO_PATH).joinpath(*relative_path).joinpath("metadata.yaml")
+        metadata_loc = (
+            Path(REPO_PATH).joinpath(*relative_path).joinpath("metadata.yaml")
+        )
         if not metadata_loc.exists():
             return None
         with open(metadata_loc, "r") as mf:
@@ -222,7 +294,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     def add_context(self, context_fn, stage=TEST_STAGE.ALL):
         ctx = context_fn()
-        assert isinstance(ctx, ContextManager), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
+        assert isinstance(
+            ctx, ContextManager
+        ), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
         if stage == TEST_STAGE.ALL:
             self.run_contexts.append(context_fn)
         elif stage == TEST_STAGE.FORWARD:
@@ -241,9 +315,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             return self.optimizer
         if hasattr(self, "opt"):
             return self.opt
-        warnings.warn("The optimizer for this model is not stored in self.opt nor self.optimizer. "
-                      "Currently returning None! Please override this implementation with your own "
-                      "if there is an optimizer this should be returning instead.")
+        warnings.warn(
+            "The optimizer for this model is not stored in self.opt nor self.optimizer. "
+            "Currently returning None! Please override this implementation with your own "
+            "if there is an optimizer this should be returning instead."
+        )
         return None
 
     # Takes in an optimizer and sets that to be the optimizer used from now on.
@@ -256,15 +332,19 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if hasattr(self, "opt"):
             self.opt = optimizer
             return
-        raise NotImplementedError("The optimizer for this model is not stored in self.opt nor self.optimizer. "
-                                  "Please override this implementation with your own.")
+        raise NotImplementedError(
+            "The optimizer for this model is not stored in self.opt nor self.optimizer. "
+            "Please override this implementation with your own."
+        )
 
     # Default implementation for replacing the model
     def set_module(self, new_model):
-        if hasattr(self, 'model') and isinstance(self.model, torch.nn.Module):
+        if hasattr(self, "model") and isinstance(self.model, torch.nn.Module):
             self.model = new_model
         else:
-            raise NotImplementedError("The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function.")
+            raise NotImplementedError(
+                "The instance variable 'model' does not exist or is not type 'torch.nn.Module', implement your own `set_module()` function."
+            )
 
     def get_input_iter(self) -> Generator:
         """Return the dynamic input iterator for the model. By default, always return the same batch of input."""
@@ -273,18 +353,26 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             yield example_inputs
 
     def get_input_descriptor(self) -> ModelInputDescriptor:
-        if hasattr(self, 'input_descriptor') and isinstance(self.input_descriptor, ModelInputDescriptor):
+        if hasattr(self, "input_descriptor") and isinstance(
+            self.input_descriptor, ModelInputDescriptor
+        ):
             return self.input_descriptor
-        raise NotImplementedError(f"Default dynamic input descriptor is not implemented. "
-                                  "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}.")
+        raise NotImplementedError(
+            f"Default dynamic input descriptor is not implemented. "
+            "Please submit an issue if you need a dynamic shape input iterator implementation for the model {self.name}."
+        )
 
     def set_input_descriptor(self, descriptor: ModelInputDescriptor) -> None:
         """Set the customized dynamic input descriptor for the model."""
-        if hasattr(self, 'input_descriptor') and isinstance(self.input_descriptor, ModelInputDescriptor):
+        if hasattr(self, "input_descriptor") and isinstance(
+            self.input_descriptor, ModelInputDescriptor
+        ):
             self.input_descriptor = descriptor
             return
-        raise NotImplementedError(f"Default dynamic input descriptor is not implemented."
-                                  "Please submit an issue if you need a dynamic shape input descriptor implementation for the model {self.name}.")
+        raise NotImplementedError(
+            f"Default dynamic input descriptor is not implemented."
+            "Please submit an issue if you need a dynamic shape input descriptor implementation for the model {self.name}."
+        )
 
     def _invoke_staged_train_test(self, num_batch: int) -> None:
         optimizer = self.get_optimizer()
@@ -306,9 +394,15 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         return None
 
     def invoke(self) -> Optional[Tuple[torch.Tensor]]:
-        if self.test == "train" and is_staged_train_test(self) and (getattr(self, "train", None) == None):
+        if (
+            self.test == "train"
+            and is_staged_train_test(self)
+            and (getattr(self, "train", None) == None)
+        ):
             return self._invoke_staged_train_test(num_batch=self.num_batch)
-        assert self.num_batch == 1, "Only staged_train_test supports multiple-batch testing at this time."
+        assert (
+            self.num_batch == 1
+        ), "Only staged_train_test supports multiple-batch testing at this time."
         out = None
         with nested(*self.run_contexts):
             if self.test == "train":
@@ -320,20 +414,26 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     def eval_in_nograd(self):
         return True
 
-    def enable_fx_int8(self, quant_engine:str='x86'):
+    def enable_fx_int8(self, quant_engine: str = "x86"):
         torch.backends.quantized.engine = quant_engine
         try:
             model, _ = self.get_module()
             # Get sub modules
-            model, sub_module_list = get_sub_module(model, dict(model.named_modules()), '')
+            model, sub_module_list = get_sub_module(
+                model, dict(model.named_modules()), ""
+            )
             if not len(sub_module_list):
-                warnings.warn(UserWarning(f"{self.name} doesn't have submodule can ben quantized!"))
-            model = prepare_sub_module(sub_module_list, model, '', quant_engine)
+                warnings.warn(
+                    UserWarning(
+                        f"{self.name} doesn't have submodule can ben quantized!"
+                    )
+                )
+            model = prepare_sub_module(sub_module_list, model, "", quant_engine)
             self.set_module(model)
             # Calibration
             self.eval()
             model, _ = self.get_module()
-            model = convert_sub_module(sub_module_list, model, '')
+            model = convert_sub_module(sub_module_list, model, "")
             self.set_module(model)
         except Exception as e:
             print(e)
@@ -345,13 +445,19 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             model, _ = self.get_module()
             model = action(model)
         except RuntimeError:
-            warnings.warn(UserWarning(f"{model_name} doesn't support cast to {action} yet!"))
+            warnings.warn(
+                UserWarning(f"{model_name} doesn't support cast to {action} yet!")
+            )
             return
         self.set_module(model)
-        if hasattr(self, 'example_inputs'):
+        if hasattr(self, "example_inputs"):
             self.example_inputs = input_cast(cond, action, self.example_inputs)
         else:
-            warnings.warn(UserWarning(f"{model_name} example inputs doesn't cast to {action} yet!"))
+            warnings.warn(
+                UserWarning(
+                    f"{model_name} example inputs doesn't cast to {action} yet!"
+                )
+            )
 
     def enable_bf16(self):
         tensor_cond = lambda x: x.dtype == torch.float32
@@ -369,7 +475,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self._cast_to(tensor_cond, tensor_action)
 
     def enable_amp(self):
-        if not self.dynamo and self.opt_args.backend == 'cudagraph':
+        if not self.dynamo and self.opt_args.backend == "cudagraph":
             return NotImplementedError("AMP not implemented for cudagraphs")
         if not hasattr(self, "amp_context"):
             raise RuntimeError(f"{self.name} doesn't have amp_context support!")
@@ -383,6 +489,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     @property
     def pt2_compilation_time(self) -> Optional[float]:
         from torch._dynamo.utils import compile_times
+
         compile_time = dict(zip(*compile_times(repr="csv", aggregate=True)))
         if "_compile.<locals>.compile_inner" in compile_time:
             return float(compile_time["_compile.<locals>.compile_inner"])
@@ -391,6 +498,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     @property
     def pt2_graph_breaks(self) -> int:
         from torch._dynamo.utils import counters
+
         num_graph_breaks = len(counters["graph_break"].keys())
         return num_graph_breaks
 

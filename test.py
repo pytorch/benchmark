@@ -3,6 +3,7 @@ Setup and Run hub models.
 
 Make sure to enable an https proxy if necessary, or the setup steps may hang.
 """
+
 # This file shows how to use the benchmark suite from user end.
 import gc
 import os
@@ -10,10 +11,10 @@ import unittest
 
 import torch
 from torchbenchmark import (
-    _list_model_paths,
     _list_canary_model_paths,
-    ModelTask,
+    _list_model_paths,
     get_metadata_from_yaml,
+    ModelTask,
 )
 from torchbenchmark.util.metadata_utils import skip_by_metadata
 
