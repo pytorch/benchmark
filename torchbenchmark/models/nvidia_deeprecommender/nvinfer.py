@@ -101,10 +101,8 @@ def processArgState(args) :
     else: 
       print('GPU is not available.')
   
-  if args.use_cuda and args.forcecpu:
+  if args.forcecpu:
       args.use_cuda = False
-  
-  if args.use_xpu and args.forcecpu:
       args.use_xpu = False
 
   if not args.silent:
