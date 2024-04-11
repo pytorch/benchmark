@@ -483,7 +483,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.amp_context = lambda: torch.cpu.amp.autocast()
         elif self.device == "cuda":
             self.amp_context = lambda: torch.cuda.amp.autocast()
-        if is_staged_train_test(self):
+        if self.test == "train" and is_staged_train_test(self):
             self.forward_contexts.append(self.amp_context)
 
     @property
