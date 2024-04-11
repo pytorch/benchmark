@@ -191,7 +191,6 @@ def register_benchmark(baseline: bool = False, enabled: bool = True):
 
         def _inner(self, *args, **kwargs):
             return function(self, *args, **kwargs)
-
         return _inner
 
     return decorator
@@ -264,7 +263,7 @@ class BenchmarkOperator:
         self.dargs, unprocessed_args = parse_decoration_args(self, extra_args)
         # This will be changed by the time we apply the decoration args
         self.dtype = PRECISION_DTYPE_MAPPING.get(self.dargs.precision, None)
-        if self.dargs.num_batch == None:
+        if self.dargs.num_batch is None:
             self.dargs.num_batch = self.DEFAULT_NUM_BATCH
         self.DEFAULT_METRICS.extend(REGISTERED_METRICS.get(self.name, []))
         self.DEFAULT_METRICS = list(set(self.DEFAULT_METRICS))
@@ -286,19 +285,24 @@ class BenchmarkOperator:
         else:
             fwd_fn = fwd_fn_lambda(*self.example_inputs)
         if self.mode == Mode.FWD:
+            setattr(fwd_fn, "_name", bm_func_name)
             return fwd_fn
         elif self.mode == Mode.BWD:
-            return self.get_bwd_fn(fwd_fn)
+            bwd_fn = self.get_bwd_fn(fwd_fn)
+            setattr(bwd_fn, "_name", bm_func_name)
+            return bwd_fn
         elif self.mode == Mode.FWD_BWD:
             bwd_fn = self.get_bwd_fn(fwd_fn)
-            return lambda: (fwd_fn(), bwd_fn())
+            fwd_bwd_fn = lambda: (fwd_fn(), bwd_fn())
+            setattr(fwd_bwd_fn, "_name", bm_func_name)
+            return fwd_bwd_fn
 
     def run(
         self, warmup=DEFAULT_WARMUP, rep=DEFAULT_RUN_ITERS, quantiles=DEFAULT_QUANTILES
     ) -> BenchmarkOperatorResult:
         """Benchmarking the operator and returning its metrics."""
         metrics = []
-        if self._batch_id:
+        if self._batch_id is not None:
             # Run only the user-specific batch id
             batch_range = range(self._batch_id + 1)
         else:
@@ -307,7 +311,7 @@ class BenchmarkOperator:
             if self._batch_id and batch_id < self._batch_id:
                 continue
             self.example_inputs = self.get_example_inputs()
-            if self.example_inputs == None:
+            if self.example_inputs is None:
                 warnings.warn(
                     UserWarning(
                         f"The input generator get_input_iter() has depleted. Maximum input batches {_dp}."
@@ -457,7 +461,7 @@ class BenchmarkOperator:
         )
 
     def get_example_inputs(self):
-        if self._input_iter == None:
+        if self._input_iter is None:
             self._input_iter = self.get_input_iter()
         try:
             return next(self._input_iter)
@@ -551,8 +555,9 @@ class BenchmarkOperator:
             # run the hidden metric "_compile_time_in_task"
             # to get the compile time in parent process
             if "_compile_time_in_task" in self.required_metrics:
-                assert self.required_metrics == ["_compile_time_in_task"] and self._only and self._batch_id, \
-                    "_compile_time_in_task must be measured by itself."
+                assert self.required_metrics == ["_compile_time_in_task"] and self._only and (self._batch_id is not None), \
+                    "_compile_time_in_task must be measured by itself. " \
+                    f"required_metrics: {self.required_metrics}, _only: {self._only}, _batch_id: {self._batch_id}"
                 extra_metrics["_compile_time_in_task"] = self._compile_time_in_task(fn)
             # generate customized metrics
             if self.name in REGISTERED_METRICS:
@@ -580,13 +585,27 @@ class BenchmarkOperator:
 
     @register_metric()
     def compile_time(self, batch_id: int, fn_name: str, metrics: BenchmarkOperatorMetrics) -> float:
+        # We need to spawn a subprocess when user wants to measure the compile time
+        # of multiple batches and backends.
+        def _find_loc(l, key: str) -> int:
+            try:
+                return l.index(key)
+            except ValueError:
+                return -1
+        def _remove_element(l, loc):
+            if loc == -1:
+                return l
+            return l[:loc] + l[loc+2:]
         from torchbenchmark.operators.op_task import OpTask
-        op_task = OpTask(name=self.name)
         op_task_args = copy.deepcopy(self._raw_extra_args)
+        for override_option in ["--only", "--batch-id", "--metrics"]:
+            op_task_args = _remove_element(op_task_args, _find_loc(op_task_args, override_option))
         op_task_args.extend(["--only", fn_name, "--batch-id", str(batch_id), "--metrics", "_compile_time_in_task"])
+        op_task = OpTask(name=self.name)
         op_task.make_operator_instance(mode=self.mode.value, device=self.device, extra_args=op_task_args)
         op_task.run()
         latency_with_compile = op_task.get_attribute("_latency_with_compile_in_task")
+        del op_task
         latency_without_compile = numpy.median(metrics.latency)
         return latency_with_compile - latency_without_compile
 
@@ -604,6 +623,7 @@ class BenchmarkOperator:
             end_event.record()
             torch.cuda.synchronize()  # Wait for the events to be recorded!
         latency_with_compile = start_event.elapsed_time(end_event)
+        self._latency_with_compile_in_task = latency_with_compile
         return latency_with_compile
 
     @register_metric()
