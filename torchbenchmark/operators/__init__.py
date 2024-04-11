@@ -9,7 +9,7 @@ OPBENCH_DIR = "operators"
 INTERNAL_OPBENCH_DIR = "fb"
 
 
-def _is_internal_model(op_name: str) -> bool:
+def _is_internal_operator(op_name: str) -> bool:
     p = (
         pathlib.Path(__file__)
         .parent.parent.joinpath(OPBENCH_DIR)
@@ -54,7 +54,7 @@ def load_opbench_by_name(op_name: str):
     op_name = opbench_list[0]
     op_pkg = (
         op_name
-        if not _is_internal_model(op_name)
+        if not _is_internal_operator(op_name)
         else f"{INTERNAL_OPBENCH_DIR}.{op_name}"
     )
     module = importlib.import_module(f".{op_pkg}", package=__name__)

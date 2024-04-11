@@ -6,6 +6,9 @@ This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 import argparse
 import copy
 import importlib
+import os
+import shutil
+import argparse
 import logging
 import os
 from collections.abc import Mapping
@@ -105,6 +108,47 @@ def nested(*contexts):
         for ctx in contexts:
             stack.enter_context(ctx())
         yield contexts
+
+@contextmanager
+def fresh_inductor_cache(parallel_compile=False):
+    INDUCTOR_DIR = f"/tmp/torchinductor_{os.environ['USER']}"
+    if os.path.exists(INDUCTOR_DIR):
+        shutil.rmtree(INDUCTOR_DIR)
+    if parallel_compile:
+        old_parallel_compile_threads = os.environ.get("TORCHINDUCTOR_COMPILE_THREADS", None)
+        cpu_count: Optional[int] = os.cpu_count()
+        if cpu_count is not None and cpu_count > 1:
+            cpu_count = min(32, cpu_count)
+            log.warning(f"Set env var TORCHINDUCTOR_COMPILE_THREADS to {cpu_count}")
+            os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = str(cpu_count)
+    yield
+    # clean up parallel compile directory and env
+    if parallel_compile and "TORCHINDUCTOR_COMPILE_THREADS" in os.environ:
+        if old_parallel_compile_threads:
+            os.environ["TORCHINDUCTOR_COMPILE_THREADS"] = old_parallel_compile_threads
+        else:
+            del os.environ["TORCHINDUCTOR_COMPILE_THREADS"]
+    if os.path.exists(INDUCTOR_DIR):
+        shutil.rmtree(INDUCTOR_DIR)
+
+@contextmanager
+def fresh_triton_cache():
+    """
+    Run with a fresh triton cache.
+    """
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        old = os.environ.get("TRITON_CACHE_DIR", None)
+        os.environ["TRITON_CACHE_DIR"] = tmpdir
+        old_cache_manager = os.environ.get("TRITON_CACHE_MANAGER", None)
+        os.environ.pop("TRITON_CACHE_MANAGER", None)
+        yield
+        if old:
+            os.environ["TRITON_CACHE_DIR"] = old
+        else:
+            del os.environ["TRITON_CACHE_DIR"]
+        if old_cache_manager:
+            os.environ["TRITON_CACHE_MANAGER"] = old_cache_manager
 
 
 def pick_grad(name: str, is_training: bool):
