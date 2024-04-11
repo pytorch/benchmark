@@ -314,7 +314,7 @@ class BenchmarkOperator:
             if self.example_inputs is None:
                 warnings.warn(
                     UserWarning(
-                        f"The input generator get_input_iter() has depleted. Maximum input batches {_dp}."
+                        f"The input generator get_input_iter() has depleted. Maximum input batches {batch_id}."
                     )
                 )
                 break
