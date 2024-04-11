@@ -37,7 +37,7 @@ def select_device(device='', apex=False, batch_size=None):
 
     if xpu_request:
         print('Using XPU')
-        return torch.device('xpu')
+        return torch.device(f"xpu:{torch.xpu.current_device()}")
 
     print('Using CPU')
     return torch.device('cpu')
