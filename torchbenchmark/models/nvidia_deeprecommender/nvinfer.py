@@ -94,7 +94,7 @@ def processArgState(args) :
       quit()
   
   args.use_cuda = torch.cuda.is_available() # global flag
-  args.use_xpu = args.device == 'xpu'
+  args.use_xpu = torch.xpu.is_available()
   if not args.silent:
     if args.use_cuda or args.use_xpu:
       print('GPU is available.') 
