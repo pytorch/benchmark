@@ -24,20 +24,17 @@ RANK = int(os.environ["RANK"])
 WORLD_SIZE = int(os.environ["WORLD_SIZE"])
 
 
-def fn():
-    linear = torch.nn.Linear(100, 200, bias=False, device="cuda")
-    x = torch.randn(100, 100, device="cuda")
-
-    # Supports collectives
-    dist.all_reduce(x)
-
-    # Supports functional collectives
-    x = dist._functional_collectives.all_reduce(x, "SUM", list(range(WORLD_SIZE)))
-
-    out = linear(x)
-    return out
-
 def bench(args):
+    def fn():
+        linear = torch.nn.Linear(100, 200, bias=False, device="cuda")
+        x = torch.randn(100, 100, device="cuda")
+        out = linear(x)
+
+        # Supports collectives
+        dist.all_reduce(out)
+
+        return out
+
     # Supports torch.compile
     compiled_fn = torch.compile(fn)
 
