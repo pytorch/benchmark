@@ -382,15 +382,16 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.example_inputs = next(input_generator)
                 # cast inputs if needed
                 apply_decoration_args(self, self.dargs)
-            if optimizer is not None:
-                optimizer.zero_grad()
-            with nested(*self.forward_contexts):
-                losses = self.forward()
-            with nested(*self.backward_contexts):
-                self.backward(losses)
-            if optimizer is not None:
-                with nested(*self.optimizer_contexts):
-                    self.optimizer_step()
+            with nested(*self.run_contexts):
+                if optimizer is not None:
+                    optimizer.zero_grad()
+                with nested(*self.forward_contexts):
+                    losses = self.forward()
+                with nested(*self.backward_contexts):
+                    self.backward(losses)
+                if optimizer is not None:
+                    with nested(*self.optimizer_contexts):
+                        self.optimizer_step()
         return None
 
     def invoke(self) -> Optional[Tuple[torch.Tensor]]:

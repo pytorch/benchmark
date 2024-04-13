@@ -51,6 +51,11 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         help="Measure metrics with TorchInductor",
     )
     parser.add_argument(
+        "--cold-start",
+        action="store_true",
+        help="Use a fresh inductor and triton cachedir when running each model, to force cold-start compile.",
+    )
+    parser.add_argument(
         "--inductor-compile-mode",
         default=None,
         choices=["max-autotune"],
@@ -221,6 +226,10 @@ def apply_torchdynamo_args(
                 "--dynamo_disable_optimizer_step is set to True, but the optimizer could not be found on this model"
             )
 
+    if args.cold_start:
+        from torch._inductor.utils import fresh_inductor_cache
+        fresh_inductor_context = lambda: fresh_inductor_cache()
+        model.run_contexts.append(fresh_inductor_context)
     if model.test == "train":
         if is_staged_train_test(model):
             model.forward = optimize_ctx(model.forward)
