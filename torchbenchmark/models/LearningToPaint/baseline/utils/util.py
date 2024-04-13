@@ -37,7 +37,7 @@ def prBlack(prt):
 
 
 def to_numpy(var):
-    return var.cpu().data.numpy() if USE_CUDA else var.data.numpy()
+    return var.cpu().data.numpy()
 
 
 def to_tensor(ndarray, device):

@@ -57,7 +57,7 @@ def getCommandLineArgs() :
 
   return args
 
-def getBenchmarkArgs(forceCuda):
+def getBenchmarkArgs(forceCuda, device='cuda'):
 
   class Args:
     pass
@@ -76,10 +76,11 @@ def getBenchmarkArgs(forceCuda):
   args.batch_size         = 1
   args.jit                = False
   args.forcecuda          = forceCuda
-  args.forcecpu           = not forceCuda
+  args.forcecpu           = False if forceCuda else device == 'cpu'
   args.nooutput           = True
   args.silent             = True
   args.profile            = False
+  args.device             = device
 
   return args
 
@@ -93,20 +94,22 @@ def processArgState(args) :
       quit()
   
   args.use_cuda = torch.cuda.is_available() # global flag
+  args.use_xpu = torch.xpu.is_available()
   if not args.silent:
-    if args.use_cuda:
+    if args.use_cuda or args.use_xpu:
       print('GPU is available.') 
     else: 
       print('GPU is not available.')
   
-  if args.use_cuda and args.forcecpu:
+  if args.forcecpu:
       args.use_cuda = False
-  
+      args.use_xpu = False
+
   if not args.silent:
-    if args.use_cuda:
+    if args.use_cuda or args.use_xpu:
       print('Running On GPU')
     else:
-      print('Running On CUDA')
+      print('Running On CPU')
   
     if args.profile:
       print('Profiler Enabled')
@@ -134,11 +137,13 @@ class DeepRecommenderInferenceBenchmark:
         forcecuda = False
       elif device == "cuda":
         forcecuda = True
+      elif device == "xpu":
+        forcecuda = False
       else:
         # unknown device string, quit init
         return
 
-      self.args = getBenchmarkArgs(forcecuda)
+      self.args = getBenchmarkArgs(forcecuda, device)
 
     args = processArgState(self.args)
 
@@ -199,6 +204,7 @@ class DeepRecommenderInferenceBenchmark:
 
   
     if self.args.use_cuda: self.rencoder = self.rencoder.cuda()
+    elif self.args.use_xpu: self.rencoder = self.rencoder.xpu()
 
     if self.toytest == False:
       self.inv_userIdMap = {v: k for k, v in self.data_layer.userIdMap.items()}
@@ -214,7 +220,7 @@ class DeepRecommenderInferenceBenchmark:
         continue
 
       for i, ((out, src), majorInd) in enumerate(self.eval_data_layer.iterate_one_epoch_eval(for_inf=True)):
-        inputs = Variable(src.cuda().to_dense() if self.args.use_cuda else src.to_dense())
+        inputs = Variable(src.to(device).to_dense())
         targets_np = out.to_dense().numpy()[0, :]
   
         out = self.rencoder(inputs)
@@ -237,7 +243,7 @@ class DeepRecommenderInferenceBenchmark:
       e_start_time = time.time()
   
       if self.args.profile:
-        with profiler.profile(record_shapes=True, use_cuda=True) as prof:
+        with profiler.profile(record_shapes=True, use_cuda=self.args.use_cuda, use_xpu=self.args.use_xpu) as prof:
           with profiler.record_function("Inference"):
             self.eval()
       else:
