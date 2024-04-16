@@ -15,6 +15,7 @@ import tabulate
 import torch
 import triton
 from torchbenchmark.util.env_check import fresh_triton_cache, set_random_seed
+from torchbenchmark.util.experiment.metrics import get_peak_memory
 from torchbenchmark.util.extra_args import apply_decoration_args, parse_decoration_args
 from torchbenchmark.util.input import input_cast
 
@@ -24,7 +25,16 @@ DEFAULT_QUANTILES = [0.5, 0.1, 0.9]
 REGISTERED_BENCHMARKS: Dict[str, List[str]] = {}
 REGISTERED_METRICS: Dict[str, List[str]] = {}
 BASELINE_BENCHMARKS: Dict[str, str] = {}
-BUILTIN_METRICS = ["latency", "tflops", "speedup", "accuracy", "compile_time", "ncu_trace"]
+BUILTIN_METRICS = [
+    "latency",
+    "tflops",
+    "speedup",
+    "accuracy",
+    "compile_time",
+    "ncu_trace",
+    "cpu_peak_mem",
+    "gpu_peak_mem",
+]
 BASELINE_SKIP_METRICS = ["speedup", "accuracy"]
 PRECISION_DTYPE_MAPPING = {
     "fp32": torch.float32,
@@ -96,6 +106,10 @@ class BenchmarkOperatorMetrics:
     compile_time: Optional[float]
     # ncu trace file
     ncu_trace: Optional[str]
+    # cpu peak memory
+    cpu_peak_mem: Optional[float]
+    # gpu peak memory
+    gpu_peak_mem: Optional[float]
     # error message
     error_msg: Optional[str]
     # extra metrics
@@ -512,6 +526,8 @@ class BenchmarkOperator:
         speedup = None
         accuracy = None
         walltime = None
+        cpu_peak_mem = None
+        gpu_peak_mem = None
         error_msg = None
         try:
             fn = self._get_bm_func(fn_name)
@@ -542,6 +558,8 @@ class BenchmarkOperator:
                     if self.baseline_metrics and self.baseline_metrics.error_msg
                     else None
                 )
+            if "cpu_peak_mem" in self.required_metrics or "gpu_peak_mem" in self.required_metrics:
+                cpu_peak_mem, _device_id, gpu_peak_mem = self.get_peak_mem(fn)
             if not baseline and "accuracy" in self.required_metrics:
                 accuracy = (
                     self._get_accuracy(fn, self.baseline_fn)
@@ -556,6 +574,8 @@ class BenchmarkOperator:
                 walltime=walltime,
                 compile_time=None,
                 ncu_trace=None,
+                cpu_peak_mem=cpu_peak_mem,
+                gpu_peak_mem=gpu_peak_mem,
                 error_msg=error_msg,
                 extra_metrics={},
             )
@@ -599,11 +619,20 @@ class BenchmarkOperator:
                 walltime=None,
                 compile_time=None,
                 ncu_trace=None,
+                cpu_peak_mem=None,
+                gpu_peak_mem=None,
                 error_msg="CUDA OOM",
                 extra_metrics={},
             )
         return metric
 
+    def get_peak_mem(self, fn: Callable) -> Tuple[Optional[float], Optional[str], Optional[float]]:
+        return get_peak_memory(
+            func=fn,
+            device=self.device,
+            metrics_needed=["gpu_peak_mem", "cpu_peak_mem"],
+            metrics_gpu_backend="nvml",
+        )
 
     @register_metric()
     def ncu_trace(self, batch_id: int, fn_name: str) -> str:
