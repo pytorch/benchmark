@@ -189,7 +189,7 @@ def apply_decoration_args(
         elif model.test == "train":
             # the model must implement staged train test
             warnings.warn(
-                    "Usually models do not want to enable amp only in forward path, so expected "
+                    "Usually models only want to enable AMP in forward path, so expected "
                     "model to have staged train support."
                     )
             import torch

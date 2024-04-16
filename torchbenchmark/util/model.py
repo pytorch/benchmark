@@ -490,7 +490,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.add_context(self.amp_context, TEST_STAGE.FORWARD)
             else:
                 warnings.warn(
-                        "Usually models do not want to enable amp only in forward path, so expected "
+                        "Usually models only want to enable AMP in forward path, so expected "
                         "model to have staged train support."
                         )
 
