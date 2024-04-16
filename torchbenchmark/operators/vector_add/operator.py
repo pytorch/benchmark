@@ -15,8 +15,12 @@ from torchbenchmark.util.triton_op import (
 
 class Operator(BenchmarkOperator):
 
-    def __init__(self, mode: str, device: str, extra_args: List[str] = []):
-        super().__init__(mode, device, extra_args)
+    @register_metric()
+    def gbps(self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics):
+        gbps = (
+            lambda ms: 3 * example_inputs[0].element_size() * example_inputs[0].numel() / ms * 1e-6
+        )
+        return list(map(gbps, metrics.latency))
 
     @register_benchmark()
     def triton_add(self, x: torch.Tensor, y: torch.Tensor):
@@ -72,8 +76,8 @@ class Operator(BenchmarkOperator):
 
     def get_input_iter(self) -> Generator:
         for size in self.get_x_vals():
-            x = torch.rand(size, device=self.device, dtype=torch.float32)
-            y = torch.rand(size, device=self.device, dtype=torch.float32)
+            x = torch.rand(size, device=self.device, dtype=self.dtype)
+            y = torch.rand(size, device=self.device, dtype=self.dtype)
             yield x, y
         while True:
             yield None
