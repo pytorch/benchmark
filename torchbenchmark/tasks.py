@@ -35,6 +35,7 @@ class REINFORCEMENT_LEARNING(Enum):
 
 class OTHER(Enum):
     OTHER_TASKS = "other tasks"
+    MICROBENCH = "synthetic microbenchmark"
 
 
 class GNN(Enum):
