@@ -188,9 +188,10 @@ def apply_decoration_args(
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
         elif model.test == "train":
             # the model must implement staged train test
-            assert is_staged_train_test(
-                model
-            ), f"Expected model implements staged train test (forward, backward, optimizer)."
+            warnings.warn(
+                    "Usually models do not want to enable amp only in forward path, so expected "
+                    "model to have staged train support."
+                    )
             import torch
 
             model.add_context(
