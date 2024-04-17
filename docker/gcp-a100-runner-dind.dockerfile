@@ -29,8 +29,8 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 
 # Use the CUDA installation scripts from pytorch/builder
 RUN cd /workspace; git clone https://github.com/pytorch/builder.git
-RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_118'
-RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_121'
+RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_118; prune_118'
+RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_121; prune_121'
 
 # Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh
