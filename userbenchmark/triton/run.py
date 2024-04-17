@@ -3,6 +3,8 @@ import sys
 from typing import List, Tuple
 
 import triton
+
+from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
 
 from torchbenchmark.util.triton_op import (
@@ -32,6 +34,8 @@ def parse_args(args):
     )
     parser.add_argument("--csv", action="store_true", help="Dump result as csv.")
     parser.add_argument("--plot", action="store_true", help="Plot the result.")
+    if  not hasattr(torch_version, "git_version"):
+        parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
     return parser.parse_known_args(args)
 
 
@@ -54,6 +58,9 @@ def run(args: List[str] = []):
         print(metrics.csv)
     else:
         print(metrics)
+    if  not hasattr(torch_version, "git_version") and args.log_scuba:
+        from userbenchmark.triton.fb import log_benchmark
+        log_benchmark(metrics)
     if args.plot:
         try:
             opbench.plot()
