@@ -187,16 +187,24 @@ def apply_decoration_args(
 
             model.add_context(lambda: torch.cuda.amp.autocast(dtype=torch.float16))
         elif model.test == "train":
-            # the model must implement staged train test
-            assert is_staged_train_test(
-                model
-            ), f"Expected model implements staged train test (forward, backward, optimizer)."
             import torch
 
-            model.add_context(
+            if is_staged_train_test(model):
+                model.add_context(
                 lambda: torch.cuda.amp.autocast(dtype=torch.float16),
                 stage=TEST_STAGE.FORWARD,
-            )
+                )
+            else:
+                warnings.warn(
+                        "Usually models only want to enable AMP in forward path, so expected "
+                        "model to have staged train support. As the model do not support staged "
+                        "training, try to add context to TEST_STAGE.ALL."
+                        )
+                model.add_context(
+                lambda: torch.cuda.amp.autocast(dtype=torch.float16),
+                stage=TEST_STAGE.ALL,
+                )
+
     elif dargs.precision == "amp_bf16":
         assert model.device == "cpu", "amp_bf16 is only supported on cpu device."
         if model.test == "eval":

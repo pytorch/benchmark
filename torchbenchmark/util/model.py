@@ -484,8 +484,20 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.amp_context = lambda: torch.cpu.amp.autocast()
         elif self.device == "cuda":
             self.amp_context = lambda: torch.cuda.amp.autocast()
-        if is_staged_train_test(self):
-            self.forward_contexts.append(self.amp_context)
+        if self.test == "eval":
+            self.add_context(self.amp_context)
+        elif self.test == "train":
+            if is_staged_train_test(self):
+                self.add_context(self.amp_context, TEST_STAGE.FORWARD)
+            else:
+                warnings.warn(
+                        "Usually models only want to enable AMP in forward path, so expected "
+                        "model to have staged train support. As the model do not support staged "
+                        "training, try to add context to TEST_STAGE.ALL."
+                        )
+                self.add_context(self.amp_context)
+
+
 
     @property
     def pt2_compilation_time(self) -> Optional[float]:
