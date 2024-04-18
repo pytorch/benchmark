@@ -34,8 +34,10 @@ BUILTIN_METRICS = [
     "ncu_trace",
     "cpu_peak_mem",
     "gpu_peak_mem",
+    "hw_roofline",
 ]
-BASELINE_SKIP_METRICS = ["speedup", "accuracy"]
+BASELINE_SKIP_METRICS = set(["speedup", "accuracy"])
+X_ONLY_METRICS = set(["hw_roofline"])
 PRECISION_DTYPE_MAPPING = {
     "fp32": torch.float32,
     "tf32": torch.float32,
@@ -112,6 +114,8 @@ class BenchmarkOperatorMetrics:
     gpu_peak_mem: Optional[float]
     # error message
     error_msg: Optional[str]
+    # hw roofline
+    hw_roofline: Optional[float]
     # extra metrics
     extra_metrics: Dict[str, float]
 
@@ -136,13 +140,18 @@ class BenchmarkOperatorResult:
                 0, y_val_keys.pop(y_val_keys.index(BASELINE_BENCHMARKS[self.op_name]))
             )
         key_metrics = {}
+        # Add header for x_only_metrics
+        x_only_metrics = sorted([metric for metric in self.metrics if metric in X_ONLY_METRICS ])
+        headers.extend(x_only_metrics)
         for k in y_val_keys:
             metrics = (
                 [x for x in self.metrics if x not in BASELINE_SKIP_METRICS]
                 if k == BASELINE_BENCHMARKS[self.op_name]
                 else self.metrics
             )
-            key_metrics[k] = metrics
+            # Exclude x_only_metrics for impl-specific metrics
+            metrics = [ metric for metric in metrics if not metric in x_only_metrics ]
+            key_metrics[k] = sorted(metrics)
             for metric in metrics:
                 # add extra metrics
                 headers.append(f"{k}_{metric}")
@@ -150,6 +159,10 @@ class BenchmarkOperatorResult:
         for x_val, y_val in self.result:
             row = []
             row.append(x_val)
+            # Append x_val_only metrics
+            for x_only_metric in x_only_metrics:
+                x_only_metric_dict = asdict(y_val[y_val_keys[0]])
+                row.append(x_only_metric_dict[x_only_metric])
             for k in y_val_keys:
                 metrics_dict = asdict(y_val[k])
                 for metric in key_metrics[k]:
@@ -182,8 +195,13 @@ class BenchmarkOperatorResult:
         return sorted(self._get_result_dict().keys())
 
     def get_y_vals(self, x_val, provider, metric_name: str):
-        y_vals = self._get_result_dict()[x_val][provider]
-        metrics_dict = asdict(y_vals)
+        if provider in X_ONLY_METRICS:
+            maybe_baseline = REGISTERED_BENCHMARKS[self.op_name][0]
+            metrics_dict = asdict(self._get_result_dict()[x_val][maybe_baseline])
+            metric_name = provider
+        else:
+            y_vals = self._get_result_dict()[x_val][provider]
+            metrics_dict = asdict(y_vals)
         if metric_name in metrics_dict:
             return metrics_dict[metric_name]
         assert (
@@ -221,14 +239,23 @@ def register_benchmark(baseline: bool = False, enabled: bool = True):
     return decorator
 
 
-def register_metric(skip_baseline: bool = False):
+def register_metric(
+    # Metrics that only apply to non-baseline impls
+    # E.g., accuracy, speedup
+    skip_baseline: bool = False,
+    # Metrics that are the same across all impls
+    # E.g., x_shape, hw_roofline
+    x_only: bool = False
+):
     def decorator(func):
         operator_name = func.__module__.split(".")[-1]
         if not operator_name in REGISTERED_METRICS:
             REGISTERED_METRICS[operator_name] = []
         REGISTERED_METRICS[operator_name].append(func.__name__)
         if skip_baseline:
-            BASELINE_SKIP_METRICS.append(func.__name__)
+            BASELINE_SKIP_METRICS.add(func.__name__)
+        if x_only:
+            X_ONLY_METRICS.add(func.__name__)
 
         def _inner(self, *args, **kwargs):
             return func(self, *args, **kwargs)
@@ -529,6 +556,7 @@ class BenchmarkOperator:
         cpu_peak_mem = None
         gpu_peak_mem = None
         error_msg = None
+        hw_roofline = None
         try:
             fn = self._get_bm_func(fn_name)
             if baseline:
@@ -566,6 +594,8 @@ class BenchmarkOperator:
                     if self.baseline_fn
                     else None
                 )
+            if "hw_roofline" in self.required_metrics:
+                hw_roofline = self.hw_roofline()
             metric = BenchmarkOperatorMetrics(
                 latency=latency,
                 tflops=None,
@@ -576,6 +606,7 @@ class BenchmarkOperator:
                 ncu_trace=None,
                 cpu_peak_mem=cpu_peak_mem,
                 gpu_peak_mem=gpu_peak_mem,
+                hw_roofline=hw_roofline,
                 error_msg=error_msg,
                 extra_metrics={},
             )
@@ -619,6 +650,7 @@ class BenchmarkOperator:
                 walltime=None,
                 compile_time=None,
                 ncu_trace=None,
+                hw_roofline=self.hw_roofline(),
                 cpu_peak_mem=None,
                 gpu_peak_mem=None,
                 error_msg="CUDA OOM",
@@ -676,6 +708,15 @@ class BenchmarkOperator:
         del op_task
         latency_without_compile = numpy.median(metrics.latency)
         return latency_with_compile - latency_without_compile
+
+    @register_metric(x_only=True)
+    def hw_roofline(self) -> float:
+        """Hardware roofline in tflops."""
+        from torchbenchmark.util.hardware import HW_ROOFLINE_SPECS
+        device_name = torch.cuda.get_device_name()
+        assert device_name in HW_ROOFLINE_SPECS, f"{device_name} is not supported in HW roofline specs."
+        assert self.dargs.precision in HW_ROOFLINE_SPECS[device_name], f"{self.precision} is not supported for {device_name}."
+        return HW_ROOFLINE_SPECS[device_name][self.dargs.precision]
 
 
     def _compile_time_in_task(
