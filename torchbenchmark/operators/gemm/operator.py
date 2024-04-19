@@ -111,9 +111,7 @@ class Operator(BenchmarkOperator):
         a, w, bias = example_inputs
         m, k = a.size()
         k, n = w.size()
-        # computation intensity for the shape m, n, k
-        intensity = 1 / (1 / n + 1 / m + 1 / k)
-        return intensity
+        return (m, n, k)
 
     @register_metric()
     def gbps(
@@ -180,7 +178,7 @@ class Operator(BenchmarkOperator):
     def plot(self):
         @triton.testing.perf_report(
             triton.testing.Benchmark(
-                x_names=["density"],  # argument names to use as an x-axis for the plot
+                x_names=["m", "n", "k"],  # argument names to use as an x-axis for the plot
                 x_vals=self.output.x_vals,  # different possible values for `x_name`
                 line_arg="provider",  # argument name whose value corresponds to a different line in the plot
                 line_vals=[
@@ -199,8 +197,8 @@ class Operator(BenchmarkOperator):
                 args={},  # values for function arguments not in `x_names` and `y_name`
             )
         )
-        def _plot(density, provider):
-            tflops = self.output.get_y_vals(density, provider, "tflops")
+        def _plot(m, n, k, provider):
+            tflops = self.output.get_y_vals((m, n, k), provider, "tflops")
             return tflops
 
         save_path = "/tmp/test_gemm"
