@@ -1,4 +1,3 @@
-
 import csv
 import os
 import statistics
@@ -7,8 +6,6 @@ from typing import Any, Callable, Generator, List, Optional
 import numpy
 import torch
 import triton
-from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
-
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -19,6 +16,13 @@ from torchbenchmark.util.triton_op import (
 
 from .data_io import parse_args, read_shapes_from_csv
 from .triton_matmul import matmul as triton_matmul
+
+try:
+    from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
+
+    HAS_HAMMER = True
+except ImportError:
+    HAS_HAMMER = False
 
 
 BUILDIN_SHAPES = [
@@ -106,7 +110,7 @@ class Operator(BenchmarkOperator):
         else:
             return lambda: torch.matmul(a, b)
 
-    @register_benchmark()
+    @register_benchmark(enabled=HAS_HAMMER)
     def hstu_triton_matmul(self, a, b, bias) -> Callable:
         if not bias == None:
             return lambda: hstu_triton_matmul(a, b) + bias
