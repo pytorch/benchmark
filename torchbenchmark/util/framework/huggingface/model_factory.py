@@ -101,6 +101,9 @@ class HuggingFaceModel(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         with torch.no_grad():
             with self.amp_context():
+                # TODO: mysterious workaround: accessing torch._inductor.config.cpp.weight_prepack
+                # here is making the torch dynamo context manager see no_grad() setting correctly
+                print("weight_prepack", torch._inductor.config.cpp.weight_prepack)
                 out = self.model(**self.example_inputs)
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
