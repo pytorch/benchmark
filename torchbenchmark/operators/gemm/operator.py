@@ -67,6 +67,11 @@ BUILDIN_SHAPES = [
     (4096, 4096, 4096, None),
 ]
 
+SPLIT_K_SHAPES = [
+    (m, k, m, None)
+    for m in [128 * i for i in range(1, 5)]
+    for k in [2048 * i for i in range(1, 9)]
+]
 
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
@@ -81,6 +86,8 @@ class Operator(BenchmarkOperator):
             self.tbargs = parse_args(self.extra_args)
             if self.tbargs.input:
                 self.shapes = read_shapes_from_csv(self.tbargs.input)
+            elif self.tbargs.splitk:
+                self.shapes = SPLIT_K_SHAPES
             else:
                 self.shapes = [(self.tb_args.m, self.tbargs.k, self.tbargs.n)]
             self.DEFAULT_NUM_BATCH = len(self.shapes)

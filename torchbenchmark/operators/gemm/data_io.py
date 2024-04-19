@@ -12,6 +12,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser.add_argument("--k", default=8, type=int)
     parser.add_argument("--n", default=8, type=int)
     parser.add_argument("--input", default=None, type=str)
+    parser.add_argument("--splitk", action="store_true", default=False)
     args = parser.parse_args(args)
     return args
 
