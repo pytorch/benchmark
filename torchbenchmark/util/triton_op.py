@@ -108,6 +108,8 @@ class BenchmarkOperatorMetrics:
     compile_time: Optional[float]
     # ncu trace file
     ncu_trace: Optional[str]
+    # kineto trace file
+    kineto_trace: Optional[str]
     # cpu peak memory
     cpu_peak_mem: Optional[float]
     # gpu peak memory
@@ -604,6 +606,7 @@ class BenchmarkOperator:
                 walltime=walltime,
                 compile_time=None,
                 ncu_trace=None,
+                kineto_trace=None,
                 cpu_peak_mem=cpu_peak_mem,
                 gpu_peak_mem=gpu_peak_mem,
                 hw_roofline=hw_roofline,
@@ -616,6 +619,8 @@ class BenchmarkOperator:
                 metric.compile_time = self.compile_time(batch_id, fn_name, metric)
             if "ncu_trace" in self.required_metrics:
                 metric.ncu_trace = self.ncu_trace(batch_id, fn_name)
+            if "kineto_trace" in self.required_metrics:
+                metric.kineto_trace = self.kineto_trace(batch_id, fn)
             extra_metrics = {}
             # run the hidden metric "_compile_time_in_task"
             # to get the compile time in parent process
@@ -651,6 +656,7 @@ class BenchmarkOperator:
                 compile_time=None,
                 ncu_trace=None,
                 hw_roofline=self.hw_roofline(),
+                kineto_trace=None,
                 cpu_peak_mem=None,
                 gpu_peak_mem=None,
                 error_msg="CUDA OOM",
@@ -691,6 +697,17 @@ class BenchmarkOperator:
         subprocess.check_call(ncu_args)
         return str(ncu_output_file.resolve())
 
+    @register_metric()
+    def kineto_trace(self, batch_id: int, fn: Callable) -> str:
+        from pathlib import Path
+        from torchbenchmark._components.kineto import do_bench_kineto
+        kineto_output_dir = Path(f"/tmp/tritonbench_{self.name}_{fn._name}_{batch_id}")
+        kineto_output_dir.mkdir(parents=True, exist_ok=True)
+        return do_bench_kineto(
+            fn=fn,
+            grad_to_none=self.get_grad_to_none(self.example_inputs),
+            output_dir=kineto_output_dir,
+        )
 
     @register_metric()
     def compile_time(self, batch_id: int, fn_name: str, metrics: BenchmarkOperatorMetrics) -> float:
