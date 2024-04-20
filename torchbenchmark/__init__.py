@@ -67,7 +67,7 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
     }
 
     output_buffer = None
-    _, stdout_fpath = tempfile.mkstemp()
+    fd, stdout_fpath = tempfile.mkstemp()
 
     try:
         output_buffer = io.FileIO(stdout_fpath, mode="w")
@@ -89,7 +89,9 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
     except Exception as e:
         return (False, e, io.FileIO(stdout_fpath, mode="r").read().decode())
     finally:
+        output_buffer.close()
         del output_buffer
+        os.close(fd)
         os.remove(stdout_fpath)
 
     return (True, None, None)
