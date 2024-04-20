@@ -19,6 +19,11 @@ from torchbenchmark.util.experiment.metrics import get_peak_memory
 from torchbenchmark.util.extra_args import apply_decoration_args, parse_decoration_args
 from torchbenchmark.util.input import input_cast
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 DEFAULT_WARMUP = 25
 DEFAULT_RUN_ITERS = 100
 DEFAULT_QUANTILES = [0.5, 0.1, 0.9]
@@ -361,6 +366,8 @@ class BenchmarkOperator:
             batch_range = range(self._batch_id + 1)
         else:
             batch_range = range(self.dargs.num_batch)
+        if tqdm is not None:
+            batch_range = tqdm(batch_range)
         for batch_id in batch_range:
             if self._batch_id and batch_id < self._batch_id:
                 continue

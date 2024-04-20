@@ -85,7 +85,6 @@ class Operator(BenchmarkOperator):
     def __init__(self, mode: str, device: str, extra_args: List[str] = []):
         super().__init__(mode=mode, device=device, extra_args=extra_args)
         if not self.extra_args:
-            self.DEFAULT_NUM_BATCH = len(BUILDIN_SHAPES)
             self.shapes = BUILDIN_SHAPES
         else:
             self.tbargs = parse_args(self.extra_args)
@@ -95,7 +94,7 @@ class Operator(BenchmarkOperator):
                 self.shapes = SPLIT_K_SHAPES
             else:
                 self.shapes = [(self.tb_args.m, self.tbargs.k, self.tbargs.n)]
-            self.DEFAULT_NUM_BATCH = len(self.shapes)
+        self.dargs.num_batch = len(self.shapes)
 
     @register_benchmark()
     def triton_tutorial_matmul(self, a, b, bias) -> Callable:
