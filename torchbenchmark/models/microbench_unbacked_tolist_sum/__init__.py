@@ -39,3 +39,6 @@ class Model(BenchmarkModel):
         with torch.no_grad():
             out = self.model(*self.example_inputs)
         return (out,)
+
+    def train(self):
+        raise NotImplementedError("Train test is not implemented.")
