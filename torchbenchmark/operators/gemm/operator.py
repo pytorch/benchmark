@@ -78,6 +78,7 @@ SPLIT_K_SHAPES = [
     for k in [2048 * i for i in range(1, 9)]
 ]
 
+
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
     DEFAULT_PRECISION = "fp16"
@@ -195,7 +196,11 @@ class Operator(BenchmarkOperator):
     def plot(self):
         @triton.testing.perf_report(
             triton.testing.Benchmark(
-                x_names=["m", "n", "k"],  # argument names to use as an x-axis for the plot
+                x_names=[
+                    "m",
+                    "n",
+                    "k",
+                ],  # argument names to use as an x-axis for the plot
                 x_vals=self.output.x_vals,  # different possible values for `x_name`
                 line_arg="provider",  # argument name whose value corresponds to a different line in the plot
                 line_vals=[
@@ -210,7 +215,12 @@ class Operator(BenchmarkOperator):
                     "triton.ops.matmul",
                     "HSTU Triton GEMM",
                 ],  # label name for the lines
-                styles=[("blue", "-"), ("green", "-"), ("red", "-"), ("yellow", "-")],  # line styles
+                styles=[
+                    ("blue", "-"),
+                    ("green", "-"),
+                    ("red", "-"),
+                    ("yellow", "-"),
+                ],  # line styles
                 ylabel="tflops",  # label name for the y-axis
                 plot_name="gemm-performance",  # name for the plot. Used also as a file name for saving the plot.
                 args={},  # values for function arguments not in `x_names` and `y_name`

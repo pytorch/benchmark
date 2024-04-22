@@ -33,32 +33,40 @@ import triton.language as tl
 
 @triton.autotune(
     configs=[
-        triton.Config({
-            'BLOCK_SIZE_M': 128,
-            'BLOCK_SIZE_N': 128,
-            'BLOCK_SIZE_K': 32,
-            'NUM_SM': 84,
-        }),
-        triton.Config({
-            'BLOCK_SIZE_M': 128,
-            'BLOCK_SIZE_N': 128,
-            'BLOCK_SIZE_K': 32,
-            'NUM_SM': 128,
-        }),
-        triton.Config({
-            'BLOCK_SIZE_M': 64,
-            'BLOCK_SIZE_N': 64,
-            'BLOCK_SIZE_K': 32,
-            'NUM_SM': 84,
-        }),
-        triton.Config({
-            'BLOCK_SIZE_M': 64,
-            'BLOCK_SIZE_N': 64,
-            'BLOCK_SIZE_K': 32,
-            'NUM_SM': 128,
-        }),
+        triton.Config(
+            {
+                "BLOCK_SIZE_M": 128,
+                "BLOCK_SIZE_N": 128,
+                "BLOCK_SIZE_K": 32,
+                "NUM_SM": 84,
+            }
+        ),
+        triton.Config(
+            {
+                "BLOCK_SIZE_M": 128,
+                "BLOCK_SIZE_N": 128,
+                "BLOCK_SIZE_K": 32,
+                "NUM_SM": 128,
+            }
+        ),
+        triton.Config(
+            {
+                "BLOCK_SIZE_M": 64,
+                "BLOCK_SIZE_N": 64,
+                "BLOCK_SIZE_K": 32,
+                "NUM_SM": 84,
+            }
+        ),
+        triton.Config(
+            {
+                "BLOCK_SIZE_M": 64,
+                "BLOCK_SIZE_N": 64,
+                "BLOCK_SIZE_K": 32,
+                "NUM_SM": 128,
+            }
+        ),
     ],
-    key=['group_size'],
+    key=["group_size"],
 )
 @triton.jit
 def grouped_matmul_kernel(
@@ -92,7 +100,7 @@ def grouped_matmul_kernel(
         num_n_tiles = tl.cdiv(gn, BLOCK_SIZE_N)
         num_tiles = num_m_tiles * num_n_tiles
         # iterate through the tiles in the current gemm problem
-        while (tile_idx >= last_problem_end and tile_idx < last_problem_end + num_tiles):
+        while tile_idx >= last_problem_end and tile_idx < last_problem_end + num_tiles:
             # pick up a tile from the current gemm problem
             k = gk
             lda = tl.load(g_lds + g * 3)
@@ -171,7 +179,7 @@ def triton_group_gemm_fn(group_A, group_B):
     d_g_sizes = torch.tensor(g_sizes, dtype=torch.int32, device=device)
     d_g_lds = torch.tensor(g_lds, dtype=torch.int32, device=device)
     # we use a fixed number of CTA, and it's auto-tunable
-    grid = lambda META: (META['NUM_SM'], )
+    grid = lambda META: (META["NUM_SM"],)
     grouped_matmul_kernel[grid](
         d_a_ptrs,
         d_b_ptrs,

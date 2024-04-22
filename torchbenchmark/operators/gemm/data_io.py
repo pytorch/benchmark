@@ -24,7 +24,7 @@ def read_shapes_from_csv(csv_path: str) -> List[List[int]]:
     shapes = []
     with open(input_file_path, "r") as f:
         reader = csv.reader(f)
-        _header = next(reader) # noqa
+        _header = next(reader)  # noqa
         for row in reader:
             shapes.append([int(x) if x else None for x in row])
     return shapes

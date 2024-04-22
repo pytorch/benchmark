@@ -26,17 +26,16 @@ class Operator(BenchmarkOperator):
             for a, b in zip(group_A, group_B):
                 out.append(torch.matmul(a, b))
             return out
-        return _inner
 
+        return _inner
 
     @register_benchmark()
     def triton(self, group_A, group_B):
         return lambda: triton_group_gemm_fn(group_A, group_B)
 
-
     def get_input_iter(self) -> Generator:
         self.group_size = 4
-        x_vals = [ 2**i for i in range(7, 11) ]
+        x_vals = [2**i for i in range(7, 11)]
         for N in x_vals:
             group_A = []
             group_B = []

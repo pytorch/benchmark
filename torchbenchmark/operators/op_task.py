@@ -10,6 +10,7 @@ import gc
 
 from typing import Optional, Dict, Any, List
 
+
 @dataclasses.dataclass(frozen=True)
 class OpDetails:
     """Static description of what a particular TritonBench operator supports.
@@ -64,6 +65,7 @@ class OpTask(base_task.TaskBase):
                 op_name=name,
             )
         )
+
     # =========================================================================
     # == Import Operator in the child process ====================================
     # =========================================================================
@@ -111,6 +113,7 @@ class OpTask(base_task.TaskBase):
         )
 
         import gc
+
         gc.collect()
 
         if device == "cuda":
@@ -137,16 +140,13 @@ class OpTask(base_task.TaskBase):
         """
         )
 
-
     # =========================================================================
     # == Get Operator attribute in the child process =============================
     # =========================================================================
     @base_task.run_in_worker(scoped=True)
     @staticmethod
     def get_attribute(
-        attr: str,
-        field: Optional[str] = None,
-        classattr: bool = False
+        attr: str, field: Optional[str] = None, classattr: bool = False
     ) -> Any:
         if classattr:
             op = globals()["Operator"]
