@@ -1,3 +1,4 @@
+import argparse
 import os
 import statistics
 import torch
@@ -22,21 +23,46 @@ def triton_mm(
     return triton.ops.matmul(a, b, acc_dtype, allow_tf32, fp8_fast_accum, output_dtype)
 
 
+def parse_args(args):
+    parser = argparse.ArgumentParser(description="TritonBench fp8_gemm")
+    parser.add_argument("--llama", action="store_true")
+    return parser.parse_args(args)
+
+
 class Operator(BenchmarkOperator):
+    def __init__(self, mode, device, extra_args):
+        super().__init__(mode=mode, device=device, extra_args=extra_args)
+        self.extra_args = parse_args(extra_args)
+
     def get_input_iter(self):
-        for i in range(10, 15):
-            for j in range(0, 4):
-                k = 2**i
-                k += k // 4 * j
-                m = n = k
-                a = torch.randn(m, k, device=self.device).to(torch.float8_e4m3fn)
-                b = (
-                    torch.randn(k, n, device=self.device)
-                    .to(torch.float8_e4m3fn)
-                    .T.contiguous()
-                    .T
-                )
-                yield (a, b)
+        def args(m, n, k):
+            a = torch.randn(m, k, device=self.device).to(torch.float8_e4m3fn)
+            b = (
+                torch.randn(k, n, device=self.device)
+                .to(torch.float8_e4m3fn)
+                .T.contiguous()
+                .T
+            )
+            return (a, b)
+
+        if self.extra_args.llama:
+            name_to_shapes_70b = {
+                "attn.wqkv": (8192, 1280),
+                "attn.w0": (1024, 8192),
+                "ffn.w13": (8192, 7168),
+                "ffn.w2": (3584, 8192),
+            }
+            for (name, (k, n)) in name_to_shapes_70b.items():
+                bsz, seq_len = 4, 4096
+                m = bsz * seq_len
+                yield args(m, n, k)
+        else:
+            for i in range(10, 15):
+                for j in range(0, 4):
+                    k = 2**i
+                    k += k // 4 * j
+                    m = n = k
+                    yield args(m, n, k)
 
     def get_x_val(self, example_inputs) -> float:
         a, b = example_inputs
