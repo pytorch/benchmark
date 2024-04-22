@@ -87,15 +87,19 @@ def do_bench_walltime(fn, warmup=25, rep=100):
     wall_time_ms = (end_time - start_time) * 1e3 / n_repeat
     return wall_time_ms
 
+
 def _find_param_loc(l, key: str) -> int:
     try:
         return l.index(key)
     except ValueError:
         return -1
+
+
 def _remove_params(l, loc):
     if loc == -1:
         return l
-    return l[:loc] + l[loc+2:]
+    return l[:loc] + l[loc + 2 :]
+
 
 @dataclass
 class BenchmarkOperatorMetrics:
@@ -148,7 +152,9 @@ class BenchmarkOperatorResult:
             )
         key_metrics = {}
         # Add header for x_only_metrics
-        x_only_metrics = sorted([metric for metric in self.metrics if metric in X_ONLY_METRICS ])
+        x_only_metrics = sorted(
+            [metric for metric in self.metrics if metric in X_ONLY_METRICS]
+        )
         headers.extend(x_only_metrics)
         for k in y_val_keys:
             metrics = (
@@ -157,7 +163,7 @@ class BenchmarkOperatorResult:
                 else self.metrics
             )
             # Exclude x_only_metrics for impl-specific metrics
-            metrics = [ metric for metric in metrics if not metric in x_only_metrics ]
+            metrics = [metric for metric in metrics if not metric in x_only_metrics]
             key_metrics[k] = sorted(metrics)
             for metric in metrics:
                 # add extra metrics
@@ -241,6 +247,7 @@ def register_benchmark(baseline: bool = False, enabled: bool = True):
 
         def _inner(self, *args, **kwargs):
             return function(self, *args, **kwargs)
+
         return _inner
 
     return decorator
@@ -252,7 +259,7 @@ def register_metric(
     skip_baseline: bool = False,
     # Metrics that are the same across all impls
     # E.g., x_shape, hw_roofline
-    x_only: bool = False
+    x_only: bool = False,
 ):
     def decorator(func):
         operator_name = func.__module__.split(".")[-1]
@@ -282,7 +289,9 @@ def parse_args(
         help="Metrics to collect, split with comma. E.g., --metrics latency,tflops,speedup.",
     )
     parser.add_argument("--only", default=None, help="Run only the specific benchmark.")
-    parser.add_argument("--batch-id", type=int, default=None, help="Run only the specific batch id.")
+    parser.add_argument(
+        "--batch-id", type=int, default=None, help="Run only the specific batch id."
+    )
     return parser.parse_known_args(args)
 
 
@@ -335,10 +344,10 @@ class BenchmarkOperator:
 
     def _get_bm_func(self, bm_func_name: str):
         fwd_fn_lambda = getattr(self, bm_func_name, None)
-        assert (
-            fwd_fn_lambda
-        ), f"Could not find benchmark {bm_func_name} registered in {self.name}. " \
+        assert fwd_fn_lambda, (
+            f"Could not find benchmark {bm_func_name} registered in {self.name}. "
             f"Available benchmarks: {REGISTERED_BENCHMARKS[self.name]}. "
+        )
         if isinstance(self.example_inputs, dict):
             fwd_fn = fwd_fn_lambda(**self.example_inputs)
         else:
@@ -391,20 +400,30 @@ class BenchmarkOperator:
             # Cast the input precisions
             apply_decoration_args(self, self.dargs)
             x_val = self.get_x_val(self.example_inputs)
-            benchmarks = [ bm for bm in REGISTERED_BENCHMARKS[self.name] ] \
-                if self.name in REGISTERED_BENCHMARKS else []
+            benchmarks = (
+                [bm for bm in REGISTERED_BENCHMARKS[self.name]]
+                if self.name in REGISTERED_BENCHMARKS
+                else []
+            )
             # Run the baseline first, if baseline exists
-            baseline_name = BASELINE_BENCHMARKS[self.name] \
-                     if self.name in BASELINE_BENCHMARKS else None
+            baseline_name = (
+                BASELINE_BENCHMARKS[self.name]
+                if self.name in BASELINE_BENCHMARKS
+                else None
+            )
             if baseline_name and baseline_name in benchmarks:
                 benchmarks.remove(baseline_name)
                 benchmarks.insert(0, baseline_name)
             if self._only:
                 benchmarks = [self._only]
+
             # get metrics for for each registered benchmark
             def _reduce_benchmarks(acc, bm_name: str):
-                baseline = bm_name == BASELINE_BENCHMARKS[self.name] \
-                     if self.name in BASELINE_BENCHMARKS else False
+                baseline = (
+                    bm_name == BASELINE_BENCHMARKS[self.name]
+                    if self.name in BASELINE_BENCHMARKS
+                    else False
+                )
                 acc[bm_name] = self._do_bench(
                     batch_id=batch_id,
                     fn_name=bm_name,
@@ -570,7 +589,9 @@ class BenchmarkOperator:
             fn = self._get_bm_func(fn_name)
             if baseline:
                 self.baseline_fn = fn
-            if set(["latency", "tflops", "speedup", "compile_time"]) & set(self.required_metrics):
+            if set(["latency", "tflops", "speedup", "compile_time"]) & set(
+                self.required_metrics
+            ):
                 latency = triton.testing.do_bench(
                     fn,
                     warmup=warmup,
@@ -595,7 +616,10 @@ class BenchmarkOperator:
                     if self.baseline_metrics and self.baseline_metrics.error_msg
                     else None
                 )
-            if "cpu_peak_mem" in self.required_metrics or "gpu_peak_mem" in self.required_metrics:
+            if (
+                "cpu_peak_mem" in self.required_metrics
+                or "gpu_peak_mem" in self.required_metrics
+            ):
                 cpu_peak_mem, _device_id, gpu_peak_mem = self.get_peak_mem(fn)
             if not baseline and "accuracy" in self.required_metrics:
                 accuracy = (
@@ -632,16 +656,31 @@ class BenchmarkOperator:
             # run the hidden metric "_compile_time_in_task"
             # to get the compile time in parent process
             if "_compile_time_in_task" in self.required_metrics:
-                assert self.required_metrics == ["_compile_time_in_task"] and self._only and (self._batch_id is not None), \
-                    "_compile_time_in_task must be measured by itself. " \
+                assert (
+                    self.required_metrics == ["_compile_time_in_task"]
+                    and self._only
+                    and (self._batch_id is not None)
+                ), (
+                    "_compile_time_in_task must be measured by itself. "
                     f"required_metrics: {self.required_metrics}, _only: {self._only}, _batch_id: {self._batch_id}"
+                )
                 extra_metrics["_compile_time_in_task"] = self._compile_time_in_task(fn)
             if "_ncu_trace_in_task" in self.required_metrics:
-                assert self.required_metrics == ["_ncu_trace_in_task"] and self._only and (self._batch_id is not None), \
-                    "_ncu_trace_in_task must be measured by itself. " \
+                assert (
+                    self.required_metrics == ["_ncu_trace_in_task"]
+                    and self._only
+                    and (self._batch_id is not None)
+                ), (
+                    "_ncu_trace_in_task must be measured by itself. "
                     f"required_metrics: {self.required_metrics}, _only: {self._only}, _batch_id: {self._batch_id}"
+                )
                 from torchbenchmark._components.ncu import do_bench_ncu_in_task
-                do_bench_ncu_in_task(fn=fn, warmup=warmup, grad_to_none=self.get_grad_to_none(self.example_inputs))
+
+                do_bench_ncu_in_task(
+                    fn=fn,
+                    warmup=warmup,
+                    grad_to_none=self.get_grad_to_none(self.example_inputs),
+                )
                 extra_metrics["_ncu_trace_in_task"] = "success"
             # generate customized metrics
             if self.name in REGISTERED_METRICS:
@@ -671,7 +710,9 @@ class BenchmarkOperator:
             )
         return metric
 
-    def get_peak_mem(self, fn: Callable) -> Tuple[Optional[float], Optional[str], Optional[float]]:
+    def get_peak_mem(
+        self, fn: Callable
+    ) -> Tuple[Optional[float], Optional[str], Optional[float]]:
         return get_peak_memory(
             func=fn,
             device=self.device,
@@ -685,21 +726,52 @@ class BenchmarkOperator:
         import sys
         import subprocess
         from pathlib import Path
+
         op_task_args = copy.deepcopy(sys.argv)
         for override_option in ["--only", "--batch-id", "--metrics"]:
-            op_task_args = _remove_params(op_task_args, _find_param_loc(op_task_args, override_option))
-        op_task_args.extend(["--only", fn_name, "--batch-id", str(batch_id), "--metrics", "_ncu_trace_in_task"])
+            op_task_args = _remove_params(
+                op_task_args, _find_param_loc(op_task_args, override_option)
+            )
+        op_task_args.extend(
+            [
+                "--only",
+                fn_name,
+                "--batch-id",
+                str(batch_id),
+                "--metrics",
+                "_ncu_trace_in_task",
+            ]
+        )
         # Disable DCGM
         try:
-            disable_dcgm = ["sudo", "dyno", "dcgm_profiling", "--mute=true", "--duration=1000_s"]
+            disable_dcgm = [
+                "sudo",
+                "dyno",
+                "dcgm_profiling",
+                "--mute=true",
+                "--duration=1000_s",
+            ]
             subprocess.run(disable_dcgm, check=True)
         except subprocess.SubprocessError:
-            warnings.warn("Cannot find dyno to disable DCGM. Proceed to collect NCU Trace.")
+            warnings.warn(
+                "Cannot find dyno to disable DCGM. Proceed to collect NCU Trace."
+            )
         ncu_output_dir = Path(f"/tmp/tritonbench_{self.name}_{fn_name}_{batch_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
         ncu_output_file = ncu_output_dir.joinpath("ncu_output.csv").resolve()
-        ncu_args = ["ncu", "--set", "full", "--replay-mode", "range", "--target-processes", "all", \
-                    "--csv", "-f", "--log-file", str(ncu_output_file.resolve())]
+        ncu_args = [
+            "ncu",
+            "--set",
+            "full",
+            "--replay-mode",
+            "range",
+            "--target-processes",
+            "all",
+            "--csv",
+            "-f",
+            "--log-file",
+            str(ncu_output_file.resolve()),
+        ]
         ncu_args.extend(op_task_args)
         subprocess.check_call(ncu_args)
         return str(ncu_output_file.resolve())
@@ -708,6 +780,7 @@ class BenchmarkOperator:
     def kineto_trace(self, batch_id: int, fn: Callable) -> str:
         from pathlib import Path
         from torchbenchmark._components.kineto import do_bench_kineto
+
         kineto_output_dir = Path(f"/tmp/tritonbench_{self.name}_{fn._name}_{batch_id}")
         kineto_output_dir.mkdir(parents=True, exist_ok=True)
         return do_bench_kineto(
@@ -717,16 +790,32 @@ class BenchmarkOperator:
         )
 
     @register_metric()
-    def compile_time(self, batch_id: int, fn_name: str, metrics: BenchmarkOperatorMetrics) -> float:
+    def compile_time(
+        self, batch_id: int, fn_name: str, metrics: BenchmarkOperatorMetrics
+    ) -> float:
         # We need to spawn a subprocess when user wants to measure the compile time
         # of multiple batches and backends.
         from torchbenchmark.operators.op_task import OpTask
+
         op_task_args = copy.deepcopy(self._raw_extra_args)
         for override_option in ["--only", "--batch-id", "--metrics"]:
-            op_task_args = _remove_params(op_task_args, _find_param_loc(op_task_args, override_option))
-        op_task_args.extend(["--only", fn_name, "--batch-id", str(batch_id), "--metrics", "_compile_time_in_task"])
+            op_task_args = _remove_params(
+                op_task_args, _find_param_loc(op_task_args, override_option)
+            )
+        op_task_args.extend(
+            [
+                "--only",
+                fn_name,
+                "--batch-id",
+                str(batch_id),
+                "--metrics",
+                "_compile_time_in_task",
+            ]
+        )
         op_task = OpTask(name=self.name)
-        op_task.make_operator_instance(mode=self.mode.value, device=self.device, extra_args=op_task_args)
+        op_task.make_operator_instance(
+            mode=self.mode.value, device=self.device, extra_args=op_task_args
+        )
         op_task.run()
         latency_with_compile = op_task.get_attribute("_latency_with_compile_in_task")
         del op_task
@@ -737,11 +826,15 @@ class BenchmarkOperator:
     def hw_roofline(self) -> float:
         """Hardware roofline in tflops."""
         from torchbenchmark.util.hardware import HW_ROOFLINE_SPECS
-        device_name = torch.cuda.get_device_name()
-        assert device_name in HW_ROOFLINE_SPECS, f"{device_name} is not supported in HW roofline specs."
-        assert self.dargs.precision in HW_ROOFLINE_SPECS[device_name], f"{self.precision} is not supported for {device_name}."
-        return HW_ROOFLINE_SPECS[device_name][self.dargs.precision]
 
+        device_name = torch.cuda.get_device_name()
+        assert (
+            device_name in HW_ROOFLINE_SPECS
+        ), f"{device_name} is not supported in HW roofline specs."
+        assert (
+            self.dargs.precision in HW_ROOFLINE_SPECS[device_name]
+        ), f"{self.precision} is not supported for {device_name}."
+        return HW_ROOFLINE_SPECS[device_name][self.dargs.precision]
 
     def _compile_time_in_task(
         self,
