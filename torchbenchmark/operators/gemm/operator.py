@@ -17,7 +17,11 @@ from torchbenchmark.util.triton_op import (
 
 from .data_io import parse_args, read_shapes_from_csv
 from .triton_matmul import matmul as triton_matmul
+from .triton_matmul import matmul_kernel as triton_matmul_kernel
 
+import inspect
+import json
+from copy import deepcopy
 try:
     from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
 
@@ -142,6 +146,19 @@ class Operator(BenchmarkOperator):
         numel = numel * a.element_size() / 1e9
         gbps = list(map(lambda x: numel / x * 1e3, metrics.latency))
         return statistics.median(gbps)
+
+    @register_metric(skip_baseline=True)
+    def best_config(
+        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
+    ) -> float:
+        if "triton_tutorial_matmul" in str(fn_name):
+            bconfig = triton_matmul_kernel.best_config
+            kwargs = deepcopy(bconfig.kwargs)
+            kwargs["num_stages"] = bconfig.num_stages
+            kwargs["num_warps"] = bconfig.num_warps
+            dumped_str = json.dumps(kwargs)
+            return dumped_str
+        return ""
 
     @register_metric()
     def tflops(
