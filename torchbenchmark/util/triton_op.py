@@ -275,7 +275,7 @@ def register_metric(
 def parse_args(
     default_metrics: List[str], args: List[str]
 ) -> Tuple[argparse.Namespace, List[str]]:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
         "--metrics",
         default=",".join(default_metrics),

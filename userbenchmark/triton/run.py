@@ -15,7 +15,7 @@ from torchbenchmark.util.triton_op import (
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("--op", type=str, default=None, help="Operator to benchmark.")
     parser.add_argument(
         "--mode",

@@ -94,7 +94,7 @@ def get_precision_default(model: "torchbenchmark.util.model.BenchmarkModel") -> 
 def parse_decoration_args(
     model: "torchbenchmark.util.model.BenchmarkModel", extra_args: List[str]
 ) -> Tuple[argparse.Namespace, List[str]]:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
         "--distributed",
         choices=["ddp", "ddp_no_static_graph", "fsdp"],

@@ -94,7 +94,9 @@ class Operator(BenchmarkOperator):
             elif self.tbargs.splitk:
                 self.shapes = SPLIT_K_SHAPES
             else:
-                self.shapes = [(self.tb_args.m, self.tbargs.k, self.tbargs.n)]
+                self.shapes = [
+                    (self.tbargs.m, self.tbargs.k, self.tbargs.n, self.tbargs.bias)
+                ]
         self.dargs.num_batch = len(self.shapes)
 
     @register_benchmark()
