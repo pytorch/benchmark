@@ -28,9 +28,13 @@ def parse_args(args):
         "--fwd_bwd", action="store_true", help="Run both forward and backward pass."
     )
     parser.add_argument("--device", default="cuda", help="Device to benchmark.")
-    parser.add_argument("--warmup", default=DEFAULT_WARMUP, help="Device to benchmark.")
     parser.add_argument(
-        "--iter", default=DEFAULT_RUN_ITERS, help="Device to benchmark."
+        "--warmup",
+        default=DEFAULT_WARMUP,
+        help="Num of warmup runs for reach benchmark run.",
+    )
+    parser.add_argument(
+        "--iter", default=DEFAULT_RUN_ITERS, help="Num of reps for each benchmark run."
     )
     parser.add_argument("--csv", action="store_true", help="Dump result as csv.")
     parser.add_argument("--plot", action="store_true", help="Plot the result.")
