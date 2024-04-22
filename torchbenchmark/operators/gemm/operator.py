@@ -97,7 +97,7 @@ class Operator(BenchmarkOperator):
                 self.shapes = [
                     (self.tbargs.m, self.tbargs.k, self.tbargs.n, self.tbargs.bias)
                 ]
-        self.dargs.num_batch = len(self.shapes)
+        self.dargs.num_batch = min(self.dargs.num_batch, len(self.shapes))
 
     @register_benchmark()
     def triton_tutorial_matmul(self, a, b, bias) -> Callable:
