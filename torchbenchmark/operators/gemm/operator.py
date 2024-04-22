@@ -141,17 +141,6 @@ class Operator(BenchmarkOperator):
         gbps = list(map(lambda x: numel / x * 1e3, metrics.latency))
         return statistics.median(gbps)
 
-    @register_metric(skip_baseline=True)
-    def xShape(
-        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> list[int]:
-        a, w, bias = example_inputs
-        m, k = a.size()
-        k, n = w.size()
-        if not bias == None:
-            return [m, k, n, bias.size()[0]]
-        return [m, k, n]
-
     @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
