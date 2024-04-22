@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 from typing import List, Tuple
 
@@ -12,6 +13,8 @@ from torchbenchmark.util.triton_op import (
     DEFAULT_RUN_ITERS,
     DEFAULT_WARMUP,
 )
+
+TRITON_BENCH_CSV_DUMP_PATH = "/tmp/triton_bench/"
 
 
 def parse_args(args):
@@ -36,7 +39,9 @@ def parse_args(args):
     parser.add_argument(
         "--iter", default=DEFAULT_RUN_ITERS, help="Num of reps for each benchmark run."
     )
-    parser.add_argument("--csv", action="store_true", help="Dump result as csv.")
+    parser.add_argument("--csv", action="store_true", help="Print result as csv.")
+    parser.add_argument("--dump-csv", action="store_true", help="Dump result as csv.")
+    parser.add_argument("--skip-print", action="store_true", help="Skip printing result.")
     parser.add_argument("--plot", action="store_true", help="Plot the result.")
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
@@ -58,10 +63,11 @@ def run(args: List[str] = []):
         extra_args=extra_args,
     )
     metrics = opbench.run(args.warmup, args.iter)
-    if args.csv:
-        print(metrics.csv)
-    else:
-        print(metrics)
+    if not args.skip_print:
+        if args.csv:
+            print(metrics.csv)
+        else:
+            print(metrics)
     if not hasattr(torch_version, "git_version") and args.log_scuba:
         from userbenchmark.triton.fb import log_benchmark
 
@@ -71,3 +77,15 @@ def run(args: List[str] = []):
             opbench.plot()
         except NotImplementedError:
             print(f"Plotting is not implemented for {args.op}")
+
+    if args.dump_csv:
+        if not os.path.exists(TRITON_BENCH_CSV_DUMP_PATH):
+            os.mkdir(TRITON_BENCH_CSV_DUMP_PATH)
+
+        csv_str = metrics.csv
+        csv_str_hash = abs(hash(csv_str)) % (10**8)
+        file_name = f"op_{args.op}_{csv_str_hash}.csv"
+        file_path = os.path.join(TRITON_BENCH_CSV_DUMP_PATH, file_name)
+        with open(file_path, "w") as f:
+            f.write(csv_str)
+        print(f"[TritonBench] Dumped csv to {file_path}")
