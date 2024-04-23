@@ -2,8 +2,6 @@ from torch import zeros
 from triton.compiler import CompiledKernel
 import triton.language as tl
 from torch._C import _cuda_getCurrentRawStream as get_raw_stream
-from torch._inductor import triton_heuristics
-
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
@@ -13,6 +11,12 @@ from torchbenchmark.util.triton_op import (
 
 from .async_compilation import inductor_nop, inductor_nop_args
 from .kernels import nop_kernel, nop_with_args_kernel, trivial_add_kernel
+
+try:
+    from torch._inductor.runtime import triton_heuristics
+except ImportError:
+    # TODO(jansel): delete this case once D56408511 lands
+    from torch._inductor import triton_heuristics
 
 
 class Operator(BenchmarkOperator):

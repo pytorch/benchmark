@@ -10,7 +10,10 @@ import triton
 import triton.language as tl
 from triton.compiler.compiler import AttrsDescriptor
 
-from torch._inductor import triton_heuristics
+try:
+    from torch._inductor.runtime import triton_heuristics
+except ImportError:
+    from torch._inductor import triton_heuristics
 
 @triton_heuristics.pointwise(
     size_hints=[1],
@@ -31,7 +34,10 @@ import triton
 import triton.language as tl
 from triton.compiler.compiler import AttrsDescriptor
 
-from torch._inductor import triton_heuristics
+try:
+    from torch._inductor.runtime import triton_heuristics
+except ImportError:
+    from torch._inductor import triton_heuristics
 
 @triton_heuristics.pointwise(
     size_hints=[1],
