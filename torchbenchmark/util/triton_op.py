@@ -100,6 +100,10 @@ def _remove_params(l, loc):
         return l
     return l[:loc] + l[loc + 2 :]
 
+def _split_params_by_comma(params: Optional[str]) -> List[str]:
+    if params == None:
+        return []
+    return [x.strip() for x in params.split(",")] if "," in params else [params]
 
 @dataclass
 class BenchmarkOperatorMetrics:
@@ -288,7 +292,7 @@ def parse_args(
         default=",".join(default_metrics),
         help="Metrics to collect, split with comma. E.g., --metrics latency,tflops,speedup.",
     )
-    parser.add_argument("--only", default=None, help="Run only the specific benchmark.")
+    parser.add_argument("--only", default=None, help="Specify one or multiple operator implementations to run.")
     parser.add_argument(
         "--batch-id", type=int, default=None, help="Run only the specific batch id."
     )
@@ -339,7 +343,7 @@ class BenchmarkOperator:
             self.DEFAULT_METRICS, unprocessed_args
         )
         self.required_metrics = list(set(self.tb_args.metrics.split(",")))
-        self._only = self.tb_args.only
+        self._only = _split_params_by_comma(self.tb_args.only)
         self._batch_id = self.tb_args.batch_id
 
     def _get_bm_func(self, bm_func_name: str):
@@ -400,22 +404,23 @@ class BenchmarkOperator:
             # Cast the input precisions
             apply_decoration_args(self, self.dargs)
             x_val = self.get_x_val(self.example_inputs)
-            benchmarks = (
-                [bm for bm in REGISTERED_BENCHMARKS[self.name]]
-                if self.name in REGISTERED_BENCHMARKS
-                else []
-            )
-            # Run the baseline first, if baseline exists
-            baseline_name = (
-                BASELINE_BENCHMARKS[self.name]
-                if self.name in BASELINE_BENCHMARKS
-                else None
-            )
-            if baseline_name and baseline_name in benchmarks:
-                benchmarks.remove(baseline_name)
-                benchmarks.insert(0, baseline_name)
             if self._only:
-                benchmarks = [self._only]
+                benchmarks = self._only
+            else:
+                benchmarks = (
+                    [bm for bm in REGISTERED_BENCHMARKS[self.name]]
+                    if self.name in REGISTERED_BENCHMARKS
+                    else []
+                )
+                # Run the baseline first, if baseline exists
+                baseline_name = (
+                    BASELINE_BENCHMARKS[self.name]
+                    if self.name in BASELINE_BENCHMARKS
+                    else None
+                )
+                if baseline_name and baseline_name in benchmarks:
+                    benchmarks.remove(baseline_name)
+                    benchmarks.insert(0, baseline_name)
 
             # get metrics for for each registered benchmark
             def _reduce_benchmarks(acc, bm_name: str):
