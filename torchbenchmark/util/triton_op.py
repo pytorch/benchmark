@@ -218,11 +218,11 @@ class BenchmarkOperatorResult:
         userbenchmark_metrics_dict = {}
         headers, table = self._table()
         for row in table:
-            for header in headers[1:]:
-                x_val = row[0]
-                for value in row[1:]:
-                    metric_name = f"tritonbench_{self.op_name}[x_{x_val}-{header}]"
-                    userbenchmark_metrics_dict[metric_name] = value
+            x_val = row[0]
+            for ind, value in enumerate(row[1:]):
+                header = headers[ind+1]
+                metric_name = f"tritonbench_{self.op_name}[x_{x_val}-{header}]"
+                userbenchmark_metrics_dict[metric_name] = value
         return userbenchmark_metrics_dict
 
     def get_y_vals(self, x_val, provider, metric_name: str):
