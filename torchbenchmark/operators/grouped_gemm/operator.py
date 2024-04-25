@@ -16,7 +16,6 @@ from .kernels import triton_group_gemm_fn
 
 class Operator(BenchmarkOperator):
     DEFAULT_PRECISION = "fp16"
-    DEFAULT_NUM_BATCH = 4
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
 
     @register_benchmark(baseline=True)
