@@ -161,15 +161,15 @@ class BenchmarkOperatorResult:
         )
         headers.extend(x_only_metrics)
         for k in y_val_keys:
-            metrics = (
-                [x for x in self.metrics if x not in BASELINE_SKIP_METRICS]
-                if k == BASELINE_BENCHMARKS[self.op_name]
-                else self.metrics
-            )
-            # Exclude x_only_metrics for impl-specific metrics
-            metrics = [metric for metric in metrics if not metric in x_only_metrics]
-            key_metrics[k] = sorted(metrics)
-            for metric in metrics:
+            def select_metric(m):
+                if m in x_only_metrics:
+                    return False
+                if m in BASELINE_SKIP_METRICS and k == BASELINE_BENCHMARKS[self.op_name]:
+                    return False
+                return True
+
+            key_metrics[k] = sorted(filter(select_metric, self.metrics))
+            for metric in key_metrics[k]:
                 # add extra metrics
                 headers.append(f"{k}_{metric}")
         # generate rows
@@ -371,7 +371,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     def __post__init__(self):
         self._available_num_inputs = self.count_example_inputs()
         if self._num_inputs is None:
-            self._num_inputs = self._available_num_inputs - self._input_id + 1
+            self._num_inputs = self._available_num_inputs - self._input_id
 
     def _get_bm_func(self, bm_func_name: str):
         fwd_fn_lambda = getattr(self, bm_func_name, None)
