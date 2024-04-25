@@ -353,7 +353,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     def __init__(self, mode: str, device: str, extra_args: List[str] = []):
         relative_path = self.__class__.__module__.split(".")
         set_random_seed()
-        self.name = relative_path[-1]
+        self.name = relative_path[-2] if relative_path[-1] == "Operator" else relative_path[-1]
         self._raw_extra_args = copy.deepcopy(extra_args)
         # we accept both "fwd" and "eval"
         if mode == "fwd":
