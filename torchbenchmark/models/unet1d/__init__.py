@@ -4,13 +4,13 @@ import torch
 from diffusers import UNet1DModel
 
 class Model(BenchmarkModel):
-    DEFAULT_EVAL_BSIZE = 64
+    DEFAULT_EVAL_BSIZE = 32
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         super().__init__( test=test, device=device,
                 batch_size=batch_size, extra_args=extra_args)
 
         self.in_channels = 32
-        self.seq_len = 256
+        self.seq_len = 2016
         self.num_features = 16
         self.block_out_channels = (self.seq_len, 64, 64)
         print(self.batch_size)
