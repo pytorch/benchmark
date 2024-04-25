@@ -55,7 +55,7 @@ jobs:
       - name: Upload result to GH Actions Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: TorchBench V3 result
+          name: TribonBench result
           path: benchmark-output/
       - name: Clean up Conda env
         if: always()
