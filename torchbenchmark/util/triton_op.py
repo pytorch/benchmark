@@ -108,7 +108,7 @@ def _split_params_by_comma(params: Optional[str]) -> List[str]:
 def _find_op_name_from_module_path(module_path: str) -> str:
     PATH_PREFIX = "torchbenchmark.operators."
     assert PATH_PREFIX in module_path, \
-        f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}.<operator_name>, get {module_path}."
+        f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
     return module_path.partition(PATH_PREFIX)[2].split(".")[0]
 
 @dataclass
@@ -286,10 +286,12 @@ def register_metric(
     x_only: bool = False,
 ):
     def decorator(func):
-        operator_name = _find_op_name_from_module_path(func.__module__)
-        if not operator_name in REGISTERED_METRICS:
-            REGISTERED_METRICS[operator_name] = []
-        REGISTERED_METRICS[operator_name].append(func.__name__)
+        metric_name = func.__name__
+        if not metric_name in BUILTIN_METRICS:
+            operator_name = _find_op_name_from_module_path(func.__module__)
+            if not operator_name in REGISTERED_METRICS:
+                REGISTERED_METRICS[operator_name] = []
+            REGISTERED_METRICS[operator_name].append(func.__name__)
         if skip_baseline:
             BASELINE_SKIP_METRICS.add(func.__name__)
         if x_only:
