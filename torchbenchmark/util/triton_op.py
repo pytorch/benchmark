@@ -37,6 +37,7 @@ BUILTIN_METRICS = [
     "accuracy",
     "compile_time",
     "ncu_trace",
+    "kineto_trace",
     "cpu_peak_mem",
     "gpu_peak_mem",
     "hw_roofline",
@@ -262,7 +263,7 @@ class BenchmarkOperatorResult:
 def register_benchmark(baseline: bool = False, enabled: bool = True):
     def decorator(function):
         if enabled:
-            operator_name = function.__module__.split(".")[-1]
+            operator_name = _find_op_name_from_module_path(function.__module__)
             if not operator_name in REGISTERED_BENCHMARKS:
                 REGISTERED_BENCHMARKS[operator_name] = []
             REGISTERED_BENCHMARKS[operator_name].append(function.__name__)
@@ -773,7 +774,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             metrics_gpu_backend="nvml",
         )
 
-    @register_metric()
     def ncu_trace(self, input_id: int, fn_name: str) -> str:
         # collect the ncu trace
         import sys
@@ -831,7 +831,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         subprocess.check_call(ncu_args)
         return str(ncu_output_file.resolve())
 
-    @register_metric()
     def kineto_trace(self, input_id: int, fn: Callable) -> str:
         from pathlib import Path
         from torchbenchmark._components.kineto import do_bench_kineto
@@ -844,7 +843,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             output_dir=kineto_output_dir,
         )
 
-    @register_metric()
     def compile_time(
         self, input_id: int, fn_name: str, metrics: BenchmarkOperatorMetrics
     ) -> float:
@@ -879,7 +877,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         latency_without_compile = numpy.median(metrics.latency)
         return latency_with_compile - latency_without_compile
 
-    @register_metric(x_only=True)
     def hw_roofline(self) -> float:
         """Hardware roofline in tflops."""
         from torchbenchmark.util.hardware import HW_ROOFLINE_SPECS
@@ -909,7 +906,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         self._latency_with_compile_in_task = latency_with_compile
         return latency_with_compile
 
-    @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> List[float]:
