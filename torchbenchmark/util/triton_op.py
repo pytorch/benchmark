@@ -171,7 +171,7 @@ class BenchmarkOperatorResult:
             key_metrics[k] = sorted(filter(select_metric, self.metrics))
             for metric in key_metrics[k]:
                 # add extra metrics
-                headers.append(f"{k}_{metric}")
+                headers.append(f"{k}-{metric}")
         # generate rows
         for x_val, y_val in self.result:
             row = []
@@ -210,6 +210,20 @@ class BenchmarkOperatorResult:
     @property
     def x_vals(self):
         return sorted(self._get_result_dict().keys())
+
+    @property
+    def userbenchmark_dict(self) -> Dict[str, Any]:
+        # Userbenchmark Metric key format:
+        # tritonbench_{op_name}[{x_val}-{provider}-{metric}]
+        userbenchmark_metrics_dict = {}
+        headers, table = self._table()
+        for header in headers:
+            for row in table:
+                x_val = row[0]
+                for value in row[1:]:
+                    metric_name = f"tritonbench_{self.op_name}[x_{x_val}-{header}]"
+                    userbenchmark_metrics_dict[metric_name] = value
+        return userbenchmark_metrics_dict
 
     def get_y_vals(self, x_val, provider, metric_name: str):
         if provider in X_ONLY_METRICS:
