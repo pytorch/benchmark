@@ -10,7 +10,7 @@ class Model(BenchmarkModel):
                 batch_size=batch_size, extra_args=extra_args)
 
         self.in_channels = 32
-        self.seq_len = 2016
+        self.seq_len = 256
         self.num_features = 16
         self.block_out_channels = (self.seq_len, 64, 64)
         print(self.batch_size)
