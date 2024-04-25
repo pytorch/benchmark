@@ -217,8 +217,8 @@ class BenchmarkOperatorResult:
         # tritonbench_{op_name}[{x_val}-{provider}-{metric}]
         userbenchmark_metrics_dict = {}
         headers, table = self._table()
-        for header in headers[1:]:
-            for row in table:
+        for row in table:
+            for header in headers[1:]:
                 x_val = row[0]
                 for value in row[1:]:
                     metric_name = f"tritonbench_{self.op_name}[x_{x_val}-{header}]"
