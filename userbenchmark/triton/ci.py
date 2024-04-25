@@ -9,7 +9,7 @@ from userbenchmark.utils import get_default_output_json_path, get_output_json
 from torchbenchmark.util.triton_op import BenchmarkOperatorResult
 
 CI_TESTS = [
-    ["--op", "launch_latency"],
+    ["--op", "softmax", "--num-inputs", "10"],
 ]
 
 def ci_result_to_userbenchmark_json(ci_metrics: List[BenchmarkOperatorResult]) -> Any:
@@ -26,7 +26,7 @@ def run_ci():
         metrics = _run(test_args, test_extra_args)
         ci_result.append(metrics)
     result = ci_result_to_userbenchmark_json(ci_result)
-    result_with_environ = get_output_json(result)
+    result_with_environ = get_output_json(BM_NAME, result)
     result_with_environ["environ"]["triton_version"] = triton.__version__
     output_file = get_default_output_json_path(BM_NAME)
     json_str = json.dumps(result_with_environ, indent=4)
