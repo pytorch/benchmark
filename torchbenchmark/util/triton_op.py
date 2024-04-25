@@ -105,6 +105,12 @@ def _split_params_by_comma(params: Optional[str]) -> List[str]:
         return []
     return [x.strip() for x in params.split(",")] if "," in params else [params]
 
+def _find_op_name_from_module_path(module_path: str) -> str:
+    PATH_PREFIX = "torchbenchmark.operators."
+    assert PATH_PREFIX in module_path, \
+        f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}.<operator_name>, get {module_path}."
+    return module_path.partition(PATH_PREFIX)[2].split(".")[0]
+
 @dataclass
 class BenchmarkOperatorMetrics:
     # latency in ms
@@ -280,7 +286,7 @@ def register_metric(
     x_only: bool = False,
 ):
     def decorator(func):
-        operator_name = func.__module__.split(".")[-1]
+        operator_name = _find_op_name_from_module_path(func.__module__)
         if not operator_name in REGISTERED_METRICS:
             REGISTERED_METRICS[operator_name] = []
         REGISTERED_METRICS[operator_name].append(func.__name__)
@@ -352,11 +358,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
 
     def __init__(self, mode: str, device: str, extra_args: List[str] = []):
         set_random_seed()
-        relative_path = self.__class__.__module__
-        path_prefix = "torchbenchmark.operators."
-        assert path_prefix in relative_path, \
-            f"We rely on module path prefix to identify operator name. Expected {path_prefix}.<operator_name>, get {relative_path}."
-        self.name = relative_path.partition(path_prefix)[2].split(".")[0]
+        self.name = _find_op_name_from_module_path(self.__class__.__module__)
         self._raw_extra_args = copy.deepcopy(extra_args)
         # we accept both "fwd" and "eval"
         if mode == "fwd":
