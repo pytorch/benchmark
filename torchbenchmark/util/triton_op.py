@@ -37,6 +37,7 @@ BUILTIN_METRICS = [
     "accuracy",
     "compile_time",
     "ncu_trace",
+    "kineto_trace",
     "cpu_peak_mem",
     "gpu_peak_mem",
     "hw_roofline",
@@ -105,6 +106,12 @@ def _split_params_by_comma(params: Optional[str]) -> List[str]:
         return []
     return [x.strip() for x in params.split(",")] if "," in params else [params]
 
+def _find_op_name_from_module_path(module_path: str) -> str:
+    PATH_PREFIX = "torchbenchmark.operators."
+    assert PATH_PREFIX in module_path, \
+        f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
+    return module_path.partition(PATH_PREFIX)[2].split(".")[0]
+
 @dataclass
 class BenchmarkOperatorMetrics:
     # latency in ms
@@ -171,7 +178,7 @@ class BenchmarkOperatorResult:
             key_metrics[k] = sorted(filter(select_metric, self.metrics))
             for metric in key_metrics[k]:
                 # add extra metrics
-                headers.append(f"{k}_{metric}")
+                headers.append(f"{k}-{metric}")
         # generate rows
         for x_val, y_val in self.result:
             row = []
@@ -211,6 +218,20 @@ class BenchmarkOperatorResult:
     def x_vals(self):
         return sorted(self._get_result_dict().keys())
 
+    @property
+    def userbenchmark_dict(self) -> Dict[str, Any]:
+        # Userbenchmark Metric key format:
+        # tritonbench_{op_name}[{x_val}-{provider}-{metric}]
+        userbenchmark_metrics_dict = {}
+        headers, table = self._table()
+        for row in table:
+            x_val = row[0]
+            for ind, value in enumerate(row[1:]):
+                header = headers[ind+1]
+                metric_name = f"tritonbench_{self.op_name}[x_{x_val}-{header}]"
+                userbenchmark_metrics_dict[metric_name] = value
+        return userbenchmark_metrics_dict
+
     def get_y_vals(self, x_val, provider, metric_name: str):
         if provider in X_ONLY_METRICS:
             maybe_baseline = REGISTERED_BENCHMARKS[self.op_name][0]
@@ -242,7 +263,7 @@ class BenchmarkOperatorResult:
 def register_benchmark(baseline: bool = False, enabled: bool = True):
     def decorator(function):
         if enabled:
-            operator_name = function.__module__.split(".")[-1]
+            operator_name = _find_op_name_from_module_path(function.__module__)
             if not operator_name in REGISTERED_BENCHMARKS:
                 REGISTERED_BENCHMARKS[operator_name] = []
             REGISTERED_BENCHMARKS[operator_name].append(function.__name__)
@@ -266,10 +287,12 @@ def register_metric(
     x_only: bool = False,
 ):
     def decorator(func):
-        operator_name = func.__module__.split(".")[-1]
-        if not operator_name in REGISTERED_METRICS:
-            REGISTERED_METRICS[operator_name] = []
-        REGISTERED_METRICS[operator_name].append(func.__name__)
+        metric_name = func.__name__
+        if not metric_name in BUILTIN_METRICS:
+            operator_name = _find_op_name_from_module_path(func.__module__)
+            if not operator_name in REGISTERED_METRICS:
+                REGISTERED_METRICS[operator_name] = []
+            REGISTERED_METRICS[operator_name].append(func.__name__)
         if skip_baseline:
             BASELINE_SKIP_METRICS.add(func.__name__)
         if x_only:
@@ -337,9 +360,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     """
 
     def __init__(self, mode: str, device: str, extra_args: List[str] = []):
-        relative_path = self.__class__.__module__.split(".")
         set_random_seed()
-        self.name = relative_path[-1]
+        self.name = _find_op_name_from_module_path(self.__class__.__module__)
         self._raw_extra_args = copy.deepcopy(extra_args)
         # we accept both "fwd" and "eval"
         if mode == "fwd":
@@ -752,7 +774,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             metrics_gpu_backend="nvml",
         )
 
-    @register_metric()
     def ncu_trace(self, input_id: int, fn_name: str) -> str:
         # collect the ncu trace
         import sys
@@ -810,7 +831,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         subprocess.check_call(ncu_args)
         return str(ncu_output_file.resolve())
 
-    @register_metric()
     def kineto_trace(self, input_id: int, fn: Callable) -> str:
         from pathlib import Path
         from torchbenchmark._components.kineto import do_bench_kineto
@@ -823,7 +843,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             output_dir=kineto_output_dir,
         )
 
-    @register_metric()
     def compile_time(
         self, input_id: int, fn_name: str, metrics: BenchmarkOperatorMetrics
     ) -> float:
@@ -858,7 +877,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         latency_without_compile = numpy.median(metrics.latency)
         return latency_with_compile - latency_without_compile
 
-    @register_metric(x_only=True)
     def hw_roofline(self) -> float:
         """Hardware roofline in tflops."""
         from torchbenchmark.util.hardware import HW_ROOFLINE_SPECS
@@ -888,7 +906,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         self._latency_with_compile_in_task = latency_with_compile
         return latency_with_compile
 
-    @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> List[float]:

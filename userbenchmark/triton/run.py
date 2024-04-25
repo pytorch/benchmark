@@ -1,15 +1,12 @@
 import argparse
 import os
 import sys
-from typing import List, Tuple
-
-import triton
-
+from typing import List
 from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
 
 from torchbenchmark.util.triton_op import (
-    BenchmarkOperator,
+    BenchmarkOperatorResult,
     DEFAULT_RUN_ITERS,
     DEFAULT_WARMUP,
 )
@@ -45,13 +42,10 @@ def parse_args(args):
     parser.add_argument("--plot", action="store_true", help="Plot the result.")
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
+    parser.add_argument("--ci", action="store_true", help="Run in the CI mode.")
     return parser.parse_known_args(args)
 
-
-def run(args: List[str] = []):
-    if args == []:
-        args = sys.argv[1:]
-    args, extra_args = parse_args(args)
+def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorResult:
     Opbench = load_opbench_by_name(args.op)
     if args.fwd_bwd:
         args.mode = "fwd_bwd"
@@ -89,3 +83,14 @@ def run(args: List[str] = []):
         with open(file_path, "w") as f:
             f.write(csv_str)
         print(f"[TritonBench] Dumped csv to {file_path}")
+    return metrics
+
+def run(args: List[str] = []):
+    if args == []:
+        args = sys.argv[1:]
+    args, extra_args = parse_args(args)
+    if args.ci:
+        from .ci import run_ci
+        run_ci()
+        return
+    _run(args, extra_args)
