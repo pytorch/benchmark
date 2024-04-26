@@ -101,16 +101,10 @@ class Operator(BenchmarkOperator):
         return _inner
 
     def get_input_iter(self):
-        i = 1
         M = 4096
-        while True:
-            i += 1
-            if i > 120:
-                return None
-            else:
-                yield (
-                    torch.randn([M, 128 * i], dtype=torch.float32, device=self.device),
-                )
+        for i in range(2, 100):
+            N = 128 * i
+            yield (torch.randn([M, N], dtype=self.dtype, device=self.device),)
 
     def get_x_val(self, example_inputs) -> int:
         shape = example_inputs[0].size()
