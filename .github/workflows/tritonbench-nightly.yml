@@ -30,7 +30,6 @@ jobs:
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
           sudo ldconfig
-          sudo ldconfig
       - name: Clone and setup conda env
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
