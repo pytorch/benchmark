@@ -29,6 +29,7 @@ jobs:
           sudo nvidia-smi -pm 1
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
+          sudo ldconfig
       - name: Clone and setup conda env
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
@@ -53,9 +54,9 @@ jobs:
           # Upload the result json to Amazon S3
           python ./scripts/userbenchmark/upload_s3.py --upload-file "${LATEST_RESULT}" --userbenchmark_platform "${PLATFORM_NAME}"
       - name: Upload result to GH Actions Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: TribonBench result
+          name: TritonBench result
           path: benchmark-output/
       - name: Clean up Conda env
         if: always()
