@@ -73,5 +73,3 @@ class Operator(BenchmarkOperator):
         p = 0.25
         for size in self.get_x_vals():
             yield p, torch.randn(size=(size, )).cuda()
-        while True:
-            yield None

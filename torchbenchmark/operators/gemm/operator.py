@@ -1,7 +1,7 @@
 import csv
 import os
 import statistics
-from typing import Any, Callable, Generator, List, Optional
+from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import numpy
 import torch
@@ -87,21 +87,19 @@ class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
     DEFAULT_PRECISION = "fp16"
 
-    def __init__(self, mode: str, device: str, extra_args: List[str] = []):
+    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]]=None):
         super().__init__(mode=mode, device=device, extra_args=extra_args)
-        if not self.extra_args:
-            self.shapes = BUILDIN_SHAPES
+        self.tbargs = parse_args(self.extra_args)
+        if self.tbargs.input:
+            self.shapes = read_shapes_from_csv(self.tbargs.input)
+        elif self.tbargs.splitk:
+            self.shapes = SPLIT_K_SHAPES
+        elif self.tbargs.m and self.tbargs.k and self.tbargs.n:
+            self.shapes = [
+                (self.tbargs.m, self.tbargs.k, self.tbargs.n, self.tbargs.bias)
+            ]
         else:
-            self.tbargs = parse_args(self.extra_args)
-            if self.tbargs.input:
-                self.shapes = read_shapes_from_csv(self.tbargs.input)
-            elif self.tbargs.splitk:
-                self.shapes = SPLIT_K_SHAPES
-            else:
-                self.shapes = [
-                    (self.tbargs.m, self.tbargs.k, self.tbargs.n, self.tbargs.bias)
-                ]
-        self.dargs.num_batch = min(self.dargs.num_batch, len(self.shapes))
+            self.shapes = BUILDIN_SHAPES
 
     @register_benchmark()
     def triton_tutorial_matmul(self, a, b, bias) -> Callable:
@@ -130,7 +128,7 @@ class Operator(BenchmarkOperator):
         else:
             return lambda: hstu_triton_matmul(a, b)
 
-    def get_x_val(self, example_inputs) -> float:
+    def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
         # x-value: computation intensity
         a, w, bias = example_inputs
         m, k = a.size()
@@ -187,8 +185,6 @@ class Operator(BenchmarkOperator):
                     (bias), device=self.device, dtype=self.dtype
                 ).requires_grad_(False)
             yield a, w, bias
-        while True:
-            yield None
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()

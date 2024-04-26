@@ -359,7 +359,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     A base class for adding operators to torch benchmark.
     """
 
-    def __init__(self, mode: str, device: str, extra_args: List[str] = []):
+    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]]=None):
         set_random_seed()
         self.name = _find_op_name_from_module_path(self.__class__.__module__)
         self._raw_extra_args = copy.deepcopy(extra_args)
@@ -500,7 +500,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         )
         return self.output
 
-    def get_x_val(self, example_inputs) -> float:
+    def get_x_val(self, example_inputs) -> Any:
         raise NotImplementedError(
             "Each operator must implement its own input to x_val mapping."
         )

@@ -89,5 +89,3 @@ class Operator(BenchmarkOperator):
             x = torch.rand(size, device=self.device, dtype=self.dtype)
             y = torch.rand(size, device=self.device, dtype=self.dtype)
             yield x, y
-        while True:
-            yield None

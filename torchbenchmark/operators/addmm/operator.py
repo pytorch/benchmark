@@ -25,7 +25,7 @@ class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
     DEFAULT_PRECISION = "bf16"
 
-    def __init__(self, mode: str, device: str, extra_args: List[str] = []):
+    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]]=None):
         super().__init__(mode=mode, device=device, extra_args=extra_args)
         if not self.extra_args:
             self.shapes = BUILDIN_SHAPES
@@ -84,8 +84,6 @@ class Operator(BenchmarkOperator):
                 (k, n), device=self.device, dtype=self.dtype
             ).requires_grad_(False)
             yield a, mat1, mat2
-        while True:
-            yield None
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
