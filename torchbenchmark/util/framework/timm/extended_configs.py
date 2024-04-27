@@ -8,13 +8,17 @@ from userbenchmark.dynamo import DYNAMOBENCH_PATH
 TIMM_MODELS = dict()
 # Only load the extended models in OSS
 if hasattr(torch.version, "git_version"):
-    filename = os.path.join(DYNAMOBENCH_PATH, "timm_models_list.txt")
-    with open(filename) as fh:
-        lines = fh.readlines()
-        lines = [line.rstrip() for line in lines]
-        for line in lines:
-            model_name, batch_size = line.split(" ")
-            TIMM_MODELS[model_name] = int(batch_size)
+    MODELS_FILENAME = os.path.join(DYNAMOBENCH_PATH, "timm_models_list.txt")
+else:
+    from libfb.py import parutil
+    MODELS_FILENAME = parutil.get_file_path("caffe2/benchmarks/dynamo/timm_models_list.txt")
+assert os.path.exists(MODELS_FILENAME)
+with open(MODELS_FILENAME) as fh:
+    lines = fh.readlines()
+    lines = [line.rstrip() for line in lines]
+    for line in lines:
+        model_name, batch_size = line.split(" ")
+        TIMM_MODELS[model_name] = int(batch_size)
 
 
 def is_extended_timm_models(model_name: str) -> bool:

@@ -100,7 +100,7 @@ def dir_contains_file(dir, file_name) -> bool:
     return file_name in names
 
 
-def _list_model_paths() -> List[str]:
+def _list_model_paths(internal=True) -> List[str]:
     p = pathlib.Path(__file__).parent.joinpath(model_dir)
     # Only load the model directories that contain a "__init.py__" file
     models = sorted(
@@ -111,7 +111,7 @@ def _list_model_paths() -> List[str]:
         and dir_contains_file(child, "__init__.py")
     )
     p = p.joinpath(internal_model_dir)
-    if p.exists():
+    if p.exists() and internal:
         m = sorted(
             str(child.absolute())
             for child in p.iterdir()
@@ -332,29 +332,11 @@ class ModelTask(base_task.TaskBase):
         import importlib
         import os
         import traceback
+        from torchbenchmark import load_model_by_name
 
         model_name = os.path.basename(model_path)
         diagnostic_msg = ""
-        try:
-            module = importlib.import_module(f".models.{model_name}", package=package)
-            if accelerator_backend := os.getenv("ACCELERATOR_BACKEND"):
-                setattr(
-                    module,
-                    accelerator_backend,
-                    importlib.import_module(accelerator_backend),
-                )
-            Model = getattr(module, "Model", None)
-            if Model is None:
-                diagnostic_msg = (
-                    f"Warning: {module} does not define attribute Model, skip it"
-                )
-
-            elif not hasattr(Model, "name"):
-                Model.name = model_name
-
-        except ModuleNotFoundError as e:
-            traceback.print_exc()
-            exit(-1)
+        Model = load_model_by_name(model_name)
 
         # Populate global namespace so subsequent calls to worker.run can access `Model`
         globals()["Model"] = Model
@@ -400,27 +382,6 @@ class ModelTask(base_task.TaskBase):
                 "maybe_sync": maybe_sync,
             }
         )
-
-    # =========================================================================
-    # == Replace the `invoke()` function in `model` instance ==================
-    # =========================================================================
-    @base_task.run_in_worker(scoped=True)
-    @staticmethod
-    def replace_invoke(module_name: str, func_name: str) -> None:
-        import importlib
-
-        # import function from pkg
-        model = globals()["model"]
-        try:
-            module = importlib.import_module(module_name)
-            inject_func = getattr(module, func_name, None)
-            if inject_func is None:
-                diagnostic_msg = (
-                    f"Warning: {module} does not define attribute {func_name}, skip it"
-                )
-        except ModuleNotFoundError as e:
-            diagnostic_msg = f"Warning: Could not find dependent module {e.name} for Model {model.name}, skip it"
-        model.invoke = inject_func.__get__(model)
 
     # =========================================================================
     # == Get Model attribute in the child process =============================
@@ -706,7 +667,12 @@ def load_model_by_name(model_name: str):
     ), f"Found more than one models {models} with the exact name: {model_name}"
 
     module = importlib.import_module(module_path, package=__name__)
-
+    if accelerator_backend := os.getenv("ACCELERATOR_BACKEND"):
+        setattr(
+            module,
+            accelerator_backend,
+            importlib.import_module(accelerator_backend),
+        )
     Model = getattr(module, cls_name, None)
     if Model is None:
         print(f"Warning: {module} does not define attribute Model, skip it")

@@ -132,9 +132,9 @@ def list_tests() -> List[str]:
     return ["train", "eval"]
 
 
-def list_models() -> List[str]:
+def list_models(internal=True) -> List[str]:
     """Return a list of names of all TorchBench models"""
-    model_paths = _list_model_paths()
+    model_paths = _list_model_paths(internal=internal)
     model_names = list(map(lambda x: os.path.basename(x), model_paths))
     return model_names
 

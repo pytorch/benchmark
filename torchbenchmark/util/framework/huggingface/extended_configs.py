@@ -17,15 +17,18 @@ BATCH_SIZE_KNOWN_MODELS = dict()
 # Only load the extended models in OSS
 if hasattr(torch.version, "git_version"):
     MODELS_FILENAME = os.path.join(DYNAMOBENCH_PATH, "huggingface_models_list.txt")
-    assert os.path.exists(MODELS_FILENAME)
-    with open(MODELS_FILENAME, "r") as fh:
-        lines = fh.readlines()
-        lines = [line.rstrip() for line in lines]
-        for line in lines:
-            model_name, batch_size = line.split(",")
-            batch_size = int(batch_size)
-            BATCH_SIZE_KNOWN_MODELS[model_name] = batch_size
-    assert len(BATCH_SIZE_KNOWN_MODELS)
+else:
+    from libfb.py import parutil
+    MODELS_FILENAME = parutil.get_file_path("caffe2/benchmarks/dynamo/huggingface_models_list.txt")
+assert os.path.exists(MODELS_FILENAME)
+with open(MODELS_FILENAME, "r") as fh:
+    lines = fh.readlines()
+    lines = [line.rstrip() for line in lines]
+    for line in lines:
+        model_name, batch_size = line.split(",")
+        batch_size = int(batch_size)
+        BATCH_SIZE_KNOWN_MODELS[model_name] = batch_size
+assert len(BATCH_SIZE_KNOWN_MODELS)
 
 
 def is_extended_huggingface_models(model_name: str) -> bool:

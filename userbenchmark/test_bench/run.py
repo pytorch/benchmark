@@ -1,5 +1,5 @@
 """
-Run PyTorch nightly benchmarking.
+Run TorchBench test benchmarking.
 """
 import argparse
 import itertools
@@ -12,7 +12,7 @@ import re
 import ast
 import numpy
 
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Set
 from ..utils import (
     REPO_PATH,
     add_path,
@@ -85,8 +85,6 @@ def generate_model_configs(
     extra_args: List[str],
 ) -> List[TorchBenchModelConfig]:
     """Use the default batch size and default mode."""
-    if not model_names:
-        model_names = list_models()
     cfgs = itertools.product(*[devices, tests, batch_sizes, model_names])
     result = [
         TorchBenchModelConfig(
@@ -133,7 +131,7 @@ def get_metrics(config: TorchBenchModelConfig) -> List[str]:
     return ["latencies", "cpu_peak_mem", "gpu_peak_mem"]
 
 
-def validate(candidates: List[str], choices: List[str]) -> List[str]:
+def validate(candidates: List[str], choices: Union[Set[str], List[str]]) -> List[str]:
     """Validate the candidates provided by the user is valid"""
     for candidate in candidates:
         assert (
@@ -272,13 +270,14 @@ def parse_known_args(args):
     parser.add_argument(
         "--models",
         "-m",
-        nargs="*",
+        default=None,
         help="Name of models to run, split by comma.",
     )
     parser.add_argument(
         "--device",
         "-d",
         default=default_device,
+        choices=list_devices(),
         help="Devices to run, splited by comma.",
     )
     parser.add_argument(
@@ -292,6 +291,18 @@ def parse_known_args(args):
     )
     parser.add_argument(
         "--run-bisect", help="Run with the output of regression detector."
+    )
+    parser.add_argument(
+        "--oss", action="store_true", help="[Meta-Internal Only] Run only the oss models."
+    )
+    parser.add_argument(
+        "--timm", action="store_true", help="Run with extended timm models."
+    )
+    parser.add_argument(
+        "--huggingface", action="store_true", help="Run with extended huggingface models."
+    )
+    parser.add_argument(
+        "--all", action="store_true", help="Run with all available models."
     )
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     parser.add_argument(
@@ -308,14 +319,27 @@ def run(args: List[str]):
     if args.run_bisect:
         configs = generate_model_configs_from_bisect_yaml(args.run_bisect)
     else:
-        # If not specified, use the entire model + extended model set
-        modelset = list_models() + list_extended_models()
+        modelset = set(list_models(internal=(not args.oss)))
+        timm_set = set(list_extended_models(suite_name="timm"))
+        huggingface_set = set(list_extended_models(suite_name="huggingface"))
+        modelset = modelset.union(timm_set).union(huggingface_set)
         if not args.models:
-            args.models = modelset
+            args.models = []
+        args.models = parse_str_to_list(args.models)
+        if args.timm:
+            args.models.extend(timm_set)
+        if args.huggingface:
+            args.models.extend(huggingface_set)
+        if args.all:
+            args.models.extend(modelset)
+        # If nothing is specified, run all built-in models by default.
+        if not args.models:
+            args.models = set(list_models(internal=(not args.oss)))
+
         devices = validate(parse_str_to_list(args.device), list_devices())
         tests = validate(parse_str_to_list(args.test), list_tests())
         batch_sizes = parse_str_to_list(args.bs)
-        models = validate(parse_str_to_list(args.models), modelset)
+        models = validate(args.models, modelset)
         configs = generate_model_configs(
             devices, tests, batch_sizes, model_names=models, extra_args=extra_args
         )
