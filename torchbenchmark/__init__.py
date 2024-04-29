@@ -245,15 +245,11 @@ class ModelDetails:
     metadata.
     """
 
-    path: str
+    name: str
     exists: bool
     _diagnostic_msg: str
 
     metadata: Dict[str, Any]
-
-    @property
-    def name(self) -> str:
-        return os.path.basename(self.path)
 
 
 class Worker(subprocess_worker.SubprocessWorker):
@@ -285,7 +281,7 @@ class ModelTask(base_task.TaskBase):
 
     def __init__(
         self,
-        model_path: str,
+        model_name: str,
         timeout: Optional[float] = None,
         extra_env: Optional[Dict[str, str]] = None,
         save_output_dir: Optional[pathlib.Path] = None,
@@ -293,9 +289,7 @@ class ModelTask(base_task.TaskBase):
         gc.collect()  # Make sure previous task has a chance to release the lock
         assert self._lock.acquire(blocking=False), "Failed to acquire lock."
 
-        self._model_path = model_path
-        if _is_internal_model(model_path):
-            model_path = f"{internal_model_dir}.{model_path}"
+        self._model_name = model_name
         self._worker = Worker(
             timeout=timeout, extra_env=extra_env, save_output_dir=save_output_dir
         )
@@ -304,7 +298,7 @@ class ModelTask(base_task.TaskBase):
         self._details: ModelDetails = ModelDetails(
             **self._maybe_import_model(
                 package=__name__,
-                model_path=model_path,
+                model_name=model_name,
             )
         )
 
@@ -320,7 +314,7 @@ class ModelTask(base_task.TaskBase):
         return self._details
 
     def __str__(self) -> str:
-        return f"ModelTask(Model Path: {self._model_path}, Metadata: {self._details.metadata})"
+        return f"ModelTask(Model Name: {self._model_name}, Metadata: {self._details.metadata})"
 
     # =========================================================================
     # == Import Model in the child process ====================================
@@ -328,13 +322,12 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def _maybe_import_model(package: str, model_path: str) -> Dict[str, Any]:
+    def _maybe_import_model(package: str, model_name: str) -> Dict[str, Any]:
         import importlib
         import os
         import traceback
         from torchbenchmark import load_model_by_name
 
-        model_name = os.path.basename(model_path)
         diagnostic_msg = ""
         Model = load_model_by_name(model_name)
 
@@ -343,7 +336,7 @@ class ModelTask(base_task.TaskBase):
 
         # This will be used to populate a `ModelDetails` instance in the parent.
         return {
-            "path": model_path,
+            "name": model_name,
             "exists": Model is not None,
             "_diagnostic_msg": diagnostic_msg,
             "metadata": {},
