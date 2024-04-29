@@ -8,15 +8,7 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
 )
-
-from .async_compilation import inductor_nop, inductor_nop_args
 from .kernels import nop_kernel, nop_with_args_kernel, trivial_add_kernel
-
-try:
-    from torch._inductor.runtime import triton_heuristics
-except ImportError:
-    # TODO(jansel): delete this case once D56408511 lands
-    from torch._inductor import triton_heuristics
 
 
 class Operator(BenchmarkOperator):
@@ -58,16 +50,6 @@ class Operator(BenchmarkOperator):
             return lambda: bin.run(
                 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, function, None, None, metadata, *args
             )
-
-    @register_benchmark()
-    def nop_inductor_kernel_run(self, *args):
-        stream = get_raw_stream(0)
-        grid = triton_heuristics.grid(1)
-
-        if len(args) == 0:
-            return lambda: inductor_nop.run(1, grid=grid, stream=stream)
-        args = args[:-5]
-        return lambda: inductor_nop_args.run(*args, grid=grid, stream=stream)
 
     @register_benchmark()
     def nop_inductor_kernel(self, *args):
