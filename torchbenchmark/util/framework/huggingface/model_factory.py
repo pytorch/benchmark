@@ -124,12 +124,10 @@ class HuggingFaceModel(BenchmarkModel):
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
         # transformations such as fx2trt will cast the original output type to dict
-        if isinstance(out, tuple):
-            return out
-        elif hasattr(out, "logits"):
+        if hasattr(out, "logits"):
             return (out.logits,)
         else:
-            return (out["logits"],)
+            return out
 
 
 class HuggingFaceAuthMixin:

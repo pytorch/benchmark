@@ -116,6 +116,11 @@ class TimmModel(BenchmarkModel):
 class ExtendedTimmModel(TimmModel):
     DEFAULT_TRAIN_BSIZE = None
     DEFAULT_EVAL_BSIZE = None
+    DEFAULT_CUDA_EVAL_PRECISION_FP32_MODELS = [
+        "convit_base",
+        "beit_base_patch16_224",
+        "xcit_large_24_p8_224",
+    ]
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         recorded_batch_size = TIMM_MODELS[self.name]
@@ -125,6 +130,8 @@ class ExtendedTimmModel(TimmModel):
             )
         self.DEFAULT_EVAL_BSIZE = recorded_batch_size
         self.DEFAULT_TRAIN_BSIZE = recorded_batch_size
+        self.DEFAULT_EVAL_CUDA_PRECISION = "fp32" \
+            if self.name in self.DEFAULT_CUDA_EVAL_PRECISION_FP32_MODELS else "fp16"
         super().__init__(
             model_name=self.name,
             test=test,
