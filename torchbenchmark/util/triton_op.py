@@ -228,7 +228,8 @@ class BenchmarkOperatorResult:
             x_val = row[0]
             for ind, value in enumerate(row[1:]):
                 header = headers[ind+1]
-                metric_name = f"tritonbench_{self.op_name}[x_{x_val}-{header}]"
+                provider, _dash, metrics = header.partition("-")
+                metric_name = f"tritonbench_{self.op_name}[x_{x_val}-{provider}]_{metrics}"
                 userbenchmark_metrics_dict[metric_name] = value
         return userbenchmark_metrics_dict
 

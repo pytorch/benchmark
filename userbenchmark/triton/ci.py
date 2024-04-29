@@ -1,7 +1,7 @@
 import logging
 import json
 import triton
-from typing import List, Any
+from typing import List, Any, Dict
 
 from . import BM_NAME
 from .run import parse_args, _run
@@ -12,7 +12,7 @@ CI_TESTS = [
     ["--op", "softmax", "--num-inputs", "10"],
 ]
 
-def ci_result_to_userbenchmark_json(ci_metrics: List[BenchmarkOperatorResult]) -> Any:
+def ci_result_to_userbenchmark_json(ci_metrics: List[BenchmarkOperatorResult]) -> Dict[str, Any]:
     result = {}
     for metric in ci_metrics:
         result.update(metric.userbenchmark_dict)
