@@ -10,6 +10,7 @@ from torchbenchmark.util.triton_op import BenchmarkOperatorResult
 
 CI_TESTS = [
     ["--op", "softmax", "--num-inputs", "10"],
+    ["--op", "launch_latency"],
 ]
 
 def ci_result_to_userbenchmark_json(ci_metrics: List[BenchmarkOperatorResult]) -> Any:
