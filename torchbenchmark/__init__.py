@@ -584,7 +584,7 @@ class ModelTask(base_task.TaskBase):
 
 
 def list_models_details(workers: int = 1) -> List[ModelDetails]:
-    return [ModelTask(model_path).model_details for model_path in _list_model_paths()]
+    return [ModelTask(os.path.basename(model_path)).model_details for model_path in _list_model_paths()]
 
 
 def list_models(model_match=None):

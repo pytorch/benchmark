@@ -202,7 +202,7 @@ def run_config_memleak(config: TorchBenchModelConfig, dryrun: bool=False) -> Dic
     model_name = config.name
     model_path = os.path.join(REPO_PATH, "torchbenchmark", "models", model_name)
     metadata = get_metadata_from_yaml(model_path)
-    task = ModelTask(model_path, timeout=TIMEOUT)
+    task = ModelTask(model_name, timeout=TIMEOUT)
     allow_customize_batch_size = task.get_model_attribute(
         "ALLOW_CUSTOMIZE_BSIZE", classattr=True
     )
