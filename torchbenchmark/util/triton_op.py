@@ -640,6 +640,21 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         gpu_peak_mem = None
         error_msg = None
         hw_roofline = None
+        metric = BenchmarkOperatorMetrics(
+            latency=None,
+            tflops=None,
+            speedup=None,
+            accuracy=None,
+            walltime=None,
+            compile_time=None,
+            ncu_trace=None,
+            hw_roofline=self.hw_roofline() if "hw_roofline" in self.required_metrics else None,
+            kineto_trace=None,
+            cpu_peak_mem=None,
+            gpu_peak_mem=None,
+            error_msg="",
+            extra_metrics={},
+        )
         try:
             fn = self._get_bm_func(fn_name)
             if baseline:
@@ -748,22 +763,11 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     extra_metrics[metric_name] = func(fn, self.example_inputs, metric)
                 metric.extra_metrics = extra_metrics
         except torch.cuda.OutOfMemoryError:
-            metric = BenchmarkOperatorMetrics(
-                latency=None,
-                tflops=None,
-                speedup=None,
-                accuracy=None,
-                walltime=None,
-                compile_time=None,
-                ncu_trace=None,
-                hw_roofline=self.hw_roofline() if "hw_roofline" in self.required_metrics else None,
-                kineto_trace=None,
-                cpu_peak_mem=None,
-                gpu_peak_mem=None,
-                error_msg="CUDA OOM",
-                extra_metrics={},
-            )
-        return metric
+            metric.error_msg = "CUDA OOM"
+        except RuntimeError as e:
+            metric.error_msg = str(e)
+        finally:
+            return metric
 
     def get_peak_mem(
         self, fn: Callable
