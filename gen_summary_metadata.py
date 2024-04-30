@@ -60,7 +60,7 @@ def _extract_detail(path: str) -> Dict[str, Any]:
     t_detail = None
     e_detail = None
     # Separate train and eval to isolated processes.
-    task_t = ModelTask(path, timeout=TIMEOUT)
+    task_t = ModelTask(name, timeout=TIMEOUT)
     try:
         task_t.make_model_instance(device=device)
         task_t.set_train()
@@ -72,7 +72,7 @@ def _extract_detail(path: str) -> Dict[str, Any]:
         print(f"Model {name} train is not fully implemented. skipping...")
     del task_t
 
-    task_e = ModelTask(path, timeout=TIMEOUT)
+    task_e = ModelTask(name, timeout=TIMEOUT)
     try:
         task_e.make_model_instance(device=device)
         task_e.set_eval()

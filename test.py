@@ -55,6 +55,9 @@ def _create_example_model_instance(task: ModelTask, device: str):
 
 
 def _load_test(path, device):
+
+    model_name = os.path.basename(path)
+
     def _skip_cuda_memory_check_p(metadata):
         if device != "cuda":
             return True
@@ -63,7 +66,7 @@ def _load_test(path, device):
         return False
 
     def example_fn(self):
-        task = ModelTask(path, timeout=TIMEOUT)
+        task = ModelTask(model_name, timeout=TIMEOUT)
         with task.watch_cuda_memory(
             skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual
         ):
@@ -83,7 +86,7 @@ def _load_test(path, device):
 
     def train_fn(self):
         metadata = get_metadata_from_yaml(path)
-        task = ModelTask(path, timeout=TIMEOUT)
+        task = ModelTask(model_name, timeout=TIMEOUT)
         allow_customize_batch_size = task.get_model_attribute(
             "ALLOW_CUSTOMIZE_BSIZE", classattr=True
         )
@@ -106,7 +109,7 @@ def _load_test(path, device):
 
     def eval_fn(self):
         metadata = get_metadata_from_yaml(path)
-        task = ModelTask(path, timeout=TIMEOUT)
+        task = ModelTask(model_name, timeout=TIMEOUT)
         allow_customize_batch_size = task.get_model_attribute(
             "ALLOW_CUSTOMIZE_BSIZE", classattr=True
         )
@@ -129,7 +132,7 @@ def _load_test(path, device):
                 )
 
     def check_device_fn(self):
-        task = ModelTask(path, timeout=TIMEOUT)
+        task = ModelTask(model_name, timeout=TIMEOUT)
         with task.watch_cuda_memory(
             skip=_skip_cuda_memory_check_p(metadata), assert_equal=self.assertEqual
         ):
@@ -142,7 +145,6 @@ def _load_test(path, device):
                     f'Method check_device on {device} is not implemented because "{e}", skipping...'
                 )
 
-    name = os.path.basename(path)
     metadata = get_metadata_from_yaml(path)
     for fn, fn_name in zip(
         [example_fn, train_fn, eval_fn, check_device_fn],
@@ -151,7 +153,7 @@ def _load_test(path, device):
         # set exclude list based on metadata
         setattr(
             TestBenchmark,
-            f"test_{name}_{fn_name}_{device}",
+            f"test_{model_name}_{fn_name}_{device}",
             (
                 unittest.skipIf(
                     skip_by_metadata(

@@ -42,10 +42,11 @@ def pytest_generate_tests(metafunc):
 
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         paths = _list_model_paths()
+        model_names = [os.path.basename(path) for path in paths]
         metafunc.parametrize(
-            "model_path",
-            paths,
-            ids=[os.path.basename(path) for path in paths],
+            "model_name",
+            model_names,
+            ids=model_names,
             scope="class",
         )
 
@@ -61,20 +62,20 @@ def pytest_generate_tests(metafunc):
 )
 class TestBenchNetwork:
 
-    def test_train(self, model_path, device, compiler, benchmark):
+    def test_train(self, model_name, device, compiler, benchmark):
         try:
             if skip_by_metadata(
                 test="train",
                 device=device,
                 extra_args=[],
-                metadata=get_metadata_from_yaml(model_path),
+                metadata=get_metadata_from_yaml(model_name),
             ):
                 raise NotImplementedError("Test skipped by its metadata.")
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
-            if "quantized" in model_path:
+            if "quantized" in model_name:
                 return
-            task = ModelTask(model_path)
+            task = ModelTask(model_name)
             if not task.model_details.exists:
                 return  # Model is not supported.
 
@@ -90,20 +91,20 @@ class TestBenchNetwork:
         except NotImplementedError:
             print(f"Test train on {device} is not implemented, skipping...")
 
-    def test_eval(self, model_path, device, compiler, benchmark, pytestconfig):
+    def test_eval(self, model_name, device, compiler, benchmark, pytestconfig):
         try:
             if skip_by_metadata(
                 test="eval",
                 device=device,
                 extra_args=[],
-                metadata=get_metadata_from_yaml(model_path),
+                metadata=get_metadata_from_yaml(model_name),
             ):
                 raise NotImplementedError("Test skipped by its metadata.")
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
-            if "quantized" in model_path:
+            if "quantized" in model_name:
                 return
-            task = ModelTask(model_path)
+            task = ModelTask(model_name)
             if not task.model_details.exists:
                 return  # Model is not supported.
 
