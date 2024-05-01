@@ -68,3 +68,19 @@ def torchscript(
         model.set_module(module)
 
     return _torchscript, extra_args
+
+@create_backend
+def torchscript_trace(
+    model: "torchbenchmark.util.model.BenchmarkModel", backend_args: List[str]
+):
+    model.jit = True
+    backend_args, extra_args = parse_torchscript_args(backend_args)
+    def _torchscript_trace():
+        module, example_inputs = model.get_module()
+        module = torch.jit.trace(
+            module,
+            example_inputs=example_inputs,
+        )
+        model.set_module(module)
+
+    return _torchscript_trace, extra_args
