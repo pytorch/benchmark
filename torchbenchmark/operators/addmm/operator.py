@@ -25,12 +25,13 @@ class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
     DEFAULT_PRECISION = "bf16"
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]]=None):
+    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
         super().__init__(mode=mode, device=device, extra_args=extra_args)
-        if not self.extra_args:
-            self.shapes = BUILDIN_SHAPES
+        addmm_args = parse_args(self.extra_args)
+        if addmm_args.m and addmm_args.n and addmm_args.k:
+            self.shapes = [(addmm_args.m, addmm_args.k, addmm_args.n)]
         else:
-            self.shapes = [(self.tb_args.m, self.tbargs.k, self.tbargs.n)]
+            self.shapes = BUILDIN_SHAPES
 
     @register_benchmark()
     def triton_addmm(self, a, mat1, mat2) -> Callable:

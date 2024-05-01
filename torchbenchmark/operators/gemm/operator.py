@@ -87,16 +87,16 @@ class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
     DEFAULT_PRECISION = "fp16"
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]]=None):
+    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
         super().__init__(mode=mode, device=device, extra_args=extra_args)
-        self.tbargs = parse_args(self.extra_args)
-        if self.tbargs.input:
-            self.shapes = read_shapes_from_csv(self.tbargs.input)
-        elif self.tbargs.splitk:
+        gemm_args = parse_args(self.extra_args)
+        if gemm_args.input:
+            self.shapes = read_shapes_from_csv(gemm_args.input)
+        elif gemm_args.splitk:
             self.shapes = SPLIT_K_SHAPES
-        elif self.tbargs.m and self.tbargs.k and self.tbargs.n:
+        elif gemm_args.m and gemm_args.k and gemm_args.n:
             self.shapes = [
-                (self.tbargs.m, self.tbargs.k, self.tbargs.n, self.tbargs.bias)
+                (gemm_args.m, gemm_args.k, gemm_args.n, gemm_args.bias)
             ]
         else:
             self.shapes = BUILDIN_SHAPES
