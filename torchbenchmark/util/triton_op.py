@@ -632,15 +632,17 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         quantiles=DEFAULT_QUANTILES,
         baseline: bool = False,
     ) -> BenchmarkOperatorMetrics:
-        latency = []
-        speedup = None
-        accuracy = None
-        walltime = None
-        cpu_peak_mem = None
-        gpu_peak_mem = None
-        error_msg = None
-        hw_roofline = None
-        metric = BenchmarkOperatorMetrics(
+        def _init_extra_metrics() -> Dict[str, Any]:
+            extra_metrics = {}
+            if self.name in REGISTERED_METRICS:
+                for metric_name in REGISTERED_METRICS[self.name]:
+                    if metric_name in BUILTIN_METRICS:
+                        continue
+                    if metric_name not in self.required_metrics:
+                        continue
+                    extra_metrics[metric_name] = None
+            return extra_metrics
+        metrics = BenchmarkOperatorMetrics(
             latency=None,
             tflops=None,
             speedup=None,
@@ -653,7 +655,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             cpu_peak_mem=None,
             gpu_peak_mem=None,
             error_msg="",
-            extra_metrics={},
+            extra_metrics=_init_extra_metrics(),
         )
         try:
             fn = self._get_bm_func(fn_name)
@@ -662,7 +664,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if set(["latency", "tflops", "speedup", "compile_time"]) & set(
                 self.required_metrics
             ):
-                latency = triton.testing.do_bench(
+                metrics.latency = triton.testing.do_bench(
                     fn,
                     warmup=warmup,
                     rep=rep,
@@ -670,18 +672,18 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     grad_to_none=self.get_grad_to_none(self.example_inputs),
                 )
             if "walltime" in self.required_metrics:
-                walltime = do_bench_walltime(
+                metrics.walltime = do_bench_walltime(
                     fn,
                     warmup=warmup,
                     rep=rep,
                 )
             if "speedup" in self.required_metrics:
-                speedup = (
-                    numpy.median(self.baseline_metrics.latency) / numpy.median(latency)
+                metrics.speedup = (
+                    numpy.median(self.baseline_metrics.latency) / numpy.median(metrics.latency)
                     if self.baseline_metrics and self.baseline_metrics.latency
                     else None
                 )
-                error_msg = (
+                metrics.error_msg = (
                     self.baseline_metrics.error_msg
                     if self.baseline_metrics and self.baseline_metrics.error_msg
                     else None
@@ -690,39 +692,23 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 "cpu_peak_mem" in self.required_metrics
                 or "gpu_peak_mem" in self.required_metrics
             ):
-                cpu_peak_mem, _device_id, gpu_peak_mem = self.get_peak_mem(fn)
+                metrics.cpu_peak_mem, _device_id, metrics.gpu_peak_mem = self.get_peak_mem(fn)
             if not baseline and "accuracy" in self.required_metrics:
-                accuracy = (
+                metrics.accuracy = (
                     self._get_accuracy(fn, self.baseline_fn)
                     if self.baseline_fn
                     else None
                 )
             if "hw_roofline" in self.required_metrics:
-                hw_roofline = self.hw_roofline()
-            metric = BenchmarkOperatorMetrics(
-                latency=latency,
-                tflops=None,
-                speedup=speedup,
-                accuracy=accuracy,
-                walltime=walltime,
-                compile_time=None,
-                ncu_trace=None,
-                kineto_trace=None,
-                cpu_peak_mem=cpu_peak_mem,
-                gpu_peak_mem=gpu_peak_mem,
-                hw_roofline=hw_roofline,
-                error_msg=error_msg,
-                extra_metrics={},
-            )
+                metrics.hw_roofline = self.hw_roofline()
             if "tflops" in self.required_metrics:
-                metric.tflops = self.tflops(fn_name, self.example_inputs, metric)
+                metrics.tflops = self.tflops(fn_name, self.example_inputs, metric)
             if "compile_time" in self.required_metrics:
-                metric.compile_time = self.compile_time(input_id, fn_name, metric)
+                metrics.compile_time = self.compile_time(input_id, fn_name, metric)
             if "ncu_trace" in self.required_metrics:
-                metric.ncu_trace = self.ncu_trace(input_id, fn_name)
+                metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
             if "kineto_trace" in self.required_metrics:
-                metric.kineto_trace = self.kineto_trace(input_id, fn)
-            extra_metrics = {}
+                metrics.kineto_trace = self.kineto_trace(input_id, fn)
             # run the hidden metric "_compile_time_in_task"
             # to get the compile time in parent process
             if "_compile_time_in_task" in self.required_metrics:
@@ -734,7 +720,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     "_compile_time_in_task must be measured by itself. "
                     f"required_metrics: {self.required_metrics}, _only: {self._only}, _input_id: {self._input_id}"
                 )
-                extra_metrics["_compile_time_in_task"] = self._compile_time_in_task(fn)
+                metrics.extra_metrics["_compile_time_in_task"] = self._compile_time_in_task(fn)
             if "_ncu_trace_in_task" in self.required_metrics:
                 assert (
                     self.required_metrics == ["_ncu_trace_in_task"]
@@ -751,7 +737,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     warmup=warmup,
                     grad_to_none=self.get_grad_to_none(self.example_inputs),
                 )
-                extra_metrics["_ncu_trace_in_task"] = "success"
+                metrics.extra_metrics["_ncu_trace_in_task"] = "success"
             # generate customized metrics
             if self.name in REGISTERED_METRICS:
                 for metric_name in REGISTERED_METRICS[self.name]:
@@ -760,14 +746,13 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     if not metric_name in self.required_metrics:
                         continue
                     func = getattr(self, metric_name)
-                    extra_metrics[metric_name] = func(fn, self.example_inputs, metric)
-                metric.extra_metrics = extra_metrics
+                    metrics.extra_metrics[metric_name] = func(fn, self.example_inputs, metrics)
         except torch.cuda.OutOfMemoryError:
-            metric.error_msg = "CUDA OOM"
+            metrics.error_msg = "CUDA OOM"
         except RuntimeError as e:
-            metric.error_msg = str(e)
+            metrics.error_msg = str(e)
         finally:
-            return metric
+            return metrics
 
     def get_peak_mem(
         self, fn: Callable

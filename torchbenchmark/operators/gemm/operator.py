@@ -29,6 +29,11 @@ try:
 except ImportError:
     HAS_HAMMER = False
 
+try:
+    torch.ops.load_library("//pytorch/benchmark/torchbenchmark/operators/gemm/cutlass:colfax_gemm_lib")
+    colfax_gemm = torch.ops.cutlass.colfax_gemm
+except (ImportError, IOError, AttributeError) as e:
+    colfax_gemm = None
 
 BUILDIN_SHAPES = [
     (256, 256, 256, None),
@@ -127,6 +132,14 @@ class Operator(BenchmarkOperator):
             return lambda: hstu_triton_matmul(a, b) + bias
         else:
             return lambda: hstu_triton_matmul(a, b)
+
+    @register_benchmark(enabled=bool(colfax_gemm))
+    def colfax_cutlass_matmul(self, a, b, bias) -> Callable:
+        assert colfax_gemm, f"colfax_gemm operator is not available."
+        if not bias == None:
+            return lambda: colfax_gemm(a, b, alpha=1.0, beta=1.0) + bias
+        else:
+            return lambda: colfax_gemm(a, b, alpha=1.0, beta=1.0)
 
     def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
         # x-value: computation intensity
