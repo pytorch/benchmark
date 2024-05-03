@@ -113,7 +113,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.optimizer_contexts = []
         self.run_contexts = [
             enable_profiling_executor,  # force JIT profiling executor to be enabled by default
-            pick_grad(self.name, bool(self.test == "train")),
+            lambda: pick_grad(self.name, bool(self.test == "train")),
         ]
 
         set_random_seed()
