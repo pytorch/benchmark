@@ -112,7 +112,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.backward_contexts = []
             self.optimizer_contexts = []
         self.run_contexts = [
-            enable_profiling_executor  # force JIT profiling executor to be enabled by default,
+            enable_profiling_executor,  # force JIT profiling executor to be enabled by default
             pick_grad(self.name, bool(self.test == "train")),
         ]
 
