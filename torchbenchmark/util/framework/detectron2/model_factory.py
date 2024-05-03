@@ -211,8 +211,7 @@ class Detectron2Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         batch_id = 0
-        with torch.no_grad():
-            out = self.model(self.example_inputs[batch_id])
+        out = self.model(self.example_inputs[batch_id])
         # retrieve output tensors
         outputs = []
         for item in out:
