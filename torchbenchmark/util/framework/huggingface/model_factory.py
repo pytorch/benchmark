@@ -118,9 +118,8 @@ class HuggingFaceModel(BenchmarkModel):
         self.optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
-        with torch.no_grad():
-            with self.amp_context():
-                out = self.model(**self.example_inputs)
+        with self.amp_context():
+            out = self.model(**self.example_inputs)
         # logits: prediction scores of language modeling head
         # https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/modeling_outputs.py#L455
         # transformations such as fx2trt will cast the original output type to dict
@@ -174,9 +173,8 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
         raise NotImplementedError("_generate variant doesn't train")
 
     def eval(self) -> Tuple[torch.Tensor]:
-        with torch.no_grad():
-            with self.amp_context():
-                out = self.model(*self.example_inputs)
+        with self.amp_context():
+            out = self.model(*self.example_inputs)
         return (out,)
 
 

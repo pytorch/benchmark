@@ -36,6 +36,5 @@ class Model(BenchmarkModel):
 
     def eval(self):
         self.model.eval()
-        with torch.no_grad():
-            out=self.model(*self.example_inputs)
+        out=self.model(*self.example_inputs)
         return (out,)
