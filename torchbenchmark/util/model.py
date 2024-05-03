@@ -112,7 +112,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.backward_contexts = []
             self.optimizer_contexts = []
         self.run_contexts = [
-            enable_profiling_executor,  # force JIT profiling executor to be enabled by default
+            # force JIT profiling executor to be enabled by default
+            enable_profiling_executor,
+            # Due to an Inductor bug https://github.com/pytorch/pytorch/issues/125474
+            # In inference tests, we need to handle the grad context in the framework level
+            # before the model function is called
             lambda: pick_grad(self.name, bool(self.test == "train")),
         ]
 
