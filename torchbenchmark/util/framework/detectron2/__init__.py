@@ -42,8 +42,13 @@ def install_model_weights(model_name, model_dir):
 
 def pip_install_requirements():
     requirements_file = os.path.join(CURRENT_DIR, "requirements.txt")
+    # Installing by --no-build-isolation after explicitly installing build-time requirements is required.
+    # See https://github.com/facebookresearch/detectron2/issues/4921
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-q", "-r", requirements_file]
+        [sys.executable, "-m", "pip", "install", "-q", "wheel", "cython"] # Build-time requirements
+    )
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "--no-build-isolation", "-q", "-r", requirements_file]
     )
 
 
