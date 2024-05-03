@@ -258,21 +258,20 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         niter = 1
-        with torch.no_grad():
-            discount = 1.0
-            episode_return_history = []
-            for episode in range(niter):
-                episode_return = 0.0
-                state, _info = self.test_env.reset()
-                done, info = False, {}
-                for step_num in range(self.args.max_episode_steps):
-                    if done:
-                        break
-                    action = self.agent.forward(state)
-                    state, reward, done, info, _unused = self.test_env.step(action)
-                    episode_return += reward * (discount**step_num)
-                episode_return_history.append(episode_return)
-            retval = torch.tensor(episode_return_history)
+        discount = 1.0
+        episode_return_history = []
+        for episode in range(niter):
+            episode_return = 0.0
+            state, _info = self.test_env.reset()
+            done, info = False, {}
+            for step_num in range(self.args.max_episode_steps):
+                if done:
+                    break
+                action = self.agent.forward(state)
+                state, reward, done, info, _unused = self.test_env.step(action)
+                episode_return += reward * (discount**step_num)
+            episode_return_history.append(episode_return)
+        retval = torch.tensor(episode_return_history)
         return (torch.tensor(action),)
 
     def get_optimizer(self):

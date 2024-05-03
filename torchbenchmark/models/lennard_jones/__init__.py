@@ -100,6 +100,5 @@ class Model(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         model = self.model
         model.eval()
-        with torch.no_grad():
-            out = make_prediction(model, self.drs)
+        out = make_prediction(model, self.drs)
         return out

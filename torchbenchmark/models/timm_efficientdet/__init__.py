@@ -181,9 +181,8 @@ class Model(BenchmarkModel):
                 # self.lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])
 
     def eval(self) -> Tuple[torch.Tensor]:
-        with torch.no_grad():
-            for input, target in self.loader:
-                with self.amp_autocast():
-                    output = self.model(input, img_info=target)
-                self.evaluator.add_predictions(output, target)
+        for input, target in self.loader:
+            with self.amp_autocast():
+                output = self.model(input, img_info=target)
+            self.evaluator.add_predictions(output, target)
         return (output, )

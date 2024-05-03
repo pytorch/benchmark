@@ -24,8 +24,7 @@ class Model(HuggingFaceModel):
 
     def eval(self):
         self.model.eval()
-        with torch.no_grad():
-            self.model(self.example_inputs["input_ids"])
+        self.model(self.example_inputs["input_ids"])
     
     def enable_fp16(self):
         self.model.half()

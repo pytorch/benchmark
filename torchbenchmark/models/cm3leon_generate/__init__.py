@@ -47,6 +47,5 @@ class Model(BenchmarkModel):
         return loss.item()
 
     def eval(self):
-        with torch.no_grad():
-            out = self.model(*self.example_inputs)
+        out = self.model(*self.example_inputs)
         return (out,)
