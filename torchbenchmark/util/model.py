@@ -9,6 +9,7 @@ import torch
 import yaml
 from torchbenchmark import REPO_PATH
 from torchbenchmark.util.env_check import (
+    pick_grad,
     check_accuracy,
     is_hf_model,
     load_deterministic_dict,
@@ -38,19 +39,6 @@ class PostInitProcessor(type):
         obj = type.__call__(cls, *args, **kwargs)
         obj.__post__init__()
         return obj
-
-
-@contextmanager
-def no_grad(val):
-    """Some meta-learning models (e.g. maml) may need to train a target(another) model
-    in inference runs
-    """
-    old_state = torch.is_grad_enabled()
-    try:
-        torch.set_grad_enabled(not val)
-        yield
-    finally:
-        torch.set_grad_enabled(old_state)
 
 
 @contextmanager
@@ -124,7 +112,8 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             self.backward_contexts = []
             self.optimizer_contexts = []
         self.run_contexts = [
-            enable_profiling_executor  # force JIT profiling executor to be enabled by default
+            enable_profiling_executor  # force JIT profiling executor to be enabled by default,
+            pick_grad(self.name, bool(self.test == "train")),
         ]
 
         set_random_seed()
@@ -411,9 +400,6 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             elif self.test == "eval":
                 out = self.eval()
         return out
-
-    def eval_in_nograd(self):
-        return True
 
     def enable_fx_int8(self, quant_engine: str = "x86"):
         torch.backends.quantized.engine = quant_engine

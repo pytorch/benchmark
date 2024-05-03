@@ -544,21 +544,6 @@ class ModelTask(base_task.TaskBase):
     # =========================================================================
 
     @contextlib.contextmanager
-    def no_grad(self, disable_nograd: bool) -> None:
-        # TODO: deduplicate with `torchbenchmark.util.model.no_grad`
-
-        initial_value = self.worker.load_stmt("torch.is_grad_enabled()")
-        eval_in_nograd = not disable_nograd and self.worker.load_stmt(
-            "model.eval_in_nograd()"
-        )
-
-        try:
-            self.worker.run(f"torch.set_grad_enabled({not eval_in_nograd})")
-            yield
-        finally:
-            self.worker.run(f"torch.set_grad_enabled({initial_value})")
-
-    @contextlib.contextmanager
     def watch_cuda_memory(
         self,
         skip: bool,
