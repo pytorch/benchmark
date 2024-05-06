@@ -10,3 +10,7 @@ not_implemented:
 - device: cpu
 - device: cuda
   test: example
+# eval test exceeds 300s time limit on A10G
+# https://github.com/pytorch/benchmark/actions/runs/8972426901/job/24640395990
+- device: NVIDIA A10G
+  test: eval
