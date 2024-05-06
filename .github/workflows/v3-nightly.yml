@@ -23,7 +23,6 @@ jobs:
       - name: Checkout TorchBench v3.0 branch
         uses: actions/checkout@v3
         with:
-          ref: v3.0
           path: benchmark
       - name: Tune Nvidia GPU
         run: |
