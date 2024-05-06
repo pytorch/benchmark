@@ -117,9 +117,8 @@ class Model(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         self._mode(self.model, is_test=True)
         self._predict_func = self.model.forward
-        with torch.no_grad():
-            for batch_x, _batch_y in self.example_inputs:
-                pred_dict = self._data_forward(self._predict_func, batch_x)
+        for batch_x, _batch_y in self.example_inputs:
+            pred_dict = self._data_forward(self._predict_func, batch_x)
         # return a tuple of Tensors
         return (pred_dict["pred_start"], pred_dict["pred_end"])
 

@@ -251,9 +251,8 @@ class SpeechTransformerEvalConfig:
                 break
 
     def eval(self):
-        with torch.no_grad():
-            for input, input_length in self.example_inputs:
-                nbest_hyps = self.model.recognize(
-                    input, input_length, self.char_list, self
-                )
+        for input, input_length in self.example_inputs:
+            nbest_hyps = self.model.recognize(
+                input, input_length, self.char_list, self
+            )
         return nbest_hyps

@@ -107,9 +107,8 @@ class TimmModel(BenchmarkModel):
         self._step_train()
 
     def eval(self) -> typing.Tuple[torch.Tensor]:
-        with torch.no_grad():
-            with self.amp_context():
-                out = self._step_eval()
+        with self.amp_context():
+            out = self._step_eval()
         return (out,)
 
 

@@ -105,6 +105,3 @@ class Model(BenchmarkModel):
 
     def train(self):
         raise NotImplementedError("MAML model doesn't support train.")
-
-    def eval_in_nograd(self):
-        return False

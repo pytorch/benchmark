@@ -90,18 +90,17 @@ class Model(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         torch.backends.cudnn.deterministic = True
         self.model.eval()
-        with torch.no_grad():
-            with torch.cuda.amp.autocast(enabled=self.args.amp):
-                mask_pred = self.model(self.example_inputs)
+        with torch.cuda.amp.autocast(enabled=self.args.amp):
+            mask_pred = self.model(self.example_inputs)
 
-                if self.model.n_classes == 1:
-                    mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
-                else:
-                    mask_pred = (
-                        F.one_hot(mask_pred.argmax(dim=1), self.model.n_classes)
-                        .permute(0, 3, 1, 2)
-                        .float()
-                    )
+            if self.model.n_classes == 1:
+                mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
+            else:
+                mask_pred = (
+                    F.one_hot(mask_pred.argmax(dim=1), self.model.n_classes)
+                    .permute(0, 3, 1, 2)
+                    .float()
+                )
         return (mask_pred,)
 
     def _get_args(self):

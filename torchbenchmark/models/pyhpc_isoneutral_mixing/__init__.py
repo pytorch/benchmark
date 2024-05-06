@@ -146,6 +146,5 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
-        with torch.no_grad():
-            out = model(*example_inputs)
+        out = model(*example_inputs)
         return out

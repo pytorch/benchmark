@@ -192,6 +192,5 @@ class Model(BenchmarkModel):
         model = self.model
         (images, ) = self.example_inputs
         model.eval()
-        with torch.no_grad():
-            out = model(images)
+        out = model(images)
         return (out,)

@@ -37,6 +37,5 @@ class Model(BenchmarkModel):
         return self.model, (self.example_inputs,)
 
     def eval(self) -> Tuple[torch.Tensor]:
-        with torch.inference_mode():
-            out = self.model(self.example_inputs, return_model_output=True)
+        out = self.model(self.example_inputs, return_model_output=True)
         return (out["out_map"],)
