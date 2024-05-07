@@ -4,5 +4,5 @@ devices:
 eval_benchmark: true
 eval_deterministic: false
 eval_nograd: true
-train_benchmark: true
+train_benchmark: false
 train_deterministic: false
