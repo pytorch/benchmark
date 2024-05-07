@@ -77,11 +77,9 @@ class Model(BenchmarkModel):
 
     def eval(self):
         self.model.eval()
-
-        with torch.no_grad():
-            image_embedding, text_embedding = self.model(
-                self.image_tensor, self.text_tensor
-            )
-            score = image_embedding @ text_embedding.t()
+        image_embedding, text_embedding = self.model(
+            self.image_tensor, self.text_tensor
+        )
+        score = image_embedding @ text_embedding.t()
 
         return self.text[torch.argmax(score)]

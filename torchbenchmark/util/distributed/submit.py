@@ -2,81 +2,74 @@ import argparse
 import importlib
 import os
 import sys
-import torch
 import uuid
 
 from pathlib import Path
 from typing import List
+
+import torch
 
 try:
     import submitit
 except ImportError:
     submitit = None
 
-def parse_args(args: List[str]=None):
-    parser = argparse.ArgumentParser(description='PyTorch Distributed Benchmark', add_help=False)
+
+def parse_args(args: List[str] = None):
+    parser = argparse.ArgumentParser(
+        description="PyTorch Distributed Benchmark", add_help=False
+    )
 
     parser.add_argument(
         "--scheduler",
         default="slurm",
         type=str,
         choices=["local", "slurm"],
-        help="Where to launch the job on a specific infrastructure"
+        help="Where to launch the job on a specific infrastructure",
     )
 
     parser.add_argument(
-        "--ngpus",
-        default=2,
-        type=int,
-        help="Number of gpus to request on each node"
+        "--ngpus", default=2, type=int, help="Number of gpus to request on each node"
     )
 
     parser.add_argument(
-        "--nodes",
-        default=1,
-        type=int,
-        help="Number of nodes to request"
+        "--nodes", default=1, type=int, help="Number of nodes to request"
     )
 
-    parser.add_argument(
-        "--timeout",
-        default=1440,
-        type=int,
-        help="Duration of the job"
-    )
+    parser.add_argument("--timeout", default=1440, type=int, help="Duration of the job")
 
     parser.add_argument(
         "--profiler",
         default=False,
         type=bool,
-        help="Measure with PyTorch Profiler. Disabled by default, as it crashes on AWS"
+        help="Measure with PyTorch Profiler. Disabled by default, as it crashes on AWS",
     )
 
     parser.add_argument(
         "--partition",
         default="train",
         type=str,
-        help="The Slurm partition to submit to"
+        help="The Slurm partition to submit to",
     )
 
     parser.add_argument(
         "--cluster",
         default=None,
-        help="Which slurm cluster to target. Use 'local' to run jobs locally, 'debug' to run jobs in process"
+        help="Which slurm cluster to target. Use 'local' to run jobs locally, 'debug' to run jobs in process",
     )
 
     parser.add_argument(
         "--job_dir",
         default=os.getcwd(),
         type=str,
-        help="A shared folder across all worker processes"
+        help="A shared folder across all worker processes",
     )
 
     parser.add_argument(
         "--model",
         type=str,
         default="torchbenchmark.e2e_models.hf_bert.Model",
-        help="specify the model to experiment with, by default uses e2e_models.hf_bert"
+        help="specify the model to experiment with, by default uses e2e_models.hf_bert",
     )
 
     parser.add_argument(
@@ -132,13 +125,15 @@ class TrainerWrapper:
 
         pos = self.args.model.rfind(".")
         module = importlib.import_module(self.args.model[:pos])
-        model_class = getattr(module, self.args.model[(pos+1):])
+        model_class = getattr(module, self.args.model[(pos + 1) :])
 
         pos = self.args.trainer.rfind(".")
         module = importlib.import_module(self.args.trainer[:pos])
-        trainer_class = getattr(module, self.args.trainer[(pos+1):])
+        trainer_class = getattr(module, self.args.trainer[(pos + 1) :])
 
-        return trainer_class(self.args, model_class, model_args=self.model_args).measure()
+        return trainer_class(
+            self.args, model_class, model_args=self.model_args
+        ).measure()
 
     def checkpoint(self):
         self.args.dist_url = get_init_file(self.args).as_uri()
@@ -151,7 +146,9 @@ class TrainerWrapper:
 
     def _setup_gpu_args(self):
         job_env = submitit.JobEnvironment()
-        self.args.output_dir = Path(str(self.args.output_dir).replace("%j", str(job_env.job_id)))
+        self.args.output_dir = Path(
+            str(self.args.output_dir).replace("%j", str(job_env.job_id))
+        )
         self.args.gpu = job_env.local_rank
         self.args.rank = job_env.global_rank
         self.args.world_size = job_env.num_tasks
@@ -163,10 +160,15 @@ class TrainerWrapper:
 
 
 def main():
-    args, model_args, = parse_args()
+    (
+        args,
+        model_args,
+    ) = parse_args()
 
     # Note that the folder will depend on the job_id, to easily track experiments
-    executor = submitit.AutoExecutor(folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000)
+    executor = submitit.AutoExecutor(
+        folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000
+    )
 
     executor.update_parameters(
         gpus_per_node=args.ngpus,
@@ -181,7 +183,9 @@ def main():
         slurm_exclude=args.exclude,
     )
 
-    executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
+    executor.update_parameters(
+        name="distbench", slurm_array_parallelism=1, timeout_min=1000
+    )
 
     args.dist_url = get_init_file(args).as_uri()
     args.output_dir = args.job_dir
@@ -194,5 +198,5 @@ def main():
     print(job.results())
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

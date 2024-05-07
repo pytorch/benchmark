@@ -1,12 +1,19 @@
 import argparse
 import pathlib
+
 import yaml
 
-CORE_MODEL_PATH = pathlib.Path(__file__).parent.parent.absolute().joinpath("torchbenchmark", "models")
+CORE_MODEL_PATH = (
+    pathlib.Path(__file__).parent.parent.absolute().joinpath("torchbenchmark", "models")
+)
+
 
 def get_model_list():
-    models = list(map(lambda x: x.name, filter(lambda x: x.is_dir(), CORE_MODEL_PATH.iterdir())))
+    models = list(
+        map(lambda x: x.name, filter(lambda x: x.is_dir(), CORE_MODEL_PATH.iterdir()))
+    )
     return models
+
 
 def check_csv_file(csv_file, known_models):
     optimial_bsizes = {}
@@ -17,8 +24,11 @@ def check_csv_file(csv_file, known_models):
         bsize = int(bsize)
         if not bsize == 0:
             optimial_bsizes[model] = bsize
-        assert model in known_models, f"Model {model} is not covered in TorchBench core model list."
+        assert (
+            model in known_models
+        ), f"Model {model} is not covered in TorchBench core model list."
     return optimial_bsizes
+
 
 def update_model_optimal_bsizes(device, new_bsize, known_models):
     # get the metadata of exist model
@@ -33,10 +43,16 @@ def update_model_optimal_bsizes(device, new_bsize, known_models):
         with open(metadata_path, "w") as mp:
             yaml.safe_dump(metadata, mp)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", required=True, type=str, help="Name of the device")
-    parser.add_argument("--optimal-bsize-csv", required=True, type=str, help="Optimal Batchsize CSV file")
+    parser.add_argument(
+        "--optimal-bsize-csv",
+        required=True,
+        type=str,
+        help="Optimal Batchsize CSV file",
+    )
     args = parser.parse_args()
 
     known_models = get_model_list()

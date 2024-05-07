@@ -1,15 +1,24 @@
+from typing import List
+
 import torch
 from torchbenchmark.util.backends import create_backend
-from typing import List
 
 WARMUP_ITER = 3
 
+
 @create_backend
-def cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[str]):
+def cudagraph(
+    model: "torchbenchmark.util.model.BenchmarkModel", backend_args: List[str]
+):
     cudagraph_func_name = f"cudagraph_{model.test}"
-    assert hasattr(model, cudagraph_func_name), f"CUDA Graph only works on models implement {cudagraph_func_name}()"
+    assert hasattr(
+        model, cudagraph_func_name
+    ), f"CUDA Graph only works on models implement {cudagraph_func_name}()"
     if model.test == "train":
-        assert hasattr(model, "SKIP_ZERO_GRAD"), f"The model must support skipping zero grad in its train test."
+        assert hasattr(
+            model, "SKIP_ZERO_GRAD"
+        ), f"The model must support skipping zero grad in its train test."
+
     def _cudagraph():
         # CUDAGraph can't be copied/pickled, disable copying in correctness checking
         model.DEEPCOPY = False
@@ -36,4 +45,5 @@ def cudagraph(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: L
             model.eval = getattr(model, cudagraph_func_name)
         else:
             assert False, f"Expected model test train or eval, get {model.test}"
+
     return _cudagraph, backend_args

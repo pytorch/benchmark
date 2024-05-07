@@ -4,39 +4,46 @@ Currently supports userbenchmark result json file.
 """
 
 import argparse
-import time
 import json
 import os
-import requests
+import time
 from collections import defaultdict
 from datetime import datetime
+
+import requests
+
 
 def get_metrics_date_from_file(fname: str) -> str:
     bname = os.path.basename(fname)
     dt = datetime.strptime(bname, "metrics-%Y%m%d%H%M%S.json")
     return dt.strftime("%Y-%m-%d")
 
+
 class ScribeUploader:
     def __init__(self, category):
         self.category = category
 
     def format_message(self, field_dict):
-        assert 'time' in field_dict, "Missing required Scribe field 'time'"
+        assert "time" in field_dict, "Missing required Scribe field 'time'"
         message = defaultdict(dict)
         for field, value in field_dict.items():
-            if field in self.schema['normal']:
-                message['normal'][field] = str(value)
-            elif field in self.schema['int']:
-                message['int'][field] = int(value)
-            elif field in self.schema['float']:
-                message['float'][field] = float(value)
+            if field in self.schema["normal"]:
+                message["normal"][field] = str(value)
+            elif field in self.schema["int"]:
+                message["int"][field] = int(value)
+            elif field in self.schema["float"]:
+                message["float"][field] = float(value)
             else:
-                raise ValueError("Field {} is not currently used, "
-                                 "be intentional about adding new fields".format(field))
+                raise ValueError(
+                    "Field {} is not currently used, "
+                    "be intentional about adding new fields".format(field)
+                )
         return message
 
     def upload(self, messages: list):
-        access_token = os.environ.get("TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN")
+        access_token = os.environ.get(
+            "TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN"
+        )
         if not access_token:
             raise ValueError("Can't find access token from environment variable")
         url = "https://graph.facebook.com/scribe_logs"
@@ -59,34 +66,33 @@ class ScribeUploader:
         print(r.text)
         r.raise_for_status()
 
+
 class TorchBenchUserbenchmarkUploader(ScribeUploader):
-    CLIENT_NAME = 'torchbench_userbenchmark_upload_scribe.py'
+    CLIENT_NAME = "torchbench_userbenchmark_upload_scribe.py"
     # We use the UNIX_USER field to store the name of the benchmark platform
     UNIX_USER = None
-    SUBMISSION_GROUP_GUID = 'oss-ci'
+    SUBMISSION_GROUP_GUID = "oss-ci"
 
     def __init__(self, platform_name):
-        super().__init__('perfpipe_pytorch_user_benchmarks')
+        super().__init__("perfpipe_pytorch_user_benchmarks")
         assert platform_name, f"We require non-empty platform_name from user."
         self.UNIX_USER = f"torchbench_userbenchmark_{platform_name}_ci"
 
         self.schema = {
-            'int': [
-                'time',                     # timestamp of upload
+            "int": [
+                "time",  # timestamp of upload
             ],
             # string fields
-            'normal': [
-                'benchmark_date',           # date of benchmark
-                'client_name',              # name of upload client (logger)
-                'unix_user',                # name of upload user
-                'submission_group_guid',    # name of data batch (for debugging)
-                'pytorch_git_version',      # pytorch version
-                'metric_id',                # id of the metric (e.g., userbenchmark.nvfuser.nvfuser:autogen-42)
+            "normal": [
+                "benchmark_date",  # date of benchmark
+                "client_name",  # name of upload client (logger)
+                "unix_user",  # name of upload user
+                "submission_group_guid",  # name of data batch (for debugging)
+                "pytorch_git_version",  # pytorch version
+                "metric_id",  # id of the metric (e.g., userbenchmark.nvfuser.nvfuser:autogen-42)
             ],
             # float perf metrics go here
-            'float': [
-                'metric_value'
-            ]
+            "float": ["metric_value"],
         }
 
     def get_metric_name(self, bm_name, metric_name):
@@ -96,23 +102,24 @@ class TorchBenchUserbenchmarkUploader(ScribeUploader):
         messages = []
         bm_name = bm_data["name"]
         base_message = {
-            'time': int(time.time()),
-            'benchmark_date': bm_time,
-            'client_name': self.CLIENT_NAME,
-            'unix_user': self.UNIX_USER,
-            'submission_group_guid': self.SUBMISSION_GROUP_GUID,
-            'pytorch_git_version': bm_data["environ"]["pytorch_git_version"]
+            "time": int(time.time()),
+            "benchmark_date": bm_time,
+            "client_name": self.CLIENT_NAME,
+            "unix_user": self.UNIX_USER,
+            "submission_group_guid": self.SUBMISSION_GROUP_GUID,
+            "pytorch_git_version": bm_data["environ"]["pytorch_git_version"],
         }
         # construct message and upload
         for metric in bm_data["metrics"]:
             msg = base_message.copy()
             metric_name = self.get_metric_name(bm_name, metric)
-            msg['metric_id'] = metric_name
-            msg['metric_value'] = bm_data['metrics'][metric]
+            msg["metric_id"] = metric_name
+            msg["metric_value"] = bm_data["metrics"][metric]
             formatted_msg = self.format_message(msg)
             messages.append(formatted_msg)
         # print(messages)
         self.upload(messages)
+
 
 def process_benchmark_json(userbenchmark_json):
     # Result sanity check
@@ -121,16 +128,22 @@ def process_benchmark_json(userbenchmark_json):
     benchmark_data = json.load(userbenchmark_json)
     return benchmark_time, benchmark_data
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--userbenchmark_platform", required=True,
-                        help='Name of the userbenchmark platform')
-    parser.add_argument("--userbenchmark_json", required=True,
-                        type=argparse.FileType('r'),
-                        help='Upload userbenchmark json data')
+    parser.add_argument(
+        "--userbenchmark_platform",
+        required=True,
+        help="Name of the userbenchmark platform",
+    )
+    parser.add_argument(
+        "--userbenchmark_json",
+        required=True,
+        type=argparse.FileType("r"),
+        help="Upload userbenchmark json data",
+    )
     args = parser.parse_args()
     benchmark_time, benchmark_data = process_benchmark_json(args.userbenchmark_json)
     # use uploader
     uploader = TorchBenchUserbenchmarkUploader(args.userbenchmark_platform)
     uploader.post_userbenchmark_results(benchmark_time, benchmark_data)
-

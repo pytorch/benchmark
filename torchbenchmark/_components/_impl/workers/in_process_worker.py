@@ -2,7 +2,7 @@ import marshal
 import textwrap
 import typing
 
-from components._impl.workers import base
+from torchbenchmark._components._impl.workers import base
 
 
 class InProcessWorker(base.WorkerBase):

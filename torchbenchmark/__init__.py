@@ -14,12 +14,10 @@ from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
 
 import torch
 
-from components._impl.tasks import base as base_task
-from components._impl.workers import subprocess_worker
-from . import models
-from . import canary_models
-from . import e2e_models
-from . import util
+from . import canary_models, e2e_models, models, util
+
+from ._components._impl.tasks import base as base_task
+from ._components._impl.workers import subprocess_worker
 
 
 class ModelNotFoundError(RuntimeError):
@@ -45,7 +43,7 @@ class add_path:
 
 
 with add_path(str(REPO_PATH)):
-    from utils import TORCH_DEPS, get_pkg_versions
+    from utils import get_pkg_versions, TORCH_DEPS
 
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = "models"
@@ -62,11 +60,11 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
     ]
     run_env = os.environ.copy()
     run_env["PYTHONPATH"] = this_dir.parent
-    for key, item in run_env.items():
-        run_env[key] = str(run_env[key])
+    run_env["PYTHONPATH"] = Path(this_dir.parent).as_posix()
+
     run_kwargs = {
         "cwd": model_path,
-        "check": 'True',
+        "check": True,
         "env": run_env,
     }
 
@@ -106,7 +104,7 @@ def dir_contains_file(dir, file_name) -> bool:
     return file_name in names
 
 
-def _list_model_paths() -> List[str]:
+def _list_model_paths(internal=True) -> List[str]:
     p = pathlib.Path(__file__).parent.joinpath(model_dir)
     # Only load the model directories that contain a "__init.py__" file
     models = sorted(
@@ -117,7 +115,7 @@ def _list_model_paths() -> List[str]:
         and dir_contains_file(child, "__init__.py")
     )
     p = p.joinpath(internal_model_dir)
-    if p.exists():
+    if p.exists() and internal:
         m = sorted(
             str(child.absolute())
             for child in p.iterdir()
@@ -251,15 +249,11 @@ class ModelDetails:
     metadata.
     """
 
-    path: str
+    name: str
     exists: bool
     _diagnostic_msg: str
 
     metadata: Dict[str, Any]
-
-    @property
-    def name(self) -> str:
-        return os.path.basename(self.path)
 
 
 class Worker(subprocess_worker.SubprocessWorker):
@@ -291,7 +285,7 @@ class ModelTask(base_task.TaskBase):
 
     def __init__(
         self,
-        model_path: str,
+        model_name: str,
         timeout: Optional[float] = None,
         extra_env: Optional[Dict[str, str]] = None,
         save_output_dir: Optional[pathlib.Path] = None,
@@ -299,9 +293,7 @@ class ModelTask(base_task.TaskBase):
         gc.collect()  # Make sure previous task has a chance to release the lock
         assert self._lock.acquire(blocking=False), "Failed to acquire lock."
 
-        self._model_path = model_path
-        if _is_internal_model(model_path):
-            model_path = f"{internal_model_dir}.{model_path}"
+        self._model_name = model_name
         self._worker = Worker(
             timeout=timeout, extra_env=extra_env, save_output_dir=save_output_dir
         )
@@ -310,7 +302,7 @@ class ModelTask(base_task.TaskBase):
         self._details: ModelDetails = ModelDetails(
             **self._maybe_import_model(
                 package=__name__,
-                model_path=model_path,
+                model_name=model_name,
             )
         )
 
@@ -326,7 +318,7 @@ class ModelTask(base_task.TaskBase):
         return self._details
 
     def __str__(self) -> str:
-        return f"ModelTask(Model Path: {self._model_path}, Metadata: {self._details.metadata})"
+        return f"ModelTask(Model Name: {self._model_name}, Metadata: {self._details.metadata})"
 
     # =========================================================================
     # == Import Model in the child process ====================================
@@ -334,40 +326,21 @@ class ModelTask(base_task.TaskBase):
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
-    def _maybe_import_model(package: str, model_path: str) -> Dict[str, Any]:
+    def _maybe_import_model(package: str, model_name: str) -> Dict[str, Any]:
         import importlib
         import os
         import traceback
+        from torchbenchmark import load_model_by_name
 
-        model_name = os.path.basename(model_path)
         diagnostic_msg = ""
-        try:
-            module = importlib.import_module(f".models.{model_name}", package=package)
-            if accelerator_backend := os.getenv("ACCELERATOR_BACKEND"):
-                setattr(
-                    module,
-                    accelerator_backend,
-                    importlib.import_module(accelerator_backend),
-                )
-            Model = getattr(module, "Model", None)
-            if Model is None:
-                diagnostic_msg = (
-                    f"Warning: {module} does not define attribute Model, skip it"
-                )
-
-            elif not hasattr(Model, "name"):
-                Model.name = model_name
-
-        except ModuleNotFoundError as e:
-            traceback.print_exc()
-            exit(-1)
+        Model = load_model_by_name(model_name)
 
         # Populate global namespace so subsequent calls to worker.run can access `Model`
         globals()["Model"] = Model
 
         # This will be used to populate a `ModelDetails` instance in the parent.
         return {
-            "path": model_path,
+            "name": model_name,
             "exists": Model is not None,
             "_diagnostic_msg": diagnostic_msg,
             "metadata": {},
@@ -406,27 +379,6 @@ class ModelTask(base_task.TaskBase):
                 "maybe_sync": maybe_sync,
             }
         )
-
-    # =========================================================================
-    # == Replace the `invoke()` function in `model` instance ==================
-    # =========================================================================
-    @base_task.run_in_worker(scoped=True)
-    @staticmethod
-    def replace_invoke(module_name: str, func_name: str) -> None:
-        import importlib
-
-        # import function from pkg
-        model = globals()["model"]
-        try:
-            module = importlib.import_module(module_name)
-            inject_func = getattr(module, func_name, None)
-            if inject_func is None:
-                diagnostic_msg = (
-                    f"Warning: {module} does not define attribute {func_name}, skip it"
-                )
-        except ModuleNotFoundError as e:
-            diagnostic_msg = f"Warning: Could not find dependent module {e.name} for Model {model.name}, skip it"
-        model.invoke = inject_func.__get__(model)
 
     # =========================================================================
     # == Get Model attribute in the child process =============================
@@ -594,21 +546,6 @@ class ModelTask(base_task.TaskBase):
     # =========================================================================
 
     @contextlib.contextmanager
-    def no_grad(self, disable_nograd: bool) -> None:
-        # TODO: deduplicate with `torchbenchmark.util.model.no_grad`
-
-        initial_value = self.worker.load_stmt("torch.is_grad_enabled()")
-        eval_in_nograd = not disable_nograd and self.worker.load_stmt(
-            "model.eval_in_nograd()"
-        )
-
-        try:
-            self.worker.run(f"torch.set_grad_enabled({not eval_in_nograd})")
-            yield
-        finally:
-            self.worker.run(f"torch.set_grad_enabled({initial_value})")
-
-    @contextlib.contextmanager
     def watch_cuda_memory(
         self,
         skip: bool,
@@ -636,7 +573,7 @@ class ModelTask(base_task.TaskBase):
 
 
 def list_models_details(workers: int = 1) -> List[ModelDetails]:
-    return [ModelTask(model_path).model_details for model_path in _list_model_paths()]
+    return [ModelTask(os.path.basename(model_path)).model_details for model_path in _list_model_paths()]
 
 
 def list_models(model_match=None):
@@ -671,26 +608,54 @@ def list_models(model_match=None):
     return models
 
 
-def load_model_by_name(model):
+def load_model_by_name(model_name: str):
     models = filter(
-        lambda x: model.lower() == x.lower(),
+        lambda x: model_name.lower() == x.lower(),
         map(lambda y: os.path.basename(y), _list_model_paths()),
     )
     models = list(models)
+    cls_name = "Model"
     if not models:
-        raise ModelNotFoundError(f"{model} is not found in the core model list.")
+        # If the model is in TIMM or Huggingface extended model list
+        from torchbenchmark.util.framework.huggingface.extended_configs import (
+            list_extended_huggingface_models,
+        )
+        from torchbenchmark.util.framework.timm.extended_configs import (
+            list_extended_timm_models,
+        )
+
+        if model_name in list_extended_huggingface_models():
+            cls_name = "ExtendedHuggingFaceModel"
+            module_path = ".util.framework.huggingface.model_factory"
+            models.append(model_name)
+        elif model_name in list_extended_timm_models():
+            cls_name = "ExtendedTimmModel"
+            module_path = ".util.framework.timm.model_factory"
+            models.append(model_name)
+        else:
+            raise ModelNotFoundError(
+                f"{model_name} is not found in the core model list."
+            )
+    else:
+        model_name = models[0]
+        model_pkg = (
+            model_name
+            if not _is_internal_model(model_name)
+            else f"{internal_model_dir}.{model_name}"
+        )
+        module_path = f".models.{model_pkg}"
     assert (
         len(models) == 1
-    ), f"Found more than one models {models} with the exact name: {model}"
-    model_name = models[0]
-    model_pkg = (
-        model_name
-        if not _is_internal_model(model_name)
-        else f"{internal_model_dir}.{model_name}"
-    )
-    module = importlib.import_module(f".models.{model_pkg}", package=__name__)
+    ), f"Found more than one models {models} with the exact name: {model_name}"
 
-    Model = getattr(module, "Model", None)
+    module = importlib.import_module(module_path, package=__name__)
+    if accelerator_backend := os.getenv("ACCELERATOR_BACKEND"):
+        setattr(
+            module,
+            accelerator_backend,
+            importlib.import_module(accelerator_backend),
+        )
+    Model = getattr(module, cls_name, None)
     if Model is None:
         print(f"Warning: {module} does not define attribute Model, skip it")
         return None

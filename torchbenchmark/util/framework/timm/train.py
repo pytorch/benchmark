@@ -15,17 +15,30 @@ NVIDIA CUDA specific speedups adopted from NVIDIA Apex examples
 
 Hacked together by / Copyright 2020 Ross Wightman (https://github.com/rwightman)
 """
-import torch
+
 from collections import OrderedDict
 from contextlib import suppress
-from timm.utils import reduce_tensor, dispatch_clip_grad, accuracy
-from timm.utils import AverageMeter
+
+import torch
 from timm.models.helpers import model_parameters
+from timm.utils import accuracy, AverageMeter, dispatch_clip_grad, reduce_tensor
+
 
 def train_one_epoch(
-        epoch, model, loader, optimizer, loss_fn, args,
-        lr_scheduler=None, saver=None, output_dir=None, amp_autocast=suppress,
-        loss_scaler=None, model_ema=None, mixup_fn=None):
+    epoch,
+    model,
+    loader,
+    optimizer,
+    loss_fn,
+    args,
+    lr_scheduler=None,
+    saver=None,
+    output_dir=None,
+    amp_autocast=suppress,
+    loss_scaler=None,
+    model_ema=None,
+    mixup_fn=None,
+):
 
     if args.mixup_off_epoch and epoch >= args.mixup_off_epoch:
         if args.prefetcher and loader.mixup_enabled:
@@ -33,7 +46,7 @@ def train_one_epoch(
         elif mixup_fn is not None:
             mixup_fn.mixup_enabled = False
 
-    second_order = hasattr(optimizer, 'is_second_order') and optimizer.is_second_order
+    second_order = hasattr(optimizer, "is_second_order") and optimizer.is_second_order
     # batch_time_m = AverageMeter()
     # data_time_m = AverageMeter()
     losses_m = AverageMeter()
@@ -63,16 +76,23 @@ def train_one_epoch(
         optimizer.zero_grad()
         if loss_scaler is not None:
             loss_scaler(
-                loss, optimizer,
-                clip_grad=args.clip_grad, clip_mode=args.clip_mode,
-                parameters=model_parameters(model, exclude_head='agc' in args.clip_mode),
-                create_graph=second_order)
+                loss,
+                optimizer,
+                clip_grad=args.clip_grad,
+                clip_mode=args.clip_mode,
+                parameters=model_parameters(
+                    model, exclude_head="agc" in args.clip_mode
+                ),
+                create_graph=second_order,
+            )
         else:
             loss.backward(create_graph=second_order)
             if args.clip_grad is not None:
                 dispatch_clip_grad(
-                    model_parameters(model, exclude_head='agc' in args.clip_mode),
-                    value=args.clip_grad, mode=args.clip_mode)
+                    model_parameters(model, exclude_head="agc" in args.clip_mode),
+                    value=args.clip_grad,
+                    mode=args.clip_mode,
+                )
             optimizer.step()
 
         # if model_ema is not None:
@@ -82,7 +102,7 @@ def train_one_epoch(
         num_updates += 1
         # batch_time_m.update(time.time() - end)
         if last_batch or batch_idx % args.log_interval == 0:
-            lrl = [param_group['lr'] for param_group in optimizer.param_groups]
+            lrl = [param_group["lr"] for param_group in optimizer.param_groups]
             lr = sum(lrl) / len(lrl)
 
             if args.distributed:
@@ -107,12 +127,12 @@ def train_one_epoch(
             #             lr=lr,
             #             data_time=data_time_m))
 
-                # if args.save_images and output_dir:
-                #     torchvision.utils.save_image(
-                #         input,
-                #         os.path.join(output_dir, 'train-batch-%d.jpg' % batch_idx),
-                #         padding=0,
-                #         normalize=True)
+            # if args.save_images and output_dir:
+            #     torchvision.utils.save_image(
+            #         input,
+            #         os.path.join(output_dir, 'train-batch-%d.jpg' % batch_idx),
+            #         padding=0,
+            #         normalize=True)
 
         # if saver is not None and args.recovery_interval and (
         #         last_batch or (batch_idx + 1) % args.recovery_interval == 0):
@@ -124,12 +144,13 @@ def train_one_epoch(
         # end = time.time()
         # end for
 
-    if hasattr(optimizer, 'sync_lookahead'):
+    if hasattr(optimizer, "sync_lookahead"):
         optimizer.sync_lookahead()
 
     # return OrderedDict([('loss', losses_m.avg)])
 
-def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix=''):
+
+def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix=""):
     batch_time_m = AverageMeter()
     losses_m = AverageMeter()
     top1_m = AverageMeter()
@@ -157,7 +178,7 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
             reduce_factor = args.tta
             if reduce_factor > 1:
                 output = output.unfold(0, reduce_factor, reduce_factor).mean(dim=2)
-                target = target[0:target.size(0):reduce_factor]
+                target = target[0 : target.size(0) : reduce_factor]
 
             loss = loss_fn(output, target)
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
@@ -189,6 +210,8 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
             #             log_name, batch_idx, last_idx, batch_time=batch_time_m,
             #             loss=losses_m, top1=top1_m, top5=top5_m))
 
-    metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])
+    metrics = OrderedDict(
+        [("loss", losses_m.avg), ("top1", top1_m.avg), ("top5", top5_m.avg)]
+    )
 
     return metrics

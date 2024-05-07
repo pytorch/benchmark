@@ -15,7 +15,9 @@ NVIDIA CUDA specific speedups adopted from NVIDIA Apex examples
 
 Hacked together by / Copyright 2020 Ross Wightman (https://github.com/rwightman)
 """
+
 from torchvision.datasets.fakedata import FakeData
+
 
 def create_fake_imagenet_dataset(size):
     fakedata = FakeData(size=size)

@@ -18,11 +18,13 @@ class Model(HuggingFaceModel):
 
     def train(self):
         raise NotImplementedError("Training is not implemented.")
-    
+
+    def get_module(self):
+        return self.model, (self.example_inputs["input_ids"], )
+
     def eval(self):
         self.model.eval()
-        with torch.no_grad():
-            self.model(self.example_inputs["input_ids"])
+        self.model(self.example_inputs["input_ids"])
     
     def enable_fp16(self):
         self.model.half()

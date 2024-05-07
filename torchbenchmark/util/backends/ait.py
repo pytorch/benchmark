@@ -1,10 +1,11 @@
-
-import os
 import argparse
+import os
+
+from typing import List, Tuple
+
 import torch
 from torchbenchmark.util.backends import create_backend
 
-from typing import List, Tuple
 try:
     from fx2ait.acc_tracer import acc_tracer
     from fx2ait.ait_module import AITModule
@@ -13,16 +14,22 @@ except:
     # if fx2ait is not available, skip it.
     pass
 
+
 def parse_ait_args(args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--use_cuda_graph", action='store_true', help="enable CUDA Graph")
+    parser.add_argument(
+        "--use_cuda_graph", action="store_true", help="enable CUDA Graph"
+    )
     args, unknown_args = parser.parse_known_args(args)
     return args, unknown_args
 
+
 @create_backend
-def fx2ait(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List[str]):
+def fx2ait(model: "torchbenchmark.util.model.BenchmarkModel", backend_args: List[str]):
     AIT_WORK_PATH = os.path.join("/tmp", ".torchbench", "ait")
-    assert model.dargs.precision == "fp16", f"AITemplate only support float16 precision, but get {model.dargs.precision}"
+    assert (
+        model.dargs.precision == "fp16"
+    ), f"AITemplate only support float16 precision, but get {model.dargs.precision}"
     OSS_AITModel = False
     try:
         # Load Non-OSS
@@ -32,6 +39,7 @@ def fx2ait(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List
         OSS_AITModel = True
 
     ait_options, extra_args = parse_ait_args(backend_args)
+
     def _ait():
         mod, inputs = model.get_module()
         traced = acc_tracer.trace(mod, inputs)
@@ -51,4 +59,5 @@ def fx2ait(model: 'torchbenchmark.util.model.BenchmarkModel', backend_args: List
         )
 
         ait_mod.engine.use_cuda_graph = ait_options.use_cuda_graph
+
     return _ait, extra_args

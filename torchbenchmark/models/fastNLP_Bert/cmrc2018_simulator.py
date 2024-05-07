@@ -108,7 +108,7 @@ def _generate_train(batch_size):
 def _generate_vocab():
     never_split = ["[UNK]", "[SEP]", "[PAD]", "[CLS]", "[MASK]"]
     VOCAB_SET.update(never_split)
-    with open(CMRC2018_VOCAB_SIM, "w") as vf:
+    with open(CMRC2018_VOCAB_SIM, "w", encoding='utf-8') as vf:
         vf.write("\n".join(list(VOCAB_SET)))
 
 def _copy_bert_config():

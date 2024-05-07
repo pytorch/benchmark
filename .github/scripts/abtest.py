@@ -1,24 +1,27 @@
 """
 This script runs userbenchmarks abtest upon two PyTorch versions.
 """
+
 import argparse
-import os
-import subprocess
-import shutil
-import sys
 import json
+import os
+import shutil
+import subprocess
+import sys
 from pathlib import Path
-from bmutils import REPO_ROOT, add_path
 from typing import Dict, Optional
+
+from bmutils import add_path, REPO_ROOT
 
 with add_path(REPO_ROOT):
     import torchbenchmark.util.gitutils as gitutils
     from userbenchmark import list_userbenchmarks
-    from utils.cuda_utils import prepare_cuda_env, DEFAULT_CUDA_VERSION
+    from utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
 
 USERBENCHMARK_OUTPUT_PATH = os.path.join(REPO_ROOT, ".userbenchmark")
 # only preserve the first 10 chars of the git hash
 GIT_HASH_LEN = 10
+
 
 def cleanup():
     print("Cleaning up torch packages...", end="", flush=True)
@@ -29,7 +32,14 @@ def cleanup():
         subprocess.check_call(command, shell=False)
     print("done")
 
-def run_commit(repo_path: str, env: os._Environ, commit: str, bm_name: str, skip_build: bool=False) -> Path:
+
+def run_commit(
+    repo_path: str,
+    env: os._Environ,
+    commit: str,
+    bm_name: str,
+    skip_build: bool = False,
+) -> Path:
     "Run the userbenchmark on the commit. Return the metrics output file path."
     # build the pytorch commit if required
     if not skip_build:
@@ -38,22 +48,30 @@ def run_commit(repo_path: str, env: os._Environ, commit: str, bm_name: str, skip
     # run_benchmark
     return run_benchmark(bm_name, cuda_env=env)
 
+
 def validate_benchmark_output(bm_output: Path, bm_name: str):
     with open(bm_output, "r") as bmobj:
         output = json.load(bmobj)
-    assert output["name"] == bm_name, f"Expected benchmark name {bm_name}, getting {output['name']}."
-    assert "environ" in output and "pytorch_git_version" in output["environ"], \
-        f"Missing pytorch git version in {bm_output}."
+    assert (
+        output["name"] == bm_name
+    ), f"Expected benchmark name {bm_name}, getting {output['name']}."
+    assert (
+        "environ" in output and "pytorch_git_version" in output["environ"]
+    ), f"Missing pytorch git version in {bm_output}."
     assert "metrics" in output, f"Missing definition of metrics in {bm_output}."
+
 
 def run_benchmark(bm_name: str, cuda_env: os._Environ) -> Path:
     def find_latest_output(p: str) -> Optional[Path]:
         if not os.path.exists(p) or not os.path.isdir(p):
             return None
-        json_files = [ os.path.join(p, jf) for jf in sorted(os.listdir(p)) if jf.endswith(".json") ]
+        json_files = [
+            os.path.join(p, jf) for jf in sorted(os.listdir(p)) if jf.endswith(".json")
+        ]
         if len(json_files) == 0:
             return None
         return json_files[-1]
+
     command = [sys.executable, "run_benchmark.py", bm_name]
     try:
         subprocess.check_call(command, env=cuda_env, cwd=REPO_ROOT, shell=False)
@@ -68,6 +86,7 @@ def run_benchmark(bm_name: str, cuda_env: os._Environ) -> Path:
     validate_benchmark_output(output_file, bm_name)
     return output_file
 
+
 def setup_build_env(env) -> Dict[str, str]:
     env["USE_CUDA"] = "1"
     env["BUILD_CAFFE2_OPS"] = "0"
@@ -78,6 +97,7 @@ def setup_build_env(env) -> Dict[str, str]:
     env["USE_CUDNN"] = "1"
     env["CMAKE_PREFIX_PATH"] = env["CONDA_PREFIX"]
     return env
+
 
 def build_pytorch_commit(repo_path: str, commit: str, cuda_env: os._Environ):
     # checkout pytorch commit
@@ -106,23 +126,35 @@ def build_pytorch_commit(repo_path: str, commit: str, cuda_env: os._Environ):
         subprocess.check_call(command, cwd=repo_path, env=build_env, shell=False)
     finally:
         command_testbuild = ["python", "-c", "'import torch'"]
-        subprocess.check_call(command_testbuild, cwd=os.environ["HOME"], env=build_env, shell=False)
+        subprocess.check_call(
+            command_testbuild, cwd=os.environ["HOME"], env=build_env, shell=False
+        )
     print("done")
+
 
 def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
     def validate_results(a, b) -> bool:
         metrics = a["metrics"].keys()
         return sorted(metrics) == sorted(b["metrics"])
+
     # check two results are different files
-    assert not result_a == result_b, f"Path {result_a} and {result_b} are the same. Exit."
+    assert (
+        not result_a == result_b
+    ), f"Path {result_a} and {result_b} are the same. Exit."
     # validate results
     with open(result_a, "r") as fa:
         a = json.load(fa)
     with open(result_b, "r") as fb:
         b = json.load(fb)
-    assert validate_results(a, b), f"Result validation failed for {result_a} and {result_b}."
+    assert validate_results(
+        a, b
+    ), f"Result validation failed for {result_a} and {result_b}."
     # print result in csv format
-    header = ["Metric", a["environ"]["pytorch_git_version"][:GIT_HASH_LEN], b["environ"]["pytorch_git_version"][:GIT_HASH_LEN]]
+    header = [
+        "Metric",
+        a["environ"]["pytorch_git_version"][:GIT_HASH_LEN],
+        b["environ"]["pytorch_git_version"][:GIT_HASH_LEN],
+    ]
     out = [header]
     metrics = a["metrics"].keys()
     for m in sorted(metrics):
@@ -140,25 +172,43 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
         fout.write(out + "\n")
     return out
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pytorch-repo", required=True, type=str, help="PyTorch repo path")
+    parser.add_argument(
+        "--pytorch-repo", required=True, type=str, help="PyTorch repo path"
+    )
     parser.add_argument("--base", required=True, type=str, help="PyTorch base commit")
     parser.add_argument("--head", required=True, type=str, help="PyTorch head commit")
-    parser.add_argument("--userbenchmark", required=True, type=str, help="Name of the userbenchmark to run")
+    parser.add_argument(
+        "--userbenchmark",
+        required=True,
+        type=str,
+        help="Name of the userbenchmark to run",
+    )
     parser.add_argument("--output-dir", required=True, type=str, help="Output dir path")
     parser.add_argument("--skip-build", action="store_true", help="Skip PyTorch build")
     args = parser.parse_args()
     # sanity checks
-    assert args.userbenchmark in list_userbenchmarks(), f"Available userbenchmark list: {list_userbenchmarks()}, " \
-                                                        f"but you specified {args.userbenchmark}."
+    assert args.userbenchmark in list_userbenchmarks(), (
+        f"Available userbenchmark list: {list_userbenchmarks()}, "
+        f"but you specified {args.userbenchmark}."
+    )
     if not args.skip_build:
-        assert Path(args.pytorch_repo).is_dir(), f"Specified PyTorch repo dir {args.pytorch_repo} doesn't exist."
+        assert Path(
+            args.pytorch_repo
+        ).is_dir(), f"Specified PyTorch repo dir {args.pytorch_repo} doesn't exist."
         commits = gitutils.get_git_commits(args.pytorch_repo, args.base, args.head)
-        assert commits, f"Can't find git commit {args.base} or {args.head} in repo {args.pytorch_repo}"
+        assert (
+            commits
+        ), f"Can't find git commit {args.base} or {args.head} in repo {args.pytorch_repo}"
     # setup cuda environment
     cuda_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
-    result_a = run_commit(args.pytorch_repo, cuda_env, args.base, args.userbenchmark, args.skip_build)
-    result_b = run_commit(args.pytorch_repo, cuda_env, args.head, args.userbenchmark, args.skip_build)
+    result_a = run_commit(
+        args.pytorch_repo, cuda_env, args.base, args.userbenchmark, args.skip_build
+    )
+    result_b = run_commit(
+        args.pytorch_repo, cuda_env, args.head, args.userbenchmark, args.skip_build
+    )
     compare_result = process_test_result(result_a, result_b, args.output_dir)
     print(compare_result)

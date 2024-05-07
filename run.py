@@ -8,10 +8,9 @@ DANGER: make sure to `python install.py` first or otherwise make sure the benchm
 
 Wall time provided for sanity but is not a sane benchmark measurement.
 """
+
 import argparse
 import time
-
-import traceback
 from functools import partial
 
 import numpy as np
@@ -22,6 +21,10 @@ from torchbenchmark import (
     load_canary_model_by_name,
     load_model_by_name,
     ModelNotFoundError,
+)
+from torchbenchmark.util.experiment.instantiator import (
+    load_model,
+    TorchBenchModelConfig,
 )
 from torchbenchmark.util.experiment.metrics import get_model_flops, get_peak_memory
 
@@ -175,7 +178,9 @@ def run_one_step(
     result_summary = []
     flops_model_analyzer = None
     if "flops" in metrics_needed:
-        from components.model_analyzer.TorchBenchAnalyzer import ModelAnalyzer
+        from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
+            ModelAnalyzer,
+        )
 
         flops_model_analyzer = ModelAnalyzer(
             export_metrics_file, ["flops"], metrics_gpu_backend
@@ -327,12 +332,14 @@ def profile_one_step(func, model, nwarmup=WARMUP_ROUNDS):
         with_stack=profile_opts["with_stack"],
         with_flops=profile_opts["with_flops"],
         with_modules=profile_opts["with_modules"],
-        on_trace_ready=partial(trace_handler, f"torchbench_{args.model}")
-        if (
-            not hasattr(torch.version, "git_version")
-            and args.profile_export_chrome_trace
-        )
-        else profiler.tensorboard_trace_handler(args.profile_folder),
+        on_trace_ready=(
+            partial(trace_handler, f"torchbench_{args.model}")
+            if (
+                not hasattr(torch.version, "git_version")
+                and args.profile_export_chrome_trace
+            )
+            else profiler.tensorboard_trace_handler(args.profile_folder)
+        ),
     ) as prof:
         if args.device == "cuda":
             start_event = torch.cuda.Event(enable_timing=True)
@@ -490,9 +497,6 @@ def main() -> None:
         - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().
         - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""",
     )
-    parser.add_argument(
-        "--channels-last", action="store_true", help="enable torch.channels_last()"
-    )
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
         print("cuda device required to use --cudastreams option!")
@@ -501,34 +505,14 @@ def main() -> None:
     # Log the tool usage
     usage_report_logger()
 
-    found = False
-    Model = None
-
-    try:
-        Model = load_model_by_name(args.model)
-    except ModuleNotFoundError:
-        traceback.print_exc()
-        exit(-1)
-    except ModelNotFoundError:
-        print(f"Warning: The model {args.model} cannot be found at core set.")
-    if not Model:
-        try:
-            Model = load_canary_model_by_name(args.model)
-        except ModuleNotFoundError:
-            traceback.print_exc()
-            exit(-1)
-        except ModelNotFoundError:
-            print(
-                f"Error: The model {args.model} cannot be found at either core or canary model set."
-            )
-            exit(-1)
-
-    m = Model(
-        device=args.device,
+    config = TorchBenchModelConfig(
+        name=args.model,
         test=args.test,
+        device=args.device,
         batch_size=args.bs,
         extra_args=extra_args,
     )
+    m = load_model(config)
     if m.dynamo:
         mode = f"dynamo {m.opt_args.torchdynamo}"
     elif m.opt_args.backend:
@@ -536,14 +520,11 @@ def main() -> None:
     else:
         mode = "eager"
     print(
-        f"Running {args.test} method from {Model.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}."
+        f"Running {args.test} method from {m.name} on {args.device} in {mode} mode with input batch size {m.batch_size} and precision {m.dargs.precision}."
     )
     if "--accuracy" in extra_args:
         print("{:<20} {:>20}".format("Accuracy: ", str(m.accuracy)), sep="")
         exit(0)
-
-    if args.channels_last:
-        m.enable_channels_last()
 
     test = m.invoke
     if args.amp:
@@ -560,11 +541,15 @@ def main() -> None:
     metrics_gpu_backend = args.metrics_gpu_backend
     if metrics_needed:
         if metrics_gpu_backend == "dcgm":
-            from components.model_analyzer.TorchBenchAnalyzer import check_dcgm
+            from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
+                check_dcgm,
+            )
 
             check_dcgm()
         elif "gpu_peak_mem" in metrics_needed:
-            from components.model_analyzer.TorchBenchAnalyzer import check_nvml
+            from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
+                check_nvml,
+            )
 
             check_nvml()
         if "gpu_peak_mem" in metrics_needed or (

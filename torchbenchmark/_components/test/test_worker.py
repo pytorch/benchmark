@@ -8,10 +8,10 @@ import torch
 from torch.testing._internal.common_utils import TestCase, run_tests
 
 try:
-    from components._impl.workers import base as base_worker
-    from components._impl.workers import in_process_worker
-    from components._impl.workers import subprocess_worker
-    from components._impl.workers import subprocess_rpc
+    from torchbenchmark._components._impl.workers import base as base_worker
+    from torchbenchmark._components._impl.workers import in_process_worker
+    from torchbenchmark._components._impl.workers import subprocess_worker
+    from torchbenchmark._components._impl.workers import subprocess_rpc
 except (ImportError, ModuleNotFoundError):
     print(
         f"""
@@ -232,7 +232,7 @@ class TestBenchmarkWorker(TestCase):
         self._test_child_trace_exception(worker)
 
     def test_subprocess_worker_segv_handling(self):
-        worker = subprocess_worker.SubprocessWorker(timeout=1)
+        worker = subprocess_worker.SubprocessWorker(timeout=2)
         with self.assertRaisesRegex(
             OSError, f"Subprocess terminates with code {int(signal.SIGSEGV)}"
         ):

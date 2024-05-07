@@ -1,6 +1,6 @@
 import importlib
 import sys
-from typing import List, Dict
+from typing import Dict, List
 
 TORCH_DEPS = ["torch", "torchvision", "torchaudio"]
 

@@ -6,13 +6,15 @@ FROM ${BASE_IMAGE}
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 RUN sudo apt-get -y update && sudo apt -y update
-# fontconfig: needed by model doctr_det_predictor
+# fontconfig: required by model doctr_det_predictor
+# libjpeg and libpng: optionally required by torchvision (vision#8342)
 RUN sudo apt-get install -y git jq gcc g++ \
                             vim wget curl ninja-build cmake \
                             libgl1-mesa-glx libsndfile1-dev kmod libxml2-dev libxslt1-dev \
                             fontconfig libfontconfig1-dev \
                             libpango-1.0-0 libpangoft2-1.0-0 \
-                            libsdl2-dev libsdl2-2.0-0
+                            libsdl2-dev libsdl2-2.0-0 \
+                            libjpeg-dev libpng-dev zlib1g-dev
 
 # get switch-cuda utility
 RUN sudo wget -q https://raw.githubusercontent.com/phohenecker/switch-cuda/master/switch-cuda.sh -O /usr/bin/switch-cuda.sh
@@ -27,8 +29,8 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 
 # Use the CUDA installation scripts from pytorch/builder
 RUN cd /workspace; git clone https://github.com/pytorch/builder.git
-RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_118'
-RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_121'
+RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_118; prune_118'
+RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_121; prune_121'
 
 # Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh

@@ -28,7 +28,7 @@ class Model(BenchmarkModel):
             raise NotImplementedError("Tacotron2 doesn't support CPU because load_model assumes CUDA.")
 
         self.hparams = self.create_hparams(batch_size=self.batch_size)
-        self.model = load_model(self.hparams).to(device=device)
+        self.model = load_model(self.hparams, device)
         self.optimizer = torch.optim.Adam(self.model.parameters(),
                                           lr=self.hparams.learning_rate,
                                           weight_decay=self.hparams.weight_decay)

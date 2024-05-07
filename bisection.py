@@ -64,6 +64,7 @@ try:
     )
     from utils.cuda_utils import DEFAULT_CUDA_VERSION, prepare_cuda_env
     from utils.github import process_bisection_into_gh_issue
+
     IS_FBCODE = False
 except (ImportError, ModuleNotFoundError):
     # Meta-Internal imports
@@ -185,13 +186,16 @@ class BisectionTargetRepo:
     commits: List[Commit]
     # Map from commit SHA to its index in commits
     commit_dict: Dict[str, int]
-    def __init__(self,
-                 repo: TorchRepo,
-                 start: str,
-                 end: str,
-                 start_version: str,
-                 end_version: str,
-                 non_target_repos: List[TorchRepo]):
+
+    def __init__(
+        self,
+        repo: TorchRepo,
+        start: str,
+        end: str,
+        start_version: str,
+        end_version: str,
+        non_target_repos: List[TorchRepo],
+    ):
         self.repo = repo
         self.start = start
         self.end = end
@@ -480,7 +484,9 @@ class TorchBenchBisection:
         # If uncalculated, commit.digest will be None
         assert left.digest, "Commit {left.sha} must have a digest"
         assert right.digest, "Commit {right.sha} must have a digest"
-        regression_result = generate_regression_result(left.digest.copy(), right.digest.copy())
+        regression_result = generate_regression_result(
+            left.digest.copy(), right.digest.copy()
+        )
         regression_file = f"regression-{left.sha}-{right.sha}.yaml"
         regression_file_full_path = os.path.join(
             self.workdir.absolute(), regression_file
@@ -513,7 +519,9 @@ class TorchBenchBisection:
                 self.torchbench.get_digest_for_commit(right, abtest_result, self.debug)
                 updated_abtest_result = self.regression_detection(left, right)
                 signal = bool(len(updated_abtest_result.details))
-            print(f"Left commit: {left.sha}, right commit: {right.sha}, signal: {signal}")
+            print(
+                f"Left commit: {left.sha}, right commit: {right.sha}, signal: {signal}"
+            )
             if signal:
                 mid = self.target_repo.get_mid_commit(left, right)
                 if mid == None:
@@ -587,7 +595,7 @@ def main() -> None:
     parser.add_argument(
         "--gh-issue-path",
         default="gh-issue.md",
-        help="Output path to print the issue body"
+        help="Output path to print the issue body",
     )
     # by default, debug mode is disabled
     parser.add_argument(
@@ -681,6 +689,7 @@ def main() -> None:
     # Format the output into a github issue if the bisector finds the root cause commit
     if bisection.result:
         process_bisection_into_gh_issue(bisection.output_json, args.gh_issue_path)
+
 
 if __name__ == "__main__":
     main()  # pragma: no cover

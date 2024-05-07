@@ -1,15 +1,16 @@
-from datetime import datetime
 import os
+from datetime import datetime
 from pathlib import Path
 from statistics import stdev
 
 import torch
+import torch.distributed as dist
 from torch.cuda import Event
 from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel, nested
-import torch.distributed as dist
 
-class Trainer():
+
+class Trainer:
     DEFAULT_MEASURE_ITERATIONS = 10
 
     def __init__(self, args, model_class, mode="SPMD", model_args=None):
@@ -29,16 +30,23 @@ class Trainer():
 
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
-        self.e2e_benchmark: E2EBenchmarkModel = model_class("train", batch_size=None, extra_args=extra_args)
+        self.e2e_benchmark: E2EBenchmarkModel = model_class(
+            "train", batch_size=None, extra_args=extra_args
+        )
 
-        expected_attrs = ["model", "optimizer", "train_dataloader", "accelerator", "run_contexts"]
+        expected_attrs = [
+            "model",
+            "optimizer",
+            "train_dataloader",
+            "accelerator",
+            "run_contexts",
+        ]
         assert all(attr in dir(self.e2e_benchmark) for attr in expected_attrs), (
             "Missing attributes in the input E2EBenchmarkModel implementation: "
             f"{[attr for attr in expected_attrs if attr not in dir(self.e2e_benchmark)]}"
         )
 
         self.rank = dist.get_rank()
-
 
     def setup(self):
         if self.mode == "SPMD":
@@ -65,11 +73,12 @@ class Trainer():
                 "Failed to retrieve SPMD configurations from environment "
                 f"variables. local_rank={self.local_rank}, world_size={world_size}, "
                 f"rank={rank}."
-
             )
 
             # TODO: hardcode NCCL for now, make this configurable if necessary
-            dist.init_process_group("nccl", init_method=self.args.dist_url, rank=rank, world_size=world_size)
+            dist.init_process_group(
+                "nccl", init_method=self.args.dist_url, rank=rank, world_size=world_size
+            )
         else:
             raise ValueError(f"Unrecognized distributed training mode {self.mode}")
 
@@ -115,9 +124,15 @@ class Trainer():
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
 
-        delays_fwd = [pre.elapsed_time(post) for pre, post in zip(events_pre_fwd, events_pre_bwd)]
-        delays_bwd = [pre.elapsed_time(post) for pre, post in zip(events_pre_bwd, events_pre_opt)]
-        delays_opt = [pre.elapsed_time(post) for pre, post in zip(events_pre_opt, events_post_opt)]
+        delays_fwd = [
+            pre.elapsed_time(post) for pre, post in zip(events_pre_fwd, events_pre_bwd)
+        ]
+        delays_bwd = [
+            pre.elapsed_time(post) for pre, post in zip(events_pre_bwd, events_pre_opt)
+        ]
+        delays_opt = [
+            pre.elapsed_time(post) for pre, post in zip(events_pre_opt, events_post_opt)
+        ]
 
         mean_fwd = float(sum(delays_fwd)) / len(delays_fwd)
         stdev_fwd = stdev(delays_fwd)
@@ -146,14 +161,14 @@ class Trainer():
             ################################################
             with profile(
                 activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-                record_shapes=True, # Causes seg fault in export_chrome_trace
-                with_stack=True, # Causes seg fault with EFA
-                with_flops=True, # Causes seg fault in export_chrome_trace
+                record_shapes=True,  # Causes seg fault in export_chrome_trace
+                with_stack=True,  # Causes seg fault with EFA
+                with_flops=True,  # Causes seg fault in export_chrome_trace
                 on_trace_ready=tensorboard_trace_handler(
                     f"{self.args.job_dir}/tb/{name}",
                     self.rank,
                     use_gzip=True,
-                )
+                ),
             ):
                 for i in range(niters):
                     loss = self.e2e_benchmark.run_forward(batch)
@@ -166,15 +181,14 @@ class Trainer():
         dist.barrier(device_ids=[self.local_rank])
 
         return {
-            "iter" : iter_time,
-            "fwd_mean" : mean_fwd,
-            "fwd_stdev" : stdev_fwd,
-            "bwd_mean" : mean_bwd,
-            "bwd_stdev" : stdev_bwd,
-            "opt_mean" : mean_opt,
-            "opt_stdev" : stdev_opt,
+            "iter": iter_time,
+            "fwd_mean": mean_fwd,
+            "fwd_stdev": stdev_fwd,
+            "bwd_mean": mean_bwd,
+            "bwd_stdev": stdev_bwd,
+            "opt_mean": mean_opt,
+            "opt_stdev": stdev_opt,
         }
-
 
     def teardown(self):
         if self.mode == "SPMD":

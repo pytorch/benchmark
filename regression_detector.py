@@ -1,20 +1,29 @@
 """
 The regression detector of TorchBench Userbenchmark.
 """
-import json
+
 import argparse
 import importlib
-from dataclasses import asdict
+import json
 import os
 import re
-import yaml
-from pathlib import Path
 import time
+from dataclasses import asdict
 from datetime import datetime
-from typing import Any, List, Dict, Tuple, Optional
-from userbenchmark.utils import PLATFORMS, USERBENCHMARK_OUTPUT_PREFIX, REPO_PATH, \
-                                TorchBenchABTestResult, get_date_from_metrics, \
-                                get_ub_name, get_latest_files_in_s3_from_last_n_days, get_date_from_metrics_s3_key
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import yaml
+from userbenchmark.utils import (
+    get_date_from_metrics,
+    get_date_from_metrics_s3_key,
+    get_latest_files_in_s3_from_last_n_days,
+    get_ub_name,
+    PLATFORMS,
+    REPO_PATH,
+    TorchBenchABTestResult,
+    USERBENCHMARK_OUTPUT_PREFIX,
+)
 from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT
 
 GITHUB_ISSUE_TEMPLATE = """
@@ -49,20 +58,34 @@ DEFAULT_GH_ISSUE_OWNER = "@xuzhao9"
 def get_default_output_path(bm_name: str) -> str:
     # By default, write result to $REPO_DIR/.userbenchmark/<userbenchmark-name>/regression-<time>.json
     output_path = os.path.join(REPO_PATH, USERBENCHMARK_OUTPUT_PREFIX, bm_name)
-    fname = "regression-{}.yaml".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
+    fname = "regression-{}.yaml".format(
+        datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
+    )
     return os.path.join(output_path, fname)
 
-def generate_regression_result(control: Dict[str, Any], treatment: Dict[str, Any]) -> TorchBenchABTestResult:
-    def _call_userbenchmark_detector(detector, control: Dict[str, Any], treatment: Dict[str, Any]) -> TorchBenchABTestResult:
+
+def generate_regression_result(
+    control: Dict[str, Any], treatment: Dict[str, Any]
+) -> TorchBenchABTestResult:
+    def _call_userbenchmark_detector(
+        detector, control: Dict[str, Any], treatment: Dict[str, Any]
+    ) -> TorchBenchABTestResult:
         return detector(control, treatment)
-    assert control["name"] == treatment["name"], f'Expected the same userbenchmark name from metrics files, \
+
+    assert (
+        control["name"] == treatment["name"]
+    ), f'Expected the same userbenchmark name from metrics files, \
                                                 but getting {control["name"]} and {treatment["name"]}.'
     bm_name = control["name"]
     try:
-        detector = importlib.import_module(f"userbenchmark.{bm_name}.regression_detector").run
+        detector = importlib.import_module(
+            f"userbenchmark.{bm_name}.regression_detector"
+        ).run
     except:
         # fbcode
-        detector = importlib.import_module(f"userbenchmark.fb.{bm_name}.regression_detector").run
+        detector = importlib.import_module(
+            f"userbenchmark.fb.{bm_name}.regression_detector"
+        ).run
     # Process control and treatment to include only shared keys
     filtered_control_metrics = {}
     control_only_metrics = {}
@@ -88,11 +111,21 @@ def generate_regression_result(control: Dict[str, Any], treatment: Dict[str, Any
     result.treatment_only_metrics = treatment_only_metrics
     return result
 
-def process_regressions_into_yaml(regression_result: TorchBenchABTestResult, output_path: str, control_file: str, treatment_file: str) -> None:
-    if  not len(regression_result.details) and \
-        not len(regression_result.control_only_metrics) and \
-        not len(regression_result.treatment_only_metrics):
-        print(f"No performance signal detected between file {control_file} and {treatment_file}.")
+
+def process_regressions_into_yaml(
+    regression_result: TorchBenchABTestResult,
+    output_path: str,
+    control_file: str,
+    treatment_file: str,
+) -> None:
+    if (
+        not len(regression_result.details)
+        and not len(regression_result.control_only_metrics)
+        and not len(regression_result.treatment_only_metrics)
+    ):
+        print(
+            f"No performance signal detected between file {control_file} and {treatment_file}."
+        )
         return
 
     # create the output directory if doesn't exist
@@ -105,7 +138,12 @@ def process_regressions_into_yaml(regression_result: TorchBenchABTestResult, out
     print(f"Wrote above yaml to {output_path}.")
 
 
-def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult, owner: str, output_path: str, errors_path: str) -> None:
+def process_regressions_into_gh_issue(
+    regression_result: TorchBenchABTestResult,
+    owner: str,
+    output_path: str,
+    errors_path: str,
+) -> None:
     def _parse_date_from_pytorch_version(pytorch_version: str) -> Optional[str]:
         # example pytorch nightly version: "2.2.0.dev20231116+cu118"
         # return a date string like "2023-11-16"
@@ -138,15 +176,24 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
     treatment_commit = regressions_dict["treatment_env"]["pytorch_git_version"]
     treatment_version = regressions_dict["treatment_env"]["pytorch_version"]
 
-    runtime_regressions_msg = "No runtime errors were found in the " + \
-                              "new benchmarks run--you are all good there!"
+    runtime_regressions_msg = (
+        "No runtime errors were found in the "
+        + "new benchmarks run--you are all good there!"
+    )
 
     errors_log_exists = Path(errors_path).exists()
     if errors_log_exists:
-        runtime_regressions_msg = "An errors log was found. Please investigate runtime " + \
-                                  "errors by looking into the logs of the workflow linked."
+        runtime_regressions_msg = (
+            "An errors log was found. Please investigate runtime "
+            + "errors by looking into the logs of the workflow linked."
+        )
 
-    if troubled_tests == "" and control_only_tests == "" and treatment_only_tests == "" and not errors_log_exists:
+    if (
+        troubled_tests == ""
+        and control_only_tests == ""
+        and treatment_only_tests == ""
+        and not errors_log_exists
+    ):
         print(f"No regressions found between {control_commit} and {treatment_commit}.")
         return
 
@@ -157,14 +204,18 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
         if not treatment_date:
             treatment_date = datetime.today().strftime("%Y-%m-%d")
         content = f"TORCHBENCH_REGRESSION_DETECTED='{treatment_date}'\n"
-        with open(fname, 'a') as fo:
+        with open(fname, "a") as fo:
             fo.write(content)
 
     github_run_id = os.environ.get("GITHUB_RUN_ID", None)
-    github_run_url = "No URL found, please look for the failing action in " + \
-                     "https://github.com/pytorch/benchmark/actions"
+    github_run_url = (
+        "No URL found, please look for the failing action in "
+        + "https://github.com/pytorch/benchmark/actions"
+    )
     if github_run_id is not None:
-        github_run_url = f"https://github.com/pytorch/benchmark/actions/runs/{github_run_id}"
+        github_run_url = (
+            f"https://github.com/pytorch/benchmark/actions/runs/{github_run_id}"
+        )
 
     issue_config: Dict[str, str] = {
         "control_commit": control_commit,
@@ -176,7 +227,7 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
         "treatment_only_tests": treatment_only_tests,
         "runtime_regressions_msg": runtime_regressions_msg,
         "github_run_url": github_run_url,
-        "owner": owner
+        "owner": owner,
     }
 
     issue_body = GITHUB_ISSUE_TEMPLATE.format(**issue_config)
@@ -185,7 +236,9 @@ def process_regressions_into_gh_issue(regression_result: TorchBenchABTestResult,
         f.write(issue_body)
 
 
-def get_best_start_date(latest_metrics_jsons: List[str], end_date: datetime) -> Optional[datetime]:
+def get_best_start_date(
+    latest_metrics_jsons: List[str], end_date: datetime
+) -> Optional[datetime]:
     """Get the date closest to `end_date` from `latest_metrics_jsons`"""
     for metrics_json in latest_metrics_jsons:
         start_datetime = get_date_from_metrics_s3_key(metrics_json)
@@ -194,7 +247,9 @@ def get_best_start_date(latest_metrics_jsons: List[str], end_date: datetime) -> 
     return None
 
 
-def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime) -> Tuple[Any, str]:
+def get_metrics_by_date(
+    latest_metrics_jsons: List[str], pick_date: datetime
+) -> Tuple[Any, str]:
     pick_metrics_json_key: Optional[str] = None
     for metrics_json_key in latest_metrics_jsons:
         metric_datetime = get_date_from_metrics_s3_key(metrics_json_key)
@@ -202,7 +257,9 @@ def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime) ->
         if metric_datetime.date() == pick_date.date():
             pick_metrics_json_key = metrics_json_key
             break
-    assert pick_metrics_json_key, f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
+    assert (
+        pick_metrics_json_key
+    ), f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
     metrics_json = s3.get_file_as_json(pick_metrics_json_key)
     return (metrics_json, pick_metrics_json_key)
@@ -211,26 +268,63 @@ def get_metrics_by_date(latest_metrics_jsons: List[str], pick_date: datetime) ->
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Local metrics file comparison
-    parser.add_argument("--control", default=None, help="The control group metrics file for comparison. "
-                        "If unprovided, will attempt to download and compare the previous JSON from S3 "
-                        "within the past week. The platform flag must be specified in this case.")
-    parser.add_argument("--treatment", default=None, help="The treatment metrics file for comparison.")
+    parser.add_argument(
+        "--control",
+        default=None,
+        help="The control group metrics file for comparison. "
+        "If unprovided, will attempt to download and compare the previous JSON from S3 "
+        "within the past week. The platform flag must be specified in this case.",
+    )
+    parser.add_argument(
+        "--treatment", default=None, help="The treatment metrics file for comparison."
+    )
     # S3 metrics file comparison
-    parser.add_argument("--name", help="Name of the userbenchmark to detect regression.")
-    parser.add_argument("--platform", choices=PLATFORMS, default=None, help="The name of platform of the regression.")
-    parser.add_argument("--start-date", default=None, help="The start date to detect regression.")
-    parser.add_argument("--end-date", default=None, help="The latest date to detect regression.")
+    parser.add_argument(
+        "--name", help="Name of the userbenchmark to detect regression."
+    )
+    parser.add_argument(
+        "--platform",
+        choices=PLATFORMS,
+        default=None,
+        help="The name of platform of the regression.",
+    )
+    parser.add_argument(
+        "--start-date", default=None, help="The start date to detect regression."
+    )
+    parser.add_argument(
+        "--end-date", default=None, help="The latest date to detect regression."
+    )
     # download from S3
-    parser.add_argument("--download-from-s3", action='store_true', help="Only download the existing regression yaml file from S3." \
-                                                                        "The regression yaml file can be used for bisection.")
+    parser.add_argument(
+        "--download-from-s3",
+        action="store_true",
+        help="Only download the existing regression yaml file from S3."
+        "The regression yaml file can be used for bisection.",
+    )
     # output file path
-    parser.add_argument("--output", default=None, help="Output path to print the regression detection file.")
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="Output path to print the regression detection file.",
+    )
     # GitHub issue details
-    parser.add_argument("--owner", nargs="*", default=[DEFAULT_GH_ISSUE_OWNER], help="Owner(s) to cc on regression issues, e.g., @janeyx99.")
-    parser.add_argument("--gh-issue-path", default="gh-issue.md", help="Output path to print the issue body")
-    parser.add_argument("--errors-path", default="errors.txt",
-                        help="Path to errors log generated by the benchmarks run. " +
-                             "Its existence ONLY is used to detect whether runtime regressions occurred.")
+    parser.add_argument(
+        "--owner",
+        nargs="*",
+        default=[DEFAULT_GH_ISSUE_OWNER],
+        help="Owner(s) to cc on regression issues, e.g., @janeyx99.",
+    )
+    parser.add_argument(
+        "--gh-issue-path",
+        default="gh-issue.md",
+        help="Output path to print the issue body",
+    )
+    parser.add_argument(
+        "--errors-path",
+        default="errors.txt",
+        help="Path to errors log generated by the benchmarks run. "
+        + "Its existence ONLY is used to detect whether runtime regressions occurred.",
+    )
     args = parser.parse_args()
 
     owner = " ".join(args.owner) if args.owner else DEFAULT_GH_ISSUE_OWNER
@@ -241,37 +335,57 @@ if __name__ == "__main__":
             control = json.load(cfptr)
         with open(args.treatment, "r") as tfptr:
             treatment = json.load(tfptr)
-        output_path = args.output if args.output else get_default_output_path(control["name"])
+        output_path = (
+            args.output if args.output else get_default_output_path(control["name"])
+        )
         regression_result = generate_regression_result(control, treatment)
-        process_regressions_into_yaml(regression_result, output_path, args.control, args.treatment)
-        process_regressions_into_gh_issue(regression_result, owner, args.gh_issue_path, args.errors_path)
+        process_regressions_into_yaml(
+            regression_result, output_path, args.control, args.treatment
+        )
+        process_regressions_into_gh_issue(
+            regression_result, owner, args.gh_issue_path, args.errors_path
+        )
         exit(0)
 
     # Query S3 to get control and treatment json files
     if not args.platform:
-        raise ValueError("A platform must be specified with the --platform flag to retrieve the "
-                         "previous metrics JSONs as control from S3.")
+        raise ValueError(
+            "A platform must be specified with the --platform flag to retrieve the "
+            "previous metrics JSONs as control from S3."
+        )
     # User only provide the treatement file, and expect us to download from S3
     control, treatment = None, None
     if not args.control and args.treatment:
         json_path = Path(args.treatment)
-        assert json_path.exists(), f"Specified result json path {args.treatment} does not exist."
-        end_date: datetime = datetime.strptime(get_date_from_metrics(json_path.stem), "%Y-%m-%d")
+        assert (
+            json_path.exists()
+        ), f"Specified result json path {args.treatment} does not exist."
+        end_date: datetime = datetime.strptime(
+            get_date_from_metrics(json_path.stem), "%Y-%m-%d"
+        )
         userbenchmark_name: str = get_ub_name(args.treatment)
         with open(json_path, "r") as cfptr:
             treatment = json.load(cfptr)
     else:
-        assert args.name, f"To detect regression with S3, you must specify a userbenchmark name."
+        assert (
+            args.name
+        ), f"To detect regression with S3, you must specify a userbenchmark name."
         userbenchmark_name = args.name
         end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
 
     # Only download the existing regression YAML file from S3
     if args.download_from_s3:
-        assert args.output, f"You must specify a regression output file path for S3 download."
-        regression_yaml_cond = lambda x: x.endswith('.yaml') and 'regression' in x
-        available_regression_yamls = get_latest_files_in_s3_from_last_n_days(userbenchmark_name, args.platform, end_date, regression_yaml_cond, ndays=1)
+        assert (
+            args.output
+        ), f"You must specify a regression output file path for S3 download."
+        regression_yaml_cond = lambda x: x.endswith(".yaml") and "regression" in x
+        available_regression_yamls = get_latest_files_in_s3_from_last_n_days(
+            userbenchmark_name, args.platform, end_date, regression_yaml_cond, ndays=1
+        )
         if not len(available_regression_yamls):
-            raise RuntimeError(f"No regression yaml found on S3 for end date {end_date}, userbenchmark {userbenchmark_name}, and platform {args.platform}")
+            raise RuntimeError(
+                f"No regression yaml found on S3 for end date {end_date}, userbenchmark {userbenchmark_name}, and platform {args.platform}"
+            )
         latest_regression_yaml = available_regression_yamls[0]
         s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
         regression_yaml = s3.get_file_as_yaml(latest_regression_yaml)
@@ -280,21 +394,47 @@ if __name__ == "__main__":
         print(f"Downloaded the regression yaml file to path {args.output}")
         exit(0)
 
-    metrics_json_cond = lambda x: x.endswith('.json') and 'metrics' in x
-    available_metrics_jsons = get_latest_files_in_s3_from_last_n_days(userbenchmark_name, args.platform, end_date, metrics_json_cond, ndays=7)
+    metrics_json_cond = lambda x: x.endswith(".json") and "metrics" in x
+    available_metrics_jsons = get_latest_files_in_s3_from_last_n_days(
+        userbenchmark_name, args.platform, end_date, metrics_json_cond, ndays=7
+    )
     # Download control from S3
     if len(available_metrics_jsons) == 0:
-        raise RuntimeError(f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated.")
+        raise RuntimeError(
+            f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated."
+        )
     print(f"Found metrics json files on S3: {available_metrics_jsons}")
-    start_date = args.start_date if args.start_date else get_best_start_date(available_metrics_jsons, end_date)
+    start_date = (
+        args.start_date
+        if args.start_date
+        else get_best_start_date(available_metrics_jsons, end_date)
+    )
     if not start_date:
-        raise RuntimeError(f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. " +
-                           f"Available JSON dates: {available_metrics_jsons.keys()}. No regression info has been generated.")
+        raise RuntimeError(
+            f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. "
+            + f"Available JSON dates: {available_metrics_jsons.keys()}. No regression info has been generated."
+        )
 
-    print(f"[TorchBench Regression Detector] Detecting regression of {userbenchmark_name} on platform {args.platform}, start date: {start_date}, end date: {end_date}.")
-    (control, control_file) = get_metrics_by_date(available_metrics_jsons, start_date) if not control else (control, args.control)
-    (treatment, treatment_file) = get_metrics_by_date(available_metrics_jsons, end_date) if not treatment else (treatment, args.treatment)
+    print(
+        f"[TorchBench Regression Detector] Detecting regression of {userbenchmark_name} on platform {args.platform}, start date: {start_date}, end date: {end_date}."
+    )
+    (control, control_file) = (
+        get_metrics_by_date(available_metrics_jsons, start_date)
+        if not control
+        else (control, args.control)
+    )
+    (treatment, treatment_file) = (
+        get_metrics_by_date(available_metrics_jsons, end_date)
+        if not treatment
+        else (treatment, args.treatment)
+    )
     regression_result = generate_regression_result(control, treatment)
-    output_path = args.output if args.output else get_default_output_path(control["name"])
-    process_regressions_into_yaml(regression_result, output_path, control_file, treatment_file)
-    process_regressions_into_gh_issue(regression_result, owner, args.gh_issue_path, args.errors_path)
+    output_path = (
+        args.output if args.output else get_default_output_path(control["name"])
+    )
+    process_regressions_into_yaml(
+        regression_result, output_path, control_file, treatment_file
+    )
+    process_regressions_into_gh_issue(
+        regression_result, owner, args.gh_issue_path, args.errors_path
+    )

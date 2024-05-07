@@ -1,18 +1,24 @@
-from datetime import datetime
 import os
+from datetime import datetime
 from pathlib import Path
 from statistics import stdev
 from typing import Optional
 
 import numpy as np
 import torch
+import torch.distributed as dist
 from torch.cuda import Event
-from torch.profiler import profile, ProfilerActivity, schedule, tensorboard_trace_handler
+from torch.profiler import (
+    profile,
+    ProfilerActivity,
+    schedule,
+    tensorboard_trace_handler,
+)
 from torchbenchmark.util.env_check import same
 from torchbenchmark.util.model import BenchmarkModel
-import torch.distributed as dist
 
-class Trainer():
+
+class Trainer:
     DEFAULT_MEASURE_ITERATIONS = 10
     PROFILE_ITERATIONS = 2
 
@@ -37,18 +43,23 @@ class Trainer():
 
         # create model instance after Trainer setup, so that
         # visible devices won't be revised in model constructor
-        self.benchmark: BenchmarkModel = model_class(test="train", device="cuda", batch_size=batch_size, extra_args=extra_args)
+        self.benchmark: BenchmarkModel = model_class(
+            test="train", device="cuda", batch_size=batch_size, extra_args=extra_args
+        )
 
         # options: "reference" or "test"
-        self.check_correctness_distributed : Optional[str] = getattr(args, "check_correctness_distributed", None)
-        self.reference_data_path : Optional[str] = getattr(args, "reference_data_path", None)
+        self.check_correctness_distributed: Optional[str] = getattr(
+            args, "check_correctness_distributed", None
+        )
+        self.reference_data_path: Optional[str] = getattr(
+            args, "reference_data_path", None
+        )
 
         # reduce iterations to speed up the tests
         if self.check_correctness_distributed:
             self.DEFAULT_MEASURE_ITERATIONS = 2
 
         self.rank = dist.get_rank()
-
 
     def setup(self):
         if self.mode == "SPMD":
@@ -75,11 +86,12 @@ class Trainer():
                 "Failed to retrieve SPMD configurations from environment "
                 f"variables. local_rank={self.local_rank}, world_size={world_size}, "
                 f"rank={rank}."
-
             )
 
             # TODO: hardcode NCCL for now, make this configurable if necessary
-            dist.init_process_group("nccl", init_method=self.args.dist_url, rank=rank, world_size=world_size)
+            dist.init_process_group(
+                "nccl", init_method=self.args.dist_url, rank=rank, world_size=world_size
+            )
         else:
             raise ValueError(f"Unrecognized distributed training mode {self.mode}")
 
@@ -110,17 +122,29 @@ class Trainer():
                         for ref_name, ref_param in ref_params.items():
                             if ref_name not in grad_params:
                                 correctness = False
-                                print(f"correctness failure: {ref_name} in reference params but not in test params")
+                                print(
+                                    f"correctness failure: {ref_name} in reference params but not in test params"
+                                )
                             test_param = grad_params[ref_name]
                             atol = rtol = 1e-4
-                            if not same(test_param, ref_param, cos_similarity=False, atol=atol*40, rtol=rtol*40):
-                                correctness=False
-                                print(f"correctness failure: Test model differs from reference model in parameter: {ref_name}")
+                            if not same(
+                                test_param,
+                                ref_param,
+                                cos_similarity=False,
+                                atol=atol * 40,
+                                rtol=rtol * 40,
+                            ):
+                                correctness = False
+                                print(
+                                    f"correctness failure: Test model differs from reference model in parameter: {ref_name}"
+                                )
 
                         for test_name, test_param in grad_params.items():
                             if test_name not in ref_params:
                                 correctness = False
-                                print(f"correctness failure: {test_name} in reference params but not in ref params")
+                                print(
+                                    f"correctness failure: {test_name} in reference params but not in ref params"
+                                )
                         return correctness
 
                     correctness = do_correctness_check()
@@ -154,10 +178,12 @@ class Trainer():
         # wait for all pending CUDA ops to finish
         torch.cuda.synchronize(device=self.local_rank)
 
-        latency_train = [pre.elapsed_time(post) for pre, post in zip(events_pre_train, events_post_train)]
+        latency_train = [
+            pre.elapsed_time(post)
+            for pre, post in zip(events_pre_train, events_post_train)
+        ]
         median_latency = np.median(latency_train)
         stdev_latency = stdev(latency_train)
-
 
         if self.args.profiler:
             # N.B.: disable PyTorch Profiler by default due to
@@ -169,15 +195,17 @@ class Trainer():
             warmup_runs = 2
             with profile(
                 activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-                record_shapes=True, # Causes seg fault in export_chrome_trace
-                with_stack=True, # Causes seg fault with EFA
-                with_flops=True, # Causes seg fault in export_chrome_trace
+                record_shapes=True,  # Causes seg fault in export_chrome_trace
+                with_stack=True,  # Causes seg fault with EFA
+                with_flops=True,  # Causes seg fault in export_chrome_trace
                 on_trace_ready=tensorboard_trace_handler(
                     f"{self.args.job_dir}/tb/{name}",
                     self.rank,
                     use_gzip=True,
                 ),
-                schedule=schedule(wait=wait_runs, warmup=warmup_runs, active=self.PROFILE_ITERATIONS),
+                schedule=schedule(
+                    wait=wait_runs, warmup=warmup_runs, active=self.PROFILE_ITERATIONS
+                ),
             ) as profiler:
                 for i in range(self.PROFILE_ITERATIONS + warmup_runs + wait_runs):
                     self.benchmark.invoke()
@@ -189,12 +217,11 @@ class Trainer():
         dist.barrier(device_ids=[self.local_rank])
 
         return {
-            "latency_median" : median_latency,
-            "latency_stdev" : stdev_latency,
-            "max_memory" : max_memory,
+            "latency_median": median_latency,
+            "latency_stdev": stdev_latency,
+            "max_memory": max_memory,
             **({"correctness": correctness} if correctness is not None else {}),
         }
-
 
     def teardown(self):
         if self.mode == "SPMD":

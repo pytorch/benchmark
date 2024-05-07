@@ -1,6 +1,7 @@
-from typing import List
-import torch
 import argparse
+from typing import List
+
+import torch
 
 from torchbenchmark.util.backends import create_backend
 from torchbenchmark.util.env_check import is_hf_model

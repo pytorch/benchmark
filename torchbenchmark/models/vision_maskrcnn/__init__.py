@@ -117,10 +117,9 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         self.model.eval()
-        with torch.no_grad():
-            for _batch_id, (images, _targets) in zip(
-                range(self.NUM_OF_BATCHES), self.data_loader
-            ):
-                out = self.model(images)
+        for _batch_id, (images, _targets) in zip(
+            range(self.NUM_OF_BATCHES), self.data_loader
+        ):
+            out = self.model(images)
         out = list(map(lambda x: x.values(), out))
         return tuple(itertools.chain(*out))

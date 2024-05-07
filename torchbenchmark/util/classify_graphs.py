@@ -1,8 +1,10 @@
 import argparse
 import re
-import torch
 
 from enum import Enum
+
+import torch
+
 
 class OpType(Enum):
     POINTWISE = 1
@@ -11,6 +13,7 @@ class OpType(Enum):
     VIEWS_EXPANDS = 4
     REMOVE = 5
     IGNORE = 6
+
 
 op_types = {
     "aten::rsqrt": OpType.POINTWISE,
@@ -46,6 +49,7 @@ op_types = {
     "aten::exp": OpType.POINTWISE,
     "aten::sigmoid": OpType.POINTWISE,
 }
+
 
 def type_to_placeholder(op_type: OpType) -> str:
     mapping = {
@@ -95,6 +99,7 @@ def remove_inputs(graph):
 def remove_duplicate_pointwise(graph, remove_all=False):
     to_remove = []
     old_str = str(graph)
+
     def bypass_node(n):
         to_remove.append(n)
         n.output().replaceAllUsesWith(n.input())
@@ -108,7 +113,9 @@ def remove_duplicate_pointwise(graph, remove_all=False):
             bypass_node(n)
             continue
         uses = [r.user for r in n.output().uses() if r.user.kind() != "prim::Return"]
-        if len(uses) >= 1 and (all(get_type(r.kind()) == OpType.POINTWISE for r in uses) or remove_all):
+        if len(uses) >= 1 and (
+            all(get_type(r.kind()) == OpType.POINTWISE for r in uses) or remove_all
+        ):
             bypass_node(n)
             continue
 
@@ -144,8 +151,9 @@ def compress_graph(graph):
     return torch._C._jit_pass_canonicalize(graph, False)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="""
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="""
 Collection of helper functions for eliminating duplicate subgraphs
 
 Usage:
@@ -165,7 +173,9 @@ Alternatively, call it and it will return one graph per hashed category
 Usage:
 python3 log_extract.py log.txt --output > log_result.py
 python3 classify_graphs.py log_result.py > filtered_logs.py
-""", formatter_class = argparse.RawDescriptionHelpFormatter)
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("filename", type=str, help="output from log_extract.py --help")
     args = parser.parse_args()
     with open(args.filename) as f:
@@ -173,7 +183,7 @@ python3 classify_graphs.py log_result.py > filtered_logs.py
 
     # see 73984
     for i in range(len(arr)):
-        if len(re.findall(r'value=annotate\(List\[int', arr[i])) >= 1:
+        if len(re.findall(r"value=annotate\(List\[int", arr[i])) >= 1:
             arr[i] = arr[0]
 
     classified = {}
@@ -191,4 +201,4 @@ python3 classify_graphs.py log_result.py > filtered_logs.py
         s = sorted(graphs, key=lambda x: -len(str(x)))
         final_selection.append(str(graphs[0]))
 
-    print('[' + ', '.join(f'"""{x}"""' for x in final_selection) + ']')
+    print("[" + ", ".join(f'"""{x}"""' for x in final_selection) + "]")
