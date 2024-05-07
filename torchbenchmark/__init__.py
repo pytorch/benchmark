@@ -59,9 +59,7 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
         [sys.executable, install_file],
     ]
     run_env = os.environ.copy()
-    run_env["PYTHONPATH"] = this_dir.parent
     run_env["PYTHONPATH"] = Path(this_dir.parent).as_posix()
-
     run_kwargs = {
         "cwd": model_path,
         "check": True,
