@@ -28,6 +28,9 @@ class Model(BenchmarkModel):
         self.data_folder = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), ".data"
         )
+        if not os.path.exists(self.data_folder):
+            from torchbenchmark.util.framework.fb.installer import install_data
+            self.data_folder = install_data("pizza")
         self.image_name = "pizza.jpg"
         self.image = Image.open(os.path.join(self.data_folder, self.image_name))
         self.text = ["pizza", "dog"] * 16

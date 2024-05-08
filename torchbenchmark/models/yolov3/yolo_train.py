@@ -97,6 +97,9 @@ def prepare_training_loop(args):
         data_dict = parse_data_cfg(data)
         train_path = os.path.dirname(__file__) + "/" + data_dict["train"]
         test_path = os.path.dirname(__file__) + "/" + data_dict["valid"]
+        if not os.path.exists(train_path):
+            train_path = os.path.dirname(data) + "/" + "coco128.txt"
+            test_path = os.path.dirname(data) + "/" + "coco128.txt"
         print(train_path)
         nc = 1 if opt.single_cls else int(data_dict["classes"])  # number of classes
         hyp["cls"] *= nc / 80  # update coco-tuned hyp['cls'] to current dataset

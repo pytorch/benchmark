@@ -23,9 +23,15 @@ from torchbenchmark.tasks import COMPUTER_VISION
 
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco128")
+if not os.path.exists(DATA_DIR):
+    try:
+        from torchbenchmark.util.framework.fb.installer import install_data
+        DATA_DIR = os.path.join(install_data("coco128"), "coco128")
+    except Exception:
+        pass
 assert os.path.exists(
     DATA_DIR
-), "Couldn't find coco128 data dir, please run install.py again."
+), f"Couldn't find coco128 data dir: {DATA_DIR}, please run install.py again."
 
 
 class Model(BenchmarkModel):
