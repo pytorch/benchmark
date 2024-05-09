@@ -186,10 +186,10 @@ def load_group_config(config_file: str) -> TorchBenchGroupBenchConfig:
     ]
     metrics = data["metrics"] if "metrics" in data else []
     group_configs = {}
-    for group_name in data["test_group"]:
+    for group_name in data["test_groups"]:
             group_configs[group_name] = []
-            group_extra_args = list(filter(lambda x: bool(x), data["test_group"][group_name].get("extra_args", "").split(" ")))
-            for subgroup in data["test_group"][group_name]["subgroup"]:
+            group_extra_args = list(filter(lambda x: bool(x), data["test_groups"][group_name].get("extra_args", "").split(" ")))
+            for subgroup in data["test_groups"][group_name]["subgroup"]:
                 subgroup_extra_args = subgroup.get("extra_args", "")
                 subgroup_extra_args = "" if subgroup_extra_args == None else subgroup_extra_args
                 subgroup_extra_args_list = list(filter(lambda x: bool(x), subgroup_extra_args.split(" ")))

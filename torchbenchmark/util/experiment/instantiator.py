@@ -29,6 +29,7 @@ class TorchBenchModelConfig:
     device: str
     batch_size: Optional[int]
     extra_args: List[str]
+    metrics: List[str]
     extra_env: Optional[Dict[str, str]] = None
     output_dir: Optional[pathlib.Path] = None
 
@@ -153,7 +154,9 @@ def list_extended_models(suite_name: str = "all") -> List[str]:
         return list_extended_timm_models()
     elif suite_name == "all":
         return list_extended_huggingface_models() + list_extended_timm_models()
+    elif suite_name == "torchbench":
+        return list_models()
     else:
         assert (
             False
-        ), "Currently, we only support extended model set huggingface or timm."
+        ), f"Currently, we only support model set torchbench, huggingface or timm, but get {suite_name}."

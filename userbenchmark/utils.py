@@ -97,7 +97,6 @@ def get_output_json(bm_name, metrics) -> Dict[str, Any]:
         "metrics": metrics,
     }
 
-
 def get_output_dir(bm_name: str) -> Path:
     import torch
 

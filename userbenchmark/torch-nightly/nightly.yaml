@@ -1,0 +1,16 @@
+model_set:
+  - torchbench
+  - huggingface
+  - timm
+test:
+  - train
+  - eval
+device:
+  - cuda
+metrics:
+  - latencies
+  - peak_cpu_mem
+  - peak_gpu_mem
+test_groups:
+  eager:
+    extra_args: --eager

@@ -5,7 +5,7 @@ Utilities to measure metrics of a model.
 import dataclasses
 import pathlib
 import time
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict, Any
 
 import torch
 from torchbenchmark import ModelTask
@@ -28,6 +28,7 @@ class TorchBenchModelMetrics:
     pt2_compilation_time: Optional[float]
     pt2_graph_breaks: Optional[float]
     model_flops: Optional[float]
+    error_msg: Optional[str]
 
 
 def get_latencies(
@@ -242,3 +243,11 @@ def get_model_accuracy(
         accuracy = model.accuracy
         del model
         return accuracy
+
+
+def run_config(config: TorchBenchModelConfig,
+               as_dict: bool=False,
+               dryrun: bool=False,
+    ) -> Union[TorchBenchModelMetrics, Dict[str, Any]]:
+    """Run a benchmark config and return the metrics as a Dict"""
+    pass
