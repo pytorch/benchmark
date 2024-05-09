@@ -752,8 +752,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     metrics.extra_metrics[metric_name] = func(fn, self.example_inputs, metrics)
         except torch.cuda.OutOfMemoryError:
             metrics.error_msg = "CUDA OOM"
-        except RuntimeError as e:
-            metrics.error_msg = str(e)
         return metrics
 
     def get_peak_mem(

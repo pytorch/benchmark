@@ -89,7 +89,7 @@ SPLIT_K_SHAPES = [
 
 
 class Operator(BenchmarkOperator):
-    DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
+    DEFAULT_METRICS = ["latency", "speedup", "accuracy", "tflops"]
     DEFAULT_PRECISION = "fp16"
 
     def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
@@ -202,13 +202,7 @@ class Operator(BenchmarkOperator):
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
         baseline_output = baseline_fn()
-        accuracy = True
-        try:
-            torch.testing.assert_close(output, baseline_output)
-        except Exception:
-            accuracy = False
-        finally:
-            return accuracy
+        return torch.allclose(output, baseline_output)
 
     def plot(self):
         @triton.testing.perf_report(
