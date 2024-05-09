@@ -15,6 +15,7 @@ AVAILABLE_PRECISIONS = [
     "bf16",
     "amp_fp16",
     "amp_bf16",
+    "fp8",
 ]
 QUANT_ENGINES = ["x86", "fbgemm", "qnnpack", "onednn"]
 
@@ -51,6 +52,9 @@ def check_precision(
             return True
         if model.test == "train" and model.device == "cpu":
             return hasattr(model, "enable_amp") or is_staged_train_test(model)
+    if precision == "fp8":
+        assert "fp8" in model.name, f"We expect fp8 exist in the model/operator name to explicitly claim fp8 is used, name: {model.name}."
+        return True
     assert (
         precision == "fp32"
     ), f"Expected precision to be one of {AVAILABLE_PRECISIONS}, but get {precision}"
@@ -224,6 +228,8 @@ def apply_decoration_args(
                     model.enable_amp()
                 else:
                     assert False, f"model has no enable_amp()"
+    elif dargs.precision == "fp8":
+        pass
     elif not dargs.precision == "fp32":
         assert (
             False

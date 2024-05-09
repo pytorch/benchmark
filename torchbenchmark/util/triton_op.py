@@ -110,7 +110,10 @@ def _find_op_name_from_module_path(module_path: str) -> str:
     PATH_PREFIX = "torchbenchmark.operators."
     assert PATH_PREFIX in module_path, \
         f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
-    return module_path.partition(PATH_PREFIX)[2].split(".")[0]
+    suffix = module_path.partition(PATH_PREFIX)[2]
+    if suffix.startswith("fb."):
+        return suffix.split(".")[1]
+    return suffix.split(".")[0]
 
 @dataclass
 class BenchmarkOperatorMetrics:
@@ -157,7 +160,7 @@ class BenchmarkOperatorResult:
         y_val = self.result[0][1]
         y_val_keys = list(y_val.keys())
         # move the baseline benchmark to the front of the list if exists
-        if BASELINE_BENCHMARKS[self.op_name] in y_val_keys:
+        if self.op_name in BASELINE_BENCHMARKS and BASELINE_BENCHMARKS[self.op_name] in y_val_keys:
             y_val_keys.insert(
                 0, y_val_keys.pop(y_val_keys.index(BASELINE_BENCHMARKS[self.op_name]))
             )
@@ -702,9 +705,9 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if "hw_roofline" in self.required_metrics:
                 metrics.hw_roofline = self.hw_roofline()
             if "tflops" in self.required_metrics:
-                metrics.tflops = self.tflops(fn_name, self.example_inputs, metric)
+                metrics.tflops = self.tflops(fn_name, self.example_inputs, metrics)
             if "compile_time" in self.required_metrics:
-                metrics.compile_time = self.compile_time(input_id, fn_name, metric)
+                metrics.compile_time = self.compile_time(input_id, fn_name, metrics)
             if "ncu_trace" in self.required_metrics:
                 metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
             if "kineto_trace" in self.required_metrics:
@@ -751,8 +754,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             metrics.error_msg = "CUDA OOM"
         except RuntimeError as e:
             metrics.error_msg = str(e)
-        finally:
-            return metrics
+        return metrics
 
     def get_peak_mem(
         self, fn: Callable
