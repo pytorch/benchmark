@@ -163,13 +163,20 @@ class Operator(BenchmarkOperator):
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> float:
         if "triton_tutorial_matmul" in str(fn_name):
-            bconfig = triton_matmul_kernel.best_config
-            kwargs = deepcopy(bconfig.kwargs)
-            kwargs["num_stages"] = bconfig.num_stages
-            kwargs["num_warps"] = bconfig.num_warps
-            dumped_str = json.dumps(kwargs)
-            return dumped_str
-        return ""
+            kernel = triton_matmul_kernel
+        elif "triton_ops_matmul" in str(fn_name):
+            kernel = triton.ops._matmul.kernel
+        elif "hstu_triton_matmul" in str(fn_name):
+            import hammer
+            kernel = hammer.ops.triton.triton_matmul._epilogue_mm
+        else:
+            return ""
+
+        bconfig = kernel.best_config
+        kwargs = deepcopy(bconfig.kwargs)
+        kwargs["num_stages"] = bconfig.num_stages
+        kwargs["num_warps"] = bconfig.num_warps
+        return json.dumps(kwargs)
 
     @register_metric()
     def tflops(
