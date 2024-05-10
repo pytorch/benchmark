@@ -13,4 +13,4 @@ metrics:
   - peak_gpu_mem
 test_groups:
   eager:
-    extra_args: --eager
+    extra_args:
