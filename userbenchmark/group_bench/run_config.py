@@ -54,12 +54,13 @@ def config_obj_to_model_configs(config: Dict[str, Any]) -> Dict[str, Dict[str, L
 
 def _common_key_to_group_key(common_key: Tuple[str, str, int, str]):
     device, test, batch_size, precision = common_key
-    return {
+    key = {
         "device": device,
         "test": test,
-        "batch_size": batch_size,
-        "precision": precision,
+        "batch_size": batch_size if batch_size else "default",
+        "precision": precision if precision else "default",
     }
+    return key
 
 
 def _config_result_to_group_result(
