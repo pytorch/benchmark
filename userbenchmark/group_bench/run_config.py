@@ -7,7 +7,7 @@ from torchbenchmark.util.experiment.metrics import run_config
 def _get_models(models: Optional[List[str]]=None, model_set: Optional[List[str]]=None) -> List[str]:
     result = set(models) if models else set()
     for s in model_set:
-        result.add(list_extended_models(s))
+        result.union(set(list_extended_models(s)))
     return list(result) 
 
 def config_obj_to_model_configs(config: Dict[str, Any]) -> Dict[str, Dict[str, List[TorchBenchModelConfig]]]:
