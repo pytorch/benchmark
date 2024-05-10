@@ -4,14 +4,14 @@ from typing import Any, Dict, List, Optional, Tuple
 from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig, list_extended_models, get_model_set_from_model_name
 from torchbenchmark.util.experiment.metrics import run_config
 
-def _get_models(models: Optional[List[str]]=None, model_set: Optional[List[str]]=None) -> List[str]:
-    result = set(models) if models else set()
+def _get_models(models: Optional[List[str]]=None, model_set: Optional[List[str]]=None) -> List[Tuple[str, str]]:
+    result = set(map(lambda x: (get_model_set_from_model_name(x), x), models)) if models else set()
     for s in model_set:
-        result = result.union(set(list_extended_models(s)))
-    return list(result) 
+        result = result.union(set(map(lambda x: (s, x), list_extended_models(s))))
+    return sorted(list(result))
 
 def config_obj_to_model_configs(config: Dict[str, Any]) -> Dict[str, Dict[str, List[TorchBenchModelConfig]]]:
-    models = _get_models(models=config.get("model", None), model_set=config.get("model_set", None))
+    models: Tuple[str, str] = _get_models(models=config.get("model", None), model_set=config.get("model_set", None))
     batch_sizes = config.get("batch_size", [None])
     tests = config.get("test", ["train", "eval"])
     devices = config.get("device", ["cuda"])
@@ -23,7 +23,7 @@ def config_obj_to_model_configs(config: Dict[str, Any]) -> Dict[str, Dict[str, L
         extra_args = test_groups[group_name].get("extra_args", [])
         extra_args = [] if extra_args == None else extra_args.copy()
         cfgs = itertools.product(*[devices, tests, batch_sizes, precisions, models])
-        for device, test, batch_size, precision, model_name in cfgs:
+        for device, test, batch_size, precision, model_name_with_set in cfgs:
             if precision:
                 extra_args = extra_args.extend(["--precision", precision])
             if batch_size:
@@ -35,7 +35,8 @@ def config_obj_to_model_configs(config: Dict[str, Any]) -> Dict[str, Dict[str, L
                 result[common_key][group_name] = []
             result[common_key][group_name].append(
                 TorchBenchModelConfig(
-                    name=model_name,
+                    model_set=model_name_with_set[0],
+                    name=model_name_with_set[1],
                     device=device,
                     test=test,
                     batch_size=batch_size,
@@ -57,9 +58,8 @@ def _common_key_to_group_key(common_key: Tuple[str, str, int, str]):
     }
 
 
-def _config_result_to_group_result(group_name: str, model_name: str, metrics: Dict[str, Any], required_metrics: List[str]):
+def _config_result_to_group_result(group_name: str, model_set: str, model_name: str, metrics: Dict[str, Any], required_metrics: List[str]):
     # output metric format: <model_set>_<model_name>[<group_name>]_<metric_name>
-    model_set = get_model_set_from_model_name(model_name)
     result = {}
     for metric in required_metrics:
         metric_name = f"{model_set}_{model_name}[{group_name}]_{metric}"
@@ -80,6 +80,7 @@ def run_benchmark_group_config(group_config_file: str, dryrun: bool=False) -> Li
                 group_result["group_results"].update(
                     _config_result_to_group_result(
                         group_name=group_name,
+                        model_set=x.model_set,
                         model_name=x.name,
                         metrics=run_config(x, as_dict=True, dryrun=dryrun),
                         required_metrics=x.metrics))
