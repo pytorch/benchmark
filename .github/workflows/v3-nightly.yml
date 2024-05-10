@@ -1,4 +1,4 @@
-name: TorchBench V3 nightly (A100)
+name: TorchBench nightly (A100)
 on:
   workflow_dispatch:
   schedule:
