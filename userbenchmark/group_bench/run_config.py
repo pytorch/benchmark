@@ -7,7 +7,7 @@ from torchbenchmark.util.experiment.metrics import run_config
 def _get_models(models: Optional[List[str]]=None, model_set: Optional[List[str]]=None) -> List[str]:
     result = set(models) if models else set()
     for s in model_set:
-        result.union(set(list_extended_models(s)))
+        result = result.union(set(list_extended_models(s)))
     return list(result) 
 
 def config_obj_to_model_configs(config: Dict[str, Any]) -> Dict[str, Dict[str, List[TorchBenchModelConfig]]]:
@@ -20,7 +20,8 @@ def config_obj_to_model_configs(config: Dict[str, Any]) -> Dict[str, Dict[str, L
     test_groups = config["test_groups"]
     result = {}
     for group_name in test_groups.keys():
-        extra_args = test_groups[group_name].copy()
+        extra_args = test_groups[group_name].get("extra_args", [])
+        extra_args = [] if extra_args == None else extra_args.copy()
         cfgs = itertools.product(*[devices, tests, batch_sizes, precisions, models])
         for device, test, batch_size, precision, model_name in cfgs:
             if precision:
@@ -73,15 +74,14 @@ def run_benchmark_group_config(group_config_file: str, dryrun: bool=False) -> Li
     configs: Dict[str, Dict[str, List[TorchBenchModelConfig]]] = config_obj_to_model_configs(config_obj)
     for common_key in configs.keys():
         group_key = _common_key_to_group_key(common_key)
-        group_result = {"group_key": group_key, "group_results": []}
+        group_result = {"group_key": group_key, "group_results": {}}
         for group_name in configs[common_key]:
-            group_result["group_results"] = [
-                _config_result_to_group_result(
-                    group_name=group_name,
-                    model_name=x.name,
-                    metrics=run_config(x, as_dict=True, dryrun=dryrun),
-                    required_metrics=x.metrics)
-                    for x in configs[common_key][group_name]
-            ]
+            for x in configs[common_key][group_name]:
+                group_result["group_results"].update(
+                    _config_result_to_group_result(
+                        group_name=group_name,
+                        model_name=x.name,
+                        metrics=run_config(x, as_dict=True, dryrun=dryrun),
+                        required_metrics=x.metrics))
         result.append(group_result)
     return result

@@ -24,7 +24,6 @@ BS_FIELD_NAME = "batch_size"
 
 @dataclasses.dataclass
 class TorchBenchModelConfig:
-    model_set: str
     name: str
     test: str
     device: str

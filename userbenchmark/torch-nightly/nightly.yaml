@@ -9,8 +9,8 @@ device:
   - cuda
 metrics:
   - latencies
-  - peak_cpu_mem
-  - peak_gpu_mem
+  - cpu_peak_mem
+  - gpu_peak_mem
 test_groups:
   eager:
     extra_args:

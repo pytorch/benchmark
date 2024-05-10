@@ -22,6 +22,7 @@ NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 class TorchBenchModelMetrics:
     latencies: List[float]
     throughputs: List[float]
+    accuracy: Optional[bool]
     cpu_peak_mem: Optional[float]
     gpu_peak_mem: Optional[float]
     ttfb: Optional[float]  # time-to-first-batch
@@ -250,4 +251,21 @@ def run_config(config: TorchBenchModelConfig,
                dryrun: bool=False,
     ) -> Union[TorchBenchModelMetrics, Dict[str, Any]]:
     """Run a benchmark config and return the metrics as a Dict"""
-    pass
+    print(f"Running config {config} ...", flush=True, end="")
+    metrics = TorchBenchModelMetrics(
+        latencies=[],
+        throughputs=[],
+        accuracy=None,
+        cpu_peak_mem=None,
+        gpu_peak_mem=None,
+        ttfb=None,
+        pt2_compilation_time=None,
+        pt2_graph_breaks=None,
+        model_flops=None,
+        error_msg=None,
+    )
+    if dryrun:
+        print("[skip_by_dryrun]", flush=True)
+        return dataclasses.asdict(metrics) if as_dict else metrics
+    print("[done]", flush=True)
+    return dataclasses.asdict(metrics) if as_dict else metrics
