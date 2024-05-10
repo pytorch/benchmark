@@ -1,4 +1,5 @@
 import yaml
+import numpy
 import itertools
 from typing import Any, Dict, List, Optional, Tuple
 from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig, list_extended_models, get_model_set_from_model_name
@@ -61,12 +62,21 @@ def _common_key_to_group_key(common_key: Tuple[str, str, int, str]):
     }
 
 
-def _config_result_to_group_result(group_name: str, model_set: str, model_name: str, metrics: Dict[str, Any], required_metrics: List[str]):
+def _config_result_to_group_result(
+        group_name: str,
+        model_set: str,
+        model_name: str,
+        metrics: Dict[str, Any],
+        required_metrics: List[str],
+        metric_aggregation: str="p50"):
     # output metric format: <model_set>_<model_name>[<group_name>]_<metric_name>
     result = {}
     for metric in required_metrics:
         metric_name = f"{model_set}_{model_name}[{group_name}]_{metric}"
-        result[metric_name] = metrics[metric]
+        metric_value = metrics[metric]
+        if isinstance(metrics[metric], list) and metric_aggregation == "p50":
+            metric_value = numpy.median(metrics[metric])
+        result[metric_name] = metric_value
     return result
 
 
