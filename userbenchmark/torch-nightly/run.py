@@ -26,7 +26,7 @@ def run(args: List[str]):
     args = parse_args(args)
     assert os.path.exists(args.config), f"Expect an existing benchmark config file, get path: {args.config}."
     benchmark_result = get_output_json(BM_NAME, run_benchmark_config(config_file=args.config, dryrun=args.dryrun))
-    benchmark_result["environ"]["benchmark_style"] = "grouped"
+    benchmark_result["environ"]["benchmark_style"] = "group_bench"
     benchmark_result_json = json.dumps(benchmark_result, indent=4)
     with open(args.output, "w") as fp:
         fp.write(benchmark_result_json)

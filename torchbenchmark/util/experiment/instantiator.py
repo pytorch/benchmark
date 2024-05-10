@@ -24,6 +24,7 @@ BS_FIELD_NAME = "batch_size"
 
 @dataclasses.dataclass
 class TorchBenchModelConfig:
+    model_set: str
     name: str
     test: str
     device: str
@@ -160,3 +161,19 @@ def list_extended_models(suite_name: str = "all") -> List[str]:
         assert (
             False
         ), f"Currently, we only support model set torchbench, huggingface or timm, but get {suite_name}."
+
+
+def get_model_set_from_model_name(model_name: str) -> str:
+    from torchbenchmark.util.framework.huggingface.extended_configs import (
+        list_extended_huggingface_models,
+    )
+    from torchbenchmark.util.framework.timm.extended_configs import (
+        list_extended_timm_models,
+    )
+    if model_name in list_extended_huggingface_models():
+        return "huggingface"
+    if model_name in list_extended_timm_models():
+        return "timm"
+    if model_name in list_models():
+        return "torchbench"
+    assert False, f"Model {model_name} is not found in any model set."
