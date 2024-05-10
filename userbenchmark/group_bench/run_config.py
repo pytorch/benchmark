@@ -7,8 +7,9 @@ from torchbenchmark.util.experiment.metrics import run_config
 
 def _get_models(models: Optional[List[str]]=None, model_set: Optional[List[str]]=None) -> List[Tuple[str, str]]:
     result = set(map(lambda x: (get_model_set_from_model_name(x), x), models)) if models else set()
-    for s in model_set:
-        result = result.union(set(map(lambda x: (s, x), list_extended_models(s))))
+    if model_set:
+        for s in model_set:
+            result = result.union(set(map(lambda x: (s, x), list_extended_models(s))))
     return sorted(list(result))
 
 
