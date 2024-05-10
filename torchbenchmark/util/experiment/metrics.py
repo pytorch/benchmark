@@ -148,15 +148,18 @@ def get_model_test_metrics(
     num_iter=BENCHMARK_ITERS,
 ) -> TorchBenchModelMetrics:
     import os
-
-    latencies = None
-    throughputs = None
-    cpu_peak_mem = None
-    gpu_peak_mem = None
-    ttfb = None
-    pt2_compilation_time = None
-    pt2_graph_breaks = None
-    model_flops = None
+    metrics = TorchBenchModelMetrics(
+        latencies=[],
+        throughputs=[],
+        accuracy=None,
+        cpu_peak_mem=None,
+        gpu_peak_mem=None,
+        ttfb=None,
+        pt2_compilation_time=None,
+        pt2_graph_breaks=None,
+        model_flops=None,
+        error_msg=None,
+    )
     if not (isinstance(model, BenchmarkModel) or isinstance(model, ModelTask)):
         raise ValueError(
             f"Expected BenchmarkModel or ModelTask, get type: {type(model)}"
@@ -170,11 +173,11 @@ def get_model_test_metrics(
         else model.get_model_attribute("device")
     )
     if "latencies" in metrics or "throughputs" in metrics:
-        latencies = get_latencies(
+        metrics.latencies = get_latencies(
             model.invoke, device, nwarmup=nwarmup, num_iter=num_iter
         )
     if "cpu_peak_mem" in metrics or "gpu_peak_mem" in metrics:
-        cpu_peak_mem, _device_id, gpu_peak_mem = get_peak_memory(
+        metrics.cpu_peak_mem, _device_id, metrics.gpu_peak_mem = get_peak_memory(
             model.invoke,
             device,
             export_metrics_file=export_metrics_file,
@@ -183,37 +186,28 @@ def get_model_test_metrics(
             cpu_monitored_pid=model_pid,
         )
     if "throughputs" in metrics:
-        throughputs = [model.batch_size * 1000 / latency for latency in latencies]
+        metrics.throughputs = [model.batch_size * 1000 / latency for latency in metrics.latencies]
     if "pt2_compilation_time" in metrics:
-        pt2_compilation_time = (
+        metrics.pt2_compilation_time = (
             model.get_model_attribute("pt2_compilation_time")
             if isinstance(model, ModelTask)
             else model.pt2_compilation_time
         )
     if "pt2_graph_breaks" in metrics:
-        pt2_graph_breaks = (
+        metrics.pt2_graph_breaks = (
             model.get_model_attribute("pt2_graph_breaks")
             if isinstance(model, ModelTask)
             else model.pt2_graph_breaks
         )
     if "model_flops" in metrics:
-        model_flops = get_model_flops(model)
+        metrics.model_flops = get_model_flops(model)
     if "ttfb" in metrics:
-        ttfb = (
+        metrics.ttfb = (
             model.get_model_attribute("ttfb")
             if isinstance(model, ModelTask)
             else model.ttfb
         )
-    return TorchBenchModelMetrics(
-        latencies,
-        throughputs,
-        cpu_peak_mem,
-        gpu_peak_mem,
-        ttfb,
-        pt2_compilation_time,
-        pt2_graph_breaks,
-        model_flops,
-    )
+    return metrics
 
 
 def get_model_accuracy(
@@ -267,5 +261,18 @@ def run_config(config: TorchBenchModelConfig,
     if dryrun:
         print("[skip_by_dryrun]", flush=True)
         return dataclasses.asdict(metrics) if as_dict else metrics
+    required_metrics = config.metrics.copy()
+    accuracy = None
+    if "accuracy" in required_metrics:
+        accuracy = get_model_accuracy(config)
+        required_metrics.remove("accuracy")
+    if required_metrics:
+        from torchbenchmark.util.experiment.instantiator import (
+            load_model_isolated,
+        )
+        model_task = load_model_isolated(config.name)
+        metrics = get_model_test_metrics(model_task, metrics=required_metrics)
+    if "accuracy" in required_metrics:
+        metrics.accuracy = accuracy
     print("[done]", flush=True)
     return dataclasses.asdict(metrics) if as_dict else metrics

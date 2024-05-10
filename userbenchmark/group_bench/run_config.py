@@ -4,11 +4,13 @@ from typing import Any, Dict, List, Optional, Tuple
 from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig, list_extended_models, get_model_set_from_model_name
 from torchbenchmark.util.experiment.metrics import run_config
 
+
 def _get_models(models: Optional[List[str]]=None, model_set: Optional[List[str]]=None) -> List[Tuple[str, str]]:
     result = set(map(lambda x: (get_model_set_from_model_name(x), x), models)) if models else set()
     for s in model_set:
         result = result.union(set(map(lambda x: (s, x), list_extended_models(s))))
     return sorted(list(result))
+
 
 def config_obj_to_model_configs(config: Dict[str, Any]) -> Dict[str, Dict[str, List[TorchBenchModelConfig]]]:
     models: Tuple[str, str] = _get_models(models=config.get("model", None), model_set=config.get("model_set", None))
