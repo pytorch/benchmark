@@ -13,6 +13,7 @@ from torchbenchmark.util.triton_op import (
     BenchmarkOperatorMetrics,
     register_benchmark,
     register_metric,
+    register_x_val,
 )
 
 from .data_io import parse_args, read_shapes_from_csv
@@ -141,6 +142,7 @@ class Operator(BenchmarkOperator):
         else:
             return lambda: colfax_gemm(a, b, alpha=1.0, beta=1.0)
 
+    @register_x_val(label="(M, N, K)")
     def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
         # x-value: computation intensity
         a, w, bias = example_inputs
