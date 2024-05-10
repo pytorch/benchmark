@@ -271,7 +271,7 @@ def run_config(config: TorchBenchModelConfig,
             load_model_isolated,
         )
         model_task = load_model_isolated(config)
-        metrics = get_model_test_metrics(model_task, metrics=required_metrics)
+        metrics = get_model_test_metrics(model_task, required_metrics=required_metrics)
     if "accuracy" in required_metrics:
         metrics.accuracy = accuracy
     print("[done]", flush=True)
