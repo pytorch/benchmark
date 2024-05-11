@@ -14,6 +14,7 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
     register_x_val,
+    dump_autotuner_best_config,
 )
 
 from .data_io import parse_args, read_shapes_from_csv
@@ -21,8 +22,6 @@ from .triton_matmul import matmul as triton_matmul
 from .triton_matmul import matmul_kernel as triton_matmul_kernel
 
 import inspect
-import json
-from copy import deepcopy
 try:
     from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
 
@@ -75,7 +74,6 @@ SPLIT_K_SHAPES = [
     for m in [128 * i for i in range(1, 5)]
     for k in [2048 * i for i in range(1, 9)]
 ]
-
 
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy", "tflops"]
@@ -151,22 +149,16 @@ class Operator(BenchmarkOperator):
     @register_metric(skip_baseline=True)
     def best_config(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> float:
+    ) -> str:
         if "triton_tutorial_matmul" in str(fn_name):
-            kernel = triton_matmul_kernel
+            return dump_autotuner_best_config(triton_matmul_kernel)
         elif "triton_ops_matmul" in str(fn_name):
-            kernel = triton.ops._matmul.kernel
+            return dump_autotuner_best_config(triton.ops._matmul.kernel)
         elif "hstu_triton_matmul" in str(fn_name):
             import hammer
-            kernel = hammer.ops.triton.triton_matmul._epilogue_mm
+            return dump_autotuner_best_config(hammer.ops.triton.triton_matmul._epilogue_mm)
         else:
             return ""
-
-        bconfig = kernel.best_config
-        kwargs = deepcopy(bconfig.kwargs)
-        kwargs["num_stages"] = bconfig.num_stages
-        kwargs["num_warps"] = bconfig.num_warps
-        return json.dumps(kwargs)
 
     @register_metric()
     def tflops(

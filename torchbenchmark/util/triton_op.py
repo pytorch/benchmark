@@ -2,6 +2,7 @@ import argparse
 import copy
 import functools
 import gc
+import json
 import random
 import time
 import warnings
@@ -115,6 +116,18 @@ def _find_op_name_from_module_path(module_path: str) -> str:
     if suffix.startswith("fb."):
         return suffix.split(".")[1]
     return suffix.split(".")[0]
+
+def dump_autotuner_best_config(kernel: triton.runtime.Autotuner) -> str:
+    if not hasattr(kernel, "best_config"):
+        return ""
+    # pyre-ignore: Undefined attribute [16]
+    bconfig = kernel.best_config
+    kwargs = copy.deepcopy(bconfig.kwargs)
+    kwargs["num_stages"] = bconfig.num_stages
+    kwargs["num_warps"] = bconfig.num_warps
+    dumped_str = json.dumps(kwargs)
+    return dumped_str
+
 
 @dataclass
 class BenchmarkOperatorMetrics:
