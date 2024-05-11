@@ -39,14 +39,14 @@ jobs:
           . "${SETUP_SCRIPT}"
           pushd benchmark
           python install.py
-      - name: Run the torch-nightly userbenchmark
+      - name: Run the torch-nightly-test userbenchmark
         run: |
           . "${SETUP_SCRIPT}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
-          python run_benchmark.py torch-nightly -c v3-cuda-tests.yaml
+          python run_benchmark.py torch-nightly-test -c nightly.yaml
           cp -r ./.userbenchmark/torch-nightly ../benchmark-output
       - name: Detect potential regressions
         continue-on-error: true
