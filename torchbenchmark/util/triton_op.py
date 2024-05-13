@@ -2,6 +2,7 @@ import argparse
 import copy
 import functools
 import gc
+import json
 import random
 import time
 import warnings
@@ -29,6 +30,7 @@ DEFAULT_RUN_ITERS = 100
 DEFAULT_QUANTILES = [0.5, 0.1, 0.9]
 REGISTERED_BENCHMARKS: Dict[str, List[str]] = {}
 REGISTERED_METRICS: Dict[str, List[str]] = {}
+REGISTERED_X_VALS: Dict[str, str] = {}
 BASELINE_BENCHMARKS: Dict[str, str] = {}
 BUILTIN_METRICS = [
     "latency",
@@ -110,7 +112,22 @@ def _find_op_name_from_module_path(module_path: str) -> str:
     PATH_PREFIX = "torchbenchmark.operators."
     assert PATH_PREFIX in module_path, \
         f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
-    return module_path.partition(PATH_PREFIX)[2].split(".")[0]
+    suffix = module_path.partition(PATH_PREFIX)[2]
+    if suffix.startswith("fb."):
+        return suffix.split(".")[1]
+    return suffix.split(".")[0]
+
+def dump_autotuner_best_config(kernel: triton.runtime.Autotuner) -> str:
+    if not hasattr(kernel, "best_config"):
+        return ""
+    # pyre-ignore: Undefined attribute [16]
+    bconfig = kernel.best_config
+    kwargs = copy.deepcopy(bconfig.kwargs)
+    kwargs["num_stages"] = bconfig.num_stages
+    kwargs["num_warps"] = bconfig.num_warps
+    dumped_str = json.dumps(kwargs)
+    return dumped_str
+
 
 @dataclass
 class BenchmarkOperatorMetrics:
@@ -153,11 +170,11 @@ class BenchmarkOperatorResult:
     def _table(self):
         table = []
         # generate headers
-        headers = ["x_val"]
+        headers = [REGISTERED_X_VALS[self.op_name]]
         y_val = self.result[0][1]
         y_val_keys = list(y_val.keys())
         # move the baseline benchmark to the front of the list if exists
-        if BASELINE_BENCHMARKS[self.op_name] in y_val_keys:
+        if self.op_name in BASELINE_BENCHMARKS and BASELINE_BENCHMARKS[self.op_name] in y_val_keys:
             y_val_keys.insert(
                 0, y_val_keys.pop(y_val_keys.index(BASELINE_BENCHMARKS[self.op_name]))
             )
@@ -260,6 +277,14 @@ class BenchmarkOperatorResult:
         table = tabulate.tabulate(table, headers=headers, stralign="right")
         return table
 
+def register_x_val(label: str="x_val"):
+    def decorator(function):
+        operator_name = _find_op_name_from_module_path(function.__module__)
+        REGISTERED_X_VALS[operator_name] = label
+        def _inner(self, *args, **kwargs):
+            return function(self, *args, **kwargs)
+        return _inner
+    return decorator
 
 def register_benchmark(baseline: bool = False, enabled: bool = True):
     def decorator(function):
@@ -375,6 +400,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             ), f"We only accept 3 test modes: fwd(eval), fwd_bwd(train), or bwd."
             self.mode = Mode.BWD
         self.dargs, unprocessed_args = parse_decoration_args(self, extra_args)
+        if self.name not in REGISTERED_X_VALS:
+            REGISTERED_X_VALS[self.name] = "x_val"
         # This will be changed by the time we apply the decoration args
         self.dtype = PRECISION_DTYPE_MAPPING.get(self.dargs.precision, None)
         self.DEFAULT_METRICS.extend(
@@ -702,9 +729,9 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if "hw_roofline" in self.required_metrics:
                 metrics.hw_roofline = self.hw_roofline()
             if "tflops" in self.required_metrics:
-                metrics.tflops = self.tflops(fn_name, self.example_inputs, metric)
+                metrics.tflops = self.tflops(fn_name, self.example_inputs, metrics)
             if "compile_time" in self.required_metrics:
-                metrics.compile_time = self.compile_time(input_id, fn_name, metric)
+                metrics.compile_time = self.compile_time(input_id, fn_name, metrics)
             if "ncu_trace" in self.required_metrics:
                 metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
             if "kineto_trace" in self.required_metrics:
@@ -749,10 +776,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     metrics.extra_metrics[metric_name] = func(fn, self.example_inputs, metrics)
         except torch.cuda.OutOfMemoryError:
             metrics.error_msg = "CUDA OOM"
-        except RuntimeError as e:
-            metrics.error_msg = str(e)
-        finally:
-            return metrics
+        return metrics
 
     def get_peak_mem(
         self, fn: Callable

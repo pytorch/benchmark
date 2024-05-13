@@ -11,6 +11,12 @@ CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.path.join(
     CURRENT_DIR.parent.parent.parent, "data", ".data", "coco2017-minimal"
 )
+if not os.path.exists(DATA_DIR):
+    try:
+        from torchbenchmark.util.framework.fb.installer import install_data
+        DATA_DIR = install_data("coco2017-minimal")
+    except Exception:
+        pass
 assert os.path.exists(
     DATA_DIR
 ), "Couldn't find coco2017 minimal data dir, please run install.py again."
@@ -99,6 +105,12 @@ class Detectron2Model(BenchmarkModel):
         assert hasattr(
             self, "model_file"
         ), f"Detectron2 models must specify its model_file."
+        if self.model_file and not os.path.exists(self.model_file):
+            try:
+                from torchbenchmark.util.framework.fb.installer import install_model_weights
+                self.model_file = install_model_weights(self.name)
+            except Exception:
+                pass
         if self.model_file:
             assert os.path.exists(
                 self.model_file
