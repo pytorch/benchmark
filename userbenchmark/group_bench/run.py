@@ -158,6 +158,7 @@ def models_from_config(config) -> List[str]:
             basic_models_list = list_models()
         else:
             basic_models_list = [config["model"]]
+    breakpoint()
     assert isinstance(config["model", list]), "Config model must be a list or string."
     basic_models_list = config["model"]
     extended_models_list = []
@@ -218,14 +219,19 @@ def run(args: List[str]):
     results = {}
     try:
         for config in group_config.configs:
-            metrics = get_metrics(group_config.metrics, config)
-            if "accuracy" in metrics:
-                metrics_dict = run_config_accuracy(config, metrics, dryrun=args.dryrun)
-            else:
-                metrics_dict = run_config(config, metrics, dryrun=args.dryrun)
+            try:
+                metrics = get_metrics(group_config.metrics, config)
+                if "accuracy" in metrics:
+                    metrics_dict = run_config_accuracy(config, metrics, dryrun=args.dryrun)
+                else:
+                    metrics_dict = run_config(config, metrics, dryrun=args.dryrun)
+            except KeyboardInterrupt:
+                raise KeyboardInterrupt
+            except Exception as e:
+                metrics_dict = {}
             config_str = config_to_str(config)
-            for metric in metrics_dict:
-                results[f"{config_str}, metric={metric}"] = metrics_dict[metric]
+            for metric in metrics:
+                    results[f"{config_str}, metric={metric}"] = metrics_dict.get(metric, "err")
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
     result = get_output_json(BM_NAME, results)
