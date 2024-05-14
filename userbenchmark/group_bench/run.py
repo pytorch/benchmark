@@ -158,9 +158,6 @@ def models_from_config(config) -> List[str]:
             basic_models_list = list_models()
         else:
             basic_models_list = [config["model"]]
-    breakpoint()
-    assert isinstance(config["model", list]), "Config model must be a list or string."
-    basic_models_list = config["model"]
     extended_models_list = []
     if "extended_models" in config:
         from torchbenchmark.util.experiment.instantiator import list_extended_models
@@ -228,10 +225,12 @@ def run(args: List[str]):
             except KeyboardInterrupt:
                 raise KeyboardInterrupt
             except Exception as e:
+                print(f"for config, ran into error: {e}")
                 metrics_dict = {}
             config_str = config_to_str(config)
             for metric in metrics:
                     results[f"{config_str}, metric={metric}"] = metrics_dict.get(metric, "err")
+                    print(f">>metric={metric}: {metrics_dict.get(metric, 'err')}")
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
     result = get_output_json(BM_NAME, results)
