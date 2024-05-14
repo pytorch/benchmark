@@ -86,7 +86,7 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--quantization",
-        choices=["int8dynamic", "int8weightonly", "int4weightonly"],
+        choices=["int8dynamic", "int8weightonly", "int4weightonly","autoquant","noquant"],
         help="Apply quantization to the model before running it",
     )
     parser.add_argument(
@@ -188,20 +188,43 @@ def apply_torchdynamo_args(
                 change_linear_weights_to_int8_dqtensors,
                 change_linear_weights_to_int8_woqtensors,
             )
-
+            torch._dynamo.epilogue_fusion = False
             torch._dynamo.config.automatic_dynamic_shapes = False
             torch._dynamo.config.force_parameter_static_shapes = False
-            torch._dynamo.config.cache_size_limit = 1000
+            torch._dynamo.config.cache_size_limit = 10000
             assert "cuda" in model.device
             module, example_inputs = model.get_module()
+            torch._inductor.config.force_fuse_int_mm_with_mul = True
+            torch._inductor.config.use_mixed_mm = True
+            if isinstance(example_inputs, tuple([tuple, list])):
+                example_inputs = tuple([
+                    x.to(torch.bfloat16)
+                    if isinstance(x, torch.Tensor) and x.dtype in [torch.float32, torch.float16]
+                    else x
+                    for x in example_inputs
+                ])
+            module=module.to(torch.bfloat16)
+            with torch.no_grad():
+                if isinstance(example_inputs, dict):
+                    module(**example_inputs)
+                else:
+                    module(*example_inputs)
+
             if args.quantization == "int8dynamic":
-                torch._inductor.config.force_fuse_int_mm_with_mul = True
                 change_linear_weights_to_int8_dqtensors(module)
             elif args.quantization == "int8weightonly":
-                torch._inductor.config.use_mixed_mm = True
                 change_linear_weights_to_int8_woqtensors(module)
             elif args.quantization == "int4weightonly":
                 change_linear_weights_to_int4_woqtensors(module)
+            elif args.quantization == "autoquant":
+                torchao.autoquant(module, error_on_unseen=False)
+                if isinstance(example_inputs, dict):
+                    module(**example_inputs)
+                else:
+                    module(*example_inputs)
+                from torchao.quantization.autoquant import AUTOQUANT_CACHE
+                assert len(AUTOQUANT_CACHE)>0, f"Err: found no autoquantizable layers in model {type(module)}, stopping autoquantization"
+
 
         if args.freeze_prepack_weights:
             torch._inductor.config.freezing = True
