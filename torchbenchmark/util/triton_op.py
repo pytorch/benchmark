@@ -734,6 +734,9 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 metrics.compile_time = self.compile_time(input_id, fn_name, metrics)
             if "ncu_trace" in self.required_metrics:
                 metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
+            if "ncu_rep" in self.required_metrics:
+                metrics.ncu_trace = self.ncu_trace(input_id, fn_name, replay=True)
+                self.required_metrics = list(map(lambda x: x.replace('ncu_rep', 'ncu_trace'), self.required_metrics))
             if "kineto_trace" in self.required_metrics:
                 metrics.kineto_trace = self.kineto_trace(input_id, fn)
             # run the hidden metric "_compile_time_in_task"
@@ -788,7 +791,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             metrics_gpu_backend="nvml",
         )
 
-    def ncu_trace(self, input_id: int, fn_name: str) -> str:
+    def ncu_trace(self, input_id: int, fn_name: str, replay: bool=False) -> str:
         # collect the ncu trace
         import sys
         import subprocess
@@ -827,18 +830,30 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             )
         ncu_output_dir = Path(f"/tmp/tritonbench_{self.name}_{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
-        ncu_output_file = ncu_output_dir.joinpath("ncu_output.csv").resolve()
+        ext = ".csv" if not replay else ".ncu-rep"
+        ncu_output_file = ncu_output_dir.joinpath(f"ncu_output{ext}").resolve()
         ncu_args = [
             "ncu",
             "--set",
             "full",
             "--replay-mode",
-            "range",
+            "kernel",
             "--target-processes",
             "all",
             "--csv",
             "-f",
             "--log-file",
+            str(ncu_output_file.resolve()),
+        ] if not replay else [
+            "ncu",
+            "--set",
+            "full",
+            "--replay-mode",
+            "kernel",
+            "--target-processes",
+            "all",
+            "-f",
+            "-o",
             str(ncu_output_file.resolve()),
         ]
         ncu_args.extend(op_task_args)
