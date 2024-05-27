@@ -172,9 +172,12 @@ def set_random_seed():
 
         seed = MAIN_RANDOM_SEED
         import torch.cuda
-
         if not torch.cuda._is_in_bad_fork():
             torch.cuda.manual_seed_all(seed)
+
+        import torch.xpu
+        if not torch.xpu._is_in_bad_fork():
+            torch.xpu.manual_seed_all(seed)
         return default_generator.manual_seed(seed)
 
     torch.manual_seed(MAIN_RANDOM_SEED)
