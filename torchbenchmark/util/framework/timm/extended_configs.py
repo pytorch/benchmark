@@ -3,7 +3,7 @@ import os
 from typing import List
 
 import torch
-from userbenchmark.dynamo import DYNAMOBENCH_PATH
+from userbenchmark.dynamo.run import DYNAMOBENCH_PATH
 
 TIMM_MODELS = dict()
 # Only load the extended models in OSS

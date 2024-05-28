@@ -5,7 +5,7 @@ import os
 from typing import List
 
 import torch
-from userbenchmark.dynamo import DYNAMOBENCH_PATH
+from userbenchmark.dynamo.run import DYNAMOBENCH_PATH
 
 # These models contain the models present in huggingface_models_list. It is a
 # combination of models supported by HF Fx parser and some manually supplied
