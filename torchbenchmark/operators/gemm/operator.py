@@ -20,6 +20,7 @@ from torchbenchmark.util.triton_op import (
 from .data_io import parse_args, read_shapes_from_csv
 from .triton_matmul import matmul as triton_matmul
 from .triton_matmul import matmul_kernel as triton_matmul_kernel
+import torch._inductor.config as inductor_config
 
 import inspect
 try:
@@ -127,6 +128,39 @@ class Operator(BenchmarkOperator):
             return lambda: colfax_gemm(a, b, alpha=1.0, beta=1.0) + bias
         else:
             return lambda: colfax_gemm(a, b, alpha=1.0, beta=1.0)
+
+    @register_benchmark()
+    def pt2_triton_matmul(self, a, b, bias) -> Callable:
+        torch._dynamo.reset()
+        with inductor_config.patch(
+            max_autotune=True,
+            max_autotune_gemm_backends="TRITON",
+            autotune_fallback_to_aten=False,
+        ):
+            if bias is not None:
+                f = lambda a, b: a.matmul(b) + bias
+            else:
+                f = lambda a, b: a.matmul(b)
+            compiled = torch.compile(f, dynamic=False)
+            compiled(a, b)
+        return lambda: compiled(a, b)
+
+    @register_benchmark()
+    def pt2_cutlass_matmul(self, a, b, bias) -> Callable:
+        torch._dynamo.reset()
+        with inductor_config.patch(
+            max_autotune=True,
+            max_autotune_gemm_backends="CUTLASS",
+            autotune_fallback_to_aten=False,
+        ):
+            if bias is not None:
+                f = lambda a, b: a.matmul(b) + bias
+            else:
+                f = lambda a, b: a.matmul(b)
+            # cutlass needs to know the static shape, so set dynamic to False
+            compiled = torch.compile(f, dynamic=False)
+            compiled(a, b)
+        return lambda: compiled(a, b)
 
     @register_x_val(label="(M, N, K)")
     def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
