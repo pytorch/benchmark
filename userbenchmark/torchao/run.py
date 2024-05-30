@@ -8,11 +8,11 @@ OUTPUT_DIR = get_output_dir(BM_NAME)
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 CI_ARGS = [
-    # Torchbench
-    ["--torchbench", "--performance", "--inference", "--bfloat16", "--quantization", "noquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_noquant_timm_bfloat16_inference_cuda_performance.csv').resolve())}"],
-    # ["--torchbench", "--performance", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", ".userbenchmark/torchao/torchao_int8dynamic_timm_bfloat16_inference_cuda_performance.csv"],
-    # ["--torchbench", "--performance", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", ".userbenchmark/torchao/torchao_int8weightonly_timm_bfloat16_inference_cuda_performance.csv"],
-    # ["--torchbench", "--performance", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", ".userbenchmark/torchao/torchao_autoquant_timm_bfloat16_inference_cuda_performance.csv"],
+    # TIMM
+    ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "noquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_noquant_timm_bfloat16_inference_cuda_performance.csv').resolve())}"],
+    # ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", ".userbenchmark/torchao/torchao_int8dynamic_timm_bfloat16_inference_cuda_performance.csv"],
+    # ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", ".userbenchmark/torchao/torchao_int8weightonly_timm_bfloat16_inference_cuda_performance.csv"],
+    # ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", ".userbenchmark/torchao/torchao_autoquant_timm_bfloat16_inference_cuda_performance.csv"],
 ]
 
 
