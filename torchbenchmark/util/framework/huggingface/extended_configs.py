@@ -5,8 +5,9 @@ import os
 from typing import List
 
 import torch
-from userbenchmark.dynamo.run import DYNAMOBENCH_PATH
+from torchbenchmark import REPO_PATH
 
+DYNAMOBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "dynamo", "dynamobench")
 # These models contain the models present in huggingface_models_list. It is a
 # combination of models supported by HF Fx parser and some manually supplied
 # models. For these models, we already know the largest batch size that can fit

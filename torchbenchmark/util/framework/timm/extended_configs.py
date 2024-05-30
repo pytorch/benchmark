@@ -3,8 +3,9 @@ import os
 from typing import List
 
 import torch
-from userbenchmark.dynamo.run import DYNAMOBENCH_PATH
+from torchbenchmark import REPO_PATH
 
+DYNAMOBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "dynamo", "dynamobench")
 TIMM_MODELS = dict()
 # Only load the extended models in OSS
 if hasattr(torch.version, "git_version"):
