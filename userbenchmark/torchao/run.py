@@ -18,7 +18,7 @@ def _run_pt2_args(pt2_args: List[str]) -> str:
 
 def run(args: List[str]):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ci", actions="store_true", help="Run the CI workflow")
+    parser.add_argument("--ci", action="store_true", help="Run the CI workflow")
     args, pt2_args = parser.parse_known_args(args)
 
     if args.ci:
