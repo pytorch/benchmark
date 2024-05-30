@@ -77,8 +77,6 @@ def run(args: Optional[List[str]]=None):
     if args is None:
         args = sys.argv[1:]
     model_set = _get_model_set_by_model_name(args)
-    logging.basicConfig(level=logging.WARNING)
-    warnings.filterwarnings("ignore")
     if model_set == "huggingface":
         _run_huggingface(args)
     elif model_set == "timm":
