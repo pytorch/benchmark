@@ -1,10 +1,15 @@
 import argparse
 
+from . import BM_NAME
+from userbenchmark.utils import get_output_dir
 from typing import List
+
+OUTPUT_DIR = get_output_dir(BM_NAME)
+OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 CI_ARGS = [
     # TIMM
-    ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "noquant", "--output", ".userbenchmark/torchao/torchao_noquant_timm_bfloat16_inference_cuda_performance.csv"],
+    ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "noquant", "--output", f"{str(OUTPUT_DIR.join('torchao_noquant_timm_bfloat16_inference_cuda_performance.csv').resolve())}"],
     # ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", ".userbenchmark/torchao/torchao_int8dynamic_timm_bfloat16_inference_cuda_performance.csv"],
     # ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", ".userbenchmark/torchao/torchao_int8weightonly_timm_bfloat16_inference_cuda_performance.csv"],
     # ["--timm", "--performance", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", ".userbenchmark/torchao/torchao_autoquant_timm_bfloat16_inference_cuda_performance.csv"],
