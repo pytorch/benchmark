@@ -33,12 +33,6 @@ jobs:
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
-      - name: Install TorchBench
-        run: |
-          set -x
-          . "${SETUP_SCRIPT}"
-          pushd benchmark
-          python install.py
       - name: Run the torchao userbenchmark
         run: |
           . "${SETUP_SCRIPT}"
