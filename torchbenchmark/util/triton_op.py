@@ -817,7 +817,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         import subprocess
         from pathlib import Path
 
-        op_task_args = copy.deepcopy(sys.argv)
+        op_task_args = [sys.executable] + copy.deepcopy(sys.argv)
         for override_option in ["--only", "--input-id", "--num-inputs", "--metrics"]:
             op_task_args = _remove_params(
                 op_task_args, _find_param_loc(op_task_args, override_option)
