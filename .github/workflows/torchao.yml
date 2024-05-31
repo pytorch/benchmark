@@ -36,12 +36,15 @@ jobs:
       - name: Run the torchao userbenchmark
         run: |
           . "${SETUP_SCRIPT}"
+          set -x
           # remove old results if exists
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           # Install torchao
+          echo "Installing torchao"
           python install.py torchao
+          echo "Running the torchao userbenchmark"
           python run_benchmark.py torchao --ci
           cp -r ./.userbenchmark/torchao ../benchmark-output
       - name: Upload result to GH Actions Artifact
