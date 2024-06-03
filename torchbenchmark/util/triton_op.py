@@ -371,6 +371,10 @@ def parse_args(
         help="Number of example inputs.",
     )
     parser.add_argument(
+        "--keep-going",
+        action="store_true",
+    )
+    parser.add_argument(
         "--input-id",
         type=int,
         default=0,
@@ -466,85 +470,89 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
 
     def run(
         self, warmup=DEFAULT_WARMUP, rep=DEFAULT_RUN_ITERS, quantiles=DEFAULT_QUANTILES
-    ) -> BenchmarkOperatorResult:
+    ) -> None:
         """Benchmarking the operator and returning its metrics."""
         metrics = []
-        input_id_range = range(self._input_id, self._input_id+self._num_inputs)
-        if tqdm is not None:
-            input_id_range = tqdm(input_id_range)
-        if self._input_id:
-            for _dryrun_input_id in range(self._input_id):
+        try:
+            input_id_range = range(self._input_id, self._input_id + self._num_inputs)
+            if tqdm is not None:
+                input_id_range = tqdm(input_id_range)
+            if self._input_id:
+                for _dryrun_input_id in range(self._input_id):
+                    self.example_inputs = self.get_example_inputs()
+            for input_id in input_id_range:
                 self.example_inputs = self.get_example_inputs()
-        for input_id in input_id_range:
-            self.example_inputs = self.get_example_inputs()
-            if self.example_inputs is None:
-                warnings.warn(
-                    UserWarning(
-                        f"The input generator get_input_iter() has depleted at id {input_id}. Available number of inputs: {self._available_num_inputs}."
+                if self.example_inputs is None:
+                    warnings.warn(
+                        f"The input generator get_input_iter() has depleted at id {input_id}. Available number of "
+                        f"inputs: {self._available_num_inputs}.",
+                        stacklevel=1
                     )
+                    break
+                # Move inputs to the device
+                self.example_inputs = input_cast(
+                    lambda x: isinstance(x, torch.Tensor),
+                    lambda x: x.to(self.device),
+                    self.example_inputs,
                 )
-                break
-            # Move inputs to the device
-            self.example_inputs = input_cast(
-                lambda x: isinstance(x, torch.Tensor),
-                lambda x: x.to(self.device),
-                self.example_inputs,
-            )
-            self.baseline_fn = None
-            self.baseline_metrics = None
-            self._op_flops = {}
-            # Cast the input precisions
-            apply_decoration_args(self, self.dargs)
-            x_val = self.get_x_val(self.example_inputs)
-            if self._only:
-                benchmarks = self._only
-            else:
-                benchmarks = (
-                    [bm for bm in REGISTERED_BENCHMARKS[self.name]]
-                    if self.name in REGISTERED_BENCHMARKS
-                    else []
-                )
-                # Run the baseline first, if baseline exists
-                baseline_name = (
-                    BASELINE_BENCHMARKS[self.name]
-                    if self.name in BASELINE_BENCHMARKS
-                    else None
-                )
-                if baseline_name and baseline_name in benchmarks:
-                    benchmarks.remove(baseline_name)
-                    benchmarks.insert(0, baseline_name)
+                self.baseline_fn = None
+                self.baseline_metrics = None
+                self._op_flops = {}
+                # Cast the input precisions
+                apply_decoration_args(self, self.dargs)
+                x_val = self.get_x_val(self.example_inputs)
+                if self._only:
+                    benchmarks = self._only
+                else:
+                    benchmarks = (
+                        [bm for bm in REGISTERED_BENCHMARKS[self.name]]
+                        if self.name in REGISTERED_BENCHMARKS
+                        else []
+                    )
+                    # Run the baseline first, if baseline exists
+                    baseline_name = (
+                        BASELINE_BENCHMARKS[self.name]
+                        if self.name in BASELINE_BENCHMARKS
+                        else None
+                    )
+                    if baseline_name and baseline_name in benchmarks:
+                        benchmarks.remove(baseline_name)
+                        benchmarks.insert(0, baseline_name)
 
-            # get metrics for for each registered benchmark
-            def _reduce_benchmarks(acc, bm_name: str):
-                baseline = (
-                    bm_name == BASELINE_BENCHMARKS[self.name]
-                    if self.name in BASELINE_BENCHMARKS
-                    else False
-                )
-                acc[bm_name] = self._do_bench(
-                    input_id=input_id,
-                    fn_name=bm_name,
-                    warmup=warmup,
-                    rep=rep,
-                    quantiles=quantiles,
-                    baseline=baseline,
-                )
-                if baseline:
-                    self.baseline_metrics = acc[bm_name]
-                return acc
+                # get metrics for for each registered benchmark
+                def _reduce_benchmarks(acc, bm_name: str):
+                    baseline = (
+                        bm_name == BASELINE_BENCHMARKS[self.name]
+                        if self.name in BASELINE_BENCHMARKS
+                        else False
+                    )
+                    acc[bm_name] = self._do_bench(
+                        input_id=input_id,
+                        fn_name=bm_name,
+                        warmup=warmup,
+                        rep=rep,
+                        quantiles=quantiles,
+                        baseline=baseline,
+                    )
+                    if baseline:
+                        self.baseline_metrics = acc[bm_name]
+                    return acc
 
-            y_vals: Dict[str, BenchmarkOperatorMetrics] = functools.reduce(
-                _reduce_benchmarks, benchmarks, {}
+                y_vals: Dict[str, BenchmarkOperatorMetrics] = functools.reduce(
+                    _reduce_benchmarks, benchmarks, {}
+                )
+                metrics.append((x_val, y_vals))
+                del self.example_inputs
+                gc.collect()
+        except (KeyboardInterrupt, Exception):
+            warnings.warn("Caught exception, terminating early with partial results", stacklevel=1)
+            raise
+        finally:
+            self.output = BenchmarkOperatorResult(
+                op_name=self.name,
+                metrics=self.required_metrics,
+                result=metrics,
             )
-            metrics.append((x_val, y_vals))
-            del self.example_inputs
-            gc.collect()
-        self.output = BenchmarkOperatorResult(
-            op_name=self.name,
-            metrics=self.required_metrics,
-            result=metrics,
-        )
-        return self.output
 
     def get_x_val(self, example_inputs) -> Any:
         raise NotImplementedError(
@@ -798,6 +806,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         except torch.cuda.OutOfMemoryError:
             metrics.error_msg = "CUDA OOM"
         except Exception as e:
+            if not self.tb_args.keep_going:
+                raise
             metrics.error_msg = str(e)
         return metrics
 
