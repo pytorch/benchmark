@@ -1,5 +1,4 @@
-import logging
-import warnings
+import re
 import sys
 
 from torchbenchmark import add_path, REPO_PATH
@@ -15,6 +14,16 @@ DYNAMOBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "dynamo", "dynamobench")
 from typing import List, Optional
 
 def _get_model_set_by_model_name(args: List[str]) -> str:
+    def _get_only_arg(args):
+        if "--only" in args:
+            only_index = args.index("--only")
+            return args[only_index + 1]
+        only_reg = "--only=(.*)"
+        only_args = [o for o in args if re.match(only_reg, o)]
+        if only_args:
+            only_model = re.match(only_reg, only_args[0]).groups()[0]
+            return only_model
+        return None
     if "--huggingface" in args:
         args.remove("--huggingface")
         return "huggingface"
@@ -24,12 +33,10 @@ def _get_model_set_by_model_name(args: List[str]) -> str:
     if "--torchbench" in args:
         args.remove("--torchbench")
         return "torchbench"
-    if "--only" in args:
-        only_index = args.index("--only")
-        model_name = args[only_index + 1]
-        if model_name in list_extended_huggingface_models():
+    if only_model := _get_only_arg(args):
+        if only_model in list_extended_huggingface_models():
             return "huggingface"
-        if model_name in list_extended_timm_models():
+        if only_model in list_extended_timm_models():
             return "timm"
     return "torchbench"
 
