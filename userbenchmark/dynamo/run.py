@@ -73,13 +73,25 @@ def _run_torchbench(args: List[str]) -> None:
     main(TorchBenchmarkRunner(), original_dir, args)
 
 
+class PT2SysArgvManager:
+    def __init__(self, args):
+        self.args = args
+    def __enter__(self):
+        self.original_sys_argv = sys.argv
+        sys.argv = ["run_benchmark.py", "dynamo"]
+        sys.argv.extend(self.args.copy())
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.argv = self.original_sys_argv
+
 def run(args: Optional[List[str]]=None):
     if args is None:
         args = sys.argv[1:]
     model_set = _get_model_set_by_model_name(args)
-    if model_set == "huggingface":
-        _run_huggingface(args)
-    elif model_set == "timm":
-        _run_timm(args)
-    else:
-        _run_torchbench(args)
+    with PT2SysArgvManager(args):
+        if model_set == "huggingface":
+            _run_huggingface(args)
+        elif model_set == "timm":
+            _run_timm(args)
+        else:
+            _run_torchbench(args)
