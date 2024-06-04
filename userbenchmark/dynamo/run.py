@@ -3,7 +3,7 @@ import warnings
 import sys
 
 from torchbenchmark import add_path, REPO_PATH
-from torchbenchmark.util.framework.huggingface.extended_configs import (
+from torchbenchmark.util.framework.huggingface.list_extended_configs import (
     list_extended_huggingface_models,
 )
 from torchbenchmark.util.framework.timm.extended_configs import (
