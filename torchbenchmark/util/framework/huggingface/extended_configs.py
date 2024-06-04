@@ -3,7 +3,6 @@ import importlib
 import logging
 
 import torch
-from .list_extended_configs import BATCH_SIZE_DIVISORS
 
 imports = [
     "AlbertForPreTraining",
