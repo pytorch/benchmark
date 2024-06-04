@@ -48,9 +48,14 @@ jobs:
           python install.py --userbenchmark torchao
           echo "Running the torchao userbenchmark"
           python run_benchmark.py torchao --ci
+      - name: Copy the benchmark logs to benchmark-output
+        if: always()
+        run: |
+          pushd benchmark
           cp -r ./.userbenchmark/torchao ../benchmark-output
       - name: Upload result to GH Actions Artifact
         uses: actions/upload-artifact@v3
+        if: always()
         with:
           name: Torchao nightly result
           path: benchmark-output/

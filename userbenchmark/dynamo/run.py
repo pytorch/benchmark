@@ -81,8 +81,10 @@ def _run_torchbench(args: List[str]) -> None:
 
 
 class PT2SysArgvManager:
+
     def __init__(self, args):
         self.args = args
+
     def __enter__(self):
         self.original_sys_argv = sys.argv
         sys.argv = ["run_benchmark.py", "dynamo"]
