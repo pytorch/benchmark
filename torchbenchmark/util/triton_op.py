@@ -40,6 +40,7 @@ BUILTIN_METRICS = [
     "accuracy",
     "compile_time",
     "ncu_trace",
+    "ncu_rep",
     "kineto_trace",
     "cpu_peak_mem",
     "gpu_peak_mem",
@@ -146,6 +147,8 @@ class BenchmarkOperatorMetrics:
     compile_time: Optional[float]
     # ncu trace file
     ncu_trace: Optional[str]
+    # ncu replay file
+    ncu_rep: Optional[str]
     # kineto trace file
     kineto_trace: Optional[str]
     # cpu peak memory
@@ -703,6 +706,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             walltime=None,
             compile_time=None,
             ncu_trace=None,
+            ncu_rep=None,
             hw_roofline=self.hw_roofline() if "hw_roofline" in self.required_metrics else None,
             kineto_trace=None,
             cpu_peak_mem=None,
@@ -761,8 +765,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if "ncu_trace" in self.required_metrics:
                 metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
             if "ncu_rep" in self.required_metrics:
-                metrics.ncu_trace = self.ncu_trace(input_id, fn_name, replay=True)
-                self.required_metrics = list(map(lambda x: x.replace('ncu_rep', 'ncu_trace'), self.required_metrics))
+                metrics.ncu_rep = self.ncu_trace(input_id, fn_name, replay=True)
             if "kineto_trace" in self.required_metrics:
                 metrics.kineto_trace = self.kineto_trace(input_id, fn)
             # run the hidden metric "_compile_time_in_task"
