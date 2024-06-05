@@ -32,13 +32,16 @@ def upload_s3(s3_object: str,
               ub_name: str,
               workflow_run_id: str,
               workflow_run_attempt: str,
-              file_path: Path):
+              file_path: Path,
+              dryrun: bool):
     """S3 path:
     s3://ossci-metrics/<s3_object>/<ub_name>/<workflow_run_id>/<workflow_run_attempt>/file_name
     """
     s3client = S3Client(USERBENCHMARK_S3_BUCKET, s3_object)
     prefix = f"{ub_name}/{workflow_run_id}/{workflow_run_attempt}"
-    s3client.upload_file(prefix=prefix, file_path=file_path)
+    print(f"Uploading to prefix: {prefix}")
+    if not dryrun:
+        s3client.upload_file(prefix=prefix, file_path=file_path)
 
 
 def _get_files_to_upload(file_path: str, match_filename: str):
@@ -77,6 +80,11 @@ if __name__ == "__main__":
         required=True,
         help="Filename regex matched to upload.",
     )
+    parser.add_argument(
+        "--dryrun",
+        action="store_true",
+        help="Dryrun the upload",
+    )
     args = parser.parse_args()
 
     files_to_upload = _get_files_to_upload(args.upload_path, args.match_filename)
@@ -87,4 +95,5 @@ if __name__ == "__main__":
                   ub_name=args.userbenchmark,
                   workflow_run_id=args.workflow_run_id,
                   workflow_run_attempt=args.workflow_run_attempt,
-                  file_path=file_path)
+                  file_path=file_path,
+                  dryrun=args.dryrun)

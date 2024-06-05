@@ -70,7 +70,7 @@ jobs:
           . "${SETUP_SCRIPT}"
           pushd benchmark
           # Upload the result json to Amazon S3
-          python ./scripts/userbenchmark/upload_s3.py --s3-prefix torchbench-csv --userbenchmark torchao \
+          python ./scripts/userbenchmark/upload_s3_csv.py --s3-prefix torchbench-csv --userbenchmark torchao \
                                                       --workflow-run-id "${WORKFLOW_RUN_ID}" --workflow-run-attempt "${WORKFLOW_RUN_ATTEMPT}" \
                                                       --upload-path ../benchmark-output --match-filename "^torchao_.*\.csv"
       - name: Clean up Conda env
