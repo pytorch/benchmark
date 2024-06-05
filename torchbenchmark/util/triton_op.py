@@ -2,6 +2,8 @@ import argparse
 import copy
 import functools
 import gc
+import json
+import os
 import random
 import time
 import warnings
@@ -29,6 +31,7 @@ DEFAULT_RUN_ITERS = 100
 DEFAULT_QUANTILES = [0.5, 0.1, 0.9]
 REGISTERED_BENCHMARKS: Dict[str, List[str]] = {}
 REGISTERED_METRICS: Dict[str, List[str]] = {}
+REGISTERED_X_VALS: Dict[str, str] = {}
 BASELINE_BENCHMARKS: Dict[str, str] = {}
 BUILTIN_METRICS = [
     "latency",
@@ -110,7 +113,22 @@ def _find_op_name_from_module_path(module_path: str) -> str:
     PATH_PREFIX = "torchbenchmark.operators."
     assert PATH_PREFIX in module_path, \
         f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
-    return module_path.partition(PATH_PREFIX)[2].split(".")[0]
+    suffix = module_path.partition(PATH_PREFIX)[2]
+    if suffix.startswith("fb."):
+        return suffix.split(".")[1]
+    return suffix.split(".")[0]
+
+def dump_autotuner_best_config(kernel: triton.runtime.Autotuner) -> str:
+    if not hasattr(kernel, "best_config"):
+        return ""
+    # pyre-ignore: Undefined attribute [16]
+    bconfig = kernel.best_config
+    kwargs = copy.deepcopy(bconfig.kwargs)
+    kwargs["num_stages"] = bconfig.num_stages
+    kwargs["num_warps"] = bconfig.num_warps
+    dumped_str = json.dumps(kwargs)
+    return dumped_str
+
 
 @dataclass
 class BenchmarkOperatorMetrics:
@@ -153,11 +171,11 @@ class BenchmarkOperatorResult:
     def _table(self):
         table = []
         # generate headers
-        headers = ["x_val"]
+        headers = [REGISTERED_X_VALS[self.op_name]]
         y_val = self.result[0][1]
         y_val_keys = list(y_val.keys())
         # move the baseline benchmark to the front of the list if exists
-        if BASELINE_BENCHMARKS[self.op_name] in y_val_keys:
+        if self.op_name in BASELINE_BENCHMARKS and BASELINE_BENCHMARKS[self.op_name] in y_val_keys:
             y_val_keys.insert(
                 0, y_val_keys.pop(y_val_keys.index(BASELINE_BENCHMARKS[self.op_name]))
             )
@@ -189,10 +207,11 @@ class BenchmarkOperatorResult:
                 row.append(x_only_metric_dict[x_only_metric])
             for k in y_val_keys:
                 metrics_dict = asdict(y_val[k])
+                if metrics_dict["error_msg"]:
+                    row.append(metrics_dict["error_msg"])
+                    row.extend([None] * (len(key_metrics[k]) - 1))
+                    continue
                 for metric in key_metrics[k]:
-                    if metrics_dict["error_msg"]:
-                        row.append(metrics_dict["error_msg"])
-                        continue
                     _metrics_dict = (
                         metrics_dict["extra_metrics"]
                         if metric in metrics_dict["extra_metrics"]
@@ -207,12 +226,28 @@ class BenchmarkOperatorResult:
             table.append(row)
         return headers, table
 
-    @property
-    def csv(self):
+    def write_csv_to_file(self, fileobj):
+        import csv
+
         headers, table = self._table()
-        headers = "; ".join(headers)
-        table = "\n".join(["; ".join([str(v) for v in row]) for row in table])
-        return f"{headers}\n{table}"
+        writer = csv.writer(fileobj, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(headers)
+        writer.writerows(table)
+
+    def write_csv(self, dir_path):
+        import tempfile
+
+        # This is just a way to create a unique filename. It's not actually a
+        # temporary file (since delete=False).
+        with tempfile.NamedTemporaryFile(
+            mode='w',
+            prefix=os.path.join(dir_path, f"op_{self.op_name}_"),
+            suffix=".csv",
+            newline="",
+            delete=False,
+        ) as fileobj:
+            self.write_csv_to_file(fileobj)
+            return fileobj.name
 
     @property
     def x_vals(self):
@@ -260,6 +295,14 @@ class BenchmarkOperatorResult:
         table = tabulate.tabulate(table, headers=headers, stralign="right")
         return table
 
+def register_x_val(label: str="x_val"):
+    def decorator(function):
+        operator_name = _find_op_name_from_module_path(function.__module__)
+        REGISTERED_X_VALS[operator_name] = label
+        def _inner(self, *args, **kwargs):
+            return function(self, *args, **kwargs)
+        return _inner
+    return decorator
 
 def register_benchmark(baseline: bool = False, enabled: bool = True):
     def decorator(function):
@@ -375,6 +418,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             ), f"We only accept 3 test modes: fwd(eval), fwd_bwd(train), or bwd."
             self.mode = Mode.BWD
         self.dargs, unprocessed_args = parse_decoration_args(self, extra_args)
+        if self.name not in REGISTERED_X_VALS:
+            REGISTERED_X_VALS[self.name] = "x_val"
         # This will be changed by the time we apply the decoration args
         self.dtype = PRECISION_DTYPE_MAPPING.get(self.dargs.precision, None)
         self.DEFAULT_METRICS.extend(
@@ -702,11 +747,14 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if "hw_roofline" in self.required_metrics:
                 metrics.hw_roofline = self.hw_roofline()
             if "tflops" in self.required_metrics:
-                metrics.tflops = self.tflops(fn_name, self.example_inputs, metric)
+                metrics.tflops = self.tflops(fn_name, self.example_inputs, metrics)
             if "compile_time" in self.required_metrics:
-                metrics.compile_time = self.compile_time(input_id, fn_name, metric)
+                metrics.compile_time = self.compile_time(input_id, fn_name, metrics)
             if "ncu_trace" in self.required_metrics:
                 metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
+            if "ncu_rep" in self.required_metrics:
+                metrics.ncu_trace = self.ncu_trace(input_id, fn_name, replay=True)
+                self.required_metrics = list(map(lambda x: x.replace('ncu_rep', 'ncu_trace'), self.required_metrics))
             if "kineto_trace" in self.required_metrics:
                 metrics.kineto_trace = self.kineto_trace(input_id, fn)
             # run the hidden metric "_compile_time_in_task"
@@ -749,10 +797,9 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     metrics.extra_metrics[metric_name] = func(fn, self.example_inputs, metrics)
         except torch.cuda.OutOfMemoryError:
             metrics.error_msg = "CUDA OOM"
-        except RuntimeError as e:
+        except Exception as e:
             metrics.error_msg = str(e)
-        finally:
-            return metrics
+        return metrics
 
     def get_peak_mem(
         self, fn: Callable
@@ -764,7 +811,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             metrics_gpu_backend="nvml",
         )
 
-    def ncu_trace(self, input_id: int, fn_name: str) -> str:
+    def ncu_trace(self, input_id: int, fn_name: str, replay: bool=False) -> str:
         # collect the ncu trace
         import sys
         import subprocess
@@ -803,18 +850,30 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             )
         ncu_output_dir = Path(f"/tmp/tritonbench_{self.name}_{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
-        ncu_output_file = ncu_output_dir.joinpath("ncu_output.csv").resolve()
+        ext = ".csv" if not replay else ".ncu-rep"
+        ncu_output_file = ncu_output_dir.joinpath(f"ncu_output{ext}").resolve()
         ncu_args = [
             "ncu",
             "--set",
             "full",
             "--replay-mode",
-            "range",
+            "kernel",
             "--target-processes",
             "all",
             "--csv",
             "-f",
             "--log-file",
+            str(ncu_output_file.resolve()),
+        ] if not replay else [
+            "ncu",
+            "--set",
+            "full",
+            "--replay-mode",
+            "kernel",
+            "--target-processes",
+            "all",
+            "-f",
+            "-o",
             str(ncu_output_file.resolve()),
         ]
         ncu_args.extend(op_task_args)

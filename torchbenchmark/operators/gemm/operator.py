@@ -13,15 +13,16 @@ from torchbenchmark.util.triton_op import (
     BenchmarkOperatorMetrics,
     register_benchmark,
     register_metric,
+    register_x_val,
+    dump_autotuner_best_config,
 )
 
 from .data_io import parse_args, read_shapes_from_csv
 from .triton_matmul import matmul as triton_matmul
 from .triton_matmul import matmul_kernel as triton_matmul_kernel
+import torch._inductor.config as inductor_config
 
 import inspect
-import json
-from copy import deepcopy
 try:
     from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
 
@@ -48,20 +49,12 @@ BUILDIN_SHAPES = [
     (1408, 1408, 1408, None),
     (1536, 1536, 1536, None),
     (1664, 1664, 1664, None),
-    # FIXME: triton_matmul failed with accuracy check for fb16 inputs on A100:
-    # Mismatched elements: 882 / 3211264 (0.0%)
-    # Greatest absolute difference: 0.03125 at index (169, 218) (up to 0.01 allowed)
-    # Greatest relative difference: 35.21875 at index (1169, 1720) (up to 0.01 allowed)
-    # (1792, 1792, 1792, None),
+    (1792, 1792, 1792, None),
     (1920, 1920, 1920, None),
     (2048, 2048, 2048, None),
     (2176, 2176, 2176, None),
     (2304, 2304, 2304, None),
-    # FIXME: triton_matmul failed with accuracy check for fb16 inputs on A100:
-    # Mismatched elements: 2479 / 5914624 (0.0%)
-    # Greatest absolute difference: 0.03173828125 at index (171, 1067) (up to 0.01 allowed)
-    # Greatest relative difference: 95.875 at index (2423, 2312) (up to 0.01 allowed)
-    # (2432, 2432, 2432, None),
+    (2432, 2432, 2432, None),
     (2560, 2560, 2560, None),
     (2688, 2688, 2688, None),
     (2816, 2816, 2816, None),
@@ -71,11 +64,7 @@ BUILDIN_SHAPES = [
     (3328, 3328, 3328, None),
     (3456, 3456, 3456, None),
     (3584, 3584, 3584, None),
-    # FIXME: triton_matmul failed with accuracy check for fb16 inputs on A100:
-    # Mismatched elements: 619 / 13778944 (0.0%)
-    # Greatest absolute difference: 0.06005859375 at index (622, 69) (up to 0.02 allowed)
-    # Greatest relative difference: 20.546875 at index (3609, 685) (up to 0.02 allowed)
-    # (3712, 3712, 3712, None),
+    (3712, 3712, 3712, None),
     (3840, 3840, 3840, None),
     (3968, 3968, 3968, None),
     (4096, 4096, 4096, None),
@@ -87,9 +76,8 @@ SPLIT_K_SHAPES = [
     for k in [2048 * i for i in range(1, 9)]
 ]
 
-
 class Operator(BenchmarkOperator):
-    DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
+    DEFAULT_METRICS = ["latency", "speedup", "accuracy", "tflops"]
     DEFAULT_PRECISION = "fp16"
 
     def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
@@ -141,6 +129,40 @@ class Operator(BenchmarkOperator):
         else:
             return lambda: colfax_gemm(a, b, alpha=1.0, beta=1.0)
 
+    @register_benchmark()
+    def pt2_triton_matmul(self, a, b, bias) -> Callable:
+        torch._dynamo.reset()
+        with inductor_config.patch(
+            max_autotune=True,
+            max_autotune_gemm_backends="TRITON",
+            autotune_fallback_to_aten=False,
+        ):
+            if bias is not None:
+                f = lambda a, b: a.matmul(b) + bias
+            else:
+                f = lambda a, b: a.matmul(b)
+            compiled = torch.compile(f, dynamic=False)
+            compiled(a, b)
+        return lambda: compiled(a, b)
+
+    @register_benchmark()
+    def pt2_cutlass_matmul(self, a, b, bias) -> Callable:
+        torch._dynamo.reset()
+        with inductor_config.patch(
+            max_autotune=True,
+            max_autotune_gemm_backends="CUTLASS",
+            autotune_fallback_to_aten=False,
+        ):
+            if bias is not None:
+                f = lambda a, b: a.matmul(b) + bias
+            else:
+                f = lambda a, b: a.matmul(b)
+            # cutlass needs to know the static shape, so set dynamic to False
+            compiled = torch.compile(f, dynamic=False)
+            compiled(a, b)
+        return lambda: compiled(a, b)
+
+    @register_x_val(label="(M, N, K)")
     def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
         # x-value: computation intensity
         a, w, bias = example_inputs
@@ -161,15 +183,16 @@ class Operator(BenchmarkOperator):
     @register_metric(skip_baseline=True)
     def best_config(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> float:
+    ) -> str:
         if "triton_tutorial_matmul" in str(fn_name):
-            bconfig = triton_matmul_kernel.best_config
-            kwargs = deepcopy(bconfig.kwargs)
-            kwargs["num_stages"] = bconfig.num_stages
-            kwargs["num_warps"] = bconfig.num_warps
-            dumped_str = json.dumps(kwargs)
-            return dumped_str
-        return ""
+            return dump_autotuner_best_config(triton_matmul_kernel)
+        elif "triton_ops_matmul" in str(fn_name):
+            return dump_autotuner_best_config(triton.ops._matmul.kernel)
+        elif "hstu_triton_matmul" in str(fn_name):
+            import hammer
+            return dump_autotuner_best_config(hammer.ops.triton.triton_matmul._epilogue_mm)
+        else:
+            return ""
 
     @register_metric()
     def tflops(
@@ -184,15 +207,26 @@ class Operator(BenchmarkOperator):
             flops = m * k * 2 * n
         return [flops / x / 1e12 * 1e3 for x in metrics.latency]
 
+    @staticmethod
+    def _scaled_randn(*args, scale: float, **kwargs) -> torch.Tensor:
+        """
+        This provides more numerically stable inputs for GEMMs. The +1
+        eliminates very small values that could result in denormals, and the
+        scale (which should be set to K in an M*N*K GEMM) reduces the size of
+        the absolute error.
+
+        In particular, for a given element in the output tensor, the cumulative
+        error is eps * 2 * K, where eps is the smallest precision representable
+        in the dtype. By scaling the element by K, we avoid the error growing
+        with the size of the tensor.
+        """
+        return (torch.randn(*args, **kwargs) + 1) / scale
+
     def get_input_iter(self) -> Generator:
         for shape in self.shapes:
             m, k, n, bias = shape
-            a = torch.randn(
-                (m, k), device=self.device, dtype=self.dtype
-            ).requires_grad_(False)
-            w = torch.randn(
-                (k, n), device=self.device, dtype=self.dtype
-            ).requires_grad_(False)
+            a = self._scaled_randn((m, k), scale=k, device=self.device, dtype=self.dtype)
+            w = self._scaled_randn((k, n), scale=k, device=self.device, dtype=self.dtype)
             if not bias == None:
                 bias = torch.randn(
                     (bias), device=self.device, dtype=self.dtype
@@ -202,13 +236,7 @@ class Operator(BenchmarkOperator):
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
         baseline_output = baseline_fn()
-        accuracy = True
-        try:
-            torch.testing.assert_close(output, baseline_output)
-        except Exception:
-            accuracy = False
-        finally:
-            return accuracy
+        return torch.allclose(output, baseline_output)
 
     def plot(self):
         @triton.testing.perf_report(

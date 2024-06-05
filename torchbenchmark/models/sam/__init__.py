@@ -23,6 +23,9 @@ class Model(BenchmarkModel):
         # Checkpoint options are here https://github.com/facebookresearch/segment-anything#model-checkpoints
         data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
         sam_checkpoint = os.path.join(data_folder, "sam_vit_h_4b8939.pth")
+        if not os.path.exists(sam_checkpoint):
+            from torchbenchmark.util.framework.fb.installer import install_model_weights
+            sam_checkpoint = install_model_weights(self.name)
         model_type = "vit_h"
 
         self.model = sam_model_registry[model_type](checkpoint=sam_checkpoint)
@@ -30,6 +33,9 @@ class Model(BenchmarkModel):
         data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
 
         image_path = os.path.join(data_folder, "truck.jpg")
+        if not os.path.exists(image_path):
+            from torchbenchmark.util.framework.fb.installer import install_data
+            image_path = os.path.join(install_data("truck"), "truck.jpg")
         self.image = cv2.imread(image_path)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         self.sample_image = torch.randn((3, 256, 256)).to(device)

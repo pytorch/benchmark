@@ -59,7 +59,7 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
     metrics = opbench.run(args.warmup, args.iter)
     if not args.skip_print:
         if args.csv:
-            print(metrics.csv)
+            metrics.write_csv_to_file(sys.stdout)
         else:
             print(metrics)
     if not hasattr(torch_version, "git_version") and args.log_scuba:
@@ -73,16 +73,9 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
             print(f"Plotting is not implemented for {args.op}")
 
     if args.dump_csv:
-        if not os.path.exists(TRITON_BENCH_CSV_DUMP_PATH):
-            os.mkdir(TRITON_BENCH_CSV_DUMP_PATH)
-
-        csv_str = metrics.csv
-        csv_str_hash = abs(hash(csv_str)) % (10**8)
-        file_name = f"op_{args.op}_{csv_str_hash}.csv"
-        file_path = os.path.join(TRITON_BENCH_CSV_DUMP_PATH, file_name)
-        with open(file_path, "w") as f:
-            f.write(csv_str)
-        print(f"[TritonBench] Dumped csv to {file_path}")
+        os.makedirs(TRITON_BENCH_CSV_DUMP_PATH, exist_ok=True)
+        path = metrics.write_csv(TRITON_BENCH_CSV_DUMP_PATH)
+        print(f"[TritonBench] Dumped csv to {path}")
     return metrics
 
 def run(args: List[str] = []):

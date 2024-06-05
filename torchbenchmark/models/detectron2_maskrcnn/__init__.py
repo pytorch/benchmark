@@ -17,6 +17,12 @@ MODEL_DIR = os.path.abspath(os.path.dirname(__file__))
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-minimal")
+if not os.path.exists(DATA_DIR):
+    try:
+        from torchbenchmark.util.framework.fb.installer import install_data
+        DATA_DIR = install_data("coco2017-minimal")
+    except Exception:
+        pass
 assert os.path.exists(
     DATA_DIR
 ), "Couldn't find coco2017 minimal data dir, please run install.py again."
@@ -79,6 +85,12 @@ class Model(BenchmarkModel):
             data_cfg.test.batch_size = self.batch_size
             self.model = instantiate(model_cfg).to(self.device)
             # load model from checkpoint
+            if not os.path.exists(self.model_file):
+                try:
+                    from torchbenchmark.util.framework.fb.installer import install_model_weights
+                    self.model_file = install_model_weights(self.name)
+                except Exception:
+                    pass
             DetectionCheckpointer(self.model).load(self.model_file)
             self.model.eval()
             test_loader = instantiate(data_cfg.test)
