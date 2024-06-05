@@ -35,6 +35,9 @@ jobs:
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Run the torchao userbenchmark
+        env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         run: |
           . "${SETUP_SCRIPT}"
           set -x
@@ -47,7 +50,7 @@ jobs:
           pip uninstall -y torchao
           python install.py --userbenchmark torchao
           echo "Running the torchao userbenchmark"
-          python run_benchmark.py torchao --ci
+          python run_benchmark.py torchao --ci --dashboard
       - name: Copy the benchmark logs to benchmark-output
         if: always()
         run: |
@@ -59,6 +62,17 @@ jobs:
         with:
           name: Torchao nightly result
           path: benchmark-output/
+      - name: Copy artifact and upload to scribe and Amazon S3
+        env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          . "${SETUP_SCRIPT}"
+          pushd benchmark
+          # Upload the result json to Amazon S3
+          python ./scripts/userbenchmark/upload_s3.py --s3-prefix torchbench-csv --userbenchmark torchao \
+                                                      --workflow-run-id "${WORKFLOW_RUN_ID}" --workflow-run-attempt "${WORKFLOW_RUN_ATTEMPT}" \
+                                                      --upload-path ../benchmark-output --match-filename "^torchao_.*\.csv"
       - name: Clean up Conda env
         if: always()
         run: |

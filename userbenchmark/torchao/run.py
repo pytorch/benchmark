@@ -1,18 +1,19 @@
 import argparse
 
-from . import BM_NAME
 from userbenchmark.utils import get_output_dir
 from typing import List
 
+from . import BM_NAME
+from .upload import post_ci_process
 OUTPUT_DIR = get_output_dir(BM_NAME)
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 CI_ARGS = [
     # TIMM
-    ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "noquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_noquant_timm_bfloat16_inference_cuda_performance.csv').resolve())}"],
-    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", ".userbenchmark/torchao/torchao_int8dynamic_timm_bfloat16_inference_cuda_performance.csv"],
-    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", ".userbenchmark/torchao/torchao_int8weightonly_timm_bfloat16_inference_cuda_performance.csv"],
-    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", ".userbenchmark/torchao/torchao_autoquant_timm_bfloat16_inference_cuda_performance.csv"],
+    ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "noquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_noquant_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
+    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", ".userbenchmark/torchao/torchao_int8dynamic_timm_models_bfloat16_inference_cuda_performance.csv"],
+    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", ".userbenchmark/torchao/torchao_int8weightonly_timm_models_bfloat16_inference_cuda_performance.csv"],
+    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", ".userbenchmark/torchao/torchao_autoquant_timm_models_bfloat16_inference_cuda_performance.csv"],
 ]
 
 
@@ -31,6 +32,7 @@ def _run_pt2_args(pt2_args: List[str]) -> str:
 def run(args: List[str]):
     parser = argparse.ArgumentParser()
     parser.add_argument("--ci", action="store_true", help="Run the CI workflow")
+    parser.add_argument("--dashboard", action="store_true", help="Update the output files to prepare the S3 upload and dashboard.")
     args, pt2_args = parser.parse_known_args(args)
 
     if args.ci:
@@ -39,4 +41,7 @@ def run(args: List[str]):
         group_pt2_args = [pt2_args]
     
     output_files = [_run_pt2_args(pt2_args) for pt2_args in group_pt2_args]
+    # Post-processing
+    if args.dashboard:
+        post_ci_process(output_files)
     print("\n".join(output_files))
