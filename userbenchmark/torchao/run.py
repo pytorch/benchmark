@@ -1,4 +1,5 @@
 import argparse
+import subprocess
 
 from userbenchmark.utils import get_output_dir
 from typing import List
@@ -22,6 +23,7 @@ def _get_output(pt2_args):
         output_index = pt2_args.index("--output")
         return pt2_args[output_index + 1]
     return "not_available"
+
 
 
 def _run_pt2_args(pt2_args: List[str]) -> str:
