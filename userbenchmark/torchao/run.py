@@ -1,5 +1,4 @@
 import argparse
-import subprocess
 
 from userbenchmark.utils import get_output_dir
 from typing import List
@@ -12,9 +11,9 @@ OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 CI_ARGS = [
     # TIMM
     ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "noquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_noquant_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
-    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", ".userbenchmark/torchao/torchao_int8dynamic_timm_models_bfloat16_inference_cuda_performance.csv"],
-    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", ".userbenchmark/torchao/torchao_int8weightonly_timm_models_bfloat16_inference_cuda_performance.csv"],
-    # ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", ".userbenchmark/torchao/torchao_autoquant_timm_models_bfloat16_inference_cuda_performance.csv"],
+    ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", f"{str(OUTPUT_DIR.joinpath('.userbenchmark/torchao/torchao_int8dynamic_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
+    ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", f"{str(OUTPUT_DIR.joinpath('.userbenchmark/torchao/torchao_int8weightonly_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
+    ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", f"{str(OUTPUT_DIR.joinpath('.userbenchmark/torchao/torchao_autoquant_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
 ]
 
 
@@ -28,6 +27,7 @@ def _get_output(pt2_args):
 
 def _run_pt2_args(pt2_args: List[str]) -> str:
     from userbenchmark.dynamo.run import run as run_pt2_benchmark
+    print(f"=================== [TORCHAO] Running PT2 Benchmark Runner with Args: {pt2_args} ===================")
     run_pt2_benchmark(pt2_args)
     return _get_output(pt2_args)
 
