@@ -61,16 +61,6 @@ if __name__ == "__main__":
         help="Name of the userbenchmark.",
     )
     parser.add_argument(
-        "--workflow-run-id",
-        required=True,
-        help="Workflow Run ID.",
-    )
-    parser.add_argument(
-        "--workflow-run-attempt",
-        required=True,
-        help="Workflow attempt.",
-    )
-    parser.add_argument(
         "--upload-path",
         required=True,
         help="Local directory contains files to upload.",
@@ -88,12 +78,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     files_to_upload = _get_files_to_upload(args.upload_path, args.match_filename)
+    workflow_run_id = os.environ.get("WORKFLOW_RUN_ID", 0)
+    workflow_run_attempt = os.environ.get("WORKFLOW_RUN_ATTEMPT", 0)
 
     for file in files_to_upload:
         file_path = Path(args.upload_path).joinpath(file)
         upload_s3(s3_object=args.s3_prefix, 
                   ub_name=args.userbenchmark,
-                  workflow_run_id=args.workflow_run_id,
-                  workflow_run_attempt=args.workflow_run_attempt,
+                  workflow_run_id=workflow_run_id,
+                  workflow_run_attempt=workflow_run_attempt,
                   file_path=file_path,
                   dryrun=args.dryrun)
