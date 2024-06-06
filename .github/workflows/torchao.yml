@@ -1,8 +1,7 @@
 name: Torchao nightly workflow (A100)
 on:
   workflow_dispatch:
-  # TODO: REMOVE THIS BEFORE THE PR IS MERGED!
-  pull_request:
+
 
 jobs:
   run-benchmark:
