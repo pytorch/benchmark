@@ -19,6 +19,7 @@ jobs:
       BUILD_ENVIRONMENT: benchmark-nightly
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [a100-runner]
+    timeout-minutes: 1440 # 24 hours
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
