@@ -3977,7 +3977,8 @@ def run(runner, args, original_dir=None):
                 from torchao_backend import setup_baseline, torchao_optimize_ctx
             except ImportError:
                 from userbenchmark.dynamo.dynamobench.torchao_backend import (
-                    setup_baseline, torchao_optimize_ctx
+                    setup_baseline,
+                    torchao_optimize_ctx,
                 )
 
             setup_baseline()
