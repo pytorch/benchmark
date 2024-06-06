@@ -11,9 +11,13 @@ OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 CI_ARGS = [
     # TIMM
     ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "noquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_noquant_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
+    ["--progress", "--timm", "--accuracy", "--inference", "--bfloat16", "--quantization", "noquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_noquant_timm_models_bfloat16_inference_cuda_accuracy.csv').resolve())}"],
     ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_int8dynamic_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
+    ["--progress", "--timm", "--accuracy", "--inference", "--bfloat16", "--quantization", "int8dynamic", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_int8dynamic_timm_models_bfloat16_inference_cuda_accuracy.csv').resolve())}"],
     ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_int8weightonly_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
+    ["--progress", "--timm", "--accuracy", "--inference", "--bfloat16", "--quantization", "int8weightonly", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_int8weightonly_timm_models_bfloat16_inference_cuda_accuracy.csv').resolve())}"],
     ["--progress", "--timm", "--performance", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_autoquant_timm_models_bfloat16_inference_cuda_performance.csv').resolve())}"],
+    ["--progress", "--timm", "--accuracy", "--inference", "--bfloat16", "--quantization", "autoquant", "--output", f"{str(OUTPUT_DIR.joinpath('torchao_autoquant_timm_models_bfloat16_inference_cuda_accuracy.csv').resolve())}"],
 ]
 
 
