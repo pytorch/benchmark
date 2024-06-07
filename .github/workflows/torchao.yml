@@ -30,6 +30,13 @@ jobs:
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
           sudo ldconfig
+      - name: Test workflow ID env
+        env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          echo ${WORKFLOW_RUN_ID}
+          echo ${WORKFLOW_RUN_ATTEMPT}
       - name: Clone and setup conda env
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
