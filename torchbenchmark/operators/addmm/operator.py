@@ -5,6 +5,7 @@ from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import numpy
 import torch
+import torch._inductor.config as inductor_config
 import triton
 from hammer.ops.triton.triton_hstu_linear import _addmm_fwd, triton_addmm
 
@@ -86,6 +87,19 @@ class Operator(BenchmarkOperator):
     @register_benchmark(baseline=True)
     def aten_addmm(self, a, mat1, mat2) -> Callable:
         return lambda: torch.addmm(a, mat1, mat2)
+
+    @register_benchmark()
+    def pt2_triton_matmul(self, a, mat1, mat2) -> Callable:
+        torch._dynamo.reset()
+        with inductor_config.patch(
+            max_autotune=True,
+            max_autotune_gemm_backends="TRITON",
+            autotune_fallback_to_aten=False,
+        ):
+            f = lambda a, mat1, mat2: torch.addmm(a, mat1, mat2)
+            compiled = torch.compile(f, dynamic=False)
+            compiled(a, mat1, mat2)
+        return lambda: compiled(a, mat1, mat2)
 
     @register_metric()
     def gbps(
