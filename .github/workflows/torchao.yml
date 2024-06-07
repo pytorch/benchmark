@@ -37,10 +37,12 @@ jobs:
         run: |
           if [ -z "${WORKFLOW_RUN_ID}" ]; then
               echo "WORKFLOW_RUN_ID is unset or set to the empty string"
+              echo ${{ github.event.workflow_run.id }}
               exit 1
           fi
           if [ -z "${WORKFLOW_RUN_ATTEMPT}" ]; then
               echo "WORKFLOW_RUN_ATTEMPT is unset or set to the empty string"
+              echo ${{ github.event.workflow_run.run_attempt }}
               exit 1
           fi
       - name: Clone and setup conda env
