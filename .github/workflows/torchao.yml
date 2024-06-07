@@ -32,17 +32,17 @@ jobs:
           sudo ldconfig
       - name: Check workflow ID env
         env:
-          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
-          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           if [ -z "${WORKFLOW_RUN_ID}" ]; then
               echo "WORKFLOW_RUN_ID is unset or set to the empty string"
-              echo ${{ github.event.workflow_run.id }}
+              echo ${{ github.run_id }}
               exit 1
           fi
           if [ -z "${WORKFLOW_RUN_ATTEMPT}" ]; then
               echo "WORKFLOW_RUN_ATTEMPT is unset or set to the empty string"
-              echo ${{ github.event.workflow_run.run_attempt }}
+              echo ${{ github.run_attempt }}
               exit 1
           fi
       - name: Clone and setup conda env
