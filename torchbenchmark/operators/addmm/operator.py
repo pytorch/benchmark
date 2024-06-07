@@ -77,6 +77,7 @@ class Operator(BenchmarkOperator):
             self.shapes = [(addmm_args.m, addmm_args.k, addmm_args.n)]
         else:
             self.shapes = BUILDIN_SHAPES
+        self.col_major = addmm_args.col_major
 
     @register_benchmark()
     def triton_addmm(self, a, mat1, mat2) -> Callable:
@@ -140,6 +141,8 @@ class Operator(BenchmarkOperator):
             mat2 = torch.randn(
                 (k, n), device=self.device, dtype=self.dtype
             ).requires_grad_(False)
+            if self.col_major:
+                mat2 = mat2.T.contiguous().T
             yield a, mat1, mat2
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
