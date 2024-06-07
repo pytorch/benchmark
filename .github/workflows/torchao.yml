@@ -30,13 +30,19 @@ jobs:
           sudo nvidia-smi -ac 1215,1410
           nvidia-smi
           sudo ldconfig
-      - name: Test workflow ID env
+      - name: Check workflow ID env
         env:
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
           WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         run: |
-          echo ${WORKFLOW_RUN_ID}
-          echo ${WORKFLOW_RUN_ATTEMPT}
+          if [ -z "${WORKFLOW_RUN_ID}" ]; then
+              echo "WORKFLOW_RUN_ID is unset or set to the empty string"
+              exit 1
+          fi
+          if [ -z "${WORKFLOW_RUN_ATTEMPT}" ]; then
+              echo "WORKFLOW_RUN_ATTEMPT is unset or set to the empty string"
+              exit 1
+          fi
       - name: Clone and setup conda env
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
