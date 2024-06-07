@@ -10,7 +10,7 @@ import torch.distributed as dist
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision.models as models
+from torchvision import models
 from typing import Tuple
 
 from .moco.builder import MoCo
