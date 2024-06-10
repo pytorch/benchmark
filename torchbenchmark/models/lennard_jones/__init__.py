@@ -5,7 +5,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from functorch import vmap, jacrev
+from torch.func import vmap, jacrev
 from typing import Tuple
 
 from ...util.model import BenchmarkModel

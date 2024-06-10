@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from functorch import vmap, jacfwd, jacrev
+from torch.func import vmap, jacfwd, jacrev
 from .util import BenchmarkCase
 
 # batched hessians of fully connected layers is a popular quantity
