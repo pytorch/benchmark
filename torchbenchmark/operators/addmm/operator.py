@@ -1,28 +1,74 @@
 import csv
 import os
 import statistics
-from typing import Any, Callable, Generator, List, Optional
+from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import numpy
 import torch
+import torch._inductor.config as inductor_config
 import triton
-from hammer.ops.triton.triton_hstu_linear import triton_addmm
+from hammer.ops.triton.triton_hstu_linear import _addmm_fwd, triton_addmm
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    dump_autotuner_best_config,
     register_benchmark,
     register_metric,
+    register_x_val,
 )
 
 from .data_io import parse_args
 
 
-BUILDIN_SHAPES = [(M * 128, 512, N) for N in [1536, 512] for M in range(4, 17)]
+BUILDIN_SHAPES = [
+    (20120, 1536, 512),
+    (34579, 1536, 512),
+    (34839, 1536, 512),
+    (35561, 1536, 512),
+    (35916, 1536, 512),
+    (19735, 1536, 512),
+    (34533, 1536, 512),
+    (35791, 1536, 512),
+    (35844, 1536, 512),
+    (20116, 1536, 512),
+    (33887, 1536, 512),
+    (20203, 1536, 512),
+    (33961, 1536, 512),
+    (19747, 1536, 512),
+    (34181, 1536, 512),
+    (35541, 1536, 512),
+    (36032, 1536, 512),
+    (15168, 1536, 512),
+    (35249, 1536, 512),
+    (33894, 1536, 512),
+    (20067, 1536, 512),
+    (27456, 1536, 512),
+    (19410, 1536, 512),
+    (35884, 1536, 512),
+    (35917, 1536, 512),
+    (19632, 1536, 512),
+    (35656, 1536, 512),
+    (35405, 1536, 512),
+    (35503, 1536, 512),
+    (35504, 1536, 512),
+    (35605, 1536, 512),
+    (34238, 1536, 512),
+    (33660, 1536, 512),
+    (35410, 1536, 512),
+    (20211, 1536, 512),
+    (34308, 1536, 512),
+    (34516, 1536, 512),
+    (20224, 1536, 512),
+    (35678, 1536, 512),
+    (35380, 1536, 512),
+    (35901, 1536, 512),
+    (20068, 1536, 512),
+]
 
 
 class Operator(BenchmarkOperator):
-    DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
+    DEFAULT_METRICS = ["tflops"]
     DEFAULT_PRECISION = "bf16"
 
     def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
@@ -32,6 +78,7 @@ class Operator(BenchmarkOperator):
             self.shapes = [(addmm_args.m, addmm_args.k, addmm_args.n)]
         else:
             self.shapes = BUILDIN_SHAPES
+        self.col_major = addmm_args.col_major
 
     @register_benchmark()
     def triton_addmm(self, a, mat1, mat2) -> Callable:
@@ -41,11 +88,18 @@ class Operator(BenchmarkOperator):
     def aten_addmm(self, a, mat1, mat2) -> Callable:
         return lambda: torch.addmm(a, mat1, mat2)
 
-    def get_x_val(self, example_inputs) -> float:
-        _, mat1, mat2 = example_inputs
-        m, k = mat1.size()
-        k, n = mat2.size()
-        return f"{m}-{k}-{n}"
+    @register_benchmark()
+    def pt2_triton_matmul(self, a, mat1, mat2) -> Callable:
+        torch._dynamo.reset()
+        with inductor_config.patch(
+            max_autotune=True,
+            max_autotune_gemm_backends="TRITON",
+            autotune_fallback_to_aten=False,
+        ):
+            f = lambda a, mat1, mat2: torch.addmm(a, mat1, mat2)
+            compiled = torch.compile(f, dynamic=False)
+            compiled(a, mat1, mat2)
+        return lambda: compiled(a, mat1, mat2)
 
     @register_metric()
     def gbps(
@@ -65,12 +119,29 @@ class Operator(BenchmarkOperator):
     @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> float:
+    ) -> List[float]:
         _, mat1, mat2 = example_inputs
         m, k = mat1.size()
         k, n = mat2.size()
         flops = m * k * 2 * n
         return [flops / x / 1e12 * 1e3 for x in metrics.latency]
+
+    @register_x_val(label="(M, N, K)")
+    def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
+        # x-value: computation intensity
+        a, mat1, mat2 = example_inputs
+        m, k = mat1.size()
+        k, n = mat2.size()
+        return (m, n, k)
+
+    @register_metric(skip_baseline=True)
+    def best_config(
+        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
+    ) -> str:
+        if "triton_addmm" in str(fn_name):
+            return dump_autotuner_best_config(_addmm_fwd)
+        else:
+            return ""
 
     def get_input_iter(self) -> Generator:
         for shape in self.shapes:
@@ -84,6 +155,8 @@ class Operator(BenchmarkOperator):
             mat2 = torch.randn(
                 (k, n), device=self.device, dtype=self.dtype
             ).requires_grad_(False)
+            if self.col_major:
+                mat2 = mat2.T.contiguous().T
             yield a, mat1, mat2
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:

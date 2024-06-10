@@ -45,7 +45,7 @@ def parse_args(args):
     parser.add_argument("--ci", action="store_true", help="Run in the CI mode.")
     return parser.parse_known_args(args)
 
-def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorResult:
+def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
     Opbench = load_opbench_by_name(args.op)
     if args.fwd_bwd:
         args.mode = "fwd_bwd"
@@ -56,27 +56,29 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
         device=args.device,
         extra_args=extra_args,
     )
-    metrics = opbench.run(args.warmup, args.iter)
-    if not args.skip_print:
-        if args.csv:
-            metrics.write_csv_to_file(sys.stdout)
-        else:
-            print(metrics)
-    if not hasattr(torch_version, "git_version") and args.log_scuba:
-        from userbenchmark.triton.fb import log_benchmark
+    try:
+        opbench.run(args.warmup, args.iter)
+    finally:
+        metrics = opbench.output
+        if not args.skip_print:
+            if args.csv:
+                metrics.write_csv_to_file(sys.stdout)
+            else:
+                print(metrics)
+        if not hasattr(torch_version, "git_version") and args.log_scuba:
+            from userbenchmark.triton.fb import log_benchmark
 
-        log_benchmark(metrics)
-    if args.plot:
-        try:
-            opbench.plot()
-        except NotImplementedError:
-            print(f"Plotting is not implemented for {args.op}")
+            log_benchmark(metrics)
+        if args.plot:
+            try:
+                opbench.plot()
+            except NotImplementedError:
+                print(f"Plotting is not implemented for {args.op}")
 
-    if args.dump_csv:
-        os.makedirs(TRITON_BENCH_CSV_DUMP_PATH, exist_ok=True)
-        path = metrics.write_csv(TRITON_BENCH_CSV_DUMP_PATH)
-        print(f"[TritonBench] Dumped csv to {path}")
-    return metrics
+        if args.dump_csv:
+            os.makedirs(TRITON_BENCH_CSV_DUMP_PATH, exist_ok=True)
+            path = metrics.write_csv(TRITON_BENCH_CSV_DUMP_PATH)
+            print(f"[TritonBench] Dumped csv to {path}")
 
 def run(args: List[str] = []):
     if args == []:

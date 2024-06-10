@@ -12,7 +12,7 @@ from torchbenchmark.util.model import BenchmarkModel
 from transformers import GenerationConfig
 
 from .basic_configs import is_basic_huggingface_models
-from .extended_configs import (
+from .list_extended_configs import (
     BATCH_SIZE_DIVISORS,
     BATCH_SIZE_KNOWN_MODELS,
     is_extended_huggingface_models,

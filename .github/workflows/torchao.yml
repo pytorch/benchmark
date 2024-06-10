@@ -1,0 +1,80 @@
+name: Torchao nightly workflow (A100)
+on:
+  workflow_dispatch:
+
+
+jobs:
+  run-benchmark:
+    environment: docker-s3-upload
+    env:
+      BASE_CONDA_ENV: "torchbench"
+      CONDA_ENV:  "torchao-nightly"
+      PLATFORM_NAME: "gcp_a100"
+      SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      IS_GHA: 1
+      BUILD_ENVIRONMENT: benchmark-nightly
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [a100-runner]
+    timeout-minutes: 1440 # 24 hours
+    steps:
+      - name: Checkout TorchBench
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Tune Nvidia GPU
+        run: |
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
+          nvidia-smi
+          sudo ldconfig
+      - name: Clone and setup conda env
+        run: |
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
+      - name: Run the torchao userbenchmark
+        env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          . "${SETUP_SCRIPT}"
+          set -x
+          # remove old results if exists
+          if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
+          pushd benchmark
+          if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
+          # Install torchao
+          echo "Installing torchao"
+          pip uninstall -y torchao
+          python install.py --userbenchmark torchao
+          echo "Running the torchao userbenchmark"
+          python run_benchmark.py torchao --ci --dashboard
+      - name: Copy the benchmark logs to benchmark-output
+        if: always()
+        run: |
+          pushd benchmark
+          cp -r ./.userbenchmark/torchao ../benchmark-output
+      - name: Upload result to GH Actions Artifact
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: Torchao nightly result
+          path: benchmark-output/
+      - name: Copy artifact and upload to scribe and Amazon S3
+        env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          . "${SETUP_SCRIPT}"
+          pushd benchmark
+          # Upload the result json to Amazon S3
+          python ./scripts/userbenchmark/upload_s3_csv.py --s3-prefix torchbench-csv --userbenchmark torchao \
+                                                          --upload-path ../benchmark-output --match-filename "^torchao_.*\.csv"
+      - name: Clean up Conda env
+        if: always()
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all
