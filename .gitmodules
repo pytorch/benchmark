@@ -4,3 +4,6 @@
 [submodule "submodules/lit-llama"]
 	path = submodules/lit-llama
 	url = https://github.com/Lightning-AI/lit-llama.git
+[submodule "submodules/FBGEMM"]
+	path = submodules/FBGEMM
+	url = https://github.com/pytorch/FBGEMM.git
