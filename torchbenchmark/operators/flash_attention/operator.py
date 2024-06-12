@@ -208,7 +208,7 @@ class Operator(BenchmarkOperator):
         q: torch.Tensor,
         k: torch.Tensor,
         v: torch.Tensor,
-    ) -> xformers_fmha.Inputs:
+    ):
         q_1, k_1, v_1 = permute_qkv(q, k, v, perm=(0, 2, 1, 3))
         attn_bias = xformers.ops.LowerTriangularMask() if self.causal else None
         fhma_input = xformers_fmha.Inputs(
