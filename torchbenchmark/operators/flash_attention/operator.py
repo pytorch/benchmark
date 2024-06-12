@@ -61,9 +61,11 @@ except (ImportError, IOError, AttributeError):
 
 # [Optional] colfax cutlass backend
 try:
-    # colfax Flash Attention V2 for Hopper
-    # https://www.internalfb.com/code/fbsource/fbcode/ai_codesign/gen_ai/cutlass-kernels/src/fmha/README.md
-    torch.ops.load_library("//ai_codesign/gen_ai/cutlass-kernels:fmha_forward_lib")
+    if not hasattr(torch.version, "git_version"):
+        # colfax Flash Attention V2 for Hopper
+        torch.ops.load_library("//ai_codesign/gen_ai/cutlass-kernels:fmha_forward_lib")
+    else:
+        torch.ops.load_library("colfax_cutlass_fmha_forward_lib.so")
     colfax_cutlass_fmha = torch.ops.cutlass.fmha_forward
 except (ImportError, IOError, AttributeError):
     colfax_cutlass_fmha = None

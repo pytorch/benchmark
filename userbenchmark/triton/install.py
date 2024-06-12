@@ -18,10 +18,20 @@ def test_fbgemm():
     cmd = [sys.executable, "-c", '"import fbgemm_gpu.experimental.gen_ai"']
     subprocess.check_call(cmd)
 
+def install_cutlass():
+    pass
+
+def test_cutlass():
+    pass
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fbgemm", action="store_true", help="Install FBGEMM GPU")
+    parser.add_argument("--cutlass", action="store_true", help="Install optional CUTLASS kernels")
     args = parser.parse_args()
     if args.fbgemm:
         install_fbgemm()
         test_fbgemm()
+    if args.cutlass:
+        install_cutlass()
+        test_cutlass()
