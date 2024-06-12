@@ -10,7 +10,8 @@ FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
 def install_fbgemm():
     cmd = ["pip", "install", "-r", "requirements.txt"]
     subprocess.check_call(cmd, cwd=str(FBGEMM_PATH.resolve()))
-    cmd = [sys.executable, "setup.py", "bdist_wheel", "--package_variant=genai"]
+    # Build target A100(8.0) or H100(9.0)
+    cmd = [sys.executable, "setup.py", "bdist_wheel", "--package_variant=genai", "-DTORCH_CUDA_ARCH_LIST=8.0;9.0"]
     subprocess.check_call(cmd, cwd=str(FBGEMM_PATH.resolve()))
 
 def test_fbgemm():
