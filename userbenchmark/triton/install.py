@@ -9,7 +9,7 @@ FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
 
 def install_fbgemm():
     cmd = [sys.executable, "setup.py", "bdist_wheel", "--package_variant=genai"]
-    subprocess.check_call(cmd, cwd=FBGEMM_PATH)
+    subprocess.check_call(cmd, cwd=str(FBGEMM_PATH.resolve()))
 
 def test_fbgemm():
     cmd = [sys.executable, "-c", '"import fbgemm_gpu.experimental.gen_ai"']

@@ -8,10 +8,13 @@ ENV SETUP_SCRIPT=/workspace/setup_instance.sh
 ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
 ARG FORCE_DATE=${FORCE_DATE}
 
-# Setup Conda env and CUDA
+# Checkout Torchbench and submodules
 RUN git clone -b "${TORCHBENCH_BRANCH}" --single-branch \
- https://github.com/pytorch/benchmark /workspace/benchmark
+    https://github.com/pytorch/benchmark /workspace/benchmark
+RUN cd /workspace/benchmark \
+    git submodule update --init --recursive
 
+# Setup conda env and CUDA
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python ./utils/python_utils.py --create-conda-env ${CONDA_ENV} && \
