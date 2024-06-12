@@ -46,7 +46,7 @@ if __name__ == "__main__":
         choices=list_userbenchmarks(),
         help="Install requirements for optional components.",
     )
-    args = parser.parse_args()
+    args, extra_args = parser.parse_known_args()
 
     os.chdir(os.path.realpath(os.path.dirname(__file__)))
 
@@ -68,9 +68,11 @@ if __name__ == "__main__":
     if args.userbenchmark:
         # Install userbenchmark dependencies if exists
         userbenchmark_dir = REPO_ROOT.joinpath("userbenchmark", args.userbenchmark)
+        cmd = [sys.executable, "install.py"]
+        cmd.extend(extra_args)
         if userbenchmark_dir.joinpath("install.py").is_file():
             subprocess.check_call(
-                [sys.executable, "install.py"], cwd=userbenchmark_dir.absolute()
+                cmd, cwd=userbenchmark_dir.absolute()
             )
         sys.exit(0)
 

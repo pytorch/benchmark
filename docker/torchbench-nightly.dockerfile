@@ -8,10 +8,11 @@ ENV SETUP_SCRIPT=/workspace/setup_instance.sh
 ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
 ARG FORCE_DATE=${FORCE_DATE}
 
-# Setup Conda env and CUDA
-RUN git clone -b "${TORCHBENCH_BRANCH}" --single-branch \
- https://github.com/pytorch/benchmark /workspace/benchmark
+# Checkout Torchbench and submodules
+RUN git clone --recurse-submodules -b "${TORCHBENCH_BRANCH}" --single-branch \
+    https://github.com/pytorch/benchmark /workspace/benchmark
 
+# Setup conda env and CUDA
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python ./utils/python_utils.py --create-conda-env ${CONDA_ENV} && \
@@ -45,6 +46,12 @@ RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python utils/cuda_utils.py --install-torchbench-deps
 
+# Install FBGEMM GENAI
+RUN cd /workspace/benchmark && \
+    . ${SETUP_SCRIPT} && \
+    python install.py --userbenchmark triton --fbgemm
+
+# Install Torchbench models
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python install.py
