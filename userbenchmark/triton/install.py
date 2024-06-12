@@ -19,6 +19,7 @@ def test_fbgemm():
     subprocess.check_call(cmd)
 
 def install_cutlass():
+    # compile colfax_cutlass kernels to .so
     pass
 
 def test_cutlass():
