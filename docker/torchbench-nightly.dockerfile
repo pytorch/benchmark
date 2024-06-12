@@ -48,3 +48,8 @@ RUN cd /workspace/benchmark && \
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python install.py
+
+# Install FBGEMM GENAI
+RUN cd /workspace/benchmark && \
+    . ${SETUP_SCRIPT} && \
+    python install.py --userbenchmark triton --fbgemm
