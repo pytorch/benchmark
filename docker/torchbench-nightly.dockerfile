@@ -9,10 +9,8 @@ ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
 ARG FORCE_DATE=${FORCE_DATE}
 
 # Checkout Torchbench and submodules
-RUN git clone -b "${TORCHBENCH_BRANCH}" --single-branch \
+RUN git clone --recurse-submodules -b "${TORCHBENCH_BRANCH}" --single-branch \
     https://github.com/pytorch/benchmark /workspace/benchmark
-RUN cd /workspace/benchmark \
-    git submodule update --init --recursive
 
 # Setup conda env and CUDA
 RUN cd /workspace/benchmark && \

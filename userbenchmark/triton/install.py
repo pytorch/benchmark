@@ -8,6 +8,8 @@ REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
 FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
 
 def install_fbgemm():
+    cmd = ["pip", "install", "-r", "requirements.txt"]
+    subprocess.check_call(cmd, cwd=str(FBGEMM_PATH.resolve()))
     cmd = [sys.executable, "setup.py", "bdist_wheel", "--package_variant=genai"]
     subprocess.check_call(cmd, cwd=str(FBGEMM_PATH.resolve()))
 
