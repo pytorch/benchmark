@@ -7,6 +7,7 @@ import os
 import random
 import time
 import warnings
+from collections import OrderedDict
 from dataclasses import asdict, dataclass, fields, make_dataclass
 from enum import Enum
 from numbers import Number
@@ -29,7 +30,8 @@ except ImportError:
 DEFAULT_WARMUP = 25
 DEFAULT_RUN_ITERS = 100
 DEFAULT_QUANTILES = [0.5, 0.1, 0.9]
-REGISTERED_BENCHMARKS: Dict[str, List[str]] = {}
+REGISTERED_BENCHMARKS: Dict[str, OrderedDict[str, str]] = {}
+ENABLED_BENCHMARKS: Dict[str, List[str]] = {}
 REGISTERED_METRICS: Dict[str, List[str]] = {}
 REGISTERED_X_VALS: Dict[str, str] = {}
 BASELINE_BENCHMARKS: Dict[str, str] = {}
@@ -182,13 +184,14 @@ class BenchmarkOperatorResult:
             y_val_keys.insert(
                 0, y_val_keys.pop(y_val_keys.index(BASELINE_BENCHMARKS[self.op_name]))
             )
+        y_val_keys = [(x, REGISTERED_BENCHMARKS[self.op_name][x]) for x in y_val_keys]
         key_metrics = {}
         # Add header for x_only_metrics
         x_only_metrics = sorted(
             [metric for metric in self.metrics if metric in X_ONLY_METRICS]
         )
         headers.extend(x_only_metrics)
-        for k in y_val_keys:
+        for k, label in y_val_keys:
             def select_metric(m):
                 if m in x_only_metrics:
                     return False
@@ -199,7 +202,7 @@ class BenchmarkOperatorResult:
             key_metrics[k] = sorted(filter(select_metric, self.metrics))
             for metric in key_metrics[k]:
                 # add extra metrics
-                headers.append(f"{k}-{metric}")
+                headers.append(f"{label}-{metric}")
         # generate rows
         for x_val, y_val in self.result:
             row = []
@@ -208,7 +211,7 @@ class BenchmarkOperatorResult:
             for x_only_metric in x_only_metrics:
                 x_only_metric_dict = asdict(y_val[y_val_keys[0]])
                 row.append(x_only_metric_dict[x_only_metric])
-            for k in y_val_keys:
+            for k, _label in y_val_keys:
                 metrics_dict = asdict(y_val[k])
                 if metrics_dict["error_msg"]:
                     row.append(metrics_dict["error_msg"])
@@ -273,7 +276,7 @@ class BenchmarkOperatorResult:
 
     def get_y_vals(self, x_val, provider, metric_name: str):
         if provider in X_ONLY_METRICS:
-            maybe_baseline = REGISTERED_BENCHMARKS[self.op_name][0]
+            maybe_baseline = list(REGISTERED_BENCHMARKS[self.op_name].keys())[0]
             metrics_dict = asdict(self._get_result_dict()[x_val][maybe_baseline])
             metric_name = provider
         else:
@@ -307,15 +310,18 @@ def register_x_val(label: str="x_val"):
         return _inner
     return decorator
 
-def register_benchmark(baseline: bool = False, enabled: bool = True):
+def register_benchmark(baseline: bool = False, enabled: bool = True, label: Optional[str] = None):
     def decorator(function):
+        operator_name = _find_op_name_from_module_path(function.__module__)
+        if not operator_name in REGISTERED_BENCHMARKS:
+            REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
+        REGISTERED_BENCHMARKS[operator_name][function.__name__] = function.__name__ if not label else label
+        if baseline:
+            BASELINE_BENCHMARKS[operator_name] = function.__name__
         if enabled:
-            operator_name = _find_op_name_from_module_path(function.__module__)
-            if not operator_name in REGISTERED_BENCHMARKS:
-                REGISTERED_BENCHMARKS[operator_name] = []
-            REGISTERED_BENCHMARKS[operator_name].append(function.__name__)
-            if baseline:
-                BASELINE_BENCHMARKS[operator_name] = function.__name__
+            if not operator_name in ENABLED_BENCHMARKS:
+                ENABLED_BENCHMARKS[operator_name] = []
+            ENABLED_BENCHMARKS[operator_name].append(function.__name__)
 
         def _inner(self, *args, **kwargs):
             return function(self, *args, **kwargs)
@@ -452,7 +458,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         fwd_fn_lambda = getattr(self, bm_func_name, None)
         assert fwd_fn_lambda, (
             f"Could not find benchmark {bm_func_name} registered in {self.name}. "
-            f"Available benchmarks: {REGISTERED_BENCHMARKS[self.name]}. "
+            f"Available benchmarks: {REGISTERED_BENCHMARKS[self.name].keys()}. "
         )
         if isinstance(self.example_inputs, dict):
             fwd_fn = fwd_fn_lambda(**self.example_inputs)
@@ -508,8 +514,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     benchmarks = self._only
                 else:
                     benchmarks = (
-                        [bm for bm in REGISTERED_BENCHMARKS[self.name]]
-                        if self.name in REGISTERED_BENCHMARKS
+                        [bm for bm in ENABLED_BENCHMARKS[self.name]]
+                        if self.name in ENABLED_BENCHMARKS
                         else []
                     )
                     # Run the baseline first, if baseline exists
