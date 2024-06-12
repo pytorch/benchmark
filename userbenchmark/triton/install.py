@@ -11,7 +11,7 @@ def install_fbgemm():
     cmd = ["pip", "install", "-r", "requirements.txt"]
     subprocess.check_call(cmd, cwd=str(FBGEMM_PATH.resolve()))
     # Build target A100(8.0) or H100(9.0)
-    cmd = [sys.executable, "setup.py", "bdist_wheel", "--package_variant=genai", "-DTORCH_CUDA_ARCH_LIST=8.0;9.0"]
+    cmd = [sys.executable, "setup.py", "bdist_wheel", "--package_variant=genai", "-DTORCH_CUDA_ARCH_LIST=8.0;9.0;9.0a"]
     subprocess.check_call(cmd, cwd=str(FBGEMM_PATH.resolve()))
 
 def test_fbgemm():
