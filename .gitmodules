@@ -7,3 +7,6 @@
 [submodule "submodules/FBGEMM"]
 	path = submodules/FBGEMM
 	url = https://github.com/pytorch/FBGEMM.git
+[submodule "submodules/cutlass-kernels"]
+	path = submodules/cutlass-kernels
+	url = https://github.com/ColfaxResearch/cutlass-kernels.git
