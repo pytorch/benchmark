@@ -1,8 +1,10 @@
 import argparse
 import subprocess
 import sys
+import os
+from pathlib import Path
 
-from torchbenchmark import REPO_PATH
+REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
 FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
 
 def install_fbgemm():
