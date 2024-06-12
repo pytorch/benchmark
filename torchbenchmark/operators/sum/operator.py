@@ -12,7 +12,11 @@ from torchbenchmark.util.triton_op import (
     register_metric,
 )
 
-from .kernels import triton_sum_kernel_1D_result, triton_sum_kernel_scalar_result
+from .kernels import (
+    triton_sum_kernel_1D_result,
+    triton_sum_kernel_2D_result_dim_1,
+    triton_sum_kernel_scalar_result,
+)
 
 
 def parse_op_args(args: List[str]):
@@ -37,7 +41,7 @@ class Operator(BenchmarkOperator):
         self.reduce_dim = (
             args.reduce_dim if args.reduce_dim else None
         )  # for 2D case, guaranteed to be a list with 1 integer
-        self.sizes = range(1, 9)
+        self.sizes = range(1, 11)
 
     @register_benchmark()
     def triton_sum(self, x: torch.Tensor):
@@ -55,7 +59,7 @@ class Operator(BenchmarkOperator):
             BLOCK_SIZE_M = triton.next_power_of_2(
                 M
             )  # race condition in cases where BLOCK_SIZE < n_elements^2
-        elif num_output_dims == 1:
+        elif x.dim() == 2 and num_output_dims == 1:
             M, N = x.shape
             BLOCK_SIZE_M, BLOCK_SIZE_N = triton.next_power_of_2(
                 M
@@ -65,6 +69,14 @@ class Operator(BenchmarkOperator):
                     triton.cdiv(M, meta["BLOCK_SIZE_REDUCE_DIM"]),
                     triton.cdiv(N, meta["BLOCK_SIZE_NON_REDUCE_DIM"]),
                 ),
+            )
+        elif x.dim() == 3 and num_output_dims == 2 and self.reduce_dim[0] == 1:
+            M, N, K = x.shape
+            BLOCK_SIZE_N = triton.next_power_of_2(N)
+            grid = lambda meta: (M * triton.cdiv(K, meta["BLOCK_SIZE_K"]),)
+        else:
+            raise Exception(
+                f"Existing sum Triton kernels do not support input shape {x.shape} and reduction dimension(s) {self.reduce_dim}"
             )
 
         def _inner():
@@ -79,7 +91,7 @@ class Operator(BenchmarkOperator):
                     M=M,
                     BLOCK_SIZE_M=BLOCK_SIZE_M,
                 )
-            elif num_output_dims == 1:
+            elif kernel_input.dim() == 2 and num_output_dims == 1:
                 if self.reduce_dim[0] == 0:
                     kernel_output = torch.empty(N, device=self.device)
                     BLOCK_SIZE_REDUCE_DIM = BLOCK_SIZE_M
@@ -98,6 +110,21 @@ class Operator(BenchmarkOperator):
                     N=N,
                     BLOCK_SIZE_REDUCE_DIM=BLOCK_SIZE_REDUCE_DIM,
                     dim=self.reduce_dim[0],
+                )
+            elif (
+                kernel_input.dim() == 3
+                and num_output_dims == 2
+                and self.reduce_dim[0] == 1
+            ):
+                kernel_output = torch.empty((M, K), device=self.device)
+
+                triton_sum_kernel_2D_result_dim_1[grid](
+                    kernel_input,
+                    kernel_output,
+                    M=M,
+                    N=N,
+                    K=K,
+                    BLOCK_SIZE_N=BLOCK_SIZE_N,
                 )
 
             return kernel_output
@@ -126,27 +153,26 @@ class Operator(BenchmarkOperator):
         return x_vals
 
     def get_input_iter(self) -> Generator:
-        if not self.reduce_dim:  # reduce to a scalar value
-            for size in self.get_x_vals():  # 1D matrix
+        if not self.reduce_dim:
+            for size in self.get_x_vals():  # 1D tensor
                 input_1d = torch.randn(size, device=self.device, dtype=self.dtype)
                 yield (input_1d,)
 
-        for size in self.get_x_vals():  # 2D matrix
-            if size < pow(2, 6):  # ensure we don't exceed floating point limitations
+        if not self.reduce_dim or (self.reduce_dim and len(self.reduce_dim) <= 2):
+            for size in self.get_x_vals():  # 2D tensor
                 input_2d = torch.randn(
                     (size, size), device=self.device, dtype=self.dtype
                 )
                 yield (input_2d,)
 
-        if not self.reduce_dim:
-            for size in self.get_x_vals():  # 3D matrix
-                if size < pow(
-                    2, 4
-                ):  # ensure we don't exceed floating point limitations
-                    input_2d = torch.randn(
-                        (size, size, size), device=self.device, dtype=self.dtype
-                    )
-                    yield (input_2d,)
+        if not self.reduce_dim or (
+            self.reduce_dim and len(self.reduce_dim) <= 3 and 0 not in self.reduce_dim
+        ):  # in current kernels, cannot reduce a 3D tensor on the 0-th dimension
+            for size in self.get_x_vals():  # 3D tensor
+                input_3d = torch.randn(
+                    (size, size, size), device=self.device, dtype=self.dtype
+                )
+                yield (input_3d,)
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
@@ -173,7 +199,9 @@ class Operator(BenchmarkOperator):
     def best_config(
         self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics
     ) -> str:
-        if self.reduce_dim:
+        if example_inputs[0].dim() == 3 and self.reduce_dim and self.reduce_dim[0] == 1:
+            return dump_autotuner_best_config(triton_sum_kernel_2D_result_dim_1)
+        elif self.reduce_dim and len(self.reduce_dim) < example_inputs[0].dim():
             return dump_autotuner_best_config(triton_sum_kernel_1D_result)
         else:
             return ""
