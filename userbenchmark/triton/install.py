@@ -6,6 +6,36 @@ from pathlib import Path
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
 FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
+COLFAX_CUTLASS_PATH = REPO_PATH.joinpath("submodules", "cutlass-kernels")
+
+NVCC_GENCODE = "-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_90,code=sm_90;-gencode;arch=compute_90a,code=sm_90a"
+
+NVCC_FLAGS = [
+    NVCC_GENCODE,
+    "-O3",
+    "--expt-relaxed-constexpr",
+    "--expt-extended-lambda",
+    "-forward-unknown-to-host-compiler",
+    "--use_fast_math",
+    "-Xcompiler=-fno-strict-aliasing",
+    "-Xcompiler=-fPIE",
+    "-Xcompiler=-lcuda",
+    "-DCUTLASS_TEST_LEVEL=0",
+    "-DCUTLASS_DEBUG_TRACE_LEVEL=0",
+    "-DCUTLASS_TEST_ENABLE_CACHED_RESULTS=1",
+    "-DCUTLASS_CONV_UNIT_TEST_RIGOROUS_SIZE_ENABLED=1",
+    "-DCUTLASS_ENABLE_TENSOR_CORE_MMA=1",
+]
+PREPROCESSOR_FLAGS = [
+    f"-I{str(COLFAX_CUTLASS_PATH.joinpath("lib").resolve())}",
+    f"-I{str(COLFAX_CUTLASS_PATH.joinpath("include").resolve())}",
+]
+FMHA_SOURCES = [
+    # Source 1
+    # Source 2
+    "-o",
+    str(REPO_PATH.joinpath("userbenchmark", "triton", ".data", "colfax_cutlass", "fmha_forward_lib.so").resolve()),
+]
 
 def install_fbgemm():
     cmd = ["pip", "install", "-r", "requirements.txt"]
@@ -19,11 +49,19 @@ def test_fbgemm():
     subprocess.check_call(cmd)
 
 def install_cutlass():
-    # compile colfax_cutlass kernels to .so
-    pass
+    # compile colfax_cutlass kernels as .so
+    cmd = ["nvcc"]
+    cmd.extend(PREPROCESSOR_FLAGS)
+    cmd.extend(NVCC_FLAGS)
+    cmd.extend(FMHA_SOURCES)
+    subprocess.check_call(cmd)
+    return FMHA_SOURCES[-1]
 
 def test_cutlass():
-    pass
+    so_output = FMHA_SOURCES[-1]
+    assert os.path.exists(so_output), f"{so_output} should exist as the built cutlass kernel."
+    import torch
+    torch.ops.load_library(so_output)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
