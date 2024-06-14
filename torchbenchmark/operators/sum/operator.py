@@ -13,7 +13,8 @@ from torchbenchmark.util.triton_op import (
 )
 
 from .kernels import (
-    triton_sum_kernel_1D_result,
+    triton_sum_kernel_1D_result_buffer_then_sum,
+    triton_sum_kernel_1D_result_sum_then_buffer,
     triton_sum_kernel_2D_result_dim_1,
     triton_sum_kernel_scalar_result,
 )
@@ -28,6 +29,12 @@ def parse_op_args(args: List[str]):
         default=None,
         help="[Optional] Dimension(s) on which kernel performs reduction; e.g. --reduce-dim 0, --reduce-dim 0 1",
     )
+    parser.add_argument(
+        "--sum-then-buffer",
+        type=int,  # 1: sum then buffer, 0: buffer then sum
+        default=1,
+        help="[Optional] For 1D results, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum",
+    )
     return parser.parse_args(args)
 
 
@@ -41,6 +48,7 @@ class Operator(BenchmarkOperator):
         self.reduce_dim = (
             args.reduce_dim if args.reduce_dim else None
         )  # for 2D case, guaranteed to be a list with 1 integer
+        self.sum_then_buffer = args.sum_then_buffer
         self.sizes = range(1, 11)
 
     @register_benchmark()
@@ -61,13 +69,12 @@ class Operator(BenchmarkOperator):
             )  # race condition in cases where BLOCK_SIZE < n_elements^2
         elif x.dim() == 2 and num_output_dims == 1:
             M, N = x.shape
-            BLOCK_SIZE_M, BLOCK_SIZE_N = triton.next_power_of_2(
-                M
-            ), triton.next_power_of_2(N)
             grid = lambda meta: (
                 max(
                     triton.cdiv(M, meta["BLOCK_SIZE_REDUCE_DIM"]),
                     triton.cdiv(N, meta["BLOCK_SIZE_NON_REDUCE_DIM"]),
+                    triton.cdiv(M, meta["BLOCK_SIZE_NON_REDUCE_DIM"]),
+                    triton.cdiv(N, meta["BLOCK_SIZE_REDUCE_DIM"]),
                 ),
             )
         elif x.dim() == 3 and num_output_dims == 2 and self.reduce_dim[0] == 1:
@@ -94,23 +101,29 @@ class Operator(BenchmarkOperator):
             elif kernel_input.dim() == 2 and num_output_dims == 1:
                 if self.reduce_dim[0] == 0:
                     kernel_output = torch.empty(N, device=self.device)
-                    BLOCK_SIZE_REDUCE_DIM = BLOCK_SIZE_M
                 elif self.reduce_dim[0] == 1:
                     kernel_output = torch.empty(M, device=self.device)
-                    BLOCK_SIZE_REDUCE_DIM = BLOCK_SIZE_N
                 else:
                     raise Exception(
                         f"Existing sum Triton kernels do not support reducing input with shape {kernel_input.size} along dimension(s) {self.reduce_dim}"
                     )
 
-                triton_sum_kernel_1D_result[grid](
-                    kernel_input,
-                    kernel_output,
-                    M=M,
-                    N=N,
-                    BLOCK_SIZE_REDUCE_DIM=BLOCK_SIZE_REDUCE_DIM,
-                    dim=self.reduce_dim[0],
-                )
+                if self.sum_then_buffer:
+                    triton_sum_kernel_1D_result_sum_then_buffer[grid](
+                        kernel_input,
+                        kernel_output,
+                        M=M,
+                        N=N,
+                        dim=self.reduce_dim[0],
+                    )
+                else:
+                    triton_sum_kernel_1D_result_buffer_then_sum[grid](
+                        kernel_input,
+                        kernel_output,
+                        M=M,
+                        N=N,
+                        dim=self.reduce_dim[0],
+                    )
             elif (
                 kernel_input.dim() == 3
                 and num_output_dims == 2
@@ -201,6 +214,10 @@ class Operator(BenchmarkOperator):
         if example_inputs[0].dim() == 3 and self.reduce_dim and self.reduce_dim[0] == 1:
             return dump_autotuner_best_config(triton_sum_kernel_2D_result_dim_1)
         elif self.reduce_dim and len(self.reduce_dim) < example_inputs[0].dim():
-            return dump_autotuner_best_config(triton_sum_kernel_1D_result)
+            if self.sum_then_buffer:
+                return dump_autotuner_best_config(
+                    triton_sum_kernel_1D_result_sum_then_buffer
+                )
+            return dump_autotuner_best_config(triton_sum_kernel_1D_result_buffer_then_sum)
         else:
             return ""
