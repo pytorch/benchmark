@@ -44,7 +44,10 @@ def triton_sum_kernel_scalar_result(
 @triton.autotune(
     configs=[
         triton.Config(
-            {"BLOCK_SIZE_NON_REDUCE_DIM": b},
+            {
+                "BLOCK_SIZE_NON_REDUCE_DIM": b,
+                "BLOCK_SIZE_REDUCE_DIM": b,
+            },
             num_warps=w,
         )
         for b, w in itertools.product(
@@ -54,7 +57,7 @@ def triton_sum_kernel_scalar_result(
     key=["M", "N"],
 )
 @triton.jit
-def triton_sum_kernel_1D_result(
+def triton_sum_kernel_1D_result_sum_then_buffer(
     input_ptr,  # pointer to input matrix
     output_ptr,  # pointer to output matrix
     # matrix dimensions (input)
@@ -66,49 +69,128 @@ def triton_sum_kernel_1D_result(
     # reduction dimension
     dim: tl.constexpr,  # dimension along which to sum
 ):
+    """
+    Sum blocks of input using Triton and store in buffer
+    """
+
     pid = tl.program_id(axis=0)  # i-th block of input
 
-    block_start_m, block_start_n = 0, 0
-    offsets_m, offsets_n = None, None
-    if dim == 0:
-        block_start_n = pid * BLOCK_SIZE_REDUCE_DIM
-        # offsets have shape equal to input shape
-        offsets_m = block_start_m + tl.arange(
+    reduce_dim_len = M if dim == 0 else N
+    non_reduce_dim_len = N if dim == 0 else M
+
+    buffer = tl.zeros(
+        (1, BLOCK_SIZE_NON_REDUCE_DIM), dtype=tl.float32
+    )  # create buffer as a row tensor
+
+    block_start_non_reduce_dim = pid * BLOCK_SIZE_NON_REDUCE_DIM
+    offsets_non_reduce_dim = block_start_non_reduce_dim + tl.arange(
+        0, BLOCK_SIZE_NON_REDUCE_DIM
+    )
+    mask_non_reduce_dim = offsets_non_reduce_dim < non_reduce_dim_len
+
+    for block_start_reduce_dim in range(0, reduce_dim_len, BLOCK_SIZE_REDUCE_DIM):
+        offsets_reduce_dim = block_start_reduce_dim + tl.arange(
             0, BLOCK_SIZE_REDUCE_DIM
-        )  # create 1D vector for offsets on M-th dimension
-        offsets_n = block_start_n + tl.arange(
-            0, BLOCK_SIZE_NON_REDUCE_DIM
-        )  # create 1D vector for offsets on N-th dimension
-    elif dim == 1:
-        block_start_m = pid * BLOCK_SIZE_REDUCE_DIM
-        # offsets have shape equal to input shape
-        offsets_m = block_start_m + tl.arange(
-            0, BLOCK_SIZE_NON_REDUCE_DIM
-        )  # create 1D vector for offsets on M-th dimension
-        offsets_n = block_start_n + tl.arange(
+        )
+        mask_reduce_dim = offsets_reduce_dim < reduce_dim_len
+
+        idxs, mask = None, None
+        if dim == 0:
+            idxs = (
+                offsets_reduce_dim[:, None] * non_reduce_dim_len
+            ) + offsets_non_reduce_dim
+            mask = mask_reduce_dim[:, None] & mask_non_reduce_dim
+        elif dim == 1:
+            idxs = (
+                offsets_non_reduce_dim[:, None] * reduce_dim_len
+            ) + offsets_reduce_dim
+            mask = mask_non_reduce_dim[:, None] & mask_reduce_dim
+
+        input = tl.load(input_ptr + idxs, mask=mask, other=mask)
+
+        buffer += tl.sum(input, axis=dim)
+
+    buffer_view = buffer.reshape(
+        (BLOCK_SIZE_NON_REDUCE_DIM,), can_reorder=True
+    )  # reshape buffer to 1D, as tl.sum may return a 2D tensor
+
+    tl.store(output_ptr + offsets_non_reduce_dim, buffer_view, mask=mask_non_reduce_dim)
+
+
+@triton.autotune(
+    configs=[
+        triton.Config(
+            {
+                "BLOCK_SIZE_NON_REDUCE_DIM": b,
+                "BLOCK_SIZE_REDUCE_DIM": b,
+            },
+            num_warps=w,
+        )
+        for b, w in itertools.product(
+            [2, 4, 8, 16], [2, 4, 8]  # block sizes  # number of warps
+        )
+    ],
+    key=["M", "N"],
+)
+@triton.jit
+def triton_sum_kernel_1D_result_buffer_then_sum(
+    input_ptr,  # pointer to input matrix
+    output_ptr,  # pointer to output matrix
+    # matrix dimensions (input)
+    M,  # number of rows
+    N,  # number of columns
+    # block sizes (input)
+    BLOCK_SIZE_NON_REDUCE_DIM: tl.constexpr,  # number of elements in non-reduction dimension per block
+    BLOCK_SIZE_REDUCE_DIM: tl.constexpr,  # number of elements in reduction dimension per block
+    # reduction dimension
+    dim: tl.constexpr,  # dimension along which to sum
+):
+    """
+    Add blocks of input to a buffer and sum the buffer using Triton
+    """
+
+    pid = tl.program_id(axis=0)  # i-th block of input
+
+    reduce_dim_len = M if dim == 0 else N
+    non_reduce_dim_len = N if dim == 0 else M
+
+    buffer = tl.zeros(
+        (BLOCK_SIZE_REDUCE_DIM, BLOCK_SIZE_NON_REDUCE_DIM), dtype=tl.float32
+    )  # create buffer as a 2D tensor
+
+    block_start_non_reduce_dim = pid * BLOCK_SIZE_NON_REDUCE_DIM
+    offsets_non_reduce_dim = block_start_non_reduce_dim + tl.arange(
+        0, BLOCK_SIZE_NON_REDUCE_DIM
+    )
+    mask_non_reduce_dim = offsets_non_reduce_dim < non_reduce_dim_len
+
+    for block_start_reduce_dim in range(0, reduce_dim_len, BLOCK_SIZE_REDUCE_DIM):
+        offsets_reduce_dim = block_start_reduce_dim + tl.arange(
             0, BLOCK_SIZE_REDUCE_DIM
-        )  # create 1D vector for offsets on N-th dimension
+        )
+        mask_reduce_dim = offsets_reduce_dim < reduce_dim_len
 
-    # mask has shape equal to input shape
-    mask_m = offsets_m < M
-    mask_n = offsets_n < N
+        idxs, mask = None, None
+        if dim == 0:
+            idxs = (
+                offsets_reduce_dim[:, None] * non_reduce_dim_len
+            ) + offsets_non_reduce_dim
+            mask = mask_reduce_dim[:, None] & mask_non_reduce_dim
+        elif dim == 1:
+            idxs = (
+                offsets_non_reduce_dim[:, None] * reduce_dim_len
+            ) + offsets_reduce_dim
+            mask = mask_non_reduce_dim[:, None] & mask_reduce_dim
 
-    # create 2D matrices of pointers and masks, using above M and N vectors
-    idxs = (offsets_m[:, None] * N) + offsets_n
-    mask = mask_m[:, None] & mask_n
+        buffer += tl.load(input_ptr + idxs, mask=mask, other=mask)
 
-    # loaded pointers have shape equal to input shape
-    input = tl.load(
-        input_ptr + idxs, mask=mask, other=mask
-    )  # other=mask zeros out masked values from input
+    buffer_sum = tl.sum(buffer, axis=dim)
 
-    output = tl.sum(input, axis=dim)
+    buffer_view = buffer_sum.reshape(
+        (BLOCK_SIZE_NON_REDUCE_DIM,), can_reorder=True
+    )  # reshape buffer to 1D, as tl.sum may return a 2D tensor
 
-    # stored pointers have shape equal to output shape
-    if dim == 0:  # store output along N-th dimension
-        tl.store(output_ptr + offsets_n, output, mask=mask_n)
-    elif dim == 1:  # store output along M-th dimension
-        tl.store(output_ptr + offsets_m, output, mask=mask_m)
+    tl.store(output_ptr + offsets_non_reduce_dim, buffer_view, mask=mask_non_reduce_dim)
 
 
 @triton.autotune(
