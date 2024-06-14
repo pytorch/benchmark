@@ -526,15 +526,15 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                         if self.name in ENABLED_BENCHMARKS
                         else []
                     )
-                    # Run the baseline first, if baseline exists
-                    baseline_name = (
-                        BASELINE_BENCHMARKS[self.name]
-                        if self.name in BASELINE_BENCHMARKS
-                        else None
-                    )
-                    if baseline_name and baseline_name in benchmarks:
-                        benchmarks.remove(baseline_name)
-                        benchmarks.insert(0, baseline_name)
+                # Run the baseline first, if baseline exists
+                baseline_name = (
+                    BASELINE_BENCHMARKS[self.name]
+                    if self.name in BASELINE_BENCHMARKS
+                    else None
+                )
+                if baseline_name and baseline_name in benchmarks:
+                    benchmarks.remove(baseline_name)
+                    benchmarks.insert(0, baseline_name)
 
                 # get metrics for for each registered benchmark
                 def _reduce_benchmarks(acc, bm_name: str):
