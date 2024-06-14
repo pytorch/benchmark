@@ -177,8 +177,7 @@ class Operator(BenchmarkOperator):
         a, w, bias = example_inputs
         numel = a.numel() + w.numel() + (torch.mm(a, w).numel())
         numel = numel * a.element_size() / 1e9
-        gbps = list(map(lambda x: numel / x * 1e3, metrics.latency))
-        return statistics.median(gbps)
+        return numel / metrics.latency * 1e3
 
     @register_metric(skip_baseline=True)
     def best_config(
@@ -205,7 +204,7 @@ class Operator(BenchmarkOperator):
             flops = m * k * 2 * n + 2 * m * n
         else:
             flops = m * k * 2 * n
-        return [flops / x / 1e12 * 1e3 for x in metrics.latency]
+        return flops / metrics.latency / 1e12 * 1e3
 
     @staticmethod
     def _scaled_randn(*args, scale: float, **kwargs) -> torch.Tensor:

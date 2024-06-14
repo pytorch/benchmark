@@ -187,13 +187,12 @@ class Operator(BenchmarkOperator):
 
     @register_metric()
     def gbps(self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics):
-        gbps = (
-            lambda ms: example_inputs[0].element_size()
+        return (
+            example_inputs[0].element_size()
             * example_inputs[0].numel()
-            / ms
+            / metrics.latency
             * 1e-6
         )
-        return list(map(gbps, metrics.latency if metrics.latency else [0]))
 
     @register_metric(skip_baseline=True)
     def best_config(

@@ -113,15 +113,14 @@ class Operator(BenchmarkOperator):
     @register_metric()
     def gbps(
         self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics
-    ) -> List[float]:
-        gbps = (
-            lambda ms: 2
+    ) -> float:
+        return (
+            2
             * example_inputs[0].nelement()
             * example_inputs[0].element_size()
             * 1e-9
-            / (ms * 1e-3)
+            / (metrics.latency * 1e-3)
         )
-        return list(map(gbps, metrics.latency))
 
     def plot(self):
         @triton.testing.perf_report(

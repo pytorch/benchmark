@@ -136,9 +136,9 @@ def dump_autotuner_best_config(kernel: triton.runtime.Autotuner) -> str:
 @dataclass
 class BenchmarkOperatorMetrics:
     # latency in ms
-    latency: Optional[List[float]]
+    latency: Optional[float]
     # tflops
-    tflops: Optional[List[float]]
+    tflops: Optional[float]
     # speedup over baseline
     speedup: Optional[float]
     # accuracy over baseline
@@ -735,13 +735,13 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if set(["latency", "tflops", "speedup", "compile_time"]) & set(
                 self.required_metrics
             ):
-                metrics.latency = triton.testing.do_bench(
-                    fn,
-                    warmup=warmup,
-                    rep=rep,
-                    quantiles=quantiles,
-                    grad_to_none=self.get_grad_to_none(self.example_inputs),
-                )
+                with torch.cuda.stream(torch.cuda.Stream()):
+                    metrics.latency = triton.testing.do_bench_cudagraph(
+                        fn,
+                        rep=rep,
+                        return_mode="median",
+                        grad_to_none=self.get_grad_to_none(self.example_inputs),
+                    )
             if "walltime" in self.required_metrics:
                 metrics.walltime = do_bench_walltime(
                     fn,
@@ -750,7 +750,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 )
             if "speedup" in self.required_metrics:
                 metrics.speedup = (
-                    numpy.median(self.baseline_metrics.latency) / numpy.median(metrics.latency)
+                    self.baseline_metrics.latency / metrics.latency
                     if self.baseline_metrics and self.baseline_metrics.latency
                     else None
                 )
@@ -950,7 +950,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         op_task.run()
         latency_with_compile = op_task.get_attribute("_latency_with_compile_in_task")
         del op_task
-        latency_without_compile = numpy.median(metrics.latency)
+        latency_without_compile = metrics.latency
         return latency_with_compile - latency_without_compile
 
     def hw_roofline(self) -> float:
@@ -984,7 +984,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
 
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> List[float]:
+    ) -> float:
         def _get_flops(self, func: Callable) -> float:
             """By default, use the torch.__dispatch__ based flops counter."""
             from torch.utils.flop_counter import FlopCounterMode
@@ -1010,4 +1010,4 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         if not fn in self._op_flops:
             self._op_flops[fn] = _get_flops(self, fn)
         op_flops = self._op_flops[fn]
-        return list(map(lambda x: op_flops / x / 1e12 * 1e3, metrics.latency))
+        return op_flops / metrics.latency / 1e12 * 1e3

@@ -24,19 +24,19 @@ from torchbenchmark.util.triton_op import (
 from .triton_gather_gemv import triton_gemv_0 as triton_test_0
 from torch._dynamo.testing import rand_strided
 
+
 class Operator(BenchmarkOperator):
 
     @register_metric()
     def gbps(self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics):
         arg0_1, arg1_1, arg2_1 = example_inputs
-        gbps = (
-            lambda ms: 2
+        return (
+            2
             * arg2_1.size(0) * arg2_1.size(0)
             * arg0_1.element_size()
-            / ms
+            / metrics.latency
             * 1e-6
         )
-        return list(map(gbps, metrics.latency))
 
     def __init__(self, mode: str, device: str, extra_args: List[str] = []):
         super().__init__(mode=mode, device=device, extra_args=extra_args)

@@ -95,7 +95,7 @@ class Operator(BenchmarkOperator):
         c = fn()
 
         gb = (sum(nbytes(t) for t in (x, scale_and_zero, c)) + nbytes(w) // 8) / 1e9
-        return list(map(lambda ms: gb / ms * 1e3, metrics.latency))
+        return gb / metrics.latency * 1e3
 
     @register_metric()
     def tflops(
@@ -106,7 +106,7 @@ class Operator(BenchmarkOperator):
         m = B * m
         _, n = b.size()
         flops = 2 * m * n * k
-        return [flops / x / 1e12 * 1e3 for x in metrics.latency]
+        return flops / metrics.latency / 1e12 * 1e3
 
     def plot(self):
         @triton.testing.perf_report(

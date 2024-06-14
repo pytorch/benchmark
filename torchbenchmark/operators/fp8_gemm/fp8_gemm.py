@@ -92,7 +92,7 @@ class Operator(BenchmarkOperator):
         m, k = a.shape
         _, n = b.shape
         gb = (nbytes(a) + nbytes(b) + nbytes(c)) / 1e9
-        return list(map(lambda x: gb / x * 1e3, metrics.latency))
+        return gb / metrics.latency * 1e3
 
     @register_metric()
     def tflops(
@@ -102,7 +102,7 @@ class Operator(BenchmarkOperator):
         m, k = a.size()
         _, n = b.size()
         flops = 2 * m * n * k
-        return [flops / x / 1e12 * 1e3 for x in metrics.latency]
+        return flops / metrics.latency / 1e12 * 1e3
 
     def plot(self):
         @triton.testing.perf_report(

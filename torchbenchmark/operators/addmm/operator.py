@@ -113,18 +113,17 @@ class Operator(BenchmarkOperator):
             + (torch.addmm(a, mat1, mat2).numel())
         )
         numel = numel * a.element_size() / 1e9
-        gbps = list(map(lambda x: numel / x * 1e3, metrics.latency))
-        return statistics.median(gbps)
+        return numel / metrics.latency * 1e3
 
     @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> List[float]:
+    ) -> float:
         _, mat1, mat2 = example_inputs
         m, k = mat1.size()
         k, n = mat2.size()
         flops = m * k * 2 * n
-        return [flops / x / 1e12 * 1e3 for x in metrics.latency]
+        return flops / metrics.latency / 1e12 * 1e3
 
     @register_x_val(label="(M, N, K)")
     def get_x_val(self, example_inputs) -> Tuple[int, int, int]:

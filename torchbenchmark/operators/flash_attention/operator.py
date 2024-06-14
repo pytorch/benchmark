@@ -278,7 +278,7 @@ class Operator(BenchmarkOperator):
     @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> List[float]:
+    ) -> float:
         flops_per_matmul = (
             2.0 * self.BATCH * self.H * self.N_CTX * self.N_CTX * self.D_HEAD
         )
@@ -289,7 +289,7 @@ class Operator(BenchmarkOperator):
             tflops *= 2.5  # 2.0(bwd) + 0.5(recompute)
         elif self.mode == BenchmarkMode.FWD_BWD:
             tflops *= 3.5  # 1.0(fwd) + 2.0(bwd) + 0.5(recompute)
-        return list(map(lambda x: tflops / x * 1e-9, metrics.latency))
+        return tflops / metrics.latency * 1e-9
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         o = fwd_fn()
