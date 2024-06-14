@@ -45,13 +45,13 @@ def triton_sum_kernel_scalar_result(
     configs=[
         triton.Config(
             {
-                "BLOCK_SIZE_NON_REDUCE_DIM": b,
-                "BLOCK_SIZE_REDUCE_DIM": b,
+                "BLOCK_SIZE_NON_REDUCE_DIM": b_nr,
+                "BLOCK_SIZE_REDUCE_DIM": b_r,
             },
             num_warps=w,
         )
-        for b, w in itertools.product(
-            [2, 4, 8, 16], [2, 4, 8]  # block sizes  # number of warps
+        for b_nr, b_r, w in itertools.product(
+            [2, 4, 8, 16], [2, 4, 8, 16], [2, 4, 8]  # block sizes on non-reduction dimension, block sizes on reduction dimension, number of warps
         )
     ],
     key=["M", "N"],
@@ -200,7 +200,7 @@ def triton_sum_kernel_1D_result_buffer_then_sum(
             num_warps=w,
         )
         for b, w in itertools.product(
-            [2, 4, 16, 32, 128, 256], [2, 4, 8]  # block sizes  # number of warps
+            [2, 4, 16, 32, 128, 256], [2, 4, 8]  # block sizes, number of warps
         )
     ],
     key=["N"],
