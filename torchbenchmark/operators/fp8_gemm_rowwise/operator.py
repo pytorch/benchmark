@@ -120,7 +120,7 @@ class Operator(BenchmarkOperator):
         m, k = xq.size()
         n, k = wq.size()
         flops = m * k * 2 * n
-        return [flops / x / 1e12 * 1e3 for x in metrics.latency]
+        return flops / metrics.latency / 1e12 * 1e3
 
     @register_x_val(label="(M, N, K)")
     def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
