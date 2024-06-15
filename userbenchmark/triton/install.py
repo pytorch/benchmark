@@ -20,7 +20,13 @@ def test_fbgemm():
     subprocess.check_call(cmd)
 
 def install_cutlass():
-    from .cutlass_kernels.install import install_colfax_cutlass
+    try:
+        from .cutlass_kernels.install import install_colfax_cutlass
+    except ImportError:
+        try:
+            from cutlass_kernels.install import install_colfax_cutlass
+        except ImportError:
+            from userbenchmark.triton.cutlass_kernels.install import install_colfax_cutlass
     install_colfax_cutlass()
 
 if __name__ == "__main__":

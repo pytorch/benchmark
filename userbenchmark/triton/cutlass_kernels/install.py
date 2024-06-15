@@ -41,14 +41,14 @@ COMPILER_FLAGS = [
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('examples', 'commmon').resolve())}",
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('tools', 'util', 'include').resolve())}",
     f"-I{CUDA_HOME}/include",
-    f"-L{str(TORCH_BASE_PATH.joinpath("include").resolve())}",
+    f"-L{str(TORCH_BASE_PATH.joinpath('include').resolve())}",
     f"-Wl,-rpath,'{CUDA_HOME}/lib64'",
     f"-Wl,-rpath,'{CUDA_HOME}/lib'",
 ]
 LINKER_FLAGS = [
     "--shared",
     "-fPIC",
-    f"-L{str(TORCH_BASE_PATH.joinpath("lib").resolve())}",
+    f"-L{str(TORCH_BASE_PATH.joinpath('lib').resolve())}",
     "-ltorch",
     "-ltorch_cuda",
     "-lc10",
