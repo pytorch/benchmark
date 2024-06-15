@@ -2,9 +2,10 @@ import os
 from pathlib import Path
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
-REPO_LIBRARY_PATH = REPO_PATH.joinpath("userbenchmark", "triton", ".data")
+TRITONBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "triton")
 
 def load_library(library_path: str):
     import torch
-    library_path = REPO_LIBRARY_PATH.joinpath(library_path).resolve()
-    torch.ops.load_library(str(library_path))
+    prefix, _delimiter, so_file = library_path.partition("/")
+    so_full_path = TRITONBENCH_PATH.joinpath(prefix, ".data", so_file).resolve()
+    torch.ops.load_library(str(so_full_path))
