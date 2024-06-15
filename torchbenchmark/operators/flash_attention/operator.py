@@ -108,7 +108,7 @@ class Operator(BenchmarkOperator):
         self.sm_scale = 1.3
         self.xformers_splitk = args.xformers_splitk
 
-    @register_benchmark(baseline=True)
+    @register_benchmark()
     def aten(
         self,
         q: torch.Tensor,
@@ -127,7 +127,7 @@ class Operator(BenchmarkOperator):
 
         return _inner
 
-    @register_benchmark()
+    @register_benchmark(baseline=True)
     def sdpa(
         self,
         q: torch.Tensor,
