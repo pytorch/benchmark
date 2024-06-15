@@ -6,12 +6,17 @@ from pathlib import Path
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
 FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
+CUDA_HOME = "/usr/local/cuda" if not "CUDA_HOME" in os.environ else os.environ["CUDA_HOME"]
+FBGEMM_CUTLASS_PATH = FBGEMM_PATH.joinpath("third_party", "cutlass")
 COLFAX_CUTLASS_PATH = REPO_PATH.joinpath("submodules", "cutlass-kernels")
+COLFAX_CUTLASS_TRITONBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "triton", "cutlass-kernel")
 
-NVCC_GENCODE = "-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_90,code=sm_90;-gencode;arch=compute_90a,code=sm_90a"
+NVCC_GENCODE = "-gencode=arch=compute_90a,code=[sm_90a]"
 
 NVCC_FLAGS = [
     NVCC_GENCODE,
+    "--use_fast_math",
+    "-forward-unknown-to-host-compiler",
     "-O3",
     "--expt-relaxed-constexpr",
     "--expt-extended-lambda",
@@ -29,12 +34,20 @@ NVCC_FLAGS = [
 PREPROCESSOR_FLAGS = [
     f"-I{str(COLFAX_CUTLASS_PATH.joinpath("lib").resolve())}",
     f"-I{str(COLFAX_CUTLASS_PATH.joinpath("include").resolve())}",
+    f"-I{str(FBGEMM_CUTLASS_PATH.joinpath("include").resolve())}",
+    f"-I{str(FBGEMM_CUTLASS_PATH.joinpath("examples", "commmon").resolve())}",
+    f"-I{str(FBGEMM_CUTLASS_PATH.joinpath("tools", "util", "include").resolve())}",
+    f"-I{CUDA_HOME}/include",
+    f"-rpath,'{CUDA_HOME}/lib64'",
+    f"-rpath,'{CUDA_HOME}/lib'"
 ]
 FMHA_SOURCES = [
     # Source 1
+    f"{str(COLFAX_CUTLASS_PATH.joinpath("src", "fmha", "fmha_forward.cu").resolve())}"
     # Source 2
+    f"{str(COLFAX_CUTLASS_TRITONBENCH_PATH.joinpath("src", "fmha", "register_op.cu").resolve())}"
     "-o",
-    str(REPO_PATH.joinpath("userbenchmark", "triton", ".data", "colfax_cutlass", "fmha_forward_lib.so").resolve()),
+    "fmha_forward_lib",
 ]
 
 def install_fbgemm():
@@ -49,13 +62,15 @@ def test_fbgemm():
     subprocess.check_call(cmd)
 
 def install_cutlass():
-    # compile colfax_cutlass kernels as .so
+    # compile colfax_cutlass kernels
+    output_dir = COLFAX_CUTLASS_TRITONBENCH_PATH.joinpath(".data")
+    output_dir.mkdir(parents=True, exist_ok=True)
     cmd = ["nvcc"]
     cmd.extend(PREPROCESSOR_FLAGS)
     cmd.extend(NVCC_FLAGS)
     cmd.extend(FMHA_SOURCES)
-    subprocess.check_call(cmd)
-    return FMHA_SOURCES[-1]
+    subprocess.check_call(cmd, cwd=str(output_dir.resolve()))
+    return str(output_dir.joinpath(FMHA_SOURCES[-1]).resolve())
 
 def test_cutlass():
     so_output = FMHA_SOURCES[-1]
