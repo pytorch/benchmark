@@ -41,7 +41,7 @@ COMPILER_FLAGS = [
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('examples', 'commmon').resolve())}",
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('tools', 'util', 'include').resolve())}",
     f"-I{CUDA_HOME}/include",
-    f"-L{str(TORCH_BASE_PATH.joinpath('include').resolve())}",
+    f"-I{str(TORCH_BASE_PATH.joinpath('include').resolve())}",
     f"-Wl,-rpath,'{CUDA_HOME}/lib64'",
     f"-Wl,-rpath,'{CUDA_HOME}/lib'",
 ]
