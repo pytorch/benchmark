@@ -383,6 +383,12 @@ def parse_args(
         help="Specify one or multiple operator implementations to run."
     )
     parser.add_argument(
+        "--baseline",
+        type=str,
+        default=None,
+        help="Override default baseline."
+    )
+    parser.add_argument(
         "--num-inputs",
         type=int,
         help="Number of example inputs.",
@@ -451,6 +457,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             self.DEFAULT_METRICS,
             unprocessed_args
         )
+        if self.tb_args.baseline:
+            BASELINE_BENCHMARKS[self.name] = self.tb_args.baseline
         self.required_metrics = list(set(self.tb_args.metrics.split(",")))
         self._only = _split_params_by_comma(self.tb_args.only)
         self._input_id = self.tb_args.input_id
