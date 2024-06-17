@@ -1,2 +1,2 @@
-pycocotools==2.0.6
-git+https://github.com/rwightman/efficientdet-pytorch.git@79d26d8
+pycocotools
+git+https://github.com/rwightman/efficientdet-pytorch.git@d43c9e34cd62d22b4205831bb735f6dd83b8e881
