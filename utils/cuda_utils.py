@@ -5,6 +5,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from .python_utils import DEFAULT_PYTHON_VERSION
+
 from typing import Optional
 
 # defines the default CUDA version to compile against
@@ -17,11 +19,18 @@ CUDA_VERSION_MAP = {
     },
 }
 PIN_CMAKE_VERSION = "3.22.*"
-# the numpy version needs to be consistent with
-# https://github.com/pytorch/builder/blob/e66e48f9b1968213c6a7ce3ca8df6621435f0a9c/wheel/build_wheel.sh#L146
-PIN_NUMPY_VERSION = "1.23.5"
+
 TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchvision", "torchaudio"]
 
+def _get_pin_numpy_version() -> str:
+    # the numpy version needs to be consistent with
+    # https://github.com/pytorch/builder/blob/main/wheel/build_wheel.sh#L146
+    RAW_GITHUB_BUILDER_SCRIPT = "https://raw.githubusercontent.com/pytorch/builder/main/wheel/build_wheel.sh"
+    numpy_version = "2.0.0rc1"
+    print(f"Pinned NUMPY version: {numpy_version}")
+    return numpy_version
+
+PIN_CMAKE_VERSION = _get_pin_numpy_version()
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
     regex = "release (.*),"
