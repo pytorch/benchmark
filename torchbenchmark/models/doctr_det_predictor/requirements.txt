@@ -1,1 +1,1 @@
-doctr
+python-doctr

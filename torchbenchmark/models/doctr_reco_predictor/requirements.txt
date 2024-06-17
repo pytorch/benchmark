@@ -1,2 +1,2 @@
-doctr
+python-doctr
 rapidfuzz
