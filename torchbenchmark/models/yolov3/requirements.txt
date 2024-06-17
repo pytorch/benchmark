@@ -1,5 +1,5 @@
 # pip install -U -r requirements.txt
-numpy
+numpy>=1.8
 # opencv-python 4.5 requires numpy 1.8
 opencv-python
 matplotlib
