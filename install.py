@@ -55,6 +55,8 @@ if __name__ == "__main__":
         end="",
         flush=True,
     )
+    if args.userbenchmark:
+        TORCH_DEPS = ["torch"]
     try:
         versions = get_pkg_versions(TORCH_DEPS)
     except ModuleNotFoundError as e:
