@@ -15,9 +15,7 @@ transformers==4.38.1
 MonkeyType
 psutil
 pyyaml
-# pytorch build script pins numpy version
-# https://github.com/pytorch/builder/blob/main/wheel/build_wheel.sh
-numpy==1.23.5
+numpy
 opencv-python
 submitit
 pynvml
