@@ -1,4 +1,8 @@
-# (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 """
 This benchmark script is based on the benchmark code from:
@@ -10,17 +14,18 @@ It benchmarks the following FMHA kernels:
 
   https://triton-lang.org/main/getting-started/tutorials/06-fused-attention.html
 
-* Flash-V2: the FA-V2 from //ai_codesign/gen_ai/flash_attention_v2:flash_attention_v2,
+* SDPA: the torch.nn.attention version of FA-V2
+
+* [optional] Flash-V2: the FA-V2 from //ai_codesign/gen_ai/flash_attention_v2:flash_attention_v2,
   which was imported from https://github.com/Dao-AILab/flash-attention
 
-* Xformers: the memory-efficient attention from xformers:
+* [optional] Xformers: the memory-efficient attention from xformers:
 
   https://fburl.com/code/cuorcm9h
 
 * [optional] Xformers-Splitk: the triton-splitk FMHA kernel from xformers:
 
   https://fburl.com/code/awt36vjj
-
   Disabled by default because it failed with some configs. Note that
   the relevant benchmark only works with causal = False at the moment.
   Known to work with "--batch=8 --n-heads=8 --xformers-splitk"
@@ -29,34 +34,44 @@ It benchmarks the following FMHA kernels:
 import argparse
 import math
 import os
-from typing import Callable, Optional
-
-import numpy
-
 import torch
 import triton  # @manual=//triton:triton
-import xformers  # @manual=//fair/xformers:xformers
-import xformers.ops.fmha as xformers_fmha  # @manual=//fair/xformers:xformers
 
+from triton.ops.flash_attention import attention as triton_op_FA2
 from torchbenchmark.util.kernels.triton_fused_attention import attention as triton_tutorial_FA2
-from aikl.gpu.triton.tests.test_fmha_utils import (
-    generate_qkv,
-    make_packed_qkv,
-    permute_qkv,
-)
-from flash_attn.flash_attn_interface import flash_attn_qkvpacked_func as flash_attn_func
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.nn.functional import scaled_dot_product_attention as sdpa
-from triton.ops.flash_attention import attention as triton_op_FA2
 
+from typing import Callable, Optional
+
+# [Optional] flash_attn_func
 try:
-    # colfax Flash Attention V2 for Hopper
-    # https://www.internalfb.com/code/fbsource/fbcode/ai_codesign/gen_ai/cutlass-kernels/src/fmha/README.md
-    torch.ops.load_library("//ai_codesign/gen_ai/cutlass-kernels:fmha_forward_lib")
+    from .test_fmha_utils import make_packed_qkv
+    from flash_attn.flash_attn_interface import flash_attn_qkvpacked_func as flash_attn_func
+except (ImportError, IOError, AttributeError):
+    pass
+
+# [Optional] xformers backend
+try:
+    import xformers  # @manual=//fair/xformers:xformers
+    import xformers.ops.fmha as xformers_fmha  # @manual=//fair/xformers:xformers
+    from .test_fmha_utils import permute_qkv
+except (ImportError, IOError, AttributeError):
+    pass
+
+# [Optional] colfax cutlass backend
+try:
+    if not hasattr(torch.version, "git_version"):
+        # colfax Flash Attention V2 for Hopper
+        torch.ops.load_library("//ai_codesign/gen_ai/cutlass-kernels:fmha_forward_lib")
+    else:
+        from userbenchmark.triton.utils import load_library
+        load_library("colfax_cutlass/fmha_forward_lib.so")
     colfax_cutlass_fmha = torch.ops.cutlass.fmha_forward
 except (ImportError, IOError, AttributeError):
     colfax_cutlass_fmha = None
 
+# [Optional] ThunderKittens backend
 try:
     import h100_fwd as tk_fwd
     import h100_fwd_causal as tk_fwd_causal
@@ -65,10 +80,6 @@ except (ImportError, IOError, AttributeError):
     tk_fwd_causal = None
 
 from typing import Any, Generator, List
-
-import torch
-import triton
-import triton.language as tl
 from torchbenchmark.util.input import input_filter
 
 from torchbenchmark.util.triton_op import (
@@ -200,7 +211,7 @@ class Operator(BenchmarkOperator):
         q: torch.Tensor,
         k: torch.Tensor,
         v: torch.Tensor,
-    ) -> xformers_fmha.Inputs:
+    ):
         q_1, k_1, v_1 = permute_qkv(q, k, v, perm=(0, 2, 1, 3))
         attn_bias = xformers.ops.LowerTriangularMask() if self.causal else None
         fhma_input = xformers_fmha.Inputs(
@@ -208,7 +219,7 @@ class Operator(BenchmarkOperator):
         )
         return fhma_input
 
-    @register_benchmark()
+    @register_benchmark(enabled=False)
     def xformers(
         self,
         q: torch.Tensor,
