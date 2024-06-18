@@ -156,3 +156,13 @@ class Operator(BenchmarkOperator):
             / metrics.latency
             * GIGABYTES_PER_BYTE
         )
+    
+    @register_metric(x_only=True)
+    def input_shape(
+        self, fn_name: str, example_inputs, metrics: BenchmarkOperatorMetrics
+    ):
+        return (
+            example_inputs[0].shape[0],
+            "*",
+            example_inputs[0].shape[2],
+        )  # return (B, '*', M) for each example input
