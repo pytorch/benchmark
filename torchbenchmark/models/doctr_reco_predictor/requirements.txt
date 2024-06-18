@@ -1,0 +1,2 @@
+git+https://github.com/xuzhao9/doctr.git
+rapidfuzz
