@@ -38,6 +38,17 @@ if __name__ == "__main__":
         action="store_true",
         help="Run in test mode and check package versions",
     )
+    parser.add_argument(
+        "--skip",
+        nargs="*",
+        default=[],
+        help="Skip models to install."
+    )
+    parser.add_argument(
+        "--torch",
+        action="store_true",
+        help="Only require torch to be installed, ignore torchvision and torchaudio."
+    )
     parser.add_argument("--canary", action="store_true", help="Install canary model.")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
@@ -50,13 +61,13 @@ if __name__ == "__main__":
 
     os.chdir(os.path.realpath(os.path.dirname(__file__)))
 
+    if args.torch or args.userbenchmark:
+        TORCH_DEPS = ["torch"]
     print(
         f"checking packages {', '.join(TORCH_DEPS)} are installed...",
         end="",
         flush=True,
     )
-    if args.userbenchmark:
-        TORCH_DEPS = ["torch"]
     try:
         versions = get_pkg_versions(TORCH_DEPS)
     except ModuleNotFoundError as e:
@@ -88,6 +99,7 @@ if __name__ == "__main__":
 
     success &= setup(
         models=args.models,
+        skip_models=args.skip,
         verbose=args.verbose,
         continue_on_fail=args.continue_on_fail,
         test_mode=args.test_mode,

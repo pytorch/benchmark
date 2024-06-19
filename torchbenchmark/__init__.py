@@ -156,7 +156,8 @@ def _is_canary_model(model_name: str) -> bool:
 
 
 def setup(
-    models: List[str] = [],
+    models: Optional[List[str]] = None,
+    skip_models: Optional[List[str]] = None,
     verbose: bool = True,
     continue_on_fail: bool = False,
     test_mode: bool = False,
@@ -175,6 +176,8 @@ def setup(
         )
         model_paths = list(model_paths)
         model_paths.extend(canary_model_paths)
+    skip_models = [] if not skip_models else skip_models
+    model_paths = [ x for x in model_paths if os.path.basename(x) not in skip_models ]
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         if test_mode:
