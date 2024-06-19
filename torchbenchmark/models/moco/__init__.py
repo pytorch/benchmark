@@ -56,18 +56,29 @@ class Model(BenchmarkModel):
                 "distributed": True,
             }
         )
-        try:
-            dist.init_process_group(
-                backend="nccl",
-                init_method="tcp://localhost:10001",
-                world_size=1,
-                rank=0,
-            )
-        except RuntimeError:
-            pass  # already initialized?
 
         if device == "cpu":
             raise NotImplementedError("DistributedDataParallel/allgather requires cuda")
+        elif device == "cuda":
+            try:
+                dist.init_process_group(
+                    backend="nccl",
+                    init_method="tcp://localhost:10001",
+                    world_size=1,
+                    rank=0,
+                )
+            except RuntimeError:
+                pass  # already initialized?
+        elif device == "xla":
+            import torch_xla.distributed.xla_backend
+
+            try:
+                dist.init_process_group(backend="xla", init_method="xla://")
+            except RuntimeError:
+                pass  # already initialized?
+        else:
+            raise NotImplementedError(f"{device} not supported")
+
 
         self.model = MoCo(
             models.__dict__[self.opt.arch],
@@ -102,8 +113,8 @@ class Model(BenchmarkModel):
             range(2), collate_fn=collate_train_fn
         )
         for i, (images, _) in enumerate(self.example_inputs):
-            images[0] = images[0].cuda(device=0, non_blocking=True)
-            images[1] = images[1].cuda(device=0, non_blocking=True)
+            images[0] = images[0].to(device, non_blocking=True)
+            images[1] = images[1].to(device, non_blocking=True)
 
     def get_module(self):
         """Recommended
