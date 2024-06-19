@@ -16,9 +16,6 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
     ALLOW_CUSTOMIZE_BSIZE = False
     CANNOT_SET_CUSTOM_OPTIMIZER = True
-    # Skip correctness check, because maml runs backward and optimizer in eval()
-    # Which will return non-deterministic results
-    SKIP_CORRECTNESS_CHECK = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         super().__init__(
