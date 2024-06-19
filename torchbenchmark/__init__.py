@@ -184,10 +184,10 @@ def setup(
             versions = get_pkg_versions(TORCH_DEPS)
         success, errmsg, stdout_stderr = _install_deps(model_path, verbose=verbose)
         if test_mode:
-            new_versions = get_pkg_versions(TORCH_DEPS, reload=True)
+            new_versions = get_pkg_versions(TORCH_DEPS)
             if versions != new_versions:
                 print(
-                    f"The torch packages are re-installed after installing the benchmark model {model_path}. \
+                    f"The numpy and torch packages are re-installed after installing the benchmark model {model_path}. \
                         Before: {versions}, after: {new_versions}"
                 )
                 sys.exit(-1)

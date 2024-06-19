@@ -3,9 +3,7 @@ PyTorch benchmark env check utils.
 This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 
-import argparse
 import copy
-import importlib
 import os
 import shutil
 import argparse
@@ -187,10 +185,13 @@ def set_random_seed():
 
 
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
+    import sys
+    import subprocess
     versions = {}
     for module in packages:
-        module = importlib.import_module(module)
-        versions[module] = module.__version__
+        cmd = [sys.executable, "-c", f'import {module}; print({module}.__version__)']
+        version = subprocess.check_output(cmd).decode().strip()
+        versions[module] = version
     return versions
 
 
