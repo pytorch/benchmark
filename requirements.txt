@@ -15,7 +15,7 @@ transformers==4.38.1
 MonkeyType
 psutil
 pyyaml
-numpy
+numpy==1.21.2
 opencv-python
 submitit
 pynvml
