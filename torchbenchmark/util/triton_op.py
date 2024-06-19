@@ -414,6 +414,10 @@ class PostInitProcessor(type):
         obj.__post__init__()
         return obj
 
+
+_RANGE_NAME = "tritonbench_range"
+
+
 class BenchmarkOperator(metaclass=PostInitProcessor):
     mode: Mode = Mode.FWD
     test: str = "eval"
@@ -827,6 +831,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     fn=fn,
                     warmup=warmup,
                     grad_to_none=self.get_grad_to_none(self.example_inputs),
+                    range_name=_RANGE_NAME,
                 )
                 metrics.extra_metrics["_ncu_trace_in_task"] = "success"
             # generate customized metrics
@@ -901,26 +906,27 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             "ncu",
             "--set",
             "full",
-            "--replay-mode",
-            "kernel",
+            "--nvtx",
+            "--nvtx-include",
+            f"{_RANGE_NAME}/",
             "--target-processes",
             "all",
-            "--csv",
-            "-f",
-            "--log-file",
-            str(ncu_output_file.resolve()),
-        ] if not replay else [
-            "ncu",
-            "--set",
-            "full",
-            "--replay-mode",
-            "kernel",
-            "--target-processes",
-            "all",
-            "-f",
-            "-o",
-            str(ncu_output_file.resolve()),
+            "--import-source",
+            "yes",
         ]
+        if replay:
+            ncu_args.extend([
+                "-f",
+                "-o",
+                str(ncu_output_file.resolve()),
+            ])
+        else:
+            ncu_args.extend([
+                "--csv",
+                "-f",
+                "--log-file",
+                str(ncu_output_file.resolve()),
+            ])
         ncu_args.extend(op_task_args)
         subprocess.check_call(ncu_args)
         return str(ncu_output_file.resolve())
