@@ -20,18 +20,7 @@ CUDA_VERSION_MAP = {
 PIN_CMAKE_VERSION = "3.22.*"
 
 TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchvision", "torchaudio"]
-
-def _get_pin_numpy_version() -> str:
-    requirements_file = REPO_ROOT.joinpath("requirements.txt")
-    numpy_reg = "numpy==(.*)"
-    with open(requirements_file, "r") as fp:
-        numpy_requirement = list(filter(lambda x: "numpy==" in x, fp.readlines()))
-    assert numpy_requirement, f"Expected numpy version hardcoded in {str(requirements_file.resolve())}."
-    numpy_version = re.match(numpy_reg, numpy_requirement[0]).groups()[0]
-    print(f"Pinned NUMPY version: {numpy_version}")
-    return numpy_version
-
-PIN_NUMPY_VERSION = _get_pin_numpy_version()
+BUILD_REQUIREMENTS_FILE = REPO_ROOT.joinpath("utils", "build_requirements.txt")
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
     regex = "release (.*),"
@@ -163,9 +152,8 @@ def install_torch_build_deps(cuda_version: str):
     build_deps = ["ffmpeg"]
     cmd = ["conda", "install", "-y"] + build_deps
     subprocess.check_call(cmd)
-    # pip deps
-    pip_deps = [f"numpy=={PIN_NUMPY_VERSION}"]
-    cmd = ["pip", "install"] + pip_deps
+    # pip build deps
+    cmd = ["pip", "install", "-r"] + str(BUILD_REQUIREMENTS_FILE.resolve())
     subprocess.check_call(cmd)
     # conda forge deps
     # ubuntu 22.04 comes with libstdcxx6 12.3.0
