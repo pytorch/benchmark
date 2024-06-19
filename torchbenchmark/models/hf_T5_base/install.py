@@ -1,6 +1,6 @@
 import os
-from utils.python_utils import pip_install_requirements
 from torchbenchmark.util.framework.huggingface.patch_hf import patch_transformers, cache_model
+from utils.python_utils import pip_install_requirements
 
 if __name__ == '__main__':
     pip_install_requirements()

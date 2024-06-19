@@ -23,14 +23,16 @@ def create_conda_env(pyver: str, name: str):
     subprocess.check_call(command)
 
 
-def pip_install_requirements(requirements_txt="requirements.txt", continue_on_fail=False):
+def pip_install_requirements(requirements_txt="requirements.txt", continue_on_fail=False, no_build_isolation=False):
     import sys
-    constraints_file = REPO_DIR.joinpath("build", "contraints.txt")
+    constraints_file = REPO_DIR.joinpath("build", "constraints.txt")
     if not constraints_file.exists():
-        warnings.warn("contraints.txt could not be found, please rerun install.py.")
+        warnings.warn("constraints.txt could not be found, please rerun install.py.")
         constraints_parameters = []
     else:
         constraints_parameters = ["-c", str(constraints_file.resolve())]
+    if no_build_isolation:
+        constraints_parameters.append("--no-build-isolation")
     if not continue_on_fail:
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-r", requirements_txt] + constraints_parameters,

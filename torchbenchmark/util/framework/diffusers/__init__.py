@@ -1,17 +1,9 @@
 import os
-import subprocess
-import sys
 from pathlib import Path
+from utils.python_utils import pip_install_requirements
 
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 
-
-def pip_install_requirements():
-    requirements_file = os.path.join(CURRENT_DIR, "requirements.txt")
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-q", "-r", requirements_file]
-    )
-
-
 def install_diffusers():
-    pip_install_requirements()
+    requirements_file = os.path.join(CURRENT_DIR, "requirements.txt")
+    pip_install_requirements(requirements_txt=requirements_file)

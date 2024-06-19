@@ -1,7 +1,6 @@
 import os
-import subprocess
-import sys
 import requests
+from utils.python_utils import pip_install_requirements
 
 def download(output_filename, uri):
     # Download the file with streaming to handle large files
@@ -15,9 +14,6 @@ def download(output_filename, uri):
                 f.write(chunk)
     else:
         print(f'Failed to download file with status code {response.status_code}')
-
-def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
 def download_data(data_folder):
     # CC-0 image from wikipedia page on pizza so legal to use
