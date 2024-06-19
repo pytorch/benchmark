@@ -1,4 +1,4 @@
-numpy
+numpy==1.21.2
 inflect
 scipy
 Unidecode
