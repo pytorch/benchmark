@@ -6,23 +6,9 @@ from pathlib import Path
 
 from userbenchmark import list_userbenchmarks
 from utils import get_pkg_versions, TORCH_DEPS, generate_pkg_constraints
+from utils.python_utils import pip_install_requirements
 
 REPO_ROOT = Path(__file__).parent
-
-
-def pip_install_requirements(requirements_txt="requirements.txt"):
-    try:
-        subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-q", "-r", requirements_txt],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as e:
-        return (False, e.output)
-    except Exception as e:
-        return (False, e)
-    return True, None
 
 
 if __name__ == "__main__":
@@ -107,7 +93,7 @@ if __name__ == "__main__":
             )
         sys.exit(0)
 
-    success, errmsg = pip_install_requirements()
+    success, errmsg = pip_install_requirements(continue_on_fail=True)
     if not success:
         print("Failed to install torchbenchmark requirements:")
         print(errmsg)
