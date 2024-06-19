@@ -9,6 +9,7 @@ from typing import Optional
 
 # defines the default CUDA version to compile against
 DEFAULT_CUDA_VERSION = "12.4"
+REPO_ROOT = Path(__file__).parent.parent
 
 CUDA_VERSION_MAP = {
     "12.4": {
@@ -17,11 +18,9 @@ CUDA_VERSION_MAP = {
     },
 }
 PIN_CMAKE_VERSION = "3.22.*"
-# the numpy version needs to be consistent with
-# https://github.com/pytorch/builder/blob/e66e48f9b1968213c6a7ce3ca8df6621435f0a9c/wheel/build_wheel.sh#L146
-PIN_NUMPY_VERSION = "1.23.5"
-TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchvision", "torchaudio"]
 
+TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchvision", "torchaudio"]
+BUILD_REQUIREMENTS_FILE = REPO_ROOT.joinpath("utils", "build_requirements.txt")
 
 def _nvcc_output_match(nvcc_output, target_cuda_version):
     regex = "release (.*),"
@@ -153,9 +152,8 @@ def install_torch_build_deps(cuda_version: str):
     build_deps = ["ffmpeg"]
     cmd = ["conda", "install", "-y"] + build_deps
     subprocess.check_call(cmd)
-    # pip deps
-    pip_deps = [f"numpy=={PIN_NUMPY_VERSION}"]
-    cmd = ["pip", "install"] + pip_deps
+    # pip build deps
+    cmd = ["pip", "install", "-r"] + str(BUILD_REQUIREMENTS_FILE.resolve())
     subprocess.check_call(cmd)
     # conda forge deps
     # ubuntu 22.04 comes with libstdcxx6 12.3.0

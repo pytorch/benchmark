@@ -2,10 +2,5 @@
 # which still supports python 3.8
 numpy==1.21.2; python_version < '3.11'
 numpy==1.26.0; python_version >= '3.11'
-opencv-python
-pandas
-Pillow
-scikit-image
-scipy
-tqdm
-tensorboardX
+psutil
+pyyaml
