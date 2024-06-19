@@ -69,7 +69,7 @@ class Model(BenchmarkModel):
                 )
             except RuntimeError:
                 pass  # already initialized?
-        elif device.startswith("xla"):
+        elif device == "xla":
             import torch_xla.distributed.xla_backend
 
             try:
