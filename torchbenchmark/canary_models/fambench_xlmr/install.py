@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 from torchbenchmark import REPO_PATH
-
+from utils.python_utils import pip_install_requirements
 
 def update_fambench_submodule():
     "Update FAMBench submodule of the benchmark repo"
@@ -19,9 +19,7 @@ def update_fambench_submodule():
 
 def pip_install_requirements():
     try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-q", "-r", "requirements.txt"]
-        )
+        pip_install_requirements()
         # pin fairseq version
         # ignore deps specified in requirements.txt
         subprocess.check_call(

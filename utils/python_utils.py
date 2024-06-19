@@ -2,6 +2,8 @@ import warnings
 from pathlib import Path
 import subprocess
 
+from typing import Optional, List
+
 DEFAULT_PYTHON_VERSION = "3.11"
 
 PYTHON_VERSION_MAP = {
@@ -23,7 +25,10 @@ def create_conda_env(pyver: str, name: str):
     subprocess.check_call(command)
 
 
-def pip_install_requirements(requirements_txt="requirements.txt", continue_on_fail=False, no_build_isolation=False):
+def pip_install_requirements(requirements_txt="requirements.txt",
+                            continue_on_fail=False,
+                            no_build_isolation=False,
+                            extra_args: Optional[List[str]]=None):
     import sys
     constraints_file = REPO_DIR.joinpath("build", "constraints.txt")
     if not constraints_file.exists():
@@ -33,6 +38,8 @@ def pip_install_requirements(requirements_txt="requirements.txt", continue_on_fa
         constraints_parameters = ["-c", str(constraints_file.resolve())]
     if no_build_isolation:
         constraints_parameters.append("--no-build-isolation")
+    if extra_args and isinstance(extra_args, list):
+        constraints_parameters.extend(extra_args)
     if not continue_on_fail:
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-r", requirements_txt] + constraints_parameters,

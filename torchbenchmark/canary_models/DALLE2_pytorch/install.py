@@ -2,6 +2,7 @@ import os
 import patch
 import subprocess
 import sys
+from utils.python_utils import pip_install_requirements
 
 def patch_dalle2():
     import dalle2_pytorch
@@ -12,8 +13,8 @@ def patch_dalle2():
         print("Failed to patch dalle2_pytorch/dalle2_pytorch.py. Exit.")
         exit(1)
 
-def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
+def pip_install_requirements_dalle2():
+    pip_install_requirements()
     # DALLE2_pytorch requires embedding-reader
     # https://github.com/lucidrains/DALLE2-pytorch/blob/00e07b7d61e21447d55e6d06d5c928cf8b67601d/setup.py#L34
     # embedding-reader requires an old version of pandas and pyarrow
@@ -22,5 +23,5 @@ def pip_install_requirements():
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', 'pandas', 'pyarrow'])
 
 if __name__ == '__main__':
-    pip_install_requirements()
+    pip_install_requirements_dalle2()
     patch_dalle2()
