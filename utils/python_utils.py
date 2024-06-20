@@ -32,7 +32,10 @@ def pip_install_requirements(requirements_txt="requirements.txt",
     import sys
     constraints_file = REPO_DIR.joinpath("build", "constraints.txt")
     if not constraints_file.exists():
-        warnings.warn("constraints.txt could not be found, please rerun install.py.")
+        warnings.warn("The build/constrants.txt file is not found. "
+                      "Please consider rerunning the install.py script to generate it."
+                      "It is recommended to install with the build/constrants.txt file "
+                      "to prevent unexpected version change of numpy or torch.")
         constraints_parameters = []
     else:
         constraints_parameters = ["-c", str(constraints_file.resolve())]
