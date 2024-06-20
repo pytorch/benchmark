@@ -2,7 +2,7 @@ import importlib
 import sys
 from typing import Dict, List
 
-TORCH_DEPS = ["torch", "torchvision", "torchaudio"]
+TORCH_DEPS = ["numpy", "torch", "torchvision", "torchaudio"]
 
 
 class add_path:
