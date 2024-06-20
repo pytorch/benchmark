@@ -19,7 +19,7 @@ def pip_install_requirements_doctr():
         )
     except:
         warnings.warn(
-            "The doctr_det_predictor model requires conda binary libaries to be installed. Missing conda packages might break this model."
+            "The doctr_reco_predictor model requires conda binary libaries to be installed. Missing conda packages might break this model."
         )
     pip_install_requirements()
 
