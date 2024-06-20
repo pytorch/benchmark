@@ -468,6 +468,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         self._only = _split_params_by_comma(self.tb_args.only)
         self._input_id = self.tb_args.input_id
         self._num_inputs = self.tb_args.num_inputs
+        self.device = device
 
     # Run the post initialization
     def __post__init__(self):
