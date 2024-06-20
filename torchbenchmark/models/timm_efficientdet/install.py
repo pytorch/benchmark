@@ -1,8 +1,7 @@
 import os
-import sys
 import patch
-import subprocess
 from utils import s3_utils
+from utils.python_utils import pip_install_requirements
 
 
 def patch_effdet():
@@ -27,12 +26,6 @@ def patch_pycocotools():
     if not p.apply(strip=1, root=target_dir):
         print("Failed to patch pycocotools. Exit.")
         exit(1)
-
-
-def pip_install_requirements():
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-q", "-r", "requirements.txt"]
-    )
 
 
 if __name__ == "__main__":

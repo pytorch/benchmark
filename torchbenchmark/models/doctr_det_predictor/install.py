@@ -1,9 +1,9 @@
 import warnings
 import subprocess
-import sys
+from utils.python_utils import pip_install_requirements
 
 
-def pip_install_requirements():
+def pip_install_requirements_doctr():
     try:
         subprocess.check_call(
             [
@@ -21,10 +21,8 @@ def pip_install_requirements():
         warnings.warn(
             "The doctr_det_predictor model requires conda binary libaries to be installed. Missing conda packages might break this model."
         )
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-q", "-r", "requirements.txt"]
-    )
+    pip_install_requirements()
 
 
 if __name__ == "__main__":
-    pip_install_requirements()
+    pip_install_requirements_doctr()

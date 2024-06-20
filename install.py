@@ -5,24 +5,10 @@ import sys
 from pathlib import Path
 
 from userbenchmark import list_userbenchmarks
-from utils import get_pkg_versions, TORCH_DEPS
+from utils import get_pkg_versions, TORCH_DEPS, generate_pkg_constraints
+from utils.python_utils import pip_install_requirements
 
 REPO_ROOT = Path(__file__).parent
-
-
-def pip_install_requirements(requirements_txt="requirements.txt"):
-    try:
-        subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-q", "-r", requirements_txt],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as e:
-        return (False, e.output)
-    except Exception as e:
-        return (False, e)
-    return True, None
 
 
 if __name__ == "__main__":
@@ -54,6 +40,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Only require numpy to be installed, ignore torch, torchvision and torchaudio."
     )
+    parser.add_argument(
+        "--check-only",
+        action="store_true",
+        help="Only run the version check and generate the contraints"
+    )
     parser.add_argument("--canary", action="store_true", help="Install canary model.")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
@@ -71,10 +62,12 @@ if __name__ == "__main__":
     if args.numpy:
         TORCH_DEPS = ["numpy"]
     print(
-        f"checking packages {', '.join(TORCH_DEPS)} are installed...",
+        f"checking packages {', '.join(TORCH_DEPS)} are installed, generating constaints...",
         end="",
         flush=True,
     )
+    if args.userbenchmark:
+        TORCH_DEPS = ["numpy", "torch"]
     try:
         versions = get_pkg_versions(TORCH_DEPS)
     except ModuleNotFoundError as e:
@@ -83,7 +76,11 @@ if __name__ == "__main__":
             f"Error: Users must first manually install packages {TORCH_DEPS} before installing the benchmark."
         )
         sys.exit(-1)
+    generate_pkg_constraints(versions)
     print("OK")
+
+    if args.check_only:
+        exit(0)
 
     if args.userbenchmark:
         # Install userbenchmark dependencies if exists
@@ -96,7 +93,7 @@ if __name__ == "__main__":
             )
         sys.exit(0)
 
-    success, errmsg = pip_install_requirements()
+    success, errmsg = pip_install_requirements(continue_on_fail=True)
     if not success:
         print("Failed to install torchbenchmark requirements:")
         print(errmsg)
@@ -120,7 +117,9 @@ if __name__ == "__main__":
     new_versions = get_pkg_versions(TORCH_DEPS)
     if versions != new_versions:
         print(
-            f"The torch packages are re-installed after installing the benchmark deps. \
+            f"The numpy and torch package versions become inconsistent after installing the benchmark deps. \
                 Before: {versions}, after: {new_versions}"
         )
         sys.exit(-1)
+    else:
+        print(f"installed torchbench with package constraints: {versions}")

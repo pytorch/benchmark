@@ -1,10 +1,7 @@
-import subprocess
-import sys
 import os
 from torchbenchmark.util.framework.huggingface.patch_hf import patch_transformers, cache_model
+from utils.python_utils import pip_install_requirements
 
-def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
 if __name__ == '__main__':
     pip_install_requirements()

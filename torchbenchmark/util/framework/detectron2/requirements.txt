@@ -1,6 +1,3 @@
 git+https://github.com/facebookresearch/detectron2.git@0df2d73d0013db7de629602c23cc120219b4f2b8
 omegaconf==2.3.0
-# We need to pin numpy version to the same as the torch testing environment
-# which still supports python 3.8
-numpy==1.21.2; python_version < '3.11'
-numpy==1.26.0; python_version >= '3.11'
+numpy

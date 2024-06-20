@@ -5,6 +5,7 @@ import traceback
 from pathlib import Path
 
 from torchbenchmark import REPO_PATH
+from utils.python_utils import pip_install_requirements
 
 LIT_LLAMA_PATH = os.path.join(REPO_PATH, "submodules", "lit-llama")
 
@@ -19,20 +20,6 @@ def update_lit_llama_submodule():
         os.path.join("submodules", "lit-llama"),
     ]
     subprocess.check_call(update_command, cwd=REPO_PATH)
-
-
-def pip_install_requirements():
-    subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "-q",
-            "-r",
-            os.path.join(LIT_LLAMA_PATH, "requirements.txt"),
-        ]
-    )
 
 
 def openllama_download():

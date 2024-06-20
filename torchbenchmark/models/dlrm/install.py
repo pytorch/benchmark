@@ -1,8 +1,4 @@
-import subprocess
-import sys
-
-def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
+from utils.python_utils import pip_install_requirements
 
 if __name__ == '__main__':
     pip_install_requirements()

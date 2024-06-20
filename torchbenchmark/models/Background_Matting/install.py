@@ -1,10 +1,7 @@
-import subprocess
-import sys
-from utils import s3_utils
+from utils import s3_utils, python_utils
 
 def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip',
-                           'install', '-q', '-r', 'requirements.txt'])
+    python_utils.pip_install_requirements('requirements.txt')
 
 if __name__ == '__main__':
     pip_install_requirements()
