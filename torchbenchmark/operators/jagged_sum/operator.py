@@ -15,6 +15,11 @@ from torchbenchmark.util.triton_op import (
     register_metric,
 )
 
+from .kernels import (
+    triton_jagged_sum_kernel_simple_fused_buffer_then_sum,
+    triton_jagged_sum_kernel_simple_fused_sum_then_buffer,
+)
+
 seed = 16
 random.seed(seed)
 torch.manual_seed(seed)
@@ -38,21 +43,57 @@ def parse_op_args(args: List[str]):
         default=0.5,
         help="Average sparsity for nested tensor (float, (0.0-1.0))",
     )
+    parser.add_argument(
+        "--sum-then-buffer",
+        type=int,  # 1: sum then buffer, 0: buffer then sum
+        default=1,
+        help="[Optional] For Triton kernels, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum",
+    )
     return parser.parse_args(args)
+
+
+def execute_kernel_simple_fused(x, max_seqlen, sum_then_buffer):
+    B, M = x.shape[0], x.shape[2]
+    grid = lambda meta: ((len(x.offsets()) - 1) * triton.cdiv(M, meta["BLOCK_SIZE_M"]),)
+    kernel_output = torch.zeros((B, M), device=x.device)
+
+    if sum_then_buffer:
+        triton_jagged_sum_kernel_simple_fused_sum_then_buffer[grid](
+            x.values(),
+            x.offsets(),
+            kernel_output,
+            M=M,
+            MAX_SEQLEN=max_seqlen,
+        )
+    else:
+        triton_jagged_sum_kernel_simple_fused_buffer_then_sum[grid](
+            x.values(),
+            x.offsets(),
+            kernel_output,
+            M=M,
+            MAX_SEQLEN=max_seqlen,
+        )
+
+    return kernel_output
 
 
 class Operator(BenchmarkOperator):
 
     DEFAULT_METRICS = ["latency", "accuracy"]
-    use_cuda_graphs = False  # enables GPU/CPU sync (for methods like NestedTensor unbind)
+    use_cuda_graphs = (
+        False  # enables GPU/CPU sync (for methods like NestedTensor unbind)
+    )
 
     def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
         super().__init__(mode=mode, device=device, extra_args=extra_args)
-        self.sizes = range(4, 10, 2)
+        self.sizes = list(range(2, 8, 2)) + list(
+            range(8, 12)
+        )  # bias towards larger sizes, which are more representative of real-world shapes
 
         args = parse_op_args(self.extra_args)
         self.seqlen = args.seqlen
         self.sparsity = args.sparsity
+        self.sum_then_buffer = args.sum_then_buffer
 
     @register_benchmark(baseline=True)
     def torch_jagged_sum_no_pad(self, x: torch.Tensor):
@@ -74,6 +115,13 @@ class Operator(BenchmarkOperator):
             ),
             dim=1,
         )  # sum along ragged dimension (dim == 1)
+
+    @register_benchmark()
+    def triton_jagged_sum_no_pad(self, x: torch.Tensor):
+        def _inner():
+            return execute_kernel_simple_fused(x, self.seqlen, self.sum_then_buffer)
+
+        return _inner
 
     def get_x_val(self, example_inputs):
         return len(example_inputs[0])
@@ -156,7 +204,7 @@ class Operator(BenchmarkOperator):
             / metrics.latency
             * GIGABYTES_PER_BYTE
         )
-    
+
     @register_metric(x_only=True)
     def input_shape(
         self, fn_name: str, example_inputs, metrics: BenchmarkOperatorMetrics
@@ -166,3 +214,15 @@ class Operator(BenchmarkOperator):
             "*",
             example_inputs[0].shape[2],
         )  # return (B, '*', M) for each example input
+
+    @register_metric(skip_baseline=True)
+    def best_config(
+        self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics
+    ) -> str:
+        if self.sum_then_buffer:
+            return dump_autotuner_best_config(
+                triton_jagged_sum_kernel_simple_fused_sum_then_buffer
+            )
+        return dump_autotuner_best_config(
+            triton_jagged_sum_kernel_simple_fused_buffer_then_sum
+        )
