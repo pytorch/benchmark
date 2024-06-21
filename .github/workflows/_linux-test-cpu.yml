@@ -1,11 +1,18 @@
 name: linux-test-cpu
+on:
+  workflow_call:
+    secrets:
+      HUGGING_FACE_HUB_TOKEN:
+        required: false
+        description: |
+          HF Auth token to avoid rate limits when downloading models or datasets from hub
 
 jobs:
   linux-test-cpu:
     # Don't run on forked repos
     if: github.repository_owner == 'pytorch'
     runs-on: [self-hosted, linux.24xlarge]
-    timeout-minutes: ${{ inputs.timeout-minutes }}
+    timeout-minutes: 240
     environment: docker-s3-upload
     env:
       BASE_CONDA_ENV: "torchbench"
@@ -50,7 +57,3 @@ jobs:
       - name: Teardown Linux
         uses: pytorch/test-infra/.github/actions/teardown-linux@main
         if: always()
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
-  cancel-in-progress: true

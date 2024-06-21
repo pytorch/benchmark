@@ -13,9 +13,9 @@ concurrency:
 jobs:
   cpu-test:
     uses: ./.github/workflows/_linux-test-cpu.yml
-    with:
-      timeout-minutes: 240 # 4 hours
+    secrets:
+      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
   cuda-test:
     uses: ./.github/workflows/_linux-test-cuda.yml
-    with:
-      timeout-minutes: 240 # 4 hours
+    secrets:
+      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
