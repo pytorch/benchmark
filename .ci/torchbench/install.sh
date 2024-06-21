@@ -1,5 +1,7 @@
 . ${HOME}/miniconda3/etc/profile.d/conda.sh
 
+set -x
+
 if [ -z "${BASE_CONDA_ENV}" ]; then
   echo "ERROR: BASE_CONDA_ENV is not set"
   exit 1
@@ -16,8 +18,9 @@ if [ -z "${SETUP_SCRIPT}" ]; then
 fi
 
 CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+conda activate "${BASE_CONDA_ENV}"
 # Remove the conda env if exists
-conda remove --name "${CONDA_ENV}" --all || true
+conda remove --name "${CONDA_ENV}" -y --all || true
 conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
 conda activate "${CONDA_ENV}"
 
