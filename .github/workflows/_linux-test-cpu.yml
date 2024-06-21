@@ -57,3 +57,7 @@ jobs:
       - name: Teardown Linux
         uses: pytorch/test-infra/.github/actions/teardown-linux@main
         if: always()
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true

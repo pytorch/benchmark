@@ -1,7 +1,5 @@
 . ${HOME}/miniconda3/etc/profile.d/conda.sh
 
-set -x
-
 if [ -z "${BASE_CONDA_ENV}" ]; then
   echo "ERROR: BASE_CONDA_ENV is not set"
   exit 1
