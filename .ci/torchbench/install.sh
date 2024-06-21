@@ -16,6 +16,8 @@ if [ -z "${SETUP_SCRIPT}" ]; then
 fi
 
 CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+# Remove the conda env if exists
+conda remove --name "${CONDA_ENV}" --all || true
 conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
 conda activate "${CONDA_ENV}"
 
