@@ -59,7 +59,9 @@ def triton_jagged_sum_kernel_simple_fused_sum_then_buffer(
     for block_pos in range(
         0, MAX_SEQLEN, BLOCK_SIZE_RAGGED
     ):  # loop over ragged dimension, ranging until maximum seqlen
-        block_start_ragged = ragged_start + block_pos  # offset block position by start of current program
+        block_start_ragged = (
+            ragged_start + block_pos
+        )  # offset block position by start of current program
         offsets_ragged = block_start_ragged + tl.arange(0, BLOCK_SIZE_RAGGED)
         mask_ragged = offsets_ragged < ragged_end
 
@@ -132,7 +134,9 @@ def triton_jagged_sum_kernel_simple_fused_buffer_then_sum(
     for block_pos in range(
         0, MAX_SEQLEN, BLOCK_SIZE_RAGGED
     ):  # loop over ragged dimension, ranging until maximum seqlen
-        block_start_ragged = ragged_start + block_pos  # offset block position by start of current program
+        block_start_ragged = (
+            ragged_start + block_pos
+        )  # offset block position by start of current program
         offsets_ragged = block_start_ragged + tl.arange(0, BLOCK_SIZE_RAGGED)
         mask_ragged = offsets_ragged < ragged_end
 
