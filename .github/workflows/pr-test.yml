@@ -1,0 +1,22 @@
+name: TorchBench PR Test
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  cpu-test:
+    timeout-minutes: 120 # 2 hours
+    uses: ./.github/workflow/_linux-test-cpu.yml
+    with:
+      timeout-minutes: 120 # 2 hours
+  cuda-test:
+    uses: ./.github/workflow/_linux-test-cuda.yml
+    with:
+      timeout-minutes: 120 # 2 hours
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true

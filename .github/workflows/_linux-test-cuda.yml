@@ -1,21 +1,18 @@
-name: TorchBench PR Test
-on:
-  pull_request:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+name: linux-test
 
 jobs:
-  pr-test:
+  pr-test-cuda:
+    # Don't run on forked repos
+    if: github.repository_owner == 'pytorch'
+    runs-on: [a100-runner]
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    environment: docker-s3-upload
     env:
       BASE_CONDA_ENV: "torchbench"
-      CONDA_ENV: "pr-ci-a100"
+      CONDA_ENV: "pr-test-cuda"
       SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      TEST_CONFIG: "cuda"
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
-    runs-on: [a100-runner]
-    timeout-minutes: 1440 # 24 hours
-    environment: docker-s3-upload
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
@@ -31,10 +28,10 @@ jobs:
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install TorchBench
         run: |
-          bash ./scripts/torchbench_install.sh
-      - name: Validate benchmark components
+          bash ./.ci/torchbench/install.sh
+      - name: Test TorchBench
         run: |
-          bash ./scripts/torchbench_test.sh
+          bash ./.ci/torchbench/test.sh
       - name: Clean up Conda env
         if: always()
         run: |
