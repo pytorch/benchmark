@@ -1,10 +1,10 @@
-name: linux-test
+name: linux-test-cpu
 
 jobs:
-  pr-test-cpu:
+  linux-pr-test-cpu:
     # Don't run on forked repos
     if: github.repository_owner == 'pytorch'
-    runs-on: [linux.24xlarge]
+    runs-on: [self-hosted, linux.24xlarge]
     timeout-minutes: ${{ inputs.timeout-minutes }}
     environment: docker-s3-upload
     env:

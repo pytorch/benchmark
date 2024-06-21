@@ -1,7 +1,7 @@
-name: linux-test
+name: linux-test-cuda
 
 jobs:
-  pr-test-cuda:
+  linux-pr-test-cuda:
     # Don't run on forked repos
     if: github.repository_owner == 'pytorch'
     runs-on: [a100-runner]
