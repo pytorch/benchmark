@@ -4,9 +4,22 @@ import sys
 import os
 from pathlib import Path
 
+from utils.cuda_utils import DEFAULT_CUDA_VERSION, CUDA_VERSION_MAP
+
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
 FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
 
+def install_jax(cuda_version=DEFAULT_CUDA_VERSION):
+    jax_package_name = CUDA_VERSION_MAP[cuda_version]["jax"]
+    jax_nightly_html = "https://storage.googleapis.com/jax-releases/jax_nightly_releases.html"
+    # install instruction:
+    # https://jax.readthedocs.io/en/latest/installation.html
+    # pip install -U --pre jax[cuda12] -f https://storage.googleapis.com/jax-releases/jax_nightly_releases.html
+    cmd = ["pip", "install", "--pre", jax_package_name, "-f", jax_nightly_html]
+    subprocess.check_call(cmd)
+    # Test jax installation
+    test_cmd = [sys.executable, "-c", "import jax"]
+    subprocess.check_call(test_cmd)
 
 def install_fbgemm():
     cmd = ["pip", "install", "-r", "requirements.txt"]
@@ -33,9 +46,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fbgemm", action="store_true", help="Install FBGEMM GPU")
     parser.add_argument("--cutlass", action="store_true", help="Install optional CUTLASS kernels")
+    parser.add_argument("--jax", action="store_true", help="Install jax nightly")
     args = parser.parse_args()
     if args.fbgemm:
         install_fbgemm()
         test_fbgemm()
     if args.cutlass:
         install_cutlass()
+    if args.jax:
+        install_jax()
