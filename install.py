@@ -90,7 +90,7 @@ if __name__ == "__main__":
         if userbenchmark_dir.joinpath("install.py").is_file():
             # add the current run env to PYTHONPATH to load framework install utils
             run_env = os.environ.copy()
-            run_env["PYTHONPATH"] = Path(REPO_ROOT.parent).as_posix()
+            run_env["PYTHONPATH"] = Path(REPO_ROOT).as_posix()
             subprocess.check_call(
                 cmd, cwd=userbenchmark_dir.absolute(), env=run_env,
             )
