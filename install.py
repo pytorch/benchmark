@@ -88,8 +88,11 @@ if __name__ == "__main__":
         cmd = [sys.executable, "install.py"]
         cmd.extend(extra_args)
         if userbenchmark_dir.joinpath("install.py").is_file():
+            # add the current run env to PYTHONPATH to load framework install utils
+            run_env = os.environ.copy()
+            run_env["PYTHONPATH"] = Path(REPO_ROOT).as_posix()
             subprocess.check_call(
-                cmd, cwd=userbenchmark_dir.absolute()
+                cmd, cwd=userbenchmark_dir.absolute(), env=run_env,
             )
         sys.exit(0)
 

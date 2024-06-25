@@ -14,7 +14,8 @@ REPO_ROOT = Path(__file__).parent.parent
 CUDA_VERSION_MAP = {
     "12.4": {
         "pytorch_url": "cu124",
-        "magma_version": "magma-cuda124",
+        "magma": "magma-cuda124",
+        "jax": "jax[cuda12]",
     },
 }
 PIN_CMAKE_VERSION = "3.22.*"
@@ -67,7 +68,7 @@ def prepare_cuda_env(cuda_version: str, dryrun=False):
         "-y",
         "-c",
         "pytorch",
-        CUDA_VERSION_MAP[cuda_version]["magma_version"],
+        CUDA_VERSION_MAP[cuda_version]["magma"],
     ]
     if dryrun:
         print(f"Installing CUDA magma: {install_magma_cmd}")
@@ -113,7 +114,7 @@ def install_pytorch_nightly(cuda_version: str, env, dryrun=False):
 
 def install_torch_deps(cuda_version: str):
     # install magma
-    magma_pkg = CUDA_VERSION_MAP[cuda_version]["magma_version"]
+    magma_pkg = CUDA_VERSION_MAP[cuda_version]["magma"]
     cmd = ["conda", "install", "-y", magma_pkg, "-c", "pytorch"]
     subprocess.check_call(cmd)
     # install other dependencies
