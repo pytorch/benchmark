@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import os
 import torch
 import torch.utils.data
 
@@ -30,6 +31,10 @@ class TextMelLoader(torch.utils.data.Dataset):
         # separate filename and text
         audiopath, text = audiopath_and_text[0], audiopath_and_text[1]
         text = self.get_text(text)
+        # do some file path processing when input data is not linked as
+        # data dependency.
+        if not os.path.exists(audiopath):
+            audiopath = audiopath.replace("../../data/.data", "", 1)
         mel = self.get_mel(audiopath)
         return (text, mel)
 
