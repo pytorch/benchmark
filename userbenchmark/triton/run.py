@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import tempfile
 from typing import List
 from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
@@ -11,7 +12,7 @@ from torchbenchmark.util.triton_op import (
     DEFAULT_WARMUP,
 )
 
-TRITON_BENCH_CSV_DUMP_PATH = "/tmp/triton_bench/"
+TRITON_BENCH_CSV_DUMP_PATH = tempfile.gettempdir() + "/tritonbench/"
 
 
 def parse_args(args):
