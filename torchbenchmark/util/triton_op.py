@@ -914,18 +914,23 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             ]
         )
         # Disable DCGM
-        try:
-            disable_dcgm = [
-                "sudo",
-                "dyno",
-                "dcgm_profiling",
-                "--mute=true",
-                "--duration=100000_s",
-            ]
-            subprocess.run(disable_dcgm, check=True)
-        except subprocess.SubprocessError:
+        disable_dyno_dcgm = [
+            "sudo",
+            "dyno",
+            "dcgm_profiling",
+            "--mute=true",
+            "--duration=100000_s",
+        ]
+        disable_dcgm_service = [
+            "sudo",
+            "systemctl",
+            "stop",
+            "nvidia-dcgm",
+        ]
+        if subprocess.run(disable_dyno_dcgm).returncode != 0 and \
+                subprocess.run(disable_dcgm_service).returncode != 0:
             warnings.warn(
-                "Cannot find dyno to disable DCGM. Proceed to collect NCU Trace."
+                "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
             )
         ncu_output_dir = self.get_temp_path("ncu_traces/{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
@@ -958,7 +963,9 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             ])
         ncu_args.extend(op_task_args)
         logger.info("Running NCU: %s", shlex.join(ncu_args))
-        subprocess.check_call(ncu_args)
+        # Sometimes, `ncu --target-processes all` will fail with the message "Failed to connect to process". Setting
+        # CUDA_INJECTION64_PATH=none seems to fix this issue.
+        subprocess.check_call(ncu_args, env={**os.environ, "CUDA_INJECTION64_PATH": "none"})
         return str(ncu_output_file.resolve())
 
     def kineto_trace(self, input_id: int, fn: Callable) -> str:
