@@ -713,7 +713,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         except StopIteration:
             return None
 
-    def get_temp_path(path: Union[str, Path]) -> Path:
+    def get_temp_path(self, path: Union[str, Path]) -> Path:
         return Path(tempfile.gettempdir()) / "tritonbench" / self.name / Path(path)
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
@@ -932,7 +932,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             warnings.warn(
                 "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
             )
-        ncu_output_dir = self.get_temp_path("ncu_traces/{fn_name}_{input_id}")
+        ncu_output_dir = self.get_temp_path(f"ncu_traces/{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
         ext = ".csv" if not replay else ".ncu-rep"
         ncu_output_file = ncu_output_dir.joinpath(f"ncu_output{ext}").resolve()
@@ -972,7 +972,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         from pathlib import Path
         from torchbenchmark._components.kineto import do_bench_kineto
 
-        kineto_output_dir = self.get_temp_path("kineto_traces/{fn._name}_{input_id}")
+        kineto_output_dir = self.get_temp_path(f"kineto_traces/{fn._name}_{input_id}")
         kineto_output_dir.mkdir(parents=True, exist_ok=True)
         return do_bench_kineto(
             fn=fn,
