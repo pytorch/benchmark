@@ -57,11 +57,14 @@ jobs:
       - name: Remove result if it already exists
         if: always()
         run: |
-          . "${SETUP_SCRIPT}"
           # remove old results if exists
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
+      - name: Clone and setup conda env
+        run: |
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
       - name: Install benchmark
         run: |
           . "${SETUP_SCRIPT}"
@@ -75,12 +78,12 @@ jobs:
           if [ -d ../benchmark-output ]; then rm -Rf benchmark-output; fi
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           python run_benchmark.py ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-run-args }}
-      - name: Copy the benchmark logs to benchmark-output
+      - name: Copy benchmark logs
         if: always()
         run: |
           pushd benchmark
           cp -r ./.userbenchmark/${{ inputs.userbenchmark }} ../benchmark-output
-      - name: Upload result to GH Actions Artifact
+      - name: Upload benchmark result to GH Actions Artifact
         uses: actions/upload-artifact@v3
         if: always()
         with:
