@@ -51,7 +51,13 @@ def triton_sum_kernel_scalar_result(
             num_warps=w,
         )
         for b_nr, b_r, w in itertools.product(
-            [2, 4, 8, 16], [2, 4, 8, 16], [2, 4, 8]  # block sizes on non-reduction dimension, block sizes on reduction dimension, number of warps
+            [2, 4, 8, 16],
+            [2, 4, 8, 16],
+            [
+                2,
+                4,
+                8,
+            ],  # block sizes on non-reduction dimension, block sizes on reduction dimension, number of warps
         )
     ],
     key=["M", "N"],
@@ -111,7 +117,7 @@ def triton_sum_kernel_1D_result_sum_then_buffer(
         buffer += tl.sum(input, axis=dim)
 
     buffer_view = buffer.reshape(
-        (BLOCK_SIZE_NON_REDUCE_DIM,), can_reorder=True
+        (BLOCK_SIZE_NON_REDUCE_DIM,),
     )  # reshape buffer to 1D, as tl.sum may return a 2D tensor
 
     tl.store(output_ptr + offsets_non_reduce_dim, buffer_view, mask=mask_non_reduce_dim)
@@ -187,7 +193,7 @@ def triton_sum_kernel_1D_result_buffer_then_sum(
     buffer_sum = tl.sum(buffer, axis=dim)
 
     buffer_view = buffer_sum.reshape(
-        (BLOCK_SIZE_NON_REDUCE_DIM,), can_reorder=True
+        (BLOCK_SIZE_NON_REDUCE_DIM,),
     )  # reshape buffer to 1D, as tl.sum may return a 2D tensor
 
     tl.store(output_ptr + offsets_non_reduce_dim, buffer_view, mask=mask_non_reduce_dim)
@@ -251,6 +257,155 @@ def triton_sum_kernel_2D_result_dim_1(
 
     # output has shape (1, BLOCK_SIZE_K)
     output = tl.sum(input, axis=0)
+
+    output_offsets = (pid_m * K) + offsets_k
+
+    # stored pointers have shape (1, BLOCK_SIZE_K)
+    tl.store(
+        output_ptr + output_offsets, output, mask=mask_k
+    )  # store a 1D vector into a specific row of 2D output
+
+
+@triton.autotune(
+    configs=[
+        triton.Config(
+            {
+                "BLOCK_SIZE_N": b_n,
+                "BLOCK_SIZE_K": b_k,
+            },
+            num_warps=w,
+        )
+        for b_n, b_k, w in itertools.product(
+            [4**n for n in range(6)], [4**n for n in range(4)], [2, 4, 8]
+        )
+    ],
+    key=["N"],
+)
+@triton.jit
+def triton_sum_kernel_2D_result_dim_1_sum_then_buffer(
+    input_ptr,  # pointer to input matrix
+    output_ptr,  # pointer to output matrix
+    # matrix dimensions (input)
+    M: tl.constexpr,  # number of elements in M-th dimension
+    N: tl.constexpr,  # number of elements in N-th dimension
+    K: tl.constexpr,  # number of elements in K-th dimension
+    # block sizes (input)
+    BLOCK_SIZE_N: tl.constexpr,  # number of elements in block on N-th dimension
+    BLOCK_SIZE_K: tl.constexpr,  # number of elements in block on K-th dimension
+):
+    """
+    Modification to triton_sum_kernel_2D_result_dim_1() which uses a buffer to store intermediate results,
+    enabling reducing over a large middle dimension for 3D input tensors
+    """
+
+    # input block shape: (1, N, BLOCK_SIZE_K)
+
+    pid = tl.program_id(axis=0)  # i-th block of input
+
+    pid_m = pid // tl.cdiv(K, BLOCK_SIZE_K)
+    pid_k = pid % tl.cdiv(K, BLOCK_SIZE_K)
+
+    buffer = tl.zeros((1, BLOCK_SIZE_K), dtype=tl.float32)
+
+    block_start_k = pid_k * BLOCK_SIZE_K
+    offsets_k = block_start_k + tl.arange(0, BLOCK_SIZE_K)
+    mask_k = offsets_k < K
+
+    for block_start_n in range(0, N, BLOCK_SIZE_N):
+        offsets_n = block_start_n + tl.arange(0, BLOCK_SIZE_N)
+        mask_n = offsets_n < N
+
+        # idxs has shape (N, BLOCK_SIZE_K)
+        idxs_base = (offsets_n[:, None] * K) + offsets_k
+        idxs = idxs_base + (
+            pid_m * N * K
+        )  # increment idxs by the number of elements in all previous blocks
+
+        # mask has shape (N, BLOCK_SIZE_K)
+        mask = mask_n[:, None] & mask_k
+
+        # loaded pointers have shape (N, K)
+        input = tl.load(
+            input_ptr + idxs, mask=mask, other=0
+        )  # zero out masked values from input
+
+        buffer += tl.sum(input, axis=0)
+
+    # buffer has shape (1, BLOCK_SIZE_K)
+    buffer_view = buffer.reshape(
+        (BLOCK_SIZE_K,),
+    )  # reshape buffer to 1D, as tl.sum may return a 2D tensor
+
+    output_offsets = (pid_m * K) + offsets_k
+
+    # stored pointers have shape (1, BLOCK_SIZE_K)
+    tl.store(
+        output_ptr + output_offsets, buffer_view, mask=mask_k
+    )  # store a 1D vector into a specific row of 2D output
+
+
+@triton.autotune(
+    configs=[
+        triton.Config(
+            {
+                "BLOCK_SIZE_N": b_n,
+                "BLOCK_SIZE_K": b_k,
+            },
+            num_warps=w,
+        )
+        for b_n, b_k, w in itertools.product(
+            [4**n for n in range(7)], [4**n for n in range(4)], [2, 4, 8]
+        )
+    ],
+    key=["N"],
+)
+@triton.jit
+def triton_sum_kernel_2D_result_dim_1_buffer_then_sum(
+    input_ptr,  # pointer to input matrix
+    output_ptr,  # pointer to output matrix
+    # matrix dimensions (input)
+    M: tl.constexpr,  # number of elements in M-th dimension
+    N: tl.constexpr,  # number of elements in N-th dimension
+    K: tl.constexpr,  # number of elements in K-th dimension
+    # block sizes (input)
+    BLOCK_SIZE_N: tl.constexpr,  # number of elements in block on N-th dimension
+    BLOCK_SIZE_K: tl.constexpr,  # number of elements in block on K-th dimension
+):
+    # input block shape: (1, N, BLOCK_SIZE_K)
+
+    pid = tl.program_id(axis=0)  # i-th block of input
+
+    pid_m = pid // tl.cdiv(K, BLOCK_SIZE_K)
+    pid_k = pid % tl.cdiv(K, BLOCK_SIZE_K)
+
+    buffer = tl.zeros((BLOCK_SIZE_N, BLOCK_SIZE_K), dtype=tl.float32)
+
+    block_start_k = pid_k * BLOCK_SIZE_K
+    offsets_k = block_start_k + tl.arange(0, BLOCK_SIZE_K)
+    mask_k = offsets_k < K
+
+    for block_start_n in range(0, N, BLOCK_SIZE_N):
+        offsets_n = block_start_n + tl.arange(0, BLOCK_SIZE_N)
+        mask_n = offsets_n < N
+
+        # idxs has shape (N, BLOCK_SIZE_K)
+        idxs_base = (offsets_n[:, None] * K) + offsets_k
+        idxs = idxs_base + (
+            pid_m * N * K
+        )  # increment idxs by the number of elements in all previous blocks
+
+        # mask has shape (N, BLOCK_SIZE_K)
+        mask = mask_n[:, None] & mask_k
+
+        # loaded pointers have shape (N, K)
+        input = tl.load(
+            input_ptr + idxs, mask=mask, other=0
+        )  # zero out masked values from input
+
+        buffer += input
+
+    # output has shape (1, BLOCK_SIZE_K)
+    output = tl.sum(buffer, axis=0)
 
     output_offsets = (pid_m * K) + offsets_k
 

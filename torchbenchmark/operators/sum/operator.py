@@ -21,13 +21,14 @@ from .kernels import (
     triton_sum_kernel_1D_result_buffer_then_sum,
     triton_sum_kernel_1D_result_sum_then_buffer,
     triton_sum_kernel_2D_result_dim_1,
+    triton_sum_kernel_2D_result_dim_1_sum_then_buffer,
     triton_sum_kernel_scalar_result,
 )
 
 GIGABYTES_PER_BYTE = 1e-6
 ABSOLUTE_TOLERANCE = 1e-4
 RELATIVE_TOLERANCE = 1e-3
-TENSOR_BYTES_LIMIT = 1e10  # allocate tensors no greater than 10GB
+TENSOR_BYTES_LIMIT = 8 * 1e9  # allocate tensors no greater than 10GB
 
 
 def parse_op_args(args: List[str]):
@@ -47,8 +48,8 @@ def parse_op_args(args: List[str]):
     parser.add_argument(
         "--sum-then-buffer",
         type=int,  # 1: sum then buffer, 0: buffer then sum
-        default=1,
-        help="[Optional] For 1D results, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum",
+        default=0,
+        help="[Optional] For 1D results, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum; default 0",
     )
     parser.add_argument(
         "--M",
@@ -131,17 +132,17 @@ def execute_kernel_1D_result(x, reduce_dim, sum_then_buffer):
 def execute_kernel_2D_result(x):
     kernel_input = x
     M, N, K = x.shape
-    BLOCK_SIZE_N = triton.next_power_of_2(N)
     grid = lambda meta: (M * triton.cdiv(K, meta["BLOCK_SIZE_K"]),)
     kernel_output = torch.empty((M, K), device=x.device, dtype=x.dtype)
 
-    triton_sum_kernel_2D_result_dim_1[grid](
+    triton_sum_kernel_2D_result_dim_1_sum_then_buffer[
+        grid
+    ](  # variable block sizes on N and K dimensions
         kernel_input,
         kernel_output,
         M=M,
         N=N,
         K=K,
-        BLOCK_SIZE_N=BLOCK_SIZE_N,
     )
 
     return kernel_output
@@ -206,6 +207,11 @@ class Operator(BenchmarkOperator):
 
     def get_x_vals(self):
         M_vals, N_vals, K_vals = [], [], []
+        M_vals_large_middle_dim, N_vals_large_middle_dim, K_vals_large_middle_dim = (
+            [],
+            [],
+            [],
+        )
 
         def get_dim_vals():
             vals = []
@@ -221,24 +227,37 @@ class Operator(BenchmarkOperator):
 
         if self.M is None:
             M_vals.extend(get_dim_vals())
+            M_vals_large_middle_dim.extend([8, 16])
         else:
             M_vals.extend([self.M])
+            M_vals_large_middle_dim.extend([self.M])
 
         if self.N is None:
             N_vals.extend(get_dim_vals())
+            N_vals_large_middle_dim.extend([2**n for n in range(12, 22, 2)])
         else:
             N_vals.extend([self.N])
+            N_vals_large_middle_dim.extend([self.N])
 
         if self.K is None:
             K_vals.extend(get_dim_vals())
+            K_vals_large_middle_dim.extend([8, 16])
         else:
             K_vals.extend([self.K])
+            K_vals_large_middle_dim.extend([self.K])
 
         if self.input_dim == 1:
             return M_vals
         if self.input_dim == 2:
             return M_vals, N_vals
-        return M_vals, N_vals, K_vals
+        return (
+            M_vals,
+            N_vals,
+            K_vals,
+            M_vals_large_middle_dim,
+            N_vals_large_middle_dim,
+            K_vals_large_middle_dim,
+        )
 
     def get_input_iter(self) -> Generator:
         assert (
@@ -256,7 +275,9 @@ class Operator(BenchmarkOperator):
         elif self.input_dim == 2:
             sizes = itertools.product(x_vals[0], x_vals[1])
         else:
-            sizes = itertools.product(x_vals[0], x_vals[1], x_vals[2])
+            sizes = list(itertools.product(x_vals[0], x_vals[1], x_vals[2])) + list(
+                itertools.product(x_vals[3], x_vals[4], x_vals[5])
+            )  # small- to mid-range dimensions + large middle dimension
 
         for size in sizes:
             if get_size_in_bytes(size) < TENSOR_BYTES_LIMIT:
@@ -294,7 +315,9 @@ class Operator(BenchmarkOperator):
                 triton_sum_kernel_1D_result_buffer_then_sum
             )
         elif self.input_dim == 3:
-            return dump_autotuner_best_config(triton_sum_kernel_2D_result_dim_1)
+            return dump_autotuner_best_config(
+                triton_sum_kernel_2D_result_dim_1_sum_then_buffer
+            )
         else:
             return ""
 
