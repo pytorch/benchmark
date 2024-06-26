@@ -154,7 +154,7 @@ def install_torch_build_deps(cuda_version: str):
     cmd = ["conda", "install", "-y"] + build_deps
     subprocess.check_call(cmd)
     # pip build deps
-    cmd = ["pip", "install", "-r"] + str(BUILD_REQUIREMENTS_FILE.resolve())
+    cmd = ["pip", "install", "-r"] + [str(BUILD_REQUIREMENTS_FILE.resolve())]
     subprocess.check_call(cmd)
     # conda forge deps
     # ubuntu 22.04 comes with libstdcxx6 12.3.0
