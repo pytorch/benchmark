@@ -168,6 +168,15 @@ class SuperSloMo(data.Dataset):
 
         # Populate the list with image paths for all the
         # frame in `root`.
+        if not os.path.exists(root):
+            try:
+                from torchbenchmark.util.framework.fb.installer import install_data
+                data_dir = install_data("Super_SloMo_inputs")
+                root = os.path.join(data_dir, "Super_SloMo_inputs/dataset/train")
+            except Exception as e:
+                msg = f"Failed to download data from manifold: {e}"
+                raise RuntimeError(msg) from e
+
         framesPath = _make_dataset(root)
         # Raise error if no images found in root.
         if len(framesPath) == 0:

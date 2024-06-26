@@ -56,7 +56,19 @@ class Model(BenchmarkModel):
             }
         )
 
-        datadir = os.path.join(DATA_PATH, "Background_Matting_inputs")
+        input_data_dir_name = "Background_Matting_inputs"
+        datadir = os.path.join(DATA_PATH, input_data_dir_name)
+        if not os.path.exists(datadir):
+            try:
+                from torchbenchmark.util.framework.fb.installer import install_data
+                import shutil
+                datadir = install_data(input_data_dir_name)
+                # Input data files are decompressed into the folder one level deeper.
+                datadir = os.path.join(datadir, input_data_dir_name)
+            except Exception as e:
+                msg = f"Failed to download data from manifold: {e}"
+                raise RuntimeError(msg) from e
+
         csv_file_path = _create_data_dir().joinpath("Video_data_train_processed.csv")
         with open(f"{datadir}/Video_data_train.csv", "r") as r:
             with open(csv_file_path, "w") as w:
