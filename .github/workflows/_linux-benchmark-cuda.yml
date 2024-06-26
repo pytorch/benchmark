@@ -74,9 +74,6 @@ jobs:
         run: |
           . "${SETUP_SCRIPT}"
           pushd benchmark
-          # remove old results if exists
-          if [ -d ../benchmark-output ]; then rm -Rf benchmark-output; fi
-          if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           python run_benchmark.py ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-run-args }}
       - name: Copy benchmark logs
         if: always()
