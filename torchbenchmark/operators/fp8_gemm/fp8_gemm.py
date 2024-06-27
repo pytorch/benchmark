@@ -62,8 +62,10 @@ class Operator(BenchmarkOperator):
 
     @register_benchmark(baseline=True)
     def torch_fp8_gemm(self, a, b):
+        scale_a = torch.tensor(1.0, device=a.device)
+        scale_b = torch.tensor(1.0, device=a.device)
         return lambda: torch._scaled_mm(
-            a, b, use_fast_accum=True, out_dtype=torch.float16
+            a, b, scale_a, scale_b, use_fast_accum=True, out_dtype=torch.float16
         )
 
     @register_benchmark()
