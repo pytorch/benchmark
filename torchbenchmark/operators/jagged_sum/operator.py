@@ -1,6 +1,7 @@
 import argparse
 import itertools
 import math
+import os
 import random
 from typing import Callable, Generator, List, Optional, Tuple
 
@@ -60,6 +61,12 @@ def parse_op_args(args: List[str]):
         type=int,  # 1: sum then buffer, 0: buffer then sum
         default=0,
         help="[Optional] For Triton kernels, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum; default 0",
+    )
+    parser.add_argument(
+        "--plot-benchmarks",
+        type=str,
+        default="all",
+        help="[Optional] Determines which benchmarks to plot: all, torch, triton",
     )
     return parser.parse_args(args)
 
@@ -131,6 +138,7 @@ class Operator(BenchmarkOperator):
         self.seqlen = args.seqlen
         self.sparsity = args.sparsity
         self.sum_then_buffer = args.sum_then_buffer
+        self.plot_benchmarks = args.plot_benchmarks
 
     @register_benchmark(baseline=True)
     def torch_jagged_sum_no_pad(
@@ -176,7 +184,14 @@ class Operator(BenchmarkOperator):
         return _inner
 
     def get_x_val(self, example_inputs):
-        return len(example_inputs[0])
+        if self.B is None:
+            return example_inputs[1]
+        if self.M is None:
+            return example_inputs[2]
+        if self.seqlen is None:
+            return example_inputs[3]
+        if self.sparsity is None:
+            return example_inputs[4]
 
     def get_x_vals(self) -> Tuple[List[int], List[int], List[int], List[float]]:
         B_vals, M_vals, seqlen_vals, sparsity_vals = [], [], [], []
@@ -316,3 +331,81 @@ class Operator(BenchmarkOperator):
         return dump_autotuner_best_config(
             triton_jagged_sum_kernel_variable_length_loop_buffer_then_sum
         )
+
+    def plot(self):
+        str_B, str_M, str_seqlen, str_sparsity = f"-B-{self.B}", f"-M-{self.M}", f"-seqlen-{self.seqlen}", f"-sparsity-{self.sparsity}"
+        if self.B is None:
+            x_axis = "B"
+            x_log = True
+            params = str_M + str_seqlen + str_sparsity
+        elif self.M is None:
+            x_axis = "M"
+            x_log = True
+            params = str_B + str_seqlen + str_sparsity
+        elif self.seqlen is None:
+            x_axis = "seqlen"
+            x_log = False
+            params = str_B + str_M + str_sparsity
+        else:
+            x_axis = "sparsity"
+            x_log = False
+            params = str_B + str_M + str_seqlen
+
+        line_vals_all = [
+            "torch_jagged_sum_no_pad",
+            "torch_jagged_sum_pad",
+            "triton_jagged_sum_no_pad_simple_fused",
+            "triton_jagged_sum_no_pad_variable_length_loop",
+        ]
+        line_names_all = [
+            "PyTorch jagged sum, no padding",
+            "PyTorch jagged sum, padding",
+            "Triton kernel jagged sum, simple fused",
+            "Triton kernel jagged sum, variable length loop",
+        ]
+        styles_all = [
+            ("blue", "-"),
+            ("red", "-"),
+            ("green", "-"),
+            ("yellow", "-"),
+        ]
+        if self.plot_benchmarks == "all":
+            line_vals, line_names, styles = line_vals_all, line_names_all, styles_all
+        elif self.plot_benchmarks == "torch":
+            line_vals = line_vals_all[:2]
+            line_names = line_names_all[:2]
+            styles = styles_all[:2]
+        else:
+            line_vals = line_vals_all[2:]
+            line_names = line_names_all[2:]
+            styles = styles_all[2:]
+
+        plot_name = f"jagged-sum-perf-var-{x_axis}-xlog-{x_log}" + params
+
+        @triton.testing.perf_report(
+            triton.testing.Benchmark(
+                x_names=["x_axis"],
+                x_vals=self.output.x_vals,
+                line_arg="provider",
+                line_vals=line_vals,
+                line_names=line_names,
+                styles=styles,
+                xlabel=x_axis,
+                ylabel="latency",
+                x_log=x_log,
+                plot_name=plot_name,
+                args={},
+            )
+        )
+        def _plot(x_axis, provider):
+            return self.output.get_y_vals(x_axis, provider, "latency")
+
+        save_path = (
+            os.getcwd()
+            + f"/pytorch/benchmark/torchbenchmark/operators/jagged_sum/jagged_sum_performance/{plot_name}"
+        )
+
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+
+        _plot.run(show_plots=True, print_data=True, save_path=save_path)
