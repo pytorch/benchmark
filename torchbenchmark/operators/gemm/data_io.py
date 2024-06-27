@@ -14,6 +14,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser.add_argument("--bias", type=int)
     parser.add_argument("--input", type=str)
     parser.add_argument("--splitk", action="store_true", default=False)
+    parser.add_argument("--llama", action="store_true", default=False)
     args = parser.parse_args(args)
     return args
 

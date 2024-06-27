@@ -13,6 +13,7 @@ import warnings
 from collections import OrderedDict
 from dataclasses import asdict, dataclass, fields, make_dataclass
 from enum import Enum
+from itertools import product
 from numbers import Number
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
@@ -114,6 +115,32 @@ def do_bench_walltime(fn, warmup=25, rep=100):
     end_time = time.perf_counter()
     wall_time_ms = (end_time - start_time) * 1e3 / n_repeat
     return wall_time_ms
+
+
+def llama_shapes():
+    # batch sizes * seq lengths
+    BS = [2 ** i for i in range(0, 17)]
+    # attn: wqkv, wo; ffn: w13, w2
+    KN = [
+        (4096, 12288),
+        (4096, 4096),
+        (4096, 22016),
+        (11008, 4096),
+
+        (8192, 1280),
+        (1024, 8192),
+        (8192, 7168),
+        (3584, 8192),
+
+        (16384, 2304),
+        (2048, 16384),
+        (16384, 13312),
+        (6656, 16384),
+    ]
+    return [
+        (bs, n, k, None)
+        for bs, (k, n) in product(BS, KN)
+    ]
 
 
 def _find_param_loc(l, key: str) -> int:

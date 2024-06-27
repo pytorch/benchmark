@@ -12,6 +12,7 @@ from typing import Any
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    llama_shapes,
     register_benchmark,
     register_metric,
 )
@@ -42,16 +43,9 @@ class Operator(BenchmarkOperator):
             return (a, b)
 
         if self.extra_args.llama:
-            name_to_shapes_70b = {
-                "attn.wqkv": (8192, 1280),
-                "attn.w0": (1024, 8192),
-                "ffn.w13": (8192, 7168),
-                "ffn.w2": (3584, 8192),
-            }
-            for (name, (k, n)) in name_to_shapes_70b.items():
-                bsz, seq_len = 4, 4096
-                m = bsz * seq_len
+            for m, n, k, _bias in llama_shapes():
                 yield args(m, n, k)
+
         else:
             for i in range(10, 15):
                 for j in range(0, 4):

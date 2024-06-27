@@ -11,6 +11,7 @@ import triton.ops
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    llama_shapes,
     register_benchmark,
     register_metric,
     register_x_val,
@@ -87,6 +88,8 @@ class Operator(BenchmarkOperator):
             self.shapes = read_shapes_from_csv(gemm_args.input)
         elif gemm_args.splitk:
             self.shapes = SPLIT_K_SHAPES
+        elif gemm_args.llama:
+            self.shapes = llama_shapes()
         elif gemm_args.m and gemm_args.k and gemm_args.n:
             self.shapes = [
                 (gemm_args.m, gemm_args.k, gemm_args.n, gemm_args.bias)
