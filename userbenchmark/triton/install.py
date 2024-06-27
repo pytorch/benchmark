@@ -31,8 +31,8 @@ def install_fbgemm():
 def test_fbgemm():
     print("Checking fbgemm_gpu installation...", end="")
     cmd = [sys.executable, "-c", "import fbgemm_gpu.experimental.gen_ai"]
-    print("OK")
     subprocess.check_call(cmd)
+    print("OK")
 
 def install_cutlass():
     try:
