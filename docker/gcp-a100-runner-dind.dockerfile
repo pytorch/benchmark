@@ -1,13 +1,12 @@
 # default base image: ghcr.io/actions/actions-runner:latest
 # base image: Ubuntu 22.04 jammy
-ARG BASE_IMAGE=ghcr.io/actions/actions-runner:latest
 # Prune CUDA to only keep gencode >= A100
-ENV OVERRIDE_GENCODE="-gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90a,code=sm_90a"
-ENV OVERRIDE_GENCODE_CUDNN="-gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90a,code=sm_90a"
-
+ARG BASE_IMAGE=ghcr.io/actions/actions-runner:latest
 FROM ${BASE_IMAGE}
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+ARG OVERRIDE_GENCODE="-gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90a,code=sm_90a"
+ARG OVERRIDE_GENCODE_CUDNN="-gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90a,code=sm_90a"
 
 RUN sudo apt-get -y update && sudo apt -y update
 # fontconfig: required by model doctr_det_predictor
