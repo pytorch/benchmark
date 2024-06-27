@@ -456,6 +456,11 @@ def parse_args(
             "When used together like --input-id <X> --num-inputs <Y>, start from the input id <X> " \
             "and run <Y> different inputs."
     )
+    parser.add_argument(
+        "--test-only",
+        action="store_true",
+        help="Run this under test mode, potentially skipping expensive steps like autotuning."
+    )
     return parser.parse_known_args(args)
 
 class PostInitProcessor(type):
