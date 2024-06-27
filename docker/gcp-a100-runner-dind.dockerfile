@@ -34,7 +34,7 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 # Use the CUDA installation scripts from pytorch/builder
 # Install CUDA 12.4 only to reduce docker size
 RUN cd /workspace; git clone https://github.com/pytorch/builder.git
-RUN sudo bash -c 'source /workspace/builder/common/install_cuda.sh; install_124; prune_124'
+RUN sudo bash -c "source /workspace/builder/common/install_cuda.sh; install_124; OVERRIDE_GENCODE=\"${OVERRIDE_GENCODE}\" OVERRIDE_GENCODE_CUDNN=\"${OVERRIDE_GENCODE_CUDNN}\" prune_124"
 
 # Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh
