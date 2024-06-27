@@ -8,6 +8,9 @@ ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ARG OVERRIDE_GENCODE="-gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90a,code=sm_90a"
 ARG OVERRIDE_GENCODE_CUDNN="-gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86 -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90a,code=sm_90a"
 
+RUN echo "${OVERRIDE_GENCODE}"
+RUN echo "${OVERRIDE_GENCODE_CUDNN}"
+
 RUN sudo apt-get -y update && sudo apt -y update
 # fontconfig: required by model doctr_det_predictor
 # libjpeg and libpng: optionally required by torchvision (vision#8342)
