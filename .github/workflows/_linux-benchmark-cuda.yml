@@ -43,6 +43,8 @@ jobs:
       CONDA_ENV: "userbenchmark"
       SETUP_SCRIPT: "/workspace/setup_instance.sh"
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
