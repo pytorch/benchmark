@@ -10,6 +10,11 @@ on:
         required: false
 env:
   WITH_PUSH: "true"
+  CONDA_ENV: "torchbench"
+  DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
+  SETUP_SCRIPT: "/workspace/setup_instance.sh"
+  HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+
 jobs:
   build-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
@@ -27,9 +32,6 @@ jobs:
           registry: ghcr.io
           username: pytorch
           password: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
-      - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
-        id: install-nvidia-driver
-        uses: pytorch/test-infra/.github/actions/setup-nvidia@main
       - name: Build TorchBench nightly docker
         run: |
           export NIGHTLY_DATE="${{ github.event.inputs.nightly_date }}"
@@ -53,6 +55,48 @@ jobs:
           export DOCKER_TAG=dev${TODAY}
           docker push ghcr.io/pytorch/torchbench:${DOCKER_TAG}
           docker push ghcr.io/pytorch/torchbench:latest
+  test-docker:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, linux.g5.4xlarge.nvidia.gpu]
+    needs: build-push-docker
+    environment: docker-s3-upload
+    steps:
+      - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
+        uses: pytorch/test-infra/.github/actions/setup-ssh@main
+        with:
+          github-secret: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Pull docker image
+        uses: pytorch/test-infra/.github/actions/pull-docker-image@main
+        with:
+          docker-image: ${{ env.DOCKER_IMAGE }}
+      - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
+        id: install-nvidia-driver
+        uses: pytorch/test-infra/.github/actions/setup-nvidia@main
+      - name: Install and Test TorchBench Docker
+        run: |
+          container_name=$(docker run \
+            -e CONDA_ENV="${CONDA_ENV}" \
+            -e SETUP_SCRIPT="${SETUP_SCRIPT}" \
+            -e HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN}" \
+            --tty \
+            --detach \
+            --shm-size=32gb \
+            -v "${PWD}/benchmark:/benchmark" \
+            --gpus all \
+            -w / \
+            "${{ env.DOCKER_IMAGE }}" \
+            tail -f /dev/null
+          )
+          echo "Container name: ${container_name}"
+          docker exec -t -w "/" "${container_name}" bash -c "sudo chown -R runner /benchmark; sudo chgrp -R runner /benchmark"
+          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/.ci/tritonbench/test.sh
+      - name: Teardown Linux
+        uses: pytorch/test-infra/.github/actions/teardown-linux@main
+        if: always()
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}

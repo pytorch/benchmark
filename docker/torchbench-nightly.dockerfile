@@ -46,12 +46,11 @@ RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python utils/cuda_utils.py --install-torchbench-deps
 
-# Install FBGEMM GENAI
+# Install Tritonbench
 RUN cd /workspace/benchmark && \
-    . ${SETUP_SCRIPT} && \
-    python install.py --userbenchmark triton --fbgemm
+    bash .ci/tritonbench/install.py
 
-# Install Torchbench models
+# Install Torchbench
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python install.py
