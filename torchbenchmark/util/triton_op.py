@@ -184,33 +184,33 @@ def dump_autotuner_best_config(kernel: triton.runtime.Autotuner) -> str:
 @dataclass
 class BenchmarkOperatorMetrics:
     # latency in ms
-    latency: Optional[float]
+    latency: Optional[float] = None
     # tflops
-    tflops: Optional[float]
+    tflops: Optional[float] = None
     # speedup over baseline
-    speedup: Optional[float]
+    speedup: Optional[float] = None
     # accuracy over baseline
-    accuracy: Optional[bool]
+    accuracy: Optional[bool] = None
     # wall time
-    walltime: Optional[float]
+    walltime: Optional[float] = None
     # compile time
-    compile_time: Optional[float]
+    compile_time: Optional[float] = None
     # ncu trace file
-    ncu_trace: Optional[str]
+    ncu_trace: Optional[str] = None
     # ncu replay file
-    ncu_rep: Optional[str]
+    ncu_rep: Optional[str] = None
     # kineto trace file
-    kineto_trace: Optional[str]
+    kineto_trace: Optional[str] = None
     # cpu peak memory
-    cpu_peak_mem: Optional[float]
+    cpu_peak_mem: Optional[float] = None
     # gpu peak memory
-    gpu_peak_mem: Optional[float]
+    gpu_peak_mem: Optional[float] = None
     # error message
-    error_msg: Optional[str]
+    error_msg: Optional[str] = None
     # hw roofline
-    hw_roofline: Optional[float]
+    hw_roofline: Optional[float] = None
     # extra metrics
-    extra_metrics: Dict[str, float]
+    extra_metrics: Optional[Dict[str, float]] = None
 
 
 @dataclass
@@ -218,7 +218,7 @@ class BenchmarkOperatorResult:
     # Print the result in a table format
     op_name: str
     metrics: List[str]
-    result: List[Tuple[Number, Dict[str, BenchmarkOperatorMetrics]]]
+    result: List[Tuple[Any, Dict[str, BenchmarkOperatorMetrics]]]
     _result_dict: Optional[Dict[Number, Dict[str, BenchmarkOperatorMetrics]]] = None
 
     def _table(self):
@@ -788,19 +788,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     extra_metrics[metric_name] = None
             return extra_metrics
         metrics = BenchmarkOperatorMetrics(
-            latency=None,
-            tflops=None,
-            speedup=None,
-            accuracy=None,
-            walltime=None,
-            compile_time=None,
-            ncu_trace=None,
-            ncu_rep=None,
             hw_roofline=self.hw_roofline() if "hw_roofline" in self.required_metrics else None,
-            kineto_trace=None,
-            cpu_peak_mem=None,
-            gpu_peak_mem=None,
-            error_msg="",
             extra_metrics=_init_extra_metrics(),
         )
         try:
