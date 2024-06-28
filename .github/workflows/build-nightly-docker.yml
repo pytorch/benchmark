@@ -27,6 +27,9 @@ jobs:
           registry: ghcr.io
           username: pytorch
           password: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+      - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
+        id: install-nvidia-driver
+        uses: pytorch/test-infra/.github/actions/setup-nvidia@main
       - name: Build TorchBench nightly docker
         run: |
           export NIGHTLY_DATE="${{ github.event.inputs.nightly_date }}"
