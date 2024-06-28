@@ -71,6 +71,6 @@ def post_ci_process(output_files: List[str]):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test-file", type=str, help="Add file to test.")
+    parser.add_argument("--test-files", nargs='+', help="Add files to test.")
     args = parser.parse_args()
-    post_ci_process([args.test_file])
+    post_ci_process(args.test_files)
