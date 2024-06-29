@@ -49,7 +49,12 @@ RUN cd /workspace/benchmark && \
 # Install Tritonbench
 RUN cd /workspace/benchmark && \
     bash .ci/tritonbench/install.sh && \
-    bash .ci/tritonbench/test.sh
+
+# Test Tritonbench (libcuda.so.1 is required)
+RUN sudo apt update && apt-get install -y libnvidia-compute-550 && \
+    cd /workspace/benchmark && \
+    bash .ci/tritonbench/test.sh && \
+    sudo apt-get purge -y libnvidia-compute-550
 
 # Install Torchbench
 RUN cd /workspace/benchmark && \
