@@ -65,10 +65,6 @@ jobs:
         uses: pytorch/test-infra/.github/actions/setup-ssh@main
         with:
           github-secret: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          path: benchmark
       - name: Pull docker image
         uses: pytorch/test-infra/.github/actions/pull-docker-image@main
         with:
@@ -85,15 +81,13 @@ jobs:
             --tty \
             --detach \
             --shm-size=32gb \
-            -v "${PWD}/benchmark:/benchmark" \
             --gpus all \
             -w / \
             "${{ env.DOCKER_IMAGE }}" \
             tail -f /dev/null
           )
           echo "Container name: ${container_name}"
-          docker exec -t -w "/" "${container_name}" bash -c "sudo chown -R runner /benchmark; sudo chgrp -R runner /benchmark"
-          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/.ci/tritonbench/test.sh
+          docker exec -t -w "/workspace/benchmark" "${container_name}" bash /workspace/benchmark/.ci/tritonbench/test.sh
       - name: Teardown Linux
         uses: pytorch/test-infra/.github/actions/teardown-linux@main
         if: always()
