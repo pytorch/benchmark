@@ -51,7 +51,7 @@ RUN cd /workspace/benchmark && \
     bash .ci/tritonbench/install.sh
 
 # Test Tritonbench (libcuda.so.1 is required, so install libnvidia-compute-550 as a hack)
-RUN sudo apt update && apt-get install -y libnvidia-compute-550 && \
+RUN sudo apt update && sudo apt-get install -y libnvidia-compute-550 && \
     cd /workspace/benchmark && \
     bash .ci/tritonbench/test.sh && \
     sudo apt-get purge -y libnvidia-compute-550
