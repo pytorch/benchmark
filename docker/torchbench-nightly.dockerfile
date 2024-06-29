@@ -48,7 +48,8 @@ RUN cd /workspace/benchmark && \
 
 # Install Tritonbench
 RUN cd /workspace/benchmark && \
-    bash .ci/tritonbench/install.sh
+    bash .ci/tritonbench/install.sh && \
+    bash .ci/tritonbench/test.sh
 
 # Install Torchbench
 RUN cd /workspace/benchmark && \
