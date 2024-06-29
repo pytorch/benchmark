@@ -3,7 +3,7 @@ if [ -z "${SETUP_SCRIPT}" ]; then
   exit 1
 fi
 
-. ${SETUP_SCRIPT}
+. "${SETUP_SCRIPT}"
 
 parent_dir=$(dirname "$(readlink -f "$0")")/../..
 cd ${parent_dir}
