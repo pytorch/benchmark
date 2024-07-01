@@ -68,9 +68,9 @@ class Operator(BenchmarkOperator):
 
     def get_x_val(self, example_inputs) -> float:
         x, w = example_inputs
-        B, m, k = x.size()
+        m, k = x.size()
         _, n = w.size()
-        return (B, m, n, k)
+        return (m, n, k)
 
     @register_benchmark(baseline=True)
     def bf16xbf16(self, x, w):
@@ -114,8 +114,7 @@ class Operator(BenchmarkOperator):
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> float:
         a, b = example_inputs
-        B, m, k = a.size()
-        m = B * m
+        m, k = a.size()
         _, n = b.size()
         flops = 2 * m * n * k
         return flops / metrics.latency / 1e12 * 1e3
