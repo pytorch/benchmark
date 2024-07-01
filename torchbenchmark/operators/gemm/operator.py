@@ -23,12 +23,10 @@ from .triton_matmul import matmul as triton_matmul
 from .triton_matmul import matmul_kernel as triton_matmul_kernel
 import torch._inductor.config as inductor_config
 
-import inspect
-try:
+if inductor_config.is_fbcode():
     from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
-
     HAS_HAMMER = True
-except ImportError:
+else:
     HAS_HAMMER = False
 
 try:
