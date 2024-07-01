@@ -81,8 +81,6 @@ class Operator(BenchmarkOperator):
     @register_benchmark()
     def bf16xint16(self, x, w):
         x = x.reshape(-1, x.size(-1))
-        # TODO(davidberard98) fix this to pass in an int16
-        w = w.to(torch.bfloat16)
         return lambda: bf16xint16_matmul(x, w)
 
     @register_benchmark()
