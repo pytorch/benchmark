@@ -44,11 +44,12 @@ class Operator(BenchmarkOperator):
     def get_input_iter(self):
         def args(B, L, Dout, Din):
             x = torch.randn(B, L, Din, device=self.device, dtype=torch.bfloat16)
-            w = torch.randn(
-                Din,
-                Dout,
+            w = torch.randint(
+                -2**15,
+                2**15 - 1,
+                (Din, Dout),
                 device=self.device,
-                dtype=torch.bfloat16,
+                dtype=torch.int16,
             )
             return (x, w)
 
@@ -79,6 +80,8 @@ class Operator(BenchmarkOperator):
     @register_benchmark()
     def bf16xint16(self, x, w):
         x = x.reshape(-1, x.size(-1))
+        # TODO(davidberard98) fix this to pass in an int16
+        w = w.to(torch.bfloat16)
         return lambda: bf16xint16_matmul(x, w)
 
     @register_benchmark()
