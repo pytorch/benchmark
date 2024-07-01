@@ -5,6 +5,8 @@ bf16xbf16 baseline implementation taken from the triton tutorial
   https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html
 and the bf16xint16 implementation is a modified version of the same
   tutorial kernel.
+The benchmarking file (i.e. this file) is mostly copied from the
+  int4_gemm benchmarking file.
 """
 
 import argparse
@@ -42,8 +44,8 @@ class Operator(BenchmarkOperator):
         self.inner_k_tiles = 8
 
     def get_input_iter(self):
-        def args(B, L, Dout, Din):
-            x = torch.randn(B, L, Din, device=self.device, dtype=torch.bfloat16)
+        def args(B, Dout, Din):
+            x = torch.randn(B, Din, device=self.device, dtype=torch.bfloat16)
             w = torch.randint(
                 -2**15,
                 2**15 - 1,
@@ -62,7 +64,7 @@ class Operator(BenchmarkOperator):
         }
         for bsz in (1, 4, 16, 64, 256, 1024, 2**12, 2**14, 2**16):
             for name, (k, n) in name_to_shapes_70b.items():
-                yield args(bsz, seq_len, n, k)
+                yield args(bsz, n, k)
 
     def get_x_val(self, example_inputs) -> float:
         x, w = example_inputs
