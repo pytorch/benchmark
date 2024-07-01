@@ -60,10 +60,9 @@ class Operator(BenchmarkOperator):
             "ffn.w13": (8192, 7168),
             "ffn.w2": (3584, 8192),
         }
-        for seq_len in (1, 4096):
-            for bsz in (1, 4, 16, 64):
-                for name, (k, n) in name_to_shapes_70b.items():
-                    yield args(bsz, seq_len, n, k)
+        for bsz in (1, 4, 16, 64, 256, 1024, 2**12, 2**14, 2**16):
+            for name, (k, n) in name_to_shapes_70b.items():
+                yield args(bsz, seq_len, n, k)
 
     def get_x_val(self, example_inputs) -> float:
         x, w = example_inputs
