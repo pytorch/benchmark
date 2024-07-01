@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).parent
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
         "models",
         nargs="*",
@@ -86,6 +86,7 @@ if __name__ == "__main__":
         # Install userbenchmark dependencies if exists
         userbenchmark_dir = REPO_ROOT.joinpath("userbenchmark", args.userbenchmark)
         cmd = [sys.executable, "install.py"]
+        print(f"Installing userbenchmark {args.userbenchmark} with extra args: {extra_args}")
         cmd.extend(extra_args)
         if userbenchmark_dir.joinpath("install.py").is_file():
             # add the current run env to PYTHONPATH to load framework install utils

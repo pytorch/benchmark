@@ -46,12 +46,17 @@ RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python utils/cuda_utils.py --install-torchbench-deps
 
-# Install FBGEMM GENAI
+# Install Tritonbench
 RUN cd /workspace/benchmark && \
-    . ${SETUP_SCRIPT} && \
-    python install.py --userbenchmark triton --fbgemm
+    bash .ci/tritonbench/install.sh
 
-# Install Torchbench models
+# Test Tritonbench (libcuda.so.1 is required, so install libnvidia-compute-550 as a hack)
+RUN sudo apt update && sudo apt-get install -y libnvidia-compute-550 && \
+    cd /workspace/benchmark && \
+    bash .ci/tritonbench/test.sh && \
+    sudo apt-get purge -y libnvidia-compute-550
+
+# Install Torchbench
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python install.py

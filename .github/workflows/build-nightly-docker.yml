@@ -10,6 +10,11 @@ on:
         required: false
 env:
   WITH_PUSH: "true"
+  CONDA_ENV: "torchbench"
+  DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
+  SETUP_SCRIPT: "/workspace/setup_instance.sh"
+  HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+
 jobs:
   build-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
