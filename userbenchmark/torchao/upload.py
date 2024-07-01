@@ -2,6 +2,7 @@ import argparse
 import os
 import csv
 import subprocess
+import warnings
 from pathlib import Path
 from typing import List
 
@@ -33,7 +34,11 @@ def post_ci_process(output_files: List[str]):
         head_repo = "pytorch/ao"
         head_branch = "main"
         head_sha = _get_torchao_head_sha()
-        print(f"Processing file {path} ")
+        print(f"Processing file {path} ...")
+        # When the test fails to run or crashes, the output file does not exist.
+        if not path.exists():
+            warnings.warn(f"Expected output file {path} does not exist.")
+            continue
         with open(path) as csvfile:
             reader = csv.DictReader(csvfile, delimiter=",")
 
@@ -66,6 +71,6 @@ def post_ci_process(output_files: List[str]):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test-file", type=str, help="Add file to test.")
+    parser.add_argument("--test-files", nargs='+', help="Add files to test.")
     args = parser.parse_args()
-    post_ci_process([args.test_file])
+    post_ci_process(args.test_files)
