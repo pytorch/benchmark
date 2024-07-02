@@ -63,6 +63,20 @@ class Operator(BenchmarkOperator):
             [torch.mean(t, dim=0).unsqueeze(0) for t in x.unbind()]
         )  # in 3D tensor (B, *, M), takes the mean of B 2D tensors (*, M)
 
+    @register_benchmark()
+    def torch_jagged_mean_torch_nanmean(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        return lambda: torch.nanmean(
+            torch.ops.aten._jagged_to_padded_dense_forward(
+                x.values(),
+                [x.offsets()],  # pyre-ignore: Undefined attribute [16]: `torch._tensor.Tensor` has no attribute `offsets`.
+                max_lengths=[seqlen],  # max length of ragged dimension
+                padding_value=float("nan"),
+            ),
+            dim=1,
+        )
+
     def get_x_val(self, example_inputs):
         if self.B is None:
             return example_inputs[1]
@@ -95,6 +109,13 @@ class Operator(BenchmarkOperator):
             RANDOM_CHOICE_MARGIN=RANDOM_CHOICE_MARGIN,
         ):
             yield (nt, B, M, max_seqlen, sparsity)
+
+    def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
+        output = fn()
+        baseline_output = baseline_fn()
+        return torch.allclose(
+            output, baseline_output, atol=ABSOLUTE_TOLERANCE, rtol=RELATIVE_TOLERANCE
+        )
 
     @register_metric()
     def gbps(self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics):
@@ -137,9 +158,15 @@ class Operator(BenchmarkOperator):
             x_axis = "sparsity"
             params = str_B + str_M + str_seqlen
 
-        line_vals = ["torch_jagged_mean_unbind_torch_mean"]
-        line_names = ["PyTorch jagged mean, torch.mean"]
-        styles = [("blue", "-")]
+        line_vals = [
+            "torch_jagged_mean_unbind_torch_mean",
+            "torch_jagged_mean_torch_nanmean",
+        ]
+        line_names = [
+            "PyTorch jagged mean, torch.mean",
+            "PyTorch jagged mean, torch.nanmean",
+        ]
+        styles = [("blue", "-"), ("red", "-")]
 
         plot_name = f"jagged-mean-perf-var-{x_axis}" + params
 
