@@ -24,6 +24,8 @@ from torchbenchmark.util.triton_op import (
 from .kernels import (
     triton_jagged_mean_kernel_simple_fused_buffer_then_sum,
     triton_jagged_mean_kernel_simple_fused_sum_then_buffer,
+    triton_jagged_mean_kernel_variable_length_loop_buffer_then_sum,
+    triton_jagged_mean_kernel_variable_length_loop_sum_then_buffer,
 )
 
 
@@ -38,7 +40,9 @@ TENSOR_BYTES_LIMIT = 8 * 1e9  # allocate tensors no greater than 8GB
 
 
 def parse_op_args(args: List[str]):
-    parser = get_parse_op_args("B", "M", "seqlen", "sparsity", "sum_then_buffer")
+    parser = get_parse_op_args(
+        "B", "M", "seqlen", "sparsity", "sum_then_buffer", "plot_benchmarks"
+    )
     return parser.parse_args(args)
 
 
@@ -67,6 +71,29 @@ def execute_kernel_simple_fused(x, max_seqlen, sum_then_buffer):
     return kernel_output
 
 
+def execute_kernel_variable_length_loop(x, sum_then_buffer):
+    B, M = x.shape[0], x.shape[2]
+    grid = lambda meta: ((len(x.offsets()) - 1) * triton.cdiv(M, meta["BLOCK_SIZE_M"]),)
+    kernel_output = torch.zeros((B, M), device=x.device)
+
+    if sum_then_buffer:
+        triton_jagged_mean_kernel_variable_length_loop_sum_then_buffer[grid](
+            x.values(),
+            x.offsets(),
+            kernel_output,
+            M=M,
+        )
+    else:
+        triton_jagged_mean_kernel_variable_length_loop_buffer_then_sum[grid](
+            x.values(),
+            x.offsets(),
+            kernel_output,
+            M=M,
+        )
+
+    return kernel_output
+
+
 class Operator(BenchmarkOperator):
 
     DEFAULT_METRICS = ["latency", "accuracy"]
@@ -86,6 +113,7 @@ class Operator(BenchmarkOperator):
         self.seqlen = args.seqlen
         self.sparsity = args.sparsity
         self.sum_then_buffer = args.sum_then_buffer
+        self.plot_benchmarks = args.plot_benchmarks
 
     @register_benchmark(baseline=True)
     def torch_jagged_mean_unbind_torch_mean(
@@ -128,6 +156,15 @@ class Operator(BenchmarkOperator):
     ):
         def _inner():
             return execute_kernel_simple_fused(x, seqlen, self.sum_then_buffer)
+
+        return _inner
+
+    @register_benchmark()
+    def triton_jagged_mean_variable_length_loop(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        def _inner():
+            return execute_kernel_variable_length_loop(x, self.sum_then_buffer)
 
         return _inner
 
@@ -206,6 +243,14 @@ class Operator(BenchmarkOperator):
             return dump_autotuner_best_config(
                 triton_jagged_mean_kernel_simple_fused_buffer_then_sum
             )
+        elif "variable_length_loop" in fn_name_str:
+            if self.sum_then_buffer:
+                return dump_autotuner_best_config(
+                    triton_jagged_mean_kernel_variable_length_loop_sum_then_buffer
+                )
+            return dump_autotuner_best_config(
+                triton_jagged_mean_kernel_variable_length_loop_buffer_then_sum
+            )
         return ""
 
     def plot(self):
@@ -228,19 +273,38 @@ class Operator(BenchmarkOperator):
             x_axis = "sparsity"
             params = str_B + str_M + str_seqlen
 
-        line_vals = [
+        line_vals_all = [
             "torch_jagged_mean_unbind_torch_mean",
             "torch_jagged_mean_torch_nanmean",
             "torch_jagged_mean_torch_sum",
             "triton_jagged_mean_simple_fused",
+            "triton_jagged_mean_variable_length_loop",
         ]
-        line_names = [
+        line_names_all = [
             "PyTorch jagged mean, torch.mean",
             "PyTorch jagged mean, torch.nanmean",
             "PyTorch jagged mean, torch.sum",
             "Triton jagged mean, simple fused",
+            "Triton jagged mean, variable length loop",
         ]
-        styles = [("blue", "-"), ("red", "-"), ("orange", "-"), ("green", "-")]
+        styles_all = [
+            ("blue", "-"),
+            ("red", "-"),
+            ("orange", "-"),
+            ("green", "-"),
+            ("magenta", "-"),
+        ]
+
+        if self.plot_benchmarks == "all":
+            line_vals, line_names, styles = line_vals_all, line_names_all, styles_all
+        elif self.plot_benchmarks == "torch":
+            line_vals = line_vals_all[:3]
+            line_names = line_names_all[:3]
+            styles = styles_all[:3]
+        else:
+            line_vals = line_vals_all[3:]
+            line_names = line_names_all[3:]
+            styles = styles_all[3:]
 
         plot_name = f"jagged-mean-perf-var-{x_axis}" + params
 
