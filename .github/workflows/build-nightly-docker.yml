@@ -1,4 +1,4 @@
-name: TorchBench nightly docker build
+name: TorchBench Nightly Docker Build
 on:
   schedule:
     # Push the nightly docker daily at 3 PM UTC

@@ -1,0 +1,26 @@
+name: TorchBench Nightly Docker Cleanup
+on:
+  workflow_dispatch:
+
+jobs:
+  clean-push-docker:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, linux.4xlarge]
+    environment: docker-s3-upload
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: torchbench
+          package-type: container
+          delete-only-untagged-versions: true
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: torchbench
+          package-type: container
+          min-versions-to-keep: 200
+          token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true

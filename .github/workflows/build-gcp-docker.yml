@@ -1,6 +1,9 @@
 name: TorchBench Nightly GCP Base Docker Build
 on:
   workflow_dispatch:
+  schedule:
+    # Build the base Docker monthly
+    - cron: '0 0 1 * *'
 
 env:
   WITH_PUSH: "true"
