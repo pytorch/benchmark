@@ -74,6 +74,12 @@ HUGGINGFACE_MODELS = {
         "AutoModelForMaskedLM",
     ),
     "hf_Bert": (512, 512, "BertConfig()", "AutoModelForMaskedLM"),
+    "hf_Roberta_base": (
+        512,
+        512,
+        'AutoConfig.from_pretrained("xlm-roberta-base")',
+        "AutoModelForMaskedLM",
+    ),
     # see https://huggingface.co/bert-large-cased
     "hf_Bert_large": (
         512,
