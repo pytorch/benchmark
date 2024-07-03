@@ -7,7 +7,7 @@ from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
 
 from torchbenchmark.util.triton_op import (
-    BenchmarkOperatorResult,
+    get_tbargs_parser,
     DEFAULT_RUN_ITERS,
     DEFAULT_WARMUP,
 )
@@ -15,8 +15,8 @@ from torchbenchmark.util.triton_op import (
 TRITON_BENCH_CSV_DUMP_PATH = tempfile.gettempdir() + "/tritonbench/"
 
 
-def parse_args(args):
-    parser = argparse.ArgumentParser(allow_abbrev=False)
+def get_parser(args):
+    parser = argparse.ArgumentParser(allow_abbrev=False, add_help=False)
     parser.add_argument("--op", type=str, default=None, help="Operator to benchmark.")
     parser.add_argument(
         "--mode",
@@ -84,7 +84,12 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
 def run(args: List[str] = []):
     if args == []:
         args = sys.argv[1:]
-    args, extra_args = parse_args(args)
+    parser = get_parser(args)
+    tb_parser = get_tbargs_parser(default_metrics=[])
+    args, extra_args = parser.parse_known_args(args)
+    if "--help" in extra_args or "-h" in extra_args:
+        parser.print_help()
+        tb_parser.print_help()
     if args.ci:
         from .ci import run_ci
         run_ci()

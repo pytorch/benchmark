@@ -417,11 +417,10 @@ def register_metric(
     return decorator
 
 
-def parse_args(
+def get_tbargs_parser(
     default_metrics: List[str],
-    args: List[str],
 ) -> Tuple[argparse.Namespace, List[str]]:
-    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser = argparse.ArgumentParser(allow_abbrev=False, add_help=False)
     parser.add_argument(
         "--metrics",
         default=",".join(default_metrics),
@@ -466,7 +465,7 @@ def parse_args(
         action="store_true",
         help="Dump Triton IR",
     )
-    return parser.parse_known_args(args)
+    return parser
 
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
@@ -518,7 +517,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             [x for x in REGISTERED_METRICS.get(self.name, []) if x not in BUILTIN_METRICS]
         )
         self.DEFAULT_METRICS = list(set(self.DEFAULT_METRICS))
-        self.tb_args, self.extra_args = parse_args(
+        tb_parser = get_tbargs_parser()
+        self.tb_args, self.extra_args = tb_parser.parse_known_args(
             self.DEFAULT_METRICS,
             unprocessed_args
         )
