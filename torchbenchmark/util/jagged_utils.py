@@ -43,6 +43,12 @@ parser_args = {
         "[Optional] For Triton kernels, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum; default 0",
         0,
     ),
+    "plot_benchmarks": (
+        "--plot-benchmarks",
+        str,
+        "[Optional] Determines which benchmarks to plot: all, torch, triton",
+        "all",
+    ),
 }
 
 
