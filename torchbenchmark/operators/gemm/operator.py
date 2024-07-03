@@ -6,7 +6,6 @@ from typing import Any, Callable, Generator, List, Optional, Tuple
 import numpy
 import torch
 import triton
-import triton.ops
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -19,8 +18,9 @@ from torchbenchmark.util.triton_op import (
 )
 
 from .data_io import parse_args, read_shapes_from_csv
-from .triton_matmul import matmul as triton_matmul
-from .triton_matmul import matmul_kernel as triton_matmul_kernel
+from .kernels import matmul as kernels
+from .triton_matmul import matmul as triton_tutorial_matmul
+from .triton_matmul import matmul_kernel as triton_tutorial_matmul_kernel
 import torch._inductor.config as inductor_config
 
 if inductor_config.is_fbcode():
@@ -70,7 +70,7 @@ BUILDIN_SHAPES = [
 ]
 
 SPLIT_K_SHAPES = [
-    (m, k, m, None)
+    (m, m, k, None)
     for m in [128 * i for i in range(1, 5)]
     for k in [2048 * i for i in range(1, 9)]
 ]
@@ -90,7 +90,7 @@ class Operator(BenchmarkOperator):
             self.shapes = llama_shapes()
         elif gemm_args.m and gemm_args.k and gemm_args.n:
             self.shapes = [
-                (gemm_args.m, gemm_args.k, gemm_args.n, gemm_args.bias)
+                (gemm_args.m, gemm_args.n, gemm_args.k, gemm_args.bias)
             ]
         else:
             self.shapes = BUILDIN_SHAPES
@@ -98,15 +98,15 @@ class Operator(BenchmarkOperator):
     @register_benchmark()
     def triton_tutorial_matmul(self, a, b, bias) -> Callable:
         if not bias == None:
-            return lambda: triton_matmul(a, b) + bias
+            return lambda: triton_tutorial_matmul(a, b) + bias
         else:
-            return lambda: triton_matmul(a, b)
+            return lambda: triton_tutorial_matmul(a, b)
 
     @register_benchmark(enabled=torch.version.cuda is not None)
     def triton_ops_matmul(self, a, b, bias) -> Callable:
         if bias is None:
-            return lambda: triton.ops.matmul(a, b)
-        return lambda: triton.ops.matmul(a, b, bias)
+            return lambda: kernels.matmul(a, b)
+        return lambda: kernels.matmul(a, b, bias)
 
     @register_benchmark(baseline=True)
     def aten_matmul(self, a, b, bias) -> Callable:
@@ -185,9 +185,9 @@ class Operator(BenchmarkOperator):
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> str:
         if "triton_tutorial_matmul" in str(fn_name):
-            return dump_autotuner_best_config(triton_matmul_kernel)
+            return dump_autotuner_best_config(triton_tutorial_matmul_kernel)
         elif "triton_ops_matmul" in str(fn_name):
-            return dump_autotuner_best_config(triton.ops._matmul.kernel)
+            return dump_autotuner_best_config(kernels._kernel)
         elif "hstu_triton_matmul" in str(fn_name):
             import hammer
             return dump_autotuner_best_config(hammer.ops.triton.triton_matmul._epilogue_mm)
@@ -224,7 +224,7 @@ class Operator(BenchmarkOperator):
 
     def get_input_iter(self) -> Generator:
         for shape in self.shapes:
-            m, k, n, bias = shape
+            m, n, k, bias = shape
             a = self._scaled_randn((m, k), scale=k, device=self.device, dtype=self.dtype)
             w = self._scaled_randn((k, n), scale=k, device=self.device, dtype=self.dtype)
             if not bias == None:
@@ -251,13 +251,13 @@ class Operator(BenchmarkOperator):
                 line_vals=[
                     "aten_matmul",
                     "triton_tutorial_matmul",
-                    "triton_ops_matmul",
+                    "triton_kernels_matmul",
                     "hstu_triton_matmul",
                 ],  # possible values for `line_arg``
                 line_names=[
                     "ATen GEMM",
                     "Triton Tutorial GEMM",
-                    "triton.ops.matmul",
+                    "triton/kernels/matmul",
                     "HSTU Triton GEMM",
                 ],  # label name for the lines
                 styles=[
