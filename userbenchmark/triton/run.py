@@ -7,7 +7,6 @@ from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
 
 from torchbenchmark.util.triton_op import (
-    get_tbargs_parser,
     DEFAULT_RUN_ITERS,
     DEFAULT_WARMUP,
 )
