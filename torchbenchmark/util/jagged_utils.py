@@ -13,17 +13,35 @@ import torch
 
 
 parser_args = {
-    "B": ("--B", int, "[Optional] Size of dimension 0 in shape (B, *, M) (integer)"),
-    "M": ("--M", int, "[Optional] Size of dimension 2 in shape (B, *, M) (integer)"),
+    "B": (
+        "--B",
+        int,
+        "[Optional] Size of dimension 0 in shape (B, *, M) (integer)",
+        None,
+    ),
+    "M": (
+        "--M",
+        int,
+        "[Optional] Size of dimension 2 in shape (B, *, M) (integer)",
+        None,
+    ),
     "seqlen": (
         "--seqlen",
         int,
         "[Optional] Maximum sequence length on ragged dimension (integer)",
+        None,
     ),
     "sparsity": (
         "--sparsity",
         float,
         "[Optional] Average sparsity for nested tensor (float, (0.0-1.0))",
+        None,
+    ),
+    "sum_then_buffer": (
+        "--sum-then-buffer",
+        int,
+        "[Optional] For Triton kernels, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum; default 0",
+        0,
     ),
 }
 
@@ -37,6 +55,7 @@ def get_parse_op_args(*args):
             parser_args[arg][0],
             type=parser_args[arg][1],
             help=parser_args[arg][2],
+            default=parser_args[arg][3],
         )
     return parser
 

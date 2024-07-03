@@ -16,8 +16,14 @@ from torchbenchmark.util.jagged_utils import (
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    dump_autotuner_best_config,
     register_benchmark,
     register_metric,
+)
+
+from .kernels import (
+    triton_jagged_mean_kernel_simple_fused_buffer_then_sum,
+    triton_jagged_mean_kernel_simple_fused_sum_then_buffer,
 )
 
 
@@ -32,8 +38,33 @@ TENSOR_BYTES_LIMIT = 8 * 1e9  # allocate tensors no greater than 8GB
 
 
 def parse_op_args(args: List[str]):
-    parser = get_parse_op_args("B", "M", "seqlen", "sparsity")
+    parser = get_parse_op_args("B", "M", "seqlen", "sparsity", "sum_then_buffer")
     return parser.parse_args(args)
+
+
+def execute_kernel_simple_fused(x, max_seqlen, sum_then_buffer):
+    B, M = x.shape[0], x.shape[2]
+    grid = lambda meta: ((len(x.offsets()) - 1) * triton.cdiv(M, meta["BLOCK_SIZE_M"]),)
+    kernel_output = torch.zeros((B, M), device=x.device)
+
+    if sum_then_buffer:
+        triton_jagged_mean_kernel_simple_fused_sum_then_buffer[grid](
+            x.values(),
+            x.offsets(),
+            kernel_output,
+            M=M,
+            MAX_SEQLEN=max_seqlen,
+        )
+    else:
+        triton_jagged_mean_kernel_simple_fused_buffer_then_sum[grid](
+            x.values(),
+            x.offsets(),
+            kernel_output,
+            M=M,
+            MAX_SEQLEN=max_seqlen,
+        )
+
+    return kernel_output
 
 
 class Operator(BenchmarkOperator):
@@ -54,6 +85,7 @@ class Operator(BenchmarkOperator):
         self.M = args.M
         self.seqlen = args.seqlen
         self.sparsity = args.sparsity
+        self.sum_then_buffer = args.sum_then_buffer
 
     @register_benchmark(baseline=True)
     def torch_jagged_mean_unbind_torch_mean(
@@ -89,6 +121,15 @@ class Operator(BenchmarkOperator):
             ),
             dim=1,
         ) / x.offsets().diff().unsqueeze(1)
+
+    @register_benchmark()
+    def triton_jagged_mean_simple_fused(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        def _inner():
+            return execute_kernel_simple_fused(x, seqlen, self.sum_then_buffer)
+
+        return _inner
 
     def get_x_val(self, example_inputs):
         if self.B is None:
@@ -151,6 +192,22 @@ class Operator(BenchmarkOperator):
             f"sparsity: {example_inputs[4]}",  # sparsity
         )  # return (B, '*', M, max seqlen, sparsity) for each example input
 
+    @register_metric(skip_baseline=True)
+    def best_config(
+        self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics
+    ) -> str:
+        fn_name_str = str(fn_name).split(".")[1]
+
+        if "simple_fused" in fn_name_str:
+            if self.sum_then_buffer:
+                return dump_autotuner_best_config(
+                    triton_jagged_mean_kernel_simple_fused_sum_then_buffer
+                )
+            return dump_autotuner_best_config(
+                triton_jagged_mean_kernel_simple_fused_buffer_then_sum
+            )
+        return ""
+
     def plot(self):
         str_B, str_M, str_seqlen, str_sparsity = (
             f"-B-{self.B}",
@@ -175,13 +232,15 @@ class Operator(BenchmarkOperator):
             "torch_jagged_mean_unbind_torch_mean",
             "torch_jagged_mean_torch_nanmean",
             "torch_jagged_mean_torch_sum",
+            "triton_jagged_mean_simple_fused",
         ]
         line_names = [
             "PyTorch jagged mean, torch.mean",
             "PyTorch jagged mean, torch.nanmean",
             "PyTorch jagged mean, torch.sum",
+            "Triton jagged mean, simple fused",
         ]
-        styles = [("blue", "-"), ("red", "-"), ("orange", "-")]
+        styles = [("blue", "-"), ("red", "-"), ("orange", "-"), ("green", "-")]
 
         plot_name = f"jagged-mean-perf-var-{x_axis}" + params
 
