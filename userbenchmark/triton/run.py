@@ -15,18 +15,33 @@ TRITON_BENCH_CSV_DUMP_PATH = tempfile.gettempdir() + "/tritonbench/"
 
 def get_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
-    parser.add_argument("--op", type=str, default=None, help="Operator to benchmark.")
+    parser.add_argument(
+        "--op",
+        type=str,
+        required=True,
+        help="Operator to benchmark."
+    )
     parser.add_argument(
         "--mode",
         choices=["fwd", "bwd", "fwd_bwd"],
         default="fwd",
         help="Test mode (fwd, bwd, or fwd_bwd).",
     )
-    parser.add_argument("--bwd", action="store_true", help="Run backward pass.")
     parser.add_argument(
-        "--fwd_bwd", action="store_true", help="Run both forward and backward pass."
+        "--bwd",
+        action="store_true",
+        help="Run backward pass."
     )
-    parser.add_argument("--device", default="cuda", help="Device to benchmark.")
+    parser.add_argument(
+        "--fwd_bwd",
+        action="store_true",
+        help="Run both forward and backward pass.",
+    )
+    parser.add_argument(
+        "--device",
+        default="cuda",
+        help="Device to benchmark.",
+    )
     parser.add_argument(
         "--warmup",
         default=DEFAULT_WARMUP,
@@ -117,8 +132,6 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
     if args.bwd:
         args.mode = "bwd"
     opbench = Opbench(
-        mode=args.mode,
-        device=args.device,
         tb_args=args,
         extra_args=extra_args,
     )
