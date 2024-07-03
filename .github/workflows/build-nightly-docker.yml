@@ -34,6 +34,7 @@ jobs:
           password: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
       - name: Build TorchBench nightly docker
         run: |
+          set -x
           export NIGHTLY_DATE="${{ github.event.inputs.nightly_date }}"
           cd benchmark/docker
           full_ref="${{ github.ref }}"
