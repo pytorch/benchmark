@@ -77,6 +77,19 @@ class Operator(BenchmarkOperator):
             dim=1,
         )
 
+    @register_benchmark()
+    def torch_jagged_mean_torch_sum(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        return lambda: torch.sum(
+            torch.ops.aten._jagged_to_padded_dense_forward(
+                x.values(),
+                [x.offsets()],  # pyre-ignore: Undefined attribute [16]: `torch._tensor.Tensor` has no attribute `offsets`.
+                max_lengths=[seqlen],  # max length of ragged dimension
+            ),
+            dim=1,
+        ) / x.offsets().diff().unsqueeze(1)
+
     def get_x_val(self, example_inputs):
         if self.B is None:
             return example_inputs[1]
@@ -161,12 +174,14 @@ class Operator(BenchmarkOperator):
         line_vals = [
             "torch_jagged_mean_unbind_torch_mean",
             "torch_jagged_mean_torch_nanmean",
+            "torch_jagged_mean_torch_sum",
         ]
         line_names = [
             "PyTorch jagged mean, torch.mean",
             "PyTorch jagged mean, torch.nanmean",
+            "PyTorch jagged mean, torch.sum",
         ]
-        styles = [("blue", "-"), ("red", "-")]
+        styles = [("blue", "-"), ("red", "-"), ("orange", "-")]
 
         plot_name = f"jagged-mean-perf-var-{x_axis}" + params
 
