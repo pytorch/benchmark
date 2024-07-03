@@ -57,6 +57,7 @@ RUN sudo apt update && sudo apt-get install -y libnvidia-compute-550 && \
     sudo apt-get purge -y libnvidia-compute-550
 
 # Install Torchbench
-RUN cd /workspace/benchmark && \
-    . ${SETUP_SCRIPT} && \
-    python install.py
+# Debug - remove this before commit
+# RUN cd /workspace/benchmark && \
+#     . ${SETUP_SCRIPT} && \
+#     python install.py
