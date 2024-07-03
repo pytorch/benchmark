@@ -14,9 +14,8 @@ from torchbenchmark.util.triton_op import (
 
 TRITON_BENCH_CSV_DUMP_PATH = tempfile.gettempdir() + "/tritonbench/"
 
-
-def get_parser(args):
-    parser = argparse.ArgumentParser(allow_abbrev=False, add_help=False)
+def get_parser():
+    parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("--op", type=str, default=None, help="Operator to benchmark.")
     parser.add_argument(
         "--mode",
@@ -35,16 +34,82 @@ def get_parser(args):
         help="Num of warmup runs for reach benchmark run.",
     )
     parser.add_argument(
-        "--iter", default=DEFAULT_RUN_ITERS, help="Num of reps for each benchmark run."
+        "--iter",
+        default=DEFAULT_RUN_ITERS,
+        help="Num of reps for each benchmark run.",
     )
-    parser.add_argument("--csv", action="store_true", help="Print result as csv.")
-    parser.add_argument("--dump-csv", action="store_true", help="Dump result as csv.")
-    parser.add_argument("--skip-print", action="store_true", help="Skip printing result.")
-    parser.add_argument("--plot", action="store_true", help="Plot the result.")
+    parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="Print result as csv.",
+    )
+    parser.add_argument(
+        "--dump-csv",
+        action="store_true",
+        help="Dump result as csv.",
+    )
+    parser.add_argument(
+        "--skip-print",
+        action="store_true",
+        help="Skip printing result.",
+    )
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Plot the result.",
+    )
+    parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="Run in the CI mode.",
+    )
+    parser.add_argument(
+        "--metrics",
+        default=None,
+        help="Metrics to collect, split with comma. E.g., --metrics latency,tflops,speedup.",
+    )
+    parser.add_argument(
+        "--only",
+        default=None,
+        help="Specify one or multiple operator implementations to run."
+    )
+    parser.add_argument(
+        "--baseline",
+        type=str,
+        default=None,
+        help="Override default baseline."
+    )
+    parser.add_argument(
+        "--num-inputs",
+        type=int,
+        help="Number of example inputs.",
+    )
+    parser.add_argument(
+        "--keep-going",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--input-id",
+        type=int,
+        default=0,
+        help="Specify the start input id to run. " \
+            "For example, --input-id 0 runs only the first available input sample." \
+            "When used together like --input-id <X> --num-inputs <Y>, start from the input id <X> " \
+            "and run <Y> different inputs."
+    )
+    parser.add_argument(
+        "--test-only",
+        action="store_true",
+        help="Run this under test mode, potentially skipping expensive steps like autotuning."
+    )
+    parser.add_argument(
+        "--dump-ir",
+        action="store_true",
+        help="Dump Triton IR",
+    )
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
-    parser.add_argument("--ci", action="store_true", help="Run in the CI mode.")
-    return parser.parse_known_args(args)
+    return parser
 
 def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
     Opbench = load_opbench_by_name(args.op)
@@ -55,6 +120,7 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
     opbench = Opbench(
         mode=args.mode,
         device=args.device,
+        tb_args=args,
         extra_args=extra_args,
     )
     try:
@@ -68,7 +134,6 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
                 print(metrics)
         if not hasattr(torch_version, "git_version") and args.log_scuba:
             from userbenchmark.triton.fb import log_benchmark
-
             log_benchmark(metrics)
         if args.plot:
             try:
@@ -84,12 +149,8 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
 def run(args: List[str] = []):
     if args == []:
         args = sys.argv[1:]
-    parser = get_parser(args)
-    tb_parser = get_tbargs_parser(default_metrics=[])
+    parser = get_parser()
     args, extra_args = parser.parse_known_args(args)
-    if "--help" in extra_args or "-h" in extra_args:
-        parser.print_help()
-        tb_parser.print_help()
     if args.ci:
         from .ci import run_ci
         run_ci()
