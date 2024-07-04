@@ -425,14 +425,14 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     mode: Mode = Mode.FWD
     test: str = "eval"
     device: str = "cuda"
+    # By default, only collect latency metrics
+    # Each operator can override to define their own default metrics
+    DEFAULT_METRICS = ["latency"]
+    required_metrics: List[str] = DEFAULT_METRICS
     _input_iter: Optional[Generator] = None
     extra_args: List[str] = []
     example_inputs: Any = None
     use_cuda_graphs: bool = True
-
-    # By default, only collect latency metrics
-    # Each operator can override to define their own default metrics
-    DEFAULT_METRICS = ["latency"]
 
     """
     A base class for adding operators to torch benchmark.
@@ -454,7 +454,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             ), f"We only accept 3 test modes: fwd(eval), fwd_bwd(train), or bwd."
             self.mode = Mode.BWD
         self.device = tb_args.device
-        self.metrics = tb_args.metrics if tb_args.metrics else self.DEFAULT_METRICS
+        self.required_metrics = list(set(tb_args.metrics.split(","))) if tb_args.metrics else self.required_metrics
         self.dargs, self.extra_args = parse_decoration_args(self, extra_args)
         if self.name not in REGISTERED_X_VALS:
             REGISTERED_X_VALS[self.name] = "x_val"
@@ -466,7 +466,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         self.DEFAULT_METRICS = list(set(self.DEFAULT_METRICS))
         if self.tb_args.baseline:
             BASELINE_BENCHMARKS[self.name] = self.tb_args.baseline
-        self.required_metrics = list(set(self.tb_args.metrics.split(",")))
         self._only = _split_params_by_comma(self.tb_args.only)
         self._input_id = self.tb_args.input_id
         self._num_inputs = self.tb_args.num_inputs
