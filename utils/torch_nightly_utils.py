@@ -8,6 +8,7 @@ import os
 import re
 import requests
 import argparse
+import subprocess
 import urllib.parse
 from datetime import date, timedelta
 from bs4 import BeautifulSoup
@@ -16,9 +17,13 @@ from collections import defaultdict
 DEFAULT_CUDA_VERSION = "cu118"
 DEFAULT_PYTHON_VERSION = "cp310"
 
-torch_wheel_nightly_base = f"https://download.pytorch.org/whl/nightly/{DEFAULT_CUDA_VERSION}/" 
-torch_nightly_wheel_index = f"https://download.pytorch.org/whl/nightly/{DEFAULT_CUDA_VERSION}/torch_nightly.html" 
-torch_nightly_wheel_index_override = "torch_nightly.html" 
+
+torch_wheel_nightly_base = (
+    f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/"
+)
+torch_nightly_wheel_index = f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/torch"
+torch_nightly_wheel_index_override = "torch_nightly.html"
+
 
 def memoize(function):
     """ 
@@ -53,7 +58,7 @@ def get_wheel_index_data(py_version, platform_version, url=torch_nightly_wheel_i
         pkg, version, py, py_m, platform = try_match.groups()
         version = urllib.parse.unquote(version)
         if py == py_version and platform == platform_version:
-            full_url = os.path.join(torch_wheel_nightly_base, link.text)
+            full_url = os.path.join(torch_wheel_nightly_base, urllib.parse.quote_plus(link.text))
             data[pkg][version] = full_url
     return data
 
