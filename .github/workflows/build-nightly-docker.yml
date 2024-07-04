@@ -49,8 +49,9 @@ jobs:
       - name: Push docker to remote
         if: ${{ env.WITH_PUSH == 'true' }}
         run: |
-          export TODAY=$(date +'%Y%m%d')
-          export DOCKER_TAG=dev${TODAY}
+          # Extract pytorch version from the docker
+          PYTORCH_VERSION=$(docker run -e SETUP_SCRIPT="${SETUP_SCRIPT}" ghcr.io/pytorch/torchbench:latest bash -c '. "${SETUP_SCRIPT}"; python -c "import torch; print(torch.__version__)"')
+          export DOCKER_TAG=$(awk '{match($0, /dev[0-9]+/, arr); print arr[0]}' <<< "${PYTORCH_VERSION}")
           docker push ghcr.io/pytorch/torchbench:${DOCKER_TAG}
           docker push ghcr.io/pytorch/torchbench:latest
 
