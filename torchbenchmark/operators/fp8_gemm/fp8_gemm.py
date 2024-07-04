@@ -7,7 +7,7 @@ import triton.language as tl
 
 from triton.runtime.jit import reinterpret
 
-from typing import Any
+from typing import Any, Optional, List
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -27,8 +27,8 @@ def parse_args(args):
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "gbps", "latency"]
 
-    def __init__(self, mode, device, extra_args):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args, extra_args)
         self.extra_args = parse_args(extra_args)
 
     def get_input_iter(self):

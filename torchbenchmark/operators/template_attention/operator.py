@@ -1,4 +1,4 @@
-
+import argparse
 import csv
 import os
 import statistics
@@ -29,8 +29,8 @@ BUILDIN_SHAPES = [
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
 
-    def __init__(self, mode: str, device: str, extra_args: List[str] = []):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args, extra_args)
         self.shapes = BUILDIN_SHAPES
 
     @register_benchmark(baseline=True)
