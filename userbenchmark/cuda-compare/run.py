@@ -15,8 +15,8 @@ BM_NAME = "cuda-compare"
 
 def install_nightlies(dryrun):
     default_cuda_version = CUDA_VERSION_MAP[DEFAULT_CUDA_VERSION]["pytorch_url"]
-    install_cmd = ["pip", "install", "--pre", "torch", "torchvision", "torchaudio",
-                    "-f", f"https://download.pytorch.org/whl/nightly/{default_cuda_version}/torch_nightly.html"]
+    install_cmd = ["pip", "install", "--pre", "--no-cache-dir", "torch", "torchvision", "torchaudio",
+                    "-i", f"https://download.pytorch.org/whl/nightly/{CUDA_VERSION_MAP[default_cuda_version]['pytorch_url']}"]
     print(f"Installing pytorch packages: {install_cmd}")
     if not dryrun:
         subprocess.check_call(install_cmd, cwd=REPO_PATH)

@@ -8,7 +8,6 @@ import argparse
 import os
 import re
 import subprocess
-import sys
 import urllib.parse
 from collections import defaultdict
 from datetime import date, timedelta
@@ -19,26 +18,8 @@ from typing import List
 import requests
 from bs4 import BeautifulSoup
 
-REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
-
-
-class add_path:
-    def __init__(self, path):
-        self.path = path
-
-    def __enter__(self):
-        sys.path.insert(0, self.path)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        try:
-            sys.path.remove(self.path)
-        except ValueError:
-            pass
-
-
-with add_path(str(REPO_ROOT)):
-    from utils.cuda_utils import CUDA_VERSION_MAP, DEFAULT_CUDA_VERSION
-    from utils.python_utils import DEFAULT_PYTHON_VERSION, PYTHON_VERSION_MAP
+from cuda_utils import CUDA_VERSION_MAP, DEFAULT_CUDA_VERSION
+from python_utils import DEFAULT_PYTHON_VERSION, PYTHON_VERSION_MAP
 
 PYTORCH_CUDA_VERISON = CUDA_VERSION_MAP[DEFAULT_CUDA_VERSION]["pytorch_url"]
 PYTORCH_PYTHON_VERSION = PYTHON_VERSION_MAP[DEFAULT_PYTHON_VERSION]["pytorch_url"]
@@ -46,7 +27,7 @@ PYTORCH_PYTHON_VERSION = PYTHON_VERSION_MAP[DEFAULT_PYTHON_VERSION]["pytorch_url
 torch_wheel_nightly_base = (
     f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/"
 )
-torch_nightly_wheel_index = f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/torch_nightly.html"
+torch_nightly_wheel_index = f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/torch"
 torch_nightly_wheel_index_override = "torch_nightly.html"
 
 
@@ -88,7 +69,7 @@ def get_wheel_index_data(
         pkg, version, py, py_m, platform = group_match.groups()
         version = urllib.parse.unquote(version)
         if py == py_version and platform == platform_version:
-            full_url = os.path.join(torch_wheel_nightly_base, link.text)
+            full_url = os.path.join(torch_wheel_nightly_base, urllib.parse.quote_plus(link.text))
             data[pkg][version] = full_url
     return data
 
