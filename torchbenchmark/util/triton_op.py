@@ -454,6 +454,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             ), f"We only accept 3 test modes: fwd(eval), fwd_bwd(train), or bwd."
             self.mode = Mode.BWD
         self.device = tb_args.device
+        self.metrics = tb_args.metrics if tb_args.metrics else self.DEFAULT_METRICS
         self.dargs, self.extra_args = parse_decoration_args(self, extra_args)
         if self.name not in REGISTERED_X_VALS:
             REGISTERED_X_VALS[self.name] = "x_val"
