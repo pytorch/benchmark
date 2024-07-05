@@ -699,7 +699,6 @@ def latency_experiment(args, model_iter_fn, model, example_inputs, mark, **kwarg
     should_randomize_input = args.randomize_input
 
     import contextlib
-
     from torch._inductor.utils import maybe_profile
 
     @contextlib.contextmanager
@@ -2964,10 +2963,8 @@ class BenchmarkRunner:
         self, name, model, example_inputs, optimize_ctx, experiment, tag=None
     ):
         "Run performance test in non-alternately."
-        assert (
-            experiment.func is latency_experiment
-        ), "Must run with latency_experiment."
-
+        assert experiment.func is latency_experiment, \
+            f"Must run with latency_experiment."
         def warmup(fn, model, example_inputs, mode, niters=10):
             peak_mem = 0
             start_stats = get_dynamo_stats()
@@ -3018,7 +3015,6 @@ class BenchmarkRunner:
             if tag is not None:
                 experiment_kwargs["tag"] = tag
             results = []
-
             with maybe_snapshot_memory(
                 self.args.snapshot_memory, f"eager_{self.args.only}"
             ):
@@ -3030,9 +3026,7 @@ class BenchmarkRunner:
                         self.model_iter_fn, model, example_inputs, "eager", niters=1
                     )
 
-            baseline_timings = experiment(
-                model, example_inputs, mark="expected", **experiment_kwargs
-            )
+            baseline_timings = experiment(model, example_inputs, mark="expected", **experiment_kwargs)
 
             if self.args.export_aot_inductor:
                 t_0 = time.perf_counter()
@@ -3110,13 +3104,9 @@ class BenchmarkRunner:
                 experiment = functools.partial(
                     experiment, optimized_model_iter_fn.context.onnx_model
                 )
-            backend_timings = experiment(
-                model, example_inputs, mark="expected", **experiment_kwargs
-            )
+            backend_timings = experiment(model, example_inputs, mark="expected", **experiment_kwargs)
             timings = np.stack((baseline_timings, backend_timings), axis=1)
-            result_summary = latency_experiment_summary(
-                self.args, model, timings, **experiment_kwargs
-            )
+            result_summary = latency_experiment_summary(self.args, model, timings, **experiment_kwargs)
             if not hasattr(model, name):
                 model.name = name
             results.append(result_summary)
@@ -4430,7 +4420,13 @@ def run(runner, args, original_dir=None):
                 fullgraph=args.nopython,
                 mode=args.inductor_compile_mode,
             )
-            runner.model_iter_fn = baseline_ctx(runner.model_iter_fn)
+            model_iter_fn = baseline_ctx(runner.model_iter_fn)
+            # needed to avoid error that causes inconsistent timing due to:
+            # Unable to hit fast path of CUDAGraphs because of pending, uninvoked backwards
+            def model_iter_fn_and_mark_step(*args, **kwargs):
+                torch.compiler.cudagraph_mark_step_begin()
+                model_iter_fn(*args, **kwargs)
+            runner.model_iter_fn = model_iter_fn_and_mark_step
             optimize_ctx = torchao_optimize_ctx(args.quantization)
         else:
             optimize_ctx = torch._dynamo.optimize(args.backend, nopython=args.nopython)
