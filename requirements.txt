@@ -1,15 +1,21 @@
+accelerate
+boto3
 bs4
 patch
 py-cpuinfo
 distro
 iopath
-pytest==8.0.0
+pytest
 pytest-benchmark
 requests
 tabulate
-transformers==4.31.0
-git+https://github.com/huggingface/pytorch-image-models.git@6635bc3
+git+https://github.com/huggingface/pytorch-image-models.git@730b907
+# this version of transformers is required as per this page https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1
+transformers==4.38.1
 MonkeyType
 psutil
 pyyaml
-numpy==1.21.2
+numpy
+opencv-python
+submitit
+pynvml
