@@ -5,7 +5,7 @@ patch
 py-cpuinfo
 distro
 iopath
-pytest
+pytest==8.0.0
 pytest-benchmark
 requests
 tabulate
