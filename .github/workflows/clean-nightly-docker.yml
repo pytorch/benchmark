@@ -1,6 +1,9 @@
 name: TorchBench Nightly Docker Cleanup
 on:
   workflow_dispatch:
+  schedule:
+    # Cleanup the nightly Docker images every 3 months
+    - cron: '0 0 1 */3 *'
 
 jobs:
   clean-push-docker:
