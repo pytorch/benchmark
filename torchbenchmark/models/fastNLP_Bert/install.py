@@ -1,7 +1,6 @@
-import subprocess
 import os
-import sys
 import patch
+from utils.python_utils import pip_install_requirements
 
 def patch_fastnlp():
     import fastNLP
@@ -13,9 +12,6 @@ def patch_fastnlp():
     if not p.apply(strip=1, root=fastNLP_dir):
         print("Failed to patch fastNLP. Exit.")
         exit(1)
-
-def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
 if __name__ == '__main__':
     pip_install_requirements()

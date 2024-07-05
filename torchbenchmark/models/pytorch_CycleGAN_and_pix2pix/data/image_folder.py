@@ -23,7 +23,18 @@ def is_image_file(filename):
 
 def make_dataset(dir, max_dataset_size=float("inf")):
     images = []
-    assert os.path.isdir(dir), '%s is not a valid directory' % dir
+    # The script is probably run at Meta internally. Attempt to
+    # download the dataset from Manifold.
+    if not os.path.isdir(dir):
+        try:
+            from torchbenchmark.util.framework.fb.installer import install_data
+
+            data_dir = install_data("pytorch_CycleGAN_and_pix2pix_inputs")
+            # Process the path to use the data just downloaded.
+            dir = os.path.join(data_dir, dir.split("/.data/", 1)[1])
+        except Exception as e:
+            msg = f"Failed to download data from manifold: {e}"
+            raise RuntimeError(msg) from e
 
     for root, _, fnames in sorted(os.walk(dir)):
         for fname in fnames:

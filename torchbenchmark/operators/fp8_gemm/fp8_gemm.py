@@ -12,6 +12,7 @@ from typing import Any
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    llama_shapes,
     register_benchmark,
     register_metric,
 )
@@ -42,16 +43,9 @@ class Operator(BenchmarkOperator):
             return (a, b)
 
         if self.extra_args.llama:
-            name_to_shapes_70b = {
-                "attn.wqkv": (8192, 1280),
-                "attn.w0": (1024, 8192),
-                "ffn.w13": (8192, 7168),
-                "ffn.w2": (3584, 8192),
-            }
-            for (name, (k, n)) in name_to_shapes_70b.items():
-                bsz, seq_len = 4, 4096
-                m = bsz * seq_len
+            for m, n, k, _bias in llama_shapes():
                 yield args(m, n, k)
+
         else:
             for i in range(10, 15):
                 for j in range(0, 4):
@@ -68,8 +62,10 @@ class Operator(BenchmarkOperator):
 
     @register_benchmark(baseline=True)
     def torch_fp8_gemm(self, a, b):
+        scale_a = torch.tensor(1.0, device=a.device)
+        scale_b = torch.tensor(1.0, device=a.device)
         return lambda: torch._scaled_mm(
-            a, b, use_fast_accum=True, out_dtype=torch.float16
+            a, b, scale_a, scale_b, use_fast_accum=True, out_dtype=torch.float16
         )
 
     @register_benchmark()
@@ -92,7 +88,7 @@ class Operator(BenchmarkOperator):
         m, k = a.shape
         _, n = b.shape
         gb = (nbytes(a) + nbytes(b) + nbytes(c)) / 1e9
-        return list(map(lambda x: gb / x * 1e3, metrics.latency))
+        return gb / metrics.latency * 1e3
 
     @register_metric()
     def tflops(
@@ -102,7 +98,7 @@ class Operator(BenchmarkOperator):
         m, k = a.size()
         _, n = b.size()
         flops = 2 * m * n * k
-        return [flops / x / 1e12 * 1e3 for x in metrics.latency]
+        return flops / metrics.latency / 1e12 * 1e3
 
     def plot(self):
         @triton.testing.perf_report(

@@ -1,25 +1,26 @@
-name: TorchBench PR Test on A10G
+name: linux-test-cpu
 on:
-  pull_request:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-
-env:
-  CONDA_ENV: "torchbench"
-  DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
-  SETUP_SCRIPT: "/workspace/setup_instance.sh"
-  HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
-
+  workflow_call:
+    secrets:
+      HUGGING_FACE_HUB_TOKEN:
+        required: false
+        description: |
+          HF Auth token to avoid rate limits when downloading models or datasets from hub
 
 jobs:
-  pr-test:
-    # AWS A10G GPU instance label: linux.g5.4xlarge.nvidia.gpu
-    # OS version: Amazon Linux 2
-    runs-on: [self-hosted, linux.g5.4xlarge.nvidia.gpu]
-    timeout-minutes: 1440 # 24 hours
+  linux-test-cpu:
+    # Don't run on forked repos
+    if: github.repository_owner == 'pytorch'
+    runs-on: [self-hosted, linux.24xlarge]
+    timeout-minutes: 240
     environment: docker-s3-upload
+    env:
+      BASE_CONDA_ENV: "torchbench"
+      CONDA_ENV: "pr-test-cpu"
+      DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
+      SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      TEST_CONFIG: "cpu"
+      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
     steps:
       - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
         uses: pytorch/test-infra/.github/actions/setup-ssh@main
@@ -33,32 +34,26 @@ jobs:
         uses: pytorch/test-infra/.github/actions/pull-docker-image@main
         with:
           docker-image: ${{ env.DOCKER_IMAGE }}
-      - name: Install NVIDIA Driver, docker runtime, set GPU_FLAG
-        id: install-nvidia-driver
-        uses: pytorch/test-infra/.github/actions/setup-nvidia@main
       - name: Install and Test TorchBench
         run: |
           container_name=$(docker run \
+            -e BASE_CONDA_ENV="${BASE_CONDA_ENV}" \
             -e CONDA_ENV="${CONDA_ENV}" \
             -e SETUP_SCRIPT="${SETUP_SCRIPT}" \
             -e HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN}" \
+            -e TEST_CONFIG="${TEST_CONFIG}" \
             --tty \
             --detach \
             --shm-size=32gb \
             -v "${PWD}/benchmark:/benchmark" \
-            --gpus all \
             -w / \
             "${{ env.DOCKER_IMAGE }}" \
             tail -f /dev/null
           )
           echo "Container name: ${container_name}"
           docker exec -t -w "/" "${container_name}" bash -c "sudo chown -R runner /benchmark; sudo chgrp -R runner /benchmark"
-          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_install.sh
-          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/scripts/torchbench_test.sh
+          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/.ci/torchbench/install.sh
+          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/.ci/torchbench/test.sh
       - name: Teardown Linux
         uses: pytorch/test-infra/.github/actions/teardown-linux@main
         if: always()
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
-  cancel-in-progress: true

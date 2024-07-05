@@ -1,7 +1,6 @@
 import os
-import subprocess
-import sys
 import requests
+from utils.python_utils import pip_install_requirements
 
 def download(uri):
     directory = '.data'
@@ -15,10 +14,6 @@ def download(uri):
                 f.write(chunk)
     else:
         print(f'Failed to download file with status code {response.status_code}')
-
-
-def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
 def download_checkpoint():
     download('https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth')

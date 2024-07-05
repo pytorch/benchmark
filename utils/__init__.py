@@ -1,8 +1,10 @@
-import importlib
 import sys
+import subprocess
 from typing import Dict, List
+from pathlib import Path
 
-TORCH_DEPS = ["torch", "torchvision", "torchaudio"]
+REPO_DIR = Path(__file__).parent.parent
+TORCH_DEPS = ["numpy", "torch", "torchvision", "torchaudio"]
 
 
 class add_path:
@@ -18,12 +20,20 @@ class add_path:
         except ValueError:
             pass
 
-
-def get_pkg_versions(packages: List[str], reload: bool = False) -> Dict[str, str]:
+def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
     for module in packages:
-        module = importlib.import_module(module)
-        if reload:
-            module = importlib.reload(module)
-        versions[module.__name__] = module.__version__
+        cmd = [sys.executable, "-c", f'import {module}; print({module}.__version__)']
+        version = subprocess.check_output(cmd).decode().strip()
+        versions[module] = version
     return versions
+
+def generate_pkg_constraints(package_versions: Dict[str, str]):
+    """
+    Generate package versions dict and save them to {REPO_ROOT}/build/constraints.txt
+    """
+    output_dir = REPO_DIR.joinpath("build")
+    output_dir.mkdir(exist_ok=True)
+    with open(output_dir.joinpath("constraints.txt"), "w") as fp:
+        for k, v in package_versions.items():
+            fp.write(f"{k}=={v}\n")

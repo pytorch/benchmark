@@ -1,7 +1,14 @@
-
 from typing import Callable
 
-def do_bench_ncu_in_task(fn: Callable, warmup=25, grad_to_none=None, fast_flush=True, output_dir=None) -> None:
+
+def do_bench_ncu_in_task(
+    fn: Callable,
+    warmup=25,
+    grad_to_none=None,
+    fast_flush=True,
+    output_dir=None,
+    range_name: str = "",
+) -> None:
     """
     Benchmark the runtime of the provided function. By default, return the median runtime of :code:`fn` along with
     the 20-th and 80-th performance percentile.
@@ -46,8 +53,6 @@ def do_bench_ncu_in_task(fn: Callable, warmup=25, grad_to_none=None, fast_flush=
     # Warm-up
     for _ in range(n_warmup):
         fn()
-    # Start ncu profiling
-    torch.cuda.cudart().cudaProfilerStart()
     # we don't want `fn` to accumulate gradient values
     # if it contains a backward pass. So we clear the
     # provided gradients
@@ -56,5 +61,5 @@ def do_bench_ncu_in_task(fn: Callable, warmup=25, grad_to_none=None, fast_flush=
             x.grad = None
     # we clear the L2 cache before run
     cache.zero_()
-    fn()
-    torch.cuda.cudart().cudaProfilerStop()
+    with torch.cuda.nvtx.range(range_name):
+        fn()

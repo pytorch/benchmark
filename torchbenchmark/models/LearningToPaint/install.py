@@ -1,10 +1,6 @@
-import subprocess
-import sys
 from utils import s3_utils
+from utils.python_utils import pip_install_requirements
 
-
-def pip_install_requirements():
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 
 if __name__ == '__main__':
     s3_utils.checkout_s3_data("INPUT_TARBALLS", "Super_SloMo_inputs.tar.gz", decompress=True)

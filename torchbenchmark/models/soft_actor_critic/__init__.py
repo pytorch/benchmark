@@ -12,7 +12,7 @@ from .config import SACConfig
 from .envs import load_gym
 from .sac import SACAgent
 from .replay import PrioritizedReplayBuffer, ReplayBuffer
-from .utils import hard_update, soft_update
+from .sac_utils import hard_update, soft_update
 
 
 def learn_standard(

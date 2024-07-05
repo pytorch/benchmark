@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch import distributions as pyd
 from torch import nn
 
-from . import utils
+from . import sac_utils
 from torchbenchmark.util.distribution import SquashedNormal
 
 def weight_init(m):
@@ -30,11 +30,11 @@ class BigPixelEncoder(nn.Module):
         self.conv3 = nn.Conv2d(32, 32, kernel_size=3, stride=1)
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, stride=1)
 
-        output_height, output_width = utils.compute_conv_output(
+        output_height, output_width = sac_utils.compute_conv_output(
             obs_shape[1:], kernel_size=(3, 3), stride=(2, 2)
         )
         for _ in range(3):
-            output_height, output_width = utils.compute_conv_output(
+            output_height, output_width = sac_utils.compute_conv_output(
                 (output_height, output_width), kernel_size=(3, 3), stride=(1, 1)
             )
 
@@ -63,15 +63,15 @@ class SmallPixelEncoder(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
-        output_height, output_width = utils.compute_conv_output(
+        output_height, output_width = sac_utils.compute_conv_output(
             obs_shape[1:], kernel_size=(8, 8), stride=(4, 4)
         )
 
-        output_height, output_width = utils.compute_conv_output(
+        output_height, output_width = sac_utils.compute_conv_output(
             (output_height, output_width), kernel_size=(4, 4), stride=(2, 2)
         )
 
-        output_height, output_width = utils.compute_conv_output(
+        output_height, output_width = sac_utils.compute_conv_output(
             (output_height, output_width), kernel_size=(3, 3), stride=(1, 1)
         )
 

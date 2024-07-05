@@ -8,6 +8,7 @@ import os
 from tqdm import tqdm
 
 from pathlib import Path
+from torchvision import models
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -56,7 +57,7 @@ class Model(E2EBenchmarkModel):
             # by default, run 200 epochs
             self.num_epochs = 200
             # use random init model for train
-            self.model = torchvision.models.resnet50().to(self.device)
+            self.model = models.resnet50().to(self.device)
             from .resnet import ResNet50
             self.model = ResNet50().to(self.device)
             self.model.train()
@@ -66,7 +67,7 @@ class Model(E2EBenchmarkModel):
             self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.T_max)
         else:
             # use pretrained model for eval
-            self.model = torchvision.models.resnet50(pretrained=True).to(self.device)
+            self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1).to(self.device)
             self.model.eval()
 
     def get_optimizer(self):

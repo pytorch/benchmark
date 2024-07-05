@@ -5,28 +5,14 @@ import sys
 from pathlib import Path
 
 from userbenchmark import list_userbenchmarks
-from utils import get_pkg_versions, TORCH_DEPS
+from utils import get_pkg_versions, TORCH_DEPS, generate_pkg_constraints
+from utils.python_utils import pip_install_requirements
 
 REPO_ROOT = Path(__file__).parent
 
 
-def pip_install_requirements(requirements_txt="requirements.txt"):
-    try:
-        subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-q", "-r", requirements_txt],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as e:
-        return (False, e.output)
-    except Exception as e:
-        return (False, e)
-    return True, None
-
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
         "models",
         nargs="*",
@@ -38,6 +24,27 @@ if __name__ == "__main__":
         action="store_true",
         help="Run in test mode and check package versions",
     )
+    parser.add_argument(
+        "--skip",
+        nargs="*",
+        default=[],
+        help="Skip models to install."
+    )
+    parser.add_argument(
+        "--torch",
+        action="store_true",
+        help="Only require torch to be installed, ignore torchvision and torchaudio."
+    )
+    parser.add_argument(
+        "--numpy",
+        action="store_true",
+        help="Only require numpy to be installed, ignore torch, torchvision and torchaudio."
+    )
+    parser.add_argument(
+        "--check-only",
+        action="store_true",
+        help="Only run the version check and generate the contraints"
+    )
     parser.add_argument("--canary", action="store_true", help="Install canary model.")
     parser.add_argument("--continue_on_fail", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
@@ -46,15 +53,21 @@ if __name__ == "__main__":
         choices=list_userbenchmarks(),
         help="Install requirements for optional components.",
     )
-    args = parser.parse_args()
+    args, extra_args = parser.parse_known_args()
 
     os.chdir(os.path.realpath(os.path.dirname(__file__)))
 
+    if args.torch or args.userbenchmark:
+        TORCH_DEPS = ["numpy", "torch"]
+    if args.numpy:
+        TORCH_DEPS = ["numpy"]
     print(
-        f"checking packages {', '.join(TORCH_DEPS)} are installed...",
+        f"checking packages {', '.join(TORCH_DEPS)} are installed, generating constaints...",
         end="",
         flush=True,
     )
+    if args.userbenchmark:
+        TORCH_DEPS = ["numpy", "torch"]
     try:
         versions = get_pkg_versions(TORCH_DEPS)
     except ModuleNotFoundError as e:
@@ -63,18 +76,28 @@ if __name__ == "__main__":
             f"Error: Users must first manually install packages {TORCH_DEPS} before installing the benchmark."
         )
         sys.exit(-1)
+    generate_pkg_constraints(versions)
     print("OK")
+
+    if args.check_only:
+        exit(0)
 
     if args.userbenchmark:
         # Install userbenchmark dependencies if exists
         userbenchmark_dir = REPO_ROOT.joinpath("userbenchmark", args.userbenchmark)
+        cmd = [sys.executable, "install.py"]
+        print(f"Installing userbenchmark {args.userbenchmark} with extra args: {extra_args}")
+        cmd.extend(extra_args)
         if userbenchmark_dir.joinpath("install.py").is_file():
+            # add the current run env to PYTHONPATH to load framework install utils
+            run_env = os.environ.copy()
+            run_env["PYTHONPATH"] = Path(REPO_ROOT).as_posix()
             subprocess.check_call(
-                [sys.executable, "install.py"], cwd=userbenchmark_dir.absolute()
+                cmd, cwd=userbenchmark_dir.absolute(), env=run_env,
             )
         sys.exit(0)
 
-    success, errmsg = pip_install_requirements()
+    success, errmsg = pip_install_requirements(continue_on_fail=True)
     if not success:
         print("Failed to install torchbenchmark requirements:")
         print(errmsg)
@@ -84,6 +107,7 @@ if __name__ == "__main__":
 
     success &= setup(
         models=args.models,
+        skip_models=args.skip,
         verbose=args.verbose,
         continue_on_fail=args.continue_on_fail,
         test_mode=args.test_mode,
@@ -97,7 +121,9 @@ if __name__ == "__main__":
     new_versions = get_pkg_versions(TORCH_DEPS)
     if versions != new_versions:
         print(
-            f"The torch packages are re-installed after installing the benchmark deps. \
+            f"The numpy and torch package versions become inconsistent after installing the benchmark deps. \
                 Before: {versions}, after: {new_versions}"
         )
         sys.exit(-1)
+    else:
+        print(f"installed torchbench with package constraints: {versions}")

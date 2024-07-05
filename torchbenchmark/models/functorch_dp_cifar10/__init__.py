@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
-import torchvision.models as models
+from torchvision import models
 from functorch import make_functional_with_buffers, vmap, grad
 from typing import Tuple
 

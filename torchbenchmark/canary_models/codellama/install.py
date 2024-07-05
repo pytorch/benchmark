@@ -1,6 +1,4 @@
 
-import subprocess
-import sys
 import os
 from torchbenchmark.util.framework.huggingface.patch_hf import patch_transformers, cache_model
 

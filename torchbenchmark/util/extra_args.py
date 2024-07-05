@@ -1,5 +1,6 @@
 import argparse
 import enum
+import warnings
 from typing import List, Optional, Tuple
 
 from torchbenchmark.util.backends import BACKENDS, list_backends

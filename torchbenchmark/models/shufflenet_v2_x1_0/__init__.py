@@ -1,6 +1,6 @@
 from torchbenchmark.util.framework.vision.model_factory import TorchVisionModel
 from torchbenchmark.tasks import COMPUTER_VISION
-import torchvision.models as models
+from torchvision import models
 
 class Model(TorchVisionModel):
     task = COMPUTER_VISION.CLASSIFICATION

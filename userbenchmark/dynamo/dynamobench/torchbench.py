@@ -25,6 +25,10 @@ from torch._dynamo.utils import clone_inputs
 # We are primarily interested in tf32 datatype
 torch.backends.cuda.matmul.allow_tf32 = True
 
+# Enable FX graph caching
+if "TORCHINDUCTOR_FX_GRAPH_CACHE" not in os.environ:
+    torch._inductor.config.fx_graph_cache = True
+
 
 def _reassign_parameters(model):
     # torch_geometric models register parameter as tensors due to
@@ -213,6 +217,20 @@ class TorchBenchmarkRunner(BenchmarkRunner):
             "vision_maskrcnn",
         }
 
+    @property
+    def inline_inbuilt_nn_modules_models(self):
+        return {
+            "basic_gnn_edgecnn",
+            "drq",
+            "hf_Reformer",
+            "DALLE2_pytorch",
+            "hf_BigBird",
+            "detectron2_maskrcnn_r_50_fpn",
+            "detectron2_maskrcnn_r_101_fpn",
+            "vision_maskrcnn",
+            "doctr_reco_predictor",
+        }
+
     def load_model(
         self,
         device,
@@ -381,8 +399,8 @@ class TorchBenchmarkRunner(BenchmarkRunner):
 
             model_name = os.path.basename(model_path)
             if (
-                not re.search("|".join(args.filter), model_name, re.I)
-                or re.search("|".join(args.exclude), model_name, re.I)
+                not re.search("|".join(args.filter), model_name, re.IGNORECASE)
+                or re.search("|".join(args.exclude), model_name, re.IGNORECASE)
                 or model_name in args.exclude_exact
                 or model_name in self.skip_models
             ):

@@ -49,6 +49,15 @@ def get_model(args, device):
     else:
         model = model.netG
     root = str(Path(__file__).parent)
+    # The script is probably run at Meta internally. Attempt to download the dataset from Manifold.
+    if not os.path.exists(f'{root}/example_input.pt'):
+        try:
+            from torchbenchmark.util.framework.fb.installer import install_data
+            data_name = "pytorch_CycleGAN_and_pix2pix_example_inputs"
+            root = install_data(data_name)
+        except Exception as e:
+            msg = f"Failed to download data from manifold: {e}"
+            raise RuntimeError(msg) from e
     data = torch.load(f'{root}/example_input.pt')
     input = data['A'].to(device)
 

@@ -3,14 +3,20 @@ import copy
 import functools
 import gc
 import json
+import logging
 import os
 import random
+import shlex
+import tempfile
 import time
 import warnings
+from collections import OrderedDict
 from dataclasses import asdict, dataclass, fields, make_dataclass
 from enum import Enum
+from itertools import product
 from numbers import Number
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import numpy
 import tabulate
@@ -26,10 +32,13 @@ try:
 except ImportError:
     tqdm = None
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_WARMUP = 25
 DEFAULT_RUN_ITERS = 100
 DEFAULT_QUANTILES = [0.5, 0.1, 0.9]
-REGISTERED_BENCHMARKS: Dict[str, List[str]] = {}
+REGISTERED_BENCHMARKS: Dict[str, OrderedDict[str, str]] = {}
+ENABLED_BENCHMARKS: Dict[str, List[str]] = {}
 REGISTERED_METRICS: Dict[str, List[str]] = {}
 REGISTERED_X_VALS: Dict[str, str] = {}
 BASELINE_BENCHMARKS: Dict[str, str] = {}
@@ -40,6 +49,7 @@ BUILTIN_METRICS = [
     "accuracy",
     "compile_time",
     "ncu_trace",
+    "ncu_rep",
     "kineto_trace",
     "cpu_peak_mem",
     "gpu_peak_mem",
@@ -62,16 +72,31 @@ class Mode(Enum):
     FWD_NO_GRAD = "fwd_no_grad"
 
 
+class TimerContext:
+    def __init__(self, enabled=True):
+        self.enabled = enabled
+        self.elapsed_ms = None
+
+    def __enter__(self):
+        if self.enabled:
+            self._start_time = time.perf_counter()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        if self.enabled:
+            end_time = time.perf_counter()
+            self.elapsed_ms = (end_time - self._start_time) * 1e3
+
+
 def do_bench_walltime(fn, warmup=25, rep=100):
     fn()
     torch.cuda.synchronize()
 
-    start_time = time.perf_counter()
-    for _ in range(5):
-        fn()
-    torch.cuda.synchronize()
-    end_time = time.perf_counter()
-    estimate_ms = (end_time - start_time) * 1e3 / 5
+    with TimerContext() as timer:
+        for _ in range(5):
+            fn()
+        torch.cuda.synchronize()
+    estimate_ms = timer.elapsed_ms / 5
 
     # compute number of warmup and repeat
     n_warmup = max(1, int(warmup / estimate_ms))
@@ -90,6 +115,32 @@ def do_bench_walltime(fn, warmup=25, rep=100):
     end_time = time.perf_counter()
     wall_time_ms = (end_time - start_time) * 1e3 / n_repeat
     return wall_time_ms
+
+
+def llama_shapes():
+    # batch sizes * seq lengths
+    BS = [2 ** i for i in range(0, 17)]
+    # attn: wqkv, wo; ffn: w13, w2
+    KN = [
+        (4096, 12288),
+        (4096, 4096),
+        (4096, 22016),
+        (11008, 4096),
+
+        (8192, 1280),
+        (1024, 8192),
+        (8192, 7168),
+        (3584, 8192),
+
+        (16384, 2304),
+        (2048, 16384),
+        (16384, 13312),
+        (6656, 16384),
+    ]
+    return [
+        (bs, n, k, None)
+        for bs, (k, n) in product(BS, KN)
+    ]
 
 
 def _find_param_loc(l, key: str) -> int:
@@ -133,31 +184,33 @@ def dump_autotuner_best_config(kernel: triton.runtime.Autotuner) -> str:
 @dataclass
 class BenchmarkOperatorMetrics:
     # latency in ms
-    latency: Optional[List[float]]
+    latency: Optional[float] = None
     # tflops
-    tflops: Optional[List[float]]
+    tflops: Optional[float] = None
     # speedup over baseline
-    speedup: Optional[float]
+    speedup: Optional[float] = None
     # accuracy over baseline
-    accuracy: Optional[bool]
+    accuracy: Optional[bool] = None
     # wall time
-    walltime: Optional[float]
+    walltime: Optional[float] = None
     # compile time
-    compile_time: Optional[float]
+    compile_time: Optional[float] = None
     # ncu trace file
-    ncu_trace: Optional[str]
+    ncu_trace: Optional[str] = None
+    # ncu replay file
+    ncu_rep: Optional[str] = None
     # kineto trace file
-    kineto_trace: Optional[str]
+    kineto_trace: Optional[str] = None
     # cpu peak memory
-    cpu_peak_mem: Optional[float]
+    cpu_peak_mem: Optional[float] = None
     # gpu peak memory
-    gpu_peak_mem: Optional[float]
+    gpu_peak_mem: Optional[float] = None
     # error message
-    error_msg: Optional[str]
+    error_msg: Optional[str] = None
     # hw roofline
-    hw_roofline: Optional[float]
+    hw_roofline: Optional[float] = None
     # extra metrics
-    extra_metrics: Dict[str, float]
+    extra_metrics: Optional[Dict[str, float]] = None
 
 
 @dataclass
@@ -165,13 +218,15 @@ class BenchmarkOperatorResult:
     # Print the result in a table format
     op_name: str
     metrics: List[str]
-    result: List[Tuple[Number, Dict[str, BenchmarkOperatorMetrics]]]
+    result: List[Tuple[Any, Dict[str, BenchmarkOperatorMetrics]]]
     _result_dict: Optional[Dict[Number, Dict[str, BenchmarkOperatorMetrics]]] = None
 
     def _table(self):
         table = []
         # generate headers
         headers = [REGISTERED_X_VALS[self.op_name]]
+        if len(self.result) == 0:
+            return headers, table
         y_val = self.result[0][1]
         y_val_keys = list(y_val.keys())
         # move the baseline benchmark to the front of the list if exists
@@ -179,13 +234,14 @@ class BenchmarkOperatorResult:
             y_val_keys.insert(
                 0, y_val_keys.pop(y_val_keys.index(BASELINE_BENCHMARKS[self.op_name]))
             )
+        y_val_keys = [(x, REGISTERED_BENCHMARKS[self.op_name][x]) for x in y_val_keys]
         key_metrics = {}
         # Add header for x_only_metrics
         x_only_metrics = sorted(
             [metric for metric in self.metrics if metric in X_ONLY_METRICS]
         )
         headers.extend(x_only_metrics)
-        for k in y_val_keys:
+        for k, label in y_val_keys:
             def select_metric(m):
                 if m in x_only_metrics:
                     return False
@@ -196,16 +252,24 @@ class BenchmarkOperatorResult:
             key_metrics[k] = sorted(filter(select_metric, self.metrics))
             for metric in key_metrics[k]:
                 # add extra metrics
-                headers.append(f"{k}-{metric}")
+                headers.append(f"{label}-{metric}")
         # generate rows
         for x_val, y_val in self.result:
             row = []
             row.append(x_val)
             # Append x_val_only metrics
             for x_only_metric in x_only_metrics:
-                x_only_metric_dict = asdict(y_val[y_val_keys[0]])
-                row.append(x_only_metric_dict[x_only_metric])
-            for k in y_val_keys:
+                x_only_metric_dict = asdict(
+                    y_val[y_val_keys[0][0]]
+                )  # retrieve canonical name for metric function, where y_val_keys[0] = (canonical name, customized label name)
+                if (
+                    "extra_metrics" in x_only_metric_dict
+                    and x_only_metric in x_only_metric_dict["extra_metrics"]
+                ):
+                    row.append(x_only_metric_dict["extra_metrics"][x_only_metric])
+                else:
+                    row.append(x_only_metric_dict[x_only_metric])
+            for k, _label in y_val_keys:
                 metrics_dict = asdict(y_val[k])
                 if metrics_dict["error_msg"]:
                     row.append(metrics_dict["error_msg"])
@@ -270,7 +334,7 @@ class BenchmarkOperatorResult:
 
     def get_y_vals(self, x_val, provider, metric_name: str):
         if provider in X_ONLY_METRICS:
-            maybe_baseline = REGISTERED_BENCHMARKS[self.op_name][0]
+            maybe_baseline = list(REGISTERED_BENCHMARKS[self.op_name].keys())[0]
             metrics_dict = asdict(self._get_result_dict()[x_val][maybe_baseline])
             metric_name = provider
         else:
@@ -304,15 +368,18 @@ def register_x_val(label: str="x_val"):
         return _inner
     return decorator
 
-def register_benchmark(baseline: bool = False, enabled: bool = True):
+def register_benchmark(baseline: bool = False, enabled: bool = True, label: Optional[str] = None):
     def decorator(function):
+        operator_name = _find_op_name_from_module_path(function.__module__)
+        if not operator_name in REGISTERED_BENCHMARKS:
+            REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
+        REGISTERED_BENCHMARKS[operator_name][function.__name__] = function.__name__ if not label else label
+        if baseline:
+            BASELINE_BENCHMARKS[operator_name] = function.__name__
         if enabled:
-            operator_name = _find_op_name_from_module_path(function.__module__)
-            if not operator_name in REGISTERED_BENCHMARKS:
-                REGISTERED_BENCHMARKS[operator_name] = []
-            REGISTERED_BENCHMARKS[operator_name].append(function.__name__)
-            if baseline:
-                BASELINE_BENCHMARKS[operator_name] = function.__name__
+            if not operator_name in ENABLED_BENCHMARKS:
+                ENABLED_BENCHMARKS[operator_name] = []
+            ENABLED_BENCHMARKS[operator_name].append(function.__name__)
 
         def _inner(self, *args, **kwargs):
             return function(self, *args, **kwargs)
@@ -366,9 +433,19 @@ def parse_args(
         help="Specify one or multiple operator implementations to run."
     )
     parser.add_argument(
+        "--baseline",
+        type=str,
+        default=None,
+        help="Override default baseline."
+    )
+    parser.add_argument(
         "--num-inputs",
         type=int,
         help="Number of example inputs.",
+    )
+    parser.add_argument(
+        "--keep-going",
+        action="store_true",
     )
     parser.add_argument(
         "--input-id",
@@ -379,6 +456,16 @@ def parse_args(
             "When used together like --input-id <X> --num-inputs <Y>, start from the input id <X> " \
             "and run <Y> different inputs."
     )
+    parser.add_argument(
+        "--test-only",
+        action="store_true",
+        help="Run this under test mode, potentially skipping expensive steps like autotuning."
+    )
+    parser.add_argument(
+        "--dump-ir",
+        action="store_true",
+        help="Dump Triton IR",
+    )
     return parser.parse_known_args(args)
 
 class PostInitProcessor(type):
@@ -387,6 +474,10 @@ class PostInitProcessor(type):
         obj.__post__init__()
         return obj
 
+
+_RANGE_NAME = "tritonbench_range"
+
+
 class BenchmarkOperator(metaclass=PostInitProcessor):
     mode: Mode = Mode.FWD
     test: str = "eval"
@@ -394,6 +485,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     _input_iter: Optional[Generator] = None
     extra_args: List[str] = []
     example_inputs: Any = None
+    use_cuda_graphs: bool = True
 
     # By default, only collect latency metrics
     # Each operator can override to define their own default metrics
@@ -430,10 +522,13 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             self.DEFAULT_METRICS,
             unprocessed_args
         )
+        if self.tb_args.baseline:
+            BASELINE_BENCHMARKS[self.name] = self.tb_args.baseline
         self.required_metrics = list(set(self.tb_args.metrics.split(",")))
         self._only = _split_params_by_comma(self.tb_args.only)
         self._input_id = self.tb_args.input_id
         self._num_inputs = self.tb_args.num_inputs
+        self.device = device
 
     # Run the post initialization
     def __post__init__(self):
@@ -445,12 +540,15 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         fwd_fn_lambda = getattr(self, bm_func_name, None)
         assert fwd_fn_lambda, (
             f"Could not find benchmark {bm_func_name} registered in {self.name}. "
-            f"Available benchmarks: {REGISTERED_BENCHMARKS[self.name]}. "
+            f"Available benchmarks: {REGISTERED_BENCHMARKS[self.name].keys()}. "
         )
-        if isinstance(self.example_inputs, dict):
-            fwd_fn = fwd_fn_lambda(**self.example_inputs)
-        else:
-            fwd_fn = fwd_fn_lambda(*self.example_inputs)
+        with TimerContext(enabled=logger.level <= logging.INFO) as timer:
+            if isinstance(self.example_inputs, dict):
+                fwd_fn = fwd_fn_lambda(**self.example_inputs)
+            else:
+                fwd_fn = fwd_fn_lambda(*self.example_inputs)
+        logger.info("Took %.02fms to get benchmark function for %s", timer.elapsed_ms, bm_func_name)
+
         if self.mode == Mode.FWD:
             setattr(fwd_fn, "_name", bm_func_name)
             return fwd_fn
@@ -466,44 +564,45 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
 
     def run(
         self, warmup=DEFAULT_WARMUP, rep=DEFAULT_RUN_ITERS, quantiles=DEFAULT_QUANTILES
-    ) -> BenchmarkOperatorResult:
+    ) -> None:
         """Benchmarking the operator and returning its metrics."""
         metrics = []
-        input_id_range = range(self._input_id, self._input_id+self._num_inputs)
-        if tqdm is not None:
-            input_id_range = tqdm(input_id_range)
-        if self._input_id:
-            for _dryrun_input_id in range(self._input_id):
+        try:
+            input_id_range = range(self._input_id, self._input_id + self._num_inputs)
+            if tqdm is not None:
+                input_id_range = tqdm(input_id_range)
+            if self._input_id:
+                for _dryrun_input_id in range(self._input_id):
+                    self.example_inputs = self.get_example_inputs()
+            for input_id in input_id_range:
                 self.example_inputs = self.get_example_inputs()
-        for input_id in input_id_range:
-            self.example_inputs = self.get_example_inputs()
-            if self.example_inputs is None:
-                warnings.warn(
-                    UserWarning(
-                        f"The input generator get_input_iter() has depleted at id {input_id}. Available number of inputs: {self._available_num_inputs}."
+                if self.example_inputs is None:
+                    warnings.warn(
+                        f"The input generator get_input_iter() has depleted at id {input_id}. Available number of "
+                        f"inputs: {self._available_num_inputs}.",
+                        stacklevel=1
                     )
+                    break
+                # Move inputs to the device
+                self.example_inputs = input_cast(
+                    lambda x: isinstance(x, torch.Tensor),
+                    lambda x: x.to(self.device),
+                    self.example_inputs,
                 )
-                break
-            # Move inputs to the device
-            self.example_inputs = input_cast(
-                lambda x: isinstance(x, torch.Tensor),
-                lambda x: x.to(self.device),
-                self.example_inputs,
-            )
-            self.baseline_fn = None
-            self.baseline_metrics = None
-            self._op_flops = {}
-            # Cast the input precisions
-            apply_decoration_args(self, self.dargs)
-            x_val = self.get_x_val(self.example_inputs)
-            if self._only:
-                benchmarks = self._only
-            else:
-                benchmarks = (
-                    [bm for bm in REGISTERED_BENCHMARKS[self.name]]
-                    if self.name in REGISTERED_BENCHMARKS
-                    else []
-                )
+                self.baseline_fn = None
+                self.baseline_metrics = None
+                self._op_flops = {}
+                # Cast the input precisions
+                apply_decoration_args(self, self.dargs)
+                x_val = self.get_x_val(self.example_inputs)
+                if self._only:
+                    benchmarks = self._only
+                else:
+                    benchmarks = (
+                        [bm for bm in ENABLED_BENCHMARKS[self.name]]
+                        if self.name in ENABLED_BENCHMARKS
+                        else []
+                    )
                 # Run the baseline first, if baseline exists
                 baseline_name = (
                     BASELINE_BENCHMARKS[self.name]
@@ -514,37 +613,40 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     benchmarks.remove(baseline_name)
                     benchmarks.insert(0, baseline_name)
 
-            # get metrics for for each registered benchmark
-            def _reduce_benchmarks(acc, bm_name: str):
-                baseline = (
-                    bm_name == BASELINE_BENCHMARKS[self.name]
-                    if self.name in BASELINE_BENCHMARKS
-                    else False
-                )
-                acc[bm_name] = self._do_bench(
-                    input_id=input_id,
-                    fn_name=bm_name,
-                    warmup=warmup,
-                    rep=rep,
-                    quantiles=quantiles,
-                    baseline=baseline,
-                )
-                if baseline:
-                    self.baseline_metrics = acc[bm_name]
-                return acc
+                # get metrics for for each registered benchmark
+                def _reduce_benchmarks(acc, bm_name: str):
+                    baseline = (
+                        bm_name == BASELINE_BENCHMARKS[self.name]
+                        if self.name in BASELINE_BENCHMARKS
+                        else False
+                    )
+                    acc[bm_name] = self._do_bench(
+                        input_id=input_id,
+                        fn_name=bm_name,
+                        warmup=warmup,
+                        rep=rep,
+                        quantiles=quantiles,
+                        baseline=baseline,
+                    )
+                    if baseline:
+                        self.baseline_metrics = acc[bm_name]
+                    return acc
 
-            y_vals: Dict[str, BenchmarkOperatorMetrics] = functools.reduce(
-                _reduce_benchmarks, benchmarks, {}
+                y_vals: Dict[str, BenchmarkOperatorMetrics] = functools.reduce(
+                    _reduce_benchmarks, benchmarks, {}
+                )
+                metrics.append((x_val, y_vals))
+                del self.example_inputs
+                gc.collect()
+        except (KeyboardInterrupt, Exception):
+            warnings.warn("Caught exception, terminating early with partial results", stacklevel=1)
+            raise
+        finally:
+            self.output = BenchmarkOperatorResult(
+                op_name=self.name,
+                metrics=self.required_metrics,
+                result=metrics,
             )
-            metrics.append((x_val, y_vals))
-            del self.example_inputs
-            gc.collect()
-        self.output = BenchmarkOperatorResult(
-            op_name=self.name,
-            metrics=self.required_metrics,
-            result=metrics,
-        )
-        return self.output
 
     def get_x_val(self, example_inputs) -> Any:
         raise NotImplementedError(
@@ -648,6 +750,9 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         except StopIteration:
             return None
 
+    def get_temp_path(self, path: Union[str, Path]) -> Path:
+        return Path(tempfile.gettempdir()) / "tritonbench" / self.name / Path(path)
+
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
         baseline_output = baseline_fn()
@@ -688,18 +793,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     extra_metrics[metric_name] = None
             return extra_metrics
         metrics = BenchmarkOperatorMetrics(
-            latency=None,
-            tflops=None,
-            speedup=None,
-            accuracy=None,
-            walltime=None,
-            compile_time=None,
-            ncu_trace=None,
             hw_roofline=self.hw_roofline() if "hw_roofline" in self.required_metrics else None,
-            kineto_trace=None,
-            cpu_peak_mem=None,
-            gpu_peak_mem=None,
-            error_msg="",
             extra_metrics=_init_extra_metrics(),
         )
         try:
@@ -709,13 +803,22 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if set(["latency", "tflops", "speedup", "compile_time"]) & set(
                 self.required_metrics
             ):
-                metrics.latency = triton.testing.do_bench(
-                    fn,
-                    warmup=warmup,
-                    rep=rep,
-                    quantiles=quantiles,
-                    grad_to_none=self.get_grad_to_none(self.example_inputs),
-                )
+                if self.use_cuda_graphs:
+                    with torch.cuda.stream(torch.cuda.Stream()):
+                        metrics.latency = triton.testing.do_bench_cudagraph(
+                            fn,
+                            rep=rep,
+                            return_mode="median",
+                            grad_to_none=self.get_grad_to_none(self.example_inputs),
+                        )
+                else:
+                    metrics.latency = triton.testing.do_bench(
+                        fn,
+                        warmup=warmup,
+                        rep=rep,
+                        return_mode="median",
+                        grad_to_none=self.get_grad_to_none(self.example_inputs),
+                    )
             if "walltime" in self.required_metrics:
                 metrics.walltime = do_bench_walltime(
                     fn,
@@ -724,7 +827,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 )
             if "speedup" in self.required_metrics:
                 metrics.speedup = (
-                    numpy.median(self.baseline_metrics.latency) / numpy.median(metrics.latency)
+                    self.baseline_metrics.latency / metrics.latency
                     if self.baseline_metrics and self.baseline_metrics.latency
                     else None
                 )
@@ -753,8 +856,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             if "ncu_trace" in self.required_metrics:
                 metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
             if "ncu_rep" in self.required_metrics:
-                metrics.ncu_trace = self.ncu_trace(input_id, fn_name, replay=True)
-                self.required_metrics = list(map(lambda x: x.replace('ncu_rep', 'ncu_trace'), self.required_metrics))
+                metrics.ncu_rep = self.ncu_trace(input_id, fn_name, replay=True)
             if "kineto_trace" in self.required_metrics:
                 metrics.kineto_trace = self.kineto_trace(input_id, fn)
             # run the hidden metric "_compile_time_in_task"
@@ -784,6 +886,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     fn=fn,
                     warmup=warmup,
                     grad_to_none=self.get_grad_to_none(self.example_inputs),
+                    range_name=_RANGE_NAME,
                 )
                 metrics.extra_metrics["_ncu_trace_in_task"] = "success"
             # generate customized metrics
@@ -795,9 +898,13 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                         continue
                     func = getattr(self, metric_name)
                     metrics.extra_metrics[metric_name] = func(fn, self.example_inputs, metrics)
+            if self.tb_args.dump_ir:
+                self.dump_ir(input_id, fn)
         except torch.cuda.OutOfMemoryError:
             metrics.error_msg = "CUDA OOM"
         except Exception as e:
+            if not self.tb_args.keep_going:
+                raise
             metrics.error_msg = str(e)
         return metrics
 
@@ -815,7 +922,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         # collect the ncu trace
         import sys
         import subprocess
-        from pathlib import Path
 
         op_task_args = copy.deepcopy(sys.argv)
         for override_option in ["--only", "--input-id", "--num-inputs", "--metrics"]:
@@ -835,20 +941,25 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             ]
         )
         # Disable DCGM
-        try:
-            disable_dcgm = [
-                "sudo",
-                "dyno",
-                "dcgm_profiling",
-                "--mute=true",
-                "--duration=1000_s",
-            ]
-            subprocess.run(disable_dcgm, check=True)
-        except subprocess.SubprocessError:
+        disable_dyno_dcgm = [
+            "sudo",
+            "dyno",
+            "dcgm_profiling",
+            "--mute=true",
+            "--duration=100000_s",
+        ]
+        disable_dcgm_service = [
+            "sudo",
+            "systemctl",
+            "stop",
+            "nvidia-dcgm",
+        ]
+        if subprocess.run(disable_dyno_dcgm).returncode != 0 and \
+                subprocess.run(disable_dcgm_service).returncode != 0:
             warnings.warn(
-                "Cannot find dyno to disable DCGM. Proceed to collect NCU Trace."
+                "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
             )
-        ncu_output_dir = Path(f"/tmp/tritonbench_{self.name}_{fn_name}_{input_id}")
+        ncu_output_dir = self.get_temp_path(f"ncu_traces/{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
         ext = ".csv" if not replay else ".ncu-rep"
         ncu_output_file = ncu_output_dir.joinpath(f"ncu_output{ext}").resolve()
@@ -856,35 +967,39 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             "ncu",
             "--set",
             "full",
-            "--replay-mode",
-            "kernel",
+            "--nvtx",
+            "--nvtx-include",
+            f"{_RANGE_NAME}/",
             "--target-processes",
             "all",
-            "--csv",
-            "-f",
-            "--log-file",
-            str(ncu_output_file.resolve()),
-        ] if not replay else [
-            "ncu",
-            "--set",
-            "full",
-            "--replay-mode",
-            "kernel",
-            "--target-processes",
-            "all",
-            "-f",
-            "-o",
-            str(ncu_output_file.resolve()),
+            "--import-source",
+            "yes",
         ]
+        if replay:
+            ncu_args.extend([
+                "-f",
+                "-o",
+                str(ncu_output_file.resolve()),
+            ])
+        else:
+            ncu_args.extend([
+                "--csv",
+                "-f",
+                "--log-file",
+                str(ncu_output_file.resolve()),
+            ])
         ncu_args.extend(op_task_args)
-        subprocess.check_call(ncu_args)
+        logger.info("Running NCU: %s", shlex.join(ncu_args))
+        # Sometimes, `ncu --target-processes all` will fail with the message "Failed to connect to process". Setting
+        # CUDA_INJECTION64_PATH=none seems to fix this issue.
+        subprocess.check_call(ncu_args, env={**os.environ, "CUDA_INJECTION64_PATH": "none"})
         return str(ncu_output_file.resolve())
 
     def kineto_trace(self, input_id: int, fn: Callable) -> str:
         from pathlib import Path
         from torchbenchmark._components.kineto import do_bench_kineto
 
-        kineto_output_dir = Path(f"/tmp/tritonbench_{self.name}_{fn._name}_{input_id}")
+        kineto_output_dir = self.get_temp_path(f"kineto_traces/{fn._name}_{input_id}")
         kineto_output_dir.mkdir(parents=True, exist_ok=True)
         return do_bench_kineto(
             fn=fn,
@@ -923,7 +1038,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         op_task.run()
         latency_with_compile = op_task.get_attribute("_latency_with_compile_in_task")
         del op_task
-        latency_without_compile = numpy.median(metrics.latency)
+        latency_without_compile = metrics.latency
         return latency_with_compile - latency_without_compile
 
     def hw_roofline(self) -> float:
@@ -957,7 +1072,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
 
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> List[float]:
+    ) -> float:
         def _get_flops(self, func: Callable) -> float:
             """By default, use the torch.__dispatch__ based flops counter."""
             from torch.utils.flop_counter import FlopCounterMode
@@ -983,4 +1098,31 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         if not fn in self._op_flops:
             self._op_flops[fn] = _get_flops(self, fn)
         op_flops = self._op_flops[fn]
-        return list(map(lambda x: op_flops / x / 1e12 * 1e3, metrics.latency))
+        return op_flops / metrics.latency / 1e12 * 1e3
+
+    def dump_ir(self, input_id, fn):
+        from unittest import mock
+        from triton.runtime.jit import JITFunction
+
+        original_run = JITFunction.run
+        compiled_kernels = []
+
+        # There isn't really a great way to get the compiled kernels without monkeypatching
+        def run_and_capture(self, *args, **kwargs):
+            compiled_kernel = original_run(self, *args, **kwargs)
+            compiled_kernels.append(compiled_kernel)
+            return compiled_kernel
+
+        with mock.patch.object(JITFunction, "run", run_and_capture):
+            fn()
+
+        if len(compiled_kernels) > 0:
+            ir_dir = self.get_temp_path("ir")
+            ir_dir.mkdir(parents=True, exist_ok=True)
+            logger.info("Writing Triton IR to %s", ir_dir)
+
+        for kernel in compiled_kernels:
+            for ir in ["ttir", "ttgir", "llir", "ptx", "amdgcn"]:
+                if ir in kernel.asm:
+                    with open(ir_dir / f"{fn._name}_{kernel.name}_{input_id}.{ir}", "w") as f:
+                        f.write(kernel.asm[ir])

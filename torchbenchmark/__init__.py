@@ -156,7 +156,8 @@ def _is_canary_model(model_name: str) -> bool:
 
 
 def setup(
-    models: List[str] = [],
+    models: Optional[List[str]] = None,
+    skip_models: Optional[List[str]] = None,
     verbose: bool = True,
     continue_on_fail: bool = False,
     test_mode: bool = False,
@@ -175,16 +176,18 @@ def setup(
         )
         model_paths = list(model_paths)
         model_paths.extend(canary_model_paths)
+    skip_models = [] if not skip_models else skip_models
+    model_paths = [ x for x in model_paths if os.path.basename(x) not in skip_models ]
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         if test_mode:
             versions = get_pkg_versions(TORCH_DEPS)
         success, errmsg, stdout_stderr = _install_deps(model_path, verbose=verbose)
         if test_mode:
-            new_versions = get_pkg_versions(TORCH_DEPS, reload=True)
+            new_versions = get_pkg_versions(TORCH_DEPS)
             if versions != new_versions:
                 print(
-                    f"The torch packages are re-installed after installing the benchmark model {model_path}. \
+                    f"The numpy and torch packages are re-installed after installing the benchmark model {model_path}. \
                         Before: {versions}, after: {new_versions}"
                 )
                 sys.exit(-1)
@@ -615,7 +618,7 @@ def load_model_by_name(model_name: str):
     cls_name = "Model"
     if not models:
         # If the model is in TIMM or Huggingface extended model list
-        from torchbenchmark.util.framework.huggingface.extended_configs import (
+        from torchbenchmark.util.framework.huggingface.list_extended_configs import (
             list_extended_huggingface_models,
         )
         from torchbenchmark.util.framework.timm.extended_configs import (

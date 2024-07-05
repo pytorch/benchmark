@@ -17,14 +17,13 @@ class Operator(BenchmarkOperator):
 
     @register_metric()
     def gbps(self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics):
-        gbps = (
-            lambda ms: 3
+        return (
+            3
             * example_inputs[0].element_size()
             * example_inputs[0].numel()
-            / ms
+            / metrics.latency
             * 1e-6
         )
-        return list(map(gbps, metrics.latency))
 
     @register_benchmark()
     def triton_add(self, x: torch.Tensor, y: torch.Tensor):

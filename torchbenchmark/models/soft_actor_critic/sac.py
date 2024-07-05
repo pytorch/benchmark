@@ -3,7 +3,7 @@ import os
 import numpy as np
 import torch
 
-from . import envs, nets, replay, utils
+from . import envs, nets, replay, sac_utils
 
 
 class SACAgent:

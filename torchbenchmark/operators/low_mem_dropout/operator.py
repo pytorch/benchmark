@@ -13,13 +13,17 @@ from torchbenchmark.util.triton_op import (
 
 from .kernels import _triton_dropout, _seeded_triton_dropout
 
+
 class Operator(BenchmarkOperator):
     @register_metric()
     def gbps(self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics):
-        gbps = (
-            lambda ms: 3 * example_inputs[1].element_size() * example_inputs[1].numel() / ms * 1e-6
+        return (
+            3
+            * example_inputs[1].element_size()
+            * example_inputs[1].numel()
+            / metrics.latency
+            * 1e-6
         )
-        return list(map(gbps, metrics.latency))
 
     @register_metric()
     def tflops(
@@ -27,7 +31,7 @@ class Operator(BenchmarkOperator):
     ):
         p, a = example_inputs
         flops = 2 * len(a)
-        return [flops / x / 1e12 * 1e3 for x in metrics.latency]
+        return flops / metrics.latency
 
     @register_benchmark()
     def triton_dropout(self, p, x):
