@@ -2,23 +2,19 @@ name: TorchBench Nightly Docker Cleanup
 on:
   workflow_dispatch:
 
-env:
-  # We have to fallback to node16 as Amazon Linux 2 is not ready for node20
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
 jobs:
   clean-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, linux.4xlarge]
     environment: docker-s3-upload
     steps:
-      - uses: actions/delete-package-versions@v5
+      - uses: actions/delete-package-versions@v4
         with:
           package-name: torchbench
           package-type: container
           delete-only-untagged-versions: true
           token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
-      - uses: actions/delete-package-versions@v5
+      - uses: actions/delete-package-versions@v4
         with:
           package-name: torchbench
           package-type: container
