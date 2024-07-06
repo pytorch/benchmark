@@ -8,6 +8,8 @@ REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent.parent
 TK_PATH = REPO_PATH.joinpath("submodules", "ThunderKittens")
 TRITONBENCH_TK_PATH = REPO_PATH.joinpath("userbenchmark", "triton", "tk")
 
+TORCH_BASE_PATH = Path(torch.__file__).parent
+
 NVCC_GENCODE = "-gencode=arch=compute_90a,code=[sm_90a]"
 
 NVCC_FLAGS = [
@@ -33,11 +35,12 @@ NVCC_FLAGS = [
     "-DKITTENS_HOPPER",
     "-D_GLIBCXX_USE_CXX11_ABI=0",
 ]
+COMPILER_FLAGS = [
+    f"-I{str(TK_PATH.joinpath('src').resolve())}",
+]
 LINKER_FLAGS = [
-    "-ltorch",
-    "-ltorch_cuda",
-    "-lc10",
-    "-lc10_cuda",
+    "--shared",
+    "-fPIC",
     "-lcuda",
     "-lcudadevrt",
     "-lcudart_static",
@@ -48,11 +51,10 @@ LINKER_FLAGS = [
 ]
 TK_ATTN_H100_FWD_SOURCES = [
     # Source 1
+    f"-L{str(TORCH_BASE_PATH.joinpath('lib').resolve())}",
     f"{str(TK_PATH.joinpath('examples', 'attn', 'h100', 'h100_fwd.cu').resolve())}",
-    # Source 2
-    f"{str(TRITONBENCH_TK_PATH.joinpath('src', 'attn_h100_fwd', 'register_op.cu').resolve())}",
     "-o",
-    "attn_h100_fwd.so",
+    "tk_attn_h100_fwd.so",
 ]
 
 
@@ -68,6 +70,7 @@ def install_tk():
     output_dir.mkdir(parents=True, exist_ok=True)
     cmd = ["nvcc"]
     cmd.extend(NVCC_FLAGS)
+    cmd.extend(COMPILER_FLAGS)
     cmd.extend(TK_ATTN_H100_FWD_SOURCES)
     cmd.extend(LINKER_FLAGS)
     print(" ".join(cmd))
