@@ -51,12 +51,23 @@ def install_fa3():
     cmd = [sys.executable, "setup.py", "install"]
     subprocess.check_call(cmd, cwd=str(FA3_PATH.resolve()))
 
+def install_tk():
+    try:
+        from .tk.install import install_tk
+    except ImportError:
+        try:
+            from tk.install import install_tk
+        except ImportError:
+            from userbenchmark.triton.tk.install import install_tk
+    install_tk()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fbgemm", action="store_true", help="Install FBGEMM GPU")
     parser.add_argument("--cutlass", action="store_true", help="Install optional CUTLASS kernels")
     parser.add_argument("--flash", action="store_true", help="Install optional FA3 kernels")
     parser.add_argument("--jax", action="store_true", help="Install jax nightly")
+    parser.add_argument("--tk", action="store_true", help="Install ThunderKittens")
     parser.add_argument("--test", action="store_true", help="Run test")
     args = parser.parse_args()
 
@@ -72,3 +83,5 @@ if __name__ == "__main__":
         install_cutlass()
     if args.jax and not args.test:
         install_jax()
+    if args.tk and not args.test:
+        install_tk()
