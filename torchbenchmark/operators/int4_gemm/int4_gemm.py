@@ -25,7 +25,7 @@ from .kernel import pack_2xint4, matmul, matmul_kernel
 
 
 class Operator(BenchmarkOperator):
-    DEFAULT_METRICS = ["tflops", "gbps", "latency"]
+    DEFAULT_METRICS = ["tflops", "gbps", "latency", "best_config"]
 
     def __init__(self, mode, device, extra_args):
         super().__init__(mode=mode, device=device, extra_args=extra_args)
@@ -79,12 +79,6 @@ class Operator(BenchmarkOperator):
         x = x.reshape(-1, x.size(-1))
         w_int4 = pack_2xint4(w).T.contiguous().T
         return lambda: matmul(x, w_int4)
-
-    @register_metric()
-    def best_config(self, fn, inputs, metrics):
-        if "triton" in str(fn):
-            return str(matmul_kernel.best_config)
-        return ""
 
     @register_metric()
     def gbps(self, fn, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> float:

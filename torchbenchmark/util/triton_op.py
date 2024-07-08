@@ -54,6 +54,7 @@ BUILTIN_METRICS = [
     "cpu_peak_mem",
     "gpu_peak_mem",
     "hw_roofline",
+    "best_config",
 ]
 BASELINE_SKIP_METRICS = set(["speedup", "accuracy"])
 X_ONLY_METRICS = set(["hw_roofline"])
@@ -169,17 +170,6 @@ def _find_op_name_from_module_path(module_path: str) -> str:
         return suffix.split(".")[1]
     return suffix.split(".")[0]
 
-def dump_autotuner_best_config(kernel: triton.runtime.Autotuner) -> str:
-    if not hasattr(kernel, "best_config"):
-        return ""
-    # pyre-ignore: Undefined attribute [16]
-    bconfig = kernel.best_config
-    kwargs = copy.deepcopy(bconfig.kwargs)
-    kwargs["num_stages"] = bconfig.num_stages
-    kwargs["num_warps"] = bconfig.num_warps
-    dumped_str = json.dumps(kwargs)
-    return dumped_str
-
 
 @dataclass
 class BenchmarkOperatorMetrics:
@@ -209,6 +199,8 @@ class BenchmarkOperatorMetrics:
     error_msg: Optional[str] = None
     # hw roofline
     hw_roofline: Optional[float] = None
+    # best config
+    best_config: Optional[Dict[str, Any]] = None
     # extra metrics
     extra_metrics: Optional[Dict[str, float]] = None
 
@@ -673,6 +665,25 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             "Each operator must implement its own plotting logic."
         )
 
+    def best_config(self, fn):
+        from unittest import mock
+        from triton.runtime import Autotuner
+
+        original_run = Autotuner.run
+        autotuner = None
+
+        def run_and_capture(self, *args, **kwargs):
+            nonlocal autotuner
+            autotuner = self
+            original_run(self, *args, **kwargs)
+
+        with mock.patch.object(Autotuner, "run", run_and_capture):
+            fn()
+
+        if autotuner is not None:
+            return autotuner.best_config.all_kwargs()
+        return None
+
     def enable_bf16(self):
         tensor_cond = lambda x: x.dtype == torch.float32
         tensor_action = lambda x: x.to(torch.bfloat16)
@@ -859,6 +870,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 metrics.ncu_rep = self.ncu_trace(input_id, fn_name, replay=True)
             if "kineto_trace" in self.required_metrics:
                 metrics.kineto_trace = self.kineto_trace(input_id, fn)
+            if "best_config" in self.required_metrics:
+                metrics.best_config = self.best_config(fn)
             # run the hidden metric "_compile_time_in_task"
             # to get the compile time in parent process
             if "_compile_time_in_task" in self.required_metrics:

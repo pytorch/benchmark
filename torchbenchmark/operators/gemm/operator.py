@@ -14,7 +14,6 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
     register_x_val,
-    dump_autotuner_best_config,
 )
 
 from .data_io import parse_args, read_shapes_from_csv
@@ -76,7 +75,7 @@ SPLIT_K_SHAPES = [
 ]
 
 class Operator(BenchmarkOperator):
-    DEFAULT_METRICS = ["latency", "speedup", "accuracy", "tflops"]
+    DEFAULT_METRICS = ["latency", "speedup", "accuracy", "tflops", "best_config"]
     DEFAULT_PRECISION = "fp16"
 
     def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
@@ -179,20 +178,6 @@ class Operator(BenchmarkOperator):
         numel = a.numel() + w.numel() + (torch.mm(a, w).numel())
         numel = numel * a.element_size() / 1e9
         return numel / metrics.latency * 1e3
-
-    @register_metric(skip_baseline=True)
-    def best_config(
-        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> str:
-        if "triton_tutorial_matmul" in str(fn_name):
-            return dump_autotuner_best_config(triton_tutorial_matmul_kernel)
-        elif "triton_ops_matmul" in str(fn_name):
-            return dump_autotuner_best_config(kernels._kernel)
-        elif "hstu_triton_matmul" in str(fn_name):
-            import hammer
-            return dump_autotuner_best_config(hammer.ops.triton.triton_matmul._epilogue_mm)
-        else:
-            return ""
 
     @register_metric()
     def tflops(

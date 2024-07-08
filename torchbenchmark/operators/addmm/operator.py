@@ -12,7 +12,6 @@ from hammer.ops.triton.triton_hstu_linear import _addmm_fwd, triton_addmm
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
-    dump_autotuner_best_config,
     register_benchmark,
     register_metric,
     register_x_val,
@@ -68,7 +67,7 @@ BUILDIN_SHAPES = [
 
 
 class Operator(BenchmarkOperator):
-    DEFAULT_METRICS = ["tflops"]
+    DEFAULT_METRICS = ["tflops", "best_config"]
     DEFAULT_PRECISION = "bf16"
 
     def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
@@ -132,15 +131,6 @@ class Operator(BenchmarkOperator):
         m, k = mat1.size()
         k, n = mat2.size()
         return (m, n, k)
-
-    @register_metric(skip_baseline=True)
-    def best_config(
-        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> str:
-        if "triton_addmm" in str(fn_name):
-            return dump_autotuner_best_config(_addmm_fwd)
-        else:
-            return ""
 
     def get_input_iter(self) -> Generator:
         for shape in self.shapes:
