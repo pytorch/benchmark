@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import tempfile
+import torch
 from typing import List
 from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
@@ -11,6 +12,11 @@ from torchbenchmark.util.triton_op import (
     DEFAULT_RUN_ITERS,
     DEFAULT_WARMUP,
 )
+if not hasattr(torch.version, "git_version"):
+    from pytorch.benchmark.fb.run_utils import usage_report_logger
+else:
+    usage_report_logger = lambda *args, **kwargs: None
+
 
 TRITON_BENCH_CSV_DUMP_PATH = tempfile.gettempdir() + "/tritonbench/"
 
@@ -84,6 +90,8 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
 def run(args: List[str] = []):
     if args == []:
         args = sys.argv[1:]
+    # Log the tool usage
+    usage_report_logger(benchmark_name="tritonbench")
     args, extra_args = parse_args(args)
     if args.ci:
         from .ci import run_ci
