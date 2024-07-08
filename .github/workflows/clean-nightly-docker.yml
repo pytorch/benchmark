@@ -1,20 +1,23 @@
 name: TorchBench Nightly Docker Cleanup
 on:
   workflow_dispatch:
+  schedule:
+    # Cleanup the nightly Docker images every 3 months
+    - cron: '0 0 1 */3 *'
 
 jobs:
   clean-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, linux.4xlarge]
+    runs-on: [self-hosted, linux.2xlarge]
     environment: docker-s3-upload
     steps:
-      - uses: actions/delete-package-versions@v5
+      - uses: actions/delete-package-versions@v4
         with:
           package-name: torchbench
           package-type: container
           delete-only-untagged-versions: true
           token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
-      - uses: actions/delete-package-versions@v5
+      - uses: actions/delete-package-versions@v4
         with:
           package-name: torchbench
           package-type: container
