@@ -21,6 +21,7 @@ from .data_io import parse_args, read_shapes_from_csv
 from .kernels import matmul as kernels
 from .triton_matmul import matmul as triton_tutorial_matmul
 from .triton_matmul import matmul_kernel as triton_tutorial_matmul_kernel
+import torch._dynamo.config as dynamo_config
 import torch._inductor.config as inductor_config
 
 if inductor_config.is_fbcode():
@@ -133,6 +134,7 @@ class Operator(BenchmarkOperator):
     @register_benchmark()
     def pt2_triton_matmul(self, a, b, bias) -> Callable:
         torch._dynamo.reset()
+        dynamo_config.cache_size_limit = 100000
         with inductor_config.patch(
             max_autotune=True,
             max_autotune_gemm_backends="TRITON",
@@ -149,6 +151,7 @@ class Operator(BenchmarkOperator):
     @register_benchmark()
     def pt2_cutlass_matmul(self, a, b, bias) -> Callable:
         torch._dynamo.reset()
+        dynamo_config.cache_size_limit = 100000
         with inductor_config.patch(
             max_autotune=True,
             max_autotune_gemm_backends="CUTLASS",
