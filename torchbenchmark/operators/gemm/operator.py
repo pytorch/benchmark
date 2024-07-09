@@ -1,3 +1,4 @@
+import argparse
 import csv
 import os
 import statistics
@@ -78,8 +79,8 @@ class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy", "tflops", "best_config"]
     DEFAULT_PRECISION = "fp16"
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args, extra_args)
         gemm_args = parse_args(self.extra_args)
         if gemm_args.input:
             self.shapes = read_shapes_from_csv(gemm_args.input)

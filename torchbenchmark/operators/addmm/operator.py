@@ -1,6 +1,5 @@
-import csv
 import os
-import statistics
+import argparse
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import numpy
@@ -70,8 +69,8 @@ class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "best_config"]
     DEFAULT_PRECISION = "bf16"
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args, extra_args)
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:
             self.shapes = [(addmm_args.m, addmm_args.k, addmm_args.n)]

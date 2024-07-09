@@ -101,8 +101,8 @@ class Operator(BenchmarkOperator):
         False  # enables GPU/CPU sync (for methods like NestedTensor unbind)
     )
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args, extra_args)
         self.sizes = list(range(2, 12, 4)) + list(
             range(12, 23, 3)
         )  # bias towards larger sizes, which are more representative of real-world shapes

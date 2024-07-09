@@ -4,6 +4,7 @@ Motivated by https://www.thonking.ai/p/short-supporting-mixtral-in-gpt-fast,
 gather + gemv is the primary kernel driving mixtral perf.
 """
 
+import argparse
 import csv
 import os
 import statistics
@@ -38,8 +39,8 @@ class Operator(BenchmarkOperator):
             * 1e-6
         )
 
-    def __init__(self, mode: str, device: str, extra_args: List[str] = []):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args, extra_args)
 
     @register_benchmark(baseline=True)
     def test_0(self, p1, p2, p3) -> Callable:

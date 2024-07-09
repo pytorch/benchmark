@@ -64,7 +64,7 @@ PRECISION_DTYPE_MAPPING = {
     "fp16": torch.float16,
     "bf16": torch.bfloat16,
 }
-
+_RANGE_NAME = "tritonbench_range"
 
 class Mode(Enum):
     FWD = "fwd"
@@ -380,7 +380,6 @@ def register_benchmark(baseline: bool = False, enabled: bool = True, label: Opti
 
     return decorator
 
-
 def register_metric(
     # Metrics that only apply to non-baseline impls
     # E.g., accuracy, speedup
@@ -408,100 +407,47 @@ def register_metric(
 
     return decorator
 
-
-def parse_args(
-    default_metrics: List[str],
-    args: List[str],
-) -> Tuple[argparse.Namespace, List[str]]:
-    parser = argparse.ArgumentParser(allow_abbrev=False)
-    parser.add_argument(
-        "--metrics",
-        default=",".join(default_metrics),
-        help="Metrics to collect, split with comma. E.g., --metrics latency,tflops,speedup.",
-    )
-    parser.add_argument(
-        "--only",
-        default=None,
-        help="Specify one or multiple operator implementations to run."
-    )
-    parser.add_argument(
-        "--baseline",
-        type=str,
-        default=None,
-        help="Override default baseline."
-    )
-    parser.add_argument(
-        "--num-inputs",
-        type=int,
-        help="Number of example inputs.",
-    )
-    parser.add_argument(
-        "--keep-going",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--input-id",
-        type=int,
-        default=0,
-        help="Specify the start input id to run. " \
-            "For example, --input-id 0 runs only the first available input sample." \
-            "When used together like --input-id <X> --num-inputs <Y>, start from the input id <X> " \
-            "and run <Y> different inputs."
-    )
-    parser.add_argument(
-        "--test-only",
-        action="store_true",
-        help="Run this under test mode, potentially skipping expensive steps like autotuning."
-    )
-    parser.add_argument(
-        "--dump-ir",
-        action="store_true",
-        help="Dump Triton IR",
-    )
-    return parser.parse_known_args(args)
-
 class PostInitProcessor(type):
     def __call__(cls, *args, **kwargs):
         obj = type.__call__(cls, *args, **kwargs)
         obj.__post__init__()
         return obj
 
-
-_RANGE_NAME = "tritonbench_range"
-
-
 class BenchmarkOperator(metaclass=PostInitProcessor):
     mode: Mode = Mode.FWD
     test: str = "eval"
     device: str = "cuda"
+    # By default, only collect latency metrics
+    # Each operator can override to define their own default metrics
+    DEFAULT_METRICS = ["latency"]
+    required_metrics: List[str]
     _input_iter: Optional[Generator] = None
     extra_args: List[str] = []
     example_inputs: Any = None
     use_cuda_graphs: bool = True
 
-    # By default, only collect latency metrics
-    # Each operator can override to define their own default metrics
-    DEFAULT_METRICS = ["latency"]
-
     """
     A base class for adding operators to torch benchmark.
     """
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]]=None):
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]]=None):
         set_random_seed()
         self.name = _find_op_name_from_module_path(self.__class__.__module__)
         self._raw_extra_args = copy.deepcopy(extra_args)
+        self.tb_args = tb_args
         # we accept both "fwd" and "eval"
-        if mode == "fwd":
+        if self.tb_args.mode == "fwd":
             self.mode = Mode.FWD
-        elif mode == "fwd_bwd":
+        elif self.tb_args.mode == "fwd_bwd":
             self.mode = Mode.FWD_BWD
         else:
             assert (
-                mode == "bwd"
+                self.tb_args.mode == "bwd"
             ), f"We only accept 3 test modes: fwd(eval), fwd_bwd(train), or bwd."
             self.mode = Mode.BWD
-        self.dargs, unprocessed_args = parse_decoration_args(self, extra_args)
+        self.device = tb_args.device
+        self.required_metrics = list(set(tb_args.metrics.split(","))) if tb_args.metrics else self.DEFAULT_METRICS
+        self.dargs, self.extra_args = parse_decoration_args(self, extra_args)
         if self.name not in REGISTERED_X_VALS:
             REGISTERED_X_VALS[self.name] = "x_val"
         # This will be changed by the time we apply the decoration args
@@ -510,17 +456,11 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             [x for x in REGISTERED_METRICS.get(self.name, []) if x not in BUILTIN_METRICS]
         )
         self.DEFAULT_METRICS = list(set(self.DEFAULT_METRICS))
-        self.tb_args, self.extra_args = parse_args(
-            self.DEFAULT_METRICS,
-            unprocessed_args
-        )
         if self.tb_args.baseline:
             BASELINE_BENCHMARKS[self.name] = self.tb_args.baseline
-        self.required_metrics = list(set(self.tb_args.metrics.split(",")))
         self._only = _split_params_by_comma(self.tb_args.only)
         self._input_id = self.tb_args.input_id
         self._num_inputs = self.tb_args.num_inputs
-        self.device = device
 
     # Run the post initialization
     def __post__init__(self):

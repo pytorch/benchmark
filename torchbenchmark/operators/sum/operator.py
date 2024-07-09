@@ -151,8 +151,8 @@ class Operator(BenchmarkOperator):
 
     DEFAULT_METRICS = ["latency", "accuracy", "best_config"]
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args, extra_args)
         args = parse_op_args(self.extra_args)
         self.input_dim = args.input_dim
         self.reduce_dim = args.reduce_dim

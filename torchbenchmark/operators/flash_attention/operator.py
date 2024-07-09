@@ -107,9 +107,8 @@ def parse_op_args(args: List[str]):
 class Operator(BenchmarkOperator):
     DEFAULT_PRECISION = "bf16"
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]]=None):
-        # pass the framework level args (e.g., device, is_training, dtype) to the parent class
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args, extra_args)
         args = parse_op_args(self.extra_args)
         self.BATCH = args.batch
         self.H = args.n_heads
