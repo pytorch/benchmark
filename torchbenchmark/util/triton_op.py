@@ -184,6 +184,8 @@ class BenchmarkOperatorMetrics:
     ncu_trace: Optional[str] = None
     # ncu replay file
     ncu_rep: Optional[str] = None
+    # ncu replay file with TTGIR line numbers
+    ncu_rep_ir: Optional[str] = None
     # kineto trace file
     kineto_trace: Optional[str] = None
     # cpu peak memory
@@ -803,6 +805,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
             if "ncu_rep" in self.required_metrics:
                 metrics.ncu_rep = self.ncu_trace(input_id, fn_name, replay=True)
+            if "ncu_rep_ir" in self.required_metrics:
+                metrics.ncu_rep_ir = self.ncu_trace(input_id, fn_name, replay=True, profile_ir=True)
             if "kineto_trace" in self.required_metrics:
                 metrics.kineto_trace = self.kineto_trace(input_id, fn)
             if "best_config" in self.required_metrics:
@@ -866,7 +870,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             metrics_gpu_backend="nvml",
         )
 
-    def ncu_trace(self, input_id: int, fn_name: str, replay: bool=False) -> str:
+    def ncu_trace(self, input_id: int, fn_name: str, replay: bool=False, profile_ir=False) -> str:
         # collect the ncu trace
         import sys
         import subprocess
@@ -910,7 +914,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         ncu_output_dir = self.get_temp_path(f"ncu_traces/{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
         ext = ".csv" if not replay else ".ncu-rep"
-        ncu_output_file = ncu_output_dir.joinpath(f"ncu_output{ext}").resolve()
+        ncu_output_file = ncu_output_dir.joinpath(f"ncu_output{'_ir' if profile_ir else ''}{ext}").resolve()
         ncu_args = [
             "ncu",
             "--set",
@@ -940,7 +944,10 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         logger.info("Running NCU: %s", shlex.join(ncu_args))
         # Sometimes, `ncu --target-processes all` will fail with the message "Failed to connect to process". Setting
         # CUDA_INJECTION64_PATH=none seems to fix this issue.
-        subprocess.check_call(ncu_args, env={**os.environ, "CUDA_INJECTION64_PATH": "none"})
+        env = {**os.environ, "CUDA_INJECTION64_PATH": "none"}
+        if profile_ir:
+            env["USE_TTGIR_LOC"] = "1"
+        subprocess.check_call(ncu_args, env=env)
         return str(ncu_output_file.resolve())
 
     def kineto_trace(self, input_id: int, fn: Callable) -> str:
