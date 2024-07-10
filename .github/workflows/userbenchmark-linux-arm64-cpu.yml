@@ -9,11 +9,11 @@ on:
 
 jobs:
   run-userbenchmark:
-    runs-on: [self-hosted, linux.24xlarge]
+    runs-on: [self-hosted, linux.arm64.m7g.4xlarge]
     timeout-minutes: 1440 # 24 hours
     environment: docker-s3-upload
     env:
-      PLATFORM_NAME: "aws_c5_24xlarge"
+      PLATFORM_NAME: "aws_m7g_4xlarge"
       TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
