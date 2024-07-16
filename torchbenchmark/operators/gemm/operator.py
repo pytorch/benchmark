@@ -11,6 +11,7 @@ import triton
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    IS_FBCODE,
     llama_shapes,
     register_benchmark,
     register_metric,
@@ -21,6 +22,8 @@ from .data_io import parse_args, read_shapes_from_csv
 from .kernels import matmul as kernels
 from .triton_matmul import matmul as triton_tutorial_matmul
 from .triton_matmul import matmul_kernel as triton_tutorial_matmul_kernel
+from .persistent_matmul import matmul_persistent, matmul_tma_persistent, matmul_tma_persistent_cached
+
 import torch._inductor.config as inductor_config
 
 if inductor_config.is_fbcode():
@@ -81,6 +84,7 @@ class Operator(BenchmarkOperator):
 
     def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
         super().__init__(tb_args, extra_args)
+        self.use_cuda_graphs = False
         gemm_args = parse_args(self.extra_args)
         if gemm_args.input:
             self.shapes = read_shapes_from_csv(gemm_args.input)
@@ -101,6 +105,29 @@ class Operator(BenchmarkOperator):
             return lambda: triton_tutorial_matmul(a, b) + bias
         else:
             return lambda: triton_tutorial_matmul(a, b)
+
+    @register_benchmark()
+    def triton_persistent_matmul(self, a, b, bias) -> Callable:
+        if not bias == None:
+            return lambda: matmul_persistent(a, b) + bias
+        else:
+            return lambda: matmul_persistent(a, b)
+
+    @register_benchmark(enabled=not IS_FBCODE)
+    def triton_tma_persistent_matmul(self, a, b, bias) -> Callable:
+        b = b.T.contiguous()
+        if not bias == None:
+            return lambda: matmul_tma_persistent(a, b) + bias
+        else:
+            return lambda: matmul_tma_persistent(a, b)
+
+    @register_benchmark(enabled=not IS_FBCODE)
+    def triton_tma_persistent_cached_matmul(self, a, b, bias) -> Callable:
+        b = b.T.contiguous()
+        if not bias == None:
+            return lambda: matmul_tma_persistent_cached(a, b) + bias
+        else:
+            return lambda: matmul_tma_persistent_cached(a, b)
 
     @register_benchmark(enabled=torch.version.cuda is not None)
     def triton_ops_matmul(self, a, b, bias) -> Callable:

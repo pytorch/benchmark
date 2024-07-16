@@ -34,6 +34,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+IS_FBCODE = not hasattr(torch.version, "git_version")
 DEFAULT_WARMUP = 25
 DEFAULT_RUN_ITERS = 100
 DEFAULT_QUANTILES = [0.5, 0.1, 0.9]
