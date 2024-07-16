@@ -2,7 +2,6 @@ import argparse
 import os
 import statistics
 import torch
-import triton.ops
 import triton.language as tl
 
 from triton.runtime.jit import reinterpret
@@ -17,10 +16,15 @@ from torchbenchmark.util.triton_op import (
     register_metric,
 )
 
+from .tutorial import matmul as tutorial_matmul
+from .persistent import matmul_persistent, matmul_tma_persistent, allocate_matmul_tma
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="TritonBench fp8_gemm")
     parser.add_argument("--llama", action="store_true")
+    parser.add_argument("--m", type=int)
+    parser.add_argument("--k", type=int)
+    parser.add_argument("--n", type=int)
     return parser.parse_args(args)
 
 
@@ -45,7 +49,8 @@ class Operator(BenchmarkOperator):
         if self.extra_args.llama:
             for m, n, k, _bias in llama_shapes():
                 yield args(m, n, k)
-
+        elif self.extra_args.m:
+            yield args(self.extra_args.m, self.extra_args.n, self.extra_args.k)
         else:
             for i in range(10, 15):
                 for j in range(0, 4):
@@ -70,9 +75,17 @@ class Operator(BenchmarkOperator):
 
     @register_benchmark()
     def triton_fp8_gemm(self, a, b):
-        a = reinterpret(a, tl.float8e4nv)
-        b = reinterpret(b, tl.float8e4nv)
-        return lambda: triton.ops.matmul(a, b)
+        return lambda: tutorial_matmul(a, b)
+
+    @register_benchmark()
+    def triton_persistent_fp8_gemm(self, a, b):
+        return lambda: matmul_persistent(a, b)
+
+    @register_benchmark()
+    def triton_tma_persistent_fp8_gemm(self, a, b):
+        b = b.T.contiguous()
+        c, desc_a, desc_b, desc_c = allocate_matmul_tma(a, b)
+        return lambda: matmul_tma_persistent(a, b, c, desc_a, desc_b, desc_c)
 
     @register_metric()
     def gbps(
