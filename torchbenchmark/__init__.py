@@ -26,6 +26,7 @@ class ModelNotFoundError(RuntimeError):
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 DATA_PATH = os.path.join(REPO_PATH, "torchbenchmark", "data", ".data")
+SUBMODULE_PATH = REPO_PATH.joinpath("submodules")
 
 
 class add_path:

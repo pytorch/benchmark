@@ -36,8 +36,10 @@ import math
 import os
 import torch
 import triton  # @manual=//triton:triton
+from torchbenchmark import add_path, SUBMODULE_PATH
 
-from triton.ops.flash_attention import attention as triton_op_FA2
+with add_path(SUBMODULE_PATH.joinpath("kernels")):
+    from kernels.flash_attention import attention as triton_op_FA2
 from torchbenchmark.util.kernels.triton_fused_attention import attention as triton_tutorial_FA2
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.nn.functional import scaled_dot_product_attention as sdpa
