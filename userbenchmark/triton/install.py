@@ -5,8 +5,10 @@ import os
 from pathlib import Path
 
 from utils.cuda_utils import DEFAULT_CUDA_VERSION, CUDA_VERSION_MAP
+from utils.python_utils import pip_install_requirements
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
+FA3_PATH = REPO_PATH.joinpath("submodules", "flash-attention", "hopper")
 FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
 
 def install_jax(cuda_version=DEFAULT_CUDA_VERSION):
@@ -44,18 +46,28 @@ def install_cutlass():
             from userbenchmark.triton.cutlass_kernels.install import install_colfax_cutlass
     install_colfax_cutlass()
 
+
+def install_fa3():
+    cmd = [sys.executable, "setup.py", "install"]
+    subprocess.check_call(cmd, cwd=str(FA3_PATH.resolve()))
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fbgemm", action="store_true", help="Install FBGEMM GPU")
     parser.add_argument("--cutlass", action="store_true", help="Install optional CUTLASS kernels")
+    parser.add_argument("--flash", action="store_true", help="Install optional FA3 kernels")
     parser.add_argument("--jax", action="store_true", help="Install jax nightly")
     parser.add_argument("--test", action="store_true", help="Run test")
     args = parser.parse_args()
+
+    pip_install_requirements("requirements.txt")
     if args.fbgemm:
         if args.test:
             test_fbgemm()
         else:
             install_fbgemm()
+    if args.flash:
+        install_fa3()
     if args.cutlass and not args.test:
         install_cutlass()
     if args.jax and not args.test:
