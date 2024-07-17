@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from utils.cuda_utils import DEFAULT_CUDA_VERSION, CUDA_VERSION_MAP
+from utils.python_utils import pip_install_requirements
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent
 FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
@@ -51,6 +52,8 @@ if __name__ == "__main__":
     parser.add_argument("--jax", action="store_true", help="Install jax nightly")
     parser.add_argument("--test", action="store_true", help="Run test")
     args = parser.parse_args()
+
+    pip_install_requirements("requirements.txt")
     if args.fbgemm:
         if args.test:
             test_fbgemm()
