@@ -10,3 +10,6 @@
 [submodule "submodules/cutlass-kernels"]
 	path = submodules/cutlass-kernels
 	url = https://github.com/ColfaxResearch/cutlass-kernels.git
+[submodule "submodules/kernels"]
+	path = submodules/kernels
+	url = https://github.com/triton-lang/kernels
