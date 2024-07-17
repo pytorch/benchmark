@@ -12,6 +12,7 @@ Extra Credits:
 """
 
 import torch
+import numpy as np
 
 import triton
 import triton.language as tl
@@ -19,7 +20,7 @@ import triton.language as tl
 
 @triton.jit
 def _attn_fwd_inner(acc, l_i, m_i, q,  #
-                    K_block_ptr, V_block_ptr,  #
+                    K_desc_ptr, V_desc_ptr, Q, qvk_offset, stride_kn, stride_vn, stride_vk,  #
                     start_m, qk_scale,  #
                     BLOCK_M: tl.constexpr, HEAD_DIM: tl.constexpr, BLOCK_N: tl.constexpr,  #
                     STAGE: tl.constexpr, offs_m: tl.constexpr, offs_n: tl.constexpr,  #
@@ -33,13 +34,20 @@ def _attn_fwd_inner(acc, l_i, m_i, q,  #
     # causal = False
     else:
         lo, hi = 0, N_CTX
-    K_block_ptr = tl.advance(K_block_ptr, (0, lo))
-    V_block_ptr = tl.advance(V_block_ptr, (lo, 0))
+    #K_block_ptr = tl.advance(K_block_ptr, (0, lo))
+    #V_block_ptr = tl.advance(V_block_ptr, (lo, 0))
     # loop over k, v and update accumulator
     for start_n in range(lo, hi, BLOCK_N):
         start_n = tl.multiple_of(start_n, BLOCK_N)
         # -- compute qk ----
-        k = tl.load(K_block_ptr)
+        #k = tl.load(K_block_ptr)
+        k = tl._experimental_descriptor_load(  # load in row major
+            K_desc_ptr,  # qvk_offset, start_n,
+            [start_n.to(tl.int32) + (qvk_offset // stride_kn).to(tl.int32), 0],
+            [BLOCK_N, HEAD_DIM],
+            Q.dtype.element_ty,
+        )
+        k = tl.trans(k)
         qk = tl.dot(q, k)
         if STAGE == 2:
             mask = offs_m[:, None] >= (start_n + offs_n[None, :])
@@ -57,7 +65,22 @@ def _attn_fwd_inner(acc, l_i, m_i, q,  #
         # -- update output accumulator --
         acc = acc * alpha[:, None]
         # update acc
-        v = tl.load(V_block_ptr)
+        #v = tl.load(V_block_ptr)
+        if fp8_v:
+            v = tl._experimental_descriptor_load(  # load in row major
+                V_desc_ptr,  # qvk_offset, start_n,
+                [(qvk_offset // stride_vn).to(tl.int32), start_n.to(tl.int32)],
+                [HEAD_DIM, BLOCK_N],
+                Q.dtype.element_ty,
+            )
+            v = tl.trans(v)
+        else:
+            v = tl._experimental_descriptor_load(  # load in row major
+                V_desc_ptr,  # qvk_offset, start_n,
+                [(qvk_offset // stride_vk + start_n).to(tl.int32), 0],
+                [BLOCK_N, HEAD_DIM],
+                Q.dtype.element_ty,
+            )
         if fp8_v:
             p = p.to(tl.float8e5)
         else:
@@ -65,8 +88,8 @@ def _attn_fwd_inner(acc, l_i, m_i, q,  #
         acc = tl.dot(p, v, acc)
         # update m_i and l_i
         m_i = m_ij
-        V_block_ptr = tl.advance(V_block_ptr, (BLOCK_N, 0))
-        K_block_ptr = tl.advance(K_block_ptr, (0, BLOCK_N))
+        #V_block_ptr = tl.advance(V_block_ptr, (BLOCK_N, 0))
+        #K_block_ptr = tl.advance(K_block_ptr, (0, BLOCK_N))
     return acc, l_i, m_i
 
 
@@ -76,7 +99,7 @@ def _attn_fwd_inner(acc, l_i, m_i, q,  #
 configs = [
     triton.Config({'BLOCK_M': BM, 'BLOCK_N': BN}, num_stages=s, num_warps=w) \
     for BM in [64, 128]\
-    for BN in [64, 128]\
+    for BN in [128]\
     for s in  [3, 4, 7]\
     for w in [4, 8]\
 ]
@@ -92,7 +115,7 @@ def keep(conf):
 
 @triton.autotune(list(filter(keep, configs)), key=["N_CTX"])
 @triton.jit
-def _attn_fwd(Q, K, V, sm_scale, M, Out,  #
+def _attn_fwd(Q, V, desc_k, desc_v, sm_scale, M, Out,  #
               stride_qz, stride_qh, stride_qm, stride_qk,  #
               stride_kz, stride_kh, stride_kn, stride_kk,  #
               stride_vz, stride_vh, stride_vk, stride_vn,  #
@@ -119,23 +142,23 @@ def _attn_fwd(Q, K, V, sm_scale, M, Out,  #
         block_shape=(BLOCK_M, HEAD_DIM),
         order=(1, 0),
     )
-    v_order: tl.constexpr = (0, 1) if V.dtype.element_ty == tl.float8e5 else (1, 0)
-    V_block_ptr = tl.make_block_ptr(
-        base=V + qvk_offset,
-        shape=(N_CTX, HEAD_DIM),
-        strides=(stride_vk, stride_vn),
-        offsets=(0, 0),
-        block_shape=(BLOCK_N, HEAD_DIM),
-        order=v_order,
-    )
-    K_block_ptr = tl.make_block_ptr(
-        base=K + qvk_offset,
-        shape=(HEAD_DIM, N_CTX),
-        strides=(stride_kk, stride_kn),
-        offsets=(0, 0),
-        block_shape=(HEAD_DIM, BLOCK_N),
-        order=(0, 1),
-    )
+    #v_order: tl.constexpr = (0, 1) if V.dtype.element_ty == tl.float8e5 else (1, 0)
+    #V_block_ptr = tl.make_block_ptr(
+    #    base=V + qvk_offset,
+    #    shape=(N_CTX, HEAD_DIM),
+    #    strides=(stride_vk, stride_vn),
+    #    offsets=(0, 0),
+    #    block_shape=(BLOCK_N, HEAD_DIM),
+    #    order=v_order,
+    #)
+    #K_block_ptr = tl.make_block_ptr(
+    #    base=K + qvk_offset,
+    #    shape=(HEAD_DIM, N_CTX),
+    #    strides=(stride_kk, stride_kn),
+    #    offsets=(0, 0),
+    #    block_shape=(HEAD_DIM, BLOCK_N),
+    #    order=(0, 1),
+    #)
     O_block_ptr = tl.make_block_ptr(
         base=Out + qvk_offset,
         shape=(N_CTX, HEAD_DIM),
@@ -160,7 +183,8 @@ def _attn_fwd(Q, K, V, sm_scale, M, Out,  #
     # For causal = True, STAGE = 3 and _attn_fwd_inner gets 1 as its STAGE
     # For causal = False, STAGE = 1, and _attn_fwd_inner gets 3 as its STAGE
     if STAGE & 1:
-        acc, l_i, m_i = _attn_fwd_inner(acc, l_i, m_i, q, K_block_ptr, V_block_ptr,  #
+        acc, l_i, m_i = _attn_fwd_inner(acc, l_i, m_i, q, desc_k, desc_v, Q, qvk_offset, stride_kn, stride_vn,
+                                        stride_vk,  #
                                         start_m, qk_scale,  #
                                         BLOCK_M, HEAD_DIM, BLOCK_N,  #
                                         4 - STAGE, offs_m, offs_n, N_CTX, V.dtype.element_ty == tl.float8e5  #
@@ -169,7 +193,8 @@ def _attn_fwd(Q, K, V, sm_scale, M, Out,  #
     if STAGE & 2:
         # barrier makes it easier for compielr to schedule the
         # two loops independently
-        acc, l_i, m_i = _attn_fwd_inner(acc, l_i, m_i, q, K_block_ptr, V_block_ptr,  #
+        acc, l_i, m_i = _attn_fwd_inner(acc, l_i, m_i, q, desc_k, desc_v, Q, qvk_offset, stride_kn, stride_vn,
+                                        stride_vk,  #
                                         start_m, qk_scale,  #
                                         BLOCK_M, HEAD_DIM, BLOCK_N,  #
                                         2, offs_m, offs_n, N_CTX, V.dtype.element_ty == tl.float8e5  #
@@ -444,10 +469,51 @@ class _attention(torch.autograd.Function):
         stage = 3 if causal else 1
         extra_kern_args = {}
 
+        # print strides to check contiguity
+        #print(q.stride(0), q.stride(1), q.stride(2), q.stride(3), k.stride(0), k.stride(1), k.stride(2), k.stride(3), v.stride(0), v.stride(1), v.stride(2), v.stride(3))
+        #print(q.shape[0], q.shape[1], q.shape[2], q.shape[3], v.shape[0], v.shape[1], v.shape[2], v.shape[3])
+
+        TMA_SIZE = 128
+        BLOCK_N, BATCH, H, N_CTX = 128, q.shape[0], q.shape[1], q.shape[2]
+        desc_k = np.empty(TMA_SIZE, dtype=np.int8)
+        desc_v = np.empty(TMA_SIZE, dtype=np.int8)
+        # order is (0, 1) for fp8 in make_block_ptr, reverse here
+        triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+            k.data_ptr(),
+            BATCH * H * N_CTX,
+            HEAD_DIM_Q,
+            BLOCK_N,
+            HEAD_DIM_Q,
+            k.element_size(),
+            desc_k,
+        )
+        if v.dtype == torch.float8_e5m2:
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                v.data_ptr(),
+                BATCH * H * HEAD_DIM_Q,
+                N_CTX,
+                HEAD_DIM_Q,
+                BLOCK_N,
+                v.element_size(),
+                desc_v,
+            )
+        else:
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                v.data_ptr(),
+                BATCH * H * N_CTX,
+                HEAD_DIM_Q,
+                BLOCK_N,
+                HEAD_DIM_Q,
+                v.element_size(),
+                desc_v,
+            )
+        desc_k = torch.tensor(desc_k, device=v.device)
+        desc_v = torch.tensor(desc_v, device=v.device)
+
         grid = lambda args: (triton.cdiv(q.shape[2], args["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
         M = torch.empty((q.shape[0], q.shape[1], q.shape[2]), device=q.device, dtype=torch.float32)
         _attn_fwd[grid](
-            q, k, v, sm_scale, M, o,  #
+            q, v, desc_k, desc_v, sm_scale, M, o,  #
             q.stride(0), q.stride(1), q.stride(2), q.stride(3),  #
             k.stride(0), k.stride(1), k.stride(2), k.stride(3),  #
             v.stride(0), v.stride(1), v.stride(2), v.stride(3),  #
