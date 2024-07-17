@@ -50,7 +50,6 @@ def install_cutlass():
 def install_fa3():
     cmd = [sys.executable, "setup.py", "install"]
     subprocess.check_call(cmd, cwd=str(FA3_PATH.resolve()))
-    subprocess.check_call([sys.executable, "-c", "import flashattn_hopper"])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -37,6 +37,7 @@ import os
 import torch
 import triton  # @manual=//triton:triton
 
+from torchbenchmark import add_ld_library_path
 from triton.ops.flash_attention import attention as triton_op_FA2
 from torchbenchmark.util.kernels.triton_fused_attention import attention as triton_tutorial_FA2
 from torch.nn.attention import SDPBackend, sdpa_kernel
@@ -44,10 +45,18 @@ from torch.nn.functional import scaled_dot_product_attention as sdpa
 
 from typing import Callable, Optional
 
-# [Optional] flash_attn_func
+# [Optional] flash_attn v2
 try:
     from .test_fmha_utils import make_packed_qkv
     from flash_attn.flash_attn_interface import flash_attn_qkvpacked_func as flash_attn_func
+except (ImportError, IOError, AttributeError):
+    pass
+
+# [Optional] flash_attn v3
+try:
+    torch_lib_path = os.path.join(os.path.dirname(__file__), "lib")
+    with add_ld_library_path(torch_lib_path):
+        import flashattn_hopper_cuda
 except (ImportError, IOError, AttributeError):
     pass
 
@@ -171,6 +180,16 @@ class Operator(BenchmarkOperator):
         fn = lambda: flash_attn_func(
             qkv, softmax_scale=self.sm_scale, causal=self.causal
         )
+        return fn
+
+    @register_benchmark(enabled=False)
+    def flash_v3(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+    ) -> Callable:
+        fn = lambda: flashattn_hopper_cuda.fwd(q, k, v, None, self.sm_scale, self.causal)
         return fn
 
     @register_benchmark()
