@@ -38,8 +38,13 @@ import torch
 import triton  # @manual=//triton:triton
 from torchbenchmark import add_path, SUBMODULE_PATH
 
-with add_path(SUBMODULE_PATH.joinpath("kernels")):
-    from kernels.flash_attention import attention as triton_op_FA2
+try:
+    with add_path(SUBMODULE_PATH.joinpath("kernels")):
+        from kernels.flash_attention import attention as triton_op_FA2
+    HAS_KERNELS = True
+except BaseException:
+    HAS_KERNELS = False
+
 from torchbenchmark.util.kernels.triton_fused_attention import attention as triton_tutorial_FA2
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.nn.functional import scaled_dot_product_attention as sdpa
@@ -184,7 +189,7 @@ class Operator(BenchmarkOperator):
     ) -> Callable:
         return lambda: triton_tutorial_FA2(q, k, v, self.causal, self.sm_scale)
 
-    @register_benchmark()
+    @register_benchmark(enabled=HAS_KERNELS)
     def triton_op_flash_v2(
         self,
         q: torch.Tensor,
