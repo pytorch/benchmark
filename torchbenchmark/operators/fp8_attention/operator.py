@@ -20,7 +20,6 @@ from torchbenchmark.util.triton_op import (
 
 try:
     # colfax Flash Attention V2 on FP8 for Hopper
-    # https://www.internalfb.com/code/fbsource/fbcode/ai_codesign/gen_ai/cutlass-kernels/src/fmha-pipeline/README.md
     torch.ops.load_library(
         "//ai_codesign/gen_ai/cutlass-kernels:fmha_forward_lib_pipeline_h128"
     )
