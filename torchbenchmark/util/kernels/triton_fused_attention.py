@@ -190,6 +190,7 @@ def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
                     BLOCK_M: tl.constexpr, HEAD_DIM: tl.constexpr, BLOCK_N: tl.constexpr,  #
                     STAGE: tl.constexpr, offs_m: tl.constexpr, offs_n: tl.constexpr,  #
                     N_CTX: tl.constexpr, fp8_v: tl.constexpr):
+    # Required TMA fences are added in _attn_fwd_tma prior to calling this function.
     # range of values handled by this stage
     if STAGE == 1:
         lo, hi = 0, start_m * BLOCK_M
@@ -199,15 +200,12 @@ def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
     # causal = False
     else:
         lo, hi = 0, N_CTX
-    #K_block_ptr = tl.advance(K_block_ptr, (0, lo))
-    #V_block_ptr = tl.advance(V_block_ptr, (lo, 0))
     # loop over k, v and update accumulator
     for start_n in range(lo, hi, BLOCK_N):
         start_n = tl.multiple_of(start_n, BLOCK_N)
         # -- compute qk ----
-        #k = tl.load(K_block_ptr)
         k = tl._experimental_descriptor_load(  # load in row major
-            K_desc_ptr,  # qvk_offset, start_n,
+            K_desc_ptr,
             [start_n.to(tl.int32) + (qvk_offset // stride_kn).to(tl.int32), 0],
             [BLOCK_N, HEAD_DIM],
             Q.dtype.element_ty,
@@ -230,10 +228,9 @@ def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
         # -- update output accumulator --
         acc = acc * alpha[:, None]
         # update acc
-        #v = tl.load(V_block_ptr)
         if fp8_v:
             v = tl._experimental_descriptor_load(  # load in row major
-                V_desc_ptr,  # qvk_offset, start_n,
+                V_desc_ptr,
                 [(qvk_offset // stride_vn).to(tl.int32), start_n.to(tl.int32)],
                 [HEAD_DIM, BLOCK_N],
                 Q.dtype.element_ty,
@@ -241,7 +238,7 @@ def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
             v = tl.trans(v)
         else:
             v = tl._experimental_descriptor_load(  # load in row major
-                V_desc_ptr,  # qvk_offset, start_n,
+                V_desc_ptr,
                 [(qvk_offset // stride_vk + start_n).to(tl.int32), 0],
                 [BLOCK_N, HEAD_DIM],
                 Q.dtype.element_ty,
@@ -253,8 +250,6 @@ def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
         acc = tl.dot(p, v, acc)
         # update m_i and l_i
         m_i = m_ij
-        #V_block_ptr = tl.advance(V_block_ptr, (BLOCK_N, 0))
-        #K_block_ptr = tl.advance(K_block_ptr, (0, BLOCK_N))
     return acc, l_i, m_i
 
 
@@ -727,8 +722,8 @@ class _attention_tma(torch.autograd.Function):
         def grid_tma(META):
             nonlocal desc_k
             nonlocal desc_v
-            k_buf = torch.empty_like(desc_k, device="cpu")
-            v_buf = torch.empty_like(desc_v, device="cpu")
+            k_buf = torch.empty_like(desc_k, device="cpu", pin_memory=True)
+            v_buf = torch.empty_like(desc_v, device="cpu", pin_memory=True)
             triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
                 k.data_ptr(),
                 BATCH * H * N_CTX,
@@ -758,8 +753,8 @@ class _attention_tma(torch.autograd.Function):
                     v.element_size(),
                     v_buf.numpy(),
                 )
-            desc_k.copy_(k_buf)
-            desc_v.copy_(v_buf)
+            desc_k.copy_(k_buf, non_blocking=True)
+            desc_v.copy_(v_buf, non_blocking=True)
             return (triton.cdiv(q.shape[2], META["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
 
         M = torch.empty((q.shape[0], q.shape[1], q.shape[2]), device=q.device, dtype=torch.float32)
