@@ -20,7 +20,10 @@ from torchbenchmark.util.triton_op import (
     register_metric,
 )
 
-from .kernels import triton_jagged_softmax_kernel_simple_fused_buffer_then_sum
+from .kernels import (
+    triton_jagged_softmax_kernel_simple_fused_buffer_then_sum,
+    triton_jagged_softmax_kernel_variable_length_loop_buffer_then_sum,
+)
 
 
 seed = 16
@@ -49,8 +52,23 @@ def execute_kernel_simple_fused(x, max_seqlen):
     return kernel_output
 
 
+def execute_kernel_variable_length_loop(x):
+    B, M = x.shape[0], x.shape[2]  # logical shape (B, *, M)
+    grid = lambda meta: (B * triton.cdiv(M, meta["BLOCK_SIZE_M"]),)
+    kernel_output = torch.zeros_like(x.values(), device=x.device)
+
+    triton_jagged_softmax_kernel_variable_length_loop_buffer_then_sum[grid](
+        x.values(),
+        x.offsets(),
+        kernel_output,
+        M=M,
+    )
+
+    return kernel_output
+
+
 def parse_op_args(args: List[str]):
-    parser = get_parse_op_args("B", "M", "seqlen", "sparsity")
+    parser = get_parse_op_args("B", "M", "seqlen", "sparsity", "plot_benchmarks")
     return parser.parse_args(args)
 
 
@@ -74,6 +92,7 @@ class Operator(BenchmarkOperator):
         self.M = args.M
         self.seqlen = args.seqlen
         self.sparsity = args.sparsity
+        self.plot_benchmarks = args.plot_benchmarks
 
     @register_benchmark(baseline=True)
     def torch_jagged_softmax_unbind_torch_softmax(
@@ -99,15 +118,13 @@ class Operator(BenchmarkOperator):
             )
             padded_softmax = torch.softmax(padded, dim=1)
 
-            res = torch.ops.aten._padded_dense_to_jagged_forward(
+            return torch.ops.aten._padded_dense_to_jagged_forward(
                 padded_softmax,
                 [x.offsets()],
                 total_L=x.values().shape[
                     0
                 ],  # providing this parameter helps avoid a GPU/CPU sync
             )
-
-            return res
 
         return _inner
 
@@ -117,6 +134,15 @@ class Operator(BenchmarkOperator):
     ):
         def _inner():
             return execute_kernel_simple_fused(x, seqlen)
+
+        return _inner
+
+    @register_benchmark()
+    def triton_jagged_softmax_variable_length_loop(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        def _inner():
+            return execute_kernel_variable_length_loop(x)
 
         return _inner
 
@@ -201,18 +227,32 @@ class Operator(BenchmarkOperator):
             x_axis = "sparsity"
             params = str_B + str_M + str_seqlen
 
-        line_vals = [
+        line_vals_all = [
             "torch_jagged_softmax_torch_sum",
             "triton_jagged_softmax_simple_fused",
+            "triton_jagged_softmax_variable_length_loop",
         ]
-        line_names = [
+        line_names_all = [
             "PyTorch jagged softmax, torch.sum",
             "Triton kernel jagged softmax, simple fused",
+            "Triton kernel jagged softmax, variable length loop",
         ]
-        styles = [
+        styles_all = [
             ("blue", "-"),
             ("red", "-"),
+            ("green", "-"),
         ]
+
+        if self.plot_benchmarks == "all":
+            line_vals, line_names, styles = line_vals_all, line_names_all, styles_all
+        elif self.plot_benchmarks == "torch":
+            line_vals = line_vals_all[:1]
+            line_names = line_names_all[:1]
+            styles = styles_all[:1]
+        else:
+            line_vals = line_vals_all[1:]
+            line_names = line_names_all[1:]
+            styles = styles_all[1:]
 
         plot_name = f"jagged-softmax-perf-var-{x_axis}" + params
 
