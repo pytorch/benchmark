@@ -18,7 +18,7 @@ from torchbenchmark.util.triton_op import (
 
 from .triton_welford import fused_native_layer_norm as triton_welford
 from .triton_welford import fused_native_layer_norm_no_welford as triton_no_welford
-from torch._dynamo.testing import rand_strided
+from torch._dynamo.testing import rand_strided, same
 
 
 BUILDIN_SHAPES = [
@@ -66,5 +66,4 @@ class Operator(BenchmarkOperator):
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
         baseline_output = baseline_fn()
-        return torch.allclose(output, baseline_output)
-
+        return same(output, baseline_output)

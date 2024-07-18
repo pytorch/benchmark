@@ -18,7 +18,7 @@ from torchbenchmark.util.triton_op import (
 
 from .triton_attention import triton_attention_no_exp2 as triton_test_no_exp2
 from .triton_attention import triton_attention_with_exp2 as triton_test_with_exp2
-from torch._dynamo.testing import rand_strided
+from torch._dynamo.testing import rand_strided, same
 
 
 BUILDIN_SHAPES = [
@@ -57,5 +57,4 @@ class Operator(BenchmarkOperator):
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
         baseline_output = baseline_fn()
-        return torch.allclose(output, baseline_output)
-
+        return same(output, baseline_output)

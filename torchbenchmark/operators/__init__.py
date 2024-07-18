@@ -40,6 +40,12 @@ def _list_opbench_paths() -> List[str]:
     return opbench
 
 
+def list_operators() -> List[str]:
+    operators = list(map(lambda y: os.path.basename(y), _list_opbench_paths()))
+    if INTERNAL_OPBENCH_DIR in operators:
+        operators.remove(INTERNAL_OPBENCH_DIR)
+    return operators
+
 def load_opbench_by_name(op_name: str):
     opbench_list = filter(
         lambda x: op_name.lower() == x.lower(),

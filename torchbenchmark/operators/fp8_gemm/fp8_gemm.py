@@ -17,7 +17,12 @@ from torchbenchmark.util.triton_op import (
 )
 
 from .tutorial import matmul as tutorial_matmul
-from .persistent import matmul_persistent, matmul_tma_persistent, allocate_matmul_tma
+try:
+    from .persistent import matmul_persistent, matmul_tma_persistent, allocate_matmul_tma
+    HAS_TMA = True
+except ModuleNotFoundError:
+    HAS_TMA = False
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="TritonBench fp8_gemm")
@@ -77,11 +82,11 @@ class Operator(BenchmarkOperator):
     def triton_fp8_gemm(self, a, b):
         return lambda: tutorial_matmul(a, b)
 
-    @register_benchmark()
+    @register_benchmark(enabled=HAS_TMA)
     def triton_persistent_fp8_gemm(self, a, b):
         return lambda: matmul_persistent(a, b)
 
-    @register_benchmark()
+    @register_benchmark(enabled=HAS_TMA)
     def triton_tma_persistent_fp8_gemm(self, a, b):
         b = b.T.contiguous()
         c, desc_a, desc_b, desc_c = allocate_matmul_tma(a, b)

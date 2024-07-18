@@ -16,7 +16,6 @@ from torchbenchmark.util.jagged_utils import (
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
-    dump_autotuner_best_config,
     register_benchmark,
     register_metric,
 )
@@ -229,29 +228,6 @@ class Operator(BenchmarkOperator):
             f"sparsity: {example_inputs[4]}",  # sparsity
         )  # return (B, '*', M, max seqlen, sparsity) for each example input
 
-    @register_metric(skip_baseline=True)
-    def best_config(
-        self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics
-    ) -> str:
-        fn_name_str = str(fn_name).split(".")[1]
-
-        if "simple_fused" in fn_name_str:
-            if self.sum_then_buffer:
-                return dump_autotuner_best_config(
-                    triton_jagged_mean_kernel_simple_fused_sum_then_buffer
-                )
-            return dump_autotuner_best_config(
-                triton_jagged_mean_kernel_simple_fused_buffer_then_sum
-            )
-        elif "variable_length_loop" in fn_name_str:
-            if self.sum_then_buffer:
-                return dump_autotuner_best_config(
-                    triton_jagged_mean_kernel_variable_length_loop_sum_then_buffer
-                )
-            return dump_autotuner_best_config(
-                triton_jagged_mean_kernel_variable_length_loop_buffer_then_sum
-            )
-        return ""
 
     def plot(self):
         str_B, str_M, str_seqlen, str_sparsity = (

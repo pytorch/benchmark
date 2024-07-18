@@ -689,6 +689,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         )
 
     def count_example_inputs(self):
+        if self._num_inputs is not None:
+            return self._num_inputs
         return sum(1 for _ in  self.get_input_iter())
 
     def get_example_inputs(self):

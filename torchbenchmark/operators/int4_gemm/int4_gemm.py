@@ -20,8 +20,7 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
 )
-
-from .kernel import pack_2xint4, matmul, matmul_kernel
+from .kernel import pack_2xint4, matmul, matmul_kernel, _group_quantize_tensor
 
 
 class Operator(BenchmarkOperator):
@@ -37,14 +36,7 @@ class Operator(BenchmarkOperator):
         def args(B, L, Dout, Din):
             x = torch.randn(B, L, Din, device=self.device, dtype=torch.bfloat16)
             w = torch.randint(-8, 7, (Din, Dout), device=self.device, dtype=torch.int32)
-            scales_and_zeros = torch.randn(
-                Din // self.group_size,
-                Dout,
-                2,
-                device=self.device,
-                dtype=torch.bfloat16,
-            )
-            return (x, w, scales_and_zeros)
+            return (x, w)
 
         # LLama-2 shapes w/ 8-way tensor parallelism.
         name_to_shapes_70b = {
@@ -59,25 +51,30 @@ class Operator(BenchmarkOperator):
                     yield args(bsz, seq_len, n, k)
 
     def get_x_val(self, example_inputs) -> float:
-        x, w, scales_and_zeros = example_inputs
+        x, w = example_inputs
         B, m, k = x.size()
         _, n = w.size()
         return (B, m, n, k)
 
     @register_benchmark(baseline=True)
-    def tinygemm(self, x, w, scales_and_zeros):
+    def tinygemm(self, x, w):
         x = x.reshape(-1, x.size(-1))
+        w_bf16 = w.to(torch.bfloat16)
+        w_uint8, scales_and_zeros = _group_quantize_tensor(
+            w_bf16, n_bit=4, q_group_size=self.group_size
+        )
         w_int4 = torch.ops.aten._convert_weight_to_int4pack(
-            w.T.contiguous(), self.inner_k_tiles
+            w_uint8, self.inner_k_tiles
         )
         return lambda: torch.ops.aten._weight_int4pack_mm(
             x, w_int4, self.group_size, scales_and_zeros
         )
 
     @register_benchmark()
-    def triton(self, x, w, scales_and_zeros):
+    def triton(self, x, w):
         x = x.reshape(-1, x.size(-1))
         w_int4 = pack_2xint4(w).T.contiguous().T
+        print(w_int4.dtype)
         return lambda: matmul(x, w_int4)
 
     @register_metric()
@@ -85,17 +82,20 @@ class Operator(BenchmarkOperator):
         def nbytes(t):
             return t.numel() * t.element_size()
 
-        x, w, scale_and_zero = example_inputs
+        x, w = example_inputs
+        w, scales_and_zeros = _group_quantize_tensor(
+            w.to(torch.bfloat16), n_bit=4, q_group_size=self.group_size
+        )
         c = fn()
 
-        gb = (sum(nbytes(t) for t in (x, scale_and_zero, c)) + nbytes(w) // 8) / 1e9
+        gb = (sum(nbytes(t) for t in (x, scales_and_zeros, c)) + nbytes(w) // 8) / 1e9
         return gb / metrics.latency * 1e3
 
     @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> float:
-        a, b, _ = example_inputs
+        a, b = example_inputs
         B, m, k = a.size()
         m = B * m
         _, n = b.size()
