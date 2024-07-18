@@ -170,4 +170,18 @@ def generate_random_nested_tensors(
 
             nested_tensors.append((nt, B, M, max_seqlen, sparsity))
 
+    # add 0-seqlen nested tensor
+    tensors = [
+        torch.randn((seqlen_vals[0], M), device=device, dtype=dtype),
+        torch.randn((0, M), device=device, dtype=dtype),
+        torch.randn((seqlen_vals[0] // 2, M), device=device, dtype=dtype),
+    ]
+    nt = torch.nested.nested_tensor(
+        tensors,
+        layout=torch.jagged,
+        device=device,
+        dtype=dtype,
+    )
+    nested_tensors.append((nt, 3, M, seqlen_vals[0], 0.5))
+
     return nested_tensors
