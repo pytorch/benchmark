@@ -165,7 +165,8 @@ def install_torch_build_deps(cuda_version: str):
 
 
 def install_torchbench_deps():
-    cmd = ["pip", "install", "unittest-xml-reporting", "boto3"]
+    # tritonbench flash_attn depends on packaging to build
+    cmd = ["pip", "install", "unittest-xml-reporting", "boto3", "packaging"]
     subprocess.check_call(cmd)
 
 
