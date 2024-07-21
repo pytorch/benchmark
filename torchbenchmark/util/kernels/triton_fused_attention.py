@@ -255,7 +255,8 @@ def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
 
 @triton.autotune(list(filter(keep, configs)), key=["N_CTX"])
 @triton.jit
-def _attn_fwd_tma(Q, V, desc_k, desc_v, sm_scale, M, Out,  #
+def _attn_fwd_tma(#Q, V, desc_k, desc_v, sm_scale, M, Out,  #
+              Q, V, Out, desc_q, desc_k, desc_v, sm_scale, M, desc_o,  #
               stride_qz, stride_qh, stride_qm, stride_qk,  #
               stride_kz, stride_kh, stride_kn, stride_kk,  #
               stride_vz, stride_vh, stride_vk, stride_vn,  #
@@ -268,9 +269,13 @@ def _attn_fwd_tma(Q, V, desc_k, desc_v, sm_scale, M, Out,  #
               ):
     # TODO(embg) remove TMA fence after __grid_constant__ lands
     tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
+                              [desc_q], dtype=tl.int32, is_pure=False, pack=1)
+    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
                               [desc_k], dtype=tl.int32, is_pure=False, pack=1)
     tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
                               [desc_v], dtype=tl.int32, is_pure=False, pack=1)
+    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
+                              [desc_o], dtype=tl.int32, is_pure=False, pack=1)
 
     tl.static_assert(BLOCK_N <= HEAD_DIM)
     start_m = tl.program_id(0)
@@ -280,22 +285,22 @@ def _attn_fwd_tma(Q, V, desc_k, desc_v, sm_scale, M, Out,  #
     qvk_offset = off_z.to(tl.int64) * stride_qz + off_h.to(tl.int64) * stride_qh
 
     # block pointers
-    Q_block_ptr = tl.make_block_ptr(
-        base=Q + qvk_offset,
-        shape=(N_CTX, HEAD_DIM),
-        strides=(stride_qm, stride_qk),
-        offsets=(start_m * BLOCK_M, 0),
-        block_shape=(BLOCK_M, HEAD_DIM),
-        order=(1, 0),
-    )
-    O_block_ptr = tl.make_block_ptr(
-        base=Out + qvk_offset,
-        shape=(N_CTX, HEAD_DIM),
-        strides=(stride_om, stride_on),
-        offsets=(start_m * BLOCK_M, 0),
-        block_shape=(BLOCK_M, HEAD_DIM),
-        order=(1, 0),
-    )
+    #Q_block_ptr = tl.make_block_ptr(
+    #    base=Q + qvk_offset,
+    #    shape=(N_CTX, HEAD_DIM),
+    #    strides=(stride_qm, stride_qk),
+    #    offsets=(start_m * BLOCK_M, 0),
+    #    block_shape=(BLOCK_M, HEAD_DIM),
+    #    order=(1, 0),
+    #)
+    #O_block_ptr = tl.make_block_ptr(
+    #    base=Out + qvk_offset,
+    #    shape=(N_CTX, HEAD_DIM),
+    #    strides=(stride_om, stride_on),
+    #    offsets=(start_m * BLOCK_M, 0),
+    #    block_shape=(BLOCK_M, HEAD_DIM),
+    #    order=(1, 0),
+    #)
     # initialize offsets
     offs_m = start_m * BLOCK_M + tl.arange(0, BLOCK_M)
     offs_n = tl.arange(0, BLOCK_N)
@@ -307,7 +312,13 @@ def _attn_fwd_tma(Q, V, desc_k, desc_v, sm_scale, M, Out,  #
     qk_scale = sm_scale
     qk_scale *= 1.44269504  # 1/log(2)
     # load q: it will stay in SRAM throughout
-    q = tl.load(Q_block_ptr)
+    #q = tl.load(Q_block_ptr)
+    q = tl._experimental_descriptor_load(  # load in row major
+         desc_q,
+         [(qvk_offset // stride_qm + start_m * BLOCK_M).to(tl.int32), 0],
+         [BLOCK_M, HEAD_DIM],
+         Q.dtype.element_ty,
+    )
     # stage 1: off-band
     # For causal = True, STAGE = 3 and _attn_fwd_inner gets 1 as its STAGE
     # For causal = False, STAGE = 1, and _attn_fwd_inner gets 3 as its STAGE
@@ -333,7 +344,9 @@ def _attn_fwd_tma(Q, V, desc_k, desc_v, sm_scale, M, Out,  #
     acc = acc / l_i[:, None]
     m_ptrs = M + off_hz * N_CTX + offs_m
     tl.store(m_ptrs, m_i)
-    tl.store(O_block_ptr, acc.to(Out.type.element_ty))
+    tl._experimental_descriptor_store(desc_o, acc.to(Out.type.element_ty),
+        [(qvk_offset // stride_om + start_m * BLOCK_M).to(tl.int32), 0])
+    #tl.store(O_block_ptr, acc.to(Out.type.element_ty))
 
 
 @triton.jit
@@ -719,11 +732,17 @@ class _attention_tma(torch.autograd.Function):
         '''
         desc_k = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
         desc_v = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        desc_q = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        desc_o = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
         def grid_tma(META):
             nonlocal desc_k
             nonlocal desc_v
+            nonlocal desc_q
+            nonlocal desc_o
+            q_buf = torch.empty_like(desc_q, device="cpu", pin_memory=True)
             k_buf = torch.empty_like(desc_k, device="cpu", pin_memory=True)
             v_buf = torch.empty_like(desc_v, device="cpu", pin_memory=True)
+            o_buf = torch.empty_like(desc_o, device="cpu", pin_memory=True)
             triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
                 k.data_ptr(),
                 BATCH * H * N_CTX,
@@ -753,13 +772,34 @@ class _attention_tma(torch.autograd.Function):
                     v.element_size(),
                     v_buf.numpy(),
                 )
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                q.data_ptr(),
+                BATCH * H * N_CTX,
+                HEAD_DIM_Q,
+                META['BLOCK_M'],
+                HEAD_DIM_Q,
+                q.element_size(),
+                q_buf.numpy(),
+            )
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                o.data_ptr(),
+                BATCH * H * N_CTX,
+                HEAD_DIM_Q,
+                META['BLOCK_M'],
+                HEAD_DIM_Q,
+                o.element_size(),
+                o_buf.numpy(),
+            )
+            desc_q.copy_(q_buf, non_blocking=True)
             desc_k.copy_(k_buf, non_blocking=True)
             desc_v.copy_(v_buf, non_blocking=True)
+            desc_o.copy_(o_buf, non_blocking=True)
             return (triton.cdiv(q.shape[2], META["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
 
         M = torch.empty((q.shape[0], q.shape[1], q.shape[2]), device=q.device, dtype=torch.float32)
         _attn_fwd_tma[grid_tma](
-            q, v, desc_k, desc_v, sm_scale, M, o,  #
+            q, v, o, desc_q, desc_k, desc_v, sm_scale, M, desc_o,  #
+            #q, v, desc_k, desc_v, sm_scale, M, o,  #
             q.stride(0), q.stride(1), q.stride(2), q.stride(3),  #
             k.stride(0), k.stride(1), k.stride(2), k.stride(3),  #
             v.stride(0), v.stride(1), v.stride(2), v.stride(3),  #
