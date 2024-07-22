@@ -23,7 +23,7 @@ from .kernels import matmul as kernels
 from .triton_matmul import matmul as triton_tutorial_matmul
 from .triton_matmul import matmul_kernel as triton_tutorial_matmul_kernel
 from .persistent_matmul import matmul_persistent, matmul_tma_persistent, matmul_tma_persistent_cached
-
+from .partition_k import matmul_partition_k
 import torch._inductor.config as inductor_config
 
 if inductor_config.is_fbcode():
@@ -74,12 +74,12 @@ BUILDIN_SHAPES = [
 
 SPLIT_K_SHAPES = [
     (m, m, k, None)
-    for m in [128 * i for i in range(1, 5)]
-    for k in [2048 * i for i in range(1, 9)]
+    for m in [16 * i for i in range(1, 5)]
+    for k in [4096 * i for i in range(1, 9)]
 ]
 
 class Operator(BenchmarkOperator):
-    DEFAULT_METRICS = ["latency", "speedup", "accuracy", "tflops", "best_config"]
+    DEFAULT_METRICS = ["speedup", "tflops"]
     DEFAULT_PRECISION = "fp16"
 
     def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
@@ -105,6 +105,13 @@ class Operator(BenchmarkOperator):
             return lambda: triton_tutorial_matmul(a, b) + bias
         else:
             return lambda: triton_tutorial_matmul(a, b)
+
+    @register_benchmark()
+    def matmul_partition_k(self, a, b, bias) -> Callable:
+        if not bias == None:
+            return lambda: matmul_partition_k(a, b) + bias
+        else:
+            return lambda: matmul_partition_k(a, b)
 
     @register_benchmark()
     def triton_persistent_matmul(self, a, b, bias) -> Callable:
