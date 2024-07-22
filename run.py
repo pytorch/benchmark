@@ -257,8 +257,6 @@ def run_one_step(
             metrics_needed=metrics_needed,
             metrics_gpu_backend=metrics_gpu_backend,
         )
-    if "model_flops" in metrics_needed:
-        model_flops = get_model_flops(model)
     printResultSummaryTime(
         result_summary,
         model,
@@ -507,6 +505,10 @@ def main() -> None:
         batch_size=args.bs,
         extra_args=extra_args,
     )
+    metrics_needed = (
+        [_ for _ in args.metrics.split(",") if _.strip()] if args.metrics else []
+    )
+    model_flops = get_model_flops(config) if "model_flops" in metrics_needed else None
     m = load_model(config)
     if m.dynamo:
         mode = f"dynamo {m.opt_args.torchdynamo}"
@@ -524,12 +526,8 @@ def main() -> None:
     test = m.invoke
     if args.amp:
         test = torch.autocast(m.device)(test)
-    metrics_needed = (
-        [_ for _ in args.metrics.split(",") if _.strip()] if args.metrics else []
-    )
     if "none" in metrics_needed:
         metrics_needed = []
-    model_flops = get_model_flops(config) if "model_flops" in metrics_needed else None
 
     # only enabled gpu_peak_mem for cuda device
     if args.device != "cuda" and "gpu_peak_mem" in metrics_needed:
