@@ -17,11 +17,6 @@ import numpy as np
 import torch
 import torch.profiler as profiler
 
-from torchbenchmark import (
-    load_canary_model_by_name,
-    load_model_by_name,
-    ModelNotFoundError,
-)
 from torchbenchmark.util.experiment.instantiator import (
     load_model,
     TorchBenchModelConfig,
@@ -170,6 +165,7 @@ def run_one_step(
     stress=0,
     metrics_needed=[],
     metrics_gpu_backend=None,
+    model_flops=None,
 ):
     # Warm-up `nwarmup` rounds
     for _i in range(nwarmup):
@@ -253,7 +249,6 @@ def run_one_step(
     cpu_peak_mem = None
     gpu_peak_mem = None
     mem_device_id = None
-    model_flops = None
     if "cpu_peak_mem" in metrics_needed or "gpu_peak_mem" in metrics_needed:
         cpu_peak_mem, mem_device_id, gpu_peak_mem = get_peak_memory(
             func,
@@ -534,6 +529,8 @@ def main() -> None:
     )
     if "none" in metrics_needed:
         metrics_needed = []
+    model_flops = get_model_flops(config) if "model_flops" in metrics_needed else None
+
     # only enabled gpu_peak_mem for cuda device
     if args.device != "cuda" and "gpu_peak_mem" in metrics_needed:
         metrics_needed.remove("gpu_peak_mem")
@@ -558,11 +555,6 @@ def main() -> None:
             assert (
                 args.device == "cuda"
             ), "gpu_peak_mem and flops:dcgm are only available for cuda device."
-        if "flops" in metrics_needed and metrics_gpu_backend == "default":
-            assert hasattr(
-                m, "get_flops"
-            ), f"The model {args.model} does not support calculating flops."
-            m.get_flops()
     if args.export_metrics:
         if not args.metrics:
             print("You have to specifiy at least one metrics to export.")
@@ -582,6 +574,7 @@ def main() -> None:
             stress=args.stress,
             metrics_needed=metrics_needed,
             metrics_gpu_backend=args.metrics_gpu_backend,
+            model_flops=model_flops,
         )
 
     # Print dynamo compilation metrics, if there are any.
