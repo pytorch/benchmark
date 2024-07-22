@@ -2,6 +2,7 @@
 Utilities to measure metrics of a model.
 """
 
+import copy
 import dataclasses
 import pathlib
 import time
@@ -117,8 +118,16 @@ def get_peak_memory(
     return cpu_peak_mem, device_id, gpu_peak_mem
 
 
-def get_model_flops(model: Union[BenchmarkModel, ModelTask]) -> float:
-    "Run one step of the model, and return the model total flops."
+def get_model_flops(model_config: TorchBenchModelConfig) -> float:
+    "Run one step of the eager model, and return the model total flops."
+    from torchbenchmark.util.experiment.instantiator import (
+        load_model,
+    )
+
+    eager_model_config = copy.deepcopy(model_config)
+    eager_model_config.extra_args = []
+    model = load_model(eager_model_config)
+
     from torch.utils.flop_counter import FlopCounterMode
 
     flop_counter = FlopCounterMode()
@@ -134,6 +143,8 @@ def get_model_flops(model: Union[BenchmarkModel, ModelTask]) -> float:
     with flop_counter:
         work_func()
     total_flops = sum([v for _, v in flop_counter.flop_counts["Global"].items()])
+
+    del model
     return total_flops
 
 
