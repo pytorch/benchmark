@@ -60,11 +60,13 @@ except (ImportError, IOError, AttributeError):
     pass
 
 # [Optional] flash_attn v3
+HAS_FLASH_V3 = True
 try:
     torch_lib_path = os.path.join(os.path.dirname(__file__), "lib")
     with add_ld_library_path(torch_lib_path):
         import flashattn_hopper_cuda
 except (ImportError, IOError, AttributeError):
+    HAS_FLASH_V3 = False
     pass
 
 # [Optional] xformers backend
@@ -189,13 +191,17 @@ class Operator(BenchmarkOperator):
         )
         return fn
 
-    @register_benchmark(enabled=False)
+    @register_benchmark(enabled=HAS_FLASH_V3)
     def flash_v3(
         self,
         q: torch.Tensor,
         k: torch.Tensor,
         v: torch.Tensor,
     ) -> Callable:
+        # [B, H, S, D] -> [B, S, H, D]
+        q = q.transpose(1, 2).contiguous()
+        k = k.transpose(1, 2).contiguous()
+        v = v.transpose(1, 2).contiguous()
         fn = lambda: flashattn_hopper_cuda.fwd(q, k, v, None, self.sm_scale, self.causal)
         return fn
 
@@ -291,7 +297,7 @@ class Operator(BenchmarkOperator):
                 tk_fwd.attention_forward(q, k, v, o)
             return o
         return tk_dispatcher
-    
+
     @register_benchmark(enabled=False, label=f"cudnn_{torch.backends.cudnn.version()}")
     def cudnn(self, q, k, v):
         os.environ["TORCH_CUDNN_SDPA_ENABLED"] = "1"
@@ -315,9 +321,9 @@ class Operator(BenchmarkOperator):
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> float:
-        flops_per_matmul = (
-            2.0 * self.BATCH * self.H * self.N_CTX * self.N_CTX * self.D_HEAD
-        )
+        q, k, v = example_inputs
+        BATCH, H, N_CTX, D_HEAD = q.shape
+        flops_per_matmul = 2.0 * BATCH * H * N_CTX * N_CTX * D_HEAD
         tflops = 2 * flops_per_matmul
         if self.causal:
             tflops *= 0.5
@@ -338,12 +344,12 @@ class Operator(BenchmarkOperator):
         return fn
 
     def get_input_iter(self) -> Generator:
-        BATCH = self.BATCH
-        H = self.H
         D_HEAD = self.D_HEAD
-        ctx_vals = [2**i for i in range(7, 15)]
+        ctx_vals = [2**i for i in range(9, 15)]
         requires_grad = True
         for N_CTX in ctx_vals:
+            BATCH = 16384 // N_CTX
+            H = 2048 // D_HEAD
             q = torch.randn(
                 (BATCH, H, N_CTX, D_HEAD),
                 dtype=self.dtype,
@@ -365,9 +371,11 @@ class Operator(BenchmarkOperator):
             self.N_CTX = N_CTX
             yield (q, k, v)
 
-    @register_x_val(label="SeqLen")
+    @register_x_val(label="(Batch, Heads, SeqLen, Dhead)")
     def get_x_val(self, example_inputs) -> float:
-        return self.N_CTX
+        q, k, v = example_inputs
+        B, H, S, D = q.shape
+        return (B, H, S, D)
 
     def plot(self):
         y_metric_name = "tflops"
