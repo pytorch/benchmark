@@ -60,7 +60,7 @@ SUBSET_OF_MODEL_NAMES: List[str] = [
     "hf_GPT2_large",
     "hf_T5_large",
     "resnet50",
-    "timm_vision_transformer",
+    "timm_vision_transformer_large",
     "yolov3",
 ]
 
@@ -167,6 +167,19 @@ OPTIMIZERS = [
         SGD,
         {
             "foreach": True,
+            "momentum": 0.9,
+        },
+    ),
+    (
+        SGD,
+        {
+            "fused": True,
+        },
+    ),
+    (
+        SGD,
+        {
+            "fused": True,
             "momentum": 0.9,
         },
     ),
@@ -579,8 +592,6 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
             len(params),
             params[0].device,
         )
-        if Optim.__name__ == "SGD":
-            defaults["lr"] = 1e-2
         optim = Optim(params, **defaults)
         generate_random_gradients(params)
         pt2_description = "" if maybe_pt2_ == "" else "(pt2) "
@@ -803,8 +814,9 @@ def run(args: List[str]):
     compare.colorize(rowwise=True)
     compare.print()
 
-    print("----------------- COMPILE TIME RESULTS -----------------")
-    print(compile_metrics)
+    if 'pt2_' in args.funcs:
+        print("----------------- COMPILE TIME RESULTS -----------------")
+        print(compile_metrics)
 
 
 if __name__ == "__main__":

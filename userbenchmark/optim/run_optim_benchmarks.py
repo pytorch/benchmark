@@ -18,6 +18,7 @@ import sys
 import itertools
 import json
 from userbenchmark.utils import REPO_PATH, add_path, dump_output, get_output_json
+from userbenchmark.optim.run import SUBSET_OF_MODEL_NAMES
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models
@@ -67,8 +68,12 @@ def main() -> None:
     assert not OUTPUT_DIR.exists() or not any(OUTPUT_DIR.glob("*")), \
            f'{OUTPUT_DIR} must be empty or nonexistent. Its contents will be wiped by this script.'
 
+    models = args.models
+    if "-c" in optim_bm_args:
+        models = [m for m in models if m in SUBSET_OF_MODEL_NAMES]
+
     # Run benchmarks in subprocesses to take isolate contexts and memory
-    for m, d, f in itertools.product(args.models, args.devices, args.funcs):
+    for m, d, f in itertools.product(models, args.devices, args.funcs):
         command = [sys.executable, '-m', 'userbenchmark.optim.run', '--continue-on-error',
                    '--output-dir', OUTPUT_DIR, '--models', m, '--devices', d, '--funcs', f] + optim_bm_args
         # Use check=True to force this process to go serially since our capacity
