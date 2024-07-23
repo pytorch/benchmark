@@ -170,6 +170,19 @@ OPTIMIZERS = [
             "momentum": 0.9,
         },
     ),
+    (
+        SGD,
+        {
+            "fused": True,
+        },
+    ),
+    (
+        SGD,
+        {
+            "fused": True,
+            "momentum": 0.9,
+        },
+    ),
     (RAdam, {}),
     (RAdam, {"foreach": False}),
     (RAdam, {"differentiable": True}),
@@ -579,8 +592,6 @@ def run_model(modelName, device, Optim, defaults, maybe_pt2_):
             len(params),
             params[0].device,
         )
-        if Optim.__name__ == "SGD":
-            defaults["lr"] = 1e-2
         optim = Optim(params, **defaults)
         generate_random_gradients(params)
         pt2_description = "" if maybe_pt2_ == "" else "(pt2) "
