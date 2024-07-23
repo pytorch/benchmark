@@ -60,7 +60,7 @@ SUBSET_OF_MODEL_NAMES: List[str] = [
     "hf_GPT2_large",
     "hf_T5_large",
     "resnet50",
-    "timm_vision_transformer",
+    "timm_vision_transformer_large",
     "yolov3",
 ]
 
@@ -803,8 +803,9 @@ def run(args: List[str]):
     compare.colorize(rowwise=True)
     compare.print()
 
-    print("----------------- COMPILE TIME RESULTS -----------------")
-    print(compile_metrics)
+    if 'pt2_' in args.funcs:
+        print("----------------- COMPILE TIME RESULTS -----------------")
+        print(compile_metrics)
 
 
 if __name__ == "__main__":
