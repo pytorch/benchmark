@@ -56,7 +56,12 @@ RUN sudo apt update && sudo apt-get install -y libnvidia-compute-550 && \
     bash .ci/tritonbench/test.sh && \
     sudo apt-get purge -y libnvidia-compute-550
 
-# Install Torchbench
+# Install TorchAO benchmark
+RUN cd /workspace/benchmark && \
+    . ${SETUP_SCRIPT} && \
+    python install.py --userbenchmark torchao
+
+# Install Torchbench models
 RUN cd /workspace/benchmark && \
     . ${SETUP_SCRIPT} && \
     python install.py
