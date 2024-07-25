@@ -8,6 +8,7 @@ from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
 
 from torchbenchmark.util.triton_op import (
+    BenchmarkOperatorResult,
     DEFAULT_RUN_ITERS,
     DEFAULT_WARMUP,
 )
@@ -135,7 +136,7 @@ def get_parser():
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
     return parser
 
-def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
+def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorResult:
     Opbench = load_opbench_by_name(args.op)
     if args.fwd_bwd:
         args.mode = "fwd_bwd"
@@ -167,6 +168,7 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> None:
             os.makedirs(TRITON_BENCH_CSV_DUMP_PATH, exist_ok=True)
             path = metrics.write_csv(TRITON_BENCH_CSV_DUMP_PATH)
             print(f"[TritonBench] Dumped csv to {path}")
+        return metrics
 
 def run(args: List[str] = []):
     if args == []:

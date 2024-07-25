@@ -194,6 +194,7 @@ BUILTIN_METRICS =  set(map(lambda x: x.name, fields(BenchmarkOperatorMetrics))) 
 class BenchmarkOperatorResult:
     # Print the result in a table format
     op_name: str
+    op_mode: str
     metrics: List[str]
     result: List[Tuple[Any, Dict[str, BenchmarkOperatorMetrics]]]
     _result_dict: Optional[Dict[Number, Dict[str, BenchmarkOperatorMetrics]]] = None
@@ -297,7 +298,7 @@ class BenchmarkOperatorResult:
     @property
     def userbenchmark_dict(self) -> Dict[str, Any]:
         # Userbenchmark Metric key format:
-        # tritonbench_{op_name}[{x_val}-{provider}-{metric}]
+        # tritonbench_{op_name}_{op_mode}[{x_val}-{provider}-{metric}]
         userbenchmark_metrics_dict = {}
         headers, table = self._table()
         for row in table:
@@ -305,7 +306,7 @@ class BenchmarkOperatorResult:
             for ind, value in enumerate(row[1:]):
                 header = headers[ind+1]
                 provider, _dash, metrics = header.partition("-")
-                metric_name = f"tritonbench_{self.op_name}[x_{x_val}-{provider}]_{metrics}"
+                metric_name = f"tritonbench_{self.op_name}_{self.op_mode}[x_{x_val}-{provider}]_{metrics}"
                 userbenchmark_metrics_dict[metric_name] = value
         return userbenchmark_metrics_dict
 
@@ -561,6 +562,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         finally:
             self.output = BenchmarkOperatorResult(
                 op_name=self.name,
+                op_mode=self.mode.value,
                 metrics=self.required_metrics,
                 result=metrics,
             )
