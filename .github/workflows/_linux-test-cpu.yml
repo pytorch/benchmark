@@ -11,7 +11,7 @@ jobs:
   linux-test-cpu:
     # Don't run on forked repos
     if: github.repository_owner == 'pytorch'
-    runs-on: [self-hosted, linux.24xlarge]
+    runs-on: [self-hosted, amz2023.linux.24xlarge]
     timeout-minutes: 240
     environment: docker-s3-upload
     env:

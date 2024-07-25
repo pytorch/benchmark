@@ -8,7 +8,7 @@ on:
 jobs:
   clean-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, linux.2xlarge]
+    runs-on: [self-hosted, amz2023.linux.2xlarge]
     environment: docker-s3-upload
     steps:
       - uses: actions/delete-package-versions@v4
