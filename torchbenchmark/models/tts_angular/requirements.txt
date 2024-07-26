@@ -6,12 +6,12 @@ Pillow
 flask
 tqdm
 inflect
-bokeh==1.4.0
+bokeh
 pysbd
 pyworld
 soundfile
-nose==1.3.7
-cardboardlint==1.3.0
-pylint==2.5.3
+nose
+cardboardlint
+pylint
 gdown
 pyyaml
