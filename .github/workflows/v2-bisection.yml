@@ -11,15 +11,10 @@ jobs:
   bisection:
     environment: docker-s3-upload
     env:
-      BISECT_CONDA_ENV: "bisection-ci-v2"
+      CONDA_ENV_NAME: "bisection-ci-v2"
       BISECT_DIR: ".torchbench/v2-bisection-ci"
       BISECT_BRANCH: "v2.0"
-      PYTHON_VER: "3.10"
-      CUDA_VER: "12.1"
-      NUMPY_VER: "1.21.2"
-      CMAKE_VER: "3.26"
-      MKL_VER: "2021.2.0"
-      MAGMA_VER: "magma-cuda121"
+      SETUP_SCRIPT: "/data/nvme/bin/setup_instance.sh"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     timeout-minutes: 2880 # 48 hours
@@ -31,32 +26,27 @@ jobs:
       - name: Create conda environment
         run: |
           set -x
-          conda create -y -n "${BISECT_CONDA_ENV}" python="${PYTHON_VER}"
-          . activate "${BISECT_CONDA_ENV}"
-          . /data/nvme/bin/setup_instance.sh
-          conda install -y numpy="${NUMPY_VER}"  mkl="${MKL_VER}" mkl-include="${MKL_VER}" \
-                           requests ninja pyyaml setuptools cffi sympy ffmpeg \
-                           typing_extensions future six dataclasses tabulate gitpython git-lfs tqdm regex
-          # install cmake 3.26 from conda-forge, cmake > 3.24 is required by torchaudio
-          conda install -y cmake="${CMAKE_VER}" -c conda-forge
-          # Install magma
-          conda install -y -c pytorch "${MAGMA_VER}"
+          python3 ./utils/python_utils.py --create-conda-env ${CONDA_ENV_NAME}
+          . activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}"
+          python utils/cuda_utils.py --install-torch-build-deps
+          python utils/cuda_utils.py --install-torchbench-deps
       - name: Bisection
         run: |
+          . activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}"
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
           export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
           export TORCHBENCH_SRC_DIR="${PWD}"
-          . activate "$BISECT_CONDA_ENV"
-          . /data/nvme/bin/setup_instance.sh
           bash ./.github/scripts/run-bisection.sh
           # Update the result json symbolic link
           ln -sf "${BISECT_BASE}/gh${GITHUB_RUN_ID}/result.json" "${BISECT_BASE}/result.json"
       - name: Analyze bisection result
         run: |
+          . activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}"
           export BISECT_ISSUE="${{ github.event.inputs.issue_name }}"
           export BISECT_BASE="${HOME}/${BISECT_DIR}/${BISECT_ISSUE}"
-          . activate "$BISECT_CONDA_ENV"
-          . /data/nvme/bin/setup_instance.sh
           python ./.github/scripts/bmutils/analyze-bisection-result.py --bisection-root "${BISECT_BASE}" --gh-workflow-id "${GITHUB_RUN_ID}"
           cp -r "${BISECT_BASE}" ./bisection-result
       - name: Create the github issue
