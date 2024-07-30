@@ -562,7 +562,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 del self.example_inputs
                 gc.collect()
         except (KeyboardInterrupt, Exception):
-            warnings.warn("Caught exception, terminating early with partial results", stacklevel=1)
+            logger.warning("Caught exception, terminating early with partial results", exc_info=True)
             raise
         finally:
             self.output = BenchmarkOperatorResult(
