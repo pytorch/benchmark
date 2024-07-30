@@ -2,8 +2,8 @@ import argparse
 import os
 import sys
 import tempfile
-import torch
 from typing import List
+
 from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
 
@@ -14,13 +14,14 @@ from torchbenchmark.util.triton_op import (
 )
 
 try:
+    import torch
     if not hasattr(torch.version, "git_version"):
         from pytorch.benchmark.fb.run_utils import usage_report_logger
     else:
         usage_report_logger = lambda *args, **kwargs: None
 except ImportError:
     usage_report_logger = lambda *args, **kwargs: None
-
+from .gpu import gpu_lockdown
 
 TRITON_BENCH_CSV_DUMP_PATH = tempfile.gettempdir() + "/tritonbench/"
 
@@ -132,6 +133,11 @@ def get_parser():
         action="store_true",
         help="Dump Triton IR",
     )
+    parser.add_argument(
+        "--gpu-lockdown",
+        action="store_true",
+        help="Lock down GPU frequency and clocks to avoid throttling."
+    )
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
     return parser
@@ -181,4 +187,5 @@ def run(args: List[str] = []):
         from .ci import run_ci
         run_ci()
         return
-    _run(args, extra_args)
+    with gpu_lockdown(args.gpu_lockdown):
+        _run(args, extra_args)
