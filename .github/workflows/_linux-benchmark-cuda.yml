@@ -6,11 +6,6 @@ on:
         required: true
         type: string
         description: Name of the benchmark
-      userbenchmark-install-args:
-        required: false
-        type: string
-        default: ""
-        description: Userbenchmark installation command line arguments
       userbenchmark-run-args:
         required: true
         type: string
@@ -67,11 +62,6 @@ jobs:
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
           conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
-      - name: Install benchmark
-        run: |
-          . "${SETUP_SCRIPT}"
-          pushd benchmark
-          bash ./.ci/torchbench/install.sh --userbenchmark ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-install-args }}
       - name: Run benchmark
         run: |
           . "${SETUP_SCRIPT}"
