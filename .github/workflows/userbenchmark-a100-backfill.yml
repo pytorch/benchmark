@@ -1,0 +1,78 @@
+name: TorchBench A100 backfill
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "Start backfill date (inclusive)"
+        required: true
+      end_date:
+        description: "End backfill date (inclusive)"
+        required: true
+      backfill_step:
+        description: "Backfill step: commit, day, or week"
+        required: true
+      userbenchmark:
+        description: "Userbenchmark name"
+        required: true
+      userbenchmark_args:
+        description: "Userbenchmark arguments"
+        required: false
+
+jobs:
+  backfill:
+    environment: docker-s3-upload
+    env:
+      BASE_CONDA_ENV: "torchbench"
+      CONDA_ENV: "backfill-ci-a100"
+      PLATFORM_NAME: "gcp_a100"
+      SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      BACKFILL_WORKDIR: ".userbenchmark/${{ github.event.inputs.userbenchmark }}/backfill"
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [a100-runner]
+    timeout-minutes: 2880 # 48 hours
+    steps:
+      - name: Checkout Torchbench
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Tune Nvidia GPU
+        run: |
+          sudo nvidia-smi -pm 1
+          sudo nvidia-smi -ac 1215,1410
+          nvidia-smi
+      - name: Setup conda env
+        run: |
+          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
+          cd benchmark
+          mkdir -p "${BACKFILL_WORKDIR}"
+          python ./utils/python_utils.py --create-conda-env "${CONDA_ENV}"
+      - name: Setup backfill environment
+        run: |
+          . "${SETUP_SCRIPT}"; cd benchmark
+          python install.py --userbenchmark ${{ github.event.inputs.userbenchmark }} --install-devel-packages
+      - name: Backfill
+        run: |
+          . "${SETUP_SCRIPT}"; cd benchmark
+          python backfill.py --work-dir "${BACKFILL_WORKDIR}" \
+                 --start-date ${{ github.event.inputs.start_date }} \
+                 --end-date ${{ github.event.inputs.end_date }} \
+                 --step ${{ github.event.inputs.backfill_step }} \
+                 --torchbench-repo-path "${PWD}" \
+                 --userbenchmark ${{ github.event.inputs.userbenchmark }} \
+                 ${{ github.event.inputs.userbenchmark_args }} 
+          cp -r "${BACKFILL_WORKDIR}" ../backfill-result
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Backfill result
+          path: backfill-result/
+      - name: Clean up Conda env
+        if: always()
+        run: |
+          . "${SETUP_SCRIPT}"
+          conda deactivate && conda deactivate
+          conda remove -n "${CONDA_ENV}" --all
