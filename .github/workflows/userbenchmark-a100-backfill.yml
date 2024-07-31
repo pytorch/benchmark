@@ -60,7 +60,6 @@ jobs:
                  --start-date ${{ github.event.inputs.start_date }} \
                  --end-date ${{ github.event.inputs.end_date }} \
                  --step ${{ github.event.inputs.backfill_step }} \
-                 --torchbench-repo-path "${PWD}" \
                  --userbenchmark ${{ github.event.inputs.userbenchmark }} \
                  ${{ github.event.inputs.userbenchmark_args }} 
           cp -r "${BACKFILL_WORKDIR}" ../backfill-result
