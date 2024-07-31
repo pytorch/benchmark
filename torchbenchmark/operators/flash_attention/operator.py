@@ -83,8 +83,8 @@ try:
         # colfax Flash Attention V2 for Hopper
         torch.ops.load_library("//ai_codesign/gen_ai/cutlass-kernels:fmha_forward_lib")
     else:
-        from userbenchmark.triton.utils import load_library
-        load_library("colfax_cutlass/fmha_forward_lib.so")
+        from userbenchmark.triton.loader import load_library
+        load_library("cutlass_kernels/fmha_forward_lib.so")
     colfax_cutlass_fmha = torch.ops.cutlass.fmha_forward
 except (ImportError, IOError, AttributeError):
     colfax_cutlass_fmha = None
@@ -128,6 +128,7 @@ class Operator(BenchmarkOperator):
     def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
         super().__init__(tb_args, extra_args)
         args = parse_op_args(self.extra_args)
+        self.use_cuda_graphs = False
         self.BATCH = args.batch
         self.H = args.n_heads
         self.D_HEAD = args.d_head
