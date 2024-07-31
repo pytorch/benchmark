@@ -37,6 +37,7 @@ NVCC_FLAGS = [
 COMPILER_FLAGS = [
     f"-I{str(COLFAX_CUTLASS_PATH.joinpath('lib').resolve())}",
     f"-I{str(COLFAX_CUTLASS_PATH.joinpath('include').resolve())}",
+    f"-I{str(COLFAX_CUTLASS_PATH.joinpath('src', 'fmha').resolve())}",
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('include').resolve())}",
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('examples', 'commmon').resolve())}",
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('tools', 'util', 'include').resolve())}",
@@ -63,9 +64,7 @@ LINKER_FLAGS = [
     "-ldl",
 ]
 FMHA_SOURCES = [
-    # Source 1
-    f"{str(COLFAX_CUTLASS_PATH.joinpath('src', 'fmha', 'fmha_forward.cu').resolve())}",
-    # Source 2
+    # Source
     f"{str(COLFAX_CUTLASS_TRITONBENCH_PATH.joinpath('src', 'fmha', 'register_op.cu').resolve())}",
     "-o",
     "fmha_forward_lib.so",
