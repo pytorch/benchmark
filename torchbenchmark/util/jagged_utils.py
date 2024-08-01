@@ -12,7 +12,13 @@ from typing import List, Tuple
 import torch
 
 
-parser_args = {
+GIGABYTES_PER_BYTE = 1e-9
+RANDOM_CHOICE_MARGIN = 0.3
+ABSOLUTE_TOLERANCE = 1e-4
+RELATIVE_TOLERANCE = 1e-3
+EPSILON = 1e-6
+
+PARSER_ARGS = {
     "B": (
         "--B",
         int,
@@ -39,7 +45,7 @@ parser_args = {
     ),
     "sum_then_buffer": (
         "--sum-then-buffer",
-        int,
+        int,  # 1: sum then buffer, 0: buffer then sum
         "[Optional] For Triton kernels, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum; default 0",
         0,
     ),
@@ -51,19 +57,36 @@ parser_args = {
     ),
 }
 
+STYLES = [
+    ("blue", "-"),
+    ("red", "-"),
+    ("orange", "-"),
+    ("green", "-"),
+    ("magenta", "-"),
+    ("purple", "-"),
+]
+
 
 def get_parse_op_args(*args):
     parser = argparse.ArgumentParser()
     for arg in args:
-        if arg not in parser_args:
-            raise ValueError(f"jagged_utils: {arg} not in parser_args")
+        if arg not in PARSER_ARGS:
+            raise ValueError(f"jagged_utils: {arg} not in PARSER_ARGS")
         parser.add_argument(
-            parser_args[arg][0],
-            type=parser_args[arg][1],
-            help=parser_args[arg][2],
-            default=parser_args[arg][3],
+            PARSER_ARGS[arg][0],
+            type=PARSER_ARGS[arg][1],
+            help=PARSER_ARGS[arg][2],
+            default=PARSER_ARGS[arg][3],
         )
     return parser
+
+
+def get_tensor_bytes_limit(test_only):
+    if test_only:
+        return (
+            5 * 1e7
+        )  # allocate tensors no greater than 50MB when running concurrent tests
+    return 8 * 1e9  # allocate tensors no greater than 8GB
 
 
 def get_dim_vals(sizes):
@@ -171,17 +194,67 @@ def generate_random_nested_tensors(
             nested_tensors.append((nt, B, M, max_seqlen, sparsity))
 
     # add 0-seqlen nested tensor
-    tensors = [
-        torch.randn((seqlen_vals[0], M), device=device, dtype=dtype),
-        torch.randn((0, M), device=device, dtype=dtype),
-        torch.randn((seqlen_vals[0] // 2, M), device=device, dtype=dtype),
-    ]
-    nt = torch.nested.nested_tensor(
-        tensors,
-        layout=torch.jagged,
-        device=device,
-        dtype=dtype,
-    )
-    nested_tensors.append((nt, 3, M, seqlen_vals[0], 0.5))
+    if (
+        len(seqlen_vals) > 1
+    ):  # variable seqlen, in which case injecting a 0-seqlen tensor of sparsity 0.5 will not change existing values in the plot
+        tensors = [
+            torch.randn((seqlen_vals[0], M), device=device, dtype=dtype),
+            torch.randn((0, M), device=device, dtype=dtype),
+            torch.randn((seqlen_vals[0] // 2, M), device=device, dtype=dtype),
+        ]
+        nt = torch.nested.nested_tensor(
+            tensors,
+            layout=torch.jagged,
+            device=device,
+            dtype=dtype,
+        )
+        nested_tensors.append((nt, 3, M, seqlen_vals[0], 0.5))
 
     return nested_tensors
+
+
+# plot helper functions
+
+
+def get_param_fstrings(B, M, max_seqlen, sparsity):
+    str_B, str_M, str_max_seqlen, str_sparsity = (
+        f"-B-{B}",
+        f"-M-{M}",
+        f"-seqlen-{max_seqlen}",
+        f"-sparsity-{sparsity}",
+    )
+    if B is None:
+        x_axis = "B"
+        params = str_M + str_max_seqlen + str_sparsity
+    elif M is None:
+        x_axis = "M"
+        params = str_B + str_max_seqlen + str_sparsity
+    elif max_seqlen is None:
+        x_axis = "seqlen"
+        params = str_B + str_M + str_sparsity
+    else:
+        x_axis = "sparsity"
+        params = str_B + str_M + str_max_seqlen
+
+    return x_axis, params
+
+
+def get_styles(num_styles):
+    return STYLES[:num_styles]
+
+
+def get_plot_args(
+    plot_benchmarks, num_torch, line_vals_all, line_names_all, styles_all
+):
+    if plot_benchmarks == "all":
+        line_vals, line_names, styles = line_vals_all, line_names_all, styles_all
+    elif plot_benchmarks == "torch":
+        line_vals = line_vals_all[:num_torch]
+        line_names = line_names_all[:num_torch]
+        styles = styles_all[:num_torch]
+    else:
+        line_vals = line_vals_all[num_torch:]
+        line_names = line_names_all[num_torch:]
+        styles = styles_all[num_torch:]
+
+    return line_vals, line_names, styles

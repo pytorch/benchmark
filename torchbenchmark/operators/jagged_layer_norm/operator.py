@@ -8,9 +8,18 @@ from typing import Callable, Generator, List, Optional, Tuple
 import torch
 import triton
 from torchbenchmark.util.jagged_utils import (
+    ABSOLUTE_TOLERANCE,
+    EPSILON,
     generate_input_vals,
     generate_random_nested_tensors,
+    get_param_fstrings,
     get_parse_op_args,
+    get_plot_args,
+    get_styles,
+    get_tensor_bytes_limit,
+    GIGABYTES_PER_BYTE,
+    RANDOM_CHOICE_MARGIN,
+    RELATIVE_TOLERANCE,
 )
 
 from torchbenchmark.util.triton_op import (
@@ -19,17 +28,6 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
 )
-
-
-seed = 16
-random.seed(seed)
-
-GIGABYTES_PER_BYTE = 1e-6
-RANDOM_CHOICE_MARGIN = 0.3
-ABSOLUTE_TOLERANCE = 1e-4
-RELATIVE_TOLERANCE = 1e-3
-TENSOR_BYTES_LIMIT = 8 * 1e9  # allocate tensors no greater than 8GB
-EPSILON = 1e-6
 
 
 def parse_op_args(args: List[str]):
@@ -59,8 +57,10 @@ class Operator(BenchmarkOperator):
         self.sparsity = args.sparsity
         self.plot_benchmarks = args.plot_benchmarks
 
+        self.tensor_bytes_limit = get_tensor_bytes_limit(tb_args.test_only)
+
     @register_benchmark(baseline=True)
-    def torch_jagged_layernorm_unbind_torch_layernorm(
+    def torch_jagged_layer_norm_unbind_torch_layer_norm(
         self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
     ):
         return lambda: torch.cat(
@@ -72,7 +72,7 @@ class Operator(BenchmarkOperator):
         )  # in 3D tensor (B, *, M), performs layer normalization on B 2D tensors (*, M)
 
     @register_benchmark()
-    def torch_jagged_layernorm_torch_sum(
+    def torch_jagged_layer_norm_torch_sum(
         self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
     ):
         def _inner():
@@ -115,10 +115,10 @@ class Operator(BenchmarkOperator):
                 / ragged_lengths
             )  # a sum over (1, 2) ensures layer norm, whereas a sum over (1) would be an instance norm
 
-            padded_layernorm = padded_normalized / torch.sqrt(variance + EPSILON)
+            padded_layer_norm = padded_normalized / torch.sqrt(variance + EPSILON)
 
             return torch.ops.aten._padded_dense_to_jagged_forward(
-                padded_layernorm,
+                padded_layer_norm,
                 [x.offsets()],
                 total_L=x.values().shape[
                     0
@@ -155,7 +155,7 @@ class Operator(BenchmarkOperator):
             sparsity_vals,
             device=self.device,
             dtype=self.dtype,
-            TENSOR_BYTES_LIMIT=TENSOR_BYTES_LIMIT,
+            TENSOR_BYTES_LIMIT=self.tensor_bytes_limit,
             RANDOM_CHOICE_MARGIN=RANDOM_CHOICE_MARGIN,
         ):
             yield (nt, B, M, max_seqlen, sparsity)
@@ -189,47 +189,21 @@ class Operator(BenchmarkOperator):
         )  # return (B, '*', M, max seqlen, sparsity) for each example input
 
     def plot(self):
-        str_B, str_M, str_seqlen, str_sparsity = (
-            f"-B-{self.B}",
-            f"-M-{self.M}",
-            f"-seqlen-{self.seqlen}",
-            f"-sparsity-{self.sparsity}",
-        )
-        if self.B is None:
-            x_axis = "B"
-            params = str_M + str_seqlen + str_sparsity
-        elif self.M is None:
-            x_axis = "M"
-            params = str_B + str_seqlen + str_sparsity
-        elif self.seqlen is None:
-            x_axis = "seqlen"
-            params = str_B + str_M + str_sparsity
-        else:
-            x_axis = "sparsity"
-            params = str_B + str_M + str_seqlen
+        x_axis, params = get_param_fstrings(self.B, self.M, self.seqlen, self.sparsity)
 
         line_vals_all = [
-            "torch_jagged_layernorm_torch_sum",
+            "torch_jagged_layer_norm_torch_sum",
         ]
         line_names_all = [
-            "PyTorch jagged layernorm, torch.sum",
+            "PyTorch jagged layer norm, torch.sum",
         ]
-        styles_all = [
-            ("blue", "-"),
-        ]
+        styles_all = get_styles(len(line_vals_all))
 
-        if self.plot_benchmarks == "all":
-            line_vals, line_names, styles = line_vals_all, line_names_all, styles_all
-        elif self.plot_benchmarks == "torch":
-            line_vals = line_vals_all[:1]
-            line_names = line_names_all[:1]
-            styles = styles_all[:1]
-        else:
-            line_vals = line_vals_all[1:]
-            line_names = line_names_all[1:]
-            styles = styles_all[1:]
+        line_vals, line_names, styles = get_plot_args(
+            self.plot_benchmarks, 1, line_vals_all, line_names_all, styles_all
+        )
 
-        plot_name = f"jagged-layernorm-perf-var-{x_axis}" + params
+        plot_name = f"jagged-layer-norm-perf-var-{x_axis}" + params
 
         @triton.testing.perf_report(
             triton.testing.Benchmark(
@@ -250,7 +224,7 @@ class Operator(BenchmarkOperator):
 
         save_path = (
             os.getcwd()
-            + f"/pytorch/benchmark/torchbenchmark/operators/jagged_layernorm/jagged_layernorm_performance/{plot_name}"
+            + f"/pytorch/benchmark/torchbenchmark/operators/jagged_layer_norm/jagged_layer_norm_performance/{plot_name}"
         )
 
         if not os.path.exists(save_path):

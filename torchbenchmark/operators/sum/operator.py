@@ -24,7 +24,7 @@ from .kernels import (
     triton_sum_kernel_scalar_result,
 )
 
-GIGABYTES_PER_BYTE = 1e-6
+GIGABYTES_PER_BYTE = 1e-9
 ABSOLUTE_TOLERANCE = 1e-4
 RELATIVE_TOLERANCE = 1e-3
 TENSOR_BYTES_LIMIT = 8 * 1e9  # allocate tensors no greater than 10GB
