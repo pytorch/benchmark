@@ -127,6 +127,18 @@ class Operator(BenchmarkOperator):
 
         return _inner
 
+    @register_benchmark()
+    def torch_compile_nested_tensor_integration(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        def _inner(x: torch.Tensor):  # layer normalization along ragged dimension
+            return torch.nn.functional.layer_norm(x, normalized_shape=(-1, *x.shape[2:]), eps=EPSILON)  # pyre-ignore: Undefined attribute [16]: `torch._tensor.Tensor` has no attribute `_ragged_idx`.
+
+        torch_compile_func = torch.compile(_inner)
+        return lambda: torch_compile_func(
+            x
+        )._values  # compare values tensor against other benchmarks
+
     def get_x_val(self, example_inputs):
         if self.B is None:
             return example_inputs[1]
@@ -193,9 +205,11 @@ class Operator(BenchmarkOperator):
 
         line_vals_all = [
             "torch_jagged_layer_norm_torch_sum",
+            "torch_compile_nested_tensor_integration",
         ]
         line_names_all = [
             "PyTorch jagged layer norm, torch.sum",
+            "Inductor, NestedTensor integration",
         ]
         styles_all = get_styles(len(line_vals_all))
 
