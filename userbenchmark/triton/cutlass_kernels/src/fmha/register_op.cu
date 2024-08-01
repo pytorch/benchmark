@@ -21,9 +21,9 @@
 
 // #include "autogen/cutlassF.h"
 #include "pytorch_utils.h"
-#include "fmha_forward.h"
+#include "fmha_forward.cu"
 
-template <typename PrecType, typename OutputType, int HEADDIM>
+template <typename PrecType, int HEADDIM>
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 fmha_forward(
     const int64_t& seq_length,
@@ -31,7 +31,7 @@ fmha_forward(
     const int64_t& batch,
     const at::Tensor& query, // [b, seqlen, num_heads, K]
     const at::Tensor& key, // [b, seqlen, num_heads, K]
-    const at::Tensor& value, // [b, seqlen, num_heads, Kv]
+    at::Tensor& value, // [b, seqlen, num_heads, Kv]
     const float& scale) {
   TORCH_CHECK(query.dim() == 4);
   TORCH_CHECK(key.dim() == 4);
@@ -70,7 +70,7 @@ fmha_forward(
       query.options().dtype(CutlassToAtenDtype<PrecType>::atScalarType()));
   at::Tensor ret = at::empty(
       {B, M, num_heads, Kv},
-      query.options().dtype(CutlassToAtenDtype<OutputType>::atScalarType()));
+      query.options().dtype(CutlassToAtenDtype<PrecType>::atScalarType()));
   using AccumType = float; // AccumType is always float.
 
   at::Tensor devMiOut = at::empty(
@@ -80,16 +80,16 @@ fmha_forward(
       {B, M, num_heads},
       query.options().dtype(CutlassToAtenDtype<AccumType>::atScalarType()));
 
-  fmhaForwardDevice<PrecType, OutputType, AccumType, HEADDIM>(
+  fmhaForwardDevice<PrecType, AccumType, HEADDIM>(
       seq_length,
       key_length,
       num_heads,
       B,
       reinterpret_cast<PrecType const*>(query.data_ptr()),
       reinterpret_cast<PrecType const*>(key.data_ptr()),
-      reinterpret_cast<OutputType const*>(value.data_ptr()),
-      reinterpret_cast<OutputType*>(S.data_ptr()),
-      reinterpret_cast<OutputType*>(ret.data_ptr()),
+      reinterpret_cast<PrecType*>(value.data_ptr()),
+      reinterpret_cast<PrecType*>(S.data_ptr()),
+      reinterpret_cast<PrecType*>(ret.data_ptr()),
       reinterpret_cast<AccumType*>(devMiOut.data_ptr()),
       reinterpret_cast<AccumType*>(devSprimeOut.data_ptr()),
       1,
@@ -99,7 +99,7 @@ fmha_forward(
   return std::make_tuple(S, ret, devMiOut, devSprimeOut);
 }
 
-template<typename compute_data_type, typename output_data_type>
+template<typename compute_data_type>
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 launch_forward(
     const int64_t& seq_length,
@@ -107,17 +107,17 @@ launch_forward(
     const int64_t& batch,
     const at::Tensor& query, // [b, seqlen, num_heads, K]
     const at::Tensor& key, // [b, seqlen, num_heads, K]
-    const at::Tensor& value, // [b, seqlen, num_heads, Kv]
+    at::Tensor& value, // [b, seqlen, num_heads, Kv]
     const double& scale,
     const int64_t& Kdim) {
     if (Kdim == 64) {
-      return fmha_forward<compute_data_type, output_data_type, 64>(
+      return fmha_forward<compute_data_type, 64>(
           seq_length, key_length, batch, query, key, value, scale);
     } else if (Kdim == 128) {
-      return fmha_forward<compute_data_type, output_data_type, 128>(
+      return fmha_forward<compute_data_type, 128>(
           seq_length, key_length, batch, query, key, value, scale);
     } else if (Kdim == 256) {
-      return fmha_forward<compute_data_type, output_data_type, 256>(
+      return fmha_forward<compute_data_type, 256>(
           seq_length, key_length, batch, query, key, value, scale);
     }
     throw std::runtime_error("Kdim wrong");
@@ -131,18 +131,15 @@ fmha_forward_dispatch(
     const int64_t& batch,
     const at::Tensor& query, // [b, seqlen, num_heads, K]
     const at::Tensor& key, // [b, seqlen, num_heads, K]
-    const at::Tensor& value, // [b, seqlen, num_heads, Kv]
+    at::Tensor& value, // [b, seqlen, num_heads, Kv]
     const double& scale) {
   int64_t Kdim = query.size(-1);
 
   if (query.scalar_type() == at::kHalf){
-    return launch_forward<cutlass::half_t, cutlass::half_t>(seq_length, key_length, batch, query, key, value, scale, Kdim);
+    return launch_forward<cutlass::half_t>(seq_length, key_length, batch, query, key, value, scale, Kdim);
   }
   else if (query.scalar_type() == at::kBFloat16){
-    return launch_forward<cutlass::bfloat16_t, cutlass::bfloat16_t>(seq_length, key_length, batch, query, key, value, scale, Kdim);
-  }
-  else if (query.scalar_type() == at::kFloat8_e4m3fn){
-    return launch_forward<cutlass::float_e4m3_t, cutlass::bfloat16_t>(seq_length, key_length, batch, query, key, value, scale, Kdim);
+    return launch_forward<cutlass::bfloat16_t>(seq_length, key_length, batch, query, key, value, scale, Kdim);
   }
   else {
         std::cout << "unsupported data type: " << query.scalar_type() << std::endl;
@@ -159,7 +156,7 @@ fmha_forward_dispatch_meta(
     const int64_t& batch,
     const at::Tensor& query, // [b, seqlen, num_heads, K]
     const at::Tensor& key, // [b, seqlen, num_heads, K]
-    const at::Tensor& value, // [b, seqlen, num_heads, Kv]
+    at::Tensor& value, // [b, seqlen, num_heads, Kv]
     const double& scale) {
 
   TORCH_CHECK(query.dim() == 4);
