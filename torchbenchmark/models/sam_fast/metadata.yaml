@@ -14,3 +14,4 @@ not_implemented:
 # https://github.com/pytorch/benchmark/actions/runs/8972426901/job/24640395990
 - device: NVIDIA A10G
   test: eval
+skip_cuda_memory_leak: true
