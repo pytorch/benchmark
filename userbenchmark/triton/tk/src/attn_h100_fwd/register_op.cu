@@ -138,15 +138,15 @@ tk_attention_forward_meta(
 // torch::Tensor q, torch::Tensor k, torch::Tensor v, torch::Tensor o
 TORCH_LIBRARY_FRAGMENT(tk, m) {
   m.def(
-      "tk_attention_forward(Tensor q, Tensor k, Tensor v, Tensor o) -> ()");
+      "attention_forward(Tensor q, Tensor k, Tensor v, Tensor o) -> ()");
 }
 
 TORCH_LIBRARY_IMPL(tk, CUDA, m) {
-  m.impl("tk_attention_forward", tk_attention_forward);
+  m.impl("attention_forward", tk_attention_forward);
 }
 
 TORCH_LIBRARY_IMPL(tk, Meta, m) {
   m.impl(
-      "tk_attention_forward",
+      "attention_forward",
       TORCH_FN(tk_attention_forward_meta));
 }

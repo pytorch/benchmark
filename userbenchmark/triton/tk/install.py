@@ -61,7 +61,8 @@ def cuda_extension(debug, gpu_type):
 def test_tk_attn_h100_fwd(tk_lib):
     assert os.path.exists(tk_lib), \
         f"{tk_lib} should exist as the built cutlass kernel."
-    torch.ops.load_library(tk_lib)    
+    torch.ops.load_library(tk_lib)
+    torch.ops.tk.attention_forward
 
 
 def install_tk():
