@@ -1,5 +1,6 @@
-import os
 import argparse
+import itertools
+import os
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import numpy
@@ -64,6 +65,8 @@ BUILDIN_SHAPES = [
     (20068, 1536, 512),
 ]
 
+# M=13, K=2^6..2^25, N=2
+LARGE_K_SHAPES = list(itertools.product([13], [2**i for i in range(6, 26)], [2]))
 
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "best_config"]
@@ -74,6 +77,8 @@ class Operator(BenchmarkOperator):
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:
             self.shapes = [(addmm_args.m, addmm_args.k, addmm_args.n)]
+        elif addmm_args.large_k_shapes:
+            self.shapes = LARGE_K_SHAPES
         else:
             self.shapes = BUILDIN_SHAPES
         self.col_major = addmm_args.col_major
