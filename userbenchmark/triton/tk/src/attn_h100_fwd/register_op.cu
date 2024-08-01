@@ -19,6 +19,7 @@
 #include <torch/library.h>
 #include <ATen/cuda/CUDAGraphsUtils.cuh>
 
+#include "torch_helpers.cuh"
 #include "h100_fwd.cu"
 
 
@@ -31,19 +32,20 @@ void tk_attention_forward(
     TORCH_CHECK(q.dim() == 4);
     TORCH_CHECK(k.dim() == 4);
     TORCH_CHECK(v.dim() == 4);
+
     // Batch sizes
-    TORCH_CHECK(query.size(0) == key.size(0));
-    TORCH_CHECK(query.size(0) == value.size(0));
+    TORCH_CHECK(q.size(0) == k.size(0));
+    TORCH_CHECK(q.size(0) == v.size(0));
 
     // Sequence length
-    TORCH_CHECK(key.size(1) == value.size(1));
+    TORCH_CHECK(k.size(1) == v.size(1));
 
     // Num heads
-    TORCH_CHECK(query.size(2) == key.size(2));
-    TORCH_CHECK(query.size(2) == value.size(2));
+    TORCH_CHECK(q.size(2) == k.size(2));
+    TORCH_CHECK(q.size(2) == v.size(2));
 
     // Embedding per head
-    TORCH_CHECK(query.size(3) == key.size(3));
+    TORCH_CHECK(q.size(3) == k.size(3));
 
     auto batch   = q.size(0);
     auto heads   = q.size(1);
@@ -64,10 +66,10 @@ void tk_attention_forward(
     TORCH_CHECK(v.scalar_type() == at::kBFloat16, "v must be bf16");
     TORCH_CHECK(o.scalar_type() == at::kBFloat16, "o must be bf16");
 
-    const bf16* q_bf = reinterpret_cast<const bf16*>(q_ptr);
-    const bf16* k_bf = reinterpret_cast<const bf16*>(k_ptr);
-    const bf16* v_bf = reinterpret_cast<const bf16*>(v_ptr);
-    bf16* o_bf = reinterpret_cast<bf16*>(o_ptr);
+    const bf16* q_bf = reinterpret_cast<const bf16*>(q.data_ptr());
+    const bf16* k_bf = reinterpret_cast<const bf16*>(k.data_ptr());
+    const bf16* v_bf = reinterpret_cast<const bf16*>(v.data_ptr());
+    bf16* o_bf = reinterpret_cast<bf16*>(o.data_ptr());
 
     if (D == 64) {
 

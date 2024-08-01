@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 import subprocess
 import torch
-from utils import add_path
 
 CUDA_HOME = "/usr/local/cuda" if not "CUDA_HOME" in os.environ else os.environ["CUDA_HOME"]
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent.parent
@@ -11,9 +10,25 @@ TK_PYUTILS_PATH = TK_PATH.joinpath("src","common","pyutils")
 TRITONBENCH_TK_PATH = REPO_PATH.joinpath("userbenchmark", "triton", "tk")
 TORCH_BASE_PATH = Path(torch.__file__).parent
 
+COMPILER_FLAGS = [
+    f"-I{str(TORCH_BASE_PATH.joinpath('include').resolve())}",
+    f"-I{str(TK_PATH.joinpath('examples', 'attn', 'h100').resolve())}",
+    f"-I{str(TK_PATH.resolve())}",
+]
+
+LINKER_FLAGS = [
+    "--shared",
+    "-fPIC",
+    f"-L{str(TORCH_BASE_PATH.joinpath('lib').resolve())}",
+    "-ltorch",
+    "-ltorch_cuda",
+    "-lc10",
+    "-lc10_cuda",
+]
+
 def _sources():
-    base_dir = TK_PATH.joinpath('examples', 'attn', 'h100')
-    cu = str(base_dir.joinpath("h100_fwd.cu").resolve())
+    src_path = TRITONBENCH_TK_PATH.joinpath('src', 'attn_h100_fwd', 'register_op.cu')
+    cu = str(src_path.resolve())
     return [cu, "-o", "tk_attn_h100_fwd.so"]
 
 def cuda_extension(debug, gpu_type):
@@ -23,11 +38,11 @@ def cuda_extension(debug, gpu_type):
                     '--restrict', '-std=c++20',
                     '--expt-relaxed-constexpr',
                     '--expt-extended-lambda',
+                    "-forward-unknown-to-host-compiler",
                     '-Xcompiler=-fno-strict-aliasing',
+                    "-D_GLIBCXX_USE_CXX11_ABI=0",
                     '-MD', '-MT', '-MF', '-x', 'cu', '-lrt', '-lpthread', '-ldl',
-                    '-lcuda', '-lcudadevrt', '-lcudart_static', '-lcublas',
-                    f"-I {str(TK_PATH.resolve())}"
-                    ]
+                    '-lcuda', '-lcudadevrt', '-lcudart_static', '-lcublas']
 
     if gpu_type == '4090':
         _cuda_flags.append('-DKITTENS_4090')
@@ -54,9 +69,11 @@ def install_tk():
     output_dir = TRITONBENCH_TK_PATH.joinpath(".data")
     output_dir.mkdir(parents=True, exist_ok=True)
     cmd = ["nvcc"]
-    sources = _sources()
+    cmd.extend(COMPILER_FLAGS)
     cmd.extend(cuda_extension(debug=False, gpu_type="H100"))
+    sources = _sources()
     cmd.extend(sources)
+    cmd.extend(LINKER_FLAGS)
     print(" ".join(cmd))
     print(str(output_dir.resolve()))
     subprocess.check_call(cmd, cwd=str(output_dir.resolve()))
