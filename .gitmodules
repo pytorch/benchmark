@@ -16,3 +16,6 @@
 [submodule "submodules/kernels"]
 	path = submodules/kernels
 	url = https://github.com/triton-lang/kernels
+[submodule "submodules/ThunderKittens"]
+	path = submodules/ThunderKittens
+	url = https://github.com/HazyResearch/ThunderKittens.git
