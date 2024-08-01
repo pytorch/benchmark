@@ -3,8 +3,6 @@ from pathlib import Path
 import subprocess
 import torch
 from utils import add_path
-from setuptools import setup
-from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 CUDA_HOME = "/usr/local/cuda" if not "CUDA_HOME" in os.environ else os.environ["CUDA_HOME"]
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent.parent
@@ -13,26 +11,12 @@ TK_PYUTILS_PATH = TK_PATH.joinpath("src","common","pyutils")
 TRITONBENCH_TK_PATH = REPO_PATH.joinpath("userbenchmark", "triton", "tk")
 TORCH_BASE_PATH = Path(torch.__file__).parent
 
-
-PKG_NAME_TO_SRC_NAME = {
-    "tk_attn_h100_fwd": "h100_fwd",
-}
-
-def _sources(name):
+def _sources():
     base_dir = TK_PATH.joinpath('examples', 'attn', 'h100')
-    src_name = PKG_NAME_TO_SRC_NAME[name]
-    frontend_cpp = str(base_dir.joinpath(f"{src_name}_frontend.cpp").resolve())
-    cu = str(base_dir.joinpath(f"{src_name}.cu").resolve())
-    return [frontend_cpp, cu]
+    cu = str(base_dir.joinpath("h100_fwd.cu").resolve())
+    return [cu, "-o", "tk_attn_h100_fwd.so"]
 
-import distutils.command.build
-
-class BuildCommand(distutils.command.build.build):
-    def initialize_options(self):
-        distutils.command.build.build.initialize_options(self)
-        self.build_base = str(TRITONBENCH_TK_PATH.joinpath(".data").resolve())
-
-def cuda_extension(name, debug, gpu_type):
+def cuda_extension(debug, gpu_type):
     _cuda_flags  = [
                     '--use_fast_math',
                     '--generate-line-info',
@@ -56,30 +40,25 @@ def cuda_extension(name, debug, gpu_type):
         _cuda_flags.append('-arch=sm_80')
 
     if(debug): _cuda_flags += ['-D__DEBUG_PRINT', '-g', '-G']
-    return CUDAExtension(f'{name}',
-                        sources=_sources(name),
-                        extra_compile_args={'cxx' : ['-std=c++20'],
-                                            'nvcc' : ['-O3'] + _cuda_flags},
-                        libraries=['cuda'])
+    return _cuda_flags
 
-def test_tk_attn_h100_fwd():
-    import tk_attn_h100_fwd
-    tk_attn_h100_fwd.attention_forward
+
+def test_tk_attn_h100_fwd(tk_lib):
+    assert os.path.exists(tk_lib), \
+        f"{tk_lib} should exist as the built cutlass kernel."
+    torch.ops.load_library(tk_lib)    
 
 
 def install_tk():
     # compile thunderkitten kernels
     output_dir = TRITONBENCH_TK_PATH.joinpath(".data")
     output_dir.mkdir(parents=True, exist_ok=True)
-    name = "tk_attn_h100_fwd"
-    gpu = "H100"
-    debug = False
-    cuda_ext = cuda_extension(name, debug, gpu)
-    import sys
-    backup_sys_argv = sys.argv.copy()
-    sys.argv = ['install.py', 'install']
-    setup(name=f"{name}",
-          ext_modules=[cuda_ext],
-          cmdclass={'build': BuildCommand, 'build_ext': BuildExtension})
-    sys.argv = backup_sys_argv
-    test_tk_attn_h100_fwd()
+    cmd = ["nvcc"]
+    sources = _sources()
+    cmd.extend(cuda_extension(debug=False, gpu_type="H100"))
+    cmd.extend(sources)
+    print(" ".join(cmd))
+    print(str(output_dir.resolve()))
+    subprocess.check_call(cmd, cwd=str(output_dir.resolve()))
+    tk_lib = str(output_dir.joinpath(sources[-1]).resolve())
+    test_tk_attn_h100_fwd(tk_lib)
