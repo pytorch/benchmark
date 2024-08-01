@@ -146,6 +146,18 @@ class Operator(BenchmarkOperator):
 
         return _inner
 
+    @register_benchmark()
+    def torch_compile_nested_tensor_integration(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        def _inner(x: torch.Tensor):  # softmax along ragged dimension
+            return torch.softmax(x, dim=x._ragged_idx)  # pyre-ignore: Undefined attribute [16]: `torch._tensor.Tensor` has no attribute `_ragged_idx`.
+
+        torch_compile_func = torch.compile(_inner)
+        return lambda: torch_compile_func(
+            x
+        )._values  # compare values tensor against other benchmarks
+
     def get_x_val(self, example_inputs):
         if self.B is None:
             return example_inputs[1]
@@ -214,11 +226,13 @@ class Operator(BenchmarkOperator):
             "torch_jagged_softmax_torch_sum",
             "triton_jagged_softmax_simple_fused",
             "triton_jagged_softmax_variable_length_loop",
+            "torch_compile_nested_tensor_integration",
         ]
         line_names_all = [
             "PyTorch jagged softmax, torch.sum",
             "Triton kernel jagged softmax, simple fused",
             "Triton kernel jagged softmax, variable length loop",
+            "Inductor, NestedTensor integration",
         ]
         styles_all = get_styles(len(line_vals_all))
 
