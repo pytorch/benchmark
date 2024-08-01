@@ -169,6 +169,16 @@ class Operator(BenchmarkOperator):
 
         return _inner
 
+    @register_benchmark()
+    def torch_compile_nested_tensor_integration(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        def _inner(x: torch.Tensor):  # mean along ragged dimension (dim == 1)
+            return torch.mean(x, dim=x._ragged_idx, keepdim=True)  # pyre-ignore: Undefined attribute [16]: `torch._tensor.Tensor` has no attribute `_ragged_idx`.
+
+        torch_compile_func = torch.compile(_inner)
+        return lambda: torch_compile_func(x)
+
     def get_x_val(self, example_inputs):
         if self.B is None:
             return example_inputs[1]
@@ -239,6 +249,7 @@ class Operator(BenchmarkOperator):
             "torch_jagged_mean_torch_sum",
             "triton_jagged_mean_simple_fused",
             "triton_jagged_mean_variable_length_loop",
+            "torch_compile_nested_tensor_integration",
         ]
         line_names_all = [
             "PyTorch jagged mean, torch.mean",
@@ -246,6 +257,7 @@ class Operator(BenchmarkOperator):
             "PyTorch jagged mean, torch.sum",
             "Triton jagged mean, simple fused",
             "Triton jagged mean, variable length loop",
+            "Inductor, NestedTensor integration",
         ]
         styles_all = get_styles(len(line_vals_all))
 
