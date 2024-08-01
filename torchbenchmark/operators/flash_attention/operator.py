@@ -128,7 +128,6 @@ class Operator(BenchmarkOperator):
     def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
         super().__init__(tb_args, extra_args)
         args = parse_op_args(self.extra_args)
-        self.use_cuda_graphs = False
         self.BATCH = args.batch
         self.H = args.n_heads
         self.D_HEAD = args.d_head
