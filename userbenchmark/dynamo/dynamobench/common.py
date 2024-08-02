@@ -699,6 +699,7 @@ def latency_experiment(args, model_iter_fn, model, example_inputs, mark, **kwarg
     should_randomize_input = args.randomize_input
 
     import contextlib
+
     from torch._inductor.utils import maybe_profile
 
     @contextlib.contextmanager
@@ -3017,6 +3018,7 @@ class BenchmarkRunner:
             if tag is not None:
                 experiment_kwargs["tag"] = tag
             results = []
+
             with maybe_snapshot_memory(
                 self.args.snapshot_memory, f"eager_{self.args.only}"
             ):
@@ -4435,6 +4437,7 @@ def run(runner, args, original_dir=None):
             def model_iter_fn_and_mark_step(*args, **kwargs):
                 torch.compiler.cudagraph_mark_step_begin()
                 model_iter_fn(*args, **kwargs)
+
             runner.model_iter_fn = model_iter_fn_and_mark_step
             optimize_ctx = torchao_optimize_ctx(args.quantization)
         else:
