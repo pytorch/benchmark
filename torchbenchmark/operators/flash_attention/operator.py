@@ -47,6 +47,7 @@ except BaseException:
 
 from torchbenchmark import add_ld_library_path
 from torchbenchmark.util.kernels.triton_fused_attention import attention as triton_tutorial_FA2
+from torchbenchmark.util.kernels.triton_fused_attention import attention_tma as triton_tutorial_FA2_tma
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.nn.functional import scaled_dot_product_attention as sdpa
 
@@ -133,6 +134,7 @@ class Operator(BenchmarkOperator):
 
     def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
         super().__init__(tb_args, extra_args)
+        self.use_cuda_graphs = False
         args = parse_op_args(self.extra_args)
         self.use_cuda_graphs = False
         self.BATCH = args.batch
@@ -220,6 +222,15 @@ class Operator(BenchmarkOperator):
         v: torch.Tensor,
     ) -> Callable:
         return lambda: triton_tutorial_FA2(q, k, v, self.causal, self.sm_scale)
+
+    @register_benchmark()
+    def triton_tutorial_flash_v2_tma(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+    ) -> Callable:
+        return lambda: triton_tutorial_FA2_tma(q, k, v, self.causal, self.sm_scale)
 
     @register_benchmark(enabled=HAS_KERNELS)
     def triton_op_flash_v2(

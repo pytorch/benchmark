@@ -12,6 +12,7 @@ Extra Credits:
 """
 
 import torch
+import numpy as np
 
 import triton
 import triton.language as tl
@@ -180,6 +181,172 @@ def _attn_fwd(Q, K, V, sm_scale, M, Out,  #
     m_ptrs = M + off_hz * N_CTX + offs_m
     tl.store(m_ptrs, m_i)
     tl.store(O_block_ptr, acc.to(Out.type.element_ty))
+
+
+@triton.jit
+def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
+                    K_desc_ptr, V_desc_ptr, Q, qvk_offset, stride_kn, stride_vn, stride_vk,  #
+                    start_m, qk_scale,  #
+                    BLOCK_M: tl.constexpr, HEAD_DIM: tl.constexpr, BLOCK_N: tl.constexpr,  #
+                    STAGE: tl.constexpr, offs_m: tl.constexpr, offs_n: tl.constexpr,  #
+                    N_CTX: tl.constexpr, fp8_v: tl.constexpr):
+    # Required TMA fences are added in _attn_fwd_tma prior to calling this function.
+    # range of values handled by this stage
+    if STAGE == 1:
+        lo, hi = 0, start_m * BLOCK_M
+    elif STAGE == 2:
+        lo, hi = start_m * BLOCK_M, (start_m + 1) * BLOCK_M
+        lo = tl.multiple_of(lo, BLOCK_M)
+    # causal = False
+    else:
+        lo, hi = 0, N_CTX
+    # loop over k, v and update accumulator
+    for start_n in range(lo, hi, BLOCK_N):
+        start_n = tl.multiple_of(start_n, BLOCK_N)
+        # -- compute qk ----
+        k = tl._experimental_descriptor_load(  # load in row major
+            K_desc_ptr,
+            [start_n.to(tl.int32) + (qvk_offset // stride_kn).to(tl.int32), 0],
+            [BLOCK_N, HEAD_DIM],
+            Q.dtype.element_ty,
+        )
+        k = tl.trans(k)
+        qk = tl.dot(q, k)
+        if STAGE == 2:
+            mask = offs_m[:, None] >= (start_n + offs_n[None, :])
+            qk = qk * qk_scale + tl.where(mask, 0, -1.0e6)
+            m_ij = tl.maximum(m_i, tl.max(qk, 1))
+            qk -= m_ij[:, None]
+        else:
+            m_ij = tl.maximum(m_i, tl.max(qk, 1) * qk_scale)
+            qk = qk * qk_scale - m_ij[:, None]
+        p = tl.math.exp2(qk)
+        l_ij = tl.sum(p, 1)
+        # -- update m_i and l_i
+        alpha = tl.math.exp2(m_i - m_ij)
+        l_i = l_i * alpha + l_ij
+        # -- update output accumulator --
+        acc = acc * alpha[:, None]
+        # update acc
+        if fp8_v:
+            v = tl._experimental_descriptor_load(  # load in row major
+                V_desc_ptr,
+                [(qvk_offset // stride_vn).to(tl.int32), start_n.to(tl.int32)],
+                [HEAD_DIM, BLOCK_N],
+                Q.dtype.element_ty,
+            )
+            v = tl.trans(v)
+        else:
+            v = tl._experimental_descriptor_load(  # load in row major
+                V_desc_ptr,
+                [(qvk_offset // stride_vk + start_n).to(tl.int32), 0],
+                [BLOCK_N, HEAD_DIM],
+                Q.dtype.element_ty,
+            )
+        if fp8_v:
+            p = p.to(tl.float8e5)
+        else:
+            p = p.to(tl.bfloat16)
+        acc = tl.dot(p, v, acc)
+        # update m_i and l_i
+        m_i = m_ij
+    return acc, l_i, m_i
+
+
+@triton.autotune(list(filter(keep, configs)), key=["N_CTX"])
+@triton.jit
+def _attn_fwd_tma(#Q, V, desc_k, desc_v, sm_scale, M, Out,  #
+              Q, V, Out, desc_q, desc_k, desc_v, sm_scale, M, desc_o,  #
+              stride_qz, stride_qh, stride_qm, stride_qk,  #
+              stride_kz, stride_kh, stride_kn, stride_kk,  #
+              stride_vz, stride_vh, stride_vk, stride_vn,  #
+              stride_oz, stride_oh, stride_om, stride_on,  #
+              Z, H, N_CTX,  #
+              BLOCK_M: tl.constexpr,  #
+              BLOCK_N: tl.constexpr,  #
+              HEAD_DIM: tl.constexpr,  #
+              STAGE: tl.constexpr  #
+              ):
+    # TODO(embg) remove TMA fence after __grid_constant__ lands
+    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
+                              [desc_q], dtype=tl.int32, is_pure=False, pack=1)
+    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
+                              [desc_k], dtype=tl.int32, is_pure=False, pack=1)
+    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
+                              [desc_v], dtype=tl.int32, is_pure=False, pack=1)
+    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
+                              [desc_o], dtype=tl.int32, is_pure=False, pack=1)
+
+    tl.static_assert(BLOCK_N <= HEAD_DIM)
+    start_m = tl.program_id(0)
+    off_hz = tl.program_id(1)
+    off_z = off_hz // H
+    off_h = off_hz % H
+    qvk_offset = off_z.to(tl.int64) * stride_qz + off_h.to(tl.int64) * stride_qh
+
+    # block pointers
+    #Q_block_ptr = tl.make_block_ptr(
+    #    base=Q + qvk_offset,
+    #    shape=(N_CTX, HEAD_DIM),
+    #    strides=(stride_qm, stride_qk),
+    #    offsets=(start_m * BLOCK_M, 0),
+    #    block_shape=(BLOCK_M, HEAD_DIM),
+    #    order=(1, 0),
+    #)
+    #O_block_ptr = tl.make_block_ptr(
+    #    base=Out + qvk_offset,
+    #    shape=(N_CTX, HEAD_DIM),
+    #    strides=(stride_om, stride_on),
+    #    offsets=(start_m * BLOCK_M, 0),
+    #    block_shape=(BLOCK_M, HEAD_DIM),
+    #    order=(1, 0),
+    #)
+    # initialize offsets
+    offs_m = start_m * BLOCK_M + tl.arange(0, BLOCK_M)
+    offs_n = tl.arange(0, BLOCK_N)
+    # initialize pointer to m and l
+    m_i = tl.zeros([BLOCK_M], dtype=tl.float32) - float("inf")
+    l_i = tl.zeros([BLOCK_M], dtype=tl.float32) + 1.0
+    acc = tl.zeros([BLOCK_M, HEAD_DIM], dtype=tl.float32)
+    # load scales
+    qk_scale = sm_scale
+    qk_scale *= 1.44269504  # 1/log(2)
+    # load q: it will stay in SRAM throughout
+    #q = tl.load(Q_block_ptr)
+    q = tl._experimental_descriptor_load(  # load in row major
+         desc_q,
+         [(qvk_offset // stride_qm + start_m * BLOCK_M).to(tl.int32), 0],
+         [BLOCK_M, HEAD_DIM],
+         Q.dtype.element_ty,
+    )
+    # stage 1: off-band
+    # For causal = True, STAGE = 3 and _attn_fwd_inner gets 1 as its STAGE
+    # For causal = False, STAGE = 1, and _attn_fwd_inner gets 3 as its STAGE
+    if STAGE & 1:
+        acc, l_i, m_i = _attn_fwd_inner_tma(acc, l_i, m_i, q, desc_k, desc_v, Q, qvk_offset, stride_kn, stride_vn,
+                                        stride_vk,  #
+                                        start_m, qk_scale,  #
+                                        BLOCK_M, HEAD_DIM, BLOCK_N,  #
+                                        4 - STAGE, offs_m, offs_n, N_CTX, V.dtype.element_ty == tl.float8e5  #
+                                        )
+    # stage 2: on-band
+    if STAGE & 2:
+        # barrier makes it easier for compielr to schedule the
+        # two loops independently
+        acc, l_i, m_i = _attn_fwd_inner_tma(acc, l_i, m_i, q, desc_k, desc_v, Q, qvk_offset, stride_kn, stride_vn,
+                                        stride_vk,  #
+                                        start_m, qk_scale,  #
+                                        BLOCK_M, HEAD_DIM, BLOCK_N,  #
+                                        2, offs_m, offs_n, N_CTX, V.dtype.element_ty == tl.float8e5  #
+                                        )
+    # epilogue
+    m_i += tl.math.log2(l_i)
+    acc = acc / l_i[:, None]
+    m_ptrs = M + off_hz * N_CTX + offs_m
+    tl.store(m_ptrs, m_i)
+    tl._experimental_descriptor_store(desc_o, acc.to(Out.type.element_ty),
+        [(qvk_offset // stride_om + start_m * BLOCK_M).to(tl.int32), 0])
+    #tl.store(O_block_ptr, acc.to(Out.type.element_ty))
 
 
 @triton.jit
@@ -508,4 +675,148 @@ class _attention(torch.autograd.Function):
         return dq, dk, dv, None, None
 
 
+class _attention_tma(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, q, k, v, causal, sm_scale):
+        # shape constraints
+        HEAD_DIM_Q, HEAD_DIM_K = q.shape[-1], k.shape[-1]
+        # when v is in float8_e5m2 it is transposed.
+        HEAD_DIM_V = v.shape[-2] if v.dtype == torch.float8_e5m2 else v.shape[-1]
+        assert HEAD_DIM_Q == HEAD_DIM_K and HEAD_DIM_K == HEAD_DIM_V
+        assert HEAD_DIM_K in {16, 32, 64, 128, 256}
+        o = torch.empty_like(q)
+        stage = 3 if causal else 1
+        extra_kern_args = {}
+
+        TMA_SIZE = 128
+        BATCH, H, N_CTX = q.shape[0], q.shape[1], q.shape[2]
+        # no autotune with fixed BLOCK_N
+        '''
+        BLOCK_N = 128
+        desc_k = np.empty(TMA_SIZE, dtype=np.int8)
+        desc_v = np.empty(TMA_SIZE, dtype=np.int8)
+        # order is (0, 1) for fp8 in make_block_ptr, reverse here
+        triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+            k.data_ptr(),
+            BATCH * H * N_CTX,
+            HEAD_DIM_Q,
+            BLOCK_N,
+            HEAD_DIM_Q,
+            k.element_size(),
+            desc_k,
+        )
+        if v.dtype == torch.float8_e5m2:
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                v.data_ptr(),
+                BATCH * H * HEAD_DIM_Q,
+                N_CTX,
+                HEAD_DIM_Q,
+                BLOCK_N,
+                v.element_size(),
+                desc_v,
+            )
+        else:
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                v.data_ptr(),
+                BATCH * H * N_CTX,
+                HEAD_DIM_Q,
+                BLOCK_N,
+                HEAD_DIM_Q,
+                v.element_size(),
+                desc_v,
+            )
+        desc_k = torch.tensor(desc_k, device=v.device)
+        desc_v = torch.tensor(desc_v, device=v.device)
+        grid = lambda args: (triton.cdiv(q.shape[2], args["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
+        '''
+        desc_k = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        desc_v = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        desc_q = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        desc_o = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        def grid_tma(META):
+            nonlocal desc_k
+            nonlocal desc_v
+            nonlocal desc_q
+            nonlocal desc_o
+            q_buf = torch.empty_like(desc_q, device="cpu", pin_memory=True)
+            k_buf = torch.empty_like(desc_k, device="cpu", pin_memory=True)
+            v_buf = torch.empty_like(desc_v, device="cpu", pin_memory=True)
+            o_buf = torch.empty_like(desc_o, device="cpu", pin_memory=True)
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                k.data_ptr(),
+                BATCH * H * N_CTX,
+                HEAD_DIM_Q,
+                META['BLOCK_N'],
+                HEAD_DIM_Q,
+                k.element_size(),
+                k_buf.numpy(),
+            )
+            if v.dtype == torch.float8_e5m2:
+                triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                    v.data_ptr(),
+                    BATCH * H * HEAD_DIM_Q,
+                    N_CTX,
+                    HEAD_DIM_Q,
+                    META['BLOCK_N'],
+                    v.element_size(),
+                    v_buf.numpy(),
+                )
+            else:
+                triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                    v.data_ptr(),
+                    BATCH * H * N_CTX,
+                    HEAD_DIM_Q,
+                    META['BLOCK_N'],
+                    HEAD_DIM_Q,
+                    v.element_size(),
+                    v_buf.numpy(),
+                )
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                q.data_ptr(),
+                BATCH * H * N_CTX,
+                HEAD_DIM_Q,
+                META['BLOCK_M'],
+                HEAD_DIM_Q,
+                q.element_size(),
+                q_buf.numpy(),
+            )
+            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                o.data_ptr(),
+                BATCH * H * N_CTX,
+                HEAD_DIM_Q,
+                META['BLOCK_M'],
+                HEAD_DIM_Q,
+                o.element_size(),
+                o_buf.numpy(),
+            )
+            desc_q.copy_(q_buf, non_blocking=True)
+            desc_k.copy_(k_buf, non_blocking=True)
+            desc_v.copy_(v_buf, non_blocking=True)
+            desc_o.copy_(o_buf, non_blocking=True)
+            return (triton.cdiv(q.shape[2], META["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
+
+        M = torch.empty((q.shape[0], q.shape[1], q.shape[2]), device=q.device, dtype=torch.float32)
+        _attn_fwd_tma[grid_tma](
+            q, v, o, desc_q, desc_k, desc_v, sm_scale, M, desc_o,  #
+            #q, v, desc_k, desc_v, sm_scale, M, o,  #
+            q.stride(0), q.stride(1), q.stride(2), q.stride(3),  #
+            k.stride(0), k.stride(1), k.stride(2), k.stride(3),  #
+            v.stride(0), v.stride(1), v.stride(2), v.stride(3),  #
+            o.stride(0), o.stride(1), o.stride(2), o.stride(3),  #
+            q.shape[0], q.shape[1],  #
+            N_CTX=q.shape[2],  #
+            HEAD_DIM=HEAD_DIM_K,  #
+            STAGE=stage,  #
+            **extra_kern_args)
+
+        ctx.save_for_backward(q, k, v, o, M)
+        ctx.grid = grid_tma
+        ctx.sm_scale = sm_scale
+        ctx.HEAD_DIM = HEAD_DIM_K
+        ctx.causal = causal
+        return o
+
+
 attention = _attention.apply
+attention_tma = _attention_tma.apply
