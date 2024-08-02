@@ -74,7 +74,6 @@ def _attn_fwd_inner(acc, l_i, m_i, q,  #
 # We don't run auto-tuning every time to keep the tutorial fast. Uncommenting
 # the code below and commenting out the equivalent parameters is convenient for
 # re-tuning.
-# [64, 128], [3, 4, 7], [4, 8]
 configs = [
     triton.Config({'BLOCK_M': BM, 'BLOCK_N': BN}, num_stages=s, num_warps=w) \
     for BM in [64, 128]\
