@@ -49,10 +49,6 @@ class Model(BenchmarkModel):
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
-        if not device == "cuda":
-            # Only implemented on CUDA because the original model code explicitly calls the `Tensor.cuda()` API
-            # https://github.com/rwightman/efficientdet-pytorch/blob/9cb43186711d28bd41f82f132818c65663b33c1f/effdet/data/loader.py#L114
-            raise NotImplementedError("The original model code forces the use of CUDA.")
         # generate arguments
         args = get_args()
         # setup train and eval batch size
@@ -136,7 +132,8 @@ class Model(BenchmarkModel):
                     mean=input_config['mean'],
                     std=input_config['std'],
                     num_workers=args.workers,
-                    pin_mem=args.pin_mem)
+                    pin_mem=args.pin_mem,
+                    device=args.device)
             self.loader = prefetch(self.loader, self.device, self.NUM_OF_BATCHES)
         self.args = args
         # Only run 1 epoch
