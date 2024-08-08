@@ -140,7 +140,7 @@ class Operator(BenchmarkOperator):
     def triton_ops_matmul(self, a, b, bias) -> Callable:
         if bias is None:
             return lambda: kernels.matmul(a, b)
-        return lambda: kernels.matmul(a, b, bias)
+        return lambda: kernels.matmul(a, b) + bias
 
     @register_benchmark(baseline=True)
     def aten_matmul(self, a, b, bias) -> Callable:
