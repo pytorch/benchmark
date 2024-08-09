@@ -48,6 +48,8 @@ except BaseException:
 from torchbenchmark import add_ld_library_path
 from torchbenchmark.util.kernels.triton_fused_attention import attention as triton_tutorial_FA2
 from torchbenchmark.util.kernels.triton_fused_attention import attention_tma as triton_tutorial_FA2_tma
+from torchbenchmark.util.kernels.triton_fused_attention import attention_persistent as triton_tutorial_FA2_persistent
+from torchbenchmark.util.kernels.triton_fused_attention import attention_persistent_tma as triton_tutorial_FA2_persistent_tma
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from torch.nn.functional import scaled_dot_product_attention as sdpa
 
@@ -213,6 +215,24 @@ class Operator(BenchmarkOperator):
         v = v.transpose(1, 2).contiguous()
         fn = lambda: flashattn_hopper_cuda.fwd(q, k, v, None, self.sm_scale, self.causal)
         return fn
+
+    @register_benchmark()
+    def triton_tutorial_flash_v2_persistent_tma(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+    ) -> Callable:
+        return lambda: triton_tutorial_FA2_persistent_tma(q, k, v, self.causal, self.sm_scale)
+
+    @register_benchmark()
+    def triton_tutorial_flash_v2_persistent(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+    ) -> Callable:
+        return lambda: triton_tutorial_FA2_persistent(q, k, v, self.causal, self.sm_scale)
 
     @register_benchmark()
     def triton_tutorial_flash_v2(
