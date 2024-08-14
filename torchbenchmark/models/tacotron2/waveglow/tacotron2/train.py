@@ -30,7 +30,7 @@ def batchnorm_to_float(module):
 
 def reduce_tensor(tensor, num_gpus):
     rt = tensor.clone()
-    torch.distributed.all_reduce(rt, op=torch.distributed.reduce_op.SUM)
+    torch.distributed.all_reduce(rt, op=torch.distributed.ReduceOpSUM)
     rt /= num_gpus
     return rt
 

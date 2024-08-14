@@ -18,7 +18,7 @@ from .loss_function import Tacotron2Loss
 
 def reduce_tensor(tensor, n_gpus):
     rt = tensor.clone()
-    dist.all_reduce(rt, op=dist.reduce_op.SUM)
+    dist.all_reduce(rt, op=dist.ReduceOp.SUM)
     rt /= n_gpus
     return rt
 
