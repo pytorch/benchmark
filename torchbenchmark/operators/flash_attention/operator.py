@@ -60,6 +60,8 @@ try:
 except (ImportError, IOError, AttributeError):
     pass
 
+HAS_CUDA_124 = torch.cuda.is_available() and torch.version.cuda >= "12.4"
+
 # [Optional] flash_attn v3
 HAS_FLASH_V3 = True
 try:
@@ -223,7 +225,7 @@ class Operator(BenchmarkOperator):
     ) -> Callable:
         return lambda: triton_tutorial_FA2(q, k, v, self.causal, self.sm_scale)
 
-    @register_benchmark()
+    @register_benchmark(enabled=HAS_CUDA_124)
     def triton_tutorial_flash_v2_tma(
         self,
         q: torch.Tensor,
