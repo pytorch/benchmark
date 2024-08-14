@@ -35,13 +35,6 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 RUN cd /workspace; mkdir -p pytorch-ci; cd pytorch-ci; wget https://raw.githubusercontent.com/pytorch/pytorch/main/.ci/docker/common/install_cuda.sh
 RUN sudo bash -c "set -x;export OVERRIDE_GENCODE=\"${OVERRIDE_GENCODE}\" OVERRIDE_GENCODE_CUDNN=\"${OVERRIDE_GENCODE_CUDNN}\"; bash /workspace/pytorch-ci/install_cuda.sh 12.4"
 
-# Move CUPTI libraries to the cuda directory
-RUN sudo bash -c "set -x; mv /usr/local/cuda/extras/CUPTI/include/* /usr/local/cuda/include"
-RUN sudo bash -c "set -x; mv /usr/local/cuda/extras/CUPTI/lib64/* /usr/local/cuda/lib64"
-# Move Debugger libraries to the cuda directory
-RUN sudo bash -c "set -x; mv /usr/local/cuda/extras/Debugger/include/* /usr/local/cuda/include"
-RUN sudo bash -c "set -x; mv /usr/local/cuda/extras/Debugger/lib64/* /usr/local/cuda/lib64"
-
 # Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh
 RUN cd /workspace && \
