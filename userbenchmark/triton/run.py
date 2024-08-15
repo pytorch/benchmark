@@ -162,8 +162,8 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
             else:
                 print(metrics)
         if not hasattr(torch_version, "git_version") and args.log_scuba:
-            from userbenchmark.triton.fb import log_benchmark
-            log_benchmark(metrics)
+            from pytorch.benchmark.fb.run_utils import log_benchmark
+            log_benchmark(metrics, args.op)
         if args.plot:
             try:
                 opbench.plot()
