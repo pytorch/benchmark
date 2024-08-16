@@ -127,7 +127,8 @@ class Operator(BenchmarkOperator):
 
         return _inner
 
-    @register_benchmark()
+    # TODO: torch.compile does not work with jagged tensors+layer norm operator
+    @register_benchmark(enabled=False)
     def torch_compile_nested_tensor_integration(
         self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
     ):
