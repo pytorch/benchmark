@@ -52,4 +52,4 @@ jobs:
           WORKFLOW_RUN_ID: ${{ inputs.workflow_run_id }}
           WORKFLOW_RUN_ATTEMPT: ${{ inputs.workflow_run_attempt }}
         run: |
-          echo XXX
+          echo ${{ inputs }}
