@@ -5,6 +5,17 @@ on:
     - cron: '00 18 * * *' # run at 6:00 PM UTC, K8s containers will roll out at 12PM EST
 
 jobs:
+  p:
+    runs-on: [a100-runner]
+    timeout-minutes: 1440 # 24 hours
+    environment: docker-s3-upload
+    env:
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: p
+        run: |
+          echo ${{ github.event.workflow_run.id }}
+
   timm:
     uses: ./.github/workflows/_linux-benchmark-cuda.yml
     with:
