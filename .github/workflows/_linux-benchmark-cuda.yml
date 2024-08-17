@@ -10,6 +10,12 @@ on:
         required: true
         type: string
         description: Userbenchmark run command line arguments
+      workflow_run_id:
+        required: true
+        type: string
+      workflow_run_attempt:
+        required: true
+        type: string
     secrets:
       HUGGING_FACE_HUB_TOKEN:
         required: false
@@ -43,7 +49,7 @@ jobs:
     steps:
       - name: Copy artifact and upload to Amazon S3
         env:
-          WORKFLOW_RUN_ID: ${{ github.event.workflow_call.id }}
-          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_call.run_attempt }}
+          WORKFLOW_RUN_ID: ${{ inputs.workflow_run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ inputs.workflow_run_attempt }}
         run: |
           echo XXX
