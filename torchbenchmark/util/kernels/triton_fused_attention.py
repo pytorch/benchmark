@@ -730,19 +730,23 @@ class _attention_tma(torch.autograd.Function):
         desc_v = torch.tensor(desc_v, device=v.device)
         grid = lambda args: (triton.cdiv(q.shape[2], args["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
         '''
-        desc_k = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
-        desc_v = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
-        desc_q = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
-        desc_o = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        #desc_k = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        #desc_v = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        #desc_q = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        #desc_o = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        q_buf = torch.empty(TMA_SIZE, device="cpu")
+        k_buf = torch.empty(TMA_SIZE, device="cpu")
+        o_buf = torch.empty(TMA_SIZE, device="cpu")
+        v_buf = torch.empty(TMA_SIZE, device="cpu")
         def grid_tma(META):
-            nonlocal desc_k
-            nonlocal desc_v
-            nonlocal desc_q
-            nonlocal desc_o
-            q_buf = torch.empty_like(desc_q, device="cpu", pin_memory=True)
-            k_buf = torch.empty_like(desc_k, device="cpu", pin_memory=True)
-            v_buf = torch.empty_like(desc_v, device="cpu", pin_memory=True)
-            o_buf = torch.empty_like(desc_o, device="cpu", pin_memory=True)
+            nonlocal q_buf
+            nonlocal v_buf
+            nonlocal k_buf
+            nonlocal o_buf
+            #q_buf = torch.empty_like(desc_q, device="cpu", pin_memory=True)
+            #k_buf = torch.empty_like(desc_k, device="cpu", pin_memory=True)
+            #v_buf = torch.empty_like(desc_v, device="cpu", pin_memory=True)
+            #o_buf = torch.empty_like(desc_o, device="cpu", pin_memory=True)
             triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
                 k.data_ptr(),
                 BATCH * H * N_CTX,
@@ -750,7 +754,7 @@ class _attention_tma(torch.autograd.Function):
                 META['BLOCK_N'],
                 HEAD_DIM_Q,
                 k.element_size(),
-                k_buf.numpy(),
+                k_buf.data_ptr(),
             )
             if v.dtype == torch.float8_e5m2:
                 triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
@@ -760,7 +764,7 @@ class _attention_tma(torch.autograd.Function):
                     HEAD_DIM_Q,
                     META['BLOCK_N'],
                     v.element_size(),
-                    v_buf.numpy(),
+                    v_buf.data_ptr(),
                 )
             else:
                 triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
@@ -770,7 +774,7 @@ class _attention_tma(torch.autograd.Function):
                     META['BLOCK_N'],
                     HEAD_DIM_Q,
                     v.element_size(),
-                    v_buf.numpy(),
+                    v_buf.data_ptr(),
                 )
             triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
                 q.data_ptr(),
@@ -779,7 +783,7 @@ class _attention_tma(torch.autograd.Function):
                 META['BLOCK_M'],
                 HEAD_DIM_Q,
                 q.element_size(),
-                q_buf.numpy(),
+                q_buf.data_ptr(),
             )
             triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
                 o.data_ptr(),
@@ -788,17 +792,18 @@ class _attention_tma(torch.autograd.Function):
                 META['BLOCK_M'],
                 HEAD_DIM_Q,
                 o.element_size(),
-                o_buf.numpy(),
+                o_buf.data_ptr(),
             )
-            desc_q.copy_(q_buf, non_blocking=True)
-            desc_k.copy_(k_buf, non_blocking=True)
-            desc_v.copy_(v_buf, non_blocking=True)
-            desc_o.copy_(o_buf, non_blocking=True)
+            #desc_q.copy_(q_buf, non_blocking=True)
+            #desc_k.copy_(k_buf, non_blocking=True)
+            #desc_v.copy_(v_buf, non_blocking=True)
+            #desc_o.copy_(o_buf, non_blocking=True)
             return (triton.cdiv(q.shape[2], META["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
 
         M = torch.empty((q.shape[0], q.shape[1], q.shape[2]), device=q.device, dtype=torch.float32)
         _attn_fwd_tma[grid_tma](
-            q, v, o, desc_q, desc_k, desc_v, sm_scale, M, desc_o,  #
+            #q, v, o, desc_q, desc_k, desc_v, sm_scale, M, desc_o,  #
+            q, v, o, tl.NvTmaDesc(q_buf), tl.NvTmaDesc(k_buf), tl.NvTmaDesc(v_buf), sm_scale, M, tl.NvTmaDesc(o_buf),
             #q, v, desc_k, desc_v, sm_scale, M, o,  #
             q.stride(0), q.stride(1), q.stride(2), q.stride(3),  #
             k.stride(0), k.stride(1), k.stride(2), k.stride(3),  #
