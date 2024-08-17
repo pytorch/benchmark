@@ -43,7 +43,7 @@ jobs:
     steps:
       - name: Copy artifact and upload to Amazon S3
         env:
-          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
-          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_call.id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_call.run_attempt }}
         run: |
           echo XXX
