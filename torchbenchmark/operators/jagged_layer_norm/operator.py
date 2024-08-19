@@ -127,13 +127,14 @@ class Operator(BenchmarkOperator):
 
         return _inner
 
-    # TODO: torch.compile does not work with jagged tensors+layer norm operator
-    @register_benchmark(enabled=False)
+    @register_benchmark()
     def torch_compile_nested_tensor_integration(
         self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
     ):
         def _inner(x: torch.Tensor):  # layer normalization along ragged dimension
-            return torch.nn.functional.layer_norm(x, normalized_shape=(-1, *x.shape[2:]), eps=EPSILON)  # pyre-ignore: Undefined attribute [16]: `torch._tensor.Tensor` has no attribute `_ragged_idx`.
+            return torch.nn.functional.layer_norm(
+                x, normalized_shape=x.shape[1:], eps=EPSILON
+            )
 
         torch_compile_func = torch.compile(_inner)
         return lambda: torch_compile_func(
