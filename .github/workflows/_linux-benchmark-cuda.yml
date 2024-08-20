@@ -30,7 +30,7 @@ jobs:
   benchmark:
     # Don't run on forked repos
     if: github.repository_owner == 'pytorch'
-    runs-on: [a100-runner]
+    runs-on: ubuntu-latest
     timeout-minutes: 1440 # 24 hours
     environment: docker-s3-upload
     env:
