@@ -17,6 +17,13 @@ import numpy as np
 import triton
 import triton.language as tl
 
+# check if we have the TMA version in Triton PR #4498 (https://github.com/triton-lang/triton/pull/4498). 
+try:
+    import triton.tools.experimental_descriptor.TmaDescKernelParam
+    HAS_TMA_DESC = True
+except ImportError:
+    HAS_TMA_DESC = False
+
 
 @triton.jit
 def _attn_fwd_inner(acc, l_i, m_i, q,  #
