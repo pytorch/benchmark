@@ -246,7 +246,7 @@ def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
         if fp8_v:
             p = p.to(tl.float8e5)
         else:
-            p = p.to(tl.bfloat16)
+            p = p.to(tl.float16)
         acc = tl.dot(p, v, acc)
         # update m_i and l_i
         m_i = m_ij
