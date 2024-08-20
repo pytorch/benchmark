@@ -15,8 +15,8 @@ if [ -z ${TORCHBENCH_SRC_DIR} ]; then
     exit 1
 fi
 
-if [ -z ${BISECT_CONDA_ENV} ]; then
-    BISECT_CONDA_ENV=bisection
+if [ -z ${CONDA_ENV_NAME} ]; then
+    CONDA_ENV_NAME=bisection
 fi
 
 # Allows user to specify github issue name
@@ -32,7 +32,7 @@ fi
 # create the work directory
 mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 
-. activate ${BISECT_CONDA_ENV}
+. activate ${CONDA_ENV_NAME}
 
 # specify --debug to allow restart from the last failed point
 python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
