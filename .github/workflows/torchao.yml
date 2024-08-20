@@ -21,8 +21,8 @@ jobs:
     with:
       userbenchmark: "torchao"
       userbenchmark-run-args: "--ci --dashboard --timm"
-      workflow_run_id: ${{ github.event.workflow_run.id }}
-      workflow_run_attempt: ${{ github.event.workflow_run.run_attempt }}
+      workflow_run_id: ${{ github.run_id }}
+      workflow_run_attempt: ${{ github.run_attempt }}      
     secrets:
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -32,8 +32,8 @@ jobs:
     with:
       userbenchmark: "torchao"
       userbenchmark-run-args: "--ci --dashboard --torchbench"
-      workflow_run_id: ${{ github.event.workflow_run.id }}
-      workflow_run_attempt: ${{ github.event.workflow_run.run_attempt }}      
+      workflow_run_id: ${{ github.run_id }}
+      workflow_run_attempt: ${{ github.run_attempt }}      
     secrets:
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -43,8 +43,8 @@ jobs:
     with:
       userbenchmark: "torchao"
       userbenchmark-run-args: "--ci --dashboard --huggingface"
-      workflow_run_id: ${{ github.event.workflow_run.id }}
-      workflow_run_attempt: ${{ github.event.workflow_run.run_attempt }}      
+      workflow_run_id: ${{ github.run_id }}
+      workflow_run_attempt: ${{ github.run_attempt }}      
     secrets:
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
