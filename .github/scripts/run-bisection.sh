@@ -34,6 +34,9 @@ mkdir -p ${BISECT_BASE}/gh${GITHUB_RUN_ID}
 
 . activate ${CONDA_ENV_NAME}
 
+# hack to workaround the version issue
+conda install -y git
+
 # specify --debug to allow restart from the last failed point
 python bisection.py --work-dir ${BISECT_BASE}/gh${GITHUB_RUN_ID} \
        --pytorch-src ${PYTORCH_SRC_DIR} \
