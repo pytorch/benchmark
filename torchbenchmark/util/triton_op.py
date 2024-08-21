@@ -412,6 +412,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     # Each operator can override to define their own default metrics
     DEFAULT_METRICS = ["latency"]
     required_metrics: List[str]
+    _cur_input_id: Optional[int] = None
     _input_iter: Optional[Generator] = None
     extra_args: List[str] = []
     example_inputs: Any = None
@@ -498,6 +499,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 for _dryrun_input_id in range(self._input_id):
                     self.example_inputs = self.get_example_inputs()
             for input_id in input_id_range:
+                self._cur_input_id = input_id
                 self.example_inputs = self.get_example_inputs()
                 if self.example_inputs is None:
                     warnings.warn(
@@ -573,9 +575,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             )
 
     def get_x_val(self, example_inputs) -> Any:
-        raise NotImplementedError(
-            "Each operator must implement its own input to x_val mapping."
-        )
+        return self._cur_input_id
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         raise NotImplementedError(
