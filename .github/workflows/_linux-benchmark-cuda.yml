@@ -80,8 +80,8 @@ jobs:
           path: benchmark-output/
       - name: Copy artifact and upload to Amazon S3
         env:
-          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
-          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           . "${SETUP_SCRIPT}"
           pushd benchmark
