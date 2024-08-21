@@ -53,10 +53,10 @@ def load_opbench_by_name(op_name: str):
     )
     opbench_list = list(opbench_list)
     if not opbench_list:
-        raise RuntimeError(f"{op_name} is not found in the core model list.")
+        raise RuntimeError(f"{op_name} is not found in the Tritonbench operator list.")
     assert (
         len(opbench_list) == 1
-    ), f"Found more than one models {opbench_list} with the exact name: {op_name}"
+    ), f"Found more than one operators {opbench_list} matching the required name: {op_name}"
     op_name = opbench_list[0]
     op_pkg = (
         op_name
