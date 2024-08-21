@@ -23,6 +23,10 @@ if "nv_tma_desc_type" in dir(tl):
 else:
     HAS_TMA_DESC = False
 
+if HAS_TMA_DESC:
+    print("Running with experimental grid constant TMA descriptor.")
+else:
+    print("Running without grid constant TMA descriptor.")
 
 class TmaAutoTuneHelper:
 
