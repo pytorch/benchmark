@@ -17,6 +17,75 @@ import numpy as np
 import triton
 import triton.language as tl
 
+# check if we have the TMA version in Triton PR #4498 (https://github.com/triton-lang/triton/pull/4498). 
+HAS_TMA_DESC = "nv_tma_desc_type" in dir(tl)
+
+if HAS_TMA_DESC:
+    print("TMA benchmarks will be running with experimental grid constant TMA descriptor.")
+else:
+    print("TMA benchmarks will be running without grid constant TMA descriptor.")
+
+class TmaAutoTuneHelper:
+
+    # duck typing wrapper to implement the same interface as TmaDescKernelParam in Triton PR #4498
+    class KernelParamWrapper:
+        def __init__(self, desc):
+            self.desc = desc
+        
+        def tma_desc_cpu_ptr(self):
+            return self.desc.data_ptr()
+
+    TMA_SIZE = 128
+    def __init__(self):
+        self.fill_1d_tma_descriptor_inner = triton.runtime.driver.active.utils.fill_1d_tma_descriptor
+        self.fill_2d_tma_descriptor_inner = triton.runtime.driver.active.utils.fill_2d_tma_descriptor
+        if HAS_TMA_DESC:
+            self.descriptors = {}
+        else:
+            self.cuda_descriptors = {}
+
+
+    # Call this method outside of the lambda function for grid size
+    def init_tma_descriptor(self, name):
+        if self.has_tma_desc:
+            self.descriptors[name] = torch.empty(self.tma_size, device="cpu", dtype=torch.int8)
+        else:
+            self.cuda_descriptors[name] = torch.empty(self.tma_size, device="cuda", dtype=torch.int8)
+
+
+    # Call this method inside the lambda function for grid size
+    def fill_1d_tma_descriptor(self, name, ptr, dim, block_dim, element_size):
+        if self.has_tma_desc:
+            desc_x = self.descriptors[name]
+            assert desc_x.data_ptr() % 64 == 0
+            self.fill_1d_tma_descriptor_inner(ptr, dim, block_dim, element_size, desc_x.data_ptr())
+        else:
+            desc_x = self.cuda_descriptors[name]
+            buf_x = torch.empty_like(desc_x, device="cpu", pin_memory=True)
+            self.fill_1d_tma_descriptor_inner(ptr, dim, block_dim, element_size, buf_x.numpy())
+            desc_x.copy_(buf_x, non_blocking=True)
+
+
+    # Call this method inside the lambda function for grid size
+    def fill_2d_tma_descriptor(self, name, ptr, dim1, dim0, block_dim1, block_dim0, element_size):
+        if self.has_tma_desc:
+            desc_x = self.descriptors[name]
+            assert desc_x.data_ptr() % 64 == 0
+            self.fill_2d_tma_descriptor_inner(ptr, dim1, dim0, block_dim1, block_dim0, element_size, desc_x.data_ptr())
+        else:
+            desc_x = self.cuda_descriptors[name]
+            buf_x = torch.empty_like(desc_x, device="cpu", pin_memory=True)
+            self.fill_2d_tma_descriptor_inner(ptr, dim1, dim0, block_dim1, block_dim0, element_size, buf_x.numpy())
+            desc_x.copy_(buf_x, non_blocking=True)
+
+
+    def get_tma_descriptor_kernel_param(self, name):
+        if self.has_tma_desc:
+            assert self.descriptors[name] is not None
+            return self.KernelParamWrapper(self.descriptors[name])
+        else:
+            assert self.cuda_descriptors[name] is not None
+            return self.cuda_descriptors[name]
 
 @triton.jit
 def _attn_fwd_inner(acc, l_i, m_i, q,  #
@@ -190,7 +259,6 @@ def _attn_fwd_inner_tma(acc, l_i, m_i, q,  #
                     BLOCK_M: tl.constexpr, HEAD_DIM: tl.constexpr, BLOCK_N: tl.constexpr,  #
                     STAGE: tl.constexpr, offs_m: tl.constexpr, offs_n: tl.constexpr,  #
                     N_CTX: tl.constexpr, fp8_v: tl.constexpr):
-    # Required TMA fences are added in _attn_fwd_tma prior to calling this function.
     # range of values handled by this stage
     if STAGE == 1:
         lo, hi = 0, start_m * BLOCK_M
@@ -267,15 +335,6 @@ def _attn_fwd_tma(#Q, V, desc_k, desc_v, sm_scale, M, Out,  #
               HEAD_DIM: tl.constexpr,  #
               STAGE: tl.constexpr  #
               ):
-    # TODO(embg) remove TMA fence after __grid_constant__ lands
-    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
-                              [desc_q], dtype=tl.int32, is_pure=False, pack=1)
-    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
-                              [desc_k], dtype=tl.int32, is_pure=False, pack=1)
-    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
-                              [desc_v], dtype=tl.int32, is_pure=False, pack=1)
-    tl.inline_asm_elementwise("fence.proxy.tensormap::generic.acquire.gpu [$1], 128; // $0 dummy reg", "=r, l",
-                              [desc_o], dtype=tl.int32, is_pure=False, pack=1)
 
     tl.static_assert(BLOCK_N <= HEAD_DIM)
     start_m = tl.program_id(0)
@@ -730,76 +789,65 @@ class _attention_tma(torch.autograd.Function):
         desc_v = torch.tensor(desc_v, device=v.device)
         grid = lambda args: (triton.cdiv(q.shape[2], args["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
         '''
-        desc_k = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
-        desc_v = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
-        desc_q = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
-        desc_o = torch.empty((TMA_SIZE), device="cuda", dtype=torch.int8)
+        desc_helper = TmaAutoTuneHelper(TMA_SIZE)
+        desc_helper.init_tma_descriptor('k')
+        desc_helper.init_tma_descriptor('v')
+        desc_helper.init_tma_descriptor('q')
+        desc_helper.init_tma_descriptor('o')
         def grid_tma(META):
-            nonlocal desc_k
-            nonlocal desc_v
-            nonlocal desc_q
-            nonlocal desc_o
-            q_buf = torch.empty_like(desc_q, device="cpu", pin_memory=True)
-            k_buf = torch.empty_like(desc_k, device="cpu", pin_memory=True)
-            v_buf = torch.empty_like(desc_v, device="cpu", pin_memory=True)
-            o_buf = torch.empty_like(desc_o, device="cpu", pin_memory=True)
-            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+            nonlocal desc_helper
+            desc_helper.fill_2d_tma_descriptor('k',
                 k.data_ptr(),
                 BATCH * H * N_CTX,
                 HEAD_DIM_Q,
                 META['BLOCK_N'],
                 HEAD_DIM_Q,
                 k.element_size(),
-                k_buf.numpy(),
             )
             if v.dtype == torch.float8_e5m2:
-                triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                desc_helper.fill_2d_tma_descriptor('v',
                     v.data_ptr(),
                     BATCH * H * HEAD_DIM_Q,
                     N_CTX,
                     HEAD_DIM_Q,
                     META['BLOCK_N'],
                     v.element_size(),
-                    v_buf.numpy(),
                 )
             else:
-                triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+                desc_helper.fill_2d_tma_descriptor('v',
                     v.data_ptr(),
                     BATCH * H * N_CTX,
                     HEAD_DIM_Q,
                     META['BLOCK_N'],
                     HEAD_DIM_Q,
                     v.element_size(),
-                    v_buf.numpy(),
                 )
-            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+            desc_helper.fill_2d_tma_descriptor('q',
                 q.data_ptr(),
                 BATCH * H * N_CTX,
                 HEAD_DIM_Q,
                 META['BLOCK_M'],
                 HEAD_DIM_Q,
                 q.element_size(),
-                q_buf.numpy(),
             )
-            triton.runtime.driver.active.utils.fill_2d_tma_descriptor(
+            desc_helper.fill_2d_tma_descriptor('o',
                 o.data_ptr(),
                 BATCH * H * N_CTX,
                 HEAD_DIM_Q,
                 META['BLOCK_M'],
                 HEAD_DIM_Q,
                 o.element_size(),
-                o_buf.numpy(),
             )
-            desc_q.copy_(q_buf, non_blocking=True)
-            desc_k.copy_(k_buf, non_blocking=True)
-            desc_v.copy_(v_buf, non_blocking=True)
-            desc_o.copy_(o_buf, non_blocking=True)
             return (triton.cdiv(q.shape[2], META["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
+
+        desc_q = desc_helper.get_tma_descriptor_kernel_param('q')
+        desc_k = desc_helper.get_tma_descriptor_kernel_param('k')
+        desc_v = desc_helper.get_tma_descriptor_kernel_param('v')
+        desc_o = desc_helper.get_tma_descriptor_kernel_param('o')
 
         M = torch.empty((q.shape[0], q.shape[1], q.shape[2]), device=q.device, dtype=torch.float32)
         _attn_fwd_tma[grid_tma](
             q, v, o, desc_q, desc_k, desc_v, sm_scale, M, desc_o,  #
-            #q, v, desc_k, desc_v, sm_scale, M, o,  #
             q.stride(0), q.stride(1), q.stride(2), q.stride(3),  #
             k.stride(0), k.stride(1), k.stride(2), k.stride(3),  #
             v.stride(0), v.stride(1), v.stride(2), v.stride(3),  #
