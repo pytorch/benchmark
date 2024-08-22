@@ -54,8 +54,6 @@ class TmaAutoTuneHelper:
     def init_tma_descriptor(self, name):
         if self.has_tma_desc:
             self.descriptors[name] = torch.empty(self.tma_size, device="cpu", dtype=torch.int8)
-            # pass
-            # self.descriptors[name] = None
         else:
             self.cuda_descriptors[name] = torch.empty(self.tma_size, device="cuda", dtype=torch.int8)
 
