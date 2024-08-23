@@ -47,15 +47,15 @@ class TmaAutoTuneHelper:
 
     # Call this method outside of the lambda function for grid size
     def init_tma_descriptor(self, name):
-        if self.has_tma_desc:
-            self.descriptors[name] = torch.empty(self.tma_size, device="cpu", dtype=torch.int8)
+        if HAS_TMA_DESC:
+            self.descriptors[name] = torch.empty(TmaAutoTuneHelper.TMA_SIZE, device="cpu", dtype=torch.int8)
         else:
-            self.cuda_descriptors[name] = torch.empty(self.tma_size, device="cuda", dtype=torch.int8)
+            self.cuda_descriptors[name] = torch.empty(TmaAutoTuneHelper.TMA_SIZE, device="cuda", dtype=torch.int8)
 
 
     # Call this method inside the lambda function for grid size
     def fill_1d_tma_descriptor(self, name, ptr, dim, block_dim, element_size):
-        if self.has_tma_desc:
+        if HAS_TMA_DESC:
             desc_x = self.descriptors[name]
             assert desc_x.data_ptr() % 64 == 0
             self.fill_1d_tma_descriptor_inner(ptr, dim, block_dim, element_size, desc_x.data_ptr())
@@ -68,7 +68,7 @@ class TmaAutoTuneHelper:
 
     # Call this method inside the lambda function for grid size
     def fill_2d_tma_descriptor(self, name, ptr, dim1, dim0, block_dim1, block_dim0, element_size):
-        if self.has_tma_desc:
+        if HAS_TMA_DESC:
             desc_x = self.descriptors[name]
             assert desc_x.data_ptr() % 64 == 0
             self.fill_2d_tma_descriptor_inner(ptr, dim1, dim0, block_dim1, block_dim0, element_size, desc_x.data_ptr())
@@ -80,7 +80,7 @@ class TmaAutoTuneHelper:
 
 
     def get_tma_descriptor_kernel_param(self, name):
-        if self.has_tma_desc:
+        if HAS_TMA_DESC:
             assert self.descriptors[name] is not None
             return self.KernelParamWrapper(self.descriptors[name])
         else:
@@ -789,7 +789,7 @@ class _attention_tma(torch.autograd.Function):
         desc_v = torch.tensor(desc_v, device=v.device)
         grid = lambda args: (triton.cdiv(q.shape[2], args["BLOCK_M"]), q.shape[0] * q.shape[1], 1)
         '''
-        desc_helper = TmaAutoTuneHelper(TMA_SIZE)
+        desc_helper = TmaAutoTuneHelper()
         desc_helper.init_tma_descriptor('k')
         desc_helper.init_tma_descriptor('v')
         desc_helper.init_tma_descriptor('q')
