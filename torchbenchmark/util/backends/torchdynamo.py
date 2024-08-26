@@ -110,6 +110,16 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         action="store_true",
         help="set to freeze the graph and prepack weights",
     )
+    parser.add_argument(
+        "--is_pt2e",
+        action='store_true',
+        help="enable pt2e quantization for inductor",
+    )
+    parser.add_argument(
+        "--is_qat",
+        action='store_true',
+        help="enable qat quantization for inductor",
+    )
 
     # inductor boolean configs
     inductor_config_dict = _try_get_inductor_config()
@@ -203,6 +213,9 @@ def apply_torchdynamo_args(
             elif args.quantization == "int4weightonly":
                 change_linear_weights_to_int4_woqtensors(module)
 
+        if model.device == "cpu" and model.test == "eval" and args.is_pt2e:
+            enable_inductor_quant(model, args.is_qat)
+
         if args.freeze_prepack_weights:
             torch._inductor.config.freezing = True
             torch._inductor.config.cpp.weight_prepack = True
@@ -239,3 +252,33 @@ def apply_torchdynamo_args(
         model.eval = optimize_ctx(model.eval)
 
     torch._dynamo.reset()
+
+def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_qat: 'bool'=False):
+    from torch.ao.quantization.quantize_pt2e import prepare_pt2e, prepare_qat_pt2e, convert_pt2e
+    import torch.ao.quantization.quantizer.x86_inductor_quantizer as xiq
+    from torch._export import capture_pre_autograd_graph
+    module, example_inputs = model.get_module()
+    # Create X86InductorQuantizer
+    quantizer = xiq.X86InductorQuantizer()
+    quantizer.set_global(xiq.get_default_x86_inductor_quantization_config(is_qat=is_qat))
+    if is_qat:
+        module.train()
+    # Generate the FX Module
+    exported_model = capture_pre_autograd_graph(
+            module,
+            example_inputs
+        )
+    # PT2E Quantization flow
+    prepared_model = prepare_qat_pt2e(exported_model, quantizer) if is_qat else prepare_pt2e(exported_model, quantizer)
+    # Calibration
+    if is_qat:
+        model.example_outputs = (torch.rand_like(module(*example_inputs)), )
+        model.loss_fn = torch.nn.CrossEntropyLoss()
+        model.set_module(prepared_model)
+        model.train()
+    else:
+        prepared_model(*example_inputs)
+    with torch.no_grad():
+        converted_model = convert_pt2e(prepared_model)
+        torch.ao.quantization.move_exported_model_to_eval(converted_model)
+        model.set_module(converted_model)
