@@ -4,7 +4,7 @@ import triton
 from typing import List, Any, Dict
 
 from . import BM_NAME
-from .run import parse_args, _run
+from .run import get_parser, _run
 from userbenchmark.utils import get_default_output_json_path, get_output_json
 from torchbenchmark.util.triton_op import BenchmarkOperatorResult
 
@@ -22,7 +22,7 @@ def run_ci():
     ci_result = []
     for test_opts in CI_TESTS:
         logging.info(f"Running the test opts: {test_opts}")
-        test_args, test_extra_args = parse_args(test_opts)
+        test_args, test_extra_args = get_parser(test_opts).parse_known_args(test_opts)
         metrics = _run(test_args, test_extra_args)
         ci_result.append(metrics)
     result = ci_result_to_userbenchmark_json(ci_result)

@@ -25,12 +25,12 @@ from .gpu import gpu_lockdown
 
 TRITON_BENCH_CSV_DUMP_PATH = tempfile.gettempdir() + "/tritonbench/"
 
-def get_parser():
+def get_parser(args = None):
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
         "--op",
         type=str,
-        required=True,
+        required=False,
         help="Operator to benchmark."
     )
     parser.add_argument(
@@ -140,6 +140,12 @@ def get_parser():
     )
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
+    
+    args, extra_args = parser.parse_known_args(args)
+    if  args.op and  args.ci:
+        parser.error("cannot specify operator when in CI mode")
+    elif not args.op and not args.ci:
+        parser.error("must specify operator when not in CI mode")
     return parser
 
 def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorResult:
@@ -187,5 +193,6 @@ def run(args: List[str] = []):
         from .ci import run_ci
         run_ci()
         return
+    
     with gpu_lockdown(args.gpu_lockdown):
         _run(args, extra_args)
