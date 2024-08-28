@@ -67,7 +67,7 @@ HAS_FLASH_V3 = True
 try:
     torch_lib_path = os.path.join(os.path.dirname(__file__), "lib")
     with add_ld_library_path(torch_lib_path):
-        import flashattn_hopper_cuda
+        from flash_attn_interface import flash_attn_func as flash_attn_v3
 except (ImportError, IOError, AttributeError):
     HAS_FLASH_V3 = False
     pass
@@ -213,7 +213,7 @@ class Operator(BenchmarkOperator):
         q = q.transpose(1, 2).contiguous()
         k = k.transpose(1, 2).contiguous()
         v = v.transpose(1, 2).contiguous()
-        fn = lambda: flashattn_hopper_cuda.fwd(q, k, v, None, self.sm_scale, self.causal)
+        fn = lambda: flash_attn_v3(q, k, v, self.sm_scale, self.causal)
         return fn
 
     @register_benchmark()
