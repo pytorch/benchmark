@@ -428,6 +428,36 @@ class Operator(BenchmarkOperator):
             )
             self.N_CTX = N_CTX
             yield (q, k, v)
+        for q,k,v in self.__llama_example_input(self.device, self.dtype, requires_grad):
+            yield (q, k, v)
+    
+    def __llama_example_input(self, device, dtype, requires_grad):
+        shapes = [
+            (4, 32, 19, 128),
+            (4, 32, 1, 128),
+             # currently we are only able to use the same shape for q, k, v but in prod q shape is (4, 32, 1, 128) here
+            (4, 32, 511, 128)
+        ]
+        for shape in shapes:
+            yield (
+                torch.randn(
+                    shape,
+                    dtype=dtype,
+                    device=device,
+                    requires_grad=requires_grad,
+                ),
+                torch.randn(
+                    shape,
+                    dtype=dtype,
+                    device=device,
+                    requires_grad=requires_grad,
+                ),
+                torch.randn(
+                    shape,
+                    dtype=dtype,
+                    device=device,
+                    requires_grad=requires_grad,
+                ))
 
     @register_x_val(label="(Batch, Heads, SeqLen, Dhead)")
     def get_x_val(self, example_inputs) -> float:
@@ -450,7 +480,7 @@ class Operator(BenchmarkOperator):
                     "triton_tutorial_flash_v2",
                     "triton_op_flash_v2",
                     # FIXME: cuda illegal meory failure with default config
-                    # "triton_op_flash_seq_v2",
+                    "triton_op_flash_seq_v2",
                     "xformers",
                     "hw_roofline",
                 ],  # possible values for `line_arg``
