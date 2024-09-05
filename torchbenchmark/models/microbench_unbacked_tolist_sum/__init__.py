@@ -1,6 +1,7 @@
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import OTHER
 import torch
+from torchbenchmark.tasks import OTHER
+
+from ...util.model import BenchmarkModel
 
 
 class MicrobenchUnbackedTolistSum(torch.nn.Module):
@@ -24,7 +25,9 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         self.model = MicrobenchUnbackedTolistSum().to(self.device)
         self.example_inputs = (
             torch.randn(self.batch_size, device=self.device),

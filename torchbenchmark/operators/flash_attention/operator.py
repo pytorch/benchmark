@@ -34,6 +34,7 @@ It benchmarks the following FMHA kernels:
 import argparse
 import math
 import os
+
 import torch
 import triton  # @manual=//triton:triton
 from torchbenchmark import add_path, SUBMODULE_PATH
@@ -45,24 +46,23 @@ try:
 except BaseException:
     HAS_KERNELS = False
 
+from typing import Callable, Optional
+
+from torch.nn.attention import sdpa_kernel, SDPBackend
+from torch.nn.functional import scaled_dot_product_attention as sdpa
 from torchbenchmark import add_ld_library_path
 from torchbenchmark.util.kernels.triton_fused_attention import (
     attention as triton_tutorial_FA2,
-)
-from torchbenchmark.util.kernels.triton_fused_attention import (
     attention_tma as triton_tutorial_FA2_tma,
 )
-from torch.nn.attention import SDPBackend, sdpa_kernel
-from torch.nn.functional import scaled_dot_product_attention as sdpa
-
-from typing import Callable, Optional
 
 # [Optional] flash_attn v2
 try:
-    from .test_fmha_utils import make_packed_qkv
     from flash_attn.flash_attn_interface import (
         flash_attn_qkvpacked_func as flash_attn_func,
     )
+
+    from .test_fmha_utils import make_packed_qkv
 except (ImportError, IOError, AttributeError):
     pass
 
@@ -82,6 +82,7 @@ except (ImportError, IOError, AttributeError):
 try:
     import xformers  # @manual=//fair/xformers:xformers
     import xformers.ops.fmha as xformers_fmha  # @manual=//fair/xformers:xformers
+
     from .test_fmha_utils import permute_qkv
 except (ImportError, IOError, AttributeError):
     pass
@@ -115,16 +116,17 @@ except (ImportError, IOError, AttributeError):
     tk_fwd_causal = None
 
 from typing import Any, Generator, List
+
 from torchbenchmark.util.input import input_filter
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    Mode as BenchmarkMode,
     register_benchmark,
     register_metric,
     register_x_val,
 )
-from torchbenchmark.util.triton_op import Mode as BenchmarkMode
 
 
 def parse_op_args(args: List[str]):
@@ -223,7 +225,9 @@ class Operator(BenchmarkOperator):
         q = q.transpose(1, 2).contiguous()
         k = k.transpose(1, 2).contiguous()
         v = v.transpose(1, 2).contiguous()
-        fn = lambda: flash_attn_v3(q, k, v, self.sm_scale, self.causal)
+        fn = lambda: flashattn_hopper_cuda.fwd(
+            q, k, v, None, self.sm_scale, self.causal
+        )
         return fn
 
     @register_benchmark()
@@ -356,25 +360,6 @@ class Operator(BenchmarkOperator):
             v,
         )
 
-    @register_benchmark()
-    def flex_attention(self, q, k, v):
-        from torch.nn.attention.flex_attention import flex_attention, create_block_mask
-
-        def causal_mask(b, h, q_idx, kv_idx):
-            return q_idx >= kv_idx
-
-        flex_attention = torch.compile(flex_attention, dynamic=False)
-
-        if self.causal:
-            B, H, S, D = q.shape
-            block_mask = create_block_mask(
-                causal_mask, B=None, H=None, Q_LEN=S, KV_LEN=S
-            )
-        else:
-            block_mask = None
-
-        return lambda: flex_attention(q, k, v, block_mask=block_mask)
-
     @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
@@ -428,15 +413,17 @@ class Operator(BenchmarkOperator):
             )
             self.N_CTX = N_CTX
             yield (q, k, v)
-        for q,k,v in self.__llama_example_input(self.device, self.dtype, requires_grad):
+        for q, k, v in self.__llama_example_input(
+            self.device, self.dtype, requires_grad
+        ):
             yield (q, k, v)
-    
+
     def __llama_example_input(self, device, dtype, requires_grad):
         shapes = [
             (4, 32, 19, 128),
             (4, 32, 1, 128),
-             # currently we are only able to use the same shape for q, k, v but in prod q shape is (4, 32, 1, 128) here
-            (4, 32, 511, 128)
+            # currently we are only able to use the same shape for q, k, v but in prod q shape is (4, 32, 1, 128) here
+            (4, 32, 511, 128),
         ]
         for shape in shapes:
             yield (
@@ -457,7 +444,8 @@ class Operator(BenchmarkOperator):
                     dtype=dtype,
                     device=device,
                     requires_grad=requires_grad,
-                ))
+                ),
+            )
 
     @register_x_val(label="(Batch, Heads, SeqLen, Dhead)")
     def get_x_val(self, example_inputs) -> float:

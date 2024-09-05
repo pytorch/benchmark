@@ -1,18 +1,18 @@
 import argparse
+from typing import Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
-from typing import Tuple
 
 torch.backends.cudnn.benchmark = False
 
-from .pytorch_unet.unet import UNet
-from .pytorch_unet.utils.dice_score import dice_loss
+from torchbenchmark.tasks import COMPUTER_VISION
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
+from .pytorch_unet.unet import UNet
+from .pytorch_unet.utils.dice_score import dice_loss
 
 
 class Model(BenchmarkModel):

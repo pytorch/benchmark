@@ -1,13 +1,16 @@
-import torch
-from . import tke_pytorch
 from typing import Tuple
+
+import torch
 from torchbenchmark.tasks import OTHER
+
 from ...util.model import BenchmarkModel
+from . import tke_pytorch
 
 
 def _generate_inputs(size):
-    import numpy as np
     import math
+
+    import numpy as np
 
     np.random.seed(17)
 
@@ -61,6 +64,7 @@ def _generate_inputs(size):
         tke,
         dtke,
     )
+
 
 class TurbulentKineticEnergy(torch.nn.Module):
     def __init__(self, device):
@@ -129,7 +133,9 @@ class Model(BenchmarkModel):
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.model = TurbulentKineticEnergy(self.device).to(device=self.device)
         input_size = self.batch_size

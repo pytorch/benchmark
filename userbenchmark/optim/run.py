@@ -1,30 +1,31 @@
+import argparse
+import datetime
+import itertools
+import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple
-from torchbenchmark import load_model_by_name
+
 import torch
+import torch.utils.benchmark as benchmark
+import yaml
 from torch import _dynamo as torchdynamo
 from torch.optim import (
     Adadelta,
     Adagrad,
     Adam,
-    AdamW,
     Adamax,
+    AdamW,
     ASGD,
-    SGD,
-    RAdam,
-    Rprop,
-    RMSprop,
     NAdam,
+    RAdam,
+    RMSprop,
+    Rprop,
+    SGD,
     SparseAdam,
 )
-import torch.utils.benchmark as benchmark
-from userbenchmark.utils import REPO_PATH, add_path, dump_output, get_output_json
-import argparse
-import sys
-import itertools
-import datetime
-import time
-import yaml
+from torchbenchmark import load_model_by_name
+from userbenchmark.utils import add_path, dump_output, get_output_json, REPO_PATH
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import list_models
@@ -36,6 +37,7 @@ continue_on_error: bool = False
 run_on_subset: bool = False
 run_basic_configs: bool = False
 ignore_skips: bool = False
+
 
 # Models that are unstable in torch-nightly should not run in the optim world either
 def get_unstable_models() -> Set[str]:
@@ -486,6 +488,7 @@ EXCLUSIONS: List[Dict[str, Any]] = (
     ]
 )
 
+
 # Returns clones of params and not a generator.
 def _get_model_params(m) -> List[torch.nn.Parameter]:
     model, _ = m.get_module()
@@ -496,6 +499,7 @@ def _get_model_params(m) -> List[torch.nn.Parameter]:
 
 
 lil_cache: Tuple[str, str, List[torch.nn.Parameter]] = ("", "", [])
+
 
 # Returns clones of params given a model name
 def get_model_params(modelName: str, device: str) -> List[torch.nn.Parameter]:
@@ -814,7 +818,7 @@ def run(args: List[str]):
     compare.colorize(rowwise=True)
     compare.print()
 
-    if 'pt2_' in args.funcs:
+    if "pt2_" in args.funcs:
         print("----------------- COMPILE TIME RESULTS -----------------")
         print(compile_metrics)
 

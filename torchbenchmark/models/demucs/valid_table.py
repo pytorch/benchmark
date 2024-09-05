@@ -17,11 +17,12 @@ STD_KEY = "seed"
 METRIC = "best"
 
 parser = argparse.ArgumentParser("result_table.py")
-parser.add_argument("-p",
-                    "--paper",
-                    action="store_true",
-                    help="show results from the paper experiment")
-parser.add_argument("-i", "--individual", action="store_true", help="no aggregation by seed")
+parser.add_argument(
+    "-p", "--paper", action="store_true", help="show results from the paper experiment"
+)
+parser.add_argument(
+    "-i", "--individual", action="store_true", help="no aggregation by seed"
+)
 args = parser.parse_args()
 
 if args.paper:
@@ -55,9 +56,9 @@ for name, stats in all_stats.items():
     stats = np.array(stats)
     line["valid"] = {
         "score": stats.mean(),
-        "std": stats.std() / stats.shape[0]**0.5,
-        "count": stats.shape[0]
+        "std": stats.std() / stats.shape[0] ** 0.5,
+        "count": stats.shape[0],
     }
     lines.append(line)
 lines.sort(key=lambda x: x["valid"]["score"])
-print(tt.treetable(lines, mytable, colors=['33', '0']))
+print(tt.treetable(lines, mytable, colors=["33", "0"]))

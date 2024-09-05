@@ -1,25 +1,28 @@
 import torch
-from torch import nn
-from torch.autograd import Variable
-from torch.nn.parameter import Parameter
-from torch._utils import _flatten_dense_tensors, _unflatten_dense_tensors
 
 from loss_scaler import DynamicLossScaler, LossScaler
+from torch import nn
+from torch._utils import _flatten_dense_tensors, _unflatten_dense_tensors
+from torch.autograd import Variable
+from torch.nn.parameter import Parameter
 
 FLOAT_TYPES = (torch.FloatTensor, torch.cuda.FloatTensor)
 HALF_TYPES = (torch.HalfTensor, torch.cuda.HalfTensor)
+
 
 def conversion_helper(val, conversion):
     """Apply conversion to val. Recursively apply conversion if `val` is a nested tuple/list structure."""
     if not isinstance(val, (tuple, list)):
         return conversion(val)
-    rtn =  [conversion_helper(v, conversion) for v in val]
+    rtn = [conversion_helper(v, conversion) for v in val]
     if isinstance(val, tuple):
         rtn = tuple(rtn)
     return rtn
 
+
 def fp32_to_fp16(val):
     """Convert fp32 `val` to fp16"""
+
     def half_conversion(val):
         val_typecheck = val
         if isinstance(val_typecheck, (Parameter, Variable)):
@@ -27,10 +30,13 @@ def fp32_to_fp16(val):
         if isinstance(val_typecheck, FLOAT_TYPES):
             val = val.half()
         return val
+
     return conversion_helper(val, half_conversion)
+
 
 def fp16_to_fp32(val):
     """Convert fp16 `val` to fp32"""
+
     def float_conversion(val):
         val_typecheck = val
         if isinstance(val_typecheck, (Parameter, Variable)):
@@ -38,15 +44,18 @@ def fp16_to_fp32(val):
         if isinstance(val_typecheck, HALF_TYPES):
             val = val.float()
         return val
+
     return conversion_helper(val, float_conversion)
+
 
 class FP16_Module(nn.Module):
     def __init__(self, module):
         super(FP16_Module, self).__init__()
-        self.add_module('module', module.half())
+        self.add_module("module", module.half())
 
     def forward(self, *inputs, **kwargs):
         return fp16_to_fp32(self.module(*(fp32_to_fp16(inputs)), **kwargs))
+
 
 class FP16_Optimizer:
     """
@@ -62,7 +71,7 @@ class FP16_Optimizer:
 
     def __init__(self, optimizer, static_loss_scale=1.0, dynamic_loss_scale=False):
         if not torch.cuda.is_available:
-            raise SystemError('Cannot use fp16 without CUDA')
+            raise SystemError("Cannot use fp16 without CUDA")
 
         self.fp16_param_groups = []
         self.fp32_param_groups = []
@@ -71,36 +80,53 @@ class FP16_Optimizer:
             print("FP16_Optimizer processing param group {}:".format(i))
             fp16_params_this_group = []
             fp32_params_this_group = []
-            for param in param_group['params']:
+            for param in param_group["params"]:
                 if param.requires_grad:
-                    if param.type() == 'torch.cuda.HalfTensor':
-                        print("FP16_Optimizer received torch.cuda.HalfTensor with {}"
-                              .format(param.size()))
+                    if param.type() == "torch.cuda.HalfTensor":
+                        print(
+                            "FP16_Optimizer received torch.cuda.HalfTensor with {}".format(
+                                param.size()
+                            )
+                        )
                         fp16_params_this_group.append(param)
-                    elif param.type() == 'torch.cuda.FloatTensor':
-                        print("FP16_Optimizer received torch.cuda.FloatTensor with {}"
-                              .format(param.size()))
+                    elif param.type() == "torch.cuda.FloatTensor":
+                        print(
+                            "FP16_Optimizer received torch.cuda.FloatTensor with {}".format(
+                                param.size()
+                            )
+                        )
                         fp32_params_this_group.append(param)
                     else:
-                        raise TypeError("Wrapped parameters must be either "
-                                        "torch.cuda.FloatTensor or torch.cuda.HalfTensor. "
-                                        "Received {}".format(param.type()))
+                        raise TypeError(
+                            "Wrapped parameters must be either "
+                            "torch.cuda.FloatTensor or torch.cuda.HalfTensor. "
+                            "Received {}".format(param.type())
+                        )
 
             fp32_flattened_this_group = None
             if len(fp16_params_this_group) > 0:
                 fp32_flattened_this_group = _flatten_dense_tensors(
-                    [param.detach().data.clone().float() for param in fp16_params_this_group])
+                    [
+                        param.detach().data.clone().float()
+                        for param in fp16_params_this_group
+                    ]
+                )
 
-                fp32_flattened_this_group = Variable(fp32_flattened_this_group, requires_grad = True)
+                fp32_flattened_this_group = Variable(
+                    fp32_flattened_this_group, requires_grad=True
+                )
 
                 fp32_flattened_this_group.grad = fp32_flattened_this_group.new(
-                    *fp32_flattened_this_group.size())
+                    *fp32_flattened_this_group.size()
+                )
 
             # python's lovely list concatenation via +
             if fp32_flattened_this_group is not None:
-                param_group['params'] = [fp32_flattened_this_group] + fp32_params_this_group
+                param_group["params"] = [
+                    fp32_flattened_this_group
+                ] + fp32_params_this_group
             else:
-                param_group['params'] = fp32_params_this_group
+                param_group["params"] = fp32_params_this_group
 
             self.fp16_param_groups.append(fp16_params_this_group)
             self.fp32_param_groups.append(fp32_params_this_group)
@@ -133,8 +159,8 @@ class FP16_Optimizer:
         for fp16_group in self.fp16_param_groups:
             for param in fp16_group:
                 if param.grad is not None:
-                    param.grad.detach_() # This does appear in torch.optim.optimizer.zero_grad(),
-                                         # but I'm not sure why it's needed.
+                    param.grad.detach_()  # This does appear in torch.optim.optimizer.zero_grad(),
+                    # but I'm not sure why it's needed.
                     param.grad.zero_()
 
     def _check_overflow(self):
@@ -151,32 +177,40 @@ class FP16_Optimizer:
         self.loss_scaler.update_scale(has_overflow)
 
     def _copy_grads_fp16_to_fp32(self):
-        for fp32_group, fp16_group in zip(self.fp32_flattened_groups, self.fp16_param_groups):
+        for fp32_group, fp16_group in zip(
+            self.fp32_flattened_groups, self.fp16_param_groups
+        ):
             if len(fp16_group) > 0:
                 # This might incur one more deep copy than is necessary.
                 fp32_group.grad.data.copy_(
-                    _flatten_dense_tensors([fp16_param.grad.data for fp16_param in fp16_group]))
+                    _flatten_dense_tensors(
+                        [fp16_param.grad.data for fp16_param in fp16_group]
+                    )
+                )
 
     def _downscale_fp32(self):
         if self.loss_scale != 1.0:
             for param_group in self.optimizer.param_groups:
-                for param in param_group['params']:
-                    param.grad.data.mul_(1./self.loss_scale)
+                for param in param_group["params"]:
+                    param.grad.data.mul_(1.0 / self.loss_scale)
 
     def clip_fp32_grads(self, clip=-1):
         if not self.overflow:
             fp32_params = []
             for param_group in self.optimizer.param_groups:
-                for param in param_group['params']:
+                for param in param_group["params"]:
                     fp32_params.append(param)
             if clip > 0:
                 return torch.nn.utils.clip_grad_norm(fp32_params, clip)
 
     def _copy_params_fp32_to_fp16(self):
-        for fp16_group, fp32_group in zip(self.fp16_param_groups, self.fp32_flattened_groups):
+        for fp16_group, fp32_group in zip(
+            self.fp16_param_groups, self.fp32_flattened_groups
+        ):
             if len(fp16_group) > 0:
-                for fp16_param, fp32_data in zip(fp16_group,
-                    _unflatten_dense_tensors(fp32_group.data, fp16_group)):
+                for fp16_param, fp32_data in zip(
+                    fp16_group, _unflatten_dense_tensors(fp32_group.data, fp16_group)
+                ):
                     fp16_param.data.copy_(fp32_data)
 
     def state_dict(self):
@@ -188,11 +222,11 @@ class FP16_Optimizer:
         Untested.
         """
         state_dict = {}
-        state_dict['loss_scaler'] = self.loss_scaler
-        state_dict['dynamic_loss_scale'] = self.dynamic_loss_scale
-        state_dict['overflow'] = self.overflow
-        state_dict['first_closure_call_this_step'] = self.first_closure_call_this_step
-        state_dict['optimizer_state_dict'] = self.optimizer.state_dict()
+        state_dict["loss_scaler"] = self.loss_scaler
+        state_dict["dynamic_loss_scale"] = self.dynamic_loss_scale
+        state_dict["overflow"] = self.overflow
+        state_dict["first_closure_call_this_step"] = self.first_closure_call_this_step
+        state_dict["optimizer_state_dict"] = self.optimizer.state_dict()
         return state_dict
 
     def load_state_dict(self, state_dict):
@@ -201,13 +235,13 @@ class FP16_Optimizer:
 
         Untested.
         """
-        self.loss_scaler = state_dict['loss_scaler']
-        self.dynamic_loss_scale = state_dict['dynamic_loss_scale']
-        self.overflow = state_dict['overflow']
-        self.first_closure_call_this_step = state_dict['first_closure_call_this_step']
-        self.optimizer.load_state_dict(state_dict['optimizer_state_dict'])
+        self.loss_scaler = state_dict["loss_scaler"]
+        self.dynamic_loss_scale = state_dict["dynamic_loss_scale"]
+        self.overflow = state_dict["overflow"]
+        self.first_closure_call_this_step = state_dict["first_closure_call_this_step"]
+        self.optimizer.load_state_dict(state_dict["optimizer_state_dict"])
 
-    def step(self, closure=None): # could add clip option.
+    def step(self, closure=None):  # could add clip option.
         """
         If no closure is supplied, step should be called after fp16_optimizer_obj.backward(loss).
         step updates the fp32 master copy of parameters using the optimizer supplied to
@@ -248,8 +282,10 @@ class FP16_Optimizer:
             http://pytorch.org/docs/master/optim.html#optimizer-step-closure
         """
         if closure is not None and isinstance(self.loss_scaler, DynamicLossScaler):
-            raise TypeError("Using step with a closure is currently not "
-                            "compatible with dynamic loss scaling.")
+            raise TypeError(
+                "Using step with a closure is currently not "
+                "compatible with dynamic loss scaling."
+            )
 
         scale = self.loss_scaler.loss_scale
         self._update_scale(self.overflow)
@@ -372,7 +408,8 @@ class FP16_Optimizer:
         """
         if self.dynamic_loss_scale:
             self._check_overflow()
-            if self.overflow: return
+            if self.overflow:
+                return
         self._copy_grads_fp16_to_fp32()
         self._downscale_fp32()
 

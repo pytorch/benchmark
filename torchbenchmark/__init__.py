@@ -42,6 +42,7 @@ class add_path:
         except ValueError:
             pass
 
+
 class add_ld_library_path:
     def __init__(self, path):
         self.path = path
@@ -56,6 +57,7 @@ class add_ld_library_path:
 
     def __exit__(self, exc_type, exc_value, traceback):
         os.environ = self.os_environ.copy()
+
 
 with add_path(str(REPO_PATH)):
     from utils import get_pkg_versions, TORCH_DEPS
@@ -192,7 +194,7 @@ def setup(
         model_paths = list(model_paths)
         model_paths.extend(canary_model_paths)
     skip_models = [] if not skip_models else skip_models
-    model_paths = [ x for x in model_paths if os.path.basename(x) not in skip_models ]
+    model_paths = [x for x in model_paths if os.path.basename(x) not in skip_models]
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         if test_mode:
@@ -346,6 +348,7 @@ class ModelTask(base_task.TaskBase):
         import importlib
         import os
         import traceback
+
         from torchbenchmark import load_model_by_name
 
         diagnostic_msg = ""
@@ -589,7 +592,10 @@ class ModelTask(base_task.TaskBase):
 
 
 def list_models_details(workers: int = 1) -> List[ModelDetails]:
-    return [ModelTask(os.path.basename(model_path)).model_details for model_path in _list_model_paths()]
+    return [
+        ModelTask(os.path.basename(model_path)).model_details
+        for model_path in _list_model_paths()
+    ]
 
 
 def list_models(model_match=None):

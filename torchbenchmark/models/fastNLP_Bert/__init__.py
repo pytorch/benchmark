@@ -5,28 +5,29 @@ This model resembles the "BertEmedding Q&A" task in [fastNLP Tutorial](https://f
 Input data simulates [CMRC2018 dataset](https://ymcui.com/cmrc2018/).
 The program runs only for benchmark purposes and doesn't provide correctness results.
 """
+
+import inspect
 import logging
 from typing import Tuple
+
 import torch
-import inspect
-from fastNLP.embeddings import BertEmbedding
-from fastNLP.models import BertForQuestionAnswering
-from fastNLP.core.callback import CallbackManager
+from fastNLP import GradientClipCallback, WarmupCallback
+from fastNLP.core import logger
 from fastNLP.core.batch import DataSetIter
+from fastNLP.core.callback import CallbackManager
 from fastNLP.core.losses import CMRC2018Loss
 from fastNLP.core.metrics import CMRC2018Metric
-from fastNLP.io.pipe.qa import CMRC2018BertPipe
-from fastNLP import WarmupCallback, GradientClipCallback
 from fastNLP.core.optimizer import AdamW
-from fastNLP.core import logger
-
-# Import CMRC2018 data generator
-from .cmrc2018_simulator import generate_inputs
-from .cmrc2018_simulator import CMRC2018_DIR, CMRC2018_CONFIG_DIR
+from fastNLP.embeddings import BertEmbedding
+from fastNLP.io.pipe.qa import CMRC2018BertPipe
+from fastNLP.models import BertForQuestionAnswering
+from torchbenchmark.tasks import NLP
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.tasks import NLP
+
+# Import CMRC2018 data generator
+from .cmrc2018_simulator import CMRC2018_CONFIG_DIR, CMRC2018_DIR, generate_inputs
 
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False

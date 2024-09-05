@@ -1,7 +1,7 @@
 import torch
 
-from triton import Config, autotune, cdiv, heuristics, jit
-from triton import language as tl
+from triton import autotune, cdiv, Config, heuristics, jit, language as tl
+
 from .matmul_perf_model import early_config_prune, estimate_matmul_time
 
 _ordered_datatypes = [torch.int8, torch.float16, torch.bfloat16, torch.float32]
@@ -41,60 +41,168 @@ def get_configs_io_bound():
                 for block_n in [32, 64, 128, 256]:
                     num_warps = 2 if block_n <= 64 else 4
                     configs.append(
-                        Config({'BLOCK_M': block_m, 'BLOCK_N': block_n, 'BLOCK_K': block_k, 'SPLIT_K': 1},
-                               num_stages=num_stages, num_warps=num_warps))
+                        Config(
+                            {
+                                "BLOCK_M": block_m,
+                                "BLOCK_N": block_n,
+                                "BLOCK_K": block_k,
+                                "SPLIT_K": 1,
+                            },
+                            num_stages=num_stages,
+                            num_warps=num_warps,
+                        )
+                    )
                     # split_k
                     for split_k in [2, 4, 8, 16]:
                         configs.append(
-                            Config({'BLOCK_M': block_m, 'BLOCK_N': block_n, 'BLOCK_K': block_k, 'SPLIT_K': split_k},
-                                   num_stages=num_stages, num_warps=num_warps, pre_hook=init_to_zero('C')))
+                            Config(
+                                {
+                                    "BLOCK_M": block_m,
+                                    "BLOCK_N": block_n,
+                                    "BLOCK_K": block_k,
+                                    "SPLIT_K": split_k,
+                                },
+                                num_stages=num_stages,
+                                num_warps=num_warps,
+                                pre_hook=init_to_zero("C"),
+                            )
+                        )
     return configs
 
 
 @autotune(
     configs=[
         # basic configs for compute-bound matmuls
-        Config({'BLOCK_M': 128, 'BLOCK_N': 256, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=3, num_warps=8),
-        Config({'BLOCK_M': 256, 'BLOCK_N': 128, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=3, num_warps=8),
-        Config({'BLOCK_M': 256, 'BLOCK_N': 64, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 64, 'BLOCK_N': 256, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 128, 'BLOCK_N': 128, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 128, 'BLOCK_N': 64, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 64, 'BLOCK_N': 128, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 128, 'BLOCK_N': 32, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 64, 'BLOCK_N': 32, 'BLOCK_K': 32, 'SPLIT_K': 1}, num_stages=5, num_warps=2),
+        Config(
+            {"BLOCK_M": 128, "BLOCK_N": 256, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=3,
+            num_warps=8,
+        ),
+        Config(
+            {"BLOCK_M": 256, "BLOCK_N": 128, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=3,
+            num_warps=8,
+        ),
+        Config(
+            {"BLOCK_M": 256, "BLOCK_N": 64, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 64, "BLOCK_N": 256, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 128, "BLOCK_N": 128, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 128, "BLOCK_N": 64, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 64, "BLOCK_N": 128, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 128, "BLOCK_N": 32, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 64, "BLOCK_N": 32, "BLOCK_K": 32, "SPLIT_K": 1},
+            num_stages=5,
+            num_warps=2,
+        ),
         # good for int8
-        Config({'BLOCK_M': 128, 'BLOCK_N': 256, 'BLOCK_K': 128, 'SPLIT_K': 1}, num_stages=3, num_warps=8),
-        Config({'BLOCK_M': 256, 'BLOCK_N': 128, 'BLOCK_K': 128, 'SPLIT_K': 1}, num_stages=3, num_warps=8),
-        Config({'BLOCK_M': 256, 'BLOCK_N': 64, 'BLOCK_K': 128, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 64, 'BLOCK_N': 256, 'BLOCK_K': 128, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 128, 'BLOCK_N': 128, 'BLOCK_K': 128, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 128, 'BLOCK_N': 64, 'BLOCK_K': 64, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 64, 'BLOCK_N': 128, 'BLOCK_K': 64, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 128, 'BLOCK_N': 32, 'BLOCK_K': 64, 'SPLIT_K': 1}, num_stages=4, num_warps=4),
-        Config({'BLOCK_M': 64, 'BLOCK_N': 32, 'BLOCK_K': 64, 'SPLIT_K': 1}, num_stages=5, num_warps=2),
-    ] + get_configs_io_bound(),
-    key=['M', 'N', 'K'],
+        Config(
+            {"BLOCK_M": 128, "BLOCK_N": 256, "BLOCK_K": 128, "SPLIT_K": 1},
+            num_stages=3,
+            num_warps=8,
+        ),
+        Config(
+            {"BLOCK_M": 256, "BLOCK_N": 128, "BLOCK_K": 128, "SPLIT_K": 1},
+            num_stages=3,
+            num_warps=8,
+        ),
+        Config(
+            {"BLOCK_M": 256, "BLOCK_N": 64, "BLOCK_K": 128, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 64, "BLOCK_N": 256, "BLOCK_K": 128, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 128, "BLOCK_N": 128, "BLOCK_K": 128, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 128, "BLOCK_N": 64, "BLOCK_K": 64, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 64, "BLOCK_N": 128, "BLOCK_K": 64, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 128, "BLOCK_N": 32, "BLOCK_K": 64, "SPLIT_K": 1},
+            num_stages=4,
+            num_warps=4,
+        ),
+        Config(
+            {"BLOCK_M": 64, "BLOCK_N": 32, "BLOCK_K": 64, "SPLIT_K": 1},
+            num_stages=5,
+            num_warps=2,
+        ),
+    ]
+    + get_configs_io_bound(),
+    key=["M", "N", "K"],
     prune_configs_by={
-        'early_config_prune': early_config_prune,
-        'perf_model': estimate_matmul_time,
-        'top_k': 10,
+        "early_config_prune": early_config_prune,
+        "perf_model": estimate_matmul_time,
+        "top_k": 10,
     },
 )
-@heuristics({
-    'EVEN_K': lambda args: args['K'] % (args['BLOCK_K'] * args['SPLIT_K']) == 0,
-})
+@heuristics(
+    {
+        "EVEN_K": lambda args: args["K"] % (args["BLOCK_K"] * args["SPLIT_K"]) == 0,
+    }
+)
 @jit
-def _kernel(A, B, C, M, N, K,  #
-            stride_am, stride_ak,  #
-            stride_bk, stride_bn,  #
-            stride_cm, stride_cn,  #
-            acc_dtype: tl.constexpr,  #
-            input_precision: tl.constexpr,  #
-            fp8_fast_accum: tl.constexpr,  #
-            BLOCK_M: tl.constexpr, BLOCK_N: tl.constexpr, BLOCK_K: tl.constexpr,  #
-            GROUP_M: tl.constexpr, SPLIT_K: tl.constexpr, EVEN_K: tl.constexpr, AB_DTYPE: tl.constexpr  #
-            ):
+def _kernel(
+    A,
+    B,
+    C,
+    M,
+    N,
+    K,  #
+    stride_am,
+    stride_ak,  #
+    stride_bk,
+    stride_bn,  #
+    stride_cm,
+    stride_cn,  #
+    acc_dtype: tl.constexpr,  #
+    input_precision: tl.constexpr,  #
+    fp8_fast_accum: tl.constexpr,  #
+    BLOCK_M: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_K: tl.constexpr,  #
+    GROUP_M: tl.constexpr,
+    SPLIT_K: tl.constexpr,
+    EVEN_K: tl.constexpr,
+    AB_DTYPE: tl.constexpr,  #
+):
     # matrix multiplication
     pid = tl.program_id(0)
     pid_z = tl.program_id(1)
@@ -129,7 +237,9 @@ def _kernel(A, B, C, M, N, K,  #
             a = a.to(AB_DTYPE)
             b = b.to(AB_DTYPE)
         if fp8_fast_accum:
-            acc = tl.dot(a, b, acc, out_dtype=acc_dtype, input_precision=input_precision)
+            acc = tl.dot(
+                a, b, acc, out_dtype=acc_dtype, input_precision=input_precision
+            )
         else:
             acc += tl.dot(a, b, out_dtype=acc_dtype, input_precision=input_precision)
         A += BLOCK_K * SPLIT_K * stride_ak
@@ -169,23 +279,29 @@ class _matmul(torch.autograd.Function):
         ab_dtype = get_higher_dtype(a.dtype, b.dtype)
 
         # allocates output
-        if (output_dtype is None):
+        if output_dtype is None:
             output_dtype = ab_dtype
 
         c = torch.empty((M, N), device=device, dtype=output_dtype)
 
         # Allowed types for acc_type given the types of a and b.
         supported_acc_dtypes = {
-            torch.float16: (torch.float32, torch.float16), torch.bfloat16: (torch.float32, torch.bfloat16),
-            torch.float32: (torch.float32, ), torch.int8: (torch.int32, )
+            torch.float16: (torch.float32, torch.float16),
+            torch.bfloat16: (torch.float32, torch.bfloat16),
+            torch.float32: (torch.float32,),
+            torch.int8: (torch.int32,),
         }
 
         if acc_dtype is None:
             acc_dtype = supported_acc_dtypes[ab_dtype][0]
         else:
             assert isinstance(acc_dtype, torch.dtype), "acc_dtype must be a torch.dtype"
-            assert acc_dtype in supported_acc_dtypes[a.dtype], "acc_dtype not compatible with the type of a"
-            assert acc_dtype in supported_acc_dtypes[b.dtype], "acc_dtype not compatible with the type of b"
+            assert (
+                acc_dtype in supported_acc_dtypes[a.dtype]
+            ), "acc_dtype not compatible with the type of a"
+            assert (
+                acc_dtype in supported_acc_dtypes[b.dtype]
+            ), "acc_dtype not compatible with the type of b"
 
         def to_tl_type(ty):
             return getattr(tl, str(ty).split(".")[-1])
@@ -195,25 +311,55 @@ class _matmul(torch.autograd.Function):
         output_dtype = to_tl_type(output_dtype)
 
         # Tensor cores support input with mixed float8 types.
-        if a.dtype in [tl.float8e4nv, tl.float8e5] and b.dtype in [tl.float8e4nv, tl.float8e5]:
+        if a.dtype in [tl.float8e4nv, tl.float8e5] and b.dtype in [
+            tl.float8e4nv,
+            tl.float8e5,
+        ]:
             ab_dtype = None
         # launch kernel
-        grid = lambda META: (cdiv(M, META['BLOCK_M']) * cdiv(N, META['BLOCK_N']), META['SPLIT_K'])
+        grid = lambda META: (
+            cdiv(M, META["BLOCK_M"]) * cdiv(N, META["BLOCK_N"]),
+            META["SPLIT_K"],
+        )
         _kernel[grid](
-            a, b, c, M, N, K,  #
-            a.stride(0), a.stride(1),  #
-            b.stride(0), b.stride(1),  #
-            c.stride(0), c.stride(1),  #
+            a,
+            b,
+            c,
+            M,
+            N,
+            K,  #
+            a.stride(0),
+            a.stride(1),  #
+            b.stride(0),
+            b.stride(1),  #
+            c.stride(0),
+            c.stride(1),  #
             acc_dtype=acc_dtype,  #
             input_precision=input_precision,  #
             fp8_fast_accum=fp8_fast_accum,  #
-            GROUP_M=8, AB_DTYPE=ab_dtype)
+            GROUP_M=8,
+            AB_DTYPE=ab_dtype,
+        )
         return c
 
     @staticmethod
-    def forward(ctx, a, b, acc_dtype=None, input_precision=None, fp8_fast_accum=True, output_dtype=None):
-        return _matmul._call(a, b, acc_dtype=acc_dtype, input_precision=input_precision, fp8_fast_accum=fp8_fast_accum,
-                             output_dtype=output_dtype)
+    def forward(
+        ctx,
+        a,
+        b,
+        acc_dtype=None,
+        input_precision=None,
+        fp8_fast_accum=True,
+        output_dtype=None,
+    ):
+        return _matmul._call(
+            a,
+            b,
+            acc_dtype=acc_dtype,
+            input_precision=input_precision,
+            fp8_fast_accum=fp8_fast_accum,
+            output_dtype=output_dtype,
+        )
 
 
 matmul = _matmul.apply

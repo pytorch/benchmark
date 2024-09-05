@@ -1,8 +1,9 @@
 # Original source:
 # https://github.com/facebookresearch/FAMBench/blob/a0f12ca4fe8973f4cc65d18b51ce3aa94ceec0ac/benchmarks/dlrm/ootb/dlrm_s_pytorch.py
-import sys
-import torch
 import argparse
+import sys
+
+import torch
 
 
 def dash_separated_ints(value):

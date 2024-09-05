@@ -3,12 +3,11 @@ PyTorch benchmark env check utils.
 This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 
-import copy
-import os
-import shutil
 import argparse
+import copy
 import logging
 import os
+import shutil
 from collections.abc import Mapping
 from contextlib import contextmanager, ExitStack
 from typing import Any, Dict, List, Optional
@@ -107,13 +106,16 @@ def nested(*contexts):
             stack.enter_context(ctx())
         yield contexts
 
+
 @contextmanager
 def fresh_inductor_cache(parallel_compile=False):
     INDUCTOR_DIR = f"/tmp/torchinductor_{os.environ['USER']}"
     if os.path.exists(INDUCTOR_DIR):
         shutil.rmtree(INDUCTOR_DIR)
     if parallel_compile:
-        old_parallel_compile_threads = os.environ.get("TORCHINDUCTOR_COMPILE_THREADS", None)
+        old_parallel_compile_threads = os.environ.get(
+            "TORCHINDUCTOR_COMPILE_THREADS", None
+        )
         cpu_count: Optional[int] = os.cpu_count()
         if cpu_count is not None and cpu_count > 1:
             cpu_count = min(32, cpu_count)
@@ -129,12 +131,14 @@ def fresh_inductor_cache(parallel_compile=False):
     if os.path.exists(INDUCTOR_DIR):
         shutil.rmtree(INDUCTOR_DIR)
 
+
 @contextmanager
 def fresh_triton_cache():
     """
     Run with a fresh triton cache.
     """
     import tempfile
+
     with tempfile.TemporaryDirectory() as tmpdir:
         old = os.environ.get("TRITON_CACHE_DIR", None)
         os.environ["TRITON_CACHE_DIR"] = tmpdir
@@ -170,10 +174,12 @@ def set_random_seed():
 
         seed = MAIN_RANDOM_SEED
         import torch.cuda
+
         if not torch.cuda._is_in_bad_fork():
             torch.cuda.manual_seed_all(seed)
 
         import torch.xpu
+
         if not torch.xpu._is_in_bad_fork():
             torch.xpu.manual_seed_all(seed)
         return default_generator.manual_seed(seed)
@@ -185,11 +191,12 @@ def set_random_seed():
 
 
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
-    import sys
     import subprocess
+    import sys
+
     versions = {}
     for module in packages:
-        cmd = [sys.executable, "-c", f'import {module}; print({module}.__version__)']
+        cmd = [sys.executable, "-c", f"import {module}; print({module}.__version__)"]
         version = subprocess.check_output(cmd).decode().strip()
         versions[module] = version
     return versions

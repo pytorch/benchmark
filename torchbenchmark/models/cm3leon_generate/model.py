@@ -1,11 +1,12 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # Portions of this code are derived from https://github.com/facebookresearch/metaseq
 
+from typing import Any, Dict, Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from typing import Optional, Dict, Any
 
 
 # torch.set_float32_matmul_precision("high")
@@ -130,9 +131,10 @@ def PositionalEmbedding(
     return m
 
 
-from typing import Tuple
-from torch.nn import Parameter
 import math
+from typing import Tuple
+
+from torch.nn import Parameter
 
 
 def softmax(x, dim: int):
@@ -1135,9 +1137,9 @@ class SequenceGenerator(nn.Module):
                 # forward through the next pass
                 model_out = self.model(
                     tokens[:, : step + 1],
-                    incremental_state=incremental_states
-                    if self.use_incremental
-                    else None,
+                    incremental_state=(
+                        incremental_states if self.use_incremental else None
+                    ),
                 )
                 # see above for why this must remain float
                 model_predictions = F.log_softmax(model_out.float()[:, -1, :])

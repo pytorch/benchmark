@@ -8,14 +8,16 @@ Logic:
 2. After AudioDataLoader getting one minibatch from AudioDataset,
    AudioDataLoader calls its collate_fn(batch) to process this minibatch.
 """
+
 import json
 
 from pathlib import Path
+
+import kaldi_io
 import numpy as np
 import torch
 import torch.utils.data as data
 
-import kaldi_io
 from ..utils import IGNORE_ID, pad_list
 
 
@@ -25,8 +27,15 @@ class AudioDataset(data.Dataset):
           remove batch_size to dataloader later.
     """
 
-    def __init__(self, data_json_path, batch_size, max_length_in, max_length_out,
-                 num_batches=0, batch_frames=0):
+    def __init__(
+        self,
+        data_json_path,
+        batch_size,
+        max_length_in,
+        max_length_out,
+        num_batches=0,
+        batch_frames=0,
+    ):
         # From: espnet/src/asr/asr_utils.py: make_batchset()
         """
         Args:
@@ -34,11 +43,14 @@ class AudioDataset(data.Dataset):
             num_batches: for debug. only use num_batches minibatch but not all.
         """
         super(AudioDataset, self).__init__()
-        with open(data_json_path, 'rb') as f:
-            data = json.load(f)['utts']
+        with open(data_json_path, "rb") as f:
+            data = json.load(f)["utts"]
         # sort it by input lengths (long to short)
-        sorted_data = sorted(data.items(), key=lambda data: int(
-            data[1]['input'][0]['shape'][0]), reverse=True)
+        sorted_data = sorted(
+            data.items(),
+            key=lambda data: int(data[1]["input"][0]["shape"][0]),
+            reverse=True,
+        )
         # change batchsize depending on the input and output length
         minibatch = []
         # Method 1: Generate minibatch based on batch_size
@@ -46,8 +58,8 @@ class AudioDataset(data.Dataset):
         if batch_frames == 0:
             start = 0
             while True:
-                ilen = int(sorted_data[start][1]['input'][0]['shape'][0])
-                olen = int(sorted_data[start][1]['output'][0]['shape'][0])
+                ilen = int(sorted_data[start][1]["input"][0]["shape"][0])
+                olen = int(sorted_data[start][1]["output"][0]["shape"][0])
                 factor = max(int(ilen / max_length_in), int(olen / max_length_out))
                 # if ilen = 1000 and max_length_in = 800
                 # then b = batchsize / 2
@@ -71,7 +83,7 @@ class AudioDataset(data.Dataset):
                 total_frames = 0
                 end = start
                 while total_frames < batch_frames and end < len(sorted_data):
-                    ilen = int(sorted_data[end][1]['input'][0]['shape'][0])
+                    ilen = int(sorted_data[end][1]["input"][0]["shape"][0])
                     total_frames += ilen
                     end += 1
                 # print(total_frames, end-start)
@@ -102,6 +114,7 @@ class AudioDataLoader(data.DataLoader):
 
 class LFRCollate:
     """Build this wrapper to pass arguments(LFR_m, LFR_n) to _collate_fn"""
+
     def __init__(self, LFR_m=1, LFR_n=1):
         self.LFR_m = LFR_m
         self.LFR_n = LFR_n
@@ -146,9 +159,15 @@ def load_inputs_and_targets(batch, LFR_m=1, LFR_n=1):
     # TorchBench: Patch the input data with current file directory
     # Input data path: TORCHBENCH_DATA_ROOT/speech_transformer_inputs/
     from torchbenchmark import DATA_PATH
+
     TORCHBENCH_DATA_ROOT = Path(DATA_PATH).joinpath("speech_transformer_inputs")
-    xs = [kaldi_io.read_mat(str(TORCHBENCH_DATA_ROOT.joinpath(b[1]['input'][0]['feat']).resolve())) for b in batch]
-    ys = [b[1]['output'][0]['tokenid'].split() for b in batch]
+    xs = [
+        kaldi_io.read_mat(
+            str(TORCHBENCH_DATA_ROOT.joinpath(b[1]["input"][0]["feat"]).resolve())
+        )
+        for b in batch
+    ]
+    ys = [b[1]["output"][0]["tokenid"].split() for b in batch]
 
     if LFR_m != 1 or LFR_n != 1:
         # xs = build_LFR_features(xs, LFR_m, LFR_n)
@@ -163,8 +182,7 @@ def load_inputs_and_targets(batch, LFR_m=1, LFR_n=1):
 
     # remove zero-lenght samples
     xs = [xs[i] for i in nonzero_sorted_idx]
-    ys = [np.fromiter(map(int, ys[i]), dtype=np.int64)
-          for i in nonzero_sorted_idx]
+    ys = [np.fromiter(map(int, ys[i]), dtype=np.int64) for i in nonzero_sorted_idx]
 
     return xs, ys
 
@@ -189,10 +207,10 @@ def build_LFR_features(inputs, m, n):
     T_lfr = int(np.ceil(T / n))
     for i in range(T_lfr):
         if m <= T - i * n:
-            LFR_inputs.append(np.hstack(inputs[i*n:i*n+m]))
-        else: # process last LFR frame
+            LFR_inputs.append(np.hstack(inputs[i * n : i * n + m]))
+        else:  # process last LFR frame
             num_padding = m - (T - i * n)
-            frame = np.hstack(inputs[i*n:])
+            frame = np.hstack(inputs[i * n :])
             for _ in range(num_padding):
                 frame = np.hstack((frame, inputs[-1]))
             LFR_inputs.append(frame)

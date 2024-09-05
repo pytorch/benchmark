@@ -2,13 +2,14 @@
 ##High Quality Estimation of Multiple Intermediate Frames for Video Interpolation
 
 import argparse
-import torch
-import torchvision.transforms as transforms
-import torch.optim as optim
-from model_wrapper import Model
-import dataloader
-from tensorboardX import SummaryWriter
 import random
+
+import dataloader
+import torch
+import torch.optim as optim
+import torchvision.transforms as transforms
+from model_wrapper import Model
+from tensorboardX import SummaryWriter
 
 
 random.seed(1337)

@@ -1,12 +1,12 @@
 "Doctr recognition model"
-from doctr.models import ocr_predictor
+from typing import Tuple
+
 import torch
+from doctr.models import ocr_predictor
+from torchbenchmark.tasks import COMPUTER_VISION
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
-
-from typing import Tuple
 
 
 class Model(BenchmarkModel):

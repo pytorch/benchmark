@@ -1,7 +1,7 @@
-from contextlib import contextmanager
+import logging
 import os
 import subprocess
-import logging
+from contextlib import contextmanager
 
 CUDA_VISIBLE_DEVICES = os.environ.get("CUDA_VISIBLE_DEVICES", "0")
 
@@ -16,30 +16,51 @@ FREQ_LIMIT = {
     "NVIDIA H100": "1980",
 }
 
+
 def _set_pm():
     command = ["sudo", "nvidia-smi", "-i", CUDA_VISIBLE_DEVICES, "-pm", "1"]
     subprocess.check_call(command)
 
+
 def _set_power(gpu_info: str):
-    command = ["sudo", "nvidia-smi", "-i", CUDA_VISIBLE_DEVICES, "--power-limit", POWER_LIMIT[gpu_info]]
+    command = [
+        "sudo",
+        "nvidia-smi",
+        "-i",
+        CUDA_VISIBLE_DEVICES,
+        "--power-limit",
+        POWER_LIMIT[gpu_info],
+    ]
     subprocess.check_call(command)
+
 
 def _set_clock(gpu_info: str):
     # lgc: lock gpu clocks
-    command = ["sudo", "nvidia-smi", "-i", CUDA_VISIBLE_DEVICES, "-lgc", FREQ_LIMIT[gpu_info]]
+    command = [
+        "sudo",
+        "nvidia-smi",
+        "-i",
+        CUDA_VISIBLE_DEVICES,
+        "-lgc",
+        FREQ_LIMIT[gpu_info],
+    ]
     subprocess.check_call(command)
+
 
 def _reset_clock(gpu_info: str):
     # rgc: reset gpu clocks
     command = ["sudo", "nvidia-smi", "-i", CUDA_VISIBLE_DEVICES, "-rgc"]
     subprocess.check_call(command)
 
+
 def _get_gpu_name() -> str:
     import pynvml
+
     pynvml.nvmlInit()
     gpu_id = CUDA_VISIBLE_DEVICES.split(",")[0]
     handle = pynvml.nvmlDeviceGetHandleByIndex(int(gpu_id))
     return pynvml.nvmlDeviceGetName(handle).decode("utf-8")
+
 
 @contextmanager
 def gpu_lockdown(enabled=True):

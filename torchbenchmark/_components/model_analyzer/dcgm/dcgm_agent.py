@@ -15,8 +15,7 @@
 # Python bindings for the internal API of DCGM library (dcgm_agent.h)
 ##
 
-from . import dcgm_structs
-from . import dcgm_fields
+from . import dcgm_fields, dcgm_structs
 from ctypes import *
 import functools
 
@@ -61,6 +60,7 @@ def ensure_byte_strings():
 
 # Provides access to functions from dcgm_agent_internal
 dcgmFP = dcgm_structs._dcgmGetFunctionPointer
+
 
 # This method is used to initialize DCGM
 @ensure_byte_strings()

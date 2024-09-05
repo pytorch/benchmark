@@ -69,7 +69,9 @@ EPS: float = 1e-12
 FP16_MAX_POS: float = torch.finfo(torch.float16).max
 
 
-def fp8_block_quantize(x: torch.Tensor, block_m: int = 256, block_k: int = 256) -> Tuple[torch.Tensor, torch.Tensor]:
+def fp8_block_quantize(
+    x: torch.Tensor, block_m: int = 256, block_k: int = 256
+) -> Tuple[torch.Tensor, torch.Tensor]:
     M, K = x.shape
     grid_m = triton.cdiv(M, block_m)
     grid_k = triton.cdiv(K, block_k)
@@ -103,12 +105,13 @@ def fp8_block_quantize(x: torch.Tensor, block_m: int = 256, block_k: int = 256) 
     return x_fp8, 1 / x_scale  # pyre-ignore
 
 
-
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "speedup", "accuracy"]
     DEFAULT_PRECISION = "fp32"
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:

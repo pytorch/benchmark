@@ -1,5 +1,6 @@
 import dataclasses
 
+
 @dataclasses.dataclass
 class SACConfig:
     env_id = "Pendulum-v1"
@@ -41,4 +42,3 @@ class SACConfig:
     sr_critic_target_improvement_final = 0.9
     train_env_path = "input_data/train_env.pkl"
     test_env_path = "input_data/test_env.pkl"
-    

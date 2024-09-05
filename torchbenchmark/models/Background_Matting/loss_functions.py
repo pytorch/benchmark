@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.modules.loss import _Loss
 from torch.autograd import Variable
+from torch.nn.modules.loss import _Loss
 
 # import scipy.io as sio
 

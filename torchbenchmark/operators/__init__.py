@@ -46,6 +46,7 @@ def list_operators() -> List[str]:
         operators.remove(INTERNAL_OPBENCH_DIR)
     return operators
 
+
 def load_opbench_by_name(op_name: str):
     opbench_list = filter(
         lambda x: op_name.lower() == x.lower(),

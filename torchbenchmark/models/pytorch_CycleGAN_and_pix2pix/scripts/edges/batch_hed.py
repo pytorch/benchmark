@@ -9,43 +9,72 @@
 # Step 5: run the MATLAB post-processing script "PostprocessHED.m"
 
 
+import argparse
+import os
+import sys
+
 import caffe
 import numpy as np
-from PIL import Image
-import os
-import argparse
-import sys
 import scipy.io as sio
+from PIL import Image
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='batch proccesing: photos->edges')
-    parser.add_argument('--caffe_root', dest='caffe_root', help='caffe root', default='../../', type=str)
-    parser.add_argument('--caffemodel', dest='caffemodel', help='caffemodel', default='./hed_pretrained_bsds.caffemodel', type=str)
-    parser.add_argument('--prototxt', dest='prototxt', help='caffe prototxt file', default='./deploy.prototxt', type=str)
-    parser.add_argument('--images_dir', dest='images_dir', help='directory to store input photos', type=str)
-    parser.add_argument('--hed_mat_dir', dest='hed_mat_dir', help='directory to store output hed edges in mat file', type=str)
-    parser.add_argument('--border', dest='border', help='padding border', type=int, default=128)
-    parser.add_argument('--gpu_id', dest='gpu_id', help='gpu id', type=int, default=1)
+    parser = argparse.ArgumentParser(description="batch proccesing: photos->edges")
+    parser.add_argument(
+        "--caffe_root", dest="caffe_root", help="caffe root", default="../../", type=str
+    )
+    parser.add_argument(
+        "--caffemodel",
+        dest="caffemodel",
+        help="caffemodel",
+        default="./hed_pretrained_bsds.caffemodel",
+        type=str,
+    )
+    parser.add_argument(
+        "--prototxt",
+        dest="prototxt",
+        help="caffe prototxt file",
+        default="./deploy.prototxt",
+        type=str,
+    )
+    parser.add_argument(
+        "--images_dir",
+        dest="images_dir",
+        help="directory to store input photos",
+        type=str,
+    )
+    parser.add_argument(
+        "--hed_mat_dir",
+        dest="hed_mat_dir",
+        help="directory to store output hed edges in mat file",
+        type=str,
+    )
+    parser.add_argument(
+        "--border", dest="border", help="padding border", type=int, default=128
+    )
+    parser.add_argument("--gpu_id", dest="gpu_id", help="gpu id", type=int, default=1)
     args = parser.parse_args()
     return args
 
 
 args = parse_args()
 for arg in vars(args):
-    print('[%s] =' % arg, getattr(args, arg))
+    print("[%s] =" % arg, getattr(args, arg))
 # Make sure that caffe is on the python path:
-caffe_root = args.caffe_root   # this file is expected to be in {caffe_root}/examples/hed/
-sys.path.insert(0, caffe_root + 'python')
+caffe_root = (
+    args.caffe_root
+)  # this file is expected to be in {caffe_root}/examples/hed/
+sys.path.insert(0, caffe_root + "python")
 
 
 if not os.path.exists(args.hed_mat_dir):
-    print('create output directory %s' % args.hed_mat_dir)
+    print("create output directory %s" % args.hed_mat_dir)
     os.makedirs(args.hed_mat_dir)
 
 imgList = os.listdir(args.images_dir)
 nImgs = len(imgList)
-print('#images = %d' % nImgs)
+print("#images = %d" % nImgs)
 
 caffe.set_mode_gpu()
 caffe.set_device(args.gpu_id)
@@ -56,11 +85,11 @@ border = args.border
 
 for i in range(nImgs):
     if i % 500 == 0:
-        print('processing image %d/%d' % (i, nImgs))
+        print("processing image %d/%d" % (i, nImgs))
     im = Image.open(os.path.join(args.images_dir, imgList[i]))
 
     in_ = np.array(im, dtype=np.float32)
-    in_ = np.pad(in_, ((border, border), (border, border), (0, 0)), 'reflect')
+    in_ = np.pad(in_, ((border, border), (border, border), (0, 0)), "reflect")
 
     in_ = in_[:, :, 0:3]
     in_ = in_[:, :, ::-1]
@@ -69,13 +98,13 @@ for i in range(nImgs):
     # remove the following two lines if testing with cpu
 
     # shape for input (data blob is N x C x H x W), set data
-    net.blobs['data'].reshape(1, *in_.shape)
-    net.blobs['data'].data[...] = in_
+    net.blobs["data"].reshape(1, *in_.shape)
+    net.blobs["data"].data[...] = in_
     # run net and take argmax for prediction
     net.forward()
-    fuse = net.blobs['sigmoid-fuse'].data[0][0, :, :]
+    fuse = net.blobs["sigmoid-fuse"].data[0][0, :, :]
     # get rid of the border
-    fuse = fuse[(border+35):(-border+35), (border+35):(-border+35)]
+    fuse = fuse[(border + 35) : (-border + 35), (border + 35) : (-border + 35)]
     # save hed file to the disk
     name, ext = os.path.splitext(imgList[i])
-    sio.savemat(os.path.join(args.hed_mat_dir, name + '.mat'), {'edge_predict': fuse})
+    sio.savemat(os.path.join(args.hed_mat_dir, name + ".mat"), {"edge_predict": fuse})

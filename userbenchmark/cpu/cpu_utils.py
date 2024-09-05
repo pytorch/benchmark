@@ -1,6 +1,7 @@
 """
 Run PyTorch cpu benchmarking.
 """
+
 import json
 import os
 import re
@@ -8,12 +9,13 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 REPO_PATH = Path(__file__).absolute().parent.parent.parent
 USERBENCHMARK_OUTPUT_PREFIX = ".userbenchmark"
 
-class add_path():
+
+class add_path:
     def __init__(self, path):
         self.path = path
 
@@ -26,8 +28,10 @@ class add_path():
         except ValueError:
             pass
 
+
 def list_metrics() -> List[str]:
     return ["latencies", "throughputs", "cpu_peak_mem"]
+
 
 def parse_str_to_list(candidates):
     if isinstance(candidates, list):
@@ -35,30 +39,45 @@ def parse_str_to_list(candidates):
     candidates = list(map(lambda x: x.strip(), candidates.split(",")))
     return candidates
 
+
 def validate(candidates, choices: List[str]):
     """Validate the candidates provided by the user is valid"""
     if isinstance(candidates, List):
         for candidate in candidates:
-            assert candidate in choices, f"Specified {candidate}, but not in available list: {choices}."
+            assert (
+                candidate in choices
+            ), f"Specified {candidate}, but not in available list: {choices}."
     else:
-        assert candidates in choices, f"Specified {candidates}, but not in available list: {choices}."
+        assert (
+            candidates in choices
+        ), f"Specified {candidates}, but not in available list: {choices}."
     return candidates
+
 
 def get_output_dir(bm_name, test_date=None):
     current_dir = Path(__file__).parent.absolute()
-    bm_out_dir = current_dir.parent.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
-    test_date = test_date if test_date else datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
+    bm_out_dir = current_dir.parent.parent.joinpath(
+        USERBENCHMARK_OUTPUT_PREFIX, bm_name
+    )
+    test_date = (
+        test_date
+        if test_date
+        else datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
+    )
     output_dir = bm_out_dir.joinpath("cpu-" + test_date)
     output_dir.mkdir(exist_ok=True, parents=True)
     return output_dir
 
+
 def get_output_json(bm_name, metrics):
     import torch
+
     return {
         "name": bm_name,
         "environ": {"pytorch_git_version": torch.version.git_version},
         "metrics": metrics,
     }
+
 
 def dump_output(bm_name, output, output_dir=None, fname=None):
     output_dir = output_dir if output_dir else get_output_dir(bm_name)
@@ -66,6 +85,7 @@ def dump_output(bm_name, output, output_dir=None, fname=None):
     full_fname = os.path.join(output_dir, fname)
     with open(full_fname, "w") as f:
         json.dump(output, f, indent=4)
+
 
 def get_run(test_dir: Path):
     run = {}
@@ -81,12 +101,14 @@ def get_run(test_dir: Path):
             run["results"].append(json.load(ij))
     return run
 
+
 def get_runs(work_dir: Path):
     runs = []
     for subdir in filter(lambda x: x.is_dir(), work_dir.iterdir()):
         run = get_run(subdir)
         runs.append(run)
     return runs
+
 
 def add_test_results(runs, result_metrics):
     # metrics name examples:
@@ -102,8 +124,8 @@ def add_test_results(runs, result_metrics):
         latency_sum = 0
         throughput_sum = 0
         cmem_sum = 0
-        for ins_res in run["results"]: 
-            if latency_metric:           
+        for ins_res in run["results"]:
+            if latency_metric:
                 latency_sum += ins_res["metrics"]["latency"]
             if throughput_metric:
                 throughput_sum += ins_res["metrics"]["throughput"]
@@ -116,6 +138,7 @@ def add_test_results(runs, result_metrics):
         if cmem_metric:
             result_metrics[f"{run_base_name}_cmem"] = cmem_sum / ins_number
     return result_metrics
+
 
 def analyze(result_dir):
     result_dir = Path(result_dir)

@@ -24,7 +24,9 @@ def list_benchmarks() -> Dict[str, str]:
 
 def run():
     available_benchmarks = list_benchmarks()
-    parser = argparse.ArgumentParser(description="Run a TorchBench user benchmark", add_help=False)
+    parser = argparse.ArgumentParser(
+        description="Run a TorchBench user benchmark", add_help=False
+    )
     parser.add_argument(
         "bm_name",
         choices=available_benchmarks.keys(),

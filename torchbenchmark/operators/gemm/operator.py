@@ -6,6 +6,7 @@ from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import numpy
 import torch
+import torch._inductor.config as inductor_config
 import triton
 
 from torchbenchmark.util.triton_op import (
@@ -20,20 +21,28 @@ from torchbenchmark.util.triton_op import (
 
 from .data_io import parse_args, read_shapes_from_csv
 from .kernels import matmul as kernels
-from .triton_matmul import matmul as triton_tutorial_matmul
-from .triton_matmul import matmul_kernel as triton_tutorial_matmul_kernel
-from .persistent_matmul import matmul_persistent, matmul_tma_persistent, matmul_tma_persistent_cached
 from .partition_k import matmul_partition_k
-import torch._inductor.config as inductor_config
+from .persistent_matmul import (
+    matmul_persistent,
+    matmul_tma_persistent,
+    matmul_tma_persistent_cached,
+)
+from .triton_matmul import (
+    matmul as triton_tutorial_matmul,
+    matmul_kernel as triton_tutorial_matmul_kernel,
+)
 
 if inductor_config.is_fbcode():
     from hammer.ops.triton.triton_matmul import triton_matmul as hstu_triton_matmul
+
     HAS_HAMMER = True
 else:
     HAS_HAMMER = False
 
 try:
-    torch.ops.load_library("//pytorch/benchmark/torchbenchmark/operators/gemm/cutlass:colfax_gemm_lib")
+    torch.ops.load_library(
+        "//pytorch/benchmark/torchbenchmark/operators/gemm/cutlass:colfax_gemm_lib"
+    )
     colfax_gemm = torch.ops.cutlass.colfax_gemm
 except (ImportError, IOError, AttributeError) as e:
     colfax_gemm = None
@@ -78,11 +87,14 @@ SPLIT_K_SHAPES = [
     for k in [4096 * i for i in range(1, 9)]
 ]
 
+
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["speedup", "tflops"]
     DEFAULT_PRECISION = "fp16"
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         self.use_cuda_graphs = False
         gemm_args = parse_args(self.extra_args)
@@ -93,9 +105,7 @@ class Operator(BenchmarkOperator):
         elif gemm_args.llama:
             self.shapes = llama_shapes()
         elif gemm_args.m and gemm_args.k and gemm_args.n:
-            self.shapes = [
-                (gemm_args.m, gemm_args.n, gemm_args.k, gemm_args.bias)
-            ]
+            self.shapes = [(gemm_args.m, gemm_args.n, gemm_args.k, gemm_args.bias)]
         else:
             self.shapes = BUILDIN_SHAPES
 
@@ -245,8 +255,12 @@ class Operator(BenchmarkOperator):
     def get_input_iter(self) -> Generator:
         for shape in self.shapes:
             m, n, k, bias = shape
-            a = self._scaled_randn((m, k), scale=k, device=self.device, dtype=self.dtype)
-            w = self._scaled_randn((k, n), scale=k, device=self.device, dtype=self.dtype)
+            a = self._scaled_randn(
+                (m, k), scale=k, device=self.device, dtype=self.dtype
+            )
+            w = self._scaled_randn(
+                (k, n), scale=k, device=self.device, dtype=self.dtype
+            )
             if not bias == None:
                 bias = torch.randn(
                     (bias), device=self.device, dtype=self.dtype

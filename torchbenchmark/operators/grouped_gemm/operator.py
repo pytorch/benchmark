@@ -1,4 +1,4 @@
-from typing import Generator, List, Callable
+from typing import Callable, Generator, List
 
 import torch
 import triton
@@ -7,10 +7,11 @@ import triton.language as tl
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    Mode,
     register_benchmark,
     register_metric,
-    Mode,
 )
+
 from .kernels import triton_group_gemm_fn
 
 

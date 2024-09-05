@@ -1,9 +1,16 @@
 from typing import List
+
 import torch
-from torchbenchmark.util.distributed.submit import parse_args, get_init_file, TrainerWrapper
+from torchbenchmark.util.distributed.submit import (
+    get_init_file,
+    parse_args,
+    TrainerWrapper,
+)
+
 from ..utils import dump_output
 
 BM_NAME = "distributed"
+
 
 def gen_metrics_from_result(result):
     assert isinstance(result, List), "The result should be a list."
@@ -12,6 +19,7 @@ def gen_metrics_from_result(result):
         for metric_name in r:
             metrics[f"{result_id}-{metric_name}"] = r[metric_name]
     return metrics
+
 
 def run(args: List[str]):
     args, model_args = parse_args(args)
@@ -23,7 +31,11 @@ def run(args: List[str]):
     else:
         raise ValueError(f"Unsupported scheduler: {args.scheduler}")
 
-    version = torch.version.git_version if hasattr(torch.version, "git_verison") else "Internal"
+    version = (
+        torch.version.git_version
+        if hasattr(torch.version, "git_verison")
+        else "Internal"
+    )
 
     # dump the output file
     output = {
@@ -34,15 +46,22 @@ def run(args: List[str]):
     }
     dump_output(BM_NAME, output)
 
+
 def local_run(args, model_args):
     # TODO: Currently this does nothing but to support the path for "--scheduler local"
-    print("Current local run is not implemented, use '--scheduler slurm'. Skipping local run.")
+    print(
+        "Current local run is not implemented, use '--scheduler slurm'. Skipping local run."
+    )
     return []
+
 
 def slurm_run(args, model_args):
     import submitit
+
     # Note that the folder will depend on the job_id, to easily track experiments
-    executor = submitit.AutoExecutor(folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000)
+    executor = submitit.AutoExecutor(
+        folder=args.job_dir, cluster=args.cluster, slurm_max_num_timeout=3000
+    )
 
     executor.update_parameters(
         gpus_per_node=args.ngpus,
@@ -57,7 +76,9 @@ def slurm_run(args, model_args):
         slurm_exclude=args.exclude,
     )
 
-    executor.update_parameters(name="distbench", slurm_array_parallelism=1, timeout_min=1000)
+    executor.update_parameters(
+        name="distbench", slurm_array_parallelism=1, timeout_min=1000
+    )
 
     args.dist_url = get_init_file(args).as_uri()
     args.output_dir = args.job_dir

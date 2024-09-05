@@ -1,17 +1,15 @@
 from __future__ import print_function
 
-
-import os, glob, argparse, cv2
+import argparse, cv2, glob, os
 
 # import matplotlib.pyplot as plt
 import numpy as np
-from skimage.measure import label
-
 
 import torch
-import torch.nn as nn
-from torch.autograd import Variable
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
+from skimage.measure import label
+from torch.autograd import Variable
 
 from functions import *
 from networks import ResnetConditionHR

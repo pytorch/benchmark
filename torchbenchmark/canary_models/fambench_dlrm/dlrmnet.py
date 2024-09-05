@@ -1,21 +1,25 @@
-import torch.nn as nn
-import torch
-import sys
-import numpy as np
 import itertools
-from torch._ops import ops
-from torch.nn.parameter import Parameter
-from torch.nn.parallel.replicate import replicate
-from torch.nn.parallel.parallel_apply import parallel_apply
-from torch.nn.parallel.scatter_gather import gather, scatter
+import sys
+
+import numpy as np
 
 # fambench imports
 # projection
 import project
-# quotient-remainder trick
-from tricks.qr_embedding_bag import QREmbeddingBag
+import torch
+import torch.nn as nn
+from torch._ops import ops
+from torch.nn.parallel.parallel_apply import parallel_apply
+from torch.nn.parallel.replicate import replicate
+from torch.nn.parallel.scatter_gather import gather, scatter
+from torch.nn.parameter import Parameter
+
 # mixed-dimension trick
 from tricks.md_embedding_bag import PrEmbeddingBag
+
+# quotient-remainder trick
+from tricks.qr_embedding_bag import QREmbeddingBag
+
 
 class DLRM_Net(nn.Module):
     def create_mlp(self, ln, sigmoid_layer):
@@ -235,7 +239,11 @@ class DLRM_Net(nn.Module):
             # mlp quantization
             self.quantize_mlp_with_bit = quantize_mlp_with_bit
             self.use_torch2trt_for_mlp = use_torch2trt_for_mlp
-            self.quantize_mlp_input_with_half_call = use_gpu and not args.use_torch2trt_for_mlp and args.quantize_mlp_with_bit == 16
+            self.quantize_mlp_input_with_half_call = (
+                use_gpu
+                and not args.use_torch2trt_for_mlp
+                and args.quantize_mlp_with_bit == 16
+            )
 
             # embedding quantization
             self.quantize_emb = False
@@ -280,17 +288,22 @@ class DLRM_Net(nn.Module):
                 self.emb_l[k] = w.to(torch.device("cuda:" + str(k % ndevices)))
         else:
             from .fbgemm_embedding import fbgemm_gpu_emb_bag_wrapper
+
             self.fbgemm_emb_l, self.v_W_l_l = zip(
                 *[
                     (
                         fbgemm_gpu_emb_bag_wrapper(
                             torch.device("cuda:" + str(k)),
-                            self.emb_l[k::ndevices]
-                            if self.emb_l
-                            else self.emb_l_q[k::ndevices],
-                            self.m_spa[k::ndevices]
-                            if isinstance(self.m_spa, list)
-                            else self.m_spa,
+                            (
+                                self.emb_l[k::ndevices]
+                                if self.emb_l
+                                else self.emb_l_q[k::ndevices]
+                            ),
+                            (
+                                self.m_spa[k::ndevices]
+                                if isinstance(self.m_spa, list)
+                                else self.m_spa
+                            ),
                             self.quantize_bits,
                             self.learning_rate,
                             self.fbgemm_gpu_codegen_pref,
@@ -309,6 +322,7 @@ class DLRM_Net(nn.Module):
     class nn_module_wrapper(nn.Module):
         def __init__(self):
             super(DLRM_Net.nn_module_wrapper, self).__init__()
+
         def forward(self, E, x, ly):
             return E(x, ly)
 
@@ -617,7 +631,10 @@ class DLRM_Net(nn.Module):
         # print(ly)
 
         # interactions
-        z = parallel_apply(self.interact_features_l, list(zip(itertools.repeat(self.interact_features),x,ly)))
+        z = parallel_apply(
+            self.interact_features_l,
+            list(zip(itertools.repeat(self.interact_features), x, ly)),
+        )
         # debug prints
         # print(z)
 

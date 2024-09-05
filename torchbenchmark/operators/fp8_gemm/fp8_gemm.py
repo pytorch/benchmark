@@ -1,12 +1,11 @@
 import argparse
 import os
 import statistics
+
+from typing import Any, List, Optional
+
 import torch
 import triton.language as tl
-
-from triton.runtime.jit import reinterpret
-
-from typing import Any, Optional, List
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -16,9 +15,17 @@ from torchbenchmark.util.triton_op import (
     register_metric,
 )
 
+from triton.runtime.jit import reinterpret
+
 from .tutorial import matmul as tutorial_matmul
+
 try:
-    from .persistent import matmul_persistent, matmul_tma_persistent, allocate_matmul_tma
+    from .persistent import (
+        allocate_matmul_tma,
+        matmul_persistent,
+        matmul_tma_persistent,
+    )
+
     HAS_TMA = True
 except ModuleNotFoundError:
     HAS_TMA = False
@@ -36,7 +43,9 @@ def parse_args(args):
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "gbps", "latency"]
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         self.extra_args = parse_args(extra_args)
 
@@ -93,9 +102,7 @@ class Operator(BenchmarkOperator):
         return lambda: matmul_tma_persistent(a, b, c, desc_a, desc_b, desc_c)
 
     @register_metric()
-    def gbps(
-        self, fn, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> float:
+    def gbps(self, fn, example_inputs: Any, metrics: BenchmarkOperatorMetrics) -> float:
         def nbytes(t):
             return t.numel() * t.element_size()
 

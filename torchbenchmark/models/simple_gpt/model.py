@@ -2,49 +2,61 @@
 
 Based on the nanoGPT implementation: https://github.com/karpathy/nanoGPT.
 """
+
 # mypy: ignore-errors
 import math
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
-from typing_extensions import Self
 
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from typing_extensions import Self
 
 
 MaskCache = torch.Tensor
 RoPECache = torch.Tensor
 KVCache = Tuple[torch.Tensor, torch.Tensor]
 
+
 def find_multiple(n: int, k: int) -> int:
     if n % k == 0:
         return n
     return n + k - (n % k)
 
+
 class LinearInt8(torch.nn.Module):
-    __constants__ = ['in_features', 'out_features']
+    __constants__ = ["in_features", "out_features"]
     in_features: int
     out_features: int
     weight: torch.Tensor
 
-    def __init__(self, in_features: int, out_features: int, bias: bool = True,
-                 device=None, dtype=None) -> None:
-        factory_kwargs = {'device': device, 'dtype': dtype}
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        bias: bool = True,
+        device=None,
+        dtype=None,
+    ) -> None:
+        factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.register_buffer("weight", torch.empty((out_features, in_features), dtype=torch.int8))
+        self.register_buffer(
+            "weight", torch.empty((out_features, in_features), dtype=torch.int8)
+        )
         # if bias:
         #     self.register_buffer("bias", torch.empty(out_features, **factory_kwargs, dtype=torch.int8))
         # else:
         #     self.bias('bias', None)
 
-
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         return F.linear(input, self.weight.to(dtype=input.dtype))
 
+
 # nn.Linear = LinearInt8
+
 
 @dataclass
 class LLaMAConfig:
@@ -71,13 +83,26 @@ llama_configs = {
     "65B": dict(n_layer=80, n_head=64, n_embd=8192),
 }
 
+
 class KVCache(nn.Module):
     @torch.no_grad()
-    def __init__(self, max_batch_size, max_seq_length, n_heads, head_size, device='cuda', dtype=torch.bfloat16):
+    def __init__(
+        self,
+        max_batch_size,
+        max_seq_length,
+        n_heads,
+        head_size,
+        device="cuda",
+        dtype=torch.bfloat16,
+    ):
         super().__init__()
         cache_shape = (max_batch_size, n_heads, max_seq_length, head_size)
-        self.k_cache = torch.nn.Parameter(torch.zeros(cache_shape, device=device, dtype=dtype))
-        self.v_cache = torch.nn.Parameter(torch.zeros(cache_shape, device=device, dtype=dtype))
+        self.k_cache = torch.nn.Parameter(
+            torch.zeros(cache_shape, device=device, dtype=dtype)
+        )
+        self.v_cache = torch.nn.Parameter(
+            torch.zeros(cache_shape, device=device, dtype=dtype)
+        )
 
     @torch.no_grad()
     def update(self, input_pos, k_val, v_val):
@@ -89,20 +114,36 @@ class KVCache(nn.Module):
 
         return self.k_cache, self.v_cache
 
+
 class KVCacheAggregator(nn.Module):
     def __init__(self):
         super().__init__()
         self.kv_caches = nn.ModuleList([])
 
-    def initialize(self,layers, max_batch_size, max_seq_length, n_heads, head_size, device='cuda', dtype=torch.bfloat16):
+    def initialize(
+        self,
+        layers,
+        max_batch_size,
+        max_seq_length,
+        n_heads,
+        head_size,
+        device="cuda",
+        dtype=torch.bfloat16,
+    ):
         cache_shape = (max_batch_size, n_heads, max_seq_length, head_size)
-        self.kv_caches = nn.ModuleList([KVCache(max_batch_size, max_seq_length, n_heads, head_size) for _ in range(layers)])
+        self.kv_caches = nn.ModuleList(
+            [
+                KVCache(max_batch_size, max_seq_length, n_heads, head_size)
+                for _ in range(layers)
+            ]
+        )
 
     def __getitem__(self, idx):
         return self.kv_caches[idx]
 
     def clear(self):
         self.kv_caches = nn.ParameterList([])
+
 
 class LLaMA(nn.Module):
     def __init__(self, config: LLaMAConfig, world_size: int) -> None:
@@ -116,7 +157,9 @@ class LLaMA(nn.Module):
         self.transformer = nn.ModuleDict(
             dict(
                 wte=nn.Embedding(config.padded_vocab_size, config.n_embd),
-                h=nn.ModuleList(Block(config, self.world_size) for _ in range(config.n_layer)),
+                h=nn.ModuleList(
+                    Block(config, self.world_size) for _ in range(config.n_layer)
+                ),
                 ln_f=RMSNorm(config.n_embd),
             )
         )
@@ -127,14 +170,22 @@ class LLaMA(nn.Module):
         self.max_batch_size = None
         self.max_seq_length = None
 
-    def setup_caches(self, max_batch_size, max_seq_length, device='cuda', dtype=torch.bfloat16):
+    def setup_caches(
+        self, max_batch_size, max_seq_length, device="cuda", dtype=torch.bfloat16
+    ):
         n_embd = self.config.n_embd // self.world_size
         n_head = self.config.n_head // self.world_size
         head_size = n_embd // n_head
 
         self.max_seq_length = max_seq_length
         self.max_batch_size = max_batch_size
-        self.kv_caches.initialize(layers=self.config.n_layer, max_batch_size=max_batch_size, max_seq_length=max_seq_length, n_heads=n_head, head_size=head_size)
+        self.kv_caches.initialize(
+            layers=self.config.n_layer,
+            max_batch_size=max_batch_size,
+            max_seq_length=max_seq_length,
+            n_heads=n_head,
+            head_size=head_size,
+        )
 
         self.rope_cache = build_rope_cache(
             seq_len=self.config.block_size,
@@ -142,14 +193,22 @@ class LLaMA(nn.Module):
             dtype=dtype,
             device=device,
         )
-        ones = torch.ones((self.config.block_size, self.config.block_size), device=device, dtype=torch.bool)
+        ones = torch.ones(
+            (self.config.block_size, self.config.block_size),
+            device=device,
+            dtype=torch.bool,
+        )
         self.mask_cache = torch.tril(ones).unsqueeze(0).unsqueeze(0)
 
     def _init_weights(self, module: nn.Module) -> None:
         if isinstance(module, nn.Linear):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.config.n_layer))
+            torch.nn.init.normal_(
+                module.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.config.n_layer)
+            )
         elif isinstance(module, nn.Embedding):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.config.n_layer))
+            torch.nn.init.normal_(
+                module.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.config.n_layer)
+            )
 
     def forward(
         self, idx: torch.Tensor, input_pos: Optional[torch.Tensor] = None
@@ -162,9 +221,15 @@ class LLaMA(nn.Module):
         if max_seq_length is None:
             max_seq_length = block_size
 
-        assert T <= max_seq_length, f"Cannot forward sequence of length {T}, max seq length is only {max_seq_length}"
-        assert max_seq_length <= block_size, f"Cannot attend to {max_seq_length}, block size is only {block_size}"
-        assert T <= block_size, f"Cannot forward sequence of length {T}, block size is only {block_size}"
+        assert (
+            T <= max_seq_length
+        ), f"Cannot forward sequence of length {T}, max seq length is only {max_seq_length}"
+        assert (
+            max_seq_length <= block_size
+        ), f"Cannot attend to {max_seq_length}, block size is only {block_size}"
+        assert (
+            T <= block_size
+        ), f"Cannot forward sequence of length {T}, block size is only {block_size}"
 
         rope = self.rope_cache.index_select(0, input_pos)
         mask = self.mask_cache.index_select(2, input_pos)
@@ -174,7 +239,9 @@ class LLaMA(nn.Module):
         x = self.transformer.wte(idx)  # token embeddings of shape (b, t, n_embd)
 
         for i, block in enumerate(self.transformer.h):
-            x, new_kv_cache = block(x, rope, mask, max_seq_length, input_pos, self.kv_caches[i])
+            x, new_kv_cache = block(
+                x, rope, mask, max_seq_length, input_pos, self.kv_caches[i]
+            )
 
         x = self.transformer.ln_f(x)
 
@@ -207,7 +274,9 @@ class Block(nn.Module):
         input_pos: Optional[torch.Tensor] = None,
         kv_cache: Optional[KVCache] = None,
     ) -> Tuple[torch.Tensor, Optional[KVCache]]:
-        h, new_kv_cache = self.attn(self.rms_1(x), rope, mask, max_seq_length, input_pos, kv_cache)
+        h, new_kv_cache = self.attn(
+            self.rms_1(x), rope, mask, max_seq_length, input_pos, kv_cache
+        )
         x = x + h
         x = x + self.mlp(self.rms_2(x))
         return x, new_kv_cache
@@ -239,7 +308,9 @@ class CausalSelfAttention(nn.Module):
         input_pos: Optional[torch.Tensor] = None,
         kv_cache: Optional[KVCache] = None,
     ) -> Tuple[torch.Tensor, Optional[KVCache]]:
-        B, T, C = x.size()  # batch size, sequence length, embedding dimensionality (n_embd)
+        B, T, C = (
+            x.size()
+        )  # batch size, sequence length, embedding dimensionality (n_embd)
         _C = C // self.world_size
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
@@ -267,7 +338,9 @@ class CausalSelfAttention(nn.Module):
         # y = F.scaled_dot_product_attention(q, k, v)
         y = F.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0)
 
-        y = y.transpose(1, 2).contiguous().view(B, T, _C)  # re-assemble all head outputs side by side
+        y = (
+            y.transpose(1, 2).contiguous().view(B, T, _C)
+        )  # re-assemble all head outputs side by side
 
         # output projection
         y = self.c_proj(y)
@@ -277,11 +350,11 @@ class CausalSelfAttention(nn.Module):
     def prepare_qkv_for_dtensor_tp(self):
         attn = self.c_attn
 
-        assert attn.in_features % self.world_size == 0 # q, k, v must be shardeable
+        assert attn.in_features % self.world_size == 0  # q, k, v must be shardeable
         attn.out_features = attn.out_features // self.world_size
         # Shard on dim 0 since attn.weight is transposed
         # Shard q, k, v separately
-        q, k, v = attn.weight.split(self.config.n_embd, dim=0) # (C, C)
+        q, k, v = attn.weight.split(self.config.n_embd, dim=0)  # (C, C)
 
         self.c_attn_q = nn.Linear(self.config.n_embd, self.config.n_embd, bias=False)
         self.c_attn_q.weight = nn.Parameter(q)
@@ -334,7 +407,11 @@ class RMSNorm(nn.Module):
 
 
 def build_rope_cache(
-    seq_len: int, n_elem: int, dtype: torch.dtype, device: torch.device, base: int = 10000
+    seq_len: int,
+    n_elem: int,
+    dtype: torch.dtype,
+    device: torch.device,
+    base: int = 10000,
 ) -> RoPECache:
     """Enhanced Transformer with Rotary Position Embedding.
 
@@ -343,7 +420,9 @@ def build_rope_cache(
     https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/license.
     """
     # $\Theta = {\theta_i = 10000^{\frac{2(i-1)}{d}}, i \in [1, 2, ..., \frac{d}{2}]}$
-    theta = 1.0 / (base ** (torch.arange(0, n_elem, 2, dtype=dtype, device=device) / n_elem))
+    theta = 1.0 / (
+        base ** (torch.arange(0, n_elem, 2, dtype=dtype, device=device) / n_elem)
+    )
 
     # Create position indexes `[0, 1, ..., seq_len - 1]`
     seq_idx = torch.arange(seq_len, dtype=dtype, device=device)
