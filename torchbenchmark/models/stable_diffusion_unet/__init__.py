@@ -3,12 +3,12 @@ HuggingFace Stable Diffusion model.
 It requires users to specify "HUGGINGFACE_AUTH_TOKEN" in environment variable
 to authorize login and agree HuggingFace terms and conditions.
 """
-from torchbenchmark.tasks import COMPUTER_VISION
-from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.util.framework.huggingface.model_factory import HuggingFaceAuthMixin
 
 import torch
-from diffusers import StableDiffusionPipeline, EulerDiscreteScheduler
+from diffusers import EulerDiscreteScheduler, StableDiffusionPipeline
+from torchbenchmark.tasks import COMPUTER_VISION
+from torchbenchmark.util.framework.huggingface.model_factory import HuggingFaceAuthMixin
+from torchbenchmark.util.model import BenchmarkModel
 
 
 class Model(BenchmarkModel, HuggingFaceAuthMixin):
@@ -24,11 +24,16 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         HuggingFaceAuthMixin.__init__(self)
-        super().__init__(test=test, device=device,
-                         batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         model_id = "stabilityai/stable-diffusion-2"
-        scheduler = EulerDiscreteScheduler.from_pretrained(model_id, subfolder="scheduler")
-        self.pipe = StableDiffusionPipeline.from_pretrained(model_id, scheduler=scheduler)
+        scheduler = EulerDiscreteScheduler.from_pretrained(
+            model_id, subfolder="scheduler"
+        )
+        self.pipe = StableDiffusionPipeline.from_pretrained(
+            model_id, scheduler=scheduler
+        )
         self.example_inputs = "a photo of an astronaut riding a horse on mars"
         self.pipe.to(self.device)
 
@@ -47,8 +52,10 @@ class Model(BenchmarkModel, HuggingFaceAuthMixin):
         self.pipe.unet = module
 
     def train(self):
-        raise NotImplementedError("Train test is not implemented for the stable diffusion model.")
+        raise NotImplementedError(
+            "Train test is not implemented for the stable diffusion model."
+        )
 
     def eval(self):
         image = self.pipe(self.example_inputs)
-        return (image, )
+        return (image,)

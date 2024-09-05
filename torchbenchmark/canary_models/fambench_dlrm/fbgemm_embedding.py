@@ -1,20 +1,21 @@
 # Currently, this file is not used, because torchbench doesn't support fbgemm embeddding yet;
 # Note that FAMBench does support it.
-import torch.nn as nn
-import torch
 import numpy as np
+import torch
+import torch.nn as nn
 from fbgemm_gpu import split_table_batched_embeddings_ops
 from fbgemm_gpu.split_table_batched_embeddings_ops import (
     CacheAlgorithm,
-    PoolingMode,
+    IntNBitTableBatchedEmbeddingBagsCodegen,
     OptimType,
+    PoolingMode,
     SparseType,
     SplitTableBatchedEmbeddingBagsCodegen,
-    IntNBitTableBatchedEmbeddingBagsCodegen,
 )
 
 # mixed-dimension trick
 from tricks.md_embedding_bag import PrEmbeddingBag
+
 
 # quantize_fbgemm_gpu_embedding_bag is partially lifted from
 # fbgemm_gpu/test/split_embedding_inference_converter.py, def _quantize_split_embs.
@@ -26,7 +27,7 @@ def quantize_fbgemm_gpu_embedding_bag(model, quantize_type, device):
     else:
         emb_location = split_table_batched_embeddings_ops.EmbeddingLocation.DEVICE
 
-    for (E, D, _, _) in model.embedding_specs:
+    for E, D, _, _ in model.embedding_specs:
         weights_ty = quantize_type
         if D % weights_ty.align_size() != 0:
             assert D % 4 == 0

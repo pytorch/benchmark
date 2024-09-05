@@ -3,6 +3,7 @@ import argparse
 from enum import Enum
 from typing import List
 
+
 class InteractionType(Enum):
     ORIGINAL = "original"
     DCN = "dcn"
@@ -10,6 +11,7 @@ class InteractionType(Enum):
 
     def __str__(self):
         return self.value
+
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="torchrec dlrm example trainer")

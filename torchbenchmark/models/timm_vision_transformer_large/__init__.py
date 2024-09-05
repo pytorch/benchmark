@@ -1,5 +1,6 @@
-from torchbenchmark.util.framework.timm.model_factory import TimmModel
 from torchbenchmark.tasks import COMPUTER_VISION
+from torchbenchmark.util.framework.timm.model_factory import TimmModel
+
 
 class Model(TimmModel):
     task = COMPUTER_VISION.GENERATION
@@ -8,5 +9,10 @@ class Model(TimmModel):
     DEFAULT_EVAL_BSIZE = 32
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, model_name='vit_giant_patch14_224', device=device,
-                         batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test,
+            model_name="vit_giant_patch14_224",
+            device=device,
+            batch_size=batch_size,
+            extra_args=extra_args,
+        )

@@ -1,33 +1,40 @@
-from accelerate.utils.dataclasses import DeepSpeedPlugin
 import functools
-import torch
-import numpy as np
 import math
 import os
 from pathlib import Path
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
-from torch.utils.data import DataLoader
-from torchbenchmark.util.e2emodel import E2EBenchmarkModel
-from torchbenchmark.tasks import NLP
 
 import evaluate
+import numpy as np
+import torch
 from accelerate import Accelerator
+from accelerate.utils.dataclasses import DeepSpeedPlugin
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader
+from torchbenchmark.tasks import NLP
+from torchbenchmark.util.e2emodel import E2EBenchmarkModel
+from torchbenchmark.util.framework.transformers.translation.args import (
+    parse_args,
+    parse_torchbench_args,
+    task_to_keys,
+)
+from torchbenchmark.util.framework.transformers.translation.dataset import (
+    prep_dataset,
+    preprocess_dataset,
+)
 from transformers import (
-    CONFIG_MAPPING,
     AutoConfig,
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
+    CONFIG_MAPPING,
     DataCollatorForSeq2Seq,
     default_data_collator,
     get_scheduler,
     MBartTokenizer,
-    MBartTokenizerFast
+    MBartTokenizerFast,
 )
 from transformers.models.t5.modeling_t5 import T5Block
-from torchbenchmark.util.framework.transformers.translation.dataset import prep_dataset, preprocess_dataset
-from torchbenchmark.util.framework.transformers.translation.args import parse_args, parse_torchbench_args, task_to_keys
 
 try:
     import torch._dynamo
@@ -36,6 +43,7 @@ except ImportError:
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
+
 
 class Model(E2EBenchmarkModel):
     task = NLP.TRANSLATION
@@ -57,35 +65,49 @@ class Model(E2EBenchmarkModel):
         max_source_length = "1024"
         max_target_length = "128"
         learning_rate = "2e-5"
-        num_train_epochs = "3" # this takes a rather long time for wmt-en-ro
-        max_train_steps = "100" # overrides num_train_epochs to run faster
-        checkpointing_steps = None # set to a string value, like "1000"
+        num_train_epochs = "3"  # this takes a rather long time for wmt-en-ro
+        max_train_steps = "100"  # overrides num_train_epochs to run faster
+        checkpointing_steps = None  # set to a string value, like "1000"
 
         task_name = self.tb_args.task_name
-        task_args = task_to_keys[task_name] # dataset specific hf_args
+        task_args = task_to_keys[task_name]  # dataset specific hf_args
         # T5 requires source prefix to know what to translate
         if task_name == "wmt-en-ro":
             source_prefix = "translate English to Romanian: "
         elif task_name == "wmt-en-de":
             source_prefix = "translate English to German: "
         else:
-            raise RuntimeError(f"Unsupported translation task {task_name} for model hf_t5")
+            raise RuntimeError(
+                f"Unsupported translation task {task_name} for model hf_t5"
+            )
         task_args.extend(["--source_prefix", source_prefix])
 
         # this benchmark runs on a single GPU
         cuda_visible_devices = "0"
         output_dir = os.path.join(CURRENT_DIR, ".output")
         os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
-        in_arg = ["--model_name_or_path", model_name, 
-                  "--max_source_length", max_source_length,
-                  "--max_target_length", max_target_length,
-                  "--per_device_train_batch_size", str(self.batch_size), 
-                  "--per_device_eval_batch_size", str(self.batch_size),
-                  "--learning_rate", learning_rate,
-                  "--num_train_epochs", num_train_epochs,
-                  "--max_train_steps", max_train_steps,
-                  "--checkpointing_steps", checkpointing_steps,
-                  "--output_dir", output_dir]
+        in_arg = [
+            "--model_name_or_path",
+            model_name,
+            "--max_source_length",
+            max_source_length,
+            "--max_target_length",
+            max_target_length,
+            "--per_device_train_batch_size",
+            str(self.batch_size),
+            "--per_device_eval_batch_size",
+            str(self.batch_size),
+            "--learning_rate",
+            learning_rate,
+            "--num_train_epochs",
+            num_train_epochs,
+            "--max_train_steps",
+            max_train_steps,
+            "--checkpointing_steps",
+            checkpointing_steps,
+            "--output_dir",
+            output_dir,
+        ]
         in_arg.extend(task_args)
         hf_args = parse_args(in_arg)
         self.num_epochs = hf_args.num_train_epochs
@@ -95,7 +117,9 @@ class Model(E2EBenchmarkModel):
         hf_args.distributed = self.tb_args.distributed
         # supported distributed backends
         if hf_args.distributed not in ["deepspeed", "ddp", "fsdp", "none"]:
-            raise RuntimeError(f"Unsupported distributed scheme {self.tb_args.distributed} for model hf_t5")
+            raise RuntimeError(
+                f"Unsupported distributed scheme {self.tb_args.distributed} for model hf_t5"
+            )
         # prep args for any distributed backend that needs it
         if self.tb_args.distributed == "deepspeed":
             zero_opt_cfg = {
@@ -103,7 +127,7 @@ class Model(E2EBenchmarkModel):
                     "stage": 1,
                     "reduce_bucket_size": 2e8,
                     "overlap_comm": True,
-                    "contiguous_gradients": False
+                    "contiguous_gradients": False,
                 }
             }
             hf_args.deepspeed_plugin = DeepSpeedPlugin()
@@ -115,15 +139,21 @@ class Model(E2EBenchmarkModel):
             self.num_examples = len(self.train_dataloader) * self.batch_size
         elif test == "eval":
             self.num_examples = len(self.eval_dataloader) * self.batch_size
-    
+
     def prep(self, hf_args):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
         if hf_args.distributed == "deepspeed":
             # Note: self.tb_args.fp16 could be renamed to better clarify its meaning
-            assert self.tb_args.fp16=="amp", "deepspeed is only supported with bf16/amp enabled"
-            accelerator = Accelerator(deepspeed_plugin=hf_args.deepspeed_plugin, mixed_precision='bf16')
+            assert (
+                self.tb_args.fp16 == "amp"
+            ), "deepspeed is only supported with bf16/amp enabled"
+            accelerator = Accelerator(
+                deepspeed_plugin=hf_args.deepspeed_plugin, mixed_precision="bf16"
+            )
         else:
-            accelerator = Accelerator(mixed_precision='fp16' if self.tb_args.fp16=='amp' else 'no')
+            accelerator = Accelerator(
+                mixed_precision="fp16" if self.tb_args.fp16 == "amp" else "no"
+            )
 
         # Handle the repository creation
         if accelerator.is_main_process:
@@ -141,14 +171,18 @@ class Model(E2EBenchmarkModel):
             config = AutoConfig.from_pretrained(hf_args.config_name)
         elif hf_args.model_name_or_path:
             config = AutoConfig.from_pretrained(hf_args.model_name_or_path)
-        else: 
+        else:
             config = CONFIG_MAPPING[hf_args.model_type]()
             # logger.warning("You are instantiating a new config instance from scratch.")
 
         if hf_args.tokenizer_name:
-            tokenizer = AutoTokenizer.from_pretrained(hf_args.tokenizer_name, use_fast=not hf_args.use_slow_tokenizer)
+            tokenizer = AutoTokenizer.from_pretrained(
+                hf_args.tokenizer_name, use_fast=not hf_args.use_slow_tokenizer
+            )
         elif hf_args.model_name_or_path:
-            tokenizer = AutoTokenizer.from_pretrained(hf_args.model_name_or_path, use_fast=not hf_args.use_slow_tokenizer)
+            tokenizer = AutoTokenizer.from_pretrained(
+                hf_args.model_name_or_path, use_fast=not hf_args.use_slow_tokenizer
+            )
         else:
             raise ValueError(
                 "You are instantiating a new tokenizer from scratch. This is not supported by this script."
@@ -168,17 +202,25 @@ class Model(E2EBenchmarkModel):
         model.resize_token_embeddings(len(tokenizer))
 
         # Set decoder_start_token_id
-        if model.config.decoder_start_token_id is None and isinstance(tokenizer, (MBartTokenizer, MBartTokenizerFast)):
+        if model.config.decoder_start_token_id is None and isinstance(
+            tokenizer, (MBartTokenizer, MBartTokenizerFast)
+        ):
             assert (
                 hf_args.target_lang is not None and hf_args.source_lang is not None
             ), "mBart requires --target_lang and --source_lang"
             if isinstance(tokenizer, MBartTokenizer):
-                model.config.decoder_start_token_id = tokenizer.lang_code_to_id[hf_args.target_lang]
+                model.config.decoder_start_token_id = tokenizer.lang_code_to_id[
+                    hf_args.target_lang
+                ]
             else:
-                model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(hf_args.target_lang)
+                model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
+                    hf_args.target_lang
+                )
 
         if model.config.decoder_start_token_id is None:
-            raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
+            raise ValueError(
+                "Make sure that `config.decoder_start_token_id` is correctly defined"
+            )
 
         # For translation we set the codes of our source and target languages (only useful for mBART, the others will
         # ignore those attributes).
@@ -190,14 +232,18 @@ class Model(E2EBenchmarkModel):
 
         prefix = hf_args.source_prefix if hf_args.source_prefix is not None else ""
 
-        train_dataset, eval_dataset = preprocess_dataset(hf_args, raw_datasets, tokenizer, prefix, accelerator)
+        train_dataset, eval_dataset = preprocess_dataset(
+            hf_args, raw_datasets, tokenizer, prefix, accelerator
+        )
 
         # # Log a few random samples from the training set:
         # for index in random.sample(range(len(train_dataset)), 3):
         #     logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
-            
+
         # DataLoaders creation:
-        label_pad_token_id = -100 if hf_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
+        label_pad_token_id = (
+            -100 if hf_args.ignore_pad_token_for_loss else tokenizer.pad_token_id
+        )
         if hf_args.pad_to_max_length:
             # If padding was already done ot max length, we use the default data collator that will just convert everything
             # to tensors.
@@ -214,9 +260,17 @@ class Model(E2EBenchmarkModel):
             )
 
         train_dataloader = DataLoader(
-            train_dataset, shuffle=True, collate_fn=self.data_collator, batch_size=hf_args.per_device_train_batch_size)
-        eval_dataloader = DataLoader(eval_dataset, collate_fn=self.data_collator, batch_size=hf_args.per_device_eval_batch_size)
-        
+            train_dataset,
+            shuffle=True,
+            collate_fn=self.data_collator,
+            batch_size=hf_args.per_device_train_batch_size,
+        )
+        eval_dataloader = DataLoader(
+            eval_dataset,
+            collate_fn=self.data_collator,
+            batch_size=hf_args.per_device_eval_batch_size,
+        )
+
         # set distributed strategy before creating optimizer
         if hf_args.distributed == "ddp":
             model = accelerator.prepare(model)
@@ -246,7 +300,7 @@ class Model(E2EBenchmarkModel):
                 model,
                 # TODO: seems to make benchmark slower? and profile doesn't work? investigate
                 # auto_wrap_policy=transformer_auto_wrapper_policy,
-                device_id = torch.cuda.current_device()
+                device_id=torch.cuda.current_device(),
             )
         elif hf_args.distributed == "none":
             model = accelerator.prepare(model)
@@ -283,23 +337,37 @@ class Model(E2EBenchmarkModel):
         no_decay = ["bias", "LayerNorm.weight", "layer_norm.weight"]
         optimizer_grouped_parameters = [
             {
-                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "params": [
+                    p
+                    for n, p in model.named_parameters()
+                    if not any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": hf_args.weight_decay,
             },
             {
-                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+                "params": [
+                    p
+                    for n, p in model.named_parameters()
+                    if any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": 0.0,
             },
         ]
-        self.optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=hf_args.learning_rate)
+        self.optimizer = torch.optim.AdamW(
+            optimizer_grouped_parameters, lr=hf_args.learning_rate
+        )
         self._update_everything_with_optimizer()
 
     def _update_everything_with_optimizer(self):
         # Scheduler and math around the number of training steps.
         overrode_max_train_steps = False
-        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / self.hf_args.gradient_accumulation_steps)
+        num_update_steps_per_epoch = math.ceil(
+            len(self.train_dataloader) / self.hf_args.gradient_accumulation_steps
+        )
         if self.hf_args.max_train_steps is None:
-            self.hf_args.max_train_steps = self.hf_args.num_train_epochs * num_update_steps_per_epoch
+            self.hf_args.max_train_steps = (
+                self.hf_args.num_train_epochs * num_update_steps_per_epoch
+            )
             overrode_max_train_steps = True
 
         self.lr_scheduler = get_scheduler(
@@ -312,19 +380,45 @@ class Model(E2EBenchmarkModel):
         # Prepare everything with our `accelerator`.
         if self.hf_args.distributed == "deepspeed":
             # deepspeed will error unless all components prepared at the same time
-            self.model, self.train_dataloader, self.eval_dataloader, self.optimizer, self.lr_scheduler = self.accelerator.prepare(
-                self.model, self.train_dataloader, self.eval_dataloader, self.optimizer, self.lr_scheduler)
+            (
+                self.model,
+                self.train_dataloader,
+                self.eval_dataloader,
+                self.optimizer,
+                self.lr_scheduler,
+            ) = self.accelerator.prepare(
+                self.model,
+                self.train_dataloader,
+                self.eval_dataloader,
+                self.optimizer,
+                self.lr_scheduler,
+            )
         else:
             # ddp and fsdp need model prepared before wrapping.
-            self.train_dataloader, self.eval_dataloader, self.optimizer, self.lr_scheduler = self.accelerator.prepare(
-                self.train_dataloader, self.eval_dataloader, self.optimizer, self.lr_scheduler)
+            (
+                self.train_dataloader,
+                self.eval_dataloader,
+                self.optimizer,
+                self.lr_scheduler,
+            ) = self.accelerator.prepare(
+                self.train_dataloader,
+                self.eval_dataloader,
+                self.optimizer,
+                self.lr_scheduler,
+            )
 
         # We need to recalculate our total training steps as the size of the training dataloader may have changed.
-        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / self.hf_args.gradient_accumulation_steps)
+        num_update_steps_per_epoch = math.ceil(
+            len(self.train_dataloader) / self.hf_args.gradient_accumulation_steps
+        )
         if overrode_max_train_steps:
-            self.hf_args.max_train_steps = self.hf_args.num_train_epochs * num_update_steps_per_epoch
+            self.hf_args.max_train_steps = (
+                self.hf_args.num_train_epochs * num_update_steps_per_epoch
+            )
         # Afterwards we recalculate our number of training epochs
-        self.hf_args.num_train_epochs = math.ceil(self.hf_args.max_train_steps / num_update_steps_per_epoch)
+        self.hf_args.num_train_epochs = math.ceil(
+            self.hf_args.max_train_steps / num_update_steps_per_epoch
+        )
 
     def train(self):
         completed_steps = 0
@@ -335,7 +429,10 @@ class Model(E2EBenchmarkModel):
                 loss = self.run_forward(batch)
                 loss = loss / self.hf_args.gradient_accumulation_steps
                 self.run_backward(loss)
-                if step % self.hf_args.gradient_accumulation_steps == 0 or step == len(self.train_dataloader) - 1:
+                if (
+                    step % self.hf_args.gradient_accumulation_steps == 0
+                    or step == len(self.train_dataloader) - 1
+                ):
                     self.run_optimizer_step()
                     completed_steps += 1
 
@@ -343,18 +440,20 @@ class Model(E2EBenchmarkModel):
                     if completed_steps % self.hf_args.checkpointing_steps == 0:
                         output_dir = f"step_{completed_steps }"
                         if self.hf_args.output_dir is not None:
-                            output_dir = os.path.join(self.hf_args.output_dir, output_dir)
+                            output_dir = os.path.join(
+                                self.hf_args.output_dir, output_dir
+                            )
                         self.accelerator.save_state(output_dir)
 
                 if completed_steps >= self.hf_args.max_train_steps:
                     break
             if self.tb_args.validate_in_train:
-                eval_metric = self.eval() # run evaluation
+                eval_metric = self.eval()  # run evaluation
         # store accuracy results
         if self.tb_args.validate_in_train:
             self.accuracy = eval_metric["score"]
         return eval_metric
-    
+
     def eval(self):
         self.model.eval()
 
@@ -365,7 +464,11 @@ class Model(E2EBenchmarkModel):
             self.hf_args.num_beams = 1
 
         gen_kwargs = {
-            "max_length": self.hf_args.val_max_target_length if self.hf_args is not None else self.config.max_length,
+            "max_length": (
+                self.hf_args.val_max_target_length
+                if self.hf_args is not None
+                else self.config.max_length
+            ),
             "num_beams": self.hf_args.num_beams,
         }
         samples_seen = 0
@@ -383,29 +486,47 @@ class Model(E2EBenchmarkModel):
                 labels = batch["labels"]
                 if not self.hf_args.pad_to_max_length:
                     # If we did not pad to max length, we need to pad the labels too
-                    labels = self.accelerator.pad_across_processes(batch["labels"], dim=1, pad_index=self.tokenizer.pad_token_id)
+                    labels = self.accelerator.pad_across_processes(
+                        batch["labels"], dim=1, pad_index=self.tokenizer.pad_token_id
+                    )
 
-                generated_tokens = self.accelerator.gather(generated_tokens).cpu().numpy()
+                generated_tokens = (
+                    self.accelerator.gather(generated_tokens).cpu().numpy()
+                )
                 labels = self.accelerator.gather(labels).cpu().numpy()
 
                 if self.hf_args.ignore_pad_token_for_loss:
                     # Replace -100 in the labels as we can't decode them.
-                    labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
+                    labels = np.where(
+                        labels != -100, labels, self.tokenizer.pad_token_id
+                    )
 
-                decoded_preds = self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-                decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+                decoded_preds = self.tokenizer.batch_decode(
+                    generated_tokens, skip_special_tokens=True
+                )
+                decoded_labels = self.tokenizer.batch_decode(
+                    labels, skip_special_tokens=True
+                )
 
-                decoded_preds, decoded_labels = self.postprocess_text(decoded_preds, decoded_labels)
+                decoded_preds, decoded_labels = self.postprocess_text(
+                    decoded_preds, decoded_labels
+                )
 
                 # If we are in a multiprocess environment, the last batch has duplicates
                 if self.accelerator.num_processes > 1:
                     if step == len(self.eval_dataloader) - 1:
-                        decoded_preds = decoded_preds[: len(self.eval_dataloader.dataset) - samples_seen]
-                        decoded_labels = decoded_labels[: len(self.eval_dataloader.dataset) - samples_seen]
+                        decoded_preds = decoded_preds[
+                            : len(self.eval_dataloader.dataset) - samples_seen
+                        ]
+                        decoded_labels = decoded_labels[
+                            : len(self.eval_dataloader.dataset) - samples_seen
+                        ]
                     else:
                         samples_seen += len(decoded_labels)
 
-                self.metric.add_batch(predictions=decoded_preds, references=decoded_labels)
+                self.metric.add_batch(
+                    predictions=decoded_preds, references=decoded_labels
+                )
         eval_metric = self.metric.compute()
         # logger.info({"bleu": eval_metric["score"]})
         return eval_metric
@@ -460,4 +581,3 @@ class Model(E2EBenchmarkModel):
         self.optimizer.step()
         self.lr_scheduler.step()
         self.optimizer.zero_grad()
-

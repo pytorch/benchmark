@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from functools import total_ordering
+
 from .gpu_record import GPURecord
 
 
@@ -45,11 +46,11 @@ class GPUPeakMemory(GPURecord):
         Parameters
         ----------
         aggregation_tag: bool
-            An optional tag that may be displayed 
-            as part of the header indicating that 
-            this record has been aggregated using 
-            max, min or average etc. 
-             
+            An optional tag that may be displayed
+            as part of the header indicating that
+            this record has been aggregated using
+            max, min or average etc.
+
         Returns
         -------
         str
@@ -69,8 +70,8 @@ class GPUPeakMemory(GPURecord):
 
     def __lt__(self, other):
         """
-        Allows checking if 
-        this record is less than 
+        Allows checking if
+        this record is less than
         the other
         """
 
@@ -82,8 +83,7 @@ class GPUPeakMemory(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUPeakMemory(device_uuid=None,
-                             value=(self.value() + other.value()))
+        return GPUPeakMemory(device_uuid=None, value=(self.value() + other.value()))
 
     def __sub__(self, other):
         """
@@ -91,5 +91,4 @@ class GPUPeakMemory(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUPeakMemory(device_uuid=None,
-                             value=(other.value() - self.value()))
+        return GPUPeakMemory(device_uuid=None, value=(other.value() - self.value()))

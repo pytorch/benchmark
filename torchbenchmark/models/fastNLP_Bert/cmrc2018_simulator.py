@@ -2,9 +2,10 @@
 Generator of a simulated CMRC2018 dataset.
 Use random Chinese characters with the same length as the original dataset.
 """
+
+import json
 import os
 import pathlib
-import json
 import random
 
 TRAIN_NUM_BATCH = 1
@@ -14,30 +15,32 @@ CMRC2018_TRAIN_SPEC = {
     # Original
     # "data_size": 2403,
     # Benchmark
-    "data_size": 6, # placeholder, will be replaced by the true batch size
+    "data_size": 6,  # placeholder, will be replaced by the true batch size
     "title_length": 5,
     "paragraph_size": 1,
     "context_length": 456,
     "qas_size": 5,
     "query_length": 15,
     "answers_size": 1,
-    "answers_length": 7
+    "answers_length": 7,
 }
 CMRC2018_DEV_SPEC = {
     # Original
     # "data_size": 848,
     # Benchmark
-    "data_size": 1, # placeholder, will be replaced by the true batch size
+    "data_size": 1,  # placeholder, will be replaced by the true batch size
     "title_length": 4,
     "paragraph_size": 1,
     "context_length": 455,
     "qas_size": 4,
     "query_length": 15,
     "answers_size": 3,
-    "answers_length": 7
+    "answers_length": 7,
 }
 
-CMRC2018_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data", "cmrc2018-sim")
+CMRC2018_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), ".data", "cmrc2018-sim"
+)
 CMRC2018_CONFIG_DIR = os.path.join(CMRC2018_DIR, "config")
 CMRC2018_TRAIN_SIM = os.path.join(CMRC2018_DIR, "train.json")
 CMRC2018_DEV_SIM = os.path.join(CMRC2018_DIR, "dev.json")
@@ -45,26 +48,28 @@ CMRC2018_VOCAB_SIM = os.path.join(CMRC2018_CONFIG_DIR, "vocab.txt")
 CMRC2018_BERT_CONFIG = os.path.join(CMRC2018_CONFIG_DIR, "bert_config.json")
 VOCAB_SET = set()
 
+
 # Generate random Chinese string with length l
 def _GBK2312(l):
-    head = 0xd7
-    while head == 0xd7:
-        head = random.randint(0xb0, 0xf7)
-    body = random.randint(0xa1, 0xfe)
-    val = f'{head:x} {body:x}'
-    s = bytes.fromhex(val).decode('gb2312')
+    head = 0xD7
+    while head == 0xD7:
+        head = random.randint(0xB0, 0xF7)
+    body = random.randint(0xA1, 0xFE)
+    val = f"{head:x} {body:x}"
+    s = bytes.fromhex(val).decode("gb2312")
     VOCAB_SET.add(s)
     if l == 0:
         return s
     else:
-        return s + _GBK2312(l-1)
+        return s + _GBK2312(l - 1)
+
 
 def _generate_cmrc2018(spec):
     simdata = {}
     simdata["version"] = "v1.0-sim"
     simdata["data"] = []
     for ind in range(spec["data_size"]):
-        item = {} 
+        item = {}
         para = {}
         item["id"] = f"DEV_{ind}"
         item["title"] = _GBK2312(spec["title_length"])
@@ -87,29 +92,35 @@ def _generate_cmrc2018(spec):
         simdata["data"].append(item)
     return simdata
 
+
 def _create_dir_if_nonexist(dirpath):
     pathlib.Path(dirpath).mkdir(parents=True, exist_ok=True)
 
+
 def _dump_data(data, path):
-    with open(path, "w", encoding='utf8') as dp:
+    with open(path, "w", encoding="utf8") as dp:
         json.dump(data, dp, indent=4, ensure_ascii=False)
+
 
 def _generate_dev(batch_size):
     CMRC2018_DEV_SPEC["data_size"] = batch_size * EVAL_NUM_BATCH
     dev_data = _generate_cmrc2018(CMRC2018_DEV_SPEC)
     _dump_data(dev_data, CMRC2018_DEV_SIM)
 
+
 def _generate_train(batch_size):
     CMRC2018_TRAIN_SPEC["data_size"] = batch_size * TRAIN_NUM_BATCH
     dev_data = _generate_cmrc2018(CMRC2018_TRAIN_SPEC)
     _dump_data(dev_data, CMRC2018_TRAIN_SIM)
 
+
 # MUST be called after generate_dev() AND generate_train()!
 def _generate_vocab():
     never_split = ["[UNK]", "[SEP]", "[PAD]", "[CLS]", "[MASK]"]
     VOCAB_SET.update(never_split)
-    with open(CMRC2018_VOCAB_SIM, "w", encoding='utf-8') as vf:
+    with open(CMRC2018_VOCAB_SIM, "w", encoding="utf-8") as vf:
         vf.write("\n".join(list(VOCAB_SET)))
+
 
 def _copy_bert_config():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -118,14 +129,17 @@ def _copy_bert_config():
     with open(CMRC2018_BERT_CONFIG, "w") as configf:
         configf.write(config)
 
+
 def _setup_os_env():
     os.environ["TORCHBENCH_FASTNLP_CONFIG_PATH"] = CMRC2018_BERT_CONFIG
+
 
 def _create_empty_bin():
     CMRC2018_CONFIG_DIR = os.path.join(CMRC2018_DIR, "config")
     bin_file = os.path.join(CMRC2018_CONFIG_DIR, "chinese_wwm_pytorch.bin")
     with open(bin_file, "w") as bf:
         bf.write("")
+
 
 def generate_inputs(train_batch_size, eval_batch_size):
     _create_dir_if_nonexist(CMRC2018_DIR)

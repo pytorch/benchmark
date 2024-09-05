@@ -1,9 +1,11 @@
+from typing import Tuple
+
+import torch
+from torchbenchmark.tasks import SPEECH
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import SPEECH
-import torch
-from typing import Tuple
 from .angular_tts_main import TTSModel
+
 
 class Model(BenchmarkModel):
     task = SPEECH.SYNTHESIS
@@ -13,7 +15,9 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 64
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.model = TTSModel(device=self.device, batch_size=self.batch_size)
         self.model.model.to(self.device)
@@ -23,7 +27,9 @@ class Model(BenchmarkModel):
             self.model.model.eval()
 
     def get_module(self):
-        return self.model.model, [self.model.SYNTHETIC_DATA[0], ]
+        return self.model.model, [
+            self.model.SYNTHETIC_DATA[0],
+        ]
 
     def set_module(self, new_model):
         self.model.model = new_model
@@ -34,7 +40,7 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         out = self.model.eval()
-        return (out, )
+        return (out,)
 
     def get_optimizer(self):
         return self.model.get_optimizer()

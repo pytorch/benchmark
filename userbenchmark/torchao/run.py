@@ -1,16 +1,19 @@
 import argparse
 import itertools
+from typing import List
 
 from userbenchmark.utils import get_output_dir
-from typing import List
 
 from . import BM_NAME
 from .upload import post_ci_process
+
 OUTPUT_DIR = get_output_dir(BM_NAME)
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 
-def _get_ci_args(backend: str, modelset: str, dtype, mode: str, device: str, experiment: str) -> List[List[str]]:
+def _get_ci_args(
+    backend: str, modelset: str, dtype, mode: str, device: str, experiment: str
+) -> List[List[str]]:
     if modelset == "timm":
         modelset_full_name = "timm_models"
     else:
@@ -25,9 +28,10 @@ def _get_ci_args(backend: str, modelset: str, dtype, mode: str, device: str, exp
         f"--{dtype}",
         f"--{experiment}",
         "--output",
-        f"{str(OUTPUT_DIR.joinpath(output_file_name).resolve())}"
+        f"{str(OUTPUT_DIR.joinpath(output_file_name).resolve())}",
     ]
     return ci_args
+
 
 def _get_full_ci_args(modelset: str) -> List[List[str]]:
     backends = ["autoquant", "int8dynamic", "int8weightonly", "noquant"]
@@ -37,7 +41,8 @@ def _get_full_ci_args(modelset: str) -> List[List[str]]:
     device = ["cuda"]
     experiment = ["performance", "accuracy"]
     cfgs = itertools.product(*[backends, modelset, dtype, mode, device, experiment])
-    return [ _get_ci_args(*cfg) for cfg in cfgs]
+    return [_get_ci_args(*cfg) for cfg in cfgs]
+
 
 def _get_output(pt2_args):
     if "--output" in pt2_args:
@@ -48,17 +53,29 @@ def _get_output(pt2_args):
 
 def _run_pt2_args(pt2_args: List[str]) -> str:
     from userbenchmark.dynamo.run import run as run_pt2_benchmark
-    print(f"=================== [TORCHAO] Running PT2 Benchmark Runner with Args: {pt2_args} ===================")
+
+    print(
+        f"=================== [TORCHAO] Running PT2 Benchmark Runner with Args: {pt2_args} ==================="
+    )
     run_pt2_benchmark(pt2_args)
     return _get_output(pt2_args)
+
 
 def run(args: List[str]):
     parser = argparse.ArgumentParser()
     parser.add_argument("--ci", action="store_true", help="Run the CI workflow")
     parser.add_argument("--timm", action="store_true", help="Run the TIMM CI workflow")
-    parser.add_argument("--huggingface", action="store_true", help="Run the Huggingface CI workflow")
-    parser.add_argument("--torchbench", action="store_true", help="Run the Torchbench CI workflow")
-    parser.add_argument("--dashboard", action="store_true", help="Update the output files to prepare the S3 upload and dashboard.")
+    parser.add_argument(
+        "--huggingface", action="store_true", help="Run the Huggingface CI workflow"
+    )
+    parser.add_argument(
+        "--torchbench", action="store_true", help="Run the Torchbench CI workflow"
+    )
+    parser.add_argument(
+        "--dashboard",
+        action="store_true",
+        help="Update the output files to prepare the S3 upload and dashboard.",
+    )
     args, pt2_args = parser.parse_known_args(args)
 
     if args.ci:
@@ -69,7 +86,9 @@ def run(args: List[str]):
         elif args.torchbench:
             benchmark_args = _get_full_ci_args(modelset="torchbench")
         else:
-            raise RuntimeError("CI mode must run with --timm, --huggingface, or --torchbench")
+            raise RuntimeError(
+                "CI mode must run with --timm, --huggingface, or --torchbench"
+            )
     else:
         benchmark_args = [pt2_args]
 

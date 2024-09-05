@@ -1,15 +1,16 @@
 import torch
-from .baseline.Renderer.model import FCN
-from .baseline.DRL.evaluator import Evaluator
-from .baseline.utils.util import *
-from .baseline.DRL.ddpg import DDPG
-from .baseline.DRL.multi import fastenv
 
-from ...util.model import BenchmarkModel
+from .baseline.DRL.evaluator import Evaluator
+from .baseline.Renderer.model import FCN
+from .baseline.utils.util import *
+from argparse import Namespace
 from typing import Tuple
+
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
-from argparse import Namespace
+from ...util.model import BenchmarkModel
+from .baseline.DRL.ddpg import DDPG
+from .baseline.DRL.multi import fastenv
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True

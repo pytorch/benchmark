@@ -1,14 +1,16 @@
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import NLP
-import torch
 import os
+
+import torch
 from torchbenchmark import add_path, REPO_PATH
+from torchbenchmark.tasks import NLP
+
+from ...util.model import BenchmarkModel
 
 LIT_LLAMA_PATH = os.path.join(REPO_PATH, "submodules", "lit-llama")
 
 with add_path(LIT_LLAMA_PATH):
-    from lit_llama.utils import EmptyInitOnDevice, lazy_load, llama_model_lookup
     from lit_llama import LLaMA
+    from lit_llama.utils import EmptyInitOnDevice, lazy_load, llama_model_lookup
 
 
 class Model(BenchmarkModel):

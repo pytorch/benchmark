@@ -120,9 +120,7 @@ def get_peak_memory(
 
 def get_model_flops(model_config: TorchBenchModelConfig) -> float:
     "Run one step of the eager model, and return the model total flops."
-    from torchbenchmark.util.experiment.instantiator import (
-        load_model,
-    )
+    from torchbenchmark.util.experiment.instantiator import load_model
 
     eager_model_config = copy.deepcopy(model_config)
     eager_model_config.extra_args = []

@@ -1,22 +1,27 @@
-import torch
-import torch.optim as optim
-import torch.nn as nn
-from torchvision import models
-from functorch import make_functional_with_buffers, vmap, grad
 from typing import Tuple
 
-from ...util.model import BenchmarkModel
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from functorch import grad, make_functional_with_buffers, vmap
 from torchbenchmark.tasks import OTHER
+from torchvision import models
+
+from ...util.model import BenchmarkModel
 
 
 def compute_norms(sample_grads):
     batch_size = sample_grads[0].shape[0]
-    norms = [sample_grad.view(batch_size, -1).norm(2, dim=-1) for sample_grad in sample_grads]
+    norms = [
+        sample_grad.view(batch_size, -1).norm(2, dim=-1) for sample_grad in sample_grads
+    ]
     norms = torch.stack(norms, dim=0).norm(2, dim=0)
     return norms, batch_size
 
 
-def clip_and_accumulate_and_add_noise(model, max_per_sample_grad_norm=1.0, noise_multiplier=1.0):
+def clip_and_accumulate_and_add_noise(
+    model, max_per_sample_grad_norm=1.0, noise_multiplier=1.0
+):
     sample_grads = tuple(param.grad_sample for param in model.parameters())
 
     # step 0: compute the norms
@@ -27,13 +32,16 @@ def clip_and_accumulate_and_add_noise(model, max_per_sample_grad_norm=1.0, noise
     clip_factor = clip_factor.clamp(max=1.0)
 
     # step 2: clip
-    grads = tuple(torch.einsum('i,i...', clip_factor, sample_grad)
-                  for sample_grad in sample_grads)
+    grads = tuple(
+        torch.einsum("i,i...", clip_factor, sample_grad) for sample_grad in sample_grads
+    )
 
     # step 3: add gaussian noise
     stddev = max_per_sample_grad_norm * noise_multiplier
-    noises = tuple(torch.normal(0, stddev, grad_param.shape, device=grad_param.device)
-                   for grad_param in grads)
+    noises = tuple(
+        torch.normal(0, stddev, grad_param.shape, device=grad_param.device)
+        for grad_param in grads
+    )
     grads = tuple(noise + grad_param for noise, grad_param in zip(noises, grads))
 
     # step 4: assign the new grads, delete the sample grads
@@ -48,13 +56,16 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 64
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         # Generate a resnet18, patch the BatchNorm layers to be GroupNorm
-        self.model = models.__dict__['resnet18'](
+        self.model = models.__dict__["resnet18"](
             # min(32, c) is a reasonable default value, see the following:
             # https://github.com/pytorch/opacus/blob/6a3e9bd99dca314596bc0313bb4241eac7c9a5d0/opacus/validators/batch_norm.py#L84-L86
-            pretrained=False, norm_layer=(lambda c: nn.GroupNorm(min(c, 32), c))
+            pretrained=False,
+            norm_layer=(lambda c: nn.GroupNorm(min(c, 32), c)),
         )
         self.model = self.model.to(device)
 
@@ -62,7 +73,9 @@ class Model(BenchmarkModel):
         self.example_inputs = (
             torch.randn((self.batch_size, 3, 32, 32), device=self.device),
         )
-        self.example_target = torch.randint(0, 10, (self.batch_size,), device=self.device)
+        self.example_target = torch.randint(
+            0, 10, (self.batch_size,), device=self.device
+        )
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion = nn.CrossEntropyLoss()
 
@@ -74,7 +87,7 @@ class Model(BenchmarkModel):
         model.train()
         fnet, params, buffers = make_functional_with_buffers(self.model)
 
-        (images, ) = self.example_inputs
+        (images,) = self.example_inputs
         targets = self.example_target
 
         def compute_loss(params, buffers, image, target):
@@ -84,7 +97,9 @@ class Model(BenchmarkModel):
             loss = self.criterion(pred, target)
             return loss
 
-        sample_grads = vmap(grad(compute_loss), (None, None, 0, 0))(params, buffers, images, targets)
+        sample_grads = vmap(grad(compute_loss), (None, None, 0, 0))(
+            params, buffers, images, targets
+        )
 
         for grad_sample, weight in zip(sample_grads, model.parameters()):
             weight.grad_sample = grad_sample.detach()
@@ -96,8 +111,8 @@ class Model(BenchmarkModel):
 
     def eval(self) -> Tuple[torch.Tensor]:
         model = self.model
-        (images, ) = self.example_inputs
+        (images,) = self.example_inputs
         model.eval()
         targets = self.example_target
         out = model(images)
-        return (out, )
+        return (out,)

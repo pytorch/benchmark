@@ -9,10 +9,10 @@ import torch
 import yaml
 from torchbenchmark import REPO_PATH
 from torchbenchmark.util.env_check import (
-    pick_grad,
     check_accuracy,
     is_hf_model,
     load_deterministic_dict,
+    pick_grad,
     save_deterministic_dict,
     set_random_seed,
 )
@@ -31,7 +31,11 @@ from torchbenchmark.util.fx_int8 import (
 )
 from torchbenchmark.util.input import input_cast, ModelInputDescriptor
 
-SPECIAL_DEVICE_MAPPING = {"AMD Instinct MI210": "NVIDIA A100-SXM4-40GB", "Intel(R) Data Center GPU Max 1100": "NVIDIA A100-SXM4-40GB", "Intel(R) Data Center GPU Max 1550": "NVIDIA A100-SXM4-40GB"}
+SPECIAL_DEVICE_MAPPING = {
+    "AMD Instinct MI210": "NVIDIA A100-SXM4-40GB",
+    "Intel(R) Data Center GPU Max 1100": "NVIDIA A100-SXM4-40GB",
+    "Intel(R) Data Center GPU Max 1550": "NVIDIA A100-SXM4-40GB",
+}
 
 
 class PostInitProcessor(type):
@@ -489,13 +493,11 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 self.add_context(self.amp_context, TEST_STAGE.FORWARD)
             else:
                 warnings.warn(
-                        "Usually models only want to enable AMP in forward path, so expected "
-                        "model to have staged train support. As the model do not support staged "
-                        "training, try to add context to TEST_STAGE.ALL."
-                        )
+                    "Usually models only want to enable AMP in forward path, so expected "
+                    "model to have staged train support. As the model do not support staged "
+                    "training, try to add context to TEST_STAGE.ALL."
+                )
                 self.add_context(self.amp_context)
-
-
 
     @property
     def pt2_compilation_time(self) -> Optional[float]:

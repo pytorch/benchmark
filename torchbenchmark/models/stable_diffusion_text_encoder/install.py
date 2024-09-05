@@ -1,7 +1,8 @@
-from torchbenchmark.util.framework.diffusers import install_diffusers
-import torch
 import os
 import warnings
+
+import torch
+from torchbenchmark.util.framework.diffusers import install_diffusers
 
 MODEL_NAME = "stabilityai/stable-diffusion-2"
 

@@ -57,7 +57,9 @@ def check_precision(
         if model.test == "train" and model.device == "cpu":
             return hasattr(model, "enable_amp") or is_staged_train_test(model)
     if precision == "fp8":
-        assert "fp8" in model.name, f"We expect fp8 exist in the model/operator name to explicitly claim fp8 is used, name: {model.name}."
+        assert (
+            "fp8" in model.name
+        ), f"We expect fp8 exist in the model/operator name to explicitly claim fp8 is used, name: {model.name}."
         return True
     assert (
         precision == "fp32"

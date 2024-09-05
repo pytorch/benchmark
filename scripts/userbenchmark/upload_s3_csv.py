@@ -1,11 +1,12 @@
 import argparse
-import sys
 import os
 import re
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
+
 
 class add_path:
     def __init__(self, path):
@@ -22,18 +23,17 @@ class add_path:
 
 
 with add_path(str(REPO_ROOT)):
-    from utils.s3_utils import (
-        S3Client,
-        USERBENCHMARK_S3_BUCKET,
-    )
+    from utils.s3_utils import S3Client, USERBENCHMARK_S3_BUCKET
 
 
-def upload_s3(s3_object: str, 
-              ub_name: str,
-              workflow_run_id: str,
-              workflow_run_attempt: str,
-              file_path: Path,
-              dryrun: bool):
+def upload_s3(
+    s3_object: str,
+    ub_name: str,
+    workflow_run_id: str,
+    workflow_run_attempt: str,
+    file_path: Path,
+    dryrun: bool,
+):
     """S3 path:
     s3://ossci-metrics/<s3_object>/<ub_name>/<workflow_run_id>/<workflow_run_attempt>/file_name
     """
@@ -46,7 +46,12 @@ def upload_s3(s3_object: str,
 
 def _get_files_to_upload(file_path: str, match_filename: str):
     filename_regex = re.compile(match_filename)
-    return [ file_name for file_name in os.listdir(file_path) if filename_regex.match(file_name) ]
+    return [
+        file_name
+        for file_name in os.listdir(file_path)
+        if filename_regex.match(file_name)
+    ]
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -83,9 +88,11 @@ if __name__ == "__main__":
 
     for file in files_to_upload:
         file_path = Path(args.upload_path).joinpath(file)
-        upload_s3(s3_object=args.s3_prefix, 
-                  ub_name=args.userbenchmark,
-                  workflow_run_id=workflow_run_id,
-                  workflow_run_attempt=workflow_run_attempt,
-                  file_path=file_path,
-                  dryrun=args.dryrun)
+        upload_s3(
+            s3_object=args.s3_prefix,
+            ub_name=args.userbenchmark,
+            workflow_run_id=workflow_run_id,
+            workflow_run_attempt=workflow_run_attempt,
+            file_path=file_path,
+            dryrun=args.dryrun,
+        )

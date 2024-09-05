@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
 import os
 from abc import ABCMeta, abstractmethod
 from statistics import mean
-import importlib
-from .da_exceptions import TorchBenchAnalyzerException
 
+from .da_exceptions import TorchBenchAnalyzerException
 
 
 class RecordType(ABCMeta):
@@ -55,7 +55,7 @@ class RecordType(ABCMeta):
 
         if tag not in cls.record_types:
             try:
-                importlib.import_module('model_analyzer.record.types.%s' % tag)
+                importlib.import_module("model_analyzer.record.types.%s" % tag)
             except ImportError as e:
                 print(e)
         return cls.record_types[tag]
@@ -66,22 +66,24 @@ class RecordType(ABCMeta):
         Returns
         -------
         dict
-            keys are tags and values are 
+            keys are tags and values are
             all the types that have this as a
             metaclass
         """
 
-        type_module_directory = \
-            os.path.join(
-                globals()['__spec__'].origin.rsplit('/', 1)[0], 'types')
+        type_module_directory = os.path.join(
+            globals()["__spec__"].origin.rsplit("/", 1)[0], "types"
+        )
         for filename in os.listdir(type_module_directory):
-            if filename != '__init__.py' and filename.endswith('.py'):
+            if filename != "__init__.py" and filename.endswith(".py"):
                 try:
                     importlib.import_module(
-                        f'model_analyzer.record.types.{filename[:-3]}')
+                        f"model_analyzer.record.types.{filename[:-3]}"
+                    )
                 except AttributeError:
                     raise TorchBenchAnalyzerException(
-                        "Error retrieving all record types")
+                        "Error retrieving all record types"
+                    )
         return cls.record_types
 
 
@@ -115,11 +117,11 @@ class Record(metaclass=RecordType):
 
         Returns
         -------
-        callable() 
+        callable()
             [Records] -> Record
         """
 
-        return (lambda records: max(records, key=lambda r: r.value()))
+        return lambda records: max(records, key=lambda r: r.value())
 
     @staticmethod
     def value_function():
@@ -130,7 +132,7 @@ class Record(metaclass=RecordType):
         -------
         Average value of the list
         """
-        return (lambda values: mean(values))
+        return lambda values: mean(values)
 
     @staticmethod
     @abstractmethod
@@ -166,7 +168,7 @@ class Record(metaclass=RecordType):
     @classmethod
     def from_dict(cls, record_dict):
         record = cls(0)
-        for key in ['_value', '_timestamp']:
+        for key in ["_value", "_timestamp"]:
             if key in record_dict:
                 setattr(record, key, record_dict[key])
         return record

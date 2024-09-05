@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from functools import total_ordering
+
 from .gpu_record import GPURecord
 
 
@@ -57,11 +58,11 @@ class GPUUtilization(GPURecord):
         Parameters
         ----------
         aggregation_tag: bool
-            An optional tag that may be displayed 
-            as part of the header indicating that 
-            this record has been aggregated using 
-            max, min or average etc. 
-             
+            An optional tag that may be displayed
+            as part of the header indicating that
+            this record has been aggregated using
+            max, min or average etc.
+
         Returns
         -------
         str
@@ -94,8 +95,7 @@ class GPUUtilization(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUUtilization(device_uuid=None,
-                              value=(self.value() + other.value()))
+        return GPUUtilization(device_uuid=None, value=(self.value() + other.value()))
 
     def __sub__(self, other):
         """
@@ -103,5 +103,4 @@ class GPUUtilization(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUUtilization(device_uuid=None,
-                              value=(self.value() - other.value()))
+        return GPUUtilization(device_uuid=None, value=(self.value() - other.value()))

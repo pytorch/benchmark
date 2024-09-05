@@ -20,12 +20,11 @@
 #include <ATen/cuda/CUDAGraphsUtils.cuh>
 
 // #include "autogen/cutlassF.h"
-#include "pytorch_utils.h"
 #include "fmha_forward.cu"
+#include "pytorch_utils.h"
 
 template <typename PrecType, int HEADDIM>
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
-fmha_forward(
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> fmha_forward(
     const int64_t& seq_length,
     const int64_t& key_length,
     const int64_t& batch,
@@ -99,9 +98,8 @@ fmha_forward(
   return std::make_tuple(S, ret, devMiOut, devSprimeOut);
 }
 
-template<typename compute_data_type>
-std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
-launch_forward(
+template <typename compute_data_type>
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> launch_forward(
     const int64_t& seq_length,
     const int64_t& key_length,
     const int64_t& batch,
@@ -110,19 +108,18 @@ launch_forward(
     at::Tensor& value, // [b, seqlen, num_heads, Kv]
     const double& scale,
     const int64_t& Kdim) {
-    if (Kdim == 64) {
-      return fmha_forward<compute_data_type, 64>(
-          seq_length, key_length, batch, query, key, value, scale);
-    } else if (Kdim == 128) {
-      return fmha_forward<compute_data_type, 128>(
-          seq_length, key_length, batch, query, key, value, scale);
-    } else if (Kdim == 256) {
-      return fmha_forward<compute_data_type, 256>(
-          seq_length, key_length, batch, query, key, value, scale);
-    }
-    throw std::runtime_error("Kdim wrong");
+  if (Kdim == 64) {
+    return fmha_forward<compute_data_type, 64>(
+        seq_length, key_length, batch, query, key, value, scale);
+  } else if (Kdim == 128) {
+    return fmha_forward<compute_data_type, 128>(
+        seq_length, key_length, batch, query, key, value, scale);
+  } else if (Kdim == 256) {
+    return fmha_forward<compute_data_type, 256>(
+        seq_length, key_length, batch, query, key, value, scale);
+  }
+  throw std::runtime_error("Kdim wrong");
 }
-
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 fmha_forward_dispatch(
@@ -135,17 +132,16 @@ fmha_forward_dispatch(
     const double& scale) {
   int64_t Kdim = query.size(-1);
 
-  if (query.scalar_type() == at::kHalf){
-    return launch_forward<cutlass::half_t>(seq_length, key_length, batch, query, key, value, scale, Kdim);
+  if (query.scalar_type() == at::kHalf) {
+    return launch_forward<cutlass::half_t>(
+        seq_length, key_length, batch, query, key, value, scale, Kdim);
+  } else if (query.scalar_type() == at::kBFloat16) {
+    return launch_forward<cutlass::bfloat16_t>(
+        seq_length, key_length, batch, query, key, value, scale, Kdim);
+  } else {
+    std::cout << "unsupported data type: " << query.scalar_type() << std::endl;
+    throw std::runtime_error("Unsupported data type");
   }
-  else if (query.scalar_type() == at::kBFloat16){
-    return launch_forward<cutlass::bfloat16_t>(seq_length, key_length, batch, query, key, value, scale, Kdim);
-  }
-  else {
-        std::cout << "unsupported data type: " << query.scalar_type() << std::endl;
-        throw std::runtime_error("Unsupported data type");
-  }
-
 }
 
 // Abstract implementation
@@ -158,7 +154,6 @@ fmha_forward_dispatch_meta(
     const at::Tensor& key, // [b, seqlen, num_heads, K]
     at::Tensor& value, // [b, seqlen, num_heads, Kv]
     const double& scale) {
-
   TORCH_CHECK(query.dim() == 4);
   TORCH_CHECK(key.dim() == 4);
   TORCH_CHECK(value.dim() == 4);
@@ -185,7 +180,8 @@ fmha_forward_dispatch_meta(
   at::Tensor S = at::empty_symint({B, M, num_heads, Kv}, query.options());
   at::Tensor ret = at::empty_symint({B, M, num_heads, Kv}, query.options());
   at::Tensor devMiOut = at::empty_symint({B, M, num_heads}, query.options());
-  at::Tensor devSprimeOut = at::empty_symint({B, M, num_heads}, query.options());
+  at::Tensor devSprimeOut =
+      at::empty_symint({B, M, num_heads}, query.options());
 
   return std::make_tuple(S, ret, devMiOut, devSprimeOut);
 }
@@ -200,7 +196,5 @@ TORCH_LIBRARY_IMPL(cutlass, CUDA, m) {
 }
 
 TORCH_LIBRARY_IMPL(cutlass, Meta, m) {
-  m.impl(
-      "fmha_forward",
-      TORCH_FN(fmha_forward_dispatch_meta));
+  m.impl("fmha_forward", TORCH_FN(fmha_forward_dispatch_meta));
 }

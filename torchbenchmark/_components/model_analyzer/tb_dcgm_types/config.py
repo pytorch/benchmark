@@ -1,5 +1,3 @@
-
-
 # default is 0.01 second
 DEFAULT_MONITORING_INTERVAL = 0.01
 

@@ -1,22 +1,24 @@
 import random
+import typing
+
 import torch
+from torch.utils.data import DataLoader
 
 from torchbenchmark.util.env_check import set_random_seed
 
 from .bert_pytorch import parse_args
-from .bert_pytorch.trainer import BERTTrainer
 from .bert_pytorch.dataset import BERTDataset, WordVocab
 from .bert_pytorch.model import BERT
-from torch.utils.data import DataLoader
-import typing
+from .bert_pytorch.trainer import BERTTrainer
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
+import io
 from pathlib import Path
-from ...util.model import BenchmarkModel
+
 from torchbenchmark.tasks import NLP
 
-import io
+from ...util.model import BenchmarkModel
 
 
 class CorpusGenerator(io.TextIOBase):

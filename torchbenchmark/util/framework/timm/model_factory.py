@@ -129,8 +129,11 @@ class ExtendedTimmModel(TimmModel):
             )
         self.DEFAULT_EVAL_BSIZE = recorded_batch_size
         self.DEFAULT_TRAIN_BSIZE = recorded_batch_size
-        self.DEFAULT_EVAL_CUDA_PRECISION = "fp32" \
-            if self.name in self.DEFAULT_CUDA_EVAL_PRECISION_FP32_MODELS else "fp16"
+        self.DEFAULT_EVAL_CUDA_PRECISION = (
+            "fp32"
+            if self.name in self.DEFAULT_CUDA_EVAL_PRECISION_FP32_MODELS
+            else "fp16"
+        )
         super().__init__(
             model_name=self.name,
             test=test,

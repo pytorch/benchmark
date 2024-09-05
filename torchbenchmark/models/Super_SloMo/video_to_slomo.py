@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 import argparse
+import ctypes
 import os
 import os.path
-import ctypes
+import platform
 from shutil import rmtree
-from PIL import Image
+
+import dataloader
+import slomo_model as model
 import torch
 import torchvision.transforms as transforms
-import slomo_model as model
-import dataloader
-import platform
+from PIL import Image
 from tqdm import tqdm
 
 # For parsing commandline arguments

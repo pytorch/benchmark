@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from userbenchmark import list_userbenchmarks
-from utils import get_pkg_versions, TORCH_DEPS, generate_pkg_constraints
+from utils import generate_pkg_constraints, get_pkg_versions, TORCH_DEPS
 from utils.python_utils import pip_install_requirements
 
 REPO_ROOT = Path(__file__).parent
@@ -24,26 +24,21 @@ if __name__ == "__main__":
         action="store_true",
         help="Run in test mode and check package versions",
     )
-    parser.add_argument(
-        "--skip",
-        nargs="*",
-        default=[],
-        help="Skip models to install."
-    )
+    parser.add_argument("--skip", nargs="*", default=[], help="Skip models to install.")
     parser.add_argument(
         "--torch",
         action="store_true",
-        help="Only require torch to be installed, ignore torchvision and torchaudio."
+        help="Only require torch to be installed, ignore torchvision and torchaudio.",
     )
     parser.add_argument(
         "--numpy",
         action="store_true",
-        help="Only require numpy to be installed, ignore torch, torchvision and torchaudio."
+        help="Only require numpy to be installed, ignore torch, torchvision and torchaudio.",
     )
     parser.add_argument(
         "--check-only",
         action="store_true",
-        help="Only run the version check and generate the contraints"
+        help="Only run the version check and generate the contraints",
     )
     parser.add_argument("--canary", action="store_true", help="Install canary model.")
     parser.add_argument("--continue_on_fail", action="store_true")
@@ -86,14 +81,18 @@ if __name__ == "__main__":
         # Install userbenchmark dependencies if exists
         userbenchmark_dir = REPO_ROOT.joinpath("userbenchmark", args.userbenchmark)
         cmd = [sys.executable, "install.py"]
-        print(f"Installing userbenchmark {args.userbenchmark} with extra args: {extra_args}")
+        print(
+            f"Installing userbenchmark {args.userbenchmark} with extra args: {extra_args}"
+        )
         cmd.extend(extra_args)
         if userbenchmark_dir.joinpath("install.py").is_file():
             # add the current run env to PYTHONPATH to load framework install utils
             run_env = os.environ.copy()
             run_env["PYTHONPATH"] = Path(REPO_ROOT).as_posix()
             subprocess.check_call(
-                cmd, cwd=userbenchmark_dir.absolute(), env=run_env,
+                cmd,
+                cwd=userbenchmark_dir.absolute(),
+                env=run_env,
             )
         sys.exit(0)
 

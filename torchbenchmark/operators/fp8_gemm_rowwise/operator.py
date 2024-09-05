@@ -21,7 +21,9 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser.add_argument("--m", type=int)
     parser.add_argument("--n", type=int)
     parser.add_argument("--k", type=int)
-    parser.add_argument("--no_fp8_fast_accum", dest="fp8_fast_accum", action="store_false")
+    parser.add_argument(
+        "--no_fp8_fast_accum", dest="fp8_fast_accum", action="store_false"
+    )
     parser.add_argument("--use_tma", action="store_true")
     args = parser.parse_args(args)
     return args
@@ -45,9 +47,8 @@ except ImportError:
 
 try:
     cublas_fp8_row = torch.ops.fbgemm.f8f8bf16_cublas
-    from fbgemm_gpu.experimental.gemm.triton_gemm.fp8_gemm import (
-        scale_fp8_row,
-    )
+    from fbgemm_gpu.experimental.gemm.triton_gemm.fp8_gemm import scale_fp8_row
+
     HAS_CUBLAS = True
 except ImportError:
     HAS_CUBLAS = False
@@ -97,7 +98,9 @@ class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "speedup", "accuracy"]
     DEFAULT_PRECISION = "fp32"
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:
@@ -109,16 +112,25 @@ class Operator(BenchmarkOperator):
 
     @register_benchmark(enabled=HAS_TRITON, baseline=True)
     def _triton(self, xq, wq, x_scale, w_scale) -> Callable:
-        return lambda: triton_fp8_row(xq, wq, x_scale, w_scale, fp8_fast_accum=self.fp8_fast_accum, tma_persistent=self.use_tma)
+        return lambda: triton_fp8_row(
+            xq,
+            wq,
+            x_scale,
+            w_scale,
+            fp8_fast_accum=self.fp8_fast_accum,
+            tma_persistent=self.use_tma,
+        )
 
     @register_benchmark(enabled=HAS_CUTLASS)
     def _cutlass(self, xq, wq, x_scale, w_scale) -> Callable:
-        return lambda: cutlass_fp8_row(xq, wq, x_scale, w_scale, use_fast_accum=self.fp8_fast_accum)
+        return lambda: cutlass_fp8_row(
+            xq, wq, x_scale, w_scale, use_fast_accum=self.fp8_fast_accum
+        )
 
     @register_benchmark(enabled=HAS_CUBLAS, label=f"cublas_{torch.version.cuda}")
     def _cublas(self, xq, wq, x_scale, w_scale) -> Callable:
         return lambda: scale_fp8_row(
-                cublas_fp8_row(xq, wq, use_fast_accum=self.fp8_fast_accum), x_scale, w_scale
+            cublas_fp8_row(xq, wq, use_fast_accum=self.fp8_fast_accum), x_scale, w_scale
         )
 
     # TODO: add cublas rowwise FP8 kernel

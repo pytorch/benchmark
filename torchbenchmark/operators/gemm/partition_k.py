@@ -191,6 +191,7 @@ def _reduce(
     c_ptrs = c_ptr + (offs_m[:, None] * stride_cm + offs_n[None, :] * stride_cn)
     tl.store(c_ptrs, reduced_k)
 
+
 def matmul_partition_k(a, b, triton_reduce=False):
     # Check constraints.
     assert a.shape[1] == b.shape[0], "Incompatible dimensions"

@@ -1,26 +1,28 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-from typing import Tuple
-import sys
 
-# data generation
-from . import dlrm_data_pytorch as dp
+import sys
+from argparse import Namespace
+from typing import Tuple
 
 # numpy
 import numpy as np
 
 # pytorch
 import torch
+from torchbenchmark.tasks import RECOMMENDATION
+
+from ...util.model import BenchmarkModel
+
+# data generation
+from . import dlrm_data_pytorch as dp
+
+from .dlrm_s_pytorch import DLRM_Net, LRPolicyScheduler
+
+# mixed-dimension trick
+from .tricks.md_embedding_bag import md_solver, PrEmbeddingBag
 
 # quotient-remainder trick
 from .tricks.qr_embedding_bag import QREmbeddingBag
-
-# mixed-dimension trick
-from .tricks.md_embedding_bag import PrEmbeddingBag, md_solver
-
-from .dlrm_s_pytorch import DLRM_Net, LRPolicyScheduler
-from argparse import Namespace
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import RECOMMENDATION
 
 
 class Model(BenchmarkModel):

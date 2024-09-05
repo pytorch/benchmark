@@ -7,7 +7,7 @@ from typing import Any, Callable, Generator, List, Optional
 import numpy
 import torch
 import triton
-
+from torch._dynamo.testing import rand_strided, same
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -16,9 +16,10 @@ from torchbenchmark.util.triton_op import (
     register_metric,
 )
 
-from .triton_welford import fused_native_layer_norm as triton_welford
-from .triton_welford import fused_native_layer_norm_no_welford as triton_no_welford
-from torch._dynamo.testing import rand_strided, same
+from .triton_welford import (
+    fused_native_layer_norm as triton_welford,
+    fused_native_layer_norm_no_welford as triton_no_welford,
+)
 
 
 BUILDIN_SHAPES = [
@@ -38,7 +39,9 @@ BUILDIN_SHAPES = [
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         self.shapes = BUILDIN_SHAPES
 
@@ -58,9 +61,9 @@ class Operator(BenchmarkOperator):
     def get_input_iter(self) -> Generator:
         for shape in self.shapes:
             s, d = shape
-            p1 = rand_strided((d, ), (1, ), device='cuda:0', dtype=torch.bfloat16)
-            p2 = rand_strided((d, ), (1, ), device='cuda:0', dtype=torch.bfloat16)
-            p3 = rand_strided((s, d), (d, 1), device='cuda:0', dtype=torch.bfloat16)
+            p1 = rand_strided((d,), (1,), device="cuda:0", dtype=torch.bfloat16)
+            p2 = rand_strided((d,), (1,), device="cuda:0", dtype=torch.bfloat16)
+            p3 = rand_strided((s, d), (d, 1), device="cuda:0", dtype=torch.bfloat16)
             yield p1, p2, p3
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:

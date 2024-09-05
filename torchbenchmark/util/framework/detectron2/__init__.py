@@ -46,9 +46,19 @@ def pip_install_requirements_detectron2():
     # Installing by --no-build-isolation after explicitly installing build-time requirements is required.
     # See https://github.com/facebookresearch/detectron2/issues/4921
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-q", "wheel", "cython"] # Build-time requirements
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-q",
+            "wheel",
+            "cython",
+        ]  # Build-time requirements
     )
-    pip_install_requirements(requirements_txt=requirements_file, no_build_isolation=True)
+    pip_install_requirements(
+        requirements_txt=requirements_file, no_build_isolation=True
+    )
 
 
 # This is to workaround https://github.com/facebookresearch/detectron2/issues/3934

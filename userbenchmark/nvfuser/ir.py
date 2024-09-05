@@ -1,7 +1,10 @@
 # contains the list of microbenchmark strings
 # format: list of tuples (name, IR)
 
-ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
+ir_list = [
+    (
+        "autogen-0",
+        """graph(%0 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(4096, 512, strides=[512, 1], requires_grad=0, device=cuda:0),
       %2 : int):
   %3 : int[] = prim::Constant[value=[4096, 512]]()
@@ -13,13 +16,21 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %9 : Float(1, 4096, 512, strides=[2097152, 512, 1], requires_grad=0, device=cuda:0) = aten::relu(%8)
   %10 : Float(4096, 512, strides=[512, 1], requires_grad=0, device=cuda:0) = aten::reshape(%9, %3)
   return (%10)
-"""), ("autogen-1", """graph(%0 : Float(1, 12, 4096, 64, strides=[3145728, 64, 768, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-1",
+        """graph(%0 : Float(1, 12, 4096, 64, strides=[3145728, 64, 768, 1], requires_grad=0, device=cuda:0),
       %1 : Float(requires_grad=0, device=cuda:0)):
   %2 : int[] = prim::Constant[value=[1, 12, 64, 64, 64]]()
   %3 : Float(1, 12, 4096, 64, strides=[3145728, 64, 768, 1], requires_grad=0, device=cuda:0) = aten::div(%0, %1)
   %4 : Float(1, 12, 64, 64, 64, strides=[768, 64, 49152, 768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%3, %2)
   return (%4)
-"""), ("autogen-2", """graph(%0 : Float(8, 256, 56, 56, strides=[802816, 3136, 56, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-2",
+        """graph(%0 : Float(8, 256, 56, 56, strides=[802816, 3136, 56, 1], requires_grad=0, device=cuda:0),
       %1 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
@@ -38,7 +49,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %20 : Float(8, 256, 56, 56, strides=[802816, 3136, 56, 1], requires_grad=0, device=cuda:0) = aten::add(%17, %14, %10)
   %21 : Float(8, 256, 56, 56, strides=[802816, 3136, 56, 1], requires_grad=0, device=cuda:0) = aten::relu(%20)
   return (%21)
-"""), ("autogen-3", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-3",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Double(requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -191,7 +206,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %150 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%149, %148)
   %151 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%150, %145, %27)
   return (%151, %148, %146, %144, %128, %126, %123, %121, %119, %116, %114, %110, %109, %108, %107, %104, %102, %100, %96, %82, %75, %74, %68, %67)
-"""), ("batchnorm-silu", """graph(%0 : Float(32, 480, 14, 14, strides=[94080, 196, 14, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "batchnorm-silu",
+        """graph(%0 : Float(32, 480, 14, 14, strides=[94080, 196, 14, 1], requires_grad=0, device=cuda:0),
       %1 : Float(480, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(480, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(480, strides=[1], requires_grad=0, device=cuda:0),
@@ -202,7 +221,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %8 : Float(32, 480, 14, 14, strides=[94080, 196, 14, 1], requires_grad=0, device=cuda:0), %9 : Tensor, %10 : Tensor = aten::native_batch_norm(%0, %1, %2, %3, %4, %7, %6, %5)
   %11 : Float(32, 480, 14, 14, strides=[94080, 196, 14, 1], requires_grad=0, device=cuda:0) = aten::silu(%8)
   return (%11)
-"""), ("autogen-4", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-4",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 4096, 768, strides=[3145728, 768, 1], requires_grad=0, device=cuda:0),
       %3 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
@@ -221,7 +244,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %16 : Float(1, 4096, 768, strides=[3145728, 768, 1], requires_grad=0, device=cuda:0), %17 : Tensor, %18 : Tensor = aten::native_layer_norm(%15, %8, %0, %1, %7)
   %19 : Float(4096, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%16, %9)
   return (%19)
-"""), ("autogen-5", """graph(%0 : Float(96, 160, 7, 7, strides=[7840, 49, 7, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-5",
+        """graph(%0 : Float(96, 160, 7, 7, strides=[7840, 49, 7, 1], requires_grad=0, device=cuda:0),
       %1 : Float(160, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(160, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(160, strides=[1], requires_grad=0, device=cuda:0),
@@ -247,7 +274,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %29 : Float(96, 160, 7, 7, strides=[7840, 49, 7, 1], requires_grad=0, device=cuda:0) = aten::add(%26, %23, %16)
   %30 : Float(96, 160, 7, 7, strides=[7840, 49, 7, 1], requires_grad=0, device=cuda:0) = aten::add(%29, %20, %15)
   return (%30)
-"""), ("autogen-6", """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-6",
+        """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %1 : Double(requires_grad=0, device=cuda:0),
       %2 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -451,13 +482,21 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %201 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%200, %127)
   %202 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::div(%201, %0)
   return (%202, %198, %197, %195, %190, %188, %186, %179, %177, %175, %169, %167, %165, %163, %161, %160, %157, %152, %150, %145, %142, %139, %136, %135, %134, %131, %130, %129, %99, %97, %95)
-"""), ("autogen-7", """graph(%0 : Float(8, 197, 6, 64, strides=[75648, 64, 12608, 1], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-7",
+        """graph(%0 : Float(8, 197, 6, 64, strides=[75648, 64, 12608, 1], requires_grad=0, device=cuda:0)):
   %1 : int[] = prim::Constant[value=[1576, 384]]()
   %2 : int[] = prim::Constant[value=[8, 197, 384]]()
   %3 : Float(8, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0) = aten::reshape(%0, %2)
   %4 : Float(1576, 384, strides=[384, 1], requires_grad=0, device=cuda:0) = aten::reshape(%3, %1)
   return (%4)
-"""), ("autogen-8", """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-8",
+        """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %1 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %2 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %3 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
@@ -470,7 +509,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %10 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%9, %6)
   %11 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%10, %0)
   return (%11, %6)
-"""), ("autogen-9", """graph(%0 : Float(1, 12, 1, 64, 64, strides=[768, 64, 49152, 768, 1], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-9",
+        """graph(%0 : Float(1, 12, 1, 64, 64, strides=[768, 64, 49152, 768, 1], requires_grad=0, device=cuda:0)):
   %1 : int[] = prim::Constant[value=[1, 12, 64, 64, 1, 1]]()
   %2 : int[] = prim::Constant[value=[1, 12, 64, 64, 1]]()
   %3 : int[] = prim::Constant[value=[1, 12, 64, 64]]()
@@ -478,13 +521,21 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %5 : Float(1, 12, 64, 64, 1, strides=[768, 64, 768, 1, 1], requires_grad=0, device=cuda:0) = aten::reshape(%4, %2)
   %6 : Float(1, 12, 64, 64, 1, 1, strides=[768, 64, 768, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::reshape(%5, %1)
   return (%6, %4)
-"""), ("autogen-10", """graph(%0 : Long(1, 1, 26, strides=[26, 26, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-10",
+        """graph(%0 : Long(1, 1, 26, strides=[26, 26, 1], requires_grad=0, device=cuda:0),
       %1 : Long(200, 200, strides=[200, 1], requires_grad=0, device=cuda:0)):
   %2 : int[] = prim::Constant[value=[200, 200, 1]]()
   %3 : Long(200, 200, 1, strides=[200, 1, 1], requires_grad=0, device=cuda:0) = aten::reshape(%1, %2)
   %4 : Bool(200, 200, 26, strides=[5200, 26, 1], requires_grad=0, device=cuda:0) = aten::ge(%0, %3)
   return (%4)
-"""), ("autogen-11", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-11",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(512, 768, strides=[768, 1], requires_grad=0, device=cuda:0),
       %2 : int):
   %3 : int[] = prim::Constant[value=[1, 512, 12, 64]]()
@@ -496,12 +547,20 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %9 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%8, %5)
   %10 : Float(1, 512, 12, 64, strides=[393216, 768, 64, 1], requires_grad=0, device=cuda:0) = aten::reshape(%9, %3)
   return (%10)
-"""), ("autogen-12", """graph(%0 : Float(32, 360, 14, 14, strides=[70560, 196, 14, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-12",
+        """graph(%0 : Float(32, 360, 14, 14, strides=[70560, 196, 14, 1], requires_grad=0, device=cuda:0),
       %1 : Float(32, 360, 1, 1, strides=[360, 1, 1, 1], requires_grad=0, device=cuda:0)):
   %2 : Float(32, 360, 1, 1, strides=[360, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::sigmoid(%1)
   %3 : Float(32, 360, 14, 14, strides=[70560, 196, 14, 1], requires_grad=0, device=cuda:0) = aten::mul(%0, %2)
   return (%3)
-"""), ("autogen-13", """graph(%0 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-13",
+        """graph(%0 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
@@ -515,7 +574,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %11 : Float(32, 256, 56, 56, strides=[802816, 3136, 56, 1], requires_grad=0, device=cuda:0) = aten::div(%4, %10)
   %12 : Float(32, 256, 56, 56, strides=[802816, 3136, 56, 1], requires_grad=0, device=cuda:0), %13 : Tensor, %14 : Tensor = aten::native_batch_norm(%11, %0, %1, %2, %3, %8, %7, %6)
   return (%12, %13, %14)
-"""), ("autogen-14", """graph(%0 : Float(8, 2048, 2048, strides=[4194304, 2048, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-14",
+        """graph(%0 : Float(8, 2048, 2048, strides=[4194304, 2048, 1], requires_grad=0, device=cuda:0),
       %1 : Float(8, 2048, 2048, strides=[1, 16384, 8], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -539,7 +602,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %21 : Float(1, 8, 2048, 2048, strides=[33554432, 4194304, 2048, 1], requires_grad=0, device=cuda:0) = aten::reshape(%20, %12)
   %22 : Float(1, 8, 2048, 2048, strides=[33554432, 4194304, 2048, 1], requires_grad=0, device=cuda:0) = aten::_softmax(%21, %10, %9)
   return (%22, %17)
-"""), ("batchnorm-silu-mean", """graph(%0 : Float(32, 240, 14, 14, strides=[47040, 196, 14, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "batchnorm-silu-mean",
+        """graph(%0 : Float(32, 240, 14, 14, strides=[47040, 196, 14, 1], requires_grad=0, device=cuda:0),
       %1 : Float(240, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(240, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(240, strides=[1], requires_grad=0, device=cuda:0),
@@ -554,7 +621,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %14 : Float(32, 240, 14, 14, strides=[47040, 196, 14, 1], requires_grad=0, device=cuda:0) = aten::silu(%11)
   %15 : Float(32, 240, 1, 1, strides=[240, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::mean(%14, %7, %6, %5)
   return (%15, %14)
-"""), ("autogen-15", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-15",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(512, 768, strides=[768, 1], requires_grad=0, device=cuda:0),
       %2 : int):
   %3 : int[] = prim::Constant[value=[512, 768]]()
@@ -565,7 +636,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %8 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%7, %4)
   %9 : Float(512, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%8, %3)
   return (%9, %8)
-"""), ("autogen-16", """graph(%0 : Float(1, 1, 512, 512, strides=[262144, 262144, 512, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-16",
+        """graph(%0 : Float(1, 1, 512, 512, strides=[262144, 262144, 512, 1], requires_grad=0, device=cuda:0),
       %1 : Float(12, 512, 512, strides=[262144, 512, 1], requires_grad=0, device=cuda:0),
       %2 : int):
   %3 : bool = prim::Constant[value=0]()
@@ -577,7 +652,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %9 : Float(12, 512, 512, strides=[262144, 512, 1], requires_grad=0, device=cuda:0) = aten::reshape(%8, %5)
   %10 : Float(12, 512, 512, strides=[262144, 512, 1], requires_grad=0, device=cuda:0) = aten::_softmax(%9, %4, %3)
   return (%10)
-"""), ("autogen-17", """graph(%0 : Float(1, 12, 64, 64, 1, strides=[49152, 4096, 64, 1, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-17",
+        """graph(%0 : Float(1, 12, 64, 64, 1, strides=[49152, 4096, 64, 1, 1], requires_grad=0, device=cuda:0),
       %1 : Float(768, 64, 128, strides=[8192, 128, 1], requires_grad=0, device=cuda:0),
       %2 : int,
       %3 : int,
@@ -595,7 +674,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %15 : Float(1, 12, 64, 64, 128, strides=[6291456, 524288, 8192, 128, 1], requires_grad=0, device=cuda:0) = aten::sub(%9, %14, %2)
   %16 : Float(1, 12, 64, 64, 128, strides=[6291456, 524288, 8192, 128, 1], requires_grad=0, device=cuda:0) = aten::exp(%15)
   return (%16)
-"""), ("autogen-18", """graph(%0 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-18",
+        """graph(%0 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(8, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0),
       %3 : Float(1, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0),
@@ -607,7 +690,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %9 : Float(8, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0), %10 : Tensor, %11 : Tensor = aten::native_layer_norm(%8, %7, %0, %1, %6)
   %12 : Float(1576, 384, strides=[384, 1], requires_grad=0, device=cuda:0) = aten::reshape(%9, %5)
   return (%12, %8)
-"""), ("autogen-19", """graph(%0 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-19",
+        """graph(%0 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 4096, 256, strides=[2097152, 512, 1], requires_grad=0, device=cuda:0),
       %3 : Float(4096, 256, strides=[256, 1], requires_grad=0, device=cuda:0),
@@ -621,7 +708,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %11 : Float(1, 4096, 256, strides=[1048576, 256, 1], requires_grad=0, device=cuda:0), %12 : Tensor, %13 : Tensor = aten::native_layer_norm(%10, %7, %0, %1, %6)
   %14 : Float(4096, 256, strides=[256, 1], requires_grad=0, device=cuda:0) = aten::reshape(%11, %5)
   return (%14, %10)
-"""), ("autogen-20", """graph(%0 : Float(16, 512, 7, 7, strides=[25088, 49, 7, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-20",
+        """graph(%0 : Float(16, 512, 7, 7, strides=[25088, 49, 7, 1], requires_grad=0, device=cuda:0),
       %1 : Float(16, 512, 7, 7, strides=[25088, 49, 7, 1], requires_grad=0, device=cuda:0),
       %2 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
@@ -641,7 +732,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %19 : Float(16, 512, 1, 1, strides=[512, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::mean(%18, %10, %9, %8)
   %20 : Float(16, 512, strides=[512, 1], requires_grad=0, device=cuda:0) = aten::reshape(%19, %7)
   return (%20)
-"""), ("autogen-21", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-21",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0),
       %3 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0),
@@ -656,7 +751,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %12 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0), %13 : Tensor, %14 : Tensor = aten::native_layer_norm(%11, %9, %0, %1, %8)
   %15 : Float(512, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%12, %7)
   return (%15, %12)
-"""), ("autogen-22", """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-22",
+        """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %1 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
@@ -711,7 +810,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %52 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::sub(%51, %41, %19)
   %53 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::mul(%52, %0)
   return (%53, %43, %42, %38, %36, %34, %33, %31, %30)
-"""), ("autogen-23", """graph(%0 : Float(32, 2, 256, 28, 28, strides=[401408, 200704, 784, 28, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-23",
+        """graph(%0 : Float(32, 2, 256, 28, 28, strides=[401408, 200704, 784, 28, 1], requires_grad=0, device=cuda:0),
       %1 : Float(32, 2, 1, 256, strides=[512, 256, 512, 1], requires_grad=0, device=cuda:0)):
   %2 : NoneType = prim::Constant()
   %3 : int[] = prim::Constant[value=[1]]()
@@ -727,7 +830,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %13 : Float(32, 2, 256, 28, 28, strides=[401408, 200704, 784, 28, 1], requires_grad=0, device=cuda:0) = aten::mul(%0, %12)
   %14 : Float(32, 256, 28, 28, strides=[200704, 784, 28, 1], requires_grad=0, device=cuda:0) = aten::sum(%13, %3, %7, %2)
   return (%14)
-"""), ("autogen-24", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-24",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Double(requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -748,7 +855,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %18 : Float(1, 1024, 3072, strides=[3145728, 3072, 1], requires_grad=0, device=cuda:0) = aten::mul(%17, %16)
   %19 : Float(1024, 3072, strides=[3072, 1], requires_grad=0, device=cuda:0) = aten::reshape(%18, %8)
   return (%19)
-"""), ("autogen-25", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-25",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(16, 128, 768, strides=[98304, 768, 1], requires_grad=0, device=cuda:0),
       %3 : Float(16, 128, 1, strides=[128, 1, 1], requires_grad=0, device=cuda:0),
@@ -768,7 +879,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %17 : Float(16, 128, 768, strides=[98304, 768, 1], requires_grad=0, device=cuda:0) = aten::add(%16, %0, %5)
   %18 : Float(2048, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%17, %8)
   return (%18)
-"""), ("autogen-26", """graph(%0 : Float(1, 8, 2048, 2048, strides=[8, 1, 16384, 8], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-26",
+        """graph(%0 : Float(1, 8, 2048, 2048, strides=[8, 1, 16384, 8], requires_grad=0, device=cuda:0),
       %1 : Float(8, 2048, 2048, strides=[4194304, 2048, 1], requires_grad=0, device=cuda:0),
       %2 : int):
   %3 : bool = prim::Constant[value=0]()
@@ -781,7 +896,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %10 : Float(1, 8, 2048, 2048, strides=[33554432, 4194304, 2048, 1], requires_grad=0, device=cuda:0) = aten::reshape(%9, %6)
   %11 : Float(1, 8, 2048, 2048, strides=[33554432, 4194304, 2048, 1], requires_grad=0, device=cuda:0) = aten::_softmax(%10, %4, %3)
   return (%11)
-"""), ("autogen-27", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-27",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0),
       %3 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
@@ -800,7 +919,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %16 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0), %17 : Tensor, %18 : Tensor = aten::native_layer_norm(%15, %8, %0, %1, %7)
   %19 : Float(512, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%16, %9)
   return (%19, %16)
-"""), ("autogen-28", """graph(%0 : Float(128, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-28",
+        """graph(%0 : Float(128, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(128, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 512, 128, strides=[65536, 128, 1], requires_grad=0, device=cuda:0),
       %3 : Float(1, 512, 128, strides=[65536, 128, 1], requires_grad=0, device=cuda:0),
@@ -815,7 +938,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %12 : Float(1, 512, 128, strides=[65536, 128, 1], requires_grad=0, device=cuda:0), %13 : Tensor, %14 : Tensor = aten::native_layer_norm(%11, %9, %0, %1, %8)
   %15 : Float(512, 128, strides=[128, 1], requires_grad=0, device=cuda:0) = aten::reshape(%12, %7)
   return (%15)
-"""), ("autogen-29", """graph(%0 : Float(720, 64, 64, strides=[4096, 64, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-29",
+        """graph(%0 : Float(720, 64, 64, strides=[4096, 64, 1], requires_grad=0, device=cuda:0),
       %1 : Float(720, 64, 64, strides=[4096, 64, 1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 12, 60, 64, 64, 1, strides=[64, 245760, 4096, 64, 1, 64], requires_grad=0, device=cuda:0),
       %3 : Float(1, 12, 60, 64, 64, 1, strides=[64, 245760, 4096, 64, 1, 64], requires_grad=0, device=cuda:0),
@@ -838,7 +965,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %20 : Float(720, 64, 64, strides=[4096, 64, 1], requires_grad=0, device=cuda:0) = aten::reshape(%19, %7)
   %21 : Float(1, 12, 60, 64, 64, strides=[2949120, 245760, 4096, 64, 1], requires_grad=0, device=cuda:0) = aten::reshape(%20, %8)
   return (%21)
-"""), ("autogen-30", """graph(%0 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-30",
+        """graph(%0 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 4096, 256, strides=[1048576, 256, 1], requires_grad=0, device=cuda:0),
       %3 : Float(4096, 256, strides=[256, 1], requires_grad=0, device=cuda:0),
@@ -852,14 +983,22 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %11 : Float(1, 4096, 256, strides=[1048576, 256, 1], requires_grad=0, device=cuda:0), %12 : Tensor, %13 : Tensor = aten::native_layer_norm(%10, %7, %0, %1, %6)
   %14 : Float(4096, 256, strides=[256, 1], requires_grad=0, device=cuda:0) = aten::reshape(%11, %5)
   return (%14)
-"""), ("autogen-31", """graph(%0 : Float(1, 64, 64, 256, strides=[1048576, 16384, 256, 1], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-31",
+        """graph(%0 : Float(1, 64, 64, 256, strides=[1048576, 16384, 256, 1], requires_grad=0, device=cuda:0)):
   %1 : int[] = prim::Constant[value=[4096, 256]]()
   %2 : int[] = prim::Constant[value=[1, 4096, 256]]()
   %3 : Float(1, 4096, 256, strides=[1048576, 256, 1], requires_grad=0, device=cuda:0) = aten::reshape(%0, %2)
   %4 : Float(1, 4096, 256, strides=[1048576, 256, 1], requires_grad=0, device=cuda:0) = aten::reshape(%3, %2)
   %5 : Float(4096, 256, strides=[256, 1], requires_grad=0, device=cuda:0) = aten::reshape(%4, %1)
   return (%5)
-"""), ("autogen-32", """graph(%0 : Float(1, 12, 64, 64, 64, strides=[3145728, 262144, 4096, 64, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-32",
+        """graph(%0 : Float(1, 12, 64, 64, 64, strides=[3145728, 262144, 4096, 64, 1], requires_grad=0, device=cuda:0),
       %1 : Float(1, 4096, strides=[4096, 1], requires_grad=0, device=cuda:0)):
   %2 : int[] = prim::Constant[value=[1, 12, 4096, 64]]()
   %3 : int[] = prim::Constant[value=[1, 1, 4096, 1]]()
@@ -867,7 +1006,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %5 : Float(1, 12, 4096, 64, strides=[3145728, 262144, 64, 1], requires_grad=0, device=cuda:0) = aten::reshape(%0, %2)
   %6 : Float(1, 12, 4096, 64, strides=[3145728, 262144, 64, 1], requires_grad=0, device=cuda:0) = aten::mul(%5, %4)
   return (%6, %4)
-"""), ("autogen-33", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-33",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Float(12, 64, 4096, strides=[262144, 4096, 1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -886,7 +1029,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %16 : Float(1, 12, 64, 4096, strides=[3145728, 262144, 4096, 1], requires_grad=0, device=cuda:0) = aten::_softmax(%15, %9, %8)
   %17 : Float(12, 64, 4096, strides=[262144, 4096, 1], requires_grad=0, device=cuda:0) = aten::reshape(%16, %7)
   return (%17)
-"""), ("autogen-34", """graph(%0 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-34",
+        """graph(%0 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(8, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0),
       %3 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
@@ -905,7 +1052,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %16 : Float(8, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0), %17 : Tensor, %18 : Tensor = aten::native_layer_norm(%15, %8, %0, %1, %7)
   %19 : Float(1576, 384, strides=[384, 1], requires_grad=0, device=cuda:0) = aten::reshape(%16, %9)
   return (%19, %15)
-"""), ("autogen-35", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-35",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Float(1, 2048, 512, strides=[1048576, 512, 1], requires_grad=0, device=cuda:0),
@@ -929,7 +1080,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %21 : Float(1, 2048, 512, strides=[1048576, 512, 1], requires_grad=0, device=cuda:0) = aten::mul(%20, %0)
   %22 : Float(2048, 512, strides=[512, 1], requires_grad=0, device=cuda:0) = aten::reshape(%21, %8)
   return (%22)
-"""), ("autogen-36", """graph(%0 : Float(32, 512, 28, 28, strides=[401408, 784, 28, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-36",
+        """graph(%0 : Float(32, 512, 28, 28, strides=[401408, 784, 28, 1], requires_grad=0, device=cuda:0),
       %1 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
@@ -948,7 +1103,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %18 : Float(32, 256, 28, 28, strides=[200704, 784, 28, 1], requires_grad=0, device=cuda:0) = aten::sum(%17, %8, %12, %7)
   %19 : Float(32, 256, 1, 1, strides=[256, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::mean(%18, %6, %5, %7)
   return (%19, %17)
-"""), ("autogen-37", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-37",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Float(720, 64, 192, strides=[12288, 192, 1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -962,7 +1121,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %11 : Float(1, 12, 60, 64, 192, strides=[8847360, 737280, 12288, 192, 1], requires_grad=0, device=cuda:0) = aten::mul(%10, %0)
   %12 : Float(1, 12, 60, 64, 192, strides=[8847360, 737280, 12288, 192, 1], requires_grad=0, device=cuda:0) = aten::add(%11, %9, %5)
   return (%12)
-"""), ("autogen-38", """graph(%0 : Float(1, 4096, 256, strides=[2097152, 512, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-38",
+        """graph(%0 : Float(1, 4096, 256, strides=[2097152, 512, 1], requires_grad=0, device=cuda:0),
       %1 : Float(256, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(256, strides=[1], requires_grad=0, device=cuda:0)):
   %3 : int[] = prim::Constant[value=[4096, 256]]()
@@ -971,7 +1134,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %6 : Float(1, 4096, 256, strides=[1048576, 256, 1], requires_grad=0, device=cuda:0), %7 : Tensor, %8 : Tensor = aten::native_layer_norm(%0, %5, %1, %2, %4)
   %9 : Float(4096, 256, strides=[256, 1], requires_grad=0, device=cuda:0) = aten::reshape(%6, %3)
   return (%9)
-"""), ("autogen-39", """graph(%0 : Float(1, 12, 64, 64, 128, strides=[6291456, 524288, 8192, 128, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-39",
+        """graph(%0 : Float(1, 12, 64, 64, 128, strides=[6291456, 524288, 8192, 128, 1], requires_grad=0, device=cuda:0),
       %1 : Float(1, 12, 64, 64, 1, strides=[49152, 4096, 64, 1, 1], requires_grad=0, device=cuda:0),
       %2 : int,
       %3 : int,
@@ -987,7 +1154,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %13 : Float(1, 12, 64, 64, 128, strides=[6291456, 524288, 8192, 128, 1], requires_grad=0, device=cuda:0) = aten::sub(%0, %12, %2)
   %14 : Float(1, 12, 64, 64, 128, strides=[6291456, 524288, 8192, 128, 1], requires_grad=0, device=cuda:0) = aten::exp(%13)
   return (%14)
-"""), ("autogen-40", """graph(%0 : Float(32, 80, 14, 14, strides=[15680, 196, 14, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-40",
+        """graph(%0 : Float(32, 80, 14, 14, strides=[15680, 196, 14, 1], requires_grad=0, device=cuda:0),
       %1 : Float(80, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(80, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(80, strides=[1], requires_grad=0, device=cuda:0),
@@ -1013,7 +1184,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %27 : Float(32, 80, 14, 14, strides=[15680, 196, 14, 1], requires_grad=0, device=cuda:0), %28 : Tensor, %29 : Tensor = aten::native_batch_norm(%0, %1, %2, %3, %4, %19, %18, %17)
   %30 : Float(32, 80, 14, 14, strides=[15680, 196, 14, 1], requires_grad=0, device=cuda:0) = aten::add(%27, %26, %15)
   return (%30)
-"""), ("autogen-41", """graph(%0 : Float(12, 64, 64, strides=[4096, 64, 1], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-41",
+        """graph(%0 : Float(12, 64, 64, strides=[4096, 64, 1], requires_grad=0, device=cuda:0)):
   %1 : int[] = prim::Constant[value=[1, 12, 1, 64, 64]]()
   %2 : int[] = prim::Constant[value=[12, 64, 64]]()
   %3 : int = prim::Constant[value=2]()
@@ -1025,7 +1200,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %9 : Float(1, 12, 64, 64, strides=[49152, 4096, 64, 1], requires_grad=0, device=cuda:0) = aten::reshape(%8, %4)
   %10 : Float(1, 12, 1, 64, 64, strides=[49152, 4096, 4096, 64, 1], requires_grad=0, device=cuda:0) = aten::reshape(%9, %1)
   return (%10)
-"""), ("autogen-42", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-42",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Double(requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1051,7 +1230,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %23 : Float(1, 512, 3072, strides=[1572864, 3072, 1], requires_grad=0, device=cuda:0) = aten::mul(%22, %21)
   %24 : Float(512, 3072, strides=[3072, 1], requires_grad=0, device=cuda:0) = aten::reshape(%23, %10)
   return (%24)
-"""), ("autogen-43", """graph(%0 : Float(32, 80, 14, 14, strides=[15680, 196, 14, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-43",
+        """graph(%0 : Float(32, 80, 14, 14, strides=[15680, 196, 14, 1], requires_grad=0, device=cuda:0),
       %1 : Float(80, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(80, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(80, strides=[1], requires_grad=0, device=cuda:0),
@@ -1085,7 +1268,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %37 : Float(32, 80, 14, 14, strides=[15680, 196, 14, 1], requires_grad=0, device=cuda:0), %38 : Tensor, %39 : Tensor = aten::native_batch_norm(%0, %1, %2, %3, %4, %25, %24, %23)
   %40 : Float(32, 80, 14, 14, strides=[15680, 196, 14, 1], requires_grad=0, device=cuda:0) = aten::add(%37, %36, %20)
   return (%40)
-"""), ("autogen-44", """graph(%0 : Float(128, 1024, 7, 7, strides=[50176, 49, 7, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-44",
+        """graph(%0 : Float(128, 1024, 7, 7, strides=[50176, 49, 7, 1], requires_grad=0, device=cuda:0),
       %1 : Float(1024, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1024, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(1024, strides=[1], requires_grad=0, device=cuda:0),
@@ -1099,7 +1286,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %13 : Float(128, 1024, 7, 7, strides=[50176, 49, 7, 1], requires_grad=0, device=cuda:0) = aten::relu(%10)
   %14 : Float(128, 1024, strides=[1024, 1], requires_grad=0, device=cuda:0) = aten::mean(%13, %6, %9, %5)
   return (%14)
-"""), ("autogen-45", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-45",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1130,7 +1321,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %28 : Float(1, 4096, 768, strides=[3145728, 768, 1], requires_grad=0, device=cuda:0), %29 : Tensor, %30 : Tensor = aten::native_layer_norm(%27, %12, %0, %1, %11)
   %31 : Float(4096, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%28, %13)
   return (%31)
-"""), ("autogen-46", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-46",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Double(requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1156,13 +1351,21 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %23 : Float(1, 4096, 3072, strides=[12582912, 3072, 1], requires_grad=0, device=cuda:0) = aten::mul(%22, %21)
   %24 : Float(4096, 3072, strides=[3072, 1], requires_grad=0, device=cuda:0) = aten::reshape(%23, %9)
   return (%24)
-"""), ("autogen-47", """graph(%0 : Float(1, 12, 4096, 64, strides=[3145728, 64, 768, 1], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-47",
+        """graph(%0 : Float(1, 12, 4096, 64, strides=[3145728, 64, 768, 1], requires_grad=0, device=cuda:0)):
   %1 : int[] = prim::Constant[value=[768, 64, 64]]()
   %2 : int[] = prim::Constant[value=[1, 12, 64, 64, 64]]()
   %3 : Float(1, 12, 64, 64, 64, strides=[768, 64, 49152, 768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%0, %2)
   %4 : Float(768, 64, 64, strides=[4096, 64, 1], requires_grad=0, device=cuda:0) = aten::reshape(%3, %1)
   return (%4, %3)
-"""), ("autogen-48", """graph(%0 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-48",
+        """graph(%0 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Double(requires_grad=0, device=cuda:0),
       %2 : Float(1, 2048, 512, strides=[1048576, 512, 1], requires_grad=0, device=cuda:0),
       %3 : Float(2048, 512, strides=[512, 1], requires_grad=0, device=cuda:0),
@@ -1184,7 +1387,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %19 : Float(1, 2048, 512, strides=[1048576, 512, 1], requires_grad=0, device=cuda:0) = aten::mul(%0, %18)
   %20 : Float(2048, 512, strides=[512, 1], requires_grad=0, device=cuda:0) = aten::reshape(%19, %7)
   return (%20, %13)
-"""), ("autogen-49", """graph(%0 : Long(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-49",
+        """graph(%0 : Long(requires_grad=0, device=cuda:0),
       %1 : Float(96, 3, 128, 128, strides=[49152, 16384, 128, 1], requires_grad=0, device=cuda:0),
       %2 : Float(96, 3, 128, 128, strides=[49152, 16384, 128, 1], requires_grad=0, device=cuda:0),
       %3 : int,
@@ -1199,12 +1406,20 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %12 : Float(96, 128, strides=[128, 1], requires_grad=0, device=cuda:0) = aten::mean(%11, %7, %6, %5)
   %13 : Float(96, strides=[1], requires_grad=0, device=cuda:0) = aten::mean(%12, %7, %6, %5)
   return (%13)
-"""), ("autogen-50", """graph(%0 : Float(1, 12, 1, 4096, 64, 1, strides=[64, 262144, 64, 64, 1, 64], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-50",
+        """graph(%0 : Float(1, 12, 1, 4096, 64, 1, strides=[64, 262144, 64, 64, 1, 64], requires_grad=0, device=cuda:0)):
   %1 : int[] = prim::Constant[value=[1, 12, 1, 4096, 64]]()
   %2 : Float(1, 12, 1, 4096, 64, strides=[3145728, 262144, 262144, 64, 1], requires_grad=0, device=cuda:0) = aten::reshape(%0, %1)
   %3 : Float(1, 12, 1, 4096, 64, strides=[3145728, 262144, 262144, 64, 1], requires_grad=0, device=cuda:0) = aten::neg(%2)
   return (%3, %2)
-"""), ("autogen-51", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-51",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Float(12, 512, 512, strides=[262144, 512, 1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1225,7 +1440,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %18 : Float(1, 12, 512, 512, strides=[3145728, 262144, 512, 1], requires_grad=0, device=cuda:0) = aten::add(%17, %15, %5)
   %19 : Float(1, 12, 512, 512, strides=[3145728, 262144, 512, 1], requires_grad=0, device=cuda:0) = aten::_softmax(%18, %8, %7)
   return (%19, %15)
-"""), ("autogen-52", """graph(%0 : Float(96, 64, 14, 14, strides=[12544, 196, 14, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-52",
+        """graph(%0 : Float(96, 64, 14, 14, strides=[12544, 196, 14, 1], requires_grad=0, device=cuda:0),
       %1 : Float(64, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(64, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(64, strides=[1], requires_grad=0, device=cuda:0),
@@ -1259,7 +1478,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %39 : Float(96, 64, 14, 14, strides=[12544, 196, 14, 1], requires_grad=0, device=cuda:0) = aten::add(%38, %29, %21)
   %40 : Float(96, 64, 14, 14, strides=[12544, 196, 14, 1], requires_grad=0, device=cuda:0) = aten::add(%39, %26, %20)
   return (%40)
-"""), ("autogen-53", """graph(%0 : Float(128, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-53",
+        """graph(%0 : Float(128, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(128, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1290,14 +1513,22 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %28 : Float(1, 512, 128, strides=[65536, 128, 1], requires_grad=0, device=cuda:0), %29 : Tensor, %30 : Tensor = aten::native_layer_norm(%27, %13, %0, %1, %12)
   %31 : Float(512, 128, strides=[128, 1], requires_grad=0, device=cuda:0) = aten::reshape(%28, %14)
   return (%31)
-"""), ("autogen-54", """graph(%0 : Float(32, 1000, 13, 13, strides=[169000, 169, 13, 1], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-54",
+        """graph(%0 : Float(32, 1000, 13, 13, strides=[169000, 169, 13, 1], requires_grad=0, device=cuda:0)):
   %1 : NoneType = prim::Constant()
   %2 : bool = prim::Constant[value=1]()
   %3 : int[] = prim::Constant[value=[-1, -2]]()
   %4 : Float(32, 1000, 13, 13, strides=[169000, 169, 13, 1], requires_grad=0, device=cuda:0) = aten::relu(%0)
   %5 : Float(32, 1000, 1, 1, strides=[1000, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::mean(%4, %3, %2, %1)
   return (%5)
-"""), ("autogen-55", """graph(%0 : Float(96, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-55",
+        """graph(%0 : Float(96, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Long(requires_grad=0, device=cuda:0),
       %2 : Float(96, 3, 128, 128, strides=[49152, 16384, 128, 1], requires_grad=0, device=cuda:0),
       %3 : Float(96, 3, 128, 128, strides=[49152, 16384, 128, 1], requires_grad=0, device=cuda:0),
@@ -1320,7 +1551,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %20 : Float(96, strides=[1], requires_grad=0, device=cuda:0) = aten::sub(%0, %19, %6)
   %21 : Float(96, strides=[1], requires_grad=0, device=cuda:0) = aten::div(%20, %13)
   return (%21)
-"""), ("autogen-56", """graph(%0 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-56",
+        """graph(%0 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(8, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0),
       %3 : Float(384, strides=[1], requires_grad=0, device=cuda:0),
@@ -1338,7 +1573,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %15 : Float(8, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0) = aten::add(%2, %14, %5)
   %16 : Float(8, 197, 384, strides=[75648, 384, 1], requires_grad=0, device=cuda:0), %17 : Tensor, %18 : Tensor = aten::native_layer_norm(%15, %8, %0, %1, %7)
   return (%16, %17, %18)
-"""), ("autogen-57", """graph(%0 : Float(32, 960, 7, 7, strides=[47040, 49, 7, 1], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-57",
+        """graph(%0 : Float(32, 960, 7, 7, strides=[47040, 49, 7, 1], requires_grad=0, device=cuda:0)):
   %1 : int[] = prim::Constant[value=[32, 960]]()
   %2 : NoneType = prim::Constant()
   %3 : bool = prim::Constant[value=1]()
@@ -1346,7 +1585,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %5 : Float(32, 960, 1, 1, strides=[960, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::mean(%0, %4, %3, %2)
   %6 : Float(32, 960, strides=[960, 1], requires_grad=0, device=cuda:0) = aten::reshape(%5, %1)
   return (%6)
-"""), ("autogen-59", """graph(%0 : Long(1, 12, 4096, strides=[49152, 4096, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-59",
+        """graph(%0 : Long(1, 12, 4096, strides=[49152, 4096, 1], requires_grad=0, device=cuda:0),
       %1 : Long(requires_grad=0, device=cuda:0),
       %2 : Long(1, 12, 1, 4096, strides=[49152, 4096, 4096, 1], requires_grad=0, device=cuda:0),
       %3 : Long(1, 12, 1, 1, strides=[1, 0, 1, 1], requires_grad=0, device=cuda:0),
@@ -1358,7 +1601,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %9 : Long(1, 12, 4096, strides=[49152, 4096, 1], requires_grad=0, device=cuda:0) = aten::mul(%8, %1)
   %10 : Long(1, 12, 4096, strides=[49152, 4096, 1], requires_grad=0, device=cuda:0) = aten::add(%9, %0, %4)
   return (%10)
-"""), ("autogen-60", """graph(%0 : Float(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-60",
+        """graph(%0 : Float(requires_grad=0, device=cuda:0),
       %1 : Double(requires_grad=0, device=cuda:0),
       %2 : Float(1, 12, 4096, 64, strides=[3145728, 262144, 64, 1], requires_grad=0, device=cuda:0),
       %3 : int,
@@ -1375,7 +1622,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %14 : Float(1, 12, 64, 64, 64, strides=[3145728, 262144, 4096, 64, 1], requires_grad=0, device=cuda:0) = aten::mul(%9, %13)
   %15 : Float(1, 12, 64, 64, 64, strides=[3145728, 262144, 4096, 64, 1], requires_grad=0, device=cuda:0) = aten::mul(%14, %0)
   return (%15, %9)
-"""), ("autogen-61", """graph(%0 : Float(16, 128, 768, strides=[98304, 768, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-61",
+        """graph(%0 : Float(16, 128, 768, strides=[98304, 768, 1], requires_grad=0, device=cuda:0),
       %1 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(2048, 768, strides=[768, 1], requires_grad=0, device=cuda:0),
       %3 : int,
@@ -1389,7 +1640,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %11 : Float(16, 128, 768, strides=[98304, 768, 1], requires_grad=0, device=cuda:0) = aten::add(%0, %10, %3)
   %12 : Float(2048, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%11, %5)
   return (%12, %11)
-"""), ("autogen-62", """graph(%0 : Float(32, 2048, 7, 7, strides=[100352, 49, 7, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-62",
+        """graph(%0 : Float(32, 2048, 7, 7, strides=[100352, 49, 7, 1], requires_grad=0, device=cuda:0),
       %1 : Float(2048, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(2048, strides=[1], requires_grad=0, device=cuda:0),
       %3 : Float(2048, strides=[1], requires_grad=0, device=cuda:0),
@@ -1414,7 +1669,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %26 : Float(32, 2048, 1, 1, strides=[2048, 1, 1, 1], requires_grad=0, device=cuda:0) = aten::mean(%25, %14, %13, %12)
   %27 : Float(32, 2048, strides=[2048, 1], requires_grad=0, device=cuda:0) = aten::reshape(%26, %11)
   return (%27)
-"""), ("autogen-63", """graph(%0 : Float(480, 1, 1, 3, strides=[13, 3, 3, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-63",
+        """graph(%0 : Float(480, 1, 1, 3, strides=[13, 3, 3, 1], requires_grad=0, device=cuda:0),
       %1 : Long(requires_grad=0, device=cuda:0),
       %2 : Float(480, 1, 64, 2, 64, 2, strides=[16384, 16384, 64, 8192, 1, 4096], requires_grad=0, device=cuda:0),
       %3 : int,
@@ -1430,7 +1689,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %13 : Float(480, 128, 128, 1, strides=[16384, 128, 1, 1], requires_grad=0, device=cuda:0) = aten::reshape(%12, %5)
   %14 : Float(480, 128, 128, 3, strides=[49152, 384, 3, 1], requires_grad=0, device=cuda:0) = aten::mul(%13, %0)
   return (%14, %13)
-"""), ("autogen-64", """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-64",
+        """graph(%0 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %1 : Double(requires_grad=0, device=cuda:0),
       %2 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1450,7 +1713,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %17 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%16, %15, %9)
   %18 : Double(204, 204, 26, strides=[5304, 26, 1], requires_grad=0, device=cuda:0) = aten::add(%17, %12, %8)
   return (%18)
-"""), ("autogen-65", """graph(%0 : Float(20005, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-65",
+        """graph(%0 : Float(20005, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(2048, 20005, strides=[20005, 1], requires_grad=0, device=cuda:0),
       %2 : int):
   %3 : int[] = prim::Constant[value=[2048, 20005]]()
@@ -1460,7 +1727,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %7 : Float(2048, 20005, strides=[20005, 1], requires_grad=0, device=cuda:0) = aten::reshape(%6, %3)
   %8 : Float(16, 128, 20005, strides=[2560640, 20005, 1], requires_grad=0, device=cuda:0) = aten::reshape(%7, %4)
   return (%8)
-"""), ("autogen-66", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-66",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 1024, 768, strides=[786432, 768, 1], requires_grad=0, device=cuda:0),
       %3 : Float(1024, 768, strides=[768, 1], requires_grad=0, device=cuda:0),
@@ -1475,7 +1746,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %14 : Float(1, 1024, 768, strides=[786432, 768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%11, %8)
   %15 : Float(1024, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%14, %5)
   return (%15)
-"""), ("autogen-67", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-67",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Float(720, 64, 192, strides=[12288, 192, 1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1493,7 +1768,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %15 : Float(1, 12, 60, 64, 192, strides=[8847360, 737280, 12288, 192, 1], requires_grad=0, device=cuda:0) = aten::mul(%14, %0)
   %16 : Float(1, 12, 60, 64, 192, strides=[8847360, 737280, 12288, 192, 1], requires_grad=0, device=cuda:0) = aten::add(%15, %13, %6)
   return (%16, %11)
-"""), ("autogen-68", """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-68",
+        """graph(%0 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0),
       %3 : Float(768, strides=[1], requires_grad=0, device=cuda:0),
@@ -1510,7 +1789,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %14 : Float(1, 512, 768, strides=[393216, 768, 1], requires_grad=0, device=cuda:0), %15 : Tensor, %16 : Tensor = aten::native_layer_norm(%13, %9, %0, %1, %8)
   %17 : Float(512, 768, strides=[768, 1], requires_grad=0, device=cuda:0) = aten::reshape(%14, %7)
   return (%17, %14)
-"""), ("autogen-69", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-69",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Float(12, 64, 4096, strides=[262144, 4096, 1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1531,7 +1814,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %18 : Float(1, 12, 64, 4096, strides=[3145728, 262144, 4096, 1], requires_grad=0, device=cuda:0) = aten::_softmax(%17, %9, %8)
   %19 : Float(12, 64, 4096, strides=[262144, 4096, 1], requires_grad=0, device=cuda:0) = aten::reshape(%18, %7)
   return (%19, %12)
-"""), ("autogen-70", """graph(%0 : Long(1, 12, 64, 64, strides=[49152, 4096, 64, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-70",
+        """graph(%0 : Long(1, 12, 64, 64, strides=[49152, 4096, 64, 1], requires_grad=0, device=cuda:0),
       %1 : Long(1, 12, 64, 128, strides=[98304, 8192, 128, 1], requires_grad=0, device=cuda:0)):
   %2 : int[] = prim::Constant[value=[1, 12, 64, 64, 1]]()
   %3 : int[] = prim::Constant[value=[1, 12, 64, 1, 128]]()
@@ -1539,7 +1826,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %5 : Long(1, 12, 64, 64, 1, strides=[49152, 4096, 64, 1, 1], requires_grad=0, device=cuda:0) = aten::reshape(%0, %2)
   %6 : Bool(1, 12, 64, 64, 128, strides=[6291456, 524288, 8192, 128, 1], requires_grad=0, device=cuda:0) = aten::ne(%5, %4)
   return (%6)
-"""), ("autogen-71", """graph(%0 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-71",
+        """graph(%0 : Float(512, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Float(1, 2048, 512, strides=[1048576, 512, 1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : int,
@@ -1556,7 +1847,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %14 : Float(1, 2048, 512, strides=[1048576, 512, 1], requires_grad=0, device=cuda:0) = aten::mul(%0, %13)
   %15 : Float(2048, 512, strides=[512, 1], requires_grad=0, device=cuda:0) = aten::reshape(%14, %5)
   return (%15)
-"""), ("autogen-72", """graph(%0 : Long(2232, strides=[1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-72",
+        """graph(%0 : Long(2232, strides=[1], requires_grad=0, device=cuda:0),
       %1 : Long(2232, strides=[1], requires_grad=0, device=cuda:0),
       %2 : Long(requires_grad=0, device=cuda:0),
       %3 : Long(1, 12, 62, 3, strides=[2232, 186, 3, 1], requires_grad=0, device=cuda:0),
@@ -1568,7 +1863,11 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %9 : Long(2232, strides=[1], requires_grad=0, device=cuda:0) = aten::add(%7, %8, %5)
   %10 : Long(2232, strides=[1], requires_grad=0, device=cuda:0) = aten::add(%7, %0, %4)
   return (%10, %9)
-"""), ("autogen-73", """graph(%0 : Long(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-73",
+        """graph(%0 : Long(requires_grad=0, device=cuda:0),
       %1 : Float(96, 3, 128, 128, strides=[49152, 16384, 128, 1], requires_grad=0, device=cuda:0),
       %2 : Long(requires_grad=0, device=cuda:0),
       %3 : Float(96, 1, 1, 128, 128, strides=[81920, 16384, 16384, 128, 1], requires_grad=0, device=cuda:0),
@@ -1621,14 +1920,22 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %50 : Float(96, 3, 128, 128, strides=[49152, 16384, 128, 1], requires_grad=0, device=cuda:0) = aten::add(%49, %25, %13)
   %51 : Float(96, 3, 128, 128, strides=[49152, 16384, 128, 1], requires_grad=0, device=cuda:0) = aten::mul(%50, %0)
   return (%51)
-"""), ("autogen-74", """graph(%0 : Long(200, 200, strides=[204, 1], requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-74",
+        """graph(%0 : Long(200, 200, strides=[204, 1], requires_grad=0, device=cuda:0),
       %1 : Long(requires_grad=0, device=cuda:0),
       %2 : int,
       %3 : int):
   %4 : Long(200, 200, strides=[200, 1], requires_grad=0, device=cuda:0) = aten::sub(%0, %1, %3)
   %5 : Bool(200, 200, strides=[200, 1], requires_grad=0, device=cuda:0) = aten::ge(%4, %2)
   return (%5, %4)
-"""), ("autogen-75", """graph(%0 : Double(requires_grad=0, device=cuda:0),
+""",
+    ),
+    (
+        "autogen-75",
+        """graph(%0 : Double(requires_grad=0, device=cuda:0),
       %1 : Float(12, 512, 512, strides=[262144, 512, 1], requires_grad=0, device=cuda:0),
       %2 : Double(requires_grad=0, device=cuda:0),
       %3 : Double(requires_grad=0, device=cuda:0),
@@ -1645,11 +1952,17 @@ ir_list = [("autogen-0", """graph(%0 : Float(512, strides=[1], requires_grad=0, 
   %14 : Float(1, 12, 512, 512, strides=[3145728, 262144, 512, 1], requires_grad=0, device=cuda:0) = aten::add(%13, %11, %5)
   %15 : Float(1, 12, 512, 512, strides=[3145728, 262144, 512, 1], requires_grad=0, device=cuda:0) = aten::_softmax(%14, %8, %7)
   return (%15, %11)
-"""), ("autogen-76", """graph(%0 : Float(2048, 2048, strides=[2048, 1], requires_grad=0, device=cuda:0)):
+""",
+    ),
+    (
+        "autogen-76",
+        """graph(%0 : Float(2048, 2048, strides=[2048, 1], requires_grad=0, device=cuda:0)):
   %1 : int[] = prim::Constant[value=[2048, 2048]]()
   %2 : int[] = prim::Constant[value=[1, 2048, 2048]]()
   %3 : Float(1, 2048, 2048, strides=[4194304, 2048, 1], requires_grad=0, device=cuda:0) = aten::reshape(%0, %2)
   %4 : Float(1, 2048, 2048, strides=[4194304, 2048, 1], requires_grad=0, device=cuda:0) = aten::relu(%3)
   %5 : Float(2048, 2048, strides=[2048, 1], requires_grad=0, device=cuda:0) = aten::reshape(%4, %1)
   return (%5)
-""")]
+""",
+    ),
+]

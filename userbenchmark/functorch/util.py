@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Callable
-from torch.utils.benchmark import Timer
+
 from torch.utils._pytree import tree_flatten
+from torch.utils.benchmark import Timer
 
 
 class BenchmarkCase(ABC):

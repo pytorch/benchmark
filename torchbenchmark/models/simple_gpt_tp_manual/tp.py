@@ -3,7 +3,8 @@ from typing import List
 import torch
 from torch import nn
 from torch.distributed import _functional_collectives as funcol
-from .model import LLaMA, CausalSelfAttention, MLP
+
+from .model import CausalSelfAttention, LLaMA, MLP
 
 
 LOCAL_RANK = None

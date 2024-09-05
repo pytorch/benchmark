@@ -1,6 +1,6 @@
 import argparse
-import os
 import csv
+import os
 from typing import List
 
 from torchbenchmark import REPO_PATH
@@ -28,8 +28,7 @@ def read_shapes_from_csv(csv_path: str) -> List[List[int]]:
         reader = csv.DictReader(f)
         for row in reader:
             shape = [
-                int(row.get(f)) if row.get(f) else None
-                for f in ("M", "N", "K", "Bias")
+                int(row.get(f)) if row.get(f) else None for f in ("M", "N", "K", "Bias")
             ]
             shapes.append(shape)
     return shapes

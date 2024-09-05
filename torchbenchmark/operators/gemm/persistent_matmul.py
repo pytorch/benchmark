@@ -12,7 +12,9 @@ if not IS_FBCODE:
     if torch.cuda.is_available():
         from triton._C.libtriton import nvidia
 
-        cublas_workspace = torch.empty(32 * 1024 * 1024, device="cuda", dtype=torch.uint8)
+        cublas_workspace = torch.empty(
+            32 * 1024 * 1024, device="cuda", dtype=torch.uint8
+        )
         cublas = nvidia.cublas.CublasLt(cublas_workspace)
     else:
         cublas = None

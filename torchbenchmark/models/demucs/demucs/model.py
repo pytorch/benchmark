@@ -5,20 +5,22 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from typing import Union
 
 import torch
 import torch as th
-from torch import Tensor, nn
+from torch import nn, Tensor
+from torch.nn.modules.conv import Conv1d, ConvTranspose1d
 
 from .utils import capture_init, center_trim
-from torch.nn.modules.conv import Conv1d, ConvTranspose1d
-from typing import Union
 
 
 class BLSTM(nn.Module):
-    def __init__(self, dim: int, layers: int=1) -> None:
+    def __init__(self, dim: int, layers: int = 1) -> None:
         super().__init__()
-        self.lstm = nn.LSTM(bidirectional=True, num_layers=layers, hidden_size=dim, input_size=dim)
+        self.lstm = nn.LSTM(
+            bidirectional=True, num_layers=layers, hidden_size=dim, input_size=dim
+        )
         self.lstm.flatten_parameters()
         self.linear = nn.Linear(2 * dim, dim)
 
@@ -32,7 +34,7 @@ class BLSTM(nn.Module):
 
 def rescale_conv(conv: Union[Conv1d, ConvTranspose1d], reference: float) -> None:
     std = conv.weight.std().detach()
-    scale = (std / reference)**0.5
+    scale = (std / reference) ** 0.5
     conv.weight.data /= scale
     if conv.bias is not None:
         conv.bias.data /= scale
@@ -66,20 +68,22 @@ class Demucs(nn.Module):
     __constants__ = ["stride"]
 
     @capture_init
-    def __init__(self,
-                 sources: int=4,
-                 audio_channels: int=2,
-                 channels: int=64,
-                 depth: int=6,
-                 rewrite: bool=True,
-                 glu: bool=True,
-                 upsample: bool=False,
-                 rescale: float=0.1,
-                 kernel_size: int=8,
-                 stride: int=4,
-                 growth: float=2.,
-                 lstm_layers: int=2,
-                 context: int=3) -> None:
+    def __init__(
+        self,
+        sources: int = 4,
+        audio_channels: int = 2,
+        channels: int = 64,
+        depth: int = 6,
+        rewrite: bool = True,
+        glu: bool = True,
+        upsample: bool = False,
+        rescale: float = 0.1,
+        kernel_size: int = 8,
+        stride: int = 4,
+        growth: float = 2.0,
+        lstm_layers: int = 2,
+        context: int = 3,
+    ) -> None:
         """
         Args:
             sources (int): number of sources to separate
@@ -120,7 +124,9 @@ class Demucs(nn.Module):
 
         self.final = None
         if upsample:
-            self.final = nn.Conv1d(channels + audio_channels, sources * audio_channels, 1)
+            self.final = nn.Conv1d(
+                channels + audio_channels, sources * audio_channels, 1
+            )
             stride = 1
 
         if glu:
@@ -146,13 +152,18 @@ class Demucs(nn.Module):
                 else:
                     out_channels = sources * audio_channels
             if rewrite:
-                decode += [nn.Conv1d(channels, ch_scale * channels, context), activation]
+                decode += [
+                    nn.Conv1d(channels, ch_scale * channels, context),
+                    activation,
+                ]
             if upsample:
                 decode += [
                     nn.Conv1d(channels, out_channels, kernel_size, stride=1),
                 ]
             else:
-                decode += [nn.ConvTranspose1d(channels, out_channels, kernel_size, stride)]
+                decode += [
+                    nn.ConvTranspose1d(channels, out_channels, kernel_size, stride)
+                ]
             if index > 0:
                 decode.append(nn.ReLU())
             self.decoder.insert(0, nn.Sequential(*decode))

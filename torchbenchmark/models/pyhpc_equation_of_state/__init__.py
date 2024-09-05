@@ -1,18 +1,23 @@
-import torch
-from . import eos_pytorch
-from torchbenchmark.tasks import OTHER
-from ...util.model import BenchmarkModel
 from typing import Tuple
+
+import torch
+from torchbenchmark.tasks import OTHER
+
+from ...util.model import BenchmarkModel
+from . import eos_pytorch
+
 
 def _generate_inputs(size):
     import math
+
     import numpy as np
+
     np.random.seed(17)
 
     shape = (
-        math.ceil(2 * size ** (1/3)),
-        math.ceil(2 * size ** (1/3)),
-        math.ceil(0.25 * size ** (1/3)),
+        math.ceil(2 * size ** (1 / 3)),
+        math.ceil(2 * size ** (1 / 3)),
+        math.ceil(0.25 * size ** (1 / 3)),
     )
 
     s = np.random.uniform(1e-2, 10, size=shape)
@@ -20,12 +25,14 @@ def _generate_inputs(size):
     p = np.random.uniform(0, 1000, size=(1, 1, shape[-1]))
     return s, t, p
 
+
 class EquationOfState(torch.nn.Module):
     def __init__(self):
         super(EquationOfState, self).__init__()
 
     def forward(self, s, t, p):
         return eos_pytorch.gsw_dHdT(s, t, p)
+
 
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
@@ -36,7 +43,9 @@ class Model(BenchmarkModel):
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.model = EquationOfState().to(device=self.device)
         input_size = self.batch_size
@@ -54,4 +63,4 @@ class Model(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
         out = model(*example_inputs)
-        return (out, )
+        return (out,)

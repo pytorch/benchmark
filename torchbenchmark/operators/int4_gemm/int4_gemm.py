@@ -8,11 +8,12 @@ Triton implementation by @jlebar: https://gist.github.com/jlebar/3435b2c00deea53
 import argparse
 import os
 import statistics
-import torch
-import triton.ops
-import triton.language as tl
 
-from typing import Any, Optional, List
+from typing import Any, List, Optional
+
+import torch
+import triton.language as tl
+import triton.ops
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -20,13 +21,16 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
 )
-from .kernel import pack_2xint4, matmul, matmul_kernel, _group_quantize_tensor
+
+from .kernel import _group_quantize_tensor, matmul, matmul_kernel, pack_2xint4
 
 
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "gbps", "latency", "best_config"]
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         # `Group size` and `inner K tiles` are defaults from gpt-fast.
         self.group_size = 32
@@ -63,9 +67,7 @@ class Operator(BenchmarkOperator):
         w_uint8, scales_and_zeros = _group_quantize_tensor(
             w_bf16, n_bit=4, q_group_size=self.group_size
         )
-        w_int4 = torch.ops.aten._convert_weight_to_int4pack(
-            w_uint8, self.inner_k_tiles
-        )
+        w_int4 = torch.ops.aten._convert_weight_to_int4pack(w_uint8, self.inner_k_tiles)
         return lambda: torch.ops.aten._weight_int4pack_mm(
             x, w_int4, self.group_size, scales_and_zeros
         )

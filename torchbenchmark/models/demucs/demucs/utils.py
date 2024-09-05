@@ -13,12 +13,12 @@ import socket
 import tempfile
 import warnings
 from contextlib import contextmanager
+from typing import Callable
 
 import torch as th
 import tqdm
-from torch import Tensor, distributed
+from torch import distributed, Tensor
 from torch.nn import functional as F
-from typing import Callable
 
 
 def center_trim(tensor: Tensor, reference: Tensor) -> Tensor:

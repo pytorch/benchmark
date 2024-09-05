@@ -12,23 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .monitor import Monitor
-from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
-from ..tb_dcgm_types.gpu_tensoractive import GPUTensorActive
-from ..tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
-from ..tb_dcgm_types.gpu_utilization import GPUUtilization
-from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
-from ..tb_dcgm_types.gpu_fp32active import GPUFP32Active
+from ..tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 from ..tb_dcgm_types.gpu_dram_active import GPUDRAMActive
+from ..tb_dcgm_types.gpu_fp32active import GPUFP32Active
+from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
 from ..tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
 from ..tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
-from ..tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
+from ..tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
+from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
+from ..tb_dcgm_types.gpu_tensoractive import GPUTensorActive
+from ..tb_dcgm_types.gpu_utilization import GPUUtilization
 
-
-from . import dcgm_agent
-from . import dcgm_fields
-from . import dcgm_field_helpers
-from . import dcgm_structs as structs
+from . import dcgm_agent, dcgm_field_helpers, dcgm_fields, dcgm_structs as structs
+from .monitor import Monitor
 
 
 class DCGMMonitor(Monitor):
@@ -72,16 +68,16 @@ class DCGMMonitor(Monitor):
 
         # Start DCGM in the embedded mode to use the shared library
         self.dcgm_handle = dcgm_handle = dcgm_agent.dcgmStartEmbedded(
-            structs.DCGM_OPERATION_MODE_MANUAL)
+            structs.DCGM_OPERATION_MODE_MANUAL
+        )
         group_name = "torchbench-dcgm-monitor"
         # Create DCGM monitor group
-        self.group_id = dcgm_agent.dcgmGroupCreate(dcgm_handle,
-                                                   structs.DCGM_GROUP_EMPTY,
-                                                   group_name)
+        self.group_id = dcgm_agent.dcgmGroupCreate(
+            dcgm_handle, structs.DCGM_GROUP_EMPTY, group_name
+        )
         # Add the GPUs to the group
         for gpu in self._gpus:
-            dcgm_agent.dcgmGroupAddDevice(dcgm_handle, self.group_id,
-                                          gpu.device_id())
+            dcgm_agent.dcgmGroupAddDevice(dcgm_handle, self.group_id, gpu.device_id())
 
         frequency = int(self._frequency * 1000)
         fields = []
@@ -91,15 +87,26 @@ class DCGMMonitor(Monitor):
         except KeyError:
             dcgm_agent.dcgmShutdown()
             raise TorchBenchAnalyzerException(
-                f'{metric} is not supported by Model Analyzer DCGM Monitor')
+                f"{metric} is not supported by Model Analyzer DCGM Monitor"
+            )
 
         dcgm_field_group_id = dcgm_agent.dcgmFieldGroupCreate(
-            dcgm_handle, fields, group_name)
-        dcgm_filed_group = dcgm_field_helpers.DcgmFieldGroup(dcgm_handle, fields, group_name,  dcgm_field_group_id)
+            dcgm_handle, fields, group_name
+        )
+        dcgm_filed_group = dcgm_field_helpers.DcgmFieldGroup(
+            dcgm_handle, fields, group_name, dcgm_field_group_id
+        )
 
         self.group_watcher = dcgm_field_helpers.DcgmFieldGroupWatcher(
-            dcgm_handle, self.group_id, dcgm_filed_group,
-            structs.DCGM_OPERATION_MODE_MANUAL, frequency, 3600, 0, 0)
+            dcgm_handle,
+            self.group_id,
+            dcgm_filed_group,
+            structs.DCGM_OPERATION_MODE_MANUAL,
+            frequency,
+            3600,
+            0,
+            0,
+        )
 
     def _monitoring_iteration(self):
         self.group_watcher.GetAllSinceLastCall()
@@ -120,9 +127,12 @@ class DCGMMonitor(Monitor):
                         if measurement.value is not None:
                             # DCGM timestamp is in nanoseconds
                             records.append(
-                                metric_type(value=float(measurement.value),
-                                            device_uuid=gpu.device_uuid(),
-                                            timestamp=measurement.ts))
+                                metric_type(
+                                    value=float(measurement.value),
+                                    device_uuid=gpu.device_uuid(),
+                                    timestamp=measurement.ts,
+                                )
+                            )
         records.sort(key=lambda x: x._timestamp)
         return records
 

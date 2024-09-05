@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import time
 import math
+import time
 
 import torch
 import torch as T
-from .model import SpeakerEncoder, AngleProtoLoss
 from torch.optim.optimizer import Optimizer
+
+from .model import AngleProtoLoss, SpeakerEncoder
 
 
 torch.backends.cudnn.enabled = True

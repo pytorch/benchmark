@@ -27,7 +27,9 @@ PYTORCH_PYTHON_VERSION = PYTHON_VERSION_MAP[DEFAULT_PYTHON_VERSION]["pytorch_url
 torch_wheel_nightly_base = (
     f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/"
 )
-torch_nightly_wheel_index = f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/torch"
+torch_nightly_wheel_index = (
+    f"https://download.pytorch.org/whl/nightly/{PYTORCH_CUDA_VERISON}/torch"
+)
 torch_nightly_wheel_index_override = "torch_nightly.html"
 
 
@@ -69,7 +71,9 @@ def get_wheel_index_data(
         pkg, version, py, py_m, platform = group_match.groups()
         version = urllib.parse.unquote(version)
         if py == py_version and platform == platform_version:
-            full_url = os.path.join(torch_wheel_nightly_base, urllib.parse.quote_plus(link.text))
+            full_url = os.path.join(
+                torch_wheel_nightly_base, urllib.parse.quote_plus(link.text)
+            )
             data[pkg][version] = full_url
     return data
 

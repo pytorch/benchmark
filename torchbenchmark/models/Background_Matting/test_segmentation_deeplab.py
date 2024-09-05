@@ -1,12 +1,12 @@
+import argparse, cv2, glob
 import os
 import tarfile
-from six.moves import urllib
 
 import numpy as np
-from PIL import Image
-import cv2, glob, argparse
 
 import tensorflow as tf
+from PIL import Image
+from six.moves import urllib
 
 
 class DeepLabModel(object):

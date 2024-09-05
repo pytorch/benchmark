@@ -15,7 +15,9 @@ class Operator(BenchmarkOperator):
 
     DEFAULT_METRICS = ["test_metric"]
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
 
     @register_benchmark(label="new_op_label")

@@ -29,6 +29,7 @@ AUTOTUNE_CONFIGS = [
     ),
 ]
 
+
 def _group_quantize_tensor(w, n_bit=4, q_group_size=16):
     assert w.dim() == 2
     w = w.transpose(0, 1).contiguous()
@@ -40,7 +41,7 @@ def _group_quantize_tensor(w, n_bit=4, q_group_size=16):
 
     max_val = to_quant.amax(dim=1, keepdim=True)
     min_val = to_quant.amin(dim=1, keepdim=True)
-    max_int = 2 ** n_bit - 1
+    max_int = 2**n_bit - 1
     min_int = 0
     scales = (max_val - min_val).clamp(min=1e-6) / max_int
     assert torch.isnan(scales).sum() == 0
@@ -65,7 +66,9 @@ def _group_quantize_tensor(w, n_bit=4, q_group_size=16):
                 zeros.reshape(zeros.size(0), zeros.size(1), 1),
             ],
             2,
-        ).transpose(0, 1).contiguous()
+        )
+        .transpose(0, 1)
+        .contiguous()
     )
 
     return out_uint8, scales_and_zeros
@@ -175,7 +178,9 @@ def matmul_kernel(
 
 
 def matmul(a, b):
-    assert a.shape[1] == b.shape[0] * 2, f"Incompatible dimensions: {a.shape[1], b.shape[0] * 2}"
+    assert (
+        a.shape[1] == b.shape[0] * 2
+    ), f"Incompatible dimensions: {a.shape[1], b.shape[0] * 2}"
     assert a.is_contiguous(), "Matrix A must be contiguous"
     M, K = a.shape
     _, N = b.shape

@@ -1,14 +1,15 @@
-import torch
-import torch.optim as optim
-import torch.nn as nn
-import torch.nn.functional as F
-from functorch import make_functional_with_buffers, vmap, grad
 import functools
 from pathlib import Path
 from typing import Tuple
 
-from ...util.model import BenchmarkModel
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from functorch import grad, make_functional_with_buffers, vmap
 from torchbenchmark.tasks import OTHER
+
+from ...util.model import BenchmarkModel
 
 
 def loss_for_task(net, n_inner_iter, x_spt, y_spt, x_qry, y_qry):
@@ -30,8 +31,7 @@ def loss_for_task(net, n_inner_iter, x_spt, y_spt, x_qry, y_qry):
     # These will be used to update the model's meta-parameters.
     qry_logits = fnet(new_params, buffers, x_qry)
     qry_loss = F.cross_entropy(qry_logits, y_qry)
-    qry_acc = (qry_logits.argmax(
-        dim=1) == y_qry).sum() / querysz
+    qry_acc = (qry_logits.argmax(dim=1) == y_qry).sum() / querysz
 
     return qry_loss, qry_acc
 
@@ -47,7 +47,9 @@ class Model(BenchmarkModel):
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         n_way = 5
         inplace_relu = True
@@ -65,13 +67,16 @@ class Model(BenchmarkModel):
             nn.ReLU(inplace=inplace_relu),
             nn.MaxPool2d(2, 2),
             nn.Flatten(),
-            nn.Linear(64, n_way)).to(device)
+            nn.Linear(64, n_way),
+        ).to(device)
 
         self.model = net
 
         root = str(Path(__file__).parent.parent)
-        self.meta_inputs = torch.load(f'{root}/maml_omniglot/batch.pt')
-        self.meta_inputs = tuple([torch.from_numpy(i).to(self.device) for i in self.meta_inputs])
+        self.meta_inputs = torch.load(f"{root}/maml_omniglot/batch.pt")
+        self.meta_inputs = tuple(
+            [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]
+        )
         self.example_inputs = (self.meta_inputs[0][0],)
 
     def get_module(self):
@@ -105,4 +110,4 @@ class Model(BenchmarkModel):
         model, (example_input,) = self.get_module()
         model.eval()
         out = model(example_input)
-        return (out, )
+        return (out,)

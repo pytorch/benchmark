@@ -16,14 +16,15 @@
 ##
 
 from ctypes import *
-import sys
-import os
-import threading
-import string
 import json
-from . import dcgm_value as dcgmvalue
+import os
 import platform
+import string
+import sys
+import threading
 from inspect import isclass
+
+from . import dcgm_value as dcgmvalue
 
 DCGM_MAX_STR_LENGTH = 256
 DCGM_MAX_NUM_DEVICES = 32  # DCGM 2.0 and newer = 32. DCGM 1.8 and older = 16
@@ -736,6 +737,7 @@ class c_dcgmHostengineHealth_v1(_PrintableStructure):
 dcgmHostengineHealth_version1 = make_dcgm_version(c_dcgmHostengineHealth_v1, 1)
 dcgmHostengineHealth_version = dcgmHostengineHealth_version1
 
+
 # Represents memory and proc clocks for a device
 class c_dcgmClockSet_v1(_PrintableStructure):
     _fields_ = [
@@ -784,6 +786,7 @@ DcgmMigProfileComputeInstanceSlice3 = 32  # compute instance slice 3
 DcgmMigProfileComputeInstanceSlice4 = 33  # compute instance slice 4
 DcgmMigProfileComputeInstanceSlice7 = 34  # compute instance slice 7
 DcgmMigProfileComputeInstanceSlice8 = 35  # compute instance slice 8
+
 
 # /**
 #  * Represents a pair of entity pairings to uniquely identify an entity and its place in the hierarchy.
@@ -876,6 +879,7 @@ class c_dcgmCreateMigEntity_v1(_PrintableStructure):
 
 
 c_dcgmCreateMigEntity_version1 = make_dcgm_version(c_dcgmCreateMigEntity_v1, 1)
+
 
 # /**
 #  * Structure to represent error attributes
@@ -1138,6 +1142,7 @@ dcgmDeviceAttributes_deprecated_version1 = make_dcgm_version(
     c_dcgmDeviceAttributes_deprecated_v1, 1
 )
 
+
 # /**
 #  * Represents attributes corresponding to a device
 #  */
@@ -1154,6 +1159,7 @@ class c_dcgmDeviceAttributes_v3(_PrintableStructure):
 
 
 dcgmDeviceAttributes_version3 = make_dcgm_version(c_dcgmDeviceAttributes_v3, 3)
+
 
 # /**
 #  * Represents attributes info for a MIG device
@@ -1179,6 +1185,7 @@ dcgmDeviceMigAttributesInfo_version1 = make_dcgm_version(
     c_dcgmDeviceMigAttributesInfo_v1, 1
 )
 
+
 # /**
 #  * Represents attributes for a MIG device
 #  */
@@ -1191,6 +1198,7 @@ class c_dcgmDeviceMigAttributes_v1(_PrintableStructure):
 
 
 dcgmDeviceMigAttributes_version1 = make_dcgm_version(c_dcgmDeviceMigAttributes_v1, 1)
+
 
 # /**
 #  * Represents GPU instance profile information
@@ -1216,6 +1224,7 @@ dcgmGpuInstanceProfileInfo_version1 = make_dcgm_version(
     c_dcgmGpuInstanceProfileInfo_v1, 1
 )
 
+
 # /**
 #  * Represents GPU instance profiles
 #  */
@@ -1228,6 +1237,7 @@ class c_dcgmGpuInstanceProfiles_v1(_PrintableStructure):
 
 
 dcgmGpuInstanceProfiles_version1 = make_dcgm_version(c_dcgmGpuInstanceProfiles_v1, 1)
+
 
 # /**
 #  * Represents Compute instance profile information
@@ -1252,6 +1262,7 @@ dcgmComputeInstanceProfileInfo_version1 = make_dcgm_version(
     c_dcgmComputeInstanceProfileInfo_v1, 1
 )
 
+
 # /**
 #  * Represents Compute instance profiles
 #  */
@@ -1266,6 +1277,7 @@ class c_dcgmComputeInstanceProfiles_v1(_PrintableStructure):
 dcgmComputeInstanceProfiles_version1 = make_dcgm_version(
     c_dcgmComputeInstanceProfiles_v1, 1
 )
+
 
 # /**
 #  * Represents vGPU attributes corresponding to a device
@@ -1315,6 +1327,7 @@ class c_dcgmVgpuDeviceAttributes_v7(_PrintableStructure):
 
 dcgmVgpuDeviceAttributes_version7 = make_dcgm_version(c_dcgmVgpuDeviceAttributes_v7, 7)
 
+
 # /**
 #  * Represents attributes specific to vGPU instance
 #  */
@@ -1363,6 +1376,7 @@ class c_dcgmDeviceConfig_v1(_PrintableStructure):
 
 dcgmDeviceConfig_version1 = make_dcgm_version(c_dcgmDeviceConfig_v1, 1)
 
+
 # Structure to represent default vGPU configuration for a device
 class c_dcgmDeviceVgpuConfig_v1(_PrintableStructure):
     _fields_ = [
@@ -1388,6 +1402,7 @@ class c_dcgmDeviceVgpuConfig_v1(_PrintableStructure):
 
 dcgmDeviceVgpuConfig_version1 = make_dcgm_version(c_dcgmDeviceVgpuConfig_v1, 1)
 
+
 # Structure to receive update on the list of metrics.
 class c_dcgmPolicyUpdate_v1(_PrintableStructure):
     _fields_ = [
@@ -1401,6 +1416,7 @@ dcgmPolicyUpdate_version1 = make_dcgm_version(c_dcgmPolicyUpdate_v1, 1)
 
 # Represents a Callback to receive power updates from the host engine
 _dcgmRecvUpdates_t = c_void_p
+
 
 # Define the structure that contains specific policy information
 class c_dcgmPolicyViolation_v1(_PrintableStructure):
@@ -1628,6 +1644,7 @@ class c_dcgmFieldValue_v1(_PrintableStructure):
 
 dcgmFieldValue_version1 = make_dcgm_version(c_dcgmFieldValue_v1, 1)
 
+
 # This structure is used to represent value for the field to be queried (version 2)
 class c_dcgmFieldValue_v2(_PrintableStructure):
     _fields_ = [
@@ -1710,6 +1727,7 @@ class c_dcgmHealthSetParams_v2(_PrintableStructure):
 
 
 dcgmHealthSetParams_version2 = make_dcgm_version(c_dcgmHealthSetParams_v2, 2)
+
 
 # Pid info structs
 class c_dcgmStatSummaryInt64_t(_PrintableStructure):
@@ -2163,6 +2181,7 @@ class c_dcgmNvLinkStatus_v2(_PrintableStructure):
 
 
 dcgmNvLinkStatus_version2 = make_dcgm_version(c_dcgmNvLinkStatus_v2, 2)
+
 
 # State of NvLink links for a NvSwitch
 class c_dcgmNvLinkNvSwitchLinkStatus_v2(_PrintableStructure):
