@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any, Dict, List
 
-import triton
+import triton  # @manual=fbcode//triton:triton
 from torchbenchmark.util.triton_op import BenchmarkOperatorResult
 from userbenchmark.utils import get_default_output_json_path, get_output_json
 

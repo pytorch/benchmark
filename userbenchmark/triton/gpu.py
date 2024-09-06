@@ -54,7 +54,7 @@ def _reset_clock(gpu_info: str):
 
 
 def _get_gpu_name() -> str:
-    import pynvml
+    import pynvml  # @manual=fbsource//third-party/pypi/nvidia-ml-py:nvidia-ml-py
 
     pynvml.nvmlInit()
     gpu_id = CUDA_VISIBLE_DEVICES.split(",")[0]
