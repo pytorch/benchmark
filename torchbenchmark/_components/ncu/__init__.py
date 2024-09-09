@@ -33,9 +33,9 @@ def do_bench_ncu_in_task(
     # before each kernel call to make sure that the L2
     # doesn't contain any input data before the run
     if fast_flush:
-        cache = torch.empty(int(256e6 // 4), dtype=torch.int, device='cuda')
+        cache = torch.empty(int(256e6 // 4), dtype=torch.int, device="cuda")
     else:
-        cache = torch.empty(int(256e6), dtype=torch.int8, device='cuda')
+        cache = torch.empty(int(256e6), dtype=torch.int8, device="cuda")
 
     # Estimate the runtime of the function
     start_event = torch.cuda.Event(enable_timing=True)

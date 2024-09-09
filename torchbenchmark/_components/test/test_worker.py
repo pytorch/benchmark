@@ -1,17 +1,19 @@
 import os
-import sys
 import signal
+import sys
 import textwrap
 import typing
 
 import torch
-from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.testing._internal.common_utils import run_tests, TestCase
 
 try:
-    from torchbenchmark._components._impl.workers import base as base_worker
-    from torchbenchmark._components._impl.workers import in_process_worker
-    from torchbenchmark._components._impl.workers import subprocess_worker
-    from torchbenchmark._components._impl.workers import subprocess_rpc
+    from torchbenchmark._components._impl.workers import (
+        base as base_worker,
+        in_process_worker,
+        subprocess_rpc,
+        subprocess_worker,
+    )
 except (ImportError, ModuleNotFoundError):
     print(
         f"""

@@ -1,53 +1,82 @@
 """
 Run PyTorch cpu benchmarking.
 """
+
 import argparse
 import itertools
 import os
 import subprocess
 import sys
 import time
-import yaml
 
 from datetime import datetime
 from pathlib import Path
 from typing import List
-from .cpu_utils import REPO_PATH, parse_str_to_list, validate, get_output_dir, get_output_json, dump_output, analyze
+
+import yaml
+
 from ..utils import add_path
+from .cpu_utils import (
+    analyze,
+    dump_output,
+    get_output_dir,
+    get_output_json,
+    parse_str_to_list,
+    REPO_PATH,
+    validate,
+)
 
 with add_path(REPO_PATH):
-    from torchbenchmark.util.experiment.instantiator import (list_models, TorchBenchModelConfig,
-                                                            list_devices, list_tests)
+    from torchbenchmark.util.experiment.instantiator import (
+        list_devices,
+        list_models,
+        list_tests,
+        TorchBenchModelConfig,
+    )
 
 BM_NAME = "cpu"
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-def generate_model_configs(devices: List[str], tests: List[str], model_names: List[str], batch_size: int, extra_args: List[str]) -> List[TorchBenchModelConfig]:
+
+def generate_model_configs(
+    devices: List[str],
+    tests: List[str],
+    model_names: List[str],
+    batch_size: int,
+    extra_args: List[str],
+) -> List[TorchBenchModelConfig]:
     """Use the default batch size and default mode."""
     if not model_names:
         model_names = list_models()
     cfgs = itertools.product(*[devices, tests, model_names])
-    result = [TorchBenchModelConfig(
-        name=model_name,
-        device=device,
-        test=test,
-        batch_size=batch_size,
-        extra_args=extra_args,
-        extra_env=None,
-    ) for device, test, model_name in cfgs]
+    result = [
+        TorchBenchModelConfig(
+            name=model_name,
+            device=device,
+            test=test,
+            batch_size=batch_size,
+            extra_args=extra_args,
+            extra_env=None,
+        )
+        for device, test, model_name in cfgs
+    ]
     return result
+
 
 def dump_result_to_json(metrics, output_dir, fname):
     result = get_output_json(BM_NAME, metrics)
     dump_output(BM_NAME, result, output_dir, fname)
+
 
 def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConfig]:
     yaml_file_path = os.path.join(CURRENT_DIR, yaml_file)
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
     models = config_obj["model"] if "model" in config_obj else None
-    models = validate(parse_str_to_list(models), list_models()) if models else list_models()
-    extra_args = config_obj["extra_args"].split(' ') if config_obj["extra_args"] else []
+    models = (
+        validate(parse_str_to_list(models), list_models()) if models else list_models()
+    )
+    extra_args = config_obj["extra_args"].split(" ") if config_obj["extra_args"] else []
     configs = []
     for model in models:
         config = TorchBenchModelConfig(
@@ -61,22 +90,53 @@ def generate_model_configs_from_yaml(yaml_file: str) -> List[TorchBenchModelConf
         configs.append(config)
     return configs
 
+
 def parse_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--device", "-d", default="cpu", help="Devices to run, splited by comma.")
-    parser.add_argument("--test", "-t", default="eval", help="Tests to run, splited by comma.")
-    parser.add_argument("--model", "-m", default=None, help="Only run the specifice models, splited by comma.")
-    parser.add_argument("--batch-size", "-b", default=None, help="Run the specifice batch size.")
-    parser.add_argument("--config", "-c", default=None, help="YAML config to specify tests to run.")
-    parser.add_argument("--metrics", default="latencies", help="Benchmark metrics, split by comma.")
-    parser.add_argument("--nwarmup", default=20, help="Benchmark warmup iteration number.")
+    parser.add_argument(
+        "--device", "-d", default="cpu", help="Devices to run, splited by comma."
+    )
+    parser.add_argument(
+        "--test", "-t", default="eval", help="Tests to run, splited by comma."
+    )
+    parser.add_argument(
+        "--model",
+        "-m",
+        default=None,
+        help="Only run the specifice models, splited by comma.",
+    )
+    parser.add_argument(
+        "--batch-size", "-b", default=None, help="Run the specifice batch size."
+    )
+    parser.add_argument(
+        "--config", "-c", default=None, help="YAML config to specify tests to run."
+    )
+    parser.add_argument(
+        "--metrics", default="latencies", help="Benchmark metrics, split by comma."
+    )
+    parser.add_argument(
+        "--nwarmup", default=20, help="Benchmark warmup iteration number."
+    )
     parser.add_argument("--niter", default=50, help="Benchmark iteration number.")
     parser.add_argument("--output", "-o", default=None, help="Output dir.")
-    parser.add_argument("--timeout", default=None, help="Limit single model test run time. Default None, means no limitation.")
-    parser.add_argument("--launcher", action="store_true", help="Use torch.backends.xeon.run_cpu to get the peak performance on Intel(R) Xeon(R) Scalable Processors.")
-    parser.add_argument("--launcher-args", default="--throughput-mode", help="Provide the args of torch.backends.xeon.run_cpu. See `python -m torch.backends.xeon.run_cpu --help`")
+    parser.add_argument(
+        "--timeout",
+        default=None,
+        help="Limit single model test run time. Default None, means no limitation.",
+    )
+    parser.add_argument(
+        "--launcher",
+        action="store_true",
+        help="Use torch.backends.xeon.run_cpu to get the peak performance on Intel(R) Xeon(R) Scalable Processors.",
+    )
+    parser.add_argument(
+        "--launcher-args",
+        default="--throughput-mode",
+        help="Provide the args of torch.backends.xeon.run_cpu. See `python -m torch.backends.xeon.run_cpu --help`",
+    )
     parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
     return parser.parse_known_args(args)
+
 
 def run(args: List[str]):
     args, extra_args = parse_args(args)
@@ -90,7 +150,13 @@ def run(args: List[str]):
         devices = validate(parse_str_to_list(args.device), list_devices())
         tests = validate(parse_str_to_list(args.test), list_tests())
         models = validate(parse_str_to_list(args.model), list_models())
-        configs = generate_model_configs(devices, tests, model_names=models, batch_size=args.batch_size, extra_args=extra_args)
+        configs = generate_model_configs(
+            devices,
+            tests,
+            model_names=models,
+            batch_size=args.batch_size,
+            extra_args=extra_args,
+        )
     args.output = args.output if args.output else get_output_dir(BM_NAME, test_date)
     try:
         for config in configs:
@@ -98,7 +164,10 @@ def run(args: List[str]):
     except KeyboardInterrupt:
         print("User keyboard interrupted!")
     result_metrics = analyze(args.output)
-    dump_result_to_json(result_metrics, Path(args.output).parent, f"metrics-{test_date}.json")
+    dump_result_to_json(
+        result_metrics, Path(args.output).parent, f"metrics-{test_date}.json"
+    )
+
 
 def run_benchmark(config, args):
     benchmark_script = REPO_PATH.joinpath("userbenchmark", "cpu", "run_config.py")
@@ -108,6 +177,7 @@ def run_benchmark(config, args):
         cmd.extend(["-m", "torch.backends.xeon.run_cpu"])
         if args.launcher_args:
             import shlex
+
             cmd.extend(shlex.split(args.launcher_args))
     cmd.append(str(benchmark_script))
     if config.name:

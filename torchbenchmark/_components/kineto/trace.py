@@ -1,8 +1,9 @@
-from typing import Callable
-from functools import partial
-from datetime import datetime
 import random
 import string
+from datetime import datetime
+from functools import partial
+from typing import Callable
+
 import torch
 import torch.profiler as profiler
 
@@ -18,7 +19,14 @@ if not hasattr(torch.version, "git_version"):
     from .fb.run_utils import trace_handler
 
 
-def do_bench_kineto(fn: Callable, warmup=25, grad_to_none=None, fast_flush=True, profile_opts=None, output_dir=None) -> str:
+def do_bench_kineto(
+    fn: Callable,
+    warmup=25,
+    grad_to_none=None,
+    fast_flush=True,
+    profile_opts=None,
+    output_dir=None,
+) -> str:
     """
     Benchmark the runtime of the provided function. By default, return the median runtime of :code:`fn` along with
     the 20-th and 80-th performance percentile.
@@ -37,6 +45,7 @@ def do_bench_kineto(fn: Callable, warmup=25, grad_to_none=None, fast_flush=True,
     :type output_dir: str, optional
     """
     import torch
+
     fn()
     torch.cuda.synchronize()
 
@@ -44,9 +53,9 @@ def do_bench_kineto(fn: Callable, warmup=25, grad_to_none=None, fast_flush=True,
     # before each kernel call to make sure that the L2
     # doesn't contain any input data before the run
     if fast_flush:
-        cache = torch.empty(int(256e6 // 4), dtype=torch.int, device='cuda')
+        cache = torch.empty(int(256e6 // 4), dtype=torch.int, device="cuda")
     else:
-        cache = torch.empty(int(256e6), dtype=torch.int8, device='cuda')
+        cache = torch.empty(int(256e6), dtype=torch.int8, device="cuda")
 
     # Estimate the runtime of the function
     start_event = torch.cuda.Event(enable_timing=True)

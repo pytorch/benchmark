@@ -1,19 +1,20 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # This software may be used and distributed according to the terms of the GNU General Public License version 3.
 
-from PIL import Image
-import torch
 import os
-from ...util.model import BenchmarkModel
-from torchmultimodal.transforms.clip_transform import (
-    CLIPTextTransform,
-    CLIPImageTransform,
-)
+
+import torch
+from PIL import Image
 from torchmultimodal.models.clip.model import clip_vit_b32
 from torchmultimodal.modules.losses.contrastive_loss_with_temperature import (
     ContrastiveLossWithTemperature,
 )
-from PIL import Image
+from torchmultimodal.transforms.clip_transform import (
+    CLIPImageTransform,
+    CLIPTextTransform,
+)
+
+from ...util.model import BenchmarkModel
 
 
 class Model(BenchmarkModel):
@@ -30,6 +31,7 @@ class Model(BenchmarkModel):
         )
         if not os.path.exists(self.data_folder):
             from torchbenchmark.util.framework.fb.installer import install_data
+
             self.data_folder = install_data("pizza")
         self.image_name = "pizza.jpg"
         self.image = Image.open(os.path.join(self.data_folder, self.image_name))

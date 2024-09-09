@@ -1,13 +1,14 @@
-from torch.utils.data import DataLoader
+import random
+
+import numpy as np
+import torch
 
 from bert_pytorch import parse_args
+from torch.utils.data import DataLoader
+
+from .dataset import BERTDataset, WordVocab
 from .model import BERT
 from .trainer import BERTTrainer
-from .dataset import BERTDataset, WordVocab
-
-import random
-import torch
-import numpy as np
 
 
 def train():

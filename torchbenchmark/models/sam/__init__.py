@@ -1,14 +1,16 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # This software may be used and distributed according to the terms of the GNU General Public License version 3.
 
+import os
+
+import cv2
+import numpy as np
+import torch
+from torchbenchmark.tasks import COMPUTER_VISION
+
 from ...util.model import BenchmarkModel
 from .build_sam import sam_model_registry
 from .predictor import SamPredictor
-import numpy as np
-import cv2
-from torchbenchmark.tasks import COMPUTER_VISION
-import torch
-import os
 
 
 class Model(BenchmarkModel):
@@ -25,6 +27,7 @@ class Model(BenchmarkModel):
         sam_checkpoint = os.path.join(data_folder, "sam_vit_h_4b8939.pth")
         if not os.path.exists(sam_checkpoint):
             from torchbenchmark.util.framework.fb.installer import install_model_weights
+
             sam_checkpoint = install_model_weights(self.name)
         model_type = "vit_h"
 
@@ -35,6 +38,7 @@ class Model(BenchmarkModel):
         image_path = os.path.join(data_folder, "truck.jpg")
         if not os.path.exists(image_path):
             from torchbenchmark.util.framework.fb.installer import install_data
+
             image_path = os.path.join(install_data("truck"), "truck.jpg")
         self.image = cv2.imread(image_path)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)

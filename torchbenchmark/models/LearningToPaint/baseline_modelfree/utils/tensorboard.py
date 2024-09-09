@@ -1,5 +1,6 @@
-import PIL
 from io import BytesIO
+
+import PIL
 import tensorboardX as tb
 from tensorboardX.summary import Summary
 

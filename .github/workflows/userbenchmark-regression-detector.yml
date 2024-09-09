@@ -42,7 +42,8 @@ jobs:
           set -x
           . "${SETUP_SCRIPT}"
           pushd benchmark
-          python install.py
+          # only install the subset of models currently running.
+          python install.py BERT_pytorch DALLE2_pytorch hf_GPT2_large hf_T5_large resnet50 timm_vision_transformer_large yolov3
       - name: Print torch.version.git_version
         run: |
           set -x
@@ -58,7 +59,8 @@ jobs:
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
 
           # TODO: scale this to run other benchmarks, but let's start with optim
-          python -m userbenchmark.optim.run_optim_benchmarks -c ${{ github.event.inputs.userbenchmark_options }}
+          # Only run a subset, see if this fixes the workflow
+          python -m userbenchmark.optim.run_optim_benchmarks -s -c ${{ github.event.inputs.userbenchmark_options }}
           cp -r ./.userbenchmark/optim ../benchmark-output
       - name: Detect potential regressions
         continue-on-error: true
@@ -66,7 +68,7 @@ jobs:
           . "${SETUP_SCRIPT}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
-          # TODO: the following assumes only one metrics-*.json is found. It will keep 
+          # TODO: the following assumes only one metrics-*.json is found. It will keep
           # overwriting gh-issue.md if multiple are found. Scaling this up is a potential next step.
           for r in ${RESULTS[@]}; do
             python regression_detector.py --platform "${PLATFORM_NAME}" --treatment "${r}" --owner @janeyx99 \

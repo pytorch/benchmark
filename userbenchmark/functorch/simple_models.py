@@ -1,8 +1,14 @@
+import functools
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from functorch import vmap, grad, combine_state_for_ensemble, make_functional_with_buffers
-import functools
+from functorch import (
+    combine_state_for_ensemble,
+    grad,
+    make_functional_with_buffers,
+    vmap,
+)
 
 from .util import BenchmarkCase
 
@@ -75,10 +81,9 @@ class SimpleCNN(nn.Module):
         return torch.randn(10, [bs] + shape)
 
 
-
 class VmapWrapper(BenchmarkCase):
     def __init__(self, model_cls, device):
-        self.name_ = f'{model_cls.__name__}_vmap_{device}'
+        self.name_ = f"{model_cls.__name__}_vmap_{device}"
 
         self.model = model_cls().to(device)
         self.inputs = model_cls.make_input().to(device)
@@ -102,7 +107,7 @@ def ensemble_setup(self, model_cls, device):
 
 class EnsembleMultiWrapper(BenchmarkCase):
     def __init__(self, model_cls, device):
-        self.name_ = f'{model_cls.__name__}_ensemble_multi_{device}'
+        self.name_ = f"{model_cls.__name__}_ensemble_multi_{device}"
         ensemble_setup(self, model_cls, device)
 
     def name(self):
@@ -114,7 +119,7 @@ class EnsembleMultiWrapper(BenchmarkCase):
 
 class EnsembleSingleWrapper(BenchmarkCase):
     def __init__(self, model_cls, device):
-        self.name_ = f'{model_cls.__name__}_ensemble_single_{device}'
+        self.name_ = f"{model_cls.__name__}_ensemble_single_{device}"
         ensemble_setup(self, model_cls, device)
         self.inputs = self.inputs[0]
 
@@ -139,7 +144,7 @@ def compute_loss(fmodel, params, buffers, sample, target):
 
 class PerSampleGradWrapper(BenchmarkCase):
     def __init__(self, model_cls, device):
-        self.name_ = f'{model_cls.__name__}_persamplegrad_{device}'
+        self.name_ = f"{model_cls.__name__}_persamplegrad_{device}"
         model = model_cls().to(device)
         self.model = make_functional_with_buffers(model)
         self.inputs = model_cls.make_input().to(device)

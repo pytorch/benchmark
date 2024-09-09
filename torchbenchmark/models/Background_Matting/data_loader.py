@@ -1,12 +1,14 @@
-from __future__ import print_function, division
-import torch
+from __future__ import division, print_function
+
+import random
+
+import cv2, random
+import numpy as np
 import pandas as pd
 import skimage
+import torch
 from skimage import io
-import numpy as np
-import random
 from torch.utils.data import Dataset
-import random, cv2
 
 unknown_code = 128
 

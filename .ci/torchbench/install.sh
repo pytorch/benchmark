@@ -26,4 +26,5 @@ parent_dir=$(dirname "$(readlink -f "$0")")/../..
 cd ${parent_dir}
 
 python -c "import torch; print(torch.__version__); print(torch.version.git_version)"
-python install.py
+
+python install.py $@

@@ -2,14 +2,15 @@
 # It is licensed under the GLPv3 license. You can find a copy of it
 # here: https://www.gnu.org/licenses/gpl-3.0.en.html .
 
+from typing import Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.func import vmap, jacrev
-from typing import Tuple
+from torch.func import jacrev, vmap
+from torchbenchmark.tasks import OTHER
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import OTHER
 
 
 sigma = 0.5

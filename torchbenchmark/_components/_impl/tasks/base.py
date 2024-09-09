@@ -1,4 +1,5 @@
 """Add Task abstraction to reduce the friction of controlling a remote worker."""
+
 import abc
 import ast
 import functools
@@ -19,8 +20,7 @@ class TaskBase(abc.ABC):
     """
 
     @abc.abstractproperty
-    def worker(self) -> base.WorkerBase:
-        ...
+    def worker(self) -> base.WorkerBase: ...
 
 
 def parse_f(f: typing.Callable) -> typing.Tuple[inspect.Signature, str]:
@@ -41,12 +41,14 @@ def parse_f(f: typing.Callable) -> typing.Tuple[inspect.Signature, str]:
         if arg_parameter.kind == inspect.Parameter.VAR_POSITIONAL:
             raise TypeError(
                 f"Variadic positional argument `*{arg}` not permitted "
-                "for `run_in_worker` function.")
+                "for `run_in_worker` function."
+            )
 
         if arg_parameter.kind == inspect.Parameter.VAR_KEYWORD:
             raise TypeError(
                 f"Variadic keywork argument `**{arg}` not permitted "
-                "for `run_in_worker` function.")
+                "for `run_in_worker` function."
+            )
 
         if arg_parameter.annotation == inspect.Parameter.empty:
             raise TypeError(f"Missing type annotation for parameter `{arg}`")
@@ -84,7 +86,9 @@ def parse_f(f: typing.Callable) -> typing.Tuple[inspect.Signature, str]:
     # `functools.wraps` is not detectable (by design) and is thus caveat
     # emptor.
     if getattr(f, "__wrapped__", None):
-        raise TypeError(textwrap.dedent("""
+        raise TypeError(
+            textwrap.dedent(
+                """
             `f` cannot be decorated below `@run_in_worker` (except for
             @staticmethod) because the extraction logic would not carry through
             said decorator(s).
@@ -100,7 +104,9 @@ def parse_f(f: typing.Callable) -> typing.Tuple[inspect.Signature, str]:
                 @my_decorator
                 def foo() -> None:
                     ...
-        """).strip())
+        """
+            ).strip()
+        )
 
     # Dedent, as `f` may have been defined in a scoped context.
     f_src = textwrap.dedent(inspect.getsource(f))
@@ -127,10 +133,12 @@ def parse_f(f: typing.Callable) -> typing.Tuple[inspect.Signature, str]:
         # line comment), we simply elect to skip over them and index on the
         # first node that will give valid indices.
         if node.col_offset == -1:
-            assert isinstance(node.value, ast.Str), f"Expected `ast.Str`, got {type(node)}. ({node}) {node.lineno}"
+            assert isinstance(
+                node.value, ast.Str
+            ), f"Expected `ast.Str`, got {type(node)}. ({node}) {node.lineno}"
             continue
 
-        raw_body_lines = src_lines[node.lineno - 1:]
+        raw_body_lines = src_lines[node.lineno - 1 :]
         col_offset = node.col_offset
         break
 
@@ -229,16 +237,15 @@ def run_in_worker(scoped: bool = True) -> typing.Callable[..., typing.Any]:
             pass
 
         signature, f_body = parse_f(f)
-        has_return_value = (signature.return_annotation is not None)
+        has_return_value = signature.return_annotation is not None
         if has_return_value and not scoped:
             raise TypeError(
-                "Unscoped (globally executed) call can not have a return value.")
+                "Unscoped (globally executed) call can not have a return value."
+            )
 
         @functools.wraps(f)
         def inner(
-            self: TaskBase,
-            *args: typing.Any,
-            **kwargs: typing.Any
+            self: TaskBase, *args: typing.Any, **kwargs: typing.Any
         ) -> typing.Any:
             bound_signature = signature.bind(*args, **kwargs)
             bound_signature.apply_defaults()
@@ -250,13 +257,17 @@ def run_in_worker(scoped: bool = True) -> typing.Callable[..., typing.Any]:
                 except ValueError:
                     raise ValueError(f"unmarshallable arg {arg_name}: {arg_value}")
 
-                body.append(f"{arg_name} = marshal.loads(bytes.fromhex({repr(arg_bytes.hex())}))  # {arg_value}")
+                body.append(
+                    f"{arg_name} = marshal.loads(bytes.fromhex({repr(arg_bytes.hex())}))  # {arg_value}"
+                )
             body.extend(["", "# Wrapped source"] + f_body.splitlines(keepends=False))
 
-            src = "\n".join([
-                "def _run_in_worker_f():",
-                textwrap.indent("\n".join(body), " " * 4),
-                textwrap.dedent("""
+            src = "\n".join(
+                [
+                    "def _run_in_worker_f():",
+                    textwrap.indent("\n".join(body), " " * 4),
+                    textwrap.dedent(
+                        """
                 try:
                     # Clear prior value if it exists.
                     del _run_in_worker_result
@@ -265,8 +276,10 @@ def run_in_worker(scoped: bool = True) -> typing.Callable[..., typing.Any]:
                     pass
 
                 _run_in_worker_result = _run_in_worker_f()
-                """)
-            ])
+                """
+                    ),
+                ]
+            )
 
             # `worker.load` is not free, so for void functions we skip it.
             if has_return_value:
@@ -278,4 +291,5 @@ def run_in_worker(scoped: bool = True) -> typing.Callable[..., typing.Any]:
                 self.worker.run(src)
 
         return inner
+
     return outer

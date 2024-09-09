@@ -1,6 +1,6 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
-import numpy as np
 from torch import nn
 
 
@@ -18,21 +18,33 @@ class LSTMWithProjection(nn.Module):
         o, (_, _) = self.lstm(x)
         return self.linear(o)
 
+
 class LSTMWithoutProjection(nn.Module):
     def __init__(self, input_dim, lstm_dim, proj_dim, num_lstm_layers):
         super().__init__()
-        self.lstm = nn.LSTM(input_size=input_dim,
-                            hidden_size=lstm_dim,
-                            num_layers=num_lstm_layers,
-                            batch_first=True)
+        self.lstm = nn.LSTM(
+            input_size=input_dim,
+            hidden_size=lstm_dim,
+            num_layers=num_lstm_layers,
+            batch_first=True,
+        )
         self.linear = nn.Linear(lstm_dim, proj_dim, bias=True)
         self.relu = nn.ReLU()
+
     def forward(self, x):
         _, (hidden, _) = self.lstm(x)
         return self.relu(self.linear(hidden[-1]))
 
+
 class SpeakerEncoder(nn.Module):
-    def __init__(self, input_dim, proj_dim=256, lstm_dim=768, num_lstm_layers=3, use_lstm_with_projection=True):
+    def __init__(
+        self,
+        input_dim,
+        proj_dim=256,
+        lstm_dim=768,
+        num_lstm_layers=3,
+        use_lstm_with_projection=True,
+    ):
         super().__init__()
         self.use_lstm_with_projection = use_lstm_with_projection
         layers = []
@@ -43,7 +55,9 @@ class SpeakerEncoder(nn.Module):
                 layers.append(LSTMWithProjection(proj_dim, lstm_dim, proj_dim))
             self.layers = nn.Sequential(*layers)
         else:
-            self.layers = LSTMWithoutProjection(input_dim, lstm_dim, proj_dim, num_lstm_layers)
+            self.layers = LSTMWithoutProjection(
+                input_dim, lstm_dim, proj_dim, num_lstm_layers
+            )
 
         self._init_layers()
 
@@ -112,6 +126,7 @@ class SpeakerEncoder(nn.Module):
                     frames[cur_iter <= num_iters, :, :]
                 )
         return embed / num_iters
+
 
 # adapted from https://github.com/cvqluu/GE2E-Loss
 class GE2ELoss(nn.Module):
@@ -232,6 +247,7 @@ class GE2ELoss(nn.Module):
         L = self.embed_loss(dvecs, cos_sim_matrix)
         return L.mean()
 
+
 # adapted from https://github.com/clovaai/voxceleb_trainer/blob/master/loss/angleproto.py
 class AngleProtoLoss(nn.Module):
     """
@@ -244,6 +260,7 @@ class AngleProtoLoss(nn.Module):
             - init_w (float): defines the initial value of w
             - init_b (float): definies the initial value of b
     """
+
     def __init__(self, init_w=10.0, init_b=-5.0):
         super(AngleProtoLoss, self).__init__()
         # pylint: disable=E1102
@@ -262,9 +279,14 @@ class AngleProtoLoss(nn.Module):
         out_positive = x[:, 0, :]
         num_speakers = out_anchor.size()[0]
 
-        cos_sim_matrix = F.cosine_similarity(out_positive.unsqueeze(-1).expand(-1, -1, num_speakers), out_anchor.unsqueeze(-1).expand(-1, -1, num_speakers).transpose(0, 2))
+        cos_sim_matrix = F.cosine_similarity(
+            out_positive.unsqueeze(-1).expand(-1, -1, num_speakers),
+            out_anchor.unsqueeze(-1).expand(-1, -1, num_speakers).transpose(0, 2),
+        )
         torch.clamp(self.w, 1e-6)
         cos_sim_matrix = cos_sim_matrix * self.w + self.b
-        label = torch.from_numpy(np.asarray(range(0, num_speakers))).to(cos_sim_matrix.device)
+        label = torch.from_numpy(np.asarray(range(0, num_speakers))).to(
+            cos_sim_matrix.device
+        )
         L = self.criterion(cos_sim_matrix, label)
         return L

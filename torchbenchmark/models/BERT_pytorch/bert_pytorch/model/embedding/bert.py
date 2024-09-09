@@ -1,7 +1,8 @@
 import torch.nn as nn
-from .token import TokenEmbedding
+
 from .position import PositionalEmbedding
 from .segment import SegmentEmbedding
+from .token import TokenEmbedding
 
 
 class BERTEmbedding(nn.Module):

@@ -1,12 +1,13 @@
-import torch
-
 import argparse
 import json
 import os
 import time
-import torch.utils.jit.log_extract as log_extract
 from datetime import datetime
 from typing import Any, List
+
+import torch
+import torch.utils.jit.log_extract as log_extract
+
 
 def parse_fusers(extra_args: List[str]):
     parser = argparse.ArgumentParser()
@@ -15,14 +16,17 @@ def parse_fusers(extra_args: List[str]):
         nargs="*",
         default=[],
         choices=["no_fuser", "fuser0", "fuser1", "fuser2"],
-        help="List of fusers to run tests on")
-    parser.add_argument("--filters", nargs="*", default=[], help='List of fuser microbenchmarks to test')
+        help="List of fusers to run tests on",
+    )
+    parser.add_argument(
+        "--filters", nargs="*", default=[], help="List of fuser microbenchmarks to test"
+    )
     parser.add_argument("--output", help="specifiy the output file name")
     args = parser.parse_args(extra_args)
     return args
 
 
-class NVFuserBenchmark():
+class NVFuserBenchmark:
     def __init__(self, name, ir, warmup_runs=10, test_runs=20):
         self.name = name
         self.ir = ir
@@ -52,18 +56,23 @@ def dump_metrics(metrics, output_name):
         "metrics": metrics,
     }
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    target_dir = os.path.normpath(os.path.join(current_dir, "../../.userbenchmark/nvfuser/"))
+    target_dir = os.path.normpath(
+        os.path.join(current_dir, "../../.userbenchmark/nvfuser/")
+    )
     os.makedirs(target_dir, exist_ok=True)
-    fname = "metrics-{}.json".format(datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S"))
+    fname = "metrics-{}.json".format(
+        datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
+    )
     full_fname = os.path.join(target_dir, fname)
     if output_name is not None:
         full_fname = output_name
-    with open(full_fname, 'w') as f:
+    with open(full_fname, "w") as f:
         json.dump(output, f, indent=4)
 
 
 def run_nvfuser_microbenchmarks(extra_args: List[str]):
     from userbenchmark.nvfuser.ir import ir_list
+
     benchmarks = [NVFuserBenchmark(name, ir) for name, ir in ir_list]
     args = parse_fusers(extra_args)
     filters, fusers = args.filters, args.fusers
@@ -80,7 +89,9 @@ def run_nvfuser_microbenchmarks(extra_args: List[str]):
             runtime = b.run_test(inputs, fuser)
             outputs.append((fuser, runtime))
             metrics[f"{fuser}:{b.name}"] = runtime
-        print(f"{b.name}:", "; ".join(f"{name} = {time:.3f} ms" for name, time in outputs))
+        print(
+            f"{b.name}:", "; ".join(f"{name} = {time:.3f} ms" for name, time in outputs)
+        )
     dump_metrics(metrics, args.output)
 
 

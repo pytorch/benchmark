@@ -4,8 +4,8 @@ from contextlib import nullcontext
 
 import torch
 import torch.optim as optim
-from torchvision import models
 from torchbenchmark.util.model import BenchmarkModel
+from torchvision import models
 
 
 class TorchVisionModel(BenchmarkModel):

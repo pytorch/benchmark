@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 import os
-import torch
-from .solver import Solver
-from .data_loader import get_loader
-from .main import parse_config, makedirs
 from typing import Tuple
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
+
+import torch
 from torchbenchmark import DATA_PATH
+from torchbenchmark.tasks import COMPUTER_VISION
+
+from ...util.model import BenchmarkModel
+from .data_loader import get_loader
+from .main import makedirs, parse_config
+from .solver import Solver
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True

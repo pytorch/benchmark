@@ -1,6 +1,6 @@
-import csv
+import argparse
+import itertools
 import os
-import statistics
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import numpy
@@ -12,7 +12,6 @@ from hammer.ops.triton.triton_hstu_linear import _addmm_fwd, triton_addmm
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
-    dump_autotuner_best_config,
     register_benchmark,
     register_metric,
     register_x_val,
@@ -66,16 +65,23 @@ BUILDIN_SHAPES = [
     (20068, 1536, 512),
 ]
 
+# M=13, K=2^6..2^25, N=2
+LARGE_K_SHAPES = list(itertools.product([13], [2**i for i in range(6, 26)], [2]))
+
 
 class Operator(BenchmarkOperator):
-    DEFAULT_METRICS = ["tflops"]
+    DEFAULT_METRICS = ["tflops", "best_config"]
     DEFAULT_PRECISION = "bf16"
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
+        super().__init__(tb_args, extra_args)
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:
             self.shapes = [(addmm_args.m, addmm_args.k, addmm_args.n)]
+        elif addmm_args.large_k_shapes:
+            self.shapes = LARGE_K_SHAPES
         else:
             self.shapes = BUILDIN_SHAPES
         self.col_major = addmm_args.col_major
@@ -132,15 +138,6 @@ class Operator(BenchmarkOperator):
         m, k = mat1.size()
         k, n = mat2.size()
         return (m, n, k)
-
-    @register_metric(skip_baseline=True)
-    def best_config(
-        self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
-    ) -> str:
-        if "triton_addmm" in str(fn_name):
-            return dump_autotuner_best_config(_addmm_fwd)
-        else:
-            return ""
 
     def get_input_iter(self) -> Generator:
         for shape in self.shapes:

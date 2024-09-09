@@ -55,26 +55,28 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # miscellaneous
 import builtins
+import json
 
 # import bisect
 # import shutil
 import time
-import json
-
-# data generation
-from . import dlrm_data_pytorch as dp
-
-# numpy
-import numpy as np
 
 # onnx
 # The onnx import causes deprecation warnings every time workers
 # are spawned during testing. So, we filter out those warnings.
 import warnings
 
+# numpy
+import numpy as np
+
+# data generation
+from . import dlrm_data_pytorch as dp
+
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
 import onnx
+
+import sklearn.metrics
 
 # pytorch
 import torch
@@ -83,19 +85,17 @@ from torch.nn.parallel.parallel_apply import parallel_apply
 from torch.nn.parallel.replicate import replicate
 from torch.nn.parallel.scatter_gather import gather, scatter
 
-# quotient-remainder trick
-from .tricks.qr_embedding_bag import QREmbeddingBag
-
-# mixed-dimension trick
-from .tricks.md_embedding_bag import PrEmbeddingBag, md_solver
-
-import sklearn.metrics
-
 # from torchviz import make_dot
 # import torch.nn.functional as Functional
 # from torch.nn.parameter import Parameter
 
 from torch.optim.lr_scheduler import _LRScheduler
+
+# mixed-dimension trick
+from .tricks.md_embedding_bag import md_solver, PrEmbeddingBag
+
+# quotient-remainder trick
+from .tricks.qr_embedding_bag import QREmbeddingBag
 
 exc = getattr(builtins, "IOError", "FileNotFoundError")
 
@@ -519,9 +519,10 @@ def dash_separated_floats(value):
 
 
 if __name__ == "__main__":
+    import argparse
+
     ### import packages ###
     import sys
-    import argparse
 
     ### parse arguments ###
     parser = argparse.ArgumentParser(
@@ -921,7 +922,7 @@ if __name__ == "__main__":
                 # note that the call to .to(device) has already happened
                 ld_model = torch.load(
                     args.load_model,
-                    map_location=torch.device("cuda")
+                    map_location=torch.device("cuda"),
                     # map_location=lambda storage, loc: storage.cuda(0)
                 )
         else:

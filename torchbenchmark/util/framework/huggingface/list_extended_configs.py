@@ -1,8 +1,9 @@
-import torch
 import os
-from torchbenchmark import REPO_PATH
 
 from typing import List
+
+import torch
+from torchbenchmark import REPO_PATH
 
 DYNAMOBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "dynamo", "dynamobench")
 
@@ -18,7 +19,10 @@ if hasattr(torch.version, "git_version"):
     MODELS_FILENAME = os.path.join(DYNAMOBENCH_PATH, "huggingface_models_list.txt")
 else:
     from libfb.py import parutil
-    MODELS_FILENAME = parutil.get_file_path("caffe2/benchmarks/dynamo/huggingface_models_list.txt")
+
+    MODELS_FILENAME = parutil.get_file_path(
+        "caffe2/benchmarks/dynamo/huggingface_models_list.txt"
+    )
 assert os.path.exists(MODELS_FILENAME)
 with open(MODELS_FILENAME, "r") as fh:
     lines = fh.readlines()
@@ -29,11 +33,14 @@ with open(MODELS_FILENAME, "r") as fh:
         BATCH_SIZE_KNOWN_MODELS[model_name] = batch_size
 assert len(BATCH_SIZE_KNOWN_MODELS)
 
+
 def is_extended_huggingface_models(model_name: str) -> bool:
     return model_name in BATCH_SIZE_KNOWN_MODELS
 
+
 def list_extended_huggingface_models() -> List[str]:
     return list(BATCH_SIZE_KNOWN_MODELS.keys())
+
 
 # TODO - Fails even after fake tensors
 BATCH_SIZE_DIVISORS = {

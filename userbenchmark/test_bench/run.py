@@ -1,31 +1,31 @@
 """
 Run TorchBench test benchmarking.
 """
+
 import argparse
+import ast
 import itertools
-import pathlib
 import json
 import os
-import shutil
-import yaml
+import pathlib
 import re
-import ast
-import numpy
+import shutil
 
-from typing import List, Dict, Optional, Union, Set
+from typing import Dict, List, Optional, Set, Union
+
+import numpy
+import yaml
+
 from ..utils import (
-    REPO_PATH,
     add_path,
-    get_output_json,
-    get_default_output_json_path,
     get_default_debug_output_dir,
-)
-from . import BM_NAME
-from torchbenchmark import (
-    ModelTask,
-    get_metadata_from_yaml,
+    get_default_output_json_path,
+    get_output_json,
     REPO_PATH,
 )
+from torchbenchmark import get_metadata_from_yaml, ModelTask, REPO_PATH
+
+from . import BM_NAME
 
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
@@ -37,17 +37,17 @@ TIMEOUT = int(os.getenv("TIMEOUT", 300))  # Seconds
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import (
-        list_models,
+        list_devices,
         list_extended_models,
+        list_models,
+        list_tests,
         load_model_isolated,
         TorchBenchModelConfig,
-        list_devices,
-        list_tests,
     )
     from torchbenchmark.util.experiment.metrics import (
-        TorchBenchModelMetrics,
-        get_model_test_metrics,
         get_model_accuracy,
+        get_model_test_metrics,
+        TorchBenchModelMetrics,
     )
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -196,9 +196,12 @@ def run_config(
         return dict.fromkeys(metrics, str(e))
 
 
-def run_config_memleak(config: TorchBenchModelConfig, dryrun: bool=False) -> Dict[str, str]:
+def run_config_memleak(
+    config: TorchBenchModelConfig, dryrun: bool = False
+) -> Dict[str, str]:
     def assertEqual(x, y):
         assert x == y, f"{x} != {y}"
+
     model_name = config.name
     model_path = os.path.join(REPO_PATH, "torchbenchmark", "models", model_name)
     metadata = get_metadata_from_yaml(model_path)
@@ -264,6 +267,7 @@ def run_config_accuracy(
         print(" [runtime_error]", flush=True)
         return {"accuracy": str(e)}
 
+
 def parse_known_args(args):
     parser = argparse.ArgumentParser()
     default_device = "cuda" if "cuda" in list_devices() else "cpu"
@@ -293,13 +297,17 @@ def parse_known_args(args):
         "--run-bisect", help="Run with the output of regression detector."
     )
     parser.add_argument(
-        "--oss", action="store_true", help="[Meta-Internal Only] Run only the oss models."
+        "--oss",
+        action="store_true",
+        help="[Meta-Internal Only] Run only the oss models.",
     )
     parser.add_argument(
         "--timm", action="store_true", help="Run with extended timm models."
     )
     parser.add_argument(
-        "--huggingface", action="store_true", help="Run with extended huggingface models."
+        "--huggingface",
+        action="store_true",
+        help="Run with extended huggingface models.",
     )
     parser.add_argument(
         "--all", action="store_true", help="Run with all available models."
@@ -365,6 +373,7 @@ def run(args: List[str]):
     result = get_output_json(BM_NAME, results)
     if args.device == "cuda":
         import torch
+
         result["environ"]["device"] = torch.cuda.get_device_name()
     o = json.dumps(result, indent=4)
     print(o)

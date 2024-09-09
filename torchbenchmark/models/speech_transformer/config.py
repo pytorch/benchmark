@@ -1,18 +1,19 @@
-import os
-import json
-import torch
-import kaldi_io
 import dataclasses
+import json
+import os
+
+import kaldi_io
+import torch
+from torchbenchmark import DATA_PATH
+
+from .speech_transformer.data import AudioDataLoader, AudioDataset, build_LFR_features
+from .speech_transformer.transformer import Transformer
 
 from .speech_transformer.transformer.decoder import Decoder
 from .speech_transformer.transformer.encoder import Encoder
-from .speech_transformer.transformer import Transformer
-from .speech_transformer.transformer.optimizer import TransformerOptimizer
 from .speech_transformer.transformer.loss import cal_performance
-from .speech_transformer.utils import process_dict, IGNORE_ID
-from .speech_transformer.data import build_LFR_features
-from .speech_transformer.data import AudioDataLoader, AudioDataset
-from torchbenchmark import DATA_PATH
+from .speech_transformer.transformer.optimizer import TransformerOptimizer
+from .speech_transformer.utils import IGNORE_ID, process_dict
 
 
 @dataclasses.dataclass
@@ -252,7 +253,5 @@ class SpeechTransformerEvalConfig:
 
     def eval(self):
         for input, input_length in self.example_inputs:
-            nbest_hyps = self.model.recognize(
-                input, input_length, self.char_list, self
-            )
+            nbest_hyps = self.model.recognize(input, input_length, self.char_list, self)
         return nbest_hyps
