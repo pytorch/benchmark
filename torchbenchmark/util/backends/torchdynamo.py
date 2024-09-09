@@ -111,11 +111,6 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
         help="set to freeze the graph and prepack weights",
     )
     parser.add_argument(
-        "--is_pt2e",
-        action='store_true',
-        help="enable pt2e quantization for inductor",
-    )
-    parser.add_argument(
         "--is_qat",
         action='store_true',
         help="enable qat quantization for inductor",
@@ -193,28 +188,28 @@ def apply_torchdynamo_args(
 
         if args.quantization:
             import torchao
-            from torchao.quantization import (
-                change_linear_weights_to_int4_woqtensors,
-                change_linear_weights_to_int8_dqtensors,
-                change_linear_weights_to_int8_woqtensors,
-            )
+            if model.device == "cuda":
+                from torchao.quantization import (
+                    change_linear_weights_to_int4_woqtensors,
+                    change_linear_weights_to_int8_dqtensors,
+                    change_linear_weights_to_int8_woqtensors,
+                )
 
-            torch._dynamo.config.automatic_dynamic_shapes = False
-            torch._dynamo.config.force_parameter_static_shapes = False
-            torch._dynamo.config.cache_size_limit = 1000
-            assert "cuda" in model.device
-            module, example_inputs = model.get_module()
-            if args.quantization == "int8dynamic":
-                torch._inductor.config.force_fuse_int_mm_with_mul = True
-                change_linear_weights_to_int8_dqtensors(module)
-            elif args.quantization == "int8weightonly":
-                torch._inductor.config.use_mixed_mm = True
-                change_linear_weights_to_int8_woqtensors(module)
-            elif args.quantization == "int4weightonly":
-                change_linear_weights_to_int4_woqtensors(module)
-
-        if model.device == "cpu" and model.test == "eval" and args.is_pt2e:
-            enable_inductor_quant(model, args.is_qat)
+                torch._dynamo.config.automatic_dynamic_shapes = False
+                torch._dynamo.config.force_parameter_static_shapes = False
+                torch._dynamo.config.cache_size_limit = 1000
+            
+                module, example_inputs = model.get_module()
+                if args.quantization == "int8dynamic":
+                    torch._inductor.config.force_fuse_int_mm_with_mul = True
+                    change_linear_weights_to_int8_dqtensors(module)
+                elif args.quantization == "int8weightonly":
+                    torch._inductor.config.use_mixed_mm = True
+                    change_linear_weights_to_int8_woqtensors(module)
+                elif args.quantization == "int4weightonly":
+                    change_linear_weights_to_int4_woqtensors(module)
+            elif model.device == "cpu" and model.test == "eval":
+                enable_inductor_quant(model, args.is_qat)
 
         if args.freeze_prepack_weights:
             torch._inductor.config.freezing = True
@@ -257,7 +252,21 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
     from torch.ao.quantization.quantize_pt2e import prepare_pt2e, prepare_qat_pt2e, convert_pt2e
     import torch.ao.quantization.quantizer.x86_inductor_quantizer as xiq
     from torch._export import capture_pre_autograd_graph
+    from torch.export import Dim
     module, example_inputs = model.get_module()
+    input_shapes = {k: list(v.shape) for (k, v) in example_inputs.items()}
+    dims = set()
+    for _, v in input_shapes.items():
+        dims.update(v)
+    dim_str_map = {x: Dim("dim" + str(list(dims).index(x)), max=1024 * 1024) for x in dims}
+    dynamic_shapes = {k: {v.index(dim): dim_str_map[dim] for dim in v} for (k, v) in input_shapes.items()}
+    if "labels" in dynamic_shapes.keys():
+        for k in dynamic_shapes.keys():
+            if k != "labels":
+                tmp_dims = input_shapes[k]
+                for tmp_dim in input_shapes[k]:
+                    if tmp_dim not in input_shapes['labels']:
+                        del dynamic_shapes[k][input_shapes[k].index(tmp_dim)]
     # Create X86InductorQuantizer
     quantizer = xiq.X86InductorQuantizer()
     quantizer.set_global(xiq.get_default_x86_inductor_quantization_config(is_qat=is_qat))
@@ -265,8 +274,10 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
         module.train()
     # Generate the FX Module
     exported_model = capture_pre_autograd_graph(
-            module,
-            example_inputs
+            model,
+            (),
+            kwargs=example_inputs,
+            dynamic_shapes=dynamic_shapes,
         )
     # PT2E Quantization flow
     prepared_model = prepare_qat_pt2e(exported_model, quantizer) if is_qat else prepare_pt2e(exported_model, quantizer)
