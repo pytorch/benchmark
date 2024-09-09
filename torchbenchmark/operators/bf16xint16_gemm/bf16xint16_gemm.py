@@ -13,7 +13,7 @@ import argparse
 import os
 import statistics
 
-from typing import Any
+from typing import Any, List, Optional
 
 import torch
 import triton
@@ -37,8 +37,8 @@ from .kernel import (
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "gbps", "latency"]
 
-    def __init__(self, mode, device, extra_args):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+        super().__init__(tb_args=tb_args, extra_args=extra_args)
         # `Group size` and `inner K tiles` are defaults from gpt-fast.
         self.group_size = 32
         self.inner_k_tiles = 8
