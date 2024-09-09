@@ -171,10 +171,16 @@ class ReplayBufferStorage:
         self.device = device
 
         # buffer arrays
-        self.s_stack = torch.zeros((size,) + obs_shape, dtype=self.s_dtype, device=device)
-        self.action_stack = torch.zeros((size,) + act_shape, dtype=torch.float32, device=device)
+        self.s_stack = torch.zeros(
+            (size,) + obs_shape, dtype=self.s_dtype, device=device
+        )
+        self.action_stack = torch.zeros(
+            (size,) + act_shape, dtype=torch.float32, device=device
+        )
         self.reward_stack = torch.zeros((size, 1), dtype=torch.float32, device=device)
-        self.s1_stack = torch.zeros((size,) + obs_shape, dtype=self.s_dtype, device=device)
+        self.s1_stack = torch.zeros(
+            (size,) + obs_shape, dtype=self.s_dtype, device=device
+        )
         self.done_stack = torch.zeros((size, 1), dtype=torch.int, device=device)
 
         self.obs_shape = obs_shape
@@ -269,8 +275,10 @@ class ReplayBufferStorage:
 
 
 class ReplayBuffer:
-    def __init__(self, size, device, state_shape=None, action_shape=None, state_dtype=float):
-        self.device=device
+    def __init__(
+        self, size, device, state_shape=None, action_shape=None, state_dtype=float
+    ):
+        self.device = device
         self._maxsize = size
         self.state_shape = state_shape
         self.state_dtype = self._convert_dtype(state_dtype)
@@ -347,8 +355,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         R = super().push(s, a, r, s_1, d)
         if priorities is None:
             priorities = self._max_priority
-        self._it_sum[R] = priorities ** self.alpha
-        self._it_min[R] = priorities ** self.alpha
+        self._it_sum[R] = priorities**self.alpha
+        self._it_min[R] = priorities**self.alpha
 
     def _sample_proportional(self, batch_size):
         mass = []
@@ -373,8 +381,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         assert np.min(priorities) > 0
         assert np.min(idxes) >= 0
         assert np.max(idxes) < len(self._storage)
-        self._it_sum[idxes] = priorities ** self.alpha
-        self._it_min[idxes] = priorities ** self.alpha
+        self._it_sum[idxes] = priorities**self.alpha
+        self._it_min[idxes] = priorities**self.alpha
         self._max_priority = max(self._max_priority, np.max(priorities))
 
 
@@ -410,9 +418,9 @@ class MultiPriorityBuffer(ReplayBuffer):
             priorities = self._max_priority
 
         for sum_tree in self.sum_trees:
-            sum_tree[R] = priorities ** self.alpha
+            sum_tree[R] = priorities**self.alpha
         for min_tree in self.min_trees:
-            min_tree[R] = priorities ** self.alpha
+            min_tree[R] = priorities**self.alpha
 
     def _sample_proportional(self, batch_size, tree_num):
         mass = []
@@ -437,6 +445,6 @@ class MultiPriorityBuffer(ReplayBuffer):
         assert np.min(priorities) > 0
         assert np.min(idxes) >= 0
         assert np.max(idxes) < len(self._storage)
-        self.sum_trees[tree_num][idxes] = priorities ** self.alpha
-        self.min_trees[tree_num][idxes] = priorities ** self.alpha
+        self.sum_trees[tree_num][idxes] = priorities**self.alpha
+        self.min_trees[tree_num][idxes] = priorities**self.alpha
         self._max_priority = max(self._max_priority, np.max(priorities))

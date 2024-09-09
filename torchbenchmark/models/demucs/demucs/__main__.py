@@ -16,7 +16,7 @@ from torch import distributed, nn
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from .augment import FlipChannels, FlipSign, Remix, Shift
-from .compressed import StemsSet, build_musdb_metadata, get_musdb_tracks
+from .compressed import build_musdb_metadata, get_musdb_tracks, StemsSet
 from .model import Demucs
 from .parser import get_name, get_parser
 from .raw import Rawset
@@ -48,7 +48,8 @@ def main():
         print(
             "You must provide the path to the MusDB dataset with the --musdb flag. "
             "To download the MusDB dataset, see https://sigsep.github.io/datasets/musdb.html.",
-            file=sys.stderr)
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     eval_folder = args.evals / name
@@ -73,13 +74,18 @@ def main():
 
     if args.world_size > 1:
         if device != "cuda" and args.rank == 0:
-            print("Error: distributed training is only available with cuda device", file=sys.stderr)
+            print(
+                "Error: distributed training is only available with cuda device",
+                file=sys.stderr,
+            )
             sys.exit(1)
         th.cuda.set_device(args.rank % th.cuda.device_count())
-        distributed.init_process_group(backend="nccl",
-                                       init_method="tcp://" + args.master,
-                                       rank=args.rank,
-                                       world_size=args.world_size)
+        distributed.init_process_group(
+            backend="nccl",
+            init_method="tcp://" + args.master,
+            rank=args.rank,
+            world_size=args.world_size,
+        )
 
     checkpoint = args.checkpoints / f"{name}.th"
     checkpoint_tmp = args.checkpoints / f"{name}.th.tmp"
@@ -120,7 +126,7 @@ def main():
     optimizer = th.optim.Adam(model.parameters(), lr=args.lr)
 
     try:
-        saved = th.load(checkpoint, map_location='cpu')
+        saved = th.load(checkpoint, map_location="cpu")
     except IOError:
         saved = SavedState()
     else:
@@ -140,8 +146,12 @@ def main():
             done.unlink()
 
     if args.augment:
-        augment = nn.Sequential(FlipSign(), FlipChannels(), Shift(args.data_stride),
-                                Remix(group_size=args.remix_group_size)).to(device)
+        augment = nn.Sequential(
+            FlipSign(),
+            FlipChannels(),
+            Shift(args.data_stride),
+            Remix(group_size=args.remix_group_size),
+        ).to(device)
     else:
         augment = Shift(args.data_stride)
 
@@ -157,11 +167,13 @@ def main():
     print(f"Number of training samples adjusted to {samples}")
 
     if args.raw:
-        train_set = Rawset(args.raw / "train",
-                           samples=samples + args.data_stride,
-                           channels=args.audio_channels,
-                           streams=[0, 1, 2, 3, 4],
-                           stride=args.data_stride)
+        train_set = Rawset(
+            args.raw / "train",
+            samples=samples + args.data_stride,
+            channels=args.audio_channels,
+            streams=[0, 1, 2, 3, 4],
+            stride=args.data_stride,
+        )
 
         valid_set = Rawset(args.raw / "valid", channels=args.audio_channels)
     else:
@@ -172,23 +184,29 @@ def main():
         metadata = json.load(open(args.metadata))
         duration = Fraction(samples + args.data_stride, args.samplerate)
         stride = Fraction(args.data_stride, args.samplerate)
-        train_set = StemsSet(get_musdb_tracks(args.musdb, subsets=["train"], split="train"),
-                             metadata,
-                             duration=duration,
-                             stride=stride,
-                             samplerate=args.samplerate,
-                             channels=args.audio_channels)
+        train_set = StemsSet(
+            get_musdb_tracks(args.musdb, subsets=["train"], split="train"),
+            metadata,
+            duration=duration,
+            stride=stride,
+            samplerate=args.samplerate,
+            channels=args.audio_channels,
+        )
 
         # Reuse training data since we're just benchmarking.
-        valid_set = StemsSet(get_musdb_tracks(args.musdb, subsets=["train"], split="train"),
-                             metadata,
-                             samplerate=args.samplerate,
-                             channels=args.audio_channels)
+        valid_set = StemsSet(
+            get_musdb_tracks(args.musdb, subsets=["train"], split="train"),
+            metadata,
+            samplerate=args.samplerate,
+            channels=args.audio_channels,
+        )
 
     if args.world_size > 1:
-        dmodel = DistributedDataParallel(model,
-                                         device_ids=[th.cuda.current_device()],
-                                         output_device=th.cuda.current_device())
+        dmodel = DistributedDataParallel(
+            model,
+            device_ids=[th.cuda.current_device()],
+            output_device=th.cuda.current_device(),
+        )
     else:
         dmodel = model
 
@@ -196,37 +214,43 @@ def main():
         for epoch in range(len(saved.metrics), args.epochs):
             begin = time.time()
             model.train()
-            train_loss = train_model(epoch,
-                                    train_set,
-                                    dmodel,
-                                    criterion,
-                                    optimizer,
-                                    augment,
-                                    batch_size=args.batch_size,
-                                    device=device,
-                                    repeat=args.repeat,
-                                    seed=args.seed,
-                                    workers=args.workers,
-                                    world_size=args.world_size)
+            train_loss = train_model(
+                epoch,
+                train_set,
+                dmodel,
+                criterion,
+                optimizer,
+                augment,
+                batch_size=args.batch_size,
+                device=device,
+                repeat=args.repeat,
+                seed=args.seed,
+                workers=args.workers,
+                world_size=args.world_size,
+            )
 
             duration = time.time() - begin
-            print(f"Epoch {epoch:03d}: "
+            print(
+                f"Epoch {epoch:03d}: "
                 f"train={train_loss:.8f} "
-                f"duration={human_seconds(duration)}")
+                f"duration={human_seconds(duration)}"
+            )
 
     if args.debug is not None and os.path.exists(args.debug):
         os.remove(args.debug)
 
     model.eval()
-    valid_loss = validate_model(0,
-                                valid_set,
-                                model,
-                                criterion,
-                                device=device,
-                                rank=args.rank,
-                                split=args.split_valid,
-                                world_size=args.world_size,
-                                debug_file=args.debug)
+    valid_loss = validate_model(
+        0,
+        valid_set,
+        model,
+        criterion,
+        device=device,
+        rank=args.rank,
+        split=args.split_valid,
+        world_size=args.world_size,
+        debug_file=args.debug,
+    )
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@
 # limitations under the License.
 
 from functools import total_ordering
+
 from .gpu_record import GPURecord
 
 
@@ -56,11 +57,11 @@ class GPUTensorActive(GPURecord):
         Parameters
         ----------
         aggregation_tag: bool
-            An optional tag that may be displayed 
-            as part of the header indicating that 
-            this record has been aggregated using 
-            max, min or average etc. 
-             
+            An optional tag that may be displayed
+            as part of the header indicating that
+            this record has been aggregated using
+            max, min or average etc.
+
         Returns
         -------
         str
@@ -93,8 +94,7 @@ class GPUTensorActive(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUTensorActive(device_uuid=None,
-                              value=(self.value() + other.value()))
+        return GPUTensorActive(device_uuid=None, value=(self.value() + other.value()))
 
     def __sub__(self, other):
         """
@@ -102,5 +102,4 @@ class GPUTensorActive(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUTensorActive(device_uuid=None,
-                              value=(self.value() - other.value()))
+        return GPUTensorActive(device_uuid=None, value=(self.value() - other.value()))

@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from abc import ABC, abstractmethod
 from multiprocessing.pool import ThreadPool
-import time
 
 from ..tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
-
 
 
 class Monitor(ABC):
@@ -112,7 +111,8 @@ class Monitor(ABC):
         if not self._thread_active:
             raise TorchBenchAnalyzerException(
                 "start_recording_metrics should be "
-                "called before stop_recording_metrics")
+                "called before stop_recording_metrics"
+            )
 
         self._thread_active = False
         self._thread.wait()

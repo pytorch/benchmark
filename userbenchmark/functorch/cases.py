@@ -1,22 +1,23 @@
-from .util import BenchmarkCase
-from torchbenchmark.models.lennard_jones import Model as LJModel
-from torchbenchmark.models.functorch_maml_omniglot import Model as FTMamlOmniglot
 from torchbenchmark.models.functorch_dp_cifar10 import Model as FTDPCifar10
-from .vmap_hessian_fc import VmapHessianFC
+from torchbenchmark.models.functorch_maml_omniglot import Model as FTMamlOmniglot
+from torchbenchmark.models.lennard_jones import Model as LJModel
+
 from .simple_models import (
-    SimpleCNN,
-    SimpleMLP,
-    VmapWrapper,
     EnsembleMultiWrapper,
     EnsembleSingleWrapper,
     PerSampleGradWrapper,
+    SimpleCNN,
+    SimpleMLP,
+    VmapWrapper,
 )
+from .util import BenchmarkCase
+from .vmap_hessian_fc import VmapHessianFC
 
 
 class TorchBenchModelWrapper(BenchmarkCase):
     def __init__(self, name, model, device):
-        self.model = model('train', device)
-        self.name_ = f'{name}_{device}'
+        self.model = model("train", device)
+        self.name_ = f"{name}_{device}"
 
     def name(self):
         return self.name_
@@ -40,24 +41,24 @@ class TorchBenchModelWrapper(BenchmarkCase):
 # for cross-cutting tests.
 benchmark_cases = [
     # [models from torchbench that haven't made it to stable yet]
-    lambda: TorchBenchModelWrapper('lennard_jones', LJModel, 'cpu'),
-    lambda: TorchBenchModelWrapper('lennard_jones', LJModel, 'cuda'),
-    lambda: TorchBenchModelWrapper('functorch_maml_omniglot', FTMamlOmniglot, 'cpu'),
-    lambda: TorchBenchModelWrapper('functorch_maml_omniglot', FTMamlOmniglot, 'cuda'),
-    lambda: TorchBenchModelWrapper('functorch_dp_cifar10', FTDPCifar10, 'cuda'),
+    lambda: TorchBenchModelWrapper("lennard_jones", LJModel, "cpu"),
+    lambda: TorchBenchModelWrapper("lennard_jones", LJModel, "cuda"),
+    lambda: TorchBenchModelWrapper("functorch_maml_omniglot", FTMamlOmniglot, "cpu"),
+    lambda: TorchBenchModelWrapper("functorch_maml_omniglot", FTMamlOmniglot, "cuda"),
+    lambda: TorchBenchModelWrapper("functorch_dp_cifar10", FTDPCifar10, "cuda"),
     # end [models from torchbench that haven't made it to stable yet]
     VmapHessianFC,
     # [combinations from functorch tutorials]
-    lambda: VmapWrapper(SimpleMLP, 'cpu'),
-    lambda: VmapWrapper(SimpleMLP, 'cuda'),
-    lambda: EnsembleMultiWrapper(SimpleMLP, 'cpu'),
-    lambda: EnsembleMultiWrapper(SimpleMLP, 'cuda'),
-    lambda: EnsembleMultiWrapper(SimpleCNN, 'cuda'),
-    lambda: EnsembleSingleWrapper(SimpleMLP, 'cpu'),
-    lambda: EnsembleSingleWrapper(SimpleMLP, 'cuda'),
-    lambda: EnsembleSingleWrapper(SimpleCNN, 'cuda'),
-    lambda: PerSampleGradWrapper(SimpleMLP, 'cpu'),
-    lambda: PerSampleGradWrapper(SimpleMLP, 'cuda'),
-    lambda: PerSampleGradWrapper(SimpleCNN, 'cuda'),
+    lambda: VmapWrapper(SimpleMLP, "cpu"),
+    lambda: VmapWrapper(SimpleMLP, "cuda"),
+    lambda: EnsembleMultiWrapper(SimpleMLP, "cpu"),
+    lambda: EnsembleMultiWrapper(SimpleMLP, "cuda"),
+    lambda: EnsembleMultiWrapper(SimpleCNN, "cuda"),
+    lambda: EnsembleSingleWrapper(SimpleMLP, "cpu"),
+    lambda: EnsembleSingleWrapper(SimpleMLP, "cuda"),
+    lambda: EnsembleSingleWrapper(SimpleCNN, "cuda"),
+    lambda: PerSampleGradWrapper(SimpleMLP, "cpu"),
+    lambda: PerSampleGradWrapper(SimpleMLP, "cuda"),
+    lambda: PerSampleGradWrapper(SimpleCNN, "cuda"),
     # end [combinations from functorch tutorials]
 ]

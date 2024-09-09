@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-import random
-import numpy as np
 import argparse
+import random
+
+import numpy as np
 from DRL.evaluator import Evaluator
 from utils.util import *
-from utils.tensorboard import TensorBoard
 import time
+
+from utils.tensorboard import TensorBoard
 
 exp = os.path.abspath(".").split("/")[-1]
 writer = TensorBoard("../train_log/{}".format(exp))

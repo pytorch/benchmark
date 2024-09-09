@@ -1,11 +1,20 @@
-import torch
 import math
 import os
 from pathlib import Path
-from torch.utils.data import DataLoader
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import NLP
+
+import torch
 from accelerate import Accelerator
+from torch.utils.data import DataLoader
+from torchbenchmark.tasks import NLP
+from torchbenchmark.util.framework.transformers.text_classification.args import (
+    parse_args,
+)
+
+from torchbenchmark.util.framework.transformers.text_classification.dataset import (
+    prep_dataset,
+    prep_labels,
+    preprocess_dataset,
+)
 from transformers import (
     AdamW,
     AutoConfig,
@@ -16,8 +25,7 @@ from transformers import (
     get_scheduler,
 )
 
-from torchbenchmark.util.framework.transformers.text_classification.dataset import prep_dataset, preprocess_dataset, prep_labels
-from torchbenchmark.util.framework.transformers.text_classification.args import parse_args
+from ...util.model import BenchmarkModel
 
 # setup environment variable
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -26,6 +34,7 @@ OUTPUT_DIR = os.path.join(CURRENT_DIR, ".output")
 torch.manual_seed(1337)
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
+
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
@@ -41,16 +50,28 @@ class Model(BenchmarkModel):
         cuda_visible_devices = "0"
         os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
         output_dir = OUTPUT_DIR
-        in_arg = ["--model_name_or_path", model_name, "--task_name", task_name,
-                  "--do_train", "--do_eval", "--max_seq_length", max_seq_length,
-                  "--per_device_train_batch_size", str(train_bs), 
-                  "--learning_rate", learning_rate,
-                  "--num_train_epochs", num_train_epochs,
-                  "--output_dir", OUTPUT_DIR]
+        in_arg = [
+            "--model_name_or_path",
+            model_name,
+            "--task_name",
+            task_name,
+            "--do_train",
+            "--do_eval",
+            "--max_seq_length",
+            max_seq_length,
+            "--per_device_train_batch_size",
+            str(train_bs),
+            "--learning_rate",
+            learning_rate,
+            "--num_train_epochs",
+            num_train_epochs,
+            "--output_dir",
+            OUTPUT_DIR,
+        ]
         model_args, data_args, training_args = parse_args(in_arg)
         # setup other members
         self.prep(model_args, data_args, training_args)
-    
+
     def prep(self, model_args, data_args, training_args):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
         accelerator = Accelerator()
@@ -62,7 +83,11 @@ class Model(BenchmarkModel):
         # In distributed training, the .from_pretrained methods guarantee that only one local process can concurrently
         # download model & vocab.
         config = AutoConfig.from_pretrained(
-            model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+            (
+                model_args.config_name
+                if model_args.config_name
+                else model_args.model_name_or_path
+            ),
             num_labels=num_labels,
             finetuning_task=data_args.task_name,
             # cache_dir=model_args.cache_dir,
@@ -70,7 +95,11 @@ class Model(BenchmarkModel):
             # use_auth_token=True if model_args.use_auth_token else None,
         )
         tokenizer = AutoTokenizer.from_pretrained(
-            model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+            (
+                model_args.tokenizer_name
+                if model_args.tokenizer_name
+                else model_args.model_name_or_path
+            ),
             # cache_dir=model_args.cache_dir,
             use_fast=model_args.use_fast_tokenizer,
             # revision=model_args.model_revision,
@@ -84,8 +113,17 @@ class Model(BenchmarkModel):
             # revision=model_args.model_revision,
             # use_auth_token=True if model_args.use_auth_token else None,
         )
-        train_dataset, eval_dataset, _predict_dataset = preprocess_dataset(data_args, training_args, config, model, \
-            tokenizer, raw_datasets, num_labels, label_list, is_regression)
+        train_dataset, eval_dataset, _predict_dataset = preprocess_dataset(
+            data_args,
+            training_args,
+            config,
+            model,
+            tokenizer,
+            raw_datasets,
+            num_labels,
+            label_list,
+            is_regression,
+        )
         # Data collator will default to DataCollatorWithPadding, so we change it if we already did the padding.
         if data_args.pad_to_max_length:
             data_collator = default_data_collator
@@ -94,25 +132,43 @@ class Model(BenchmarkModel):
         else:
             data_collator = None
         train_dataloader = DataLoader(
-            train_dataset, shuffle=True, collate_fn=data_collator, batch_size=training_args.per_device_train_batch_size)
-        eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=training_args.per_device_eval_batch_size)
+            train_dataset,
+            shuffle=True,
+            collate_fn=data_collator,
+            batch_size=training_args.per_device_train_batch_size,
+        )
+        eval_dataloader = DataLoader(
+            eval_dataset,
+            collate_fn=data_collator,
+            batch_size=training_args.per_device_eval_batch_size,
+        )
 
         # Optimizer
         # Split weights in two groups, one with weight decay and the other not.
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
             {
-                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "params": [
+                    p
+                    for n, p in model.named_parameters()
+                    if not any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": training_args.weight_decay,
             },
             {
-                "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+                "params": [
+                    p
+                    for n, p in model.named_parameters()
+                    if any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": 0.0,
             },
         ]
 
         # Set class members
-        self.optimizer = AdamW(optimizer_grouped_parameters, lr=training_args.learning_rate)
+        self.optimizer = AdamW(
+            optimizer_grouped_parameters, lr=training_args.learning_rate
+        )
         self.training_args = training_args
         self.is_regression = is_regression
         self.model = model
@@ -123,22 +179,29 @@ class Model(BenchmarkModel):
         # Will set self.lr_scheduler
         self._prepare_accelerator()
 
-
     # Prepare everything with our `accelerator` and set the lr_scheduler
     def _prepare_accelerator(self):
-        self.model, self.optimizer, self.train_dataloader, self.eval_dataloader = self.accelerator.prepare(
-            self.model, self.optimizer, self.train_dataloader, self.eval_dataloader
+        self.model, self.optimizer, self.train_dataloader, self.eval_dataloader = (
+            self.accelerator.prepare(
+                self.model, self.optimizer, self.train_dataloader, self.eval_dataloader
+            )
         )
 
         # Note -> the training dataloader needs to be prepared before we grab its length below (since its length will be
         # shorter in multiprocess)
 
         # Scheduler and math around the number of training steps.
-        num_update_steps_per_epoch = math.ceil(len(self.train_dataloader) / self.training_args.gradient_accumulation_steps)
+        num_update_steps_per_epoch = math.ceil(
+            len(self.train_dataloader) / self.training_args.gradient_accumulation_steps
+        )
         if self.training_args.max_steps is None or self.training_args.max_steps == -1:
-            self.training_args.max_steps = self.training_args.num_train_epochs * num_update_steps_per_epoch
+            self.training_args.max_steps = (
+                self.training_args.num_train_epochs * num_update_steps_per_epoch
+            )
         else:
-            self.training_args.num_train_epochs = math.ceil(self.training_args.max_steps / num_update_steps_per_epoch)
+            self.training_args.num_train_epochs = math.ceil(
+                self.training_args.max_steps / num_update_steps_per_epoch
+            )
         self.training_args.num_train_epochs = int(self.training_args.num_train_epochs)
 
         self.lr_scheduler = get_scheduler(
@@ -172,7 +235,10 @@ class Model(BenchmarkModel):
                 loss = outputs.loss
                 loss = loss / self.training_args.gradient_accumulation_steps
                 self.accelerator.backward(loss)
-                if step % self.training_args.gradient_accumulation_steps == 0 or step == len(self.train_dataloader) - 1:
+                if (
+                    step % self.training_args.gradient_accumulation_steps == 0
+                    or step == len(self.train_dataloader) - 1
+                ):
                     self.optimizer.step()
                     self.lr_scheduler.step()
                     self.optimizer.zero_grad()
@@ -184,4 +250,8 @@ class Model(BenchmarkModel):
             self.model.eval()
             for step, batch in enumerate(self.eval_dataloader):
                 outputs = self.model(**batch)
-                predictions = outputs.logits.argmax(dim=-1) if not self.is_regression else outputs.logits.squeeze()
+                predictions = (
+                    outputs.logits.argmax(dim=-1)
+                    if not self.is_regression
+                    else outputs.logits.squeeze()
+                )

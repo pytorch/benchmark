@@ -1,18 +1,16 @@
 import time
-from .monitor import Monitor
-from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
-from ..tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
-from ..tb_dcgm_types.gpu_utilization import GPUUtilization
-from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
 
-
-from . import dcgm_agent
-from . import dcgm_fields
-from . import dcgm_field_helpers
-from . import dcgm_structs as structs
+import pynvml
 
 from packaging import version
-import pynvml
+
+from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
+from ..tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
+from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
+from ..tb_dcgm_types.gpu_utilization import GPUUtilization
+
+from . import dcgm_agent, dcgm_field_helpers, dcgm_fields, dcgm_structs as structs
+from .monitor import Monitor
 
 
 class NVMLMonitor(Monitor):

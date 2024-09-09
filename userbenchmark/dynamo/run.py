@@ -13,6 +13,7 @@ DYNAMOBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "dynamo", "dynamobench")
 
 from typing import List, Optional
 
+
 def _get_model_set_by_model_name(args: List[str]) -> str:
     def _get_only_arg(args):
         if "--only" in args:
@@ -24,6 +25,7 @@ def _get_model_set_by_model_name(args: List[str]) -> str:
             only_model = re.match(only_reg, only_args[0]).groups()[0]
             return only_model
         return None
+
     if "--huggingface" in args:
         args.remove("--huggingface")
         return "huggingface"
@@ -40,16 +42,18 @@ def _get_model_set_by_model_name(args: List[str]) -> str:
             return "timm"
     return "torchbench"
 
+
 def _run_huggingface(args: List[str]) -> None:
     try:
         # OSS Import
         with add_path(str(DYNAMOBENCH_PATH)):
-            from huggingface import HuggingfaceRunner
             from common import main
+            from huggingface import HuggingfaceRunner
     except ImportError:
+        from caffe2.benchmarks.dynamo.common import main
+
         # Meta Internal Import
         from caffe2.benchmarks.dynamo.huggingface import HuggingfaceRunner
-        from caffe2.benchmarks.dynamo.common import main
     main(runner=HuggingfaceRunner(), args=args)
 
 
@@ -57,12 +61,13 @@ def _run_timm(args: List[str]) -> None:
     try:
         # OSS Import
         with add_path(str(DYNAMOBENCH_PATH)):
-            from timm_models import TimmRunner
             from common import main
+            from timm_models import TimmRunner
     except ImportError:
+        from caffe2.benchmarks.dynamo.common import main
+
         # Meta Internal Import
         from caffe2.benchmarks.dynamo.timm_models import TimmRunner
-        from caffe2.benchmarks.dynamo.common import main
     main(runner=TimmRunner(), args=args)
 
 
@@ -70,12 +75,16 @@ def _run_torchbench(args: List[str]) -> None:
     try:
         # OSS Import
         with add_path(str(DYNAMOBENCH_PATH)):
-            from torchbench import setup_torchbench_cwd, TorchBenchmarkRunner
             from common import main
+            from torchbench import setup_torchbench_cwd, TorchBenchmarkRunner
     except ImportError:
-        # Meta Internal Import
-        from caffe2.benchmarks.dynamo.torchbench import setup_torchbench_cwd, TorchBenchmarkRunner
         from caffe2.benchmarks.dynamo.common import main
+
+        # Meta Internal Import
+        from caffe2.benchmarks.dynamo.torchbench import (
+            setup_torchbench_cwd,
+            TorchBenchmarkRunner,
+        )
     original_dir = setup_torchbench_cwd()
     main(TorchBenchmarkRunner(), original_dir, args)
 
@@ -93,7 +102,8 @@ class PT2SysArgvManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.argv = self.original_sys_argv
 
-def run(args: Optional[List[str]]=None):
+
+def run(args: Optional[List[str]] = None):
     if args is None:
         args = sys.argv[1:]
     model_set = _get_model_set_by_model_name(args)

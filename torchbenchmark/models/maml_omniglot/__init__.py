@@ -16,16 +16,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
-import torch.optim as optim
-import torch.nn as nn
-import torch.nn.functional as F
 from pathlib import Path
 from typing import Tuple
+
 import higher
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torchbenchmark.tasks import OTHER
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import OTHER
 
 
 class Model(BenchmarkModel):
@@ -54,7 +55,9 @@ class Model(BenchmarkModel):
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         n_way = 5
         net = nn.Sequential(
@@ -71,12 +74,15 @@ class Model(BenchmarkModel):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2, 2),
             nn.Flatten(),
-            nn.Linear(64, n_way)).to(device)
+            nn.Linear(64, n_way),
+        ).to(device)
         self.model = net
 
         root = str(Path(__file__).parent)
-        self.meta_inputs = torch.load(f'{root}/batch.pt')
-        self.meta_inputs = tuple([torch.from_numpy(i).to(self.device) for i in self.meta_inputs])
+        self.meta_inputs = torch.load(f"{root}/batch.pt")
+        self.meta_inputs = tuple(
+            [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]
+        )
         self.example_inputs = (self.meta_inputs[0][0],)
 
     def get_module(self):
@@ -115,4 +121,4 @@ class Model(BenchmarkModel):
         model, (example_input,) = self.get_module()
         model.eval()
         out = model(example_input)
-        return (out, )
+        return (out,)

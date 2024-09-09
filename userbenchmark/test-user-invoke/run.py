@@ -1,15 +1,17 @@
 """
 Test user-customized invoke function.
 """
+
 import argparse
 from typing import List
-from ..utils import REPO_PATH, add_path
+
+from ..utils import add_path, REPO_PATH
 
 with add_path(REPO_PATH):
     from torchbenchmark.util.experiment.instantiator import (
+        inject_model_invoke,
         load_model_isolated,
         TorchBenchModelConfig,
-        inject_model_invoke,
     )
     from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics
 

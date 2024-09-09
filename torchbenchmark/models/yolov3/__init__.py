@@ -2,30 +2,35 @@
 
 # Make all randomness deterministic
 import argparse
-import torch
 import os
 from contextlib import nullcontext
+
+import torch
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
 
 from shlex import split
-from .yolo_train import prepare_training_loop
-from . import yolo_train
 from typing import Tuple
+
+from . import yolo_train
+from .yolo_train import prepare_training_loop
 
 from .yolo_models import *  # set ONNX_EXPORT in models.py
 from .yolo_utils.datasets import *
 from .yolo_utils.utils import *
 from pathlib import Path
-from ...util.model import BenchmarkModel
+
 from torchbenchmark.tasks import COMPUTER_VISION
+
+from ...util.model import BenchmarkModel
 
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco128")
 if not os.path.exists(DATA_DIR):
     try:
         from torchbenchmark.util.framework.fb.installer import install_data
+
         DATA_DIR = os.path.join(install_data("coco128"), "coco128")
     except Exception:
         pass

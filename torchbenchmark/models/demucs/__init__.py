@@ -1,16 +1,20 @@
-import torch
 from fractions import Fraction
+from typing import Tuple
 
-from .demucs.model import Demucs
-from .demucs.parser import get_name, get_parser
-from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
-from .demucs.utils import capture_init, center_trim
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import OTHER
+import torch
 from torch import Tensor
 from torch.nn.modules.container import Sequential
+from torchbenchmark.tasks import OTHER
+
+from ...util.model import BenchmarkModel
+from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
+
+from .demucs.model import Demucs
+
 from torchbenchmark.models.demucs.demucs.model import Demucs
-from typing import Tuple
+
+from .demucs.parser import get_name, get_parser
+from .demucs.utils import capture_init, center_trim
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True

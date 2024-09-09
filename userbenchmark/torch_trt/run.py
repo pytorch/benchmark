@@ -9,15 +9,15 @@ from typing import List, Union
 import numpy as np
 import torch
 from torchbenchmark import (
-    ModelNotFoundError,
-    ModelTask,
     load_canary_model_by_name,
     load_model_by_name,
+    ModelNotFoundError,
+    ModelTask,
 )
 from torchbenchmark.util.experiment.instantiator import (
-    TorchBenchModelConfig,
     list_models,
     load_model_isolated,
+    TorchBenchModelConfig,
 )
 from torchbenchmark.util.model import BenchmarkModel
 
@@ -293,9 +293,9 @@ def run(args: List[str]):
                 print(
                     f"\nBenchmarking model {model_name} failed with:\n{e}\nSkipping the model.\n"
                 )
-                error_logs[
-                    model_name
-                ] = f"Failed to run benchmark: {traceback.format_exc()}"
+                error_logs[model_name] = (
+                    f"Failed to run benchmark: {traceback.format_exc()}"
+                )
 
             # Halt further model runs on KeyboardInterrupt
             except KeyboardInterrupt:

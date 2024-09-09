@@ -1,5 +1,6 @@
 import dataclasses
 
+
 @dataclasses.dataclass
 class DRQConfig:
     env = "cartpole_swingup"

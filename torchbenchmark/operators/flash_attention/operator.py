@@ -34,27 +34,55 @@ It benchmarks the following FMHA kernels:
 import argparse
 import math
 import os
+
 import torch
 import triton  # @manual=//triton:triton
+from torchbenchmark import add_path, SUBMODULE_PATH
 
-from triton.ops.flash_attention import attention as triton_op_FA2
-from torchbenchmark.util.kernels.triton_fused_attention import attention as triton_tutorial_FA2
-from torch.nn.attention import SDPBackend, sdpa_kernel
-from torch.nn.functional import scaled_dot_product_attention as sdpa
+try:
+    with add_path(SUBMODULE_PATH.joinpath("kernels")):
+        from kernels.flash_attention import attention as triton_op_FA2
+    HAS_KERNELS = True
+except BaseException:
+    HAS_KERNELS = False
 
 from typing import Callable, Optional
 
-# [Optional] flash_attn_func
+from torch.nn.attention import sdpa_kernel, SDPBackend
+from torch.nn.functional import scaled_dot_product_attention as sdpa
+from torchbenchmark import add_ld_library_path
+from torchbenchmark.util.kernels.triton_fused_attention import (
+    attention as triton_tutorial_FA2,
+    attention_tma as triton_tutorial_FA2_tma,
+)
+
+# [Optional] flash_attn v2
 try:
+    from flash_attn.flash_attn_interface import (
+        flash_attn_qkvpacked_func as flash_attn_func,
+    )
+
     from .test_fmha_utils import make_packed_qkv
-    from flash_attn.flash_attn_interface import flash_attn_qkvpacked_func as flash_attn_func
 except (ImportError, IOError, AttributeError):
+    pass
+
+HAS_CUDA_124 = torch.cuda.is_available() and torch.version.cuda >= "12.4"
+
+# [Optional] flash_attn v3
+HAS_FLASH_V3 = True
+try:
+    torch_lib_path = os.path.join(os.path.dirname(__file__), "lib")
+    with add_ld_library_path(torch_lib_path):
+        from flash_attn_interface import flash_attn_func as flash_attn_v3
+except (ImportError, IOError, AttributeError):
+    HAS_FLASH_V3 = False
     pass
 
 # [Optional] xformers backend
 try:
     import xformers  # @manual=//fair/xformers:xformers
     import xformers.ops.fmha as xformers_fmha  # @manual=//fair/xformers:xformers
+
     from .test_fmha_utils import permute_qkv
 except (ImportError, IOError, AttributeError):
     pass
@@ -65,31 +93,40 @@ try:
         # colfax Flash Attention V2 for Hopper
         torch.ops.load_library("//ai_codesign/gen_ai/cutlass-kernels:fmha_forward_lib")
     else:
-        from userbenchmark.triton.utils import load_library
-        load_library("colfax_cutlass/fmha_forward_lib.so")
+        from userbenchmark.triton.loader import load_library
+
+        load_library("cutlass_kernels/fmha_forward_lib.so")
     colfax_cutlass_fmha = torch.ops.cutlass.fmha_forward
 except (ImportError, IOError, AttributeError):
     colfax_cutlass_fmha = None
 
 # [Optional] ThunderKittens backend
 try:
-    import h100_fwd as tk_fwd
-    import h100_fwd_causal as tk_fwd_causal
+    if not hasattr(torch.version, "git_version"):
+        import h100_fwd as tk_fwd
+        import h100_fwd_causal as tk_fwd_causal
+    else:
+        # causal is not supported right now
+        from userbenchmark.triton.loader import load_library
+
+        load_library("tk/tk_attn_h100_fwd.so")
+        tk_fwd = torch.ops.tk
 except (ImportError, IOError, AttributeError):
     tk_fwd = None
     tk_fwd_causal = None
 
 from typing import Any, Generator, List
+
 from torchbenchmark.util.input import input_filter
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    Mode as BenchmarkMode,
     register_benchmark,
     register_metric,
     register_x_val,
 )
-from torchbenchmark.util.triton_op import Mode as BenchmarkMode
 
 
 def parse_op_args(args: List[str]):
@@ -107,10 +144,13 @@ def parse_op_args(args: List[str]):
 class Operator(BenchmarkOperator):
     DEFAULT_PRECISION = "bf16"
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]]=None):
-        # pass the framework level args (e.g., device, is_training, dtype) to the parent class
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
+        super().__init__(tb_args, extra_args)
+        self.use_cuda_graphs = False
         args = parse_op_args(self.extra_args)
+        self.use_cuda_graphs = False
         self.BATCH = args.batch
         self.H = args.n_heads
         self.D_HEAD = args.d_head
@@ -174,6 +214,22 @@ class Operator(BenchmarkOperator):
         )
         return fn
 
+    @register_benchmark(enabled=HAS_FLASH_V3)
+    def flash_v3(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+    ) -> Callable:
+        # [B, H, S, D] -> [B, S, H, D]
+        q = q.transpose(1, 2).contiguous()
+        k = k.transpose(1, 2).contiguous()
+        v = v.transpose(1, 2).contiguous()
+        fn = lambda: flashattn_hopper_cuda.fwd(
+            q, k, v, None, self.sm_scale, self.causal
+        )
+        return fn
+
     @register_benchmark()
     def triton_tutorial_flash_v2(
         self,
@@ -183,7 +239,16 @@ class Operator(BenchmarkOperator):
     ) -> Callable:
         return lambda: triton_tutorial_FA2(q, k, v, self.causal, self.sm_scale)
 
-    @register_benchmark()
+    @register_benchmark(enabled=HAS_CUDA_124)
+    def triton_tutorial_flash_v2_tma(
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+    ) -> Callable:
+        return lambda: triton_tutorial_FA2_tma(q, k, v, self.causal, self.sm_scale)
+
+    @register_benchmark(enabled=HAS_KERNELS)
     def triton_op_flash_v2(
         self,
         q: torch.Tensor,
@@ -253,23 +318,32 @@ class Operator(BenchmarkOperator):
         default_scale = 1.0 / math.sqrt(float(self.D_HEAD))
         colfax_q, colfax_k, colfax_v = self.colfax_cutlass_preprocess(q, k, v)
         return lambda: colfax_cutlass_fmha(
-            self.N_CTX, self.N_CTX, self.BATCH, colfax_q, colfax_k, colfax_v, default_scale
+            self.N_CTX,
+            self.N_CTX,
+            self.BATCH,
+            colfax_q,
+            colfax_k,
+            colfax_v,
+            default_scale,
         )
 
     @register_benchmark(enabled=False)
     def tk(self, q, k, v):
         o = torch.zeros_like(v)
+
         def tk_dispatcher():
             if self.causal:
                 tk_fwd_causal.attention_forward_causal(q, k, v, o)
             else:
                 tk_fwd.attention_forward(q, k, v, o)
             return o
+
         return tk_dispatcher
-    
+
     @register_benchmark(enabled=False, label=f"cudnn_{torch.backends.cudnn.version()}")
     def cudnn(self, q, k, v):
         os.environ["TORCH_CUDNN_SDPA_ENABLED"] = "1"
+
         def sdpa_flash_attention(q, k, v):
             with sdpa_kernel([SDPBackend.CUDNN_ATTENTION]):
                 return sdpa(
@@ -279,20 +353,20 @@ class Operator(BenchmarkOperator):
                     is_causal=self.causal,
                     scale=self.sm_scale,
                 )
+
         return lambda: sdpa_flash_attention(
             q,
             k,
             v,
         )
 
-
     @register_metric()
     def tflops(
         self, fn_name: str, example_inputs: Any, metrics: BenchmarkOperatorMetrics
     ) -> float:
-        flops_per_matmul = (
-            2.0 * self.BATCH * self.H * self.N_CTX * self.N_CTX * self.D_HEAD
-        )
+        q, k, v = example_inputs
+        BATCH, H, N_CTX, D_HEAD = q.shape
+        flops_per_matmul = 2.0 * BATCH * H * N_CTX * N_CTX * D_HEAD
         tflops = 2 * flops_per_matmul
         if self.causal:
             tflops *= 0.5
@@ -313,12 +387,12 @@ class Operator(BenchmarkOperator):
         return fn
 
     def get_input_iter(self) -> Generator:
-        BATCH = self.BATCH
-        H = self.H
         D_HEAD = self.D_HEAD
-        ctx_vals = [2**i for i in range(7, 15)]
+        ctx_vals = [2**i for i in range(9, 15)]
         requires_grad = True
         for N_CTX in ctx_vals:
+            BATCH = 16384 // N_CTX
+            H = 2048 // D_HEAD
             q = torch.randn(
                 (BATCH, H, N_CTX, D_HEAD),
                 dtype=self.dtype,
@@ -339,10 +413,45 @@ class Operator(BenchmarkOperator):
             )
             self.N_CTX = N_CTX
             yield (q, k, v)
+        for q, k, v in self.__llama_example_input(
+            self.device, self.dtype, requires_grad
+        ):
+            yield (q, k, v)
 
-    @register_x_val(label="SeqLen")
+    def __llama_example_input(self, device, dtype, requires_grad):
+        shapes = [
+            (4, 32, 19, 128),
+            (4, 32, 1, 128),
+            # currently we are only able to use the same shape for q, k, v but in prod q shape is (4, 32, 1, 128) here
+            (4, 32, 511, 128),
+        ]
+        for shape in shapes:
+            yield (
+                torch.randn(
+                    shape,
+                    dtype=dtype,
+                    device=device,
+                    requires_grad=requires_grad,
+                ),
+                torch.randn(
+                    shape,
+                    dtype=dtype,
+                    device=device,
+                    requires_grad=requires_grad,
+                ),
+                torch.randn(
+                    shape,
+                    dtype=dtype,
+                    device=device,
+                    requires_grad=requires_grad,
+                ),
+            )
+
+    @register_x_val(label="(Batch, Heads, SeqLen, Dhead)")
     def get_x_val(self, example_inputs) -> float:
-        return self.N_CTX
+        q, k, v = example_inputs
+        B, H, S, D = q.shape
+        return (B, H, S, D)
 
     def plot(self):
         y_metric_name = "tflops"
@@ -359,7 +468,7 @@ class Operator(BenchmarkOperator):
                     "triton_tutorial_flash_v2",
                     "triton_op_flash_v2",
                     # FIXME: cuda illegal meory failure with default config
-                    # "triton_op_flash_seq_v2",
+                    "triton_op_flash_seq_v2",
                     "xformers",
                     "hw_roofline",
                 ],  # possible values for `line_arg``

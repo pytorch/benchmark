@@ -1,11 +1,13 @@
 import argparse
+
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from .yolo_models import *
 from .yolo_utils.datasets import *
 from .yolo_utils.utils import *
-from .yolo_utils.parse_config import parse_data_cfg
 from pathlib import Path
+
+from .yolo_utils.parse_config import parse_data_cfg
 
 
 def print(*args):
@@ -510,12 +512,14 @@ def prepare_training_loop(args):
                             "epoch": epoch,
                             "best_fitness": best_fitness,
                             "training_results": f.read(),
-                            "model": ema.ema.module.state_dict()
-                            if hasattr(model, "module")
-                            else ema.ema.state_dict(),
-                            "optimizer": None
-                            if final_epoch
-                            else optimizer.state_dict(),
+                            "model": (
+                                ema.ema.module.state_dict()
+                                if hasattr(model, "module")
+                                else ema.ema.state_dict()
+                            ),
+                            "optimizer": (
+                                None if final_epoch else optimizer.state_dict()
+                            ),
                         }
 
                     # Save last, best and delete
@@ -543,9 +547,11 @@ def prepare_training_loop(args):
                         os.rename(f1, f2)  # rename
                         ispt = f2.endswith(".pt")  # is *.pt
                         strip_optimizer(f2) if ispt else None  # strip optimizer
-                        os.system(
-                            "gsutil cp %s gs://%s/weights" % (f2, opt.bucket)
-                        ) if opt.bucket and ispt else None  # upload
+                        (
+                            os.system("gsutil cp %s gs://%s/weights" % (f2, opt.bucket))
+                            if opt.bucket and ispt
+                            else None
+                        )  # upload
 
             # if not opt.evolve:
             #     plot_results()  # save as results.png

@@ -1,11 +1,10 @@
+from copy import deepcopy
+
 import torch
-from torch import nn
-from torch import optim
+from torch import nn, optim
 from torch.nn import functional as F
-from torch import optim
 
 from .learner import Learner
-from copy import deepcopy
 
 
 class Meta(nn.Module):

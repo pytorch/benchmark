@@ -1,4 +1,4 @@
-from typing import Generator, List, Callable
+from typing import Callable, Generator, List
 
 import torch
 import triton
@@ -7,16 +7,18 @@ import triton.language as tl
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    Mode,
     register_benchmark,
     register_metric,
-    Mode,
 )
+
 from .kernels import triton_group_gemm_fn
 
 
 class Operator(BenchmarkOperator):
     DEFAULT_PRECISION = "fp16"
     DEFAULT_METRICS = ["latency", "speedup", "accuracy"]
+    use_cuda_graphs = False
 
     @register_benchmark(baseline=True)
     def torch(self, group_A, group_B):

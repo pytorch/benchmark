@@ -1,6 +1,7 @@
 import os
-import sys
 import subprocess
+import sys
+
 from torchbenchmark import REPO_PATH
 from utils.python_utils import pip_install_requirements
 

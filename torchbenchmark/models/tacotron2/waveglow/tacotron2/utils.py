@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.io.wavfile import read
 import torch
+from scipy.io.wavfile import read
 
 
 def get_mask_from_lengths(lengths):
@@ -13,12 +13,13 @@ def get_mask_from_lengths(lengths):
 def load_wav_to_torch(full_path, sr):
     sampling_rate, data = read(full_path)
     assert sr == sampling_rate, "{} SR doesn't match {} on path {}".format(
-        sr, sampling_rate, full_path)
+        sr, sampling_rate, full_path
+    )
     return torch.FloatTensor(data.astype(np.float32))
 
 
 def load_filepaths_and_text(filename, sort_by_length, split="|"):
-    with open(filename, encoding='utf-8') as f:
+    with open(filename, encoding="utf-8") as f:
         filepaths_and_text = [line.strip().split(split) for line in f]
 
     if sort_by_length:

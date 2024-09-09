@@ -12,7 +12,6 @@ import triton.language as tl
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
-    dump_autotuner_best_config,
     register_benchmark,
     register_metric,
 )
@@ -25,7 +24,7 @@ from .kernels import (
     triton_sum_kernel_scalar_result,
 )
 
-GIGABYTES_PER_BYTE = 1e-6
+GIGABYTES_PER_BYTE = 1e-9
 ABSOLUTE_TOLERANCE = 1e-4
 RELATIVE_TOLERANCE = 1e-3
 TENSOR_BYTES_LIMIT = 8 * 1e9  # allocate tensors no greater than 10GB
@@ -150,10 +149,12 @@ def execute_kernel_2D_result(x):
 
 class Operator(BenchmarkOperator):
 
-    DEFAULT_METRICS = ["latency", "accuracy"]
+    DEFAULT_METRICS = ["latency", "accuracy", "best_config"]
 
-    def __init__(self, mode: str, device: str, extra_args: Optional[List[str]] = None):
-        super().__init__(mode=mode, device=device, extra_args=extra_args)
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
+        super().__init__(tb_args, extra_args)
         args = parse_op_args(self.extra_args)
         self.input_dim = args.input_dim
         self.reduce_dim = args.reduce_dim
@@ -291,7 +292,9 @@ class Operator(BenchmarkOperator):
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
         baseline_output = baseline_fn()
-        return torch.allclose(output, baseline_output, atol=ABSOLUTE_TOLERANCE, rtol=RELATIVE_TOLERANCE)
+        return torch.allclose(
+            output, baseline_output, atol=ABSOLUTE_TOLERANCE, rtol=RELATIVE_TOLERANCE
+        )
 
     @register_metric()
     def gbps(self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics):
@@ -301,25 +304,6 @@ class Operator(BenchmarkOperator):
             / metrics.latency
             * GIGABYTES_PER_BYTE
         )
-
-    @register_metric(skip_baseline=True)
-    def best_config(
-        self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics
-    ) -> str:
-        if self.input_dim == 2:
-            if self.sum_then_buffer:
-                return dump_autotuner_best_config(
-                    triton_sum_kernel_1D_result_sum_then_buffer
-                )
-            return dump_autotuner_best_config(
-                triton_sum_kernel_1D_result_buffer_then_sum
-            )
-        elif self.input_dim == 3:
-            return dump_autotuner_best_config(
-                triton_sum_kernel_2D_result_dim_1_sum_then_buffer
-            )
-        else:
-            return ""
 
     @register_metric(x_only=True)
     def input_shape(
