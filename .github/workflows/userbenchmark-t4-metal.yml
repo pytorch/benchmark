@@ -40,7 +40,7 @@ jobs:
           pip install -U py-cpuinfo psutil distro boto3
           sudo ${HOME}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python3 torchbenchmark/util/machine_config.py
           # Check if nightly builds are available
-          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
+          NIGHTLIES=$(python utils/torch_nightly_utils.py --packages torch)
           # If failed, the script will generate empty result
           if [ -z $NIGHTLIES ]; then
               echo "Torch nightly build failed. Cancel the workflow."

@@ -64,7 +64,9 @@ def get_metrics(name):
         return []
 
 
-def schedule(name, args, nodes=2, partition="learnfair", time=2 * 24 * 60, large=True, gpus=8):
+def schedule(
+    name, args, nodes=2, partition="learnfair", time=2 * 24 * 60, large=True, gpus=8
+):
     log = fname(name, "log")
     command = [
         "sbatch",
@@ -84,30 +86,33 @@ def schedule(name, args, nodes=2, partition="learnfair", time=2 * 24 * 60, large
 
     run_cmd = ["#!/bin/bash"]
     run_cmd.append(f"srun {srun_flags} python3 run_slurm.py " + " ".join(args))
-    result = sp.run(command, stdout=sp.PIPE, input="\n".join(run_cmd).encode('utf-8'),
-                    check=True).stdout.decode('utf-8')
-    sid = int(result.strip().rsplit(' ', 1)[1])
+    result = sp.run(
+        command, stdout=sp.PIPE, input="\n".join(run_cmd).encode("utf-8"), check=True
+    ).stdout.decode("utf-8")
+    sid = int(result.strip().rsplit(" ", 1)[1])
     open(fname(name, "sid"), "w").write(str(sid))
     return sid
 
 
 def _check(sids):
-    cs_ids = ','.join(map(str, sids))
-    result = sp.run(['squeue', f'-j{cs_ids}', '-o%A,%T,%P', '--noheader'],
-                    check=True,
-                    capture_output=True)
-    lines = result.stdout.decode('utf-8').strip().split('\n')
+    cs_ids = ",".join(map(str, sids))
+    result = sp.run(
+        ["squeue", f"-j{cs_ids}", "-o%A,%T,%P", "--noheader"],
+        check=True,
+        capture_output=True,
+    )
+    lines = result.stdout.decode("utf-8").strip().split("\n")
     results = {}
     for line in lines:
         line = line.strip()
         if not line:
             continue
-        sid, status, partition = line.split(',', 2)
+        sid, status, partition = line.split(",", 2)
         sid = int(sid)
         results[sid] = status.lower()
     for sid in sids:
         if sid not in results:
-            results[sid] = 'failed'
+            results[sid] = "failed"
     return results
 
 
@@ -157,7 +162,12 @@ class Monitor:
                 reset_job(job.name)
                 status = "reset"
 
-            meta = {'name': job.name, 'sid': job.sid, 'status': status[:2], "index": index}
+            meta = {
+                "name": job.name,
+                "sid": job.sid,
+                "status": status[:2],
+                "index": index,
+            }
             metrics = get_metrics(job.name)
             if trim is not None:
                 metrics = metrics[:trim]
@@ -166,23 +176,31 @@ class Monitor:
                 metrics = metrics[-1]
             else:
                 metrics = {}
-            lines.append({'meta': meta, 'metrics': metrics})
+            lines.append({"meta": meta, "metrics": metrics})
 
-        table = tt.table(shorten=True,
-                         groups=[
-                             tt.group("meta", [
-                                 tt.leaf("index", align=">"),
-                                 tt.leaf("name"),
-                                 tt.leaf("sid", align=">"),
-                                 tt.leaf("status"),
-                                 tt.leaf("epoch", align=">")
-                             ]),
-                             tt.group("metrics", [
-                                 tt.leaf("train", ".2%"),
-                                 tt.leaf("valid", ".2%"),
-                                 tt.leaf("best", ".2%"),
-                             ])
-                         ])
+        table = tt.table(
+            shorten=True,
+            groups=[
+                tt.group(
+                    "meta",
+                    [
+                        tt.leaf("index", align=">"),
+                        tt.leaf("name"),
+                        tt.leaf("sid", align=">"),
+                        tt.leaf("status"),
+                        tt.leaf("epoch", align=">"),
+                    ],
+                ),
+                tt.group(
+                    "metrics",
+                    [
+                        tt.leaf("train", ".2%"),
+                        tt.leaf("valid", ".2%"),
+                        tt.leaf("best", ".2%"),
+                    ],
+                ),
+            ],
+        )
         print(tt.treetable(lines, table, colors=["30", "39"]))
 
 
@@ -193,8 +211,11 @@ def main():
         "-r",
         "--reset",
         action="store_true",
-        help="Will reset the state of failed jobs. Next invocation will reschedule them")
-    parser.add_argument("-t", "--trim", type=int, help="Trim metrics to match job with given index")
+        help="Will reset the state of failed jobs. Next invocation will reschedule them",
+    )
+    parser.add_argument(
+        "-t", "--trim", type=int, help="Trim metrics to match job with given index"
+    )
     args = parser.parse_args()
 
     monitor = Monitor(base=[], cancel=args.cancel)

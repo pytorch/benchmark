@@ -1,10 +1,12 @@
 import torch
 
+
 # The following function is a wrapper to avoid checking this multiple times in th
 # loop below.
 def unpack_batch(b, device):
     # Experiment with unweighted samples
     return b[0], b[1], b[2], b[3], torch.ones(b[3].size()).to(device), None
+
 
 def dlrm_wrap(dlrm, X, lS_o, lS_i, use_gpu, device, ndevices=1):
     if dlrm.quantize_mlp_input_with_half_call:
@@ -41,10 +43,10 @@ def prefetch(dl, device):
     for inputBatch in dl:
         X, lS_o, lS_i, T = inputBatch
         lS_i = (
-                [S_i.to(device) for S_i in lS_i]
-                if isinstance(lS_i, list)
-                else lS_i.to(device)
-            )
+            [S_i.to(device) for S_i in lS_i]
+            if isinstance(lS_i, list)
+            else lS_i.to(device)
+        )
         lS_o = (
             [S_o.to(device) for S_o in lS_o]
             if isinstance(lS_o, list)

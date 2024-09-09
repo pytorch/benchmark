@@ -8,6 +8,7 @@ from torchbenchmark.util.env_check import is_staged_train_test
 
 TEST_STAGE = enum.Enum("TEST_STAGE", ["FORWARD", "BACKWARD", "OPTIMIZER", "ALL"])
 AVAILABLE_PRECISIONS = [
+    "bypass",
     "fp32",
     "tf32",
     "fp16",
@@ -33,6 +34,8 @@ def add_bool_arg(
 def check_precision(
     model: "torchbenchmark.util.model.BenchmarkModel", precision: str
 ) -> bool:
+    if precision == "bypass":
+        return True
     if precision == "fp16":
         return model.device == "cuda" and hasattr(model, "enable_fp16")
     if precision == "tf32":
@@ -54,7 +57,9 @@ def check_precision(
         if model.test == "train" and model.device == "cpu":
             return hasattr(model, "enable_amp") or is_staged_train_test(model)
     if precision == "fp8":
-        assert "fp8" in model.name, f"We expect fp8 exist in the model/operator name to explicitly claim fp8 is used, name: {model.name}."
+        assert (
+            "fp8" in model.name
+        ), f"We expect fp8 exist in the model/operator name to explicitly claim fp8 is used, name: {model.name}."
         return True
     assert (
         precision == "fp32"
@@ -167,6 +172,8 @@ def parse_decoration_args(
 def apply_decoration_args(
     model: "torchbenchmark.util.model.BenchmarkModel", dargs: argparse.Namespace
 ):
+    if dargs.precision == "bypass":
+        return
     if dargs.channels_last:
         model.enable_channels_last()
     if dargs.precision == "fp16":

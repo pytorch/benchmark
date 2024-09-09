@@ -1,12 +1,12 @@
+import logging
 
-
-import logging 
-
-LOGGER_NAME = 'TorchBenchLogger'
+LOGGER_NAME = "TorchBenchLogger"
 
 
 def set_logger(logger_level=logging.WARNING):
-    formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
+    )
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger = logging.getLogger(LOGGER_NAME)

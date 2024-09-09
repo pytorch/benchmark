@@ -240,7 +240,7 @@ def isoneutral_diffusion_pre(
                 dxu[1 + ip : -3 + ip, None, None]
                 * K_iso[2:-2, 2:-2, :-1]
                 * taper
-                * sxb ** 2
+                * sxb**2
                 * maskW[2:-2, 2:-2, :-1]
             )
             Ai_bx[2:-2, 2:-2, :-1, ip, kr] = taper * sxb * maskW[2:-2, 2:-2, :-1]
@@ -260,7 +260,7 @@ def isoneutral_diffusion_pre(
                 facty[None, :, None]
                 * K_iso[2:-2, 2:-2, :-1]
                 * taper
-                * syb ** 2
+                * syb**2
                 * maskW[2:-2, 2:-2, :-1]
             )
             Ai_by[2:-2, 2:-2, :-1, jp, kr] = taper * syb * maskW[2:-2, 2:-2, :-1]
@@ -274,9 +274,7 @@ def isoneutral_diffusion_pre(
 
 
 def prepare_inputs(*inputs, device):
-    out = [
-        torch.as_tensor(a, device=device) for a in inputs
-    ]
+    out = [torch.as_tensor(a, device=device) for a in inputs]
     if device == "gpu":
         torch.cuda.synchronize()
     return out

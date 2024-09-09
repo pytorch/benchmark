@@ -3,7 +3,6 @@ from typing import Generator, List
 
 import torch
 import triton
-from .kernels import triton_add_kernel
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -11,6 +10,8 @@ from torchbenchmark.util.triton_op import (
     register_benchmark,
     register_metric,
 )
+
+from .kernels import triton_add_kernel
 
 
 class Operator(BenchmarkOperator):

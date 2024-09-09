@@ -1,8 +1,8 @@
+import subprocess
 import warnings
 from pathlib import Path
-import subprocess
 
-from typing import Optional, List
+from typing import List, Optional
 
 DEFAULT_PYTHON_VERSION = "3.11"
 
@@ -25,17 +25,22 @@ def create_conda_env(pyver: str, name: str):
     subprocess.check_call(command)
 
 
-def pip_install_requirements(requirements_txt="requirements.txt",
-                            continue_on_fail=False,
-                            no_build_isolation=False,
-                            extra_args: Optional[List[str]]=None):
+def pip_install_requirements(
+    requirements_txt="requirements.txt",
+    continue_on_fail=False,
+    no_build_isolation=False,
+    extra_args: Optional[List[str]] = None,
+):
     import sys
+
     constraints_file = REPO_DIR.joinpath("build", "constraints.txt")
     if not constraints_file.exists():
-        warnings.warn("The build/constrants.txt file is not found. "
-                      "Please consider rerunning the install.py script to generate it."
-                      "It is recommended to install with the build/constrants.txt file "
-                      "to prevent unexpected version change of numpy or torch.")
+        warnings.warn(
+            "The build/constrants.txt file is not found. "
+            "Please consider rerunning the install.py script to generate it."
+            "It is recommended to install with the build/constrants.txt file "
+            "to prevent unexpected version change of numpy or torch."
+        )
         constraints_parameters = []
     else:
         constraints_parameters = ["-c", str(constraints_file.resolve())]
@@ -45,12 +50,14 @@ def pip_install_requirements(requirements_txt="requirements.txt",
         constraints_parameters.extend(extra_args)
     if not continue_on_fail:
         subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-r", requirements_txt] + constraints_parameters,
+            [sys.executable, "-m", "pip", "install", "-r", requirements_txt]
+            + constraints_parameters,
         )
         return True, None
     try:
         subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-r", requirements_txt] + constraints_parameters,
+            [sys.executable, "-m", "pip", "install", "-r", requirements_txt]
+            + constraints_parameters,
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -64,6 +71,7 @@ def pip_install_requirements(requirements_txt="requirements.txt",
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--pyver",

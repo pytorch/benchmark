@@ -1,16 +1,17 @@
+import os
 import pickle as pkl
+from typing import Tuple
+
 import numpy as np
 import torch
-import os
-from typing import Tuple
 from gym import spaces
-
-from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
-from .drqutils import FrameStack, set_seed_everywhere, eval_mode
-from .drq import DRQAgent
+from ...util.model import BenchmarkModel
 from .config import DRQConfig
+from .drq import DRQAgent
+
+from .drqutils import eval_mode, FrameStack, set_seed_everywhere
 from .replay_buffer import ReplayBuffer
 
 

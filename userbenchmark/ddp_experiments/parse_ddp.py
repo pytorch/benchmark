@@ -1,14 +1,16 @@
+import argparse
+import copy
 import csv
 import json
-import copy
-import argparse
-from typing import OrderedDict
-from dataclasses import dataclass
 import os
 import pickle
-from collections import defaultdict
-import tabulate
 import sys
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import OrderedDict
+
+import tabulate
+
 
 def parse_partial(args):
     """
@@ -16,7 +18,9 @@ def parse_partial(args):
     model_data["model"]["backend"][#nodes] = result
     where "result" can be a list of results, or "error"
     """
-    model_data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
+    model_data = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    )
     rank_id = 0
     log_path = os.path.join(args.results_dir, f"{args.job_id}_{rank_id}_log.out")
     with open(log_path, "r") as f:
@@ -38,23 +42,26 @@ def parse_partial(args):
                 model_data[model][backend][nodes][has_breaks] = "error"
     return model_data
 
+
 def model_name(model):
     if "torchbenchmark.models." in model:
-        model = model[len("torchbenchmark.models."):]
+        model = model[len("torchbenchmark.models.") :]
     if ".Model" in model:
-        model = model[:model.find(".Model")]
+        model = model[: model.find(".Model")]
     return model
+
 
 def median(x):
     if len(x) == 0:
         return 0
     x = copy.copy(x)
     x = sorted(x)
-    idx = int(len(x)/2)
+    idx = int(len(x) / 2)
     if len(x) % 2 == 0:
         return (x[idx - 1] + x[idx]) / 2
     else:
         return x[idx]
+
 
 def print_model_table(args, model, model_data):
     node_counts = OrderedDict()
@@ -66,7 +73,9 @@ def print_model_table(args, model, model_data):
     rows = []
     for has_breaks in [False, True]:
         for backend in model_data:
-            row = [f"{backend} {'w/' if has_breaks else 'wo/'}breaks", ]
+            row = [
+                f"{backend} {'w/' if has_breaks else 'wo/'}breaks",
+            ]
             for node in node_counts:
                 if node in model_data[backend]:
                     res = model_data[backend][node][str(has_breaks)]
@@ -80,10 +89,11 @@ def print_model_table(args, model, model_data):
                     row.append("-")
             rows.append(row)
 
-    hdr = ("backend", ) + tuple(f"{node}_latency" for node in node_counts)
+    hdr = ("backend",) + tuple(f"{node}_latency" for node in node_counts)
     print(f"{model_name(model)}:")
     print(tabulate.tabulate(rows, headers=hdr))
     print()
+
 
 def print_csv(args, data):
     csv_data = []
@@ -111,10 +121,10 @@ def print_csv(args, data):
                     if node in data[model][backend]:
                         latency = data[model][backend][node][str(has_breaks)]
                     else:
-                        latency = 0.
+                        latency = 0.0
 
                     if isinstance(latency, list) and len(latency) == 0:
-                        latency = 0.
+                        latency = 0.0
                     node_label_median = f"{node}-node median"
                     node_label_min = f"{node}-node min"
                     node_label_max = f"{node}-node max"
@@ -128,9 +138,11 @@ def print_csv(args, data):
     for row in csv_data:
         csv_writer.writerow(row)
 
+
 def print_results(args, data):
     for model in data:
         print_model_table(args, model, data[model])
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -143,6 +155,7 @@ def main():
         print_csv(args, data)
     else:
         print_results(args, data)
+
 
 if __name__ == "__main__":
     main()

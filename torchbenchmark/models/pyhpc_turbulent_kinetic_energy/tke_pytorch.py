@@ -331,9 +331,7 @@ def integrate_tke(
 
 
 def prepare_inputs(*inputs, device):
-    out = [
-        torch.as_tensor(a, device=device) for a in inputs
-    ]
+    out = [torch.as_tensor(a, device=device) for a in inputs]
     if device == "gpu":
         torch.cuda.synchronize()
     return out

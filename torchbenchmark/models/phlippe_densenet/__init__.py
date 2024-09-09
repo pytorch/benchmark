@@ -1,9 +1,10 @@
-from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
-import torch.nn as nn
-import torch
 from types import SimpleNamespace
+
+import torch
+import torch.nn as nn
 import torch.utils.data as data
+from torchbenchmark.tasks import COMPUTER_VISION
+from torchbenchmark.util.model import BenchmarkModel
 
 
 class DenseLayer(nn.Module):
@@ -23,8 +24,9 @@ class DenseLayer(nn.Module):
             nn.Conv2d(c_in, bn_size * growth_rate, kernel_size=1, bias=False),
             nn.BatchNorm2d(bn_size * growth_rate),
             act_fn(),
-            nn.Conv2d(bn_size * growth_rate, growth_rate,
-                      kernel_size=3, padding=1, bias=False)
+            nn.Conv2d(
+                bn_size * growth_rate, growth_rate, kernel_size=3, padding=1, bias=False
+            ),
         )
 
     def forward(self, x):
@@ -48,10 +50,14 @@ class DenseBlock(nn.Module):
         layers = []
         for layer_idx in range(num_layers):
             layers.append(
-                DenseLayer(c_in=c_in + layer_idx * growth_rate,  # Input channels are original plus the feature maps from previous layers
-                           bn_size=bn_size,
-                           growth_rate=growth_rate,
-                           act_fn=act_fn)
+                DenseLayer(
+                    c_in=c_in
+                    + layer_idx
+                    * growth_rate,  # Input channels are original plus the feature maps from previous layers
+                    bn_size=bn_size,
+                    growth_rate=growth_rate,
+                    act_fn=act_fn,
+                )
             )
         self.block = nn.Sequential(*layers)
 
@@ -69,7 +75,7 @@ class TransitionLayer(nn.Module):
             act_fn(),
             nn.Conv2d(c_in, c_out, kernel_size=1, bias=False),
             # Average the output for each 2x2 pixel group
-            nn.AvgPool2d(kernel_size=2, stride=2)
+            nn.AvgPool2d(kernel_size=2, stride=2),
         )
 
     def forward(self, x):
@@ -78,20 +84,30 @@ class TransitionLayer(nn.Module):
 
 class DenseNet(nn.Module):
 
-    def __init__(self, num_classes=10, num_layers=[6, 6, 6, 6], bn_size=2, growth_rate=16, act_fn_name="relu", **kwargs):
+    def __init__(
+        self,
+        num_classes=10,
+        num_layers=[6, 6, 6, 6],
+        bn_size=2,
+        growth_rate=16,
+        act_fn_name="relu",
+        **kwargs
+    ):
         super().__init__()
         act_fn_by_name = {
             "tanh": nn.Tanh,
             "relu": nn.ReLU,
             "leakyrelu": nn.LeakyReLU,
-            "gelu": nn.GELU
+            "gelu": nn.GELU,
         }
-        self.hparams = SimpleNamespace(num_classes=num_classes,
-                                       num_layers=num_layers,
-                                       bn_size=bn_size,
-                                       growth_rate=growth_rate,
-                                       act_fn_name=act_fn_name,
-                                       act_fn=act_fn_by_name[act_fn_name])
+        self.hparams = SimpleNamespace(
+            num_classes=num_classes,
+            num_layers=num_layers,
+            bn_size=bn_size,
+            growth_rate=growth_rate,
+            act_fn_name=act_fn_name,
+            act_fn=act_fn_by_name[act_fn_name],
+        )
         self._create_network()
         self._init_params()
 
@@ -109,20 +125,23 @@ class DenseNet(nn.Module):
         blocks = []
         for block_idx, num_layers in enumerate(self.hparams.num_layers):
             blocks.append(
-                DenseBlock(c_in=c_hidden,
-                           num_layers=num_layers,
-                           bn_size=self.hparams.bn_size,
-                           growth_rate=self.hparams.growth_rate,
-                           act_fn=self.hparams.act_fn)
+                DenseBlock(
+                    c_in=c_hidden,
+                    num_layers=num_layers,
+                    bn_size=self.hparams.bn_size,
+                    growth_rate=self.hparams.growth_rate,
+                    act_fn=self.hparams.act_fn,
+                )
             )
             # Overall output of the dense block
             c_hidden = c_hidden + num_layers * self.hparams.growth_rate
             # Don't apply transition layer on last block
             if block_idx < len(self.hparams.num_layers) - 1:
                 blocks.append(
-                    TransitionLayer(c_in=c_hidden,
-                                    c_out=c_hidden // 2,
-                                    act_fn=self.hparams.act_fn))
+                    TransitionLayer(
+                        c_in=c_hidden, c_out=c_hidden // 2, act_fn=self.hparams.act_fn
+                    )
+                )
                 c_hidden = c_hidden // 2
 
         self.blocks = nn.Sequential(*blocks)
@@ -134,15 +153,14 @@ class DenseNet(nn.Module):
             self.hparams.act_fn(),
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
-            nn.Linear(c_hidden, self.hparams.num_classes)
+            nn.Linear(c_hidden, self.hparams.num_classes),
         )
 
     def _init_params(self):
         # Based on our discussion in Tutorial 4, we should initialize the convolutions according to the activation function
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(
-                    m.weight, nonlinearity=self.hparams.act_fn_name)
+                nn.init.kaiming_normal_(m.weight, nonlinearity=self.hparams.act_fn_name)
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -161,17 +179,22 @@ class Model(BenchmarkModel):
     DEFAULT_EVAL_BSIZE = 128
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device,
-                         batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         self.model = DenseNet()
         self.model.to(device)
         self.example_inputs = (
             torch.randn((self.batch_size, 3, 32, 32), device=self.device),
         )
-        self.example_target = torch.randint(0, 10, (self.batch_size,), device=self.device)
+        self.example_target = torch.randint(
+            0, 10, (self.batch_size,), device=self.device
+        )
         dataset = data.TensorDataset(self.example_inputs[0], self.example_target)
         dummy_loader = data.DataLoader(dataset, batch_size=self.batch_size)
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-3, weight_decay=1e-4)
+        self.optimizer = torch.optim.AdamW(
+            self.model.parameters(), lr=1e-3, weight_decay=1e-4
+        )
         self.criterion = nn.CrossEntropyLoss()
 
     def get_module(self):
@@ -179,7 +202,7 @@ class Model(BenchmarkModel):
 
     def train(self):
         model = self.model
-        (images, ) = self.example_inputs
+        (images,) = self.example_inputs
         model.train()
         targets = self.example_target
         output = model(images)
@@ -190,7 +213,7 @@ class Model(BenchmarkModel):
 
     def eval(self):
         model = self.model
-        (images, ) = self.example_inputs
+        (images,) = self.example_inputs
         model.eval()
         out = model(images)
         return (out,)

@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # @Yueming Hao: TODO: Replace this with nvml API
-from .da_exceptions import TorchBenchAnalyzerException
 from numba import cuda
+
+from .da_exceptions import TorchBenchAnalyzerException
 
 
 class Device:

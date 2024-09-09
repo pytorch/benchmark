@@ -14,28 +14,32 @@
 
 # Logging
 LOGGER_NAME = "model_analyzer_logger"
-from .gpu_device import GPUDevice
-from  ..dcgm import dcgm_agent as dcgm_agent
-from ..dcgm import dcgm_structs as structs
-from .da_exceptions import TorchBenchAnalyzerException
-import pynvml
 import numba.cuda
+import pynvml
+
+from ..dcgm import dcgm_agent as dcgm_agent, dcgm_structs as structs
+from .da_exceptions import TorchBenchAnalyzerException
+from .gpu_device import GPUDevice
+
 numba.cuda.config.CUDA_LOG_LEVEL = "ERROR"
 import logging
 
 logger = logging.getLogger(LOGGER_NAME)
+
 
 def type_convert_for_pynvml(original_input):
     """For pynvml 11.5.0+, most arguments and return values have been changed to strings.
     This function converts the original bytes input to string for pynvml less than 11.5.0.
     """
     if isinstance(original_input, bytes):
-        return original_input.decode('utf-8')
+        return original_input.decode("utf-8")
     elif isinstance(original_input, str):
         return original_input
     elif isinstance(original_input, int):
         return str(original_input)
-    raise TorchBenchAnalyzerException('Unsupported type for pynvml conversion: {}'.format(type(original_input)))
+    raise TorchBenchAnalyzerException(
+        "Unsupported type for pynvml conversion: {}".format(type(original_input))
+    )
 
 
 class GPUDeviceFactory:
@@ -43,7 +47,7 @@ class GPUDeviceFactory:
     Factory class for creating GPUDevices
     """
 
-    def __init__(self, model_analyzer_backend='nvml'):
+    def __init__(self, model_analyzer_backend="nvml"):
         self._devices = []
         self._devices_by_bus_id = {}
         self._devices_by_uuid = {}
@@ -63,7 +67,7 @@ class GPUDeviceFactory:
             Absolute path to dcgm shared library
         """
 
-        if self._model_analyzer_backend == 'dcgm':
+        if self._model_analyzer_backend == "dcgm":
             if numba.cuda.is_available():
                 logger.debug("Initiliazing GPUDevice handles using DCGM")
                 structs._dcgmInit(dcgmPath)
@@ -71,18 +75,22 @@ class GPUDeviceFactory:
 
                 # Start DCGM in the embedded mode to use the shared library
                 dcgm_handle = dcgm_agent.dcgmStartEmbedded(
-                    structs.DCGM_OPERATION_MODE_MANUAL)
+                    structs.DCGM_OPERATION_MODE_MANUAL
+                )
 
                 # Create a GPU device for every supported DCGM device
                 dcgm_device_ids = dcgm_agent.dcgmGetAllSupportedDevices(dcgm_handle)
                 for device_id in dcgm_device_ids:
                     device_atrributes = dcgm_agent.dcgmGetDeviceAttributes(
-                        dcgm_handle, device_id).identifiers
+                        dcgm_handle, device_id
+                    ).identifiers
                     pci_bus_id = device_atrributes.pciBusId.upper()
                     device_uuid = device_atrributes.uuid
                     device_name = device_atrributes.deviceName
-                    try :
-                        gpu_device = GPUDevice(device_name, device_id, pci_bus_id,device_uuid)
+                    try:
+                        gpu_device = GPUDevice(
+                            device_name, device_id, pci_bus_id, device_uuid
+                        )
                     except TorchBenchAnalyzerException as e:
                         logger.debug("Skipping device %s due to %s", device_name, e)
                         continue
@@ -97,11 +105,19 @@ class GPUDeviceFactory:
             nvml_device_count = self._nvml.nvmlDeviceGetCount()
             for device_id in range(nvml_device_count):
                 handle = self._nvml.nvmlDeviceGetHandleByIndex(device_id)
-                device_name = type_convert_for_pynvml(self._nvml.nvmlDeviceGetName(handle))
-                pci_bus_id = type_convert_for_pynvml(self._nvml.nvmlDeviceGetPciInfo(handle).busId)
-                device_uuid = type_convert_for_pynvml(self._nvml.nvmlDeviceGetUUID(handle))
+                device_name = type_convert_for_pynvml(
+                    self._nvml.nvmlDeviceGetName(handle)
+                )
+                pci_bus_id = type_convert_for_pynvml(
+                    self._nvml.nvmlDeviceGetPciInfo(handle).busId
+                )
+                device_uuid = type_convert_for_pynvml(
+                    self._nvml.nvmlDeviceGetUUID(handle)
+                )
                 try:
-                    gpu_device = GPUDevice(device_name, device_id, pci_bus_id, device_uuid)
+                    gpu_device = GPUDevice(
+                        device_name, device_id, pci_bus_id, device_uuid
+                    )
                 except TorchBenchAnalyzerException as e:
                     logger.debug("Skipping device %s due to %s", device_name, e)
                     continue
@@ -133,7 +149,7 @@ class GPUDeviceFactory:
             return self._devices_by_bus_id[bus_id]
         else:
             raise TorchBenchAnalyzerException(
-                f'GPU with {bus_id} bus id is either not supported by DCGM or not present.'
+                f"GPU with {bus_id} bus id is either not supported by DCGM or not present."
             )
 
     def get_device_by_cuda_index(self, index):
@@ -163,11 +179,10 @@ class GPUDeviceFactory:
 
         cuda_device = devices[index]
         device_identity = cuda_device.get_device_identity()
-        pci_domain_id = device_identity['pci_domain_id']
-        pci_device_id = device_identity['pci_device_id']
-        pci_bus_id = device_identity['pci_bus_id']
-        device_bus_id = \
-            f'{pci_domain_id:08X}:{pci_bus_id:02X}:{pci_device_id:02X}.0'
+        pci_domain_id = device_identity["pci_domain_id"]
+        pci_device_id = device_identity["pci_device_id"]
+        pci_bus_id = device_identity["pci_bus_id"]
+        device_bus_id = f"{pci_domain_id:08X}:{pci_bus_id:02X}:{pci_device_id:02X}.0"
 
         return self.get_device_by_bus_id(device_bus_id)
 
@@ -194,8 +209,7 @@ class GPUDeviceFactory:
         if uuid in self._devices_by_uuid:
             return self._devices_by_uuid[uuid]
         else:
-            raise TorchBenchAnalyzerException(
-                f'GPU UUID {uuid} was not found.')
+            raise TorchBenchAnalyzerException(f"GPU UUID {uuid} was not found.")
 
     def verify_requested_gpus(self, requested_gpus):
         """
@@ -211,21 +225,21 @@ class GPUDeviceFactory:
         -------
         List of GPUDevices
             list of GPUDevices corresponding to visible GPUs among requested
-        
+
         Raises
         ------
         TorchBenchAnalyzerException
         """
-        if self._model_analyzer_backend == 'dcgm':
+        if self._model_analyzer_backend == "dcgm":
             cuda_visible_gpus = self.get_cuda_visible_gpus()
         else:
             cuda_visible_gpus = self._devices
 
         if len(requested_gpus) == 1:
-            if requested_gpus[0] == 'all':
+            if requested_gpus[0] == "all":
                 self._log_gpus_used(cuda_visible_gpus)
                 return cuda_visible_gpus
-            elif requested_gpus[0] == '[]':
+            elif requested_gpus[0] == "[]":
                 logger.debug("No GPUs requested")
                 return []
 
@@ -243,13 +257,11 @@ class GPUDeviceFactory:
                     )
         except ValueError:
             # requested_gpus are assumed to be UUIDs
-            requested_gpus = [
-                self.get_device_by_uuid(uuid) for uuid in requested_gpus
-            ]
+            requested_gpus = [self.get_device_by_uuid(uuid) for uuid in requested_gpus]
             pass
-        
+
         # Return the intersection of CUDA visible UUIDs and requested/supported UUIDs.
-        if self._model_analyzer_backend == 'dcgm':
+        if self._model_analyzer_backend == "dcgm":
             available_gpus = list(set(cuda_visible_gpus) & set(requested_gpus))
         else:
             available_gpus = set(requested_gpus)
@@ -269,7 +281,8 @@ class GPUDeviceFactory:
             for cuda_device in numba.cuda.list_devices():
                 try:
                     cuda_visible_gpus.append(
-                        self.get_device_by_cuda_index(cuda_device.id))
+                        self.get_device_by_cuda_index(cuda_device.id)
+                    )
                 except TorchBenchAnalyzerException:
                     # Device not supported by DCGM, log warning
                     logger.debug(

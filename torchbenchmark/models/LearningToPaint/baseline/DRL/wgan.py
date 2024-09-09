@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
-from torch.optim import Adam
-from torch import autograd
-from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.nn.utils.weight_norm as weightNorm
+from torch import autograd
+from torch.autograd import Variable
+from torch.optim import Adam
 from ..utils.util import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

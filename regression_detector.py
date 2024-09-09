@@ -412,7 +412,7 @@ if __name__ == "__main__":
     if not start_date:
         raise RuntimeError(
             f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. "
-            + f"Available JSON dates: {available_metrics_jsons.keys()}. No regression info has been generated."
+            + "No regression info has been generated."
         )
 
     print(

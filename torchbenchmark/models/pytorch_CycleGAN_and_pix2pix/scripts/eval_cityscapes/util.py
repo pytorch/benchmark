@@ -3,15 +3,15 @@ import numpy as np
 
 
 def get_out_scoremap(net):
-    return net.blobs['score'].data[0].argmax(axis=0).astype(np.uint8)
+    return net.blobs["score"].data[0].argmax(axis=0).astype(np.uint8)
 
 
 def feed_net(net, in_):
     """
     Load prepared input into net.
     """
-    net.blobs['data'].reshape(1, *in_.shape)
-    net.blobs['data'].data[...] = in_
+    net.blobs["data"].reshape(1, *in_.shape)
+    net.blobs["data"].data[...] = in_
 
 
 def segrun(net, in_):

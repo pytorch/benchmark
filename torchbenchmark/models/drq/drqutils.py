@@ -3,9 +3,9 @@ import os
 import random
 from collections import deque
 
-import numpy as np
-
 import gym
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

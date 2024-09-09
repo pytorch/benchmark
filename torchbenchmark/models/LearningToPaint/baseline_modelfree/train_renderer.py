@@ -1,9 +1,9 @@
-import torch
 import numpy as np
+import torch
 
 import torch.nn as nn
-from utils.tensorboard import TensorBoard
 from Renderer.model import FCN
+from utils.tensorboard import TensorBoard
 from Renderer.stroke_gen import *
 
 writer = TensorBoard("../train_log/")

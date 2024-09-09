@@ -1,11 +1,15 @@
-import torch
-from . import isoneutral_pytorch
-from torchbenchmark.tasks import OTHER
-from ...util.model import BenchmarkModel
 from typing import Tuple
+
+import torch
+from torchbenchmark.tasks import OTHER
+
+from ...util.model import BenchmarkModel
+from . import isoneutral_pytorch
+
 
 def _generate_inputs(size):
     import math
+
     import numpy as np
 
     np.random.seed(17)
@@ -119,6 +123,7 @@ class IsoneutralMixing(torch.nn.Module):
             Ai_by,
         )
 
+
 class Model(BenchmarkModel):
     task = OTHER.OTHER_TASKS
 
@@ -129,7 +134,9 @@ class Model(BenchmarkModel):
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         self.model = IsoneutralMixing().to(device=device)
         input_size = self.batch_size

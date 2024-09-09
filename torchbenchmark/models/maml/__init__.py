@@ -1,10 +1,12 @@
-import torch
 from argparse import Namespace
-from .meta import Meta
 from pathlib import Path
 from typing import Tuple
-from ...util.model import BenchmarkModel
+
+import torch
 from torchbenchmark.tasks import OTHER
+
+from ...util.model import BenchmarkModel
+from .meta import Meta
 
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False

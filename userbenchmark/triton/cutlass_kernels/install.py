@@ -1,14 +1,19 @@
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
+
 import torch
 
-CUDA_HOME = "/usr/local/cuda" if not "CUDA_HOME" in os.environ else os.environ["CUDA_HOME"]
+CUDA_HOME = (
+    "/usr/local/cuda" if not "CUDA_HOME" in os.environ else os.environ["CUDA_HOME"]
+)
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent.parent.parent
 FBGEMM_PATH = REPO_PATH.joinpath("submodules", "FBGEMM", "fbgemm_gpu")
-FBGEMM_CUTLASS_PATH = FBGEMM_PATH.parent.joinpath("third_party", "cutlass")
+FBGEMM_CUTLASS_PATH = FBGEMM_PATH.parent.joinpath("external", "cutlass")
 COLFAX_CUTLASS_PATH = REPO_PATH.joinpath("submodules", "cutlass-kernels")
-COLFAX_CUTLASS_TRITONBENCH_PATH = REPO_PATH.joinpath("userbenchmark", "triton", "cutlass_kernels")
+COLFAX_CUTLASS_TRITONBENCH_PATH = REPO_PATH.joinpath(
+    "userbenchmark", "triton", "cutlass_kernels"
+)
 
 TORCH_BASE_PATH = Path(torch.__file__).parent
 
@@ -37,6 +42,7 @@ NVCC_FLAGS = [
 COMPILER_FLAGS = [
     f"-I{str(COLFAX_CUTLASS_PATH.joinpath('lib').resolve())}",
     f"-I{str(COLFAX_CUTLASS_PATH.joinpath('include').resolve())}",
+    f"-I{str(COLFAX_CUTLASS_PATH.joinpath('src', 'fmha').resolve())}",
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('include').resolve())}",
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('examples', 'commmon').resolve())}",
     f"-I{str(FBGEMM_CUTLASS_PATH.joinpath('tools', 'util', 'include').resolve())}",
@@ -63,9 +69,7 @@ LINKER_FLAGS = [
     "-ldl",
 ]
 FMHA_SOURCES = [
-    # Source 1
-    f"{str(COLFAX_CUTLASS_PATH.joinpath('src', 'fmha', 'fmha_forward.cu').resolve())}",
-    # Source 2
+    # Source
     f"{str(COLFAX_CUTLASS_TRITONBENCH_PATH.joinpath('src', 'fmha', 'register_op.cu').resolve())}",
     "-o",
     "fmha_forward_lib.so",
@@ -73,9 +77,11 @@ FMHA_SOURCES = [
 
 
 def test_colfax_cutlass(colfax_cutlass_lib: str):
-    assert os.path.exists(colfax_cutlass_lib), \
-        f"{colfax_cutlass_lib} should exist as the built cutlass kernel."
+    assert os.path.exists(
+        colfax_cutlass_lib
+    ), f"{colfax_cutlass_lib} should exist as the built cutlass kernel."
     torch.ops.load_library(colfax_cutlass_lib)
+
 
 def install_colfax_cutlass():
     # compile colfax_cutlass kernels

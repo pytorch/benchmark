@@ -17,11 +17,12 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import bisect
+import collections
+
 # others
 # from os import path
 import sys
-import bisect
-import collections
 
 import data_utils
 
@@ -38,17 +39,17 @@ from numpy import random as ra
 #            'total': randomizes total dataset
 # split (bool) : to split into train, test, validation data-sets
 def read_dataset(
-        dataset,
-        max_ind_range,
-        sub_sample_rate,
-        mini_batch_size,
-        num_batches,
-        randomize,
-        split="train",
-        raw_data="",
-        processed_data="",
-        memory_map=False,
-        inference_only=False,
+    dataset,
+    max_ind_range,
+    sub_sample_rate,
+    mini_batch_size,
+    num_batches,
+    randomize,
+    split="train",
+    raw_data="",
+    processed_data="",
+    memory_map=False,
+    inference_only=False,
 ):
     # split the datafile into path and filename
     lstr = raw_data.split("/")
@@ -61,8 +62,14 @@ def read_dataset(
     print("Loading %s dataset..." % dataset)
     nbatches = 0
     file, days = data_utils.loadDataset(
-        dataset, max_ind_range, sub_sample_rate, randomize,
-        split, raw_data, processed_data, memory_map
+        dataset,
+        max_ind_range,
+        sub_sample_rate,
+        randomize,
+        split,
+        raw_data,
+        processed_data,
+        memory_map,
     )
 
     if memory_map:
@@ -85,9 +92,18 @@ def read_dataset(
             total_per_file = data["total_per_file"]
 
         # transform
-        (X_cat_train, X_int_train, y_train, X_cat_val, X_int_val, y_val,
-         X_cat_test, X_int_test, y_test) = data_utils.transformCriteoAdData(
-             X_cat, X_int, y, days, split, randomize, total_per_file
+        (
+            X_cat_train,
+            X_int_train,
+            y_train,
+            X_cat_val,
+            X_int_val,
+            y_val,
+            X_cat_test,
+            X_int_test,
+            y_test,
+        ) = data_utils.transformCriteoAdData(
+            X_cat, X_int, y, days, split, randomize, total_per_file
         )
         ln_emb = counts
         m_den = X_int_train.shape[1]
@@ -124,14 +140,10 @@ def read_dataset(
                 n = min(mini_batch_size, data_size - (j * mini_batch_size))
                 # dense feature
                 idx_start = j * mini_batch_size
-                lX.append(
-                    (X_int[idx_start : (idx_start + n)]).astype(np.float32)
-                )
+                lX.append((X_int[idx_start : (idx_start + n)]).astype(np.float32))
                 # Targets - outputs
                 lT.append(
-                    (y[idx_start : idx_start + n])
-                    .reshape(-1, 1)
-                    .astype(np.int32)
+                    (y[idx_start : idx_start + n]).reshape(-1, 1).astype(np.int32)
                 )
                 # sparse feature (sparse indices)
                 lS_emb_indices = []
@@ -143,8 +155,7 @@ def read_dataset(
                         # num of sparse indices to be used per embedding, e.g. for
                         # store lengths and indices
                         lS_batch_indices += (
-                            (X_cat[idx_start + _b][size].reshape(-1))
-                            .astype(np.int32)
+                            (X_cat[idx_start + _b][size].reshape(-1)).astype(np.int32)
                         ).tolist()
                     lS_emb_indices.append(lS_batch_indices)
                 lS_indices.append(lS_emb_indices)
@@ -165,7 +176,7 @@ def read_dataset(
         (nbatches_t, lX_t, lS_lengths_t, lS_indices_t, lT_t) = assemble_samples(
             X_cat_test, X_int_test, y_test, max_ind_range, "Testing data"
         )
-    #end if memory_map
+    # end if memory_map
 
     return (
         nbatches,
@@ -215,11 +226,7 @@ def generate_random_data(
         # generate a batch of dense and sparse features
         if data_generation == "random":
             (Xt, lS_emb_lengths, lS_emb_indices) = generate_uniform_input_batch(
-                m_den,
-                ln_emb,
-                n,
-                num_indices_per_lookup,
-                num_indices_per_lookup_fixed
+                m_den, ln_emb, n, num_indices_per_lookup, num_indices_per_lookup_fixed
             )
         elif data_generation == "synthetic":
             (Xt, lS_emb_lengths, lS_emb_indices) = generate_synthetic_input_batch(
@@ -229,7 +236,7 @@ def generate_random_data(
                 num_indices_per_lookup,
                 num_indices_per_lookup_fixed,
                 trace_file,
-                enable_padding
+                enable_padding,
             )
         else:
             sys.exit(
@@ -385,7 +392,7 @@ def generate_stack_distance(cumm_val, cumm_dist, max_i, i, enable_padding=False)
         fi = cumm_dist[0]
         u = (1.0 - fi) * u + fi  # remap distribution support to exclude first value
 
-    for (j, f) in enumerate(cumm_dist):
+    for j, f in enumerate(cumm_dist):
         if u <= f:
             return cumm_val[j]
 
@@ -553,9 +560,9 @@ def write_dist_to_file(file_path, unique_accesses, list_sd, cumm_sd):
 
 
 if __name__ == "__main__":
-    import sys
-    import operator
     import argparse
+    import operator
+    import sys
 
     ### parse arguments ###
     parser = argparse.ArgumentParser(description="Generate Synthetic Distributions")

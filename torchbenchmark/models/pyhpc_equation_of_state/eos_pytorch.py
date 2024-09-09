@@ -87,14 +87,14 @@ def gsw_dHdT(sa, ct, p):
     t28 = 0.5 * t27
     t29 = t25 + t26 + t28
     t33 = t24 * t13
-    t34 = t19 ** 2
+    t34 = t19**2
     t35 = 1.0 / t34
     t37 = v18 + 2.0 * t15
     t38 = t35 * t37
     t48 = ct * (v44 + t1 + t3)
     t57 = v40 * ct
     t59 = ct * (v39 + t57)
-    t64 = t13 ** 2
+    t64 = t13**2
     t68 = t20 * t29
     t71 = t24 * t64
     t74 = v04 * ct
@@ -144,7 +144,7 @@ def gsw_dHdT(sa, ct, p):
     t134 = torch.log(t133)
     t143 = v37 + ct * (v38 + t59) + sa * (v41 + v42 * ct) + t120 * t20
     t152 = t37 * p
-    t156 = t92 ** 2
+    t156 = t92**2
     t165 = v25 * ct
     t167 = ct * (v24 + t165)
     t169 = ct * (v23 + t167)
@@ -177,9 +177,9 @@ def gsw_dHdT(sa, ct, p):
     t264 = t259 * t20
     t272 = 2.0 * t13 * t29 - t105 * t19 - t92 * t37
     t282 = t128 * t242
-    t283 = t244 ** 2
+    t283 = t244**2
     t287 = t243 * t272 / 2.0
-    t292 = t247 ** 2
+    t292 = t247**2
     t305 = (
         0.1e5
         * p
@@ -250,10 +250,7 @@ def gsw_dHdT(sa, ct, p):
 
 
 def prepare_inputs(sa, ct, p, device):
-    out = [
-        torch.as_tensor(a, device=device)
-        for a in (sa, ct, p)
-    ]
+    out = [torch.as_tensor(a, device=device) for a in (sa, ct, p)]
     if device == "gpu":
         torch.cuda.synchronize()
     return out

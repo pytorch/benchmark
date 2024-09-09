@@ -27,78 +27,106 @@
 import argparse
 import json
 import os
+
 import torch
 
-#=====START: ADDED FOR DISTRIBUTED======
-from distributed import init_distributed, apply_gradient_allreduce, reduce_tensor
-from torch.utils.data.distributed import DistributedSampler
-#=====END:   ADDED FOR DISTRIBUTED======
-
-from torch.utils.data import DataLoader
+# =====START: ADDED FOR DISTRIBUTED======
+from distributed import apply_gradient_allreduce, init_distributed, reduce_tensor
 from glow import WaveGlow, WaveGlowLoss
 from mel2samp import Mel2Samp
 
+# =====END:   ADDED FOR DISTRIBUTED======
+
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
+
 def load_checkpoint(checkpoint_path, model, optimizer):
     assert os.path.isfile(checkpoint_path)
-    checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
-    iteration = checkpoint_dict['iteration']
-    optimizer.load_state_dict(checkpoint_dict['optimizer'])
-    model_for_loading = checkpoint_dict['model']
+    checkpoint_dict = torch.load(checkpoint_path, map_location="cpu")
+    iteration = checkpoint_dict["iteration"]
+    optimizer.load_state_dict(checkpoint_dict["optimizer"])
+    model_for_loading = checkpoint_dict["model"]
     model.load_state_dict(model_for_loading.state_dict())
-    print("Loaded checkpoint '{}' (iteration {})" .format(
-          checkpoint_path, iteration))
+    print("Loaded checkpoint '{}' (iteration {})".format(checkpoint_path, iteration))
     return model, optimizer, iteration
 
+
 def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
-    print("Saving model and optimizer state at iteration {} to {}".format(
-          iteration, filepath))
+    print(
+        "Saving model and optimizer state at iteration {} to {}".format(
+            iteration, filepath
+        )
+    )
     model_for_saving = WaveGlow(**waveglow_config).cuda()
     model_for_saving.load_state_dict(model.state_dict())
-    torch.save({'model': model_for_saving,
-                'iteration': iteration,
-                'optimizer': optimizer.state_dict(),
-                'learning_rate': learning_rate}, filepath)
+    torch.save(
+        {
+            "model": model_for_saving,
+            "iteration": iteration,
+            "optimizer": optimizer.state_dict(),
+            "learning_rate": learning_rate,
+        },
+        filepath,
+    )
 
-def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
-          sigma, iters_per_checkpoint, batch_size, seed, fp16_run,
-          checkpoint_path, with_tensorboard):
+
+def train(
+    num_gpus,
+    rank,
+    group_name,
+    output_directory,
+    epochs,
+    learning_rate,
+    sigma,
+    iters_per_checkpoint,
+    batch_size,
+    seed,
+    fp16_run,
+    checkpoint_path,
+    with_tensorboard,
+):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    #=====START: ADDED FOR DISTRIBUTED======
+    # =====START: ADDED FOR DISTRIBUTED======
     if num_gpus > 1:
         init_distributed(rank, num_gpus, group_name, **dist_config)
-    #=====END:   ADDED FOR DISTRIBUTED======
+    # =====END:   ADDED FOR DISTRIBUTED======
 
     criterion = WaveGlowLoss(sigma)
     model = WaveGlow(**waveglow_config).cuda()
 
-    #=====START: ADDED FOR DISTRIBUTED======
+    # =====START: ADDED FOR DISTRIBUTED======
     if num_gpus > 1:
         model = apply_gradient_allreduce(model)
-    #=====END:   ADDED FOR DISTRIBUTED======
+    # =====END:   ADDED FOR DISTRIBUTED======
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     if fp16_run:
         from apex import amp
-        model, optimizer = amp.initialize(model, optimizer, opt_level='O1')
+
+        model, optimizer = amp.initialize(model, optimizer, opt_level="O1")
 
     # Load checkpoint if one exists
     iteration = 0
     if checkpoint_path != "":
-        model, optimizer, iteration = load_checkpoint(checkpoint_path, model,
-                                                      optimizer)
+        model, optimizer, iteration = load_checkpoint(checkpoint_path, model, optimizer)
         iteration += 1  # next iteration is iteration + 1
 
     trainset = Mel2Samp(**data_config)
     # =====START: ADDED FOR DISTRIBUTED======
     train_sampler = DistributedSampler(trainset) if num_gpus > 1 else None
     # =====END:   ADDED FOR DISTRIBUTED======
-    train_loader = DataLoader(trainset, num_workers=1, shuffle=False,
-                              sampler=train_sampler,
-                              batch_size=batch_size,
-                              pin_memory=False,
-                              drop_last=True)
+    train_loader = DataLoader(
+        trainset,
+        num_workers=1,
+        shuffle=False,
+        sampler=train_sampler,
+        batch_size=batch_size,
+        pin_memory=False,
+        drop_last=True,
+    )
 
     # Get shared output_directory ready
     if rank == 0:
@@ -109,7 +137,8 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
 
     if with_tensorboard and rank == 0:
         from tensorboardX import SummaryWriter
-        logger = SummaryWriter(os.path.join(output_directory, 'logs'))
+
+        logger = SummaryWriter(os.path.join(output_directory, "logs"))
 
     model.train()
     epoch_offset = max(0, int(iteration / len(train_loader)))
@@ -140,25 +169,31 @@ def train(num_gpus, rank, group_name, output_directory, epochs, learning_rate,
 
             print("{}:\t{:.9f}".format(iteration, reduced_loss))
             if with_tensorboard and rank == 0:
-                logger.add_scalar('training_loss', reduced_loss, i + len(train_loader) * epoch)
+                logger.add_scalar(
+                    "training_loss", reduced_loss, i + len(train_loader) * epoch
+                )
 
-            if (iteration % iters_per_checkpoint == 0):
+            if iteration % iters_per_checkpoint == 0:
                 if rank == 0:
                     checkpoint_path = "{}/waveglow_{}".format(
-                        output_directory, iteration)
-                    save_checkpoint(model, optimizer, learning_rate, iteration,
-                                    checkpoint_path)
+                        output_directory, iteration
+                    )
+                    save_checkpoint(
+                        model, optimizer, learning_rate, iteration, checkpoint_path
+                    )
 
             iteration += 1
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str,
-                        help='JSON file for configuration')
-    parser.add_argument('-r', '--rank', type=int, default=0,
-                        help='rank of process for distributed')
-    parser.add_argument('-g', '--group_name', type=str, default='',
-                        help='name of group for distributed')
+    parser.add_argument("-c", "--config", type=str, help="JSON file for configuration")
+    parser.add_argument(
+        "-r", "--rank", type=int, default=0, help="rank of process for distributed"
+    )
+    parser.add_argument(
+        "-g", "--group_name", type=str, default="", help="name of group for distributed"
+    )
     args = parser.parse_args()
 
     # Parse configs.  Globals nicer in this case
@@ -175,7 +210,7 @@ if __name__ == "__main__":
 
     num_gpus = torch.cuda.device_count()
     if num_gpus > 1:
-        if args.group_name == '':
+        if args.group_name == "":
             print("WARNING: Multiple GPUs detected but no distributed group set")
             print("Only running 1 GPU.  Use distributed.py for multiple GPUs")
             num_gpus = 1

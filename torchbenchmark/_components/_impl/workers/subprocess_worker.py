@@ -1,8 +1,8 @@
 import contextlib
 import datetime
 import io
-import os
 import marshal
+import os
 import shutil
 import signal
 import subprocess
@@ -10,10 +10,9 @@ import sys
 import tempfile
 import textwrap
 from pathlib import Path
-from typing import Optional, Dict, List, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from torchbenchmark._components._impl.workers import base
-from torchbenchmark._components._impl.workers import subprocess_rpc
+from torchbenchmark._components._impl.workers import base, subprocess_rpc
 
 
 class SubprocessWorker(base.WorkerBase):
@@ -50,9 +49,12 @@ class SubprocessWorker(base.WorkerBase):
     _alive: bool = False
     _bootstrap_timeout: int = 10  # seconds
 
-    def __init__(self, timeout: Optional[float] = None,
-                 extra_env: Optional[Dict[str, str]] = None,
-                 save_output_dir: Optional[Path] = None) -> None:
+    def __init__(
+        self,
+        timeout: Optional[float] = None,
+        extra_env: Optional[Dict[str, str]] = None,
+        save_output_dir: Optional[Path] = None,
+    ) -> None:
         super().__init__()
 
         if save_output_dir and save_output_dir.is_dir():
@@ -63,10 +65,12 @@ class SubprocessWorker(base.WorkerBase):
         Path(self._command_log).touch()
 
         self._stdout_f: io.FileIO = io.FileIO(
-            os.path.join(self.working_dir, "stdout.txt"), mode="w",
+            os.path.join(self.working_dir, "stdout.txt"),
+            mode="w",
         )
         self._stderr_f: io.FileIO = io.FileIO(
-            os.path.join(self.working_dir, "stderr.txt"), mode="w",
+            os.path.join(self.working_dir, "stderr.txt"),
+            mode="w",
         )
 
         # `self._run` has strong assumptions about how `_input_pipe` and
@@ -98,7 +102,8 @@ class SubprocessWorker(base.WorkerBase):
 
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.lpAttributeList["handle_list"].extend(
-                [subprocess_rpc.to_handle(fd) for fd in child_fds])
+                [subprocess_rpc.to_handle(fd) for fd in child_fds]
+            )
 
             popen_kwargs = {
                 "startupinfo": startupinfo,
@@ -162,18 +167,22 @@ class SubprocessWorker(base.WorkerBase):
             raise NotImplementedError("SubprocessWorker does not support `in_memory`")
 
         # NB: we convert the bytes to a hex string to avoid encoding issues.
-        self._run(f"""
+        self._run(
+            f"""
             {name} = {subprocess_rpc.WORKER_IMPL_NAMESPACE}["marshal"].loads(
                 bytes.fromhex({repr(marshal.dumps(value).hex())})
             )
-        """)
+        """
+        )
 
     def load(self, name: str) -> Any:
-        self._run(f"""
+        self._run(
+            f"""
             {subprocess_rpc.WORKER_IMPL_NAMESPACE}["load_pipe"].write(
                 {subprocess_rpc.WORKER_IMPL_NAMESPACE}["marshal"].dumps({name})
             )
-        """)
+        """
+        )
 
         return marshal.loads(self._load_pipe.read())
 
@@ -199,7 +208,8 @@ class SubprocessWorker(base.WorkerBase):
         # NB: This gets sent directly to `self._proc`'s stdin, so it MUST be
         #     a single expression and may NOT contain any empty lines. (Due to
         #     how Python processes commands.)
-        bootstrap_command = textwrap.dedent(f"""
+        bootstrap_command = textwrap.dedent(
+            f"""
             try:
                 import marshal
                 import sys
@@ -224,7 +234,8 @@ class SubprocessWorker(base.WorkerBase):
                 traceback.print_exc()
                 print(str(e))
                 sys.exit(1)
-        """).strip()
+        """
+        ).strip()
 
         if self._proc.poll() is not None:
             raise ValueError("Process has already exited.")
@@ -316,7 +327,8 @@ class SubprocessWorker(base.WorkerBase):
                     "Uncaught Exception in worker:"
                     f"    working_dir: {self.working_dir}\n"
                     f"    stdout:\n{textwrap.indent(stdout, ' ' * 8)}\n\n"
-                    f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}")
+                    f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}"
+                )
 
             serialized_e = subprocess_rpc.SerializedException(**result)
             stdout, stderr = get_output()
@@ -326,7 +338,7 @@ class SubprocessWorker(base.WorkerBase):
                     f"    working_dir: {self.working_dir}\n"
                     f"    stdout:\n{textwrap.indent(stdout, ' ' * 8)}\n\n"
                     f"    stderr:\n{textwrap.indent(stderr, ' ' * 8)}"
-                )
+                ),
             )
 
     def _kill_proc(self) -> None:

@@ -1,11 +1,13 @@
-import torch
-import sys
 import os
-from torchbenchmark import REPO_PATH
+import sys
 from typing import Tuple
 
+import torch
+from torchbenchmark import REPO_PATH
+
+
 # Import FAMBench model path
-class add_path():
+class add_path:
     def __init__(self, path):
         self.path = path
 
@@ -17,15 +19,21 @@ class add_path():
             sys.path.remove(self.path)
         except ValueError:
             pass
-XLMR_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "xlmr", "ootb")
+
+
+XLMR_PATH = os.path.join(
+    REPO_PATH, "submodules", "FAMBench", "benchmarks", "xlmr", "ootb"
+)
 import fairseq
+
 with add_path(XLMR_PATH):
     from xlmr import generate_dataset
     from xlmr_parser import init_argparse
 
-from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.tasks import NLP
 import torch.nn.functional as F
+from torchbenchmark.tasks import NLP
+from torchbenchmark.util.model import BenchmarkModel
+
 
 class WrappedModule(torch.nn.Module):
     def __init__(self, inner_module: torch.nn.Module, inner_module_forward_name: str):
@@ -36,6 +44,7 @@ class WrappedModule(torch.nn.Module):
     def forward(self, inputs):
         inner_module_forward = getattr(self.model, self._inner_module_forward_name)
         return inner_module_forward(inputs)
+
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
@@ -56,42 +65,58 @@ class Model(BenchmarkModel):
     DEEPCOPY = False
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         num_batches = 1
         self.xlmr = fairseq.models.roberta.XLMRModel.from_pretrained("xlmr.large")
         parser = init_argparse()
-        args = parser.parse_args([f"--famconfig={self.DEFAULT_FAM_CONFIG}",
-                                  f"--num-batches={num_batches}", f"--batch-size={self.batch_size} ", \
-                                  f"--sequence-length={self.DEFAULT_SEQ_LENGTH}", f"--vocab-size={self.DEFAULT_VOCAB_SIZE}"])
+        args = parser.parse_args(
+            [
+                f"--famconfig={self.DEFAULT_FAM_CONFIG}",
+                f"--num-batches={num_batches}",
+                f"--batch-size={self.batch_size} ",
+                f"--sequence-length={self.DEFAULT_SEQ_LENGTH}",
+                f"--vocab-size={self.DEFAULT_VOCAB_SIZE}",
+            ]
+        )
         if self.device == "cuda":
             args.use_gpu = True
         if test == "train":
             self.learning_rate = 0.01
-            self.optimizer = torch.optim.SGD(self.xlmr.parameters(), lr=self.learning_rate)
+            self.optimizer = torch.optim.SGD(
+                self.xlmr.parameters(), lr=self.learning_rate
+            )
             self.xlmr.train()
             args.inference_only = False
         elif test == "eval":
             self.xlmr.eval()
             args.inference_only = True
         # Generate data! y is empty if inference_only.
-        self.x_l, self.y_true_l = generate_dataset(args.num_batches, args.batch_size,
-            args.vocab_size, args.inference_only, uniform_seqlen=args.sequence_length,
-            seqlen_dist=args.seqlen_dist, seq_len_dist_max=args.seqlen_dist_max)
+        self.x_l, self.y_true_l = generate_dataset(
+            args.num_batches,
+            args.batch_size,
+            args.vocab_size,
+            args.inference_only,
+            uniform_seqlen=args.sequence_length,
+            seqlen_dist=args.seqlen_dist,
+            seq_len_dist_max=args.seqlen_dist_max,
+        )
         # Prefetch the model and data to device
         self.xlmr = self.xlmr.to(self.device)
         self.x_l = list(map(lambda x: x.to(self.device), self.x_l))
         self.y_true_l = list(map(lambda x: x.to(self.device), self.y_true_l))
 
     def get_module(self):
-        return WrappedModule(self.xlmr, 'extract_features'), self.x_l
+        return WrappedModule(self.xlmr, "extract_features"), self.x_l
 
     def train(self):
         for i, (x, y_true) in enumerate(zip(self.x_l, self.y_true_l)):
             y_pred = self.xlmr.extract_features(x)
-            loss = F.cross_entropy(y_pred, y_true) 
+            loss = F.cross_entropy(y_pred, y_true)
             loss.backward()
             self.optimizer.step()
-            self.optimizer.zero_grad() 
+            self.optimizer.zero_grad()
 
     def eval(self) -> Tuple[torch.Tensor]:
         result = None
@@ -99,4 +124,4 @@ class Model(BenchmarkModel):
             for i, x in enumerate(self.x_l):
                 y_pred = self.xlmr.extract_features(x)
                 result = y_pred
-        return (result, )
+        return (result,)

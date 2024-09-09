@@ -1,14 +1,14 @@
-import torch
 import numpy as np
+import torch
 
 import torch.nn as nn
 from Renderer.model import FCN
 from Renderer.stroke_gen import *
 
+import argparse
+
 # writer = TensorBoard("../train_log/")
 import torch.optim as optim
-
-import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--debug", metavar="fn", default="", help="Dump outputs into file")

@@ -28,10 +28,14 @@ def main():
     for gpu in range(gpus):
         kwargs = {}
         if gpu > 0:
-            kwargs['stdin'] = sp.DEVNULL
-            kwargs['stdout'] = sp.DEVNULL
+            kwargs["stdin"] = sp.DEVNULL
+            kwargs["stdout"] = sp.DEVNULL
             # We keep stderr to see tracebacks from children.
-        tasks.append(sp.Popen(["python3", "-m", "demucs"] + args + ["--rank", str(gpu)], **kwargs))
+        tasks.append(
+            sp.Popen(
+                ["python3", "-m", "demucs"] + args + ["--rank", str(gpu)], **kwargs
+            )
+        )
         tasks[-1].rank = gpu
 
     failed = False
@@ -45,9 +49,10 @@ def main():
                 else:
                     tasks.remove(task)
                     if exitcode:
-                        print(f"Task {task.rank} died with exit code "
-                              f"{exitcode}",
-                              file=sys.stderr)
+                        print(
+                            f"Task {task.rank} died with exit code " f"{exitcode}",
+                            file=sys.stderr,
+                        )
                         failed = True
             if failed:
                 break
