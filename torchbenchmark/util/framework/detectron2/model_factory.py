@@ -14,6 +14,7 @@ DATA_DIR = os.path.join(
 if not os.path.exists(DATA_DIR):
     try:
         from torchbenchmark.util.framework.fb.installer import install_data
+
         DATA_DIR = install_data("coco2017-minimal")
     except Exception:
         pass
@@ -105,7 +106,10 @@ class Detectron2Model(BenchmarkModel):
         ), f"Detectron2 models must specify its model_file."
         if self.model_file and not os.path.exists(self.model_file):
             try:
-                from torchbenchmark.util.framework.fb.installer import install_model_weights
+                from torchbenchmark.util.framework.fb.installer import (
+                    install_model_weights,
+                )
+
                 self.model_file = install_model_weights(self.name)
             except Exception:
                 pass

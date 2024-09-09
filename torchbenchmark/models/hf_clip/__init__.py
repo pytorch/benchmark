@@ -1,14 +1,15 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # This software may be used and distributed according to the terms of the GNU General Public License version 3.
 
+import requests
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from ...util.model import BenchmarkModel
 from PIL import Image
-import requests
 
-from transformers import CLIPProcessor, CLIPModel
+from transformers import CLIPModel, CLIPProcessor
+
+from ...util.model import BenchmarkModel
 
 
 class ContrastiveLossWithTemperature(nn.Module):

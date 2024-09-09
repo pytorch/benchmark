@@ -50,7 +50,7 @@ class GPURecord(Record):
     @classmethod
     def from_dict(cls, record_dict):
         record = cls(0)
-        for key in ['_value', '_timestamp', '_device']:
+        for key in ["_value", "_timestamp", "_device"]:
             if key in record_dict:
                 setattr(record, key, record_dict[key])
         return record

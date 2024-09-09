@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from functools import total_ordering
+
 from .gpu_record import GPURecord
 
 
@@ -93,8 +94,7 @@ class GPUPowerUsage(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUPowerUsage(device_uuid=None,
-                             value=(self.value() + other.value()))
+        return GPUPowerUsage(device_uuid=None, value=(self.value() + other.value()))
 
     def __sub__(self, other):
         """
@@ -102,5 +102,4 @@ class GPUPowerUsage(GPURecord):
         to produce a brand new record.
         """
 
-        return GPUPowerUsage(device_uuid=None,
-                             value=(self.value() - other.value()))
+        return GPUPowerUsage(device_uuid=None, value=(self.value() - other.value()))

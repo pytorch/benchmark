@@ -10,19 +10,16 @@ jobs:
     env:
       TORCHBENCH_VER: "v2"
       CONFIG_VER: "v2"
-      PYTHON_VER: "3.10"
-      CUDA_VER: "12.1"
-      MAGMA_VERSION: "magma-cuda121"
       CONDA_ENV_NAME:  "torchbench-v2-nightly-ci"
       OUTPUT_DIR: ".torchbench/v2-nightly-ci"
       BISECTION_ROOT: ".torchbench/v2-bisection-ci"
-      CUDA_VERSION: "cu121"
       SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       IS_GHA: 1
       AWS_DEFAULT_REGION: us-east-1
       BUILD_ENVIRONMENT: benchmark-nightly
+      SETUP_SCRIPT: "/data/nvme/bin/setup_instance.sh"
     if: ${{ github.repository_owner == 'pytorch' }}
     runs-on: [self-hosted, bm-runner]
     steps:
@@ -32,41 +29,29 @@ jobs:
           ref: v2.0
       - name: Create conda env
         run: |
-          conda create -y -q --name "${CONDA_ENV_NAME}" python=${{ env.PYTHON_VER }}
+          python3 ./utils/python_utils.py --create-conda-env ${CONDA_ENV_NAME}
       - name: Install PyTorch nightly
         run: |
           . activate "${CONDA_ENV_NAME}"
-          . /data/nvme/bin/setup_instance.sh
-          # Install dependencies
-          pip install requests bs4 argparse gitpython boto3 regex
-          # Check if nightly builds are available
-          NIGHTLIES=$(python torchbenchmark/util/torch_nightly.py --packages torch)
-          # If failed, the script will generate empty result
-          if [ -z $NIGHTLIES ]; then
-              echo "Torch nightly build failed. Cancel the workflow."
-              exit 1
-          fi
-          # Install magma
-          conda install -y -c pytorch "${MAGMA_VERSION}"
-          # Install PyTorch nightly from pip
-          pip install --no-cache-dir --pre torch torchvision torchaudio --index-url \
-            https://download.pytorch.org/whl/nightly/${CUDA_VERSION}
-      - name: Install other TorchBench dependencies
+          . "${SETUP_SCRIPT}"
+          python utils/cuda_utils.py --install-torch-deps
+          python utils/cuda_utils.py --install-torch-nightly
+      - name: Install Torchbench models
         run: |
           . activate "${CONDA_ENV_NAME}"
-          . /data/nvme/bin/setup_instance.sh
-          conda install -y git-lfs
+          . "${SETUP_SCRIPT}"
           python install.py
       - name: Run benchmark
         run: |
           . activate "${CONDA_ENV_NAME}"
-          . /data/nvme/bin/setup_instance.sh
+          . "${SETUP_SCRIPT}"
           WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           bash ./.github/scripts/run.sh "${WORKFLOW_HOME}"
       - name: Generate the bisection config
         run: |
           set -x
           . activate "${CONDA_ENV_NAME}"
+          . "${SETUP_SCRIPT}"
           WORKFLOW_HOME="${HOME}/${{ env.OUTPUT_DIR }}/gh${GITHUB_RUN_ID}"
           mkdir -p benchmark-output/
           # Update the self-hosted pytorch version

@@ -3,16 +3,17 @@
 
 
 from __future__ import print_function
+
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 import torch.nn.parallel
 import torch.optim as optim
 import torch.utils.data
-
-from pathlib import Path
+from torchbenchmark.tasks import COMPUTER_VISION
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
 
 
 class DCGAN:
@@ -82,7 +83,7 @@ class Generator(nn.Module):
             nn.ReLU(True),
             # state size. (dcgan.ngf) x 32 x 32
             nn.ConvTranspose2d(dcgan.ngf, dcgan.nc, 4, 2, 1, bias=False),
-            nn.Tanh()
+            nn.Tanh(),
             # state size. (dcgan.nc) x 64 x 64
         )
 

@@ -11,16 +11,18 @@ import textwrap
 import threading
 import typing
 
-from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.testing._internal.common_utils import run_tests, TestCase
 
 try:
     from torchbenchmark._components._impl.tasks import base as task_base
     from torchbenchmark._components._impl.workers import subprocess_rpc
 except (ImportError, ModuleNotFoundError):
-    print(f"""
+    print(
+        f"""
         This test must be run from the repo root directory as
         `python -m components.test.{os.path.splitext(os.path.basename(__file__))[0]}`
-    """)
+    """
+    )
     raise
 
 
@@ -36,7 +38,8 @@ class TestParseFunction(TestCase):
 
         _, body = task_base.parse_f(f)
         self.assertExpectedInline(
-            self._indent(body), """\
+            self._indent(body),
+            """\
             pass""",
         )
 
@@ -49,25 +52,27 @@ class TestParseFunction(TestCase):
 
         _, body = task_base.parse_f(f)
         self.assertExpectedInline(
-            self._indent(body), """\
+            self._indent(body),
+            """\
             for _ in range(10):
                 pass""",
         )
 
     def test_parse_inline(self) -> None:
-        def f(x: typing.Any, y: int = 1) -> None: print([x for _ in range(y)])
+        def f(x: typing.Any, y: int = 1) -> None:
+            print([x for _ in range(y)])
 
         _, body = task_base.parse_f(f)
         self.assertExpectedInline(
-            self._indent(body), """\
+            self._indent(body),
+            """\
             print([x for _ in range(y)])""",
         )
 
     def test_parse_with_comments(self) -> None:
         def f(
-            x: int,   # This is a comment
+            x: int,  # This is a comment
             y: bool,  # also a comment
-
             # More comments.
         ) -> typing.Any:  # Comment on return line.
             """Docstring
@@ -86,13 +91,18 @@ class TestParseFunction(TestCase):
 
         _, body = task_base.parse_f(f)
         # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
-        docstring = """\
+        docstring = (
+            """\
             \"\"\"Docstring
 
             Note: This will be dropped in Python 3.7. See `parse_f` for details.
-            \"\"\"\n\n""" if sys.version_info[:2] > (3,7) else ""
+            \"\"\"\n\n"""
+            if sys.version_info[:2] > (3, 7)
+            else ""
+        )
         self.assertExpectedInline(
-            self._indent(body), f"""{docstring}\
+            self._indent(body),
+            f"""{docstring}\
             x += 1
 
             y = \"\"\"
@@ -101,7 +111,7 @@ class TestParseFunction(TestCase):
 
             # Comment in src.
             return y""",
-            )
+        )
 
     def test_parse_method(self) -> None:
         class MyClass:
@@ -121,35 +131,37 @@ class TestParseFunction(TestCase):
 
         _, body = task_base.parse_f(MyClass.f)
         self.assertExpectedInline(
-            self._indent(body), """\
+            self._indent(body),
+            """\
             \"\"\"Identity, but with more steps\"\"\"
             return x""",
         )
 
         _, body = task_base.parse_f(MyClass.g)
         # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
-        docstring = """\
+        docstring = (
+            """\
             \"\"\"Identity, but with more steps
 
             Culled, as this is a multi-line docstring
-            \"\"\"\n""" if sys.version_info[:2] > (3,7) else ""
+            \"\"\"\n"""
+            if sys.version_info[:2] > (3, 7)
+            else ""
+        )
         self.assertExpectedInline(
-            self._indent(body), f"""{docstring}\
+            self._indent(body),
+            f"""{docstring}\
             return x""",
         )
 
     def test_parse_pathological(self) -> None:
         def f(
-            x: \
-            int,
+            x: int,
             y: typing.Dict[str, int],
             *,
             z: str,
-        # Isn't that a charming (but legal) indentation?
-        ) \
-        -> typing.Optional[typing.Union[
-        float, int]
-                    ]:  # Just for good measure.
+            # Isn't that a charming (but legal) indentation?
+        ) -> typing.Optional[typing.Union[float, int]]:  # Just for good measure.
             """Begin the actual body.
 
             (For better or worse...)
@@ -171,13 +183,18 @@ class TestParseFunction(TestCase):
 
         _, body = task_base.parse_f(f)
         # Python 3.7 removes docstring but 3.8+ doesn't. See `parse_f` for details.
-        docstring = """\
+        docstring = (
+            """\
             \"\"\"Begin the actual body.
 
             (For better or worse...)
-            \"\"\"\n""" if sys.version_info[:2] > (3,7) else ""
+            \"\"\"\n"""
+            if sys.version_info[:2] > (3, 7)
+            else ""
+        )
         self.assertExpectedInline(
-            self._indent(body), f"""{docstring}\
+            self._indent(body),
+            f"""{docstring}\
             del x
             q = y.get(
                 z,
@@ -199,18 +216,14 @@ class TestParseFunction(TestCase):
             pass
 
         with self.assertRaisesRegex(
-            TypeError,
-            "Missing type annotation for parameter `x`"
+            TypeError, "Missing type annotation for parameter `x`"
         ):
             task_base.parse_f(f)
 
         def g(x: int):
             pass
 
-        with self.assertRaisesRegex(
-            TypeError,
-            "Missing return annotation."
-        ):
+        with self.assertRaisesRegex(TypeError, "Missing return annotation."):
             task_base.parse_f(g)
 
     def test_no_functor(self) -> None:
@@ -228,7 +241,7 @@ class TestParseFunction(TestCase):
 
         with self.assertRaisesRegex(
             TypeError,
-            r"Variadic positional argument `\*args` not permitted for `run_in_worker` function."
+            r"Variadic positional argument `\*args` not permitted for `run_in_worker` function.",
         ):
             task_base.parse_f(f)
 
@@ -237,7 +250,7 @@ class TestParseFunction(TestCase):
 
         with self.assertRaisesRegex(
             TypeError,
-            r"Variadic keywork argument `\*\*kwargs` not permitted for `run_in_worker` function."
+            r"Variadic keywork argument `\*\*kwargs` not permitted for `run_in_worker` function.",
         ):
             task_base.parse_f(g)
 
@@ -256,8 +269,7 @@ class TestParseFunction(TestCase):
             pass
 
         with self.assertRaisesRegex(
-            TypeError,
-            "`f` cannot be decorated below `@run_in_worker`"
+            TypeError, "`f` cannot be decorated below `@run_in_worker`"
         ):
             task_base.parse_f(f)
 
@@ -304,12 +316,16 @@ class TestSubprocessRPC(TestCase):
 
     def test_pipe_timeout(self) -> None:
         result = {}
+
         def callback():
             result["callback_run"] = True
 
         # We have to run this in a thread, because if the timeout mechanism
         # fails we don't want the entire unit test suite to hang.
-        pipe = subprocess_rpc.Pipe(writer_pid=os.getpid(), timeout=0.5, timeout_callback=callback)
+        pipe = subprocess_rpc.Pipe(
+            writer_pid=os.getpid(), timeout=0.5, timeout_callback=callback
+        )
+
         def target():
             try:
                 pipe.read()
@@ -329,12 +345,15 @@ class TestSubprocessRPC(TestCase):
 
     def test_pipe_concurrent_timeout(self) -> None:
         result = {"callback_count": 0, "exceptions": []}
+
         def callback():
             result["callback_count"] += 1
 
         timeouts = [0.5, 1.0, 1.5]
         pipes = [
-            subprocess_rpc.Pipe(writer_pid=os.getpid(), timeout=timeout, timeout_callback=callback)
+            subprocess_rpc.Pipe(
+                writer_pid=os.getpid(), timeout=timeout, timeout_callback=callback
+            )
             for timeout in timeouts
         ]
 
@@ -434,7 +453,9 @@ class TestSubprocessExceptions(TestCase):
     def test_unserializable(self) -> None:
         # Make sure we can always get an exception out, even if we can't
         # extract any debug info.
-        serialized_e = subprocess_rpc.SerializedException.from_exception(e=None, tb=None)
+        serialized_e = subprocess_rpc.SerializedException.from_exception(
+            e=None, tb=None
+        )
         with self.assertRaises(subprocess_rpc.UnserializableException):
             subprocess_rpc.SerializedException.raise_from(serialized_e)
 
@@ -455,5 +476,5 @@ class TestSubprocessExceptions(TestCase):
         self._test_raise_builtin(ValueError)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_tests()

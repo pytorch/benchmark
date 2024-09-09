@@ -1,24 +1,46 @@
-
 """
 Run PyTorch cpu benchmarking.
 """
+
 import argparse
 import os
-import numpy
-
-from typing import List, Dict, Optional
 from pathlib import Path
 
-from cpu_utils import add_path, REPO_PATH, validate, parse_str_to_list, list_metrics, get_output_dir, get_output_json, dump_output
-with add_path(str(REPO_PATH)):
-    from torchbenchmark.util.experiment.instantiator import (list_models, load_model, load_model_isolated, TorchBenchModelConfig,
-                                                            list_devices, list_tests)
-    from torchbenchmark.util.experiment.metrics import TorchBenchModelMetrics, get_model_test_metrics
+from typing import Dict, List, Optional
 
-    BM_NAME = 'cpu'
+import numpy
+
+from cpu_utils import (
+    add_path,
+    dump_output,
+    get_output_dir,
+    get_output_json,
+    list_metrics,
+    parse_str_to_list,
+    REPO_PATH,
+    validate,
+)
+
+with add_path(str(REPO_PATH)):
+    from torchbenchmark.util.experiment.instantiator import (
+        list_devices,
+        list_models,
+        list_tests,
+        load_model,
+        load_model_isolated,
+        TorchBenchModelConfig,
+    )
+    from torchbenchmark.util.experiment.metrics import (
+        get_model_test_metrics,
+        TorchBenchModelMetrics,
+    )
+
+    BM_NAME = "cpu"
     CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-    def result_to_output_metrics(metrics: List[str], metrics_res: TorchBenchModelMetrics) -> Dict[str, float]:
+    def result_to_output_metrics(
+        metrics: List[str], metrics_res: TorchBenchModelMetrics
+    ) -> Dict[str, float]:
         result_metrics = {}
         if metrics_res:
             if "latencies" in metrics and metrics_res.latencies:
@@ -40,9 +62,15 @@ with add_path(str(REPO_PATH)):
         result = get_output_json(BM_NAME, metrics)
         dump_output(BM_NAME, result, output_dir)
 
-    def run_config(config: TorchBenchModelConfig, metrics: List[str], nwarmup: int, niter: int, dryrun: bool=False) -> Optional[TorchBenchModelMetrics]:
+    def run_config(
+        config: TorchBenchModelConfig,
+        metrics: List[str],
+        nwarmup: int,
+        niter: int,
+        dryrun: bool = False,
+    ) -> Optional[TorchBenchModelMetrics]:
         """This function only handles NotImplementedError, all other errors will fail."""
-        print(f"Running {config} ...", end='')
+        print(f"Running {config} ...", end="")
         if dryrun:
             return None
         # We do not allow RuntimeError in this test
@@ -54,7 +82,9 @@ with add_path(str(REPO_PATH)):
                 # load the model instance within current process
                 model = load_model(config)
             # get the model test metrics
-            result: TorchBenchModelMetrics = get_model_test_metrics(model, metrics=metrics, nwarmup=nwarmup, num_iter=niter)
+            result: TorchBenchModelMetrics = get_model_test_metrics(
+                model, metrics=metrics, nwarmup=nwarmup, num_iter=niter
+            )
         except NotImplementedError as e:
             print(" [NotImplemented]")
             return None
@@ -72,9 +102,16 @@ with add_path(str(REPO_PATH)):
             test=test,
             batch_size=args.batch_size,
             extra_args=extra_args,
-            extra_env=None)
+            extra_env=None,
+        )
         try:
-            metrics_res = run_config(config, metrics, nwarmup=int(args.nwarmup), niter=int(args.niter), dryrun=args.dryrun)
+            metrics_res = run_config(
+                config,
+                metrics,
+                nwarmup=int(args.nwarmup),
+                niter=int(args.niter),
+                dryrun=args.dryrun,
+            )
         except KeyboardInterrupt:
             print("User keyboard interrupted!")
         if not args.dryrun:
@@ -88,11 +125,27 @@ with add_path(str(REPO_PATH)):
         parser = argparse.ArgumentParser()
         parser.add_argument("--device", "-d", default="cpu", help="Devices to run.")
         parser.add_argument("--test", "-t", default="eval", help="Tests to run.")
-        parser.add_argument("--model", "-m", default=None, type=str, help="Only run the specifice model.")
-        parser.add_argument("--batch-size", "-b", default=None, type=int, help="Run the specifice batch size.")
+        parser.add_argument(
+            "--model",
+            "-m",
+            default=None,
+            type=str,
+            help="Only run the specifice model.",
+        )
+        parser.add_argument(
+            "--batch-size",
+            "-b",
+            default=None,
+            type=int,
+            help="Run the specifice batch size.",
+        )
         parser.add_argument("--output", "-o", default=None, help="Output dir.")
-        parser.add_argument("--metrics", default="latencies", help="Benchmark metrics, split by comma.")
-        parser.add_argument("--nwarmup", default=20, help="Benchmark warmup iteration number.")
+        parser.add_argument(
+            "--metrics", default="latencies", help="Benchmark metrics, split by comma."
+        )
+        parser.add_argument(
+            "--nwarmup", default=20, help="Benchmark warmup iteration number."
+        )
         parser.add_argument("--niter", default=50, help="Benchmark iteration number.")
         parser.add_argument("--dryrun", action="store_true", help="Dryrun the command.")
         args, extra_args = parser.parse_known_args()

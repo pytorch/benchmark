@@ -1,14 +1,15 @@
+import dataclasses
+import gc
+import os
+import threading
+from pathlib import Path
+
+from typing import Any, Dict, List, Optional
+
+import torch
 from torchbenchmark import Worker
 from torchbenchmark._components._impl.tasks import base as base_task
 from torchbenchmark._components._impl.workers import subprocess_worker
-import threading
-import os
-import torch
-import dataclasses
-from pathlib import Path
-import gc
-
-from typing import Optional, Dict, Any, List
 
 
 @dataclasses.dataclass(frozen=True)
@@ -80,6 +81,7 @@ class OpTask(base_task.TaskBase):
         import importlib
         import os
         import traceback
+
         from torchbenchmark.operators import load_opbench_by_name
 
         Operator = load_opbench_by_name(op_name)

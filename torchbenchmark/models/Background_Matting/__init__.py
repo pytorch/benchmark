@@ -1,21 +1,23 @@
 import os
 import time
 from argparse import Namespace
+from pathlib import Path
+
+import numpy as np
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
 from tensorboardX import SummaryWriter
+from torch.autograd import Variable
+from torchbenchmark import DATA_PATH
+from torchbenchmark.tasks import COMPUTER_VISION
+
+from ...util.model import BenchmarkModel
 
 from .data_loader import VideoData
 from .functions import compose_image_withshift, write_tb_log
-from .networks import ResnetConditionHR, MultiscaleDiscriminator, conv_init
-from .loss_functions import alpha_loss, compose_loss, alpha_gradient_loss, GANloss
-import numpy as np
-from pathlib import Path
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
-from torchbenchmark import DATA_PATH
+from .loss_functions import alpha_gradient_loss, alpha_loss, compose_loss, GANloss
+from .networks import conv_init, MultiscaleDiscriminator, ResnetConditionHR
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = True
@@ -60,8 +62,10 @@ class Model(BenchmarkModel):
         datadir = os.path.join(DATA_PATH, input_data_dir_name)
         if not os.path.exists(datadir):
             try:
-                from torchbenchmark.util.framework.fb.installer import install_data
                 import shutil
+
+                from torchbenchmark.util.framework.fb.installer import install_data
+
                 datadir = install_data(input_data_dir_name)
                 # Input data files are decompressed into the folder one level deeper.
                 datadir = os.path.join(datadir, input_data_dir_name)

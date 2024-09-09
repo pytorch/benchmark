@@ -1,4 +1,5 @@
 from functools import total_ordering
+
 from .cpu_record import CPURecord
 
 
@@ -21,7 +22,6 @@ class CPUPeakMemory(CPURecord):
         """
 
         super().__init__(value, timestamp)
-        
 
     @staticmethod
     def header(aggregation_tag=False):
@@ -29,11 +29,11 @@ class CPUPeakMemory(CPURecord):
         Parameters
         ----------
         aggregation_tag: bool
-            An optional tag that may be displayed 
-            as part of the header indicating that 
-            this record has been aggregated using 
-            max, min or average etc. 
-             
+            An optional tag that may be displayed
+            as part of the header indicating that
+            this record has been aggregated using
+            max, min or average etc.
+
         Returns
         -------
         str
@@ -53,8 +53,8 @@ class CPUPeakMemory(CPURecord):
 
     def __lt__(self, other):
         """
-        Allows checking if 
-        this record is less than 
+        Allows checking if
+        this record is less than
         the other
         """
 

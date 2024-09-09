@@ -1,6 +1,5 @@
-import numpy as np
-
 import kornia
+import numpy as np
 import torch
 import torch.nn as nn
 

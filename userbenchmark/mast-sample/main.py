@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 import time
 
 import numpy as np
@@ -54,7 +54,7 @@ def bench(args):
         eager_times.append(t2 - t1)
         compiled_times.append(t3 - t2)
 
-    speedups = [e/c for e,c in zip(eager_times, compiled_times)]
+    speedups = [e / c for e, c in zip(eager_times, compiled_times)]
     speedup = np.median(speedups)
 
     # Supports profile
@@ -75,7 +75,7 @@ def bench(args):
         # Supports writing to a local file
         output_file = os.path.join(args.edir, f"metrics_rank_{RANK}.csv")
         print(f"Writing output content to: {output_file}")
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             f.write("speedup\n")
             f.write(f"{speedup}\n")
 

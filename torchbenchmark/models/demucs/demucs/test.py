@@ -18,17 +18,19 @@ from torch import distributed
 from .utils import apply_model
 
 
-def evaluate(model,
-             musdb_path,
-             eval_folder,
-             workers=2,
-             device="cpu",
-             rank=0,
-             save=False,
-             shifts=0,
-             split=False,
-             check=True,
-             world_size=1):
+def evaluate(
+    model,
+    musdb_path,
+    eval_folder,
+    workers=2,
+    device="cpu",
+    rank=0,
+    save=False,
+    shifts=0,
+    split=False,
+    check=True,
+    world_size=1,
+):
     """
     Evaluate model using museval. Run the model
     on a single GPU, the bottleneck being the call to museval.
@@ -65,7 +67,8 @@ def evaluate(model,
 
             estimates = estimates.transpose(1, 2)
             references = th.stack(
-                [th.from_numpy(track.targets[name].audio) for name in source_names])
+                [th.from_numpy(track.targets[name].audio) for name in source_names]
+            )
             references = references.numpy()
             estimates = estimates.cpu().numpy()
             if save:
@@ -75,7 +78,9 @@ def evaluate(model,
                     wavfile.write(str(folder / (name + ".wav")), 44100, estimate)
 
             if workers:
-                pendings.append((track.name, pool.submit(museval.evaluate, references, estimates)))
+                pendings.append(
+                    (track.name, pool.submit(museval.evaluate, references, estimates))
+                )
             else:
                 pendings.append((track.name, museval.evaluate(references, estimates)))
             del references, mix, estimates, track
@@ -84,17 +89,19 @@ def evaluate(model,
             if workers:
                 pending = pending.result()
             sdr, isr, sir, sar = pending
-            track_store = museval.TrackStore(win=44100, hop=44100, track_name=track_name)
+            track_store = museval.TrackStore(
+                win=44100, hop=44100, track_name=track_name
+            )
             for idx, target in enumerate(source_names):
                 values = {
                     "SDR": sdr[idx].tolist(),
                     "SIR": sir[idx].tolist(),
                     "ISR": isr[idx].tolist(),
-                    "SAR": sar[idx].tolist()
+                    "SAR": sar[idx].tolist(),
                 }
 
                 track_store.add_target(target_name=target, values=values)
                 json_path = json_folder / f"{track_name}.json.gz"
-                gzip.open(json_path, "w").write(track_store.json.encode('utf-8'))
+                gzip.open(json_path, "w").write(track_store.json.encode("utf-8"))
     if world_size > 1:
         distributed.barrier()

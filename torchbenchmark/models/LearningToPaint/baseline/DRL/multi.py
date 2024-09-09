@@ -1,5 +1,6 @@
 import cv2
 import torch
+
 from ..env import Paint
 from ..utils.util import *
 

@@ -24,6 +24,7 @@ class Rawset:
     """
     Dataset of raw, normalized, float32 audio files
     """
+
     def __init__(self, path, samples=None, stride=None, channels=2, streams=None):
         self.path = Path(path)
         self.channels = channels
@@ -38,8 +39,10 @@ class Rawset:
             for file in files:
                 if file.endswith(".raw"):
                     path = Path(root) / file
-                    name, stream = path.stem.rsplit('.', 1)
-                    entries[(path.parent.relative_to(self.path), name)].append(int(stream))
+                    name, stream = path.stem.rsplit(".", 1)
+                    entries[(path.parent.relative_to(self.path), name)].append(
+                        int(stream)
+                    )
 
         self._entries = list(entries.keys())
 
@@ -77,17 +80,19 @@ class Rawset:
         return sum(self._lengths)
 
     def chunk_info(self, index):
-        file_index = np.searchsorted(self._cumulative_sizes, index, side='right')
+        file_index = np.searchsorted(self._cumulative_sizes, index, side="right")
         if file_index == 0:
             local_index = index
         else:
             local_index = index - self._cumulative_sizes[file_index - 1]
-        return ChunkInfo(offset=local_index * self.stride,
-                         file_index=file_index,
-                         local_index=local_index)
+        return ChunkInfo(
+            offset=local_index * self.stride,
+            file_index=file_index,
+            local_index=local_index,
+        )
 
     def _path(self, folder, name, stream=0):
-        return self.path / folder / (name + f'.{stream}.raw')
+        return self.path / folder / (name + f".{stream}.raw")
 
     def __getitem__(self, index):
         chunk = self.chunk_info(index)
@@ -98,7 +103,7 @@ class Rawset:
         to_read = length * self.channels * 4
         for stream_index, stream in enumerate(self.streams):
             offset = chunk.offset * 4 * self.channels
-            file = open(self._path(*entry, stream=stream), 'rb')
+            file = open(self._path(*entry, stream=stream), "rb")
             file.seek(offset)
             content = file.read(to_read)
             assert len(content) == to_read
@@ -124,48 +129,61 @@ class MusDBSet:
 
     def __getitem__(self, index):
         track = self.mus.tracks[index]
-        return (track.name, AudioFile(track.path).read(channels=self.channels,
-                                                       seek_time=0,
-                                                       streams=self.streams,
-                                                       samplerate=self.samplerate))
+        return (
+            track.name,
+            AudioFile(track.path).read(
+                channels=self.channels,
+                seek_time=0,
+                streams=self.streams,
+                samplerate=self.samplerate,
+            ),
+        )
 
 
 def build_raw(mus, destination, normalize, workers, samplerate, channels):
     destination.mkdir(parents=True, exist_ok=True)
-    loader = DataLoader(MusDBSet(mus, channels=channels, samplerate=samplerate),
-                        batch_size=1,
-                        num_workers=workers,
-                        collate_fn=lambda x: x[0])
+    loader = DataLoader(
+        MusDBSet(mus, channels=channels, samplerate=samplerate),
+        batch_size=1,
+        num_workers=workers,
+        collate_fn=lambda x: x[0],
+    )
     for name, streams in tqdm.tqdm(loader):
         if normalize:
             ref = streams[0].mean(dim=0)  # use mono mixture as reference
             streams = (streams - ref.mean()) / ref.std()
         for index, stream in enumerate(streams):
-            open(destination / (name + f'.{index}.raw'), "wb").write(stream.t().numpy().tobytes())
+            open(destination / (name + f".{index}.raw"), "wb").write(
+                stream.t().numpy().tobytes()
+            )
 
 
 def main():
-    parser = argparse.ArgumentParser('rawset')
-    parser.add_argument('--workers', type=int, default=10)
-    parser.add_argument('--samplerate', type=int, default=44100)
-    parser.add_argument('--channels', type=int, default=2)
-    parser.add_argument('musdb', type=Path)
-    parser.add_argument('destination', type=Path)
+    parser = argparse.ArgumentParser("rawset")
+    parser.add_argument("--workers", type=int, default=10)
+    parser.add_argument("--samplerate", type=int, default=44100)
+    parser.add_argument("--channels", type=int, default=2)
+    parser.add_argument("musdb", type=Path)
+    parser.add_argument("destination", type=Path)
 
     args = parser.parse_args()
 
-    build_raw(musdb.DB(root=args.musdb, subsets=["train"], split="train"),
-              args.destination / "train",
-              normalize=True,
-              channels=args.channels,
-              samplerate=args.samplerate,
-              workers=args.workers)
-    build_raw(musdb.DB(root=args.musdb, subsets=["train"], split="valid"),
-              args.destination / "valid",
-              normalize=True,
-              samplerate=args.samplerate,
-              channels=args.channels,
-              workers=args.workers)
+    build_raw(
+        musdb.DB(root=args.musdb, subsets=["train"], split="train"),
+        args.destination / "train",
+        normalize=True,
+        channels=args.channels,
+        samplerate=args.samplerate,
+        workers=args.workers,
+    )
+    build_raw(
+        musdb.DB(root=args.musdb, subsets=["train"], split="valid"),
+        args.destination / "valid",
+        normalize=True,
+        samplerate=args.samplerate,
+        channels=args.channels,
+        workers=args.workers,
+    )
 
 
 if __name__ == "__main__":

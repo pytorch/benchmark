@@ -1,15 +1,17 @@
 """
 Converts a Video to SuperSloMo version
 """
+
 from time import time
+
 import click
 import cv2
-import torch
-from PIL import Image
 import numpy as np
 import slomo_model as model
-from torchvision import transforms
+import torch
 import torch.nn.functional as F
+from PIL import Image
+from torchvision import transforms
 
 
 torch.set_grad_enabled(False)
@@ -21,8 +23,12 @@ if device != "cpu":
     mean = [0.429, 0.431, 0.397]
     mea0 = [-m for m in mean]
     std = [1] * 3
-    trans_forward = transforms.Compose([trans_forward, transforms.Normalize(mean=mean, std=std)])
-    trans_backward = transforms.Compose([transforms.Normalize(mean=mea0, std=std), trans_backward])
+    trans_forward = transforms.Compose(
+        [trans_forward, transforms.Normalize(mean=mean, std=std)]
+    )
+    trans_backward = transforms.Compose(
+        [transforms.Normalize(mean=mea0, std=std), trans_backward]
+    )
 
 flow = model.UNet(6, 4).to(device)
 interp = model.UNet(20, 5).to(device)
@@ -36,9 +42,9 @@ def setup_back_warp(w, h):
 
 
 def load_models(checkpoint):
-    states = torch.load(checkpoint, map_location='cpu')
-    interp.load_state_dict(states['state_dictAT'])
-    flow.load_state_dict(states['state_dictFC'])
+    states = torch.load(checkpoint, map_location="cpu")
+    interp.load_state_dict(states["state_dictAT"])
+    flow.load_state_dict(states["state_dictFC"])
 
 
 def interpolate_batch(frames, factor):
@@ -78,8 +84,9 @@ def interpolate_batch(frames, factor):
 
         co_eff = [1 - t, t]
 
-        ft_p = (co_eff[0] * vt0 * gi0ft0f + co_eff[1] * vt1 * gi1ft1f) / \
-               (co_eff[0] * vt0 + co_eff[1] * vt1)
+        ft_p = (co_eff[0] * vt0 * gi0ft0f + co_eff[1] * vt1 * gi1ft1f) / (
+            co_eff[0] * vt0 + co_eff[1] * vt1
+        )
 
         frame_buffer.append(ft_p)
 
@@ -97,7 +104,7 @@ def load_batch(video_in, batch_size, batch, w, h):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = Image.fromarray(frame)
         frame = frame.resize((w, h), Image.ANTIALIAS)
-        frame = frame.convert('RGB')
+        frame = frame.convert("RGB")
         frame = trans_forward(frame)
         batch.append(frame)
 
@@ -108,14 +115,18 @@ def denorm_frame(frame, w0, h0):
     frame = frame.cpu()
     frame = trans_backward(frame)
     frame = frame.resize((w0, h0), Image.BILINEAR)
-    frame = frame.convert('RGB')
+    frame = frame.convert("RGB")
     return np.array(frame)[:, :, ::-1].copy()
 
 
-def convert_video(source, dest, factor, batch_size=10, output_format='mp4v', output_fps=30):
+def convert_video(
+    source, dest, factor, batch_size=10, output_format="mp4v", output_fps=30
+):
     vin = cv2.VideoCapture(source)
     count = vin.get(cv2.CAP_PROP_FRAME_COUNT)
-    w0, h0 = int(vin.get(cv2.CAP_PROP_FRAME_WIDTH)), int(vin.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    w0, h0 = int(vin.get(cv2.CAP_PROP_FRAME_WIDTH)), int(
+        vin.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    )
 
     codec = cv2.VideoWriter_fourcc(*output_format)
     vout = cv2.VideoWriter(dest, codec, float(output_fps), (w0, h0))
@@ -150,26 +161,34 @@ def convert_video(source, dest, factor, batch_size=10, output_format='mp4v', out
     vout.release()
 
 
-@click.command('Evaluate Model by converting a low-FPS video to high-fps')
-@click.argument('input')
-@click.option('--checkpoint', help='Path to model checkpoint')
-@click.option('--output', help='Path to output file to save')
-@click.option('--batch', default=2, help='Number of frames to process in single forward pass')
-@click.option('--scale', default=4, help='Scale Factor of FPS')
-@click.option('--fps', default=30, help='FPS of output video')
+@click.command("Evaluate Model by converting a low-FPS video to high-fps")
+@click.argument("input")
+@click.option("--checkpoint", help="Path to model checkpoint")
+@click.option("--output", help="Path to output file to save")
+@click.option(
+    "--batch", default=2, help="Number of frames to process in single forward pass"
+)
+@click.option("--scale", default=4, help="Scale Factor of FPS")
+@click.option("--fps", default=30, help="FPS of output video")
 def main(input, checkpoint, output, batch, scale, fps):
-    avg = lambda x, n, x0: (x * n/(n+1) + x0 / (n+1), n+1)
+    avg = lambda x, n, x0: (x * n / (n + 1) + x0 / (n + 1), n + 1)
     load_models(checkpoint)
     t0 = time()
     n0 = 0
     fpx = 0
-    for dl, fd, fc in convert_video(input, output, int(scale), int(batch), output_fps=int(fps)):
+    for dl, fd, fc in convert_video(
+        input, output, int(scale), int(batch), output_fps=int(fps)
+    ):
         fpx, n0 = avg(fpx, n0, dl / (time() - t0))
-        prg = int(100*fd/fc)
+        prg = int(100 * fd / fc)
         eta = (fc - fd) / fpx
-        print('\rDone: {:03d}% FPS: {:05.2f} ETA: {:.2f}s'.format(prg, fpx, eta) + ' '*5, end='')
+        print(
+            "\rDone: {:03d}% FPS: {:05.2f} ETA: {:.2f}s".format(prg, fpx, eta)
+            + " " * 5,
+            end="",
+        )
         t0 = time()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

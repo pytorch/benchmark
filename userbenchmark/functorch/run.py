@@ -1,12 +1,14 @@
-import torch
-from ..utils import dump_output
-from .cases import benchmark_cases
-from .util import benchmark
 import pprint
 from typing import List
 
+import torch
 
-BM_NAME = 'functorch'
+from ..utils import dump_output
+from .cases import benchmark_cases
+from .util import benchmark
+
+
+BM_NAME = "functorch"
 
 
 def run_benchmarks():
@@ -22,11 +24,11 @@ def run_benchmarks():
 def run(args: List[str]):
     metrics = run_benchmarks()
     result = {
-        'name': BM_NAME,
-        'environ': {
-            'pytorch_git_version': torch.version.git_version,
+        "name": BM_NAME,
+        "environ": {
+            "pytorch_git_version": torch.version.git_version,
         },
-        'metrics': metrics,
+        "metrics": metrics,
     }
     pprint.pprint(result)
     dump_output(BM_NAME, result)

@@ -1,22 +1,27 @@
 #!/usr/bin/env python
-import torch
 import os
 from pathlib import Path
 
+import torch
+
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
 from typing import Tuple
+
 from torchbenchmark import DATA_PATH
+from torchbenchmark.tasks import COMPUTER_VISION
+
+from ...util.model import BenchmarkModel
+from .test_cyclegan import get_model
 
 from .train_cyclegan import prepare_training_loop
-from .test_cyclegan import get_model
+
 
 def _create_data_dir(suffix):
     data_dir = Path(__file__).parent.joinpath(".data", suffix)
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
+
 
 class Model(BenchmarkModel):
     task = COMPUTER_VISION.GENERATION
@@ -28,7 +33,9 @@ class Model(BenchmarkModel):
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
         checkpoints_dir = _create_data_dir("checkpoints")
         results_dir = _create_data_dir("results")
         checkpoints_arg = f"--checkpoints_dir {checkpoints_dir}"
@@ -42,11 +49,15 @@ class Model(BenchmarkModel):
             device_arg = "--gpu_ids 0"
 
         if self.test == "train":
-            train_args = f"--tb_device {self.device} --dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 " + \
-                         f"--n_epochs_decay 3 {device_type_arg} {device_arg} {checkpoints_arg}"
-            self.training_loop = prepare_training_loop(train_args.split(' '))
-        args = f"--dataroot {data_root}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test " + \
-               f"--no_dropout {device_type_arg} {device_arg} {checkpoints_arg} {results_arg}"
+            train_args = (
+                f"--tb_device {self.device} --dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 "
+                + f"--n_epochs_decay 3 {device_type_arg} {device_arg} {checkpoints_arg}"
+            )
+            self.training_loop = prepare_training_loop(train_args.split(" "))
+        args = (
+            f"--dataroot {data_root}/datasets/horse2zebra/testA --name horse2zebra_pretrained --model test "
+            + f"--no_dropout {device_type_arg} {device_arg} {checkpoints_arg} {results_arg}"
+        )
         self.model, self.input = get_model(args, self.device)
 
     def get_module(self):
@@ -69,4 +80,4 @@ class Model(BenchmarkModel):
     def eval(self) -> Tuple[torch.Tensor]:
         model, example_inputs = self.get_module()
         out = model(*example_inputs)
-        return (out, )
+        return (out,)

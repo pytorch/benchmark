@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-from torch.func import vmap, jacfwd, jacrev
+from torch.func import jacfwd, jacrev, vmap
+
 from .util import BenchmarkCase
+
 
 # batched hessians of fully connected layers is a popular quantity
 # in physics-related models.
@@ -10,7 +12,7 @@ from .util import BenchmarkCase
 # is going into the functorch userbenchmark instead of torchbenchmark.
 class VmapHessianFC(BenchmarkCase):
     def __init__(self):
-        device = 'cuda'
+        device = "cuda"
         D1 = 2  # x, y
         D2 = 3  # u, v, p
         B = 10000
@@ -36,7 +38,7 @@ class VmapHessianFC(BenchmarkCase):
         self.x = x
 
     def name(self):
-        return 'vmap_hessian_fc_cuda'
+        return "vmap_hessian_fc_cuda"
 
     def run(self):
         def predict(x):
@@ -46,6 +48,4 @@ class VmapHessianFC(BenchmarkCase):
         hessian, pred = vmap(
             jacfwd(jacrev(predict, argnums=0, has_aux=True), argnums=0, has_aux=True),
             in_dims=0,
-        )(
-            self.x
-        )
+        )(self.x)

@@ -23,6 +23,7 @@ PIN_CMAKE_VERSION = "3.22.*"
 TORCHBENCH_TORCH_NIGHTLY_PACKAGES = ["torch", "torchvision", "torchaudio"]
 BUILD_REQUIREMENTS_FILE = REPO_ROOT.joinpath("utils", "build_requirements.txt")
 
+
 def _nvcc_output_match(nvcc_output, target_cuda_version):
     regex = "release (.*),"
     version = re.search(regex, nvcc_output).groups()[0]
@@ -165,7 +166,8 @@ def install_torch_build_deps(cuda_version: str):
 
 
 def install_torchbench_deps():
-    cmd = ["pip", "install", "unittest-xml-reporting", "boto3"]
+    # tritonbench flash_attn depends on packaging to build
+    cmd = ["pip", "install", "unittest-xml-reporting", "boto3", "packaging"]
     subprocess.check_call(cmd)
 
 

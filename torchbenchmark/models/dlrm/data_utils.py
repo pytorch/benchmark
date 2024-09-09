@@ -38,8 +38,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
+
 # import os
 from os import path
+
 # import io
 # from io import StringIO
 # import collections as coll
@@ -128,18 +130,18 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
         else:
             with np.load(npzfile + "_{0}.npz".format(i)) as data:
                 # categorical features
-                '''
+                """
                 # Approach 1a: using empty dictionaries
                 X_cat, convertDicts, counts = convertUStringToDistinctIntsDict(
                     data["X_cat"], convertDicts, counts
                 )
-                '''
-                '''
+                """
+                """
                 # Approach 1b: using empty np.unique
                 X_cat, convertDicts, counts = convertUStringToDistinctIntsUnique(
                     data["X_cat"], convertDicts, counts
                 )
-                '''
+                """
                 # Approach 2a: using pre-computed dictionaries
                 X_cat_t = np.zeros(data["X_cat_t"].shape)
                 for j in range(26):
@@ -170,17 +172,17 @@ def processCriteoAdData(d_path, d_file, npzfile, split, convertDicts, pre_comp_c
 
 
 def concatCriteoAdData(
-        d_path,
-        d_file,
-        npzfile,
-        trafile,
-        days,
-        data_split,
-        randomize,
-        total_per_file,
-        total_count,
-        memory_map,
-        o_filename
+    d_path,
+    d_file,
+    npzfile,
+    trafile,
+    days,
+    data_split,
+    randomize,
+    total_per_file,
+    total_count,
+    memory_map,
+    o_filename,
 ):
     # Concatenates different days and saves the result.
     #
@@ -204,7 +206,7 @@ def concatCriteoAdData(
         for i in range(days):
             offset_per_file[i + 1] += offset_per_file[i]
 
-        '''
+        """
         # Approach 1, 2 and 3 use indices, while Approach 4 does not use them
         # create indices
         indices = np.arange(total_count)
@@ -231,8 +233,8 @@ def concatCriteoAdData(
             indices = np.concatenate((train_indices, test_indices))
         # no reordering
         # indices = np.arange(total_count)
-        '''
-        '''
+        """
+        """
         # Approach 1: simple and slow (no grouping is used)
         # check if data already exists
         recreate_flag = False
@@ -323,8 +325,8 @@ def concatCriteoAdData(
                 )
         else:
             print("Reordered day files already exist, skipping ...")
-        '''
-        '''
+        """
+        """
         # Approach 2: group days
         # check if data already exists
         recreate_flag = False
@@ -439,8 +441,8 @@ def concatCriteoAdData(
                     )
         else:
             print("Reordered day files already exist, skipping ...")
-        '''
-        '''
+        """
+        """
         # Approach 3: group features
         # check if data already exists
         group_fea = 5  # e.g. 8, 5 or 4
@@ -550,7 +552,7 @@ def concatCriteoAdData(
 
         else:
             print("Reordered day files already exist, skipping ...")
-        '''
+        """
 
         # Approach 4: Fisher-Yates-Rao (FYR) shuffle algorithm
         # 1st pass of FYR shuffle
@@ -567,8 +569,10 @@ def concatCriteoAdData(
             ):
                 print(
                     "Using existing\n"
-                    + filename_j_y + "\n"
-                    + filename_j_d + "\n"
+                    + filename_j_y
+                    + "\n"
+                    + filename_j_d
+                    + "\n"
                     + filename_j_s
                 )
             else:
@@ -643,7 +647,7 @@ def concatCriteoAdData(
                     start = total_counter[j]
                     end = total_counter[j] + counter[j]
                     # target buckets
-                    fj_y = np.load(filename_j_y, mmap_mode='r+')
+                    fj_y = np.load(filename_j_y, mmap_mode="r+")
                     # print("start=" + str(start) + " end=" + str(end)
                     #       + " end - start=" + str(end - start) + " "
                     #       + str(fj_y[start:end].shape) + " "
@@ -651,7 +655,7 @@ def concatCriteoAdData(
                     fj_y[start:end] = y[buckets[j]]
                     del fj_y
                     # dense buckets
-                    fj_d = np.load(filename_j_d, mmap_mode='r+')
+                    fj_d = np.load(filename_j_d, mmap_mode="r+")
                     # print("start=" + str(start) + " end=" + str(end)
                     #       + " end - start=" + str(end - start) + " "
                     #       + str(fj_d[start:end, :].shape) + " "
@@ -659,7 +663,7 @@ def concatCriteoAdData(
                     fj_d[start:end, :] = X_int[buckets[j], :]
                     del fj_d
                     # sparse buckets
-                    fj_s = np.load(filename_j_s, mmap_mode='r+')
+                    fj_s = np.load(filename_j_s, mmap_mode="r+")
                     # print("start=" + str(start) + " end=" + str(end)
                     #       + " end - start=" + str(end - start) + " "
                     #       + str(fj_s[start:end, :].shape) + " "
@@ -701,7 +705,7 @@ def concatCriteoAdData(
                     y=fj_y[indices],
                 )
 
-        '''
+        """
         # sanity check (under no reordering norms should be zero)
         for i in range(days):
             filename_i_o = npzfile + "_{0}_processed.npz".format(i)
@@ -719,7 +723,7 @@ def concatCriteoAdData(
             print(np.linalg.norm(y_o - y_r))
             print(np.linalg.norm(X_int_o - X_int_r))
             print(np.linalg.norm(X_cat_o - X_cat_r))
-        '''
+        """
 
     else:
         print("Concatenating multiple days into %s.npz file" % str(d_path + o_filename))
@@ -794,7 +798,7 @@ def transformCriteoAdData(X_cat, X_int, y, days, data_split, randomize, total_pe
         offset_per_file[i + 1] += offset_per_file[i]
 
     # split dataset
-    if data_split == 'train':
+    if data_split == "train":
         indices = np.array_split(indices, offset_per_file[1:-1])
 
         # randomize train data (per day)
@@ -874,15 +878,15 @@ def transformCriteoAdData(X_cat, X_int, y, days, data_split, randomize, total_pe
 
 
 def getCriteoAdData(
-        datafile,
-        o_filename,
-        max_ind_range=-1,
-        sub_sample_rate=0.0,
-        days=7,
-        data_split='train',
-        randomize='total',
-        criteo_kaggle=True,
-        memory_map=False
+    datafile,
+    o_filename,
+    max_ind_range=-1,
+    sub_sample_rate=0.0,
+    days=7,
+    data_split="train",
+    randomize="total",
+    criteo_kaggle=True,
+    memory_map=False,
 ):
     # Passes through entire dataset and defines dictionaries for categorical
     # features and determines the number of total categories.
@@ -894,7 +898,7 @@ def getCriteoAdData(
     # Output:
     #   o_file (str): output file path
 
-    #split the datafile into path and filename
+    # split the datafile into path and filename
     lstr = datafile.split("/")
     d_path = "/".join(lstr[0:-1]) + "/"
     d_file = lstr[-1].split(".")[0] if criteo_kaggle else lstr[-1]
@@ -941,7 +945,9 @@ def getCriteoAdData(
                         nf.write(line)
                 nf.close()
             else:
-                sys.exit("ERROR: Criteo Kaggle Display Ad Challenge Dataset path is invalid; please download from https://labs.criteo.com/2014/02/kaggle-display-advertising-challenge-dataset")
+                sys.exit(
+                    "ERROR: Criteo Kaggle Display Ad Challenge Dataset path is invalid; please download from https://labs.criteo.com/2014/02/kaggle-display-advertising-challenge-dataset"
+                )
         else:
             # WARNING: The raw data consist of day_0.gz,... ,day_23.gz text files
             # Each line in the file is a sample, consisting of 13 continuous and
@@ -959,15 +965,17 @@ def getCriteoAdData(
                     total_per_file.append(total_per_file_count)
                     total_count += total_per_file_count
                 else:
-                    sys.exit("ERROR: Criteo Terabyte Dataset path is invalid; please download from https://labs.criteo.com/2013/12/download-terabyte-click-logs")
+                    sys.exit(
+                        "ERROR: Criteo Terabyte Dataset path is invalid; please download from https://labs.criteo.com/2013/12/download-terabyte-click-logs"
+                    )
 
     # process a file worth of data and reinitialize data
     # note that a file main contain a single or multiple splits
     def process_one_file(
-            datfile,
-            npzfile,
-            split,
-            num_data_in_split,
+        datfile,
+        npzfile,
+        split,
+        num_data_in_split,
     ):
         with open(str(datfile)) as f:
             y = np.zeros(num_data_in_split, dtype="i4")  # 4 byte int
@@ -981,15 +989,18 @@ def getCriteoAdData(
             i = 0
             for k, line in enumerate(f):
                 # process a line (data point)
-                line = line.split('\t')
+                line = line.split("\t")
                 # set missing values to zero
                 for j in range(len(line)):
-                    if (line[j] == '') or (line[j] == '\n'):
-                        line[j] = '0'
+                    if (line[j] == "") or (line[j] == "\n"):
+                        line[j] = "0"
                 # sub-sample data by dropping zero targets, if needed
                 target = np.int32(line[0])
-                if target == 0 and \
-                   (rand_u if sub_sample_rate == 0.0 else rand_u[k]) < sub_sample_rate:
+                if (
+                    target == 0
+                    and (rand_u if sub_sample_rate == 0.0 else rand_u[k])
+                    < sub_sample_rate
+                ):
                     continue
 
                 y[i] = target
@@ -997,12 +1008,11 @@ def getCriteoAdData(
                 if max_ind_range > 0:
                     X_cat[i] = np.array(
                         list(map(lambda x: int(x, 16) % max_ind_range, line[14:])),
-                        dtype=np.int32
+                        dtype=np.int32,
                     )
                 else:
                     X_cat[i] = np.array(
-                        list(map(lambda x: int(x, 16), line[14:])),
-                        dtype=np.int32
+                        list(map(lambda x: int(x, 16), line[14:])), dtype=np.int32
                     )
                 # count uniques
                 for j in range(26):
@@ -1083,8 +1093,7 @@ def getCriteoAdData(
             dict_file_j = d_path + d_file + "_fea_dict_{0}.npz".format(j)
             if not path.exists(dict_file_j):
                 np.savez_compressed(
-                    dict_file_j,
-                    unique=np.array(list(convertDicts[j]), dtype=np.int32)
+                    dict_file_j, unique=np.array(list(convertDicts[j]), dtype=np.int32)
                 )
             counts[j] = len(convertDicts[j])
         # store (uniques and) counts
@@ -1115,21 +1124,21 @@ def getCriteoAdData(
         total_per_file,
         total_count,
         memory_map,
-        o_filename
+        o_filename,
     )
 
     return o_file
 
 
 def loadDataset(
-        dataset,
-        max_ind_range,
-        sub_sample_rate,
-        randomize,
-        data_split,
-        raw_path="",
-        pro_data="",
-        memory_map=False
+    dataset,
+    max_ind_range,
+    sub_sample_rate,
+    randomize,
+    data_split,
+    raw_path="",
+    pro_data="",
+    memory_map=False,
 ):
     # dataset
     if dataset == "kaggle":
@@ -1139,7 +1148,7 @@ def loadDataset(
         days = 24
         o_filename = "terabyte_processed"
     else:
-        raise(ValueError("Data set option is not supported"))
+        raise (ValueError("Data set option is not supported"))
 
     # split the datafile into path and filename
     lstr = raw_path.split("/")
@@ -1175,7 +1184,7 @@ def loadDataset(
             data_split,
             randomize,
             dataset == "kaggle",
-            memory_map
+            memory_map,
         )
 
     return file, days
@@ -1186,9 +1195,7 @@ if __name__ == "__main__":
     import argparse
 
     ### parse arguments ###
-    parser = argparse.ArgumentParser(
-        description="Preprocess Criteo dataset"
-    )
+    parser = argparse.ArgumentParser(description="Preprocess Criteo dataset")
     # model related parameters
     parser.add_argument("--max-ind-range", type=int, default=-1)
     parser.add_argument("--data-sub-sample-rate", type=float, default=0.0)  # in [0, 1]
@@ -1207,5 +1214,5 @@ if __name__ == "__main__":
         "train",
         args.raw_data_file,
         args.processed_data_file,
-        args.memory_map
+        args.memory_map,
     )

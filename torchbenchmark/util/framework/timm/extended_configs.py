@@ -12,7 +12,10 @@ if hasattr(torch.version, "git_version"):
     MODELS_FILENAME = os.path.join(DYNAMOBENCH_PATH, "timm_models_list.txt")
 else:
     from libfb.py import parutil
-    MODELS_FILENAME = parutil.get_file_path("caffe2/benchmarks/dynamo/timm_models_list.txt")
+
+    MODELS_FILENAME = parutil.get_file_path(
+        "caffe2/benchmarks/dynamo/timm_models_list.txt"
+    )
 assert os.path.exists(MODELS_FILENAME)
 with open(MODELS_FILENAME) as fh:
     lines = fh.readlines()

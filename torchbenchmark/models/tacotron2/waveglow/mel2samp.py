@@ -24,30 +24,33 @@
 #  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # *****************************************************************************\
-import os
-import random
 import argparse
 import json
+import os
+import random
+import sys
+
 import torch
 import torch.utils.data
-import sys
 from scipy.io.wavfile import read
 
 # We're using the audio processing from TacoTron2 to make sure it matches
-sys.path.insert(0, 'tacotron2')
+sys.path.insert(0, "tacotron2")
 from tacotron2.layers import TacotronSTFT
 
 MAX_WAV_VALUE = 32768.0
+
 
 def files_to_list(filename):
     """
     Takes a text file of filenames and makes a list of filenames
     """
-    with open(filename, encoding='utf-8') as f:
+    with open(filename, encoding="utf-8") as f:
         files = f.readlines()
 
     files = [f.rstrip() for f in files]
     return files
+
 
 def load_wav_to_torch(full_path):
     """
@@ -62,16 +65,29 @@ class Mel2Samp(torch.utils.data.Dataset):
     This is the main class that calculates the spectrogram and returns the
     spectrogram, audio pair.
     """
-    def __init__(self, training_files, segment_length, filter_length,
-                 hop_length, win_length, sampling_rate, mel_fmin, mel_fmax):
+
+    def __init__(
+        self,
+        training_files,
+        segment_length,
+        filter_length,
+        hop_length,
+        win_length,
+        sampling_rate,
+        mel_fmin,
+        mel_fmax,
+    ):
         self.audio_files = files_to_list(training_files)
         random.seed(1234)
         random.shuffle(self.audio_files)
-        self.stft = TacotronSTFT(filter_length=filter_length,
-                                 hop_length=hop_length,
-                                 win_length=win_length,
-                                 sampling_rate=sampling_rate,
-                                 mel_fmin=mel_fmin, mel_fmax=mel_fmax)
+        self.stft = TacotronSTFT(
+            filter_length=filter_length,
+            hop_length=hop_length,
+            win_length=win_length,
+            sampling_rate=sampling_rate,
+            mel_fmin=mel_fmin,
+            mel_fmax=mel_fmax,
+        )
         self.segment_length = segment_length
         self.sampling_rate = sampling_rate
 
@@ -88,16 +104,21 @@ class Mel2Samp(torch.utils.data.Dataset):
         filename = self.audio_files[index]
         audio, sampling_rate = load_wav_to_torch(filename)
         if sampling_rate != self.sampling_rate:
-            raise ValueError("{} SR doesn't match target {} SR".format(
-                sampling_rate, self.sampling_rate))
+            raise ValueError(
+                "{} SR doesn't match target {} SR".format(
+                    sampling_rate, self.sampling_rate
+                )
+            )
 
         # Take segment
         if audio.size(0) >= self.segment_length:
             max_audio_start = audio.size(0) - self.segment_length
             audio_start = random.randint(0, max_audio_start)
-            audio = audio[audio_start:audio_start+self.segment_length]
+            audio = audio[audio_start : audio_start + self.segment_length]
         else:
-            audio = torch.nn.functional.pad(audio, (0, self.segment_length - audio.size(0)), 'constant').data
+            audio = torch.nn.functional.pad(
+                audio, (0, self.segment_length - audio.size(0)), "constant"
+            ).data
 
         mel = self.get_mel(audio)
         audio = audio / MAX_WAV_VALUE
@@ -107,6 +128,7 @@ class Mel2Samp(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.audio_files)
 
+
 # ===================================================================
 # Takes directory of clean audio and makes directory of spectrograms
 # Useful for making test sets
@@ -114,11 +136,9 @@ class Mel2Samp(torch.utils.data.Dataset):
 if __name__ == "__main__":
     # Get defaults so it can work with no Sacred
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', "--filelist_path", required=True)
-    parser.add_argument('-c', '--config', type=str,
-                        help='JSON file for configuration')
-    parser.add_argument('-o', '--output_dir', type=str,
-                        help='Output directory')
+    parser.add_argument("-f", "--filelist_path", required=True)
+    parser.add_argument("-c", "--config", type=str, help="JSON file for configuration")
+    parser.add_argument("-o", "--output_dir", type=str, help="Output directory")
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -137,6 +157,6 @@ if __name__ == "__main__":
         audio, sr = load_wav_to_torch(filepath)
         melspectrogram = mel2samp.get_mel(audio)
         filename = os.path.basename(filepath)
-        new_filepath = args.output_dir + '/' + filename + '.pt'
+        new_filepath = args.output_dir + "/" + filename + ".pt"
         print(new_filepath)
         torch.save(melspectrogram, new_filepath)

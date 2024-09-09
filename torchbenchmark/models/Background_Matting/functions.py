@@ -1,7 +1,7 @@
+import cv2
 import numpy as np
 import torch
 import torchvision
-import cv2
 
 
 def composite4(fg, bg, a):
@@ -103,9 +103,9 @@ def uncrop(alpha, bbox, R=720, C=1280):
         alpha_uncrop[bbox[0] : bbox[0] + bbox[2], bbox[1] : bbox[1] + bbox[3]] = alpha
     else:
         alpha_uncrop = np.zeros((R, C, 3))
-        alpha_uncrop[
-            bbox[0] : bbox[0] + bbox[2], bbox[1] : bbox[1] + bbox[3], :
-        ] = alpha
+        alpha_uncrop[bbox[0] : bbox[0] + bbox[2], bbox[1] : bbox[1] + bbox[3], :] = (
+            alpha
+        )
 
     return alpha_uncrop.astype(np.uint8)
 

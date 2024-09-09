@@ -1,17 +1,18 @@
-import torch
-import os
 import copy
 import math
+import os
 from itertools import chain
+from typing import Tuple
+
+import torch
+from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import REINFORCEMENT_LEARNING
-from typing import Tuple
 
 from .config import SACConfig
 from .envs import load_gym
-from .sac import SACAgent
 from .replay import PrioritizedReplayBuffer, ReplayBuffer
+from .sac import SACAgent
 from .sac_utils import hard_update, soft_update
 
 

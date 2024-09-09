@@ -1,6 +1,6 @@
+import math
 import random
 from collections import deque
-import math
 
 import gym
 import numpy as np
@@ -356,9 +356,9 @@ def load_dmc(
         camera_id=camera_id,
         visualize_reward=False,
         frame_skip=frame_skip,
-        channels_first=not channels_last
-        if rgb
-        else False,  # if we're using RGB, set the channel order here
+        channels_first=(
+            not channels_last if rgb else False
+        ),  # if we're using RGB, set the channel order here
     )
     if not rgb and from_pixels:
         env = gym.wrappers.GrayScaleObservation(env, keep_dim=True)

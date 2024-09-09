@@ -1,11 +1,12 @@
 import math
+
 import torch
 import torch.nn.functional as F
-from torch import distributions as pyd
-from torch import nn
+from torch import distributions as pyd, nn
+from torchbenchmark.util.distribution import SquashedNormal
 
 from . import sac_utils
-from torchbenchmark.util.distribution import SquashedNormal
+
 
 def weight_init(m):
     if isinstance(m, nn.Linear):

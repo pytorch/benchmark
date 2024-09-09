@@ -1,14 +1,16 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # This software may be used and distributed according to the terms of the GNU General Public License version 3.
 
-from ...util.model import BenchmarkModel
+import os
+
+import cv2
+import numpy as np
+import torch
 from segment_anything_fast.build_sam import sam_model_fast_registry
 from segment_anything_fast.predictor import SamPredictor
-import numpy as np
-import cv2
 from torchbenchmark.tasks import COMPUTER_VISION
-import torch
-import os
+
+from ...util.model import BenchmarkModel
 
 
 class Model(BenchmarkModel):
@@ -39,7 +41,7 @@ class Model(BenchmarkModel):
             {
                 "image": self.sample_image,
                 "original_size": (256, 256),
-                "point_coords": torch.tensor([[[1,1]]], device=self.device),
+                "point_coords": torch.tensor([[[1, 1]]], device=self.device),
                 "point_labels": torch.tensor([[1]], device=self.device),
             }
         ]

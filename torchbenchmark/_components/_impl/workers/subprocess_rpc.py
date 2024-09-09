@@ -5,6 +5,7 @@ This module implements three principle facilities:
     2) Exception propagation (via the SerializedException class)
     3) A run loop for the worker (via the run_loop function)
 """
+
 import contextlib
 import dataclasses
 import datetime
@@ -12,7 +13,6 @@ import io
 import marshal
 import os
 import pickle
-import psutil
 import struct
 import sys
 import textwrap
@@ -21,6 +21,8 @@ import time
 import traceback
 import types
 import typing
+
+import psutil
 
 
 # Shared static values / namespace between worker and parent
@@ -63,6 +65,7 @@ SUCCESS_BYTES = marshal.dumps(SUCCESS)
 IS_WINDOWS = sys.platform == "win32"
 if IS_WINDOWS:
     import msvcrt
+
     def to_handle(fd: typing.Optional[int]) -> typing.Optional[int]:
         return None if fd is None else msvcrt.get_osfhandle(fd)
 
@@ -127,7 +130,9 @@ class _TimeoutPIPE:
             time.sleep(self._loop_cadence)
             now = time.time()
             with self._loop_lock:
-                for w_fd, (timeout, start_time, writer_pid) in tuple(self._active_reads.items()):
+                for w_fd, (timeout, start_time, writer_pid) in tuple(
+                    self._active_reads.items()
+                ):
                     # if child process is in zombie status, check its exit code
                     if psutil.pid_exists(writer_pid):
                         p = psutil.Process(writer_pid)
@@ -135,7 +140,9 @@ class _TimeoutPIPE:
                             # wait 1 second for the exit code
                             exit_code = p.wait(timeout=self._loop_cadence)
                             if exit_code:
-                                os.write(w_fd, _DEAD + struct.pack(_ULL, abs(int(exit_code))))
+                                os.write(
+                                    w_fd, _DEAD + struct.pack(_ULL, abs(int(exit_code)))
+                                )
                                 self.pop(w_fd)
                     # check if process timeout
                     if timeout:
@@ -154,13 +161,21 @@ class _TimeoutPIPE:
         # Spawn a loop thread to periodically check the liveness of subprocess
         w_fd = pipe.write_fd
         assert w_fd is not None, "Cannot timeout without write file descriptor."
-        assert pipe.get_writer_pid() is not None, "Cannot check process liveness without pid."
+        assert (
+            pipe.get_writer_pid() is not None
+        ), "Cannot check process liveness without pid."
         singleton = cls.singleton()
         with singleton._loop_lock:
             # This will only occur in the case of concurrent reads on different
             # threads (not supported) or a leaked case.
-            assert w_fd not in singleton._active_reads, f"{w_fd} is already being watched."
-            singleton._active_reads[w_fd] = (timeout, time.time(), pipe.get_writer_pid())
+            assert (
+                w_fd not in singleton._active_reads
+            ), f"{w_fd} is already being watched."
+            singleton._active_reads[w_fd] = (
+                timeout,
+                time.time(),
+                pipe.get_writer_pid(),
+            )
 
         try:
             yield
@@ -218,13 +233,15 @@ class Pipe:
         else:
             raw_msg = os.read(self.read_fd, len(_CHECK) + size)
 
-        check_bytes, msg = raw_msg[:len(_CHECK)], raw_msg[len(_CHECK):]
+        check_bytes, msg = raw_msg[: len(_CHECK)], raw_msg[len(_CHECK) :]
         if check_bytes == _TIMEOUT:
             self.timeout_callback()  # Give caller the chance to cleanup.
             raise IOError(f"Exceeded timeout: {self.timeout}")
 
         if check_bytes == _DEAD:
-            raise IOError(f"Subprocess terminates with code {int.from_bytes(msg, sys.byteorder)}")
+            raise IOError(
+                f"Subprocess terminates with code {int.from_bytes(msg, sys.byteorder)}"
+            )
 
         if check_bytes != _CHECK:
             raise IOError(f"{check_bytes} != {_CHECK}, {msg}")
@@ -244,16 +261,20 @@ class Pipe:
         assert isinstance(msg, bytes), msg
         packed_msg = (
             # First read: message length
-            _CHECK + struct.pack(_ULL, len(msg)) +
-
+            _CHECK
+            + struct.pack(_ULL, len(msg))
+            +
             # Second read: message contents
-            _CHECK + msg
+            _CHECK
+            + msg
         )
 
         os.write(self.write_fd, packed_msg)
 
     def get_writer_pid(self) -> int:
-        assert self._writer_pid is not None, "Writer pid is not specified. Maybe calling from child process or input pipe.\
+        assert (
+            self._writer_pid is not None
+        ), "Writer pid is not specified. Maybe calling from child process or input pipe.\
                                               Please report a bug."
         return self._writer_pid
 
@@ -273,6 +294,7 @@ class Pipe:
 # =============================================================================
 # == Exception Propagation  ===================================================
 # =============================================================================
+
 
 class ExceptionUnpickler(pickle.Unpickler):
     """Unpickler which is specialized for Exception types.
@@ -300,9 +322,10 @@ class ExceptionUnpickler(pickle.Unpickler):
 
         if isinstance(result, Exception):
             raise pickle.UnpicklingError(
-                f"{result} is an Exception instance, not a class.")
+                f"{result} is an Exception instance, not a class."
+            )
 
-        return result   # type: ignore[no-any-return]
+        return result  # type: ignore[no-any-return]
 
     def find_class(self, module: str, name: str) -> typing.Any:
         if module != "builtins":
@@ -380,10 +403,12 @@ class SerializedException:
             traceback_print: str = print_file.read()
 
         except Exception as e:
-            traceback_print = textwrap.dedent("""
+            traceback_print = textwrap.dedent(
+                """
                 Traceback
                     Failed to extract traceback from worker. This is not expected.
-            """).strip()
+            """
+            ).strip()
 
         try:
             args_bytes: bytes = marshal.dumps(e.args)
@@ -449,7 +474,9 @@ class SerializedException:
             revived_type = ExceptionUnpickler.load_bytes(data=serialized_e._type_bytes)
             e = revived_type(*marshal.loads(serialized_e._args_bytes))
         else:
-            e = UnserializableException(serialized_e._type_repr, serialized_e._args_repr)
+            e = UnserializableException(
+                serialized_e._type_repr, serialized_e._args_repr
+            )
 
         traceback_str = serialized_e._traceback_print
         if extra_context:
@@ -461,6 +488,7 @@ class SerializedException:
 # =============================================================================
 # == Snippet Execution  =======================================================
 # =============================================================================
+
 
 def _log_progress(suffix: str) -> None:
     now = datetime.datetime.now().strftime("[%Y-%m-%d] %H:%M:%S.%f")
@@ -479,10 +507,7 @@ def _run_block(
         cmd = input_pipe.read().decode(ENCODING)
         _log_progress("BEGIN_EXEC")
 
-        exec(  # noqa: P204
-            compile(cmd, "<subprocess-worker>", "exec"),
-            globals_dict
-        )
+        exec(compile(cmd, "<subprocess-worker>", "exec"), globals_dict)  # noqa: P204
 
         _log_progress("SUCCESS")
         result = SUCCESS_BYTES
@@ -518,7 +543,7 @@ def run_loop(
         WORKER_IMPL_NAMESPACE: {
             "subprocess_rpc": sys.modules[__name__],
             "marshal": marshal,
-            "load_pipe": Pipe(write_handle=load_handle)
+            "load_pipe": Pipe(write_handle=load_handle),
         }
     }
 

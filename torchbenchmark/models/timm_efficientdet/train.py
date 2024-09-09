@@ -1,12 +1,24 @@
-import torch
 from collections import OrderedDict
 from contextlib import suppress
+
+import torch
 from timm.utils import AverageMeter, reduce_tensor
 
+
 def train_epoch(
-        epoch, model, loader, optimizer, args,
-        lr_scheduler=None, saver=None, output_dir='', amp_autocast=suppress, loss_scaler=None, model_ema=None,
-        num_batch=1):
+    epoch,
+    model,
+    loader,
+    optimizer,
+    args,
+    lr_scheduler=None,
+    saver=None,
+    output_dir="",
+    amp_autocast=suppress,
+    loss_scaler=None,
+    model_ema=None,
+    num_batch=1,
+):
 
     # batch_time_m = AverageMeter()
     # data_time_m = AverageMeter()
@@ -26,14 +38,16 @@ def train_epoch(
 
         with amp_autocast():
             output = model(input, target)
-        loss = output['loss']
+        loss = output["loss"]
 
         if not args.distributed:
             losses_m.update(loss.item(), input.size(0))
 
         optimizer.zero_grad()
         if loss_scaler is not None:
-            loss_scaler(loss, optimizer, clip_grad=args.clip_grad, parameters=model.parameters())
+            loss_scaler(
+                loss, optimizer, clip_grad=args.clip_grad, parameters=model.parameters()
+            )
         else:
             loss.backward()
             if args.clip_grad:
@@ -47,7 +61,7 @@ def train_epoch(
 
         # batch_time_m.update(time.time() - end)
         if last_batch or batch_idx % args.log_interval == 0:
-            lrl = [param_group['lr'] for param_group in optimizer.param_groups]
+            lrl = [param_group["lr"] for param_group in optimizer.param_groups]
             lr = sum(lrl) / len(lrl)
 
             # if args.distributed:
@@ -89,13 +103,13 @@ def train_epoch(
         # end = time.time()
         # end for
 
-    if hasattr(optimizer, 'sync_lookahead'):
+    if hasattr(optimizer, "sync_lookahead"):
         optimizer.sync_lookahead()
 
-    return OrderedDict([('loss', losses_m.avg)])
+    return OrderedDict([("loss", losses_m.avg)])
 
-def validate(model, loader, args, evaluator=None, log_suffix='',
-             num_batch=1):
+
+def validate(model, loader, args, evaluator=None, log_suffix="", num_batch=1):
     # batch_time_m = AverageMeter()
     losses_m = AverageMeter()
 
@@ -108,10 +122,10 @@ def validate(model, loader, args, evaluator=None, log_suffix='',
             # last_batch = batch_idx == last_idx
 
             output = model(input, target)
-            loss = output['loss']
+            loss = output["loss"]
 
             if evaluator is not None:
-                evaluator.add_predictions(output['detections'], target)
+                evaluator.add_predictions(output["detections"], target)
 
             if args.distributed:
                 reduced_loss = reduce_tensor(loss.data, args.world_size)
@@ -132,8 +146,8 @@ def validate(model, loader, args, evaluator=None, log_suffix='',
             #         'Loss: {loss.val:>7.4f} ({loss.avg:>6.4f})  '.format(
             #             log_name, batch_idx, last_idx, batch_time=batch_time_m, loss=losses_m))
 
-    metrics = OrderedDict([('loss', losses_m.avg)])
+    metrics = OrderedDict([("loss", losses_m.avg)])
     if evaluator is not None:
-        metrics['map'] = evaluator.evaluate()
+        metrics["map"] = evaluator.evaluate()
 
     return metrics

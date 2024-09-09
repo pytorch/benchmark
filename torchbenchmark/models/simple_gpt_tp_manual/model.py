@@ -2,6 +2,7 @@
 
 Based on the nanoGPT implementation: https://github.com/karpathy/nanoGPT.
 """
+
 # mypy: ignore-errors
 import math
 from dataclasses import dataclass
@@ -13,15 +14,16 @@ from torch.nn import functional as F
 from typing_extensions import Self
 
 
-
 MaskCache = torch.Tensor
 RoPECache = torch.Tensor
 KVCache = Tuple[torch.Tensor, torch.Tensor]
+
 
 def find_multiple(n: int, k: int) -> int:
     if n % k == 0:
         return n
     return n + k - (n % k)
+
 
 @dataclass
 class LLaMAConfig:
@@ -53,23 +55,49 @@ class LLaMAConfig:
         if name in llama2_configs:
             return cls(**llama2_configs[name])
         # fuzzy search
-        config = [config for config in llama2_configs if config in str(name).upper() or config in str(name)]
+        config = [
+            config
+            for config in llama2_configs
+            if config in str(name).upper() or config in str(name)
+        ]
         assert len(config) == 1, name
         return cls(**llama2_configs[config[0]])
 
 
 llama2_configs = {
-    "1.1B": dict(n_layer=22, n_head=32, n_embd=2048, n_query_groups=4, intermediate_size=5632), # TinyLLaMA
-    "CodeLlama-7b-Python-hf": dict(block_size=16384, vocab_size=32000, n_layer=32, n_embd = 4096, multiple_of=16, rope_base=1000000),
+    "1.1B": dict(
+        n_layer=22, n_head=32, n_embd=2048, n_query_groups=4, intermediate_size=5632
+    ),  # TinyLLaMA
+    "CodeLlama-7b-Python-hf": dict(
+        block_size=16384,
+        vocab_size=32000,
+        n_layer=32,
+        n_embd=4096,
+        multiple_of=16,
+        rope_base=1000000,
+    ),
     "7B": dict(n_layer=32, n_head=32, n_embd=4096),
     "13B": dict(n_layer=40, n_head=40, n_embd=5120),
     "30B": dict(n_layer=60, n_head=52, n_embd=6656),
-    "34B": dict(n_layer=48, n_head=64, n_embd=8192, vocab_size=32000, n_query_groups=8, intermediate_size=22016, rope_base=1000000), # CodeLLama-34B-Python-hf
-    "70B": dict(n_layer=80, n_head=64, n_embd=8192, n_query_groups=8, intermediate_size=28672),
+    "34B": dict(
+        n_layer=48,
+        n_head=64,
+        n_embd=8192,
+        vocab_size=32000,
+        n_query_groups=8,
+        intermediate_size=22016,
+        rope_base=1000000,
+    ),  # CodeLLama-34B-Python-hf
+    "70B": dict(
+        n_layer=80, n_head=64, n_embd=8192, n_query_groups=8, intermediate_size=28672
+    ),
 }
 
+
 class KVCache(nn.Module):
-    def __init__(self, max_batch_size, max_seq_length, n_heads, head_dim, dtype=torch.bfloat16):
+    def __init__(
+        self, max_batch_size, max_seq_length, n_heads, head_dim, dtype=torch.bfloat16
+    ):
         super().__init__()
         cache_shape = (max_batch_size, n_heads, max_seq_length, head_dim)
         self.k_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
@@ -84,20 +112,35 @@ class KVCache(nn.Module):
 
         return self.k_cache, self.v_cache
 
+
 class KVCacheAggregator(nn.Module):
     def __init__(self):
         super().__init__()
         self.kv_caches = nn.ModuleList([])
 
-    def initialize(self,layers, max_batch_size, max_seq_length, n_heads, head_dim, dtype=torch.bfloat16):
+    def initialize(
+        self,
+        layers,
+        max_batch_size,
+        max_seq_length,
+        n_heads,
+        head_dim,
+        dtype=torch.bfloat16,
+    ):
         cache_shape = (max_batch_size, n_heads, max_seq_length, head_dim)
-        self.kv_caches = nn.ModuleList([KVCache(max_batch_size, max_seq_length, n_heads, head_dim) for _ in range(layers)])
+        self.kv_caches = nn.ModuleList(
+            [
+                KVCache(max_batch_size, max_seq_length, n_heads, head_dim)
+                for _ in range(layers)
+            ]
+        )
 
     def __getitem__(self, idx):
         return self.kv_caches[idx]
 
     def clear(self):
         self.kv_caches = nn.ParameterList([])
+
 
 class LLaMA(nn.Module):
     def __init__(self, config: LLaMAConfig) -> None:
@@ -121,12 +164,21 @@ class LLaMA(nn.Module):
         self.max_seq_length = None
 
     def setup_caches(self, max_batch_size, max_seq_length, dtype=torch.bfloat16):
-        if self.max_seq_length == max_seq_length and self.max_batch_size == max_batch_size:
+        if (
+            self.max_seq_length == max_seq_length
+            and self.max_batch_size == max_batch_size
+        ):
             return
         head_dim = self.config.n_embd // self.config.n_head
         self.max_seq_length = max_seq_length
         self.max_batch_size = max_batch_size
-        self.kv_caches.initialize(layers=self.config.n_layer, max_batch_size=max_batch_size, max_seq_length=max_seq_length, n_heads=self.config.n_query_groups, head_dim=head_dim)
+        self.kv_caches.initialize(
+            layers=self.config.n_layer,
+            max_batch_size=max_batch_size,
+            max_seq_length=max_seq_length,
+            n_heads=self.config.n_query_groups,
+            head_dim=head_dim,
+        )
 
         self.rope_cache = build_rope_cache(
             seq_len=self.config.block_size,
@@ -134,14 +186,20 @@ class LLaMA(nn.Module):
             dtype=dtype,
             base=self.config.rope_base,
         )
-        ones = torch.ones((self.config.block_size, self.config.block_size), dtype=torch.bool)
+        ones = torch.ones(
+            (self.config.block_size, self.config.block_size), dtype=torch.bool
+        )
         self.mask_cache = torch.tril(ones).unsqueeze(0).unsqueeze(0)
 
     def _init_weights(self, module: nn.Module) -> None:
         if isinstance(module, nn.Linear):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.config.n_layer))
+            torch.nn.init.normal_(
+                module.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.config.n_layer)
+            )
         elif isinstance(module, nn.Embedding):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.config.n_layer))
+            torch.nn.init.normal_(
+                module.weight, mean=0.0, std=0.02 / math.sqrt(2 * self.config.n_layer)
+            )
 
     @torch.no_grad()
     def forward(
@@ -155,9 +213,15 @@ class LLaMA(nn.Module):
         if max_seq_length is None:
             max_seq_length = block_size
 
-        assert T <= max_seq_length, f"Cannot forward sequence of length {T}, max seq length is only {max_seq_length}"
-        assert max_seq_length <= block_size, f"Cannot attend to {max_seq_length}, block size is only {block_size}"
-        assert T <= block_size, f"Cannot forward sequence of length {T}, block size is only {block_size}"
+        assert (
+            T <= max_seq_length
+        ), f"Cannot forward sequence of length {T}, max seq length is only {max_seq_length}"
+        assert (
+            max_seq_length <= block_size
+        ), f"Cannot attend to {max_seq_length}, block size is only {block_size}"
+        assert (
+            T <= block_size
+        ), f"Cannot forward sequence of length {T}, block size is only {block_size}"
 
         rope = self.rope_cache.index_select(0, input_pos)
         mask = self.mask_cache.index_select(2, input_pos)
@@ -167,7 +231,9 @@ class LLaMA(nn.Module):
         x = self.transformer.wte(idx)  # token embeddings of shape (b, t, n_embd)
 
         for i, block in enumerate(self.transformer.h):
-            x, new_kv_cache = block(x, rope, mask, max_seq_length, input_pos, self.kv_caches[i])
+            x, new_kv_cache = block(
+                x, rope, mask, max_seq_length, input_pos, self.kv_caches[i]
+            )
 
         x = self.transformer.ln_f(x)
 
@@ -197,7 +263,9 @@ class Block(nn.Module):
         input_pos: Optional[torch.Tensor] = None,
         kv_cache: Optional[KVCache] = None,
     ) -> Tuple[torch.Tensor, Optional[KVCache]]:
-        h, new_kv_cache = self.attn(self.norm_1(x), rope, mask, max_seq_length, input_pos, kv_cache)
+        h, new_kv_cache = self.attn(
+            self.norm_1(x), rope, mask, max_seq_length, input_pos, kv_cache
+        )
         x = x + h
         x = x + self.mlp(self.norm_2(x))
         return x, new_kv_cache
@@ -228,7 +296,9 @@ class CausalSelfAttention(nn.Module):
         input_pos: Optional[torch.Tensor] = None,
         kv_cache: Optional[KVCache] = None,
     ) -> Tuple[torch.Tensor, Optional[KVCache]]:
-        B, T, _ = x.size()  # batch size, sequence length, embedding dimensionality (n_embd)
+        B, T, _ = (
+            x.size()
+        )  # batch size, sequence length, embedding dimensionality (n_embd)
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         kv_size = self.n_query_groups * self.head_dim
@@ -254,7 +324,9 @@ class CausalSelfAttention(nn.Module):
         # efficient attention using Flash Attention CUDA kernels
         y = F.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0)
 
-        y = y.transpose(1, 2).contiguous().view(B, T, self.n_embd)  # re-assemble all head outputs side by side
+        y = (
+            y.transpose(1, 2).contiguous().view(B, T, self.n_embd)
+        )  # re-assemble all head outputs side by side
 
         # output projection
         y = self.proj(y)

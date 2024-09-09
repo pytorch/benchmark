@@ -18,23 +18,21 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# others
-from os import path
 import bisect
 import collections
 
-from . import data_utils
+# others
+from os import path
 
 # numpy
 import numpy as np
-from numpy import random as ra
-
 
 # pytorch
 import torch
+from numpy import random as ra
 from torch.utils.data import Dataset, RandomSampler
 
-from . import data_loader_terabyte
+from . import data_loader_terabyte, data_utils
 
 
 # Kaggle Display Advertising Challenge Dataset
@@ -47,15 +45,15 @@ from . import data_loader_terabyte
 class CriteoDataset(Dataset):
 
     def __init__(
-            self,
-            dataset,
-            max_ind_range,
-            sub_sample_rate,
-            randomize,
-            split="train",
-            raw_path="",
-            pro_data="",
-            memory_map=False
+        self,
+        dataset,
+        max_ind_range,
+        sub_sample_rate,
+        randomize,
+        split="train",
+        raw_path="",
+        pro_data="",
+        memory_map=False,
     ):
         # dataset
         # tar_fea = 1   # single target
@@ -70,7 +68,7 @@ class CriteoDataset(Dataset):
             days = 24
             out_file = "terabyte_processed"
         else:
-            raise(ValueError("Data set option is not supported"))
+            raise (ValueError("Data set option is not supported"))
         self.max_ind_range = max_ind_range
         self.memory_map = memory_map
 
@@ -112,7 +110,7 @@ class CriteoDataset(Dataset):
                 split,
                 randomize,
                 dataset == "kaggle",
-                memory_map
+                memory_map,
             )
 
         # get a number of samples per day
@@ -129,19 +127,20 @@ class CriteoDataset(Dataset):
         if memory_map:
             # setup the training/testing split
             self.split = split
-            if split == 'none' or split == 'train':
+            if split == "none" or split == "train":
                 self.day = 0
-                self.max_day_range = days if split == 'none' else days - 1
-            elif split == 'test' or split == 'val':
+                self.max_day_range = days if split == "none" else days - 1
+            elif split == "test" or split == "val":
                 self.day = days - 1
-                num_samples = self.offset_per_file[days] - \
-                              self.offset_per_file[days - 1]
-                self.test_size = int(np.ceil(num_samples / 2.))
+                num_samples = (
+                    self.offset_per_file[days] - self.offset_per_file[days - 1]
+                )
+                self.test_size = int(np.ceil(num_samples / 2.0))
                 self.val_size = num_samples - self.test_size
             else:
                 sys.exit("ERROR: dataset split is neither none, nor train or test.")
 
-            '''
+            """
             # text
             print("text")
             for i in range(days):
@@ -174,7 +173,7 @@ class CriteoDataset(Dataset):
                 nnn = np.count_nonzero(yyy)
                 print("day=" + str(i) + " total=" + str(ttt) + " non-zeros="
                       + str(nnn) + " ratio=" +str((nnn * 100.) / ttt) + "%")
-            '''
+            """
 
             # load unique counts
             with np.load(self.d_path + self.d_file + "_fea_count.npz") as data:
@@ -185,22 +184,20 @@ class CriteoDataset(Dataset):
 
             # Load the test data
             # Only a single day is used for testing
-            if self.split == 'test' or self.split == 'val':
+            if self.split == "test" or self.split == "val":
                 # only a single day is used for testing
-                fi = self.npzfile + "_{0}_reordered.npz".format(
-                    self.day
-                )
+                fi = self.npzfile + "_{0}_reordered.npz".format(self.day)
                 with np.load(fi) as data:
                     self.X_int = data["X_int"]  # continuous  feature
                     self.X_cat = data["X_cat"]  # categorical feature
-                    self.y = data["y"]          # target
+                    self.y = data["y"]  # target
 
         else:
             # load and preprocess data
             with np.load(file) as data:
                 X_int = data["X_int"]  # continuous  feature
                 X_cat = data["X_cat"]  # categorical feature
-                y = data["y"]          # target
+                y = data["y"]  # target
                 self.counts = data["counts"]
             self.m_den = X_int.shape[1]  # den_fea
             self.n_emb = len(self.counts)
@@ -240,15 +237,15 @@ class CriteoDataset(Dataset):
                     print("Randomized indices across days ...")
 
                 # create training, validation, and test sets
-                if split == 'train':
+                if split == "train":
                     self.X_int = [X_int[i] for i in train_indices]
                     self.X_cat = [X_cat[i] for i in train_indices]
                     self.y = [y[i] for i in train_indices]
-                elif split == 'val':
+                elif split == "val":
                     self.X_int = [X_int[i] for i in val_indices]
                     self.X_cat = [X_cat[i] for i in val_indices]
                     self.y = [y[i] for i in val_indices]
-                elif split == 'test':
+                elif split == "test":
                     self.X_int = [X_int[i] for i in test_indices]
                     self.X_cat = [X_cat[i] for i in test_indices]
                     self.y = [y[i] for i in test_indices]
@@ -259,31 +256,30 @@ class CriteoDataset(Dataset):
 
         if isinstance(index, slice):
             return [
-                self[idx] for idx in range(
+                self[idx]
+                for idx in range(
                     index.start or 0, index.stop or len(self), index.step or 1
                 )
             ]
 
         if self.memory_map:
-            if self.split == 'none' or self.split == 'train':
+            if self.split == "none" or self.split == "train":
                 # check if need to swicth to next day and load data
                 if index == self.offset_per_file[self.day]:
                     # print("day_boundary switch", index)
                     self.day_boundary = self.offset_per_file[self.day]
-                    fi = self.npzfile + "_{0}_reordered.npz".format(
-                        self.day
-                    )
+                    fi = self.npzfile + "_{0}_reordered.npz".format(self.day)
                     # print('Loading file: ', fi)
                     with np.load(fi) as data:
                         self.X_int = data["X_int"]  # continuous  feature
                         self.X_cat = data["X_cat"]  # categorical feature
-                        self.y = data["y"]          # target
+                        self.y = data["y"]  # target
                     self.day = (self.day + 1) % self.max_day_range
 
                 i = index - self.day_boundary
-            elif self.split == 'test' or self.split == 'val':
+            elif self.split == "test" or self.split == "val":
                 # only a single day is used for testing
-                i = index + (0 if self.split == 'test' else self.test_size)
+                i = index + (0 if self.split == "test" else self.test_size)
             else:
                 sys.exit("ERROR: dataset split is neither none, nor train or test.")
         else:
@@ -306,13 +302,13 @@ class CriteoDataset(Dataset):
 
     def __len__(self):
         if self.memory_map:
-            if self.split == 'none':
+            if self.split == "none":
                 return self.offset_per_file[-1]
-            elif self.split == 'train':
+            elif self.split == "train":
                 return self.offset_per_file[-2]
-            elif self.split == 'test':
+            elif self.split == "test":
                 return self.test_size
-            elif self.split == 'val':
+            elif self.split == "val":
                 return self.val_size
             else:
                 sys.exit("ERROR: dataset split is neither none, nor train nor test.")
@@ -345,7 +341,7 @@ def ensure_dataset_preprocessed(args, d_path):
         "train",
         args.raw_data_file,
         args.processed_data_file,
-        args.memory_map
+        args.memory_map,
     )
 
     _ = CriteoDataset(
@@ -356,24 +352,25 @@ def ensure_dataset_preprocessed(args, d_path):
         "test",
         args.raw_data_file,
         args.processed_data_file,
-        args.memory_map
+        args.memory_map,
     )
 
-    for split in ['train', 'val', 'test']:
-        print('Running preprocessing for split =', split)
+    for split in ["train", "val", "test"]:
+        print("Running preprocessing for split =", split)
 
-        train_files = ['{}_{}_reordered.npz'.format(args.raw_data_file, day)
-                       for
-                       day in range(0, 23)]
+        train_files = [
+            "{}_{}_reordered.npz".format(args.raw_data_file, day)
+            for day in range(0, 23)
+        ]
 
-        test_valid_file = args.raw_data_file + '_23_reordered.npz'
+        test_valid_file = args.raw_data_file + "_23_reordered.npz"
 
-        output_file = d_path + '_{}.bin'.format(split)
+        output_file = d_path + "_{}.bin".format(split)
 
-        input_files = train_files if split == 'train' else [test_valid_file]
-        data_loader_terabyte.numpy_to_binary(input_files=input_files,
-                                             output_file_path=output_file,
-                                             split=split)
+        input_files = train_files if split == "train" else [test_valid_file]
+        data_loader_terabyte.numpy_to_binary(
+            input_files=input_files, output_file_path=output_file, split=split
+        )
 
 
 def make_criteo_data_and_loaders(args):
@@ -388,18 +385,16 @@ def make_criteo_data_and_loaders(args):
             train_file = d_path + "_train.bin"
             test_file = d_path + "_test.bin"
             # val_file = d_path + "_val.bin"
-            counts_file = args.raw_data_file + '_fea_count.npz'
+            counts_file = args.raw_data_file + "_fea_count.npz"
 
-            if any(not path.exists(p) for p in [train_file,
-                                                test_file,
-                                                counts_file]):
+            if any(not path.exists(p) for p in [train_file, test_file, counts_file]):
                 ensure_dataset_preprocessed(args, d_path)
 
             train_data = data_loader_terabyte.CriteoBinDataset(
                 data_file=train_file,
                 counts_file=counts_file,
                 batch_size=args.mini_batch_size,
-                max_ind_range=args.max_ind_range
+                max_ind_range=args.max_ind_range,
             )
 
             train_loader = torch.utils.data.DataLoader(
@@ -411,14 +406,14 @@ def make_criteo_data_and_loaders(args):
                 collate_fn=None,
                 pin_memory=False,
                 drop_last=False,
-                sampler=RandomSampler(train_data) if args.mlperf_bin_shuffle else None
+                sampler=RandomSampler(train_data) if args.mlperf_bin_shuffle else None,
             )
 
             test_data = data_loader_terabyte.CriteoBinDataset(
                 data_file=test_file,
                 counts_file=counts_file,
                 batch_size=args.test_mini_batch_size,
-                max_ind_range=args.max_ind_range
+                max_ind_range=args.max_ind_range,
             )
 
             test_loader = torch.utils.data.DataLoader(
@@ -442,7 +437,7 @@ def make_criteo_data_and_loaders(args):
                 "train",
                 args.raw_data_file,
                 args.processed_data_file,
-                args.memory_map
+                args.memory_map,
             )
 
             test_data = CriteoDataset(
@@ -453,7 +448,7 @@ def make_criteo_data_and_loaders(args):
                 "test",
                 args.raw_data_file,
                 args.processed_data_file,
-                args.memory_map
+                args.memory_map,
             )
 
             train_loader = data_loader_terabyte.DataLoader(
@@ -462,7 +457,7 @@ def make_criteo_data_and_loaders(args):
                 days=list(range(23)),
                 batch_size=args.mini_batch_size,
                 max_ind_range=args.max_ind_range,
-                split="train"
+                split="train",
             )
 
             test_loader = data_loader_terabyte.DataLoader(
@@ -471,7 +466,7 @@ def make_criteo_data_and_loaders(args):
                 days=[23],
                 batch_size=args.test_mini_batch_size,
                 max_ind_range=args.max_ind_range,
-                split="test"
+                split="test",
             )
     else:
         train_data = CriteoDataset(
@@ -482,7 +477,7 @@ def make_criteo_data_and_loaders(args):
             "train",
             args.raw_data_file,
             args.processed_data_file,
-            args.memory_map
+            args.memory_map,
         )
 
         test_data = CriteoDataset(
@@ -493,7 +488,7 @@ def make_criteo_data_and_loaders(args):
             "test",
             args.raw_data_file,
             args.processed_data_file,
-            args.memory_map
+            args.memory_map,
         )
 
         train_loader = torch.utils.data.DataLoader(
@@ -523,21 +518,21 @@ def make_criteo_data_and_loaders(args):
 class RandomDataset(Dataset):
 
     def __init__(
-            self,
-            m_den,
-            ln_emb,
-            data_size,
-            num_batches,
-            mini_batch_size,
-            num_indices_per_lookup,
-            num_indices_per_lookup_fixed,
-            num_targets=1,
-            round_targets=False,
-            data_generation="random",
-            trace_file="",
-            enable_padding=False,
-            reset_seed_on_access=False,
-            rand_seed=0
+        self,
+        m_den,
+        ln_emb,
+        data_size,
+        num_batches,
+        mini_batch_size,
+        num_indices_per_lookup,
+        num_indices_per_lookup_fixed,
+        num_targets=1,
+        round_targets=False,
+        data_generation="random",
+        trace_file="",
+        enable_padding=False,
+        reset_seed_on_access=False,
+        rand_seed=0,
     ):
         # compute batch size
         nbatches = int(np.ceil((data_size * 1.0) / mini_batch_size))
@@ -570,7 +565,8 @@ class RandomDataset(Dataset):
 
         if isinstance(index, slice):
             return [
-                self[idx] for idx in range(
+                self[idx]
+                for idx in range(
                     index.start or 0, index.stop or len(self), index.step or 1
                 )
             ]
@@ -590,7 +586,7 @@ class RandomDataset(Dataset):
                 self.ln_emb,
                 n,
                 self.num_indices_per_lookup,
-                self.num_indices_per_lookup_fixed
+                self.num_indices_per_lookup_fixed,
             )
         elif self.data_generation == "synthetic":
             (X, lS_o, lS_i) = generate_synthetic_input_batch(
@@ -600,7 +596,7 @@ class RandomDataset(Dataset):
                 self.num_indices_per_lookup,
                 self.num_indices_per_lookup_fixed,
                 self.trace_file,
-                self.enable_padding
+                self.enable_padding,
             )
         else:
             sys.exit(
@@ -621,10 +617,7 @@ class RandomDataset(Dataset):
 def collate_wrapper_random(list_of_tuples):
     # where each tuple is (X, lS_o, lS_i, T)
     (X, lS_o, lS_i, T) = list_of_tuples[0]
-    return (X,
-            torch.stack(lS_o),
-            lS_i,
-            T)
+    return (X, torch.stack(lS_o), lS_i, T)
 
 
 def make_random_data_and_loader(args, ln_emb, m_den):
@@ -643,7 +636,7 @@ def make_random_data_and_loader(args, ln_emb, m_den):
         args.data_trace_file,
         args.data_trace_enable_padding,
         reset_seed_on_access=True,
-        rand_seed=args.numpy_rand_seed
+        rand_seed=args.numpy_rand_seed,
     )  # WARNING: generates a batch of lookups at once
     train_loader = torch.utils.data.DataLoader(
         train_data,
@@ -689,11 +682,7 @@ def generate_random_data(
         # generate a batch of dense and sparse features
         if data_generation == "random":
             (Xt, lS_emb_offsets, lS_emb_indices) = generate_uniform_input_batch(
-                m_den,
-                ln_emb,
-                n,
-                num_indices_per_lookup,
-                num_indices_per_lookup_fixed
+                m_den, ln_emb, n, num_indices_per_lookup, num_indices_per_lookup_fixed
             )
         elif data_generation == "synthetic":
             (Xt, lS_emb_offsets, lS_emb_indices) = generate_synthetic_input_batch(
@@ -703,7 +692,7 @@ def generate_random_data(
                 num_indices_per_lookup,
                 num_indices_per_lookup_fixed,
                 trace_file,
-                enable_padding
+                enable_padding,
             )
         else:
             sys.exit(
@@ -865,7 +854,7 @@ def generate_stack_distance(cumm_val, cumm_dist, max_i, i, enable_padding=False)
         fi = cumm_dist[0]
         u = (1.0 - fi) * u + fi  # remap distribution support to exclude first value
 
-    for (j, f) in enumerate(cumm_dist):
+    for j, f in enumerate(cumm_dist):
         if u <= f:
             return cumm_val[j]
 
@@ -1034,9 +1023,9 @@ def write_dist_to_file(file_path, unique_accesses, list_sd, cumm_sd):
 
 
 if __name__ == "__main__":
-    import sys
-    import operator
     import argparse
+    import operator
+    import sys
 
     ### parse arguments ###
     parser = argparse.ArgumentParser(description="Generate Synthetic Distributions")

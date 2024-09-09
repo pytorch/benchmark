@@ -1,8 +1,10 @@
-import torch
 import sys
-import numpy as np
+
 # data generation
 import dlrm_data_pytorch as dp
+import numpy as np
+import torch
+
 
 def prep_data(args):
     ln_bot = np.fromstring(args.arch_mlp_bot, dtype=int, sep="-")
@@ -37,7 +39,9 @@ def prep_data(args):
         nbatches = args.num_batches if args.num_batches > 0 else len(train_ld)
         nbatches_test = len(test_ld)
     nbatches_in_use = nbatches_test if args.inference_only else nbatches
-    assert nbatches_in_use > args.warmup_steps, (f"Change --warmup-steps={args.warmup_steps} to be lower than {nbatches_in_use}.")
+    assert (
+        nbatches_in_use > args.warmup_steps
+    ), f"Change --warmup-steps={args.warmup_steps} to be lower than {nbatches_in_use}."
 
     args.ln_emb = ln_emb.tolist()
 

@@ -2,9 +2,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchbenchmark.util.distribution import SquashedNormal
 
 from . import drqutils
-from torchbenchmark.util.distribution import SquashedNormal
+
 
 class Encoder(nn.Module):
     """Convolutional encoder for image-based observations."""

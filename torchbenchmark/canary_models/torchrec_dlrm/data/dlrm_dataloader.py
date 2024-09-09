@@ -52,9 +52,11 @@ def _get_random_dataloader(
             keys=DEFAULT_CAT_NAMES,
             batch_size=batch_size,
             hash_size=args.num_embeddings,
-            hash_sizes=args.num_embeddings_per_feature
-            if hasattr(args, "num_embeddings_per_feature")
-            else None,
+            hash_sizes=(
+                args.num_embeddings_per_feature
+                if hasattr(args, "num_embeddings_per_feature")
+                else None
+            ),
             manual_seed=getattr(args, "seed", None),
             ids_per_feature=1,
             num_dense=len(DEFAULT_INT_NAMES),
@@ -65,6 +67,7 @@ def _get_random_dataloader(
         pin_memory=args.pin_memory,
         num_workers=0,
     )
+
 
 def _get_in_memory_dataloader(
     args: argparse.Namespace,
@@ -107,9 +110,11 @@ def _get_in_memory_dataloader(
             shuffle_training_set=args.shuffle_training_set,
             shuffle_training_set_random_seed=args.seed,
             mmap_mode=args.mmap_mode,
-            hashes=args.num_embeddings_per_feature
-            if args.num_embeddings is None
-            else ([args.num_embeddings] * CAT_FEATURE_COUNT),
+            hashes=(
+                args.num_embeddings_per_feature
+                if args.num_embeddings is None
+                else ([args.num_embeddings] * CAT_FEATURE_COUNT)
+            ),
         ),
         batch_size=None,
         pin_memory=args.pin_memory,

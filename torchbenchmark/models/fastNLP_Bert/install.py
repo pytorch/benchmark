@@ -1,9 +1,12 @@
 import os
+
 import patch
 from utils.python_utils import pip_install_requirements
 
+
 def patch_fastnlp():
     import fastNLP
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     patch_file = os.path.join(current_dir, "fastnlp.patch")
     fastNLP_dir = os.path.dirname(fastNLP.__file__)
@@ -13,6 +16,7 @@ def patch_fastnlp():
         print("Failed to patch fastNLP. Exit.")
         exit(1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     pip_install_requirements()
     patch_fastnlp()

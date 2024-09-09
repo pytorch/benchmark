@@ -2,6 +2,7 @@ import torch
 from pycocotools import mask as coco_mask
 from torchvision.transforms import functional as F
 
+
 def convert_coco_poly_to_mask(segmentations, height, width):
     masks = []
     for polygons in segmentations:
@@ -17,6 +18,7 @@ def convert_coco_poly_to_mask(segmentations, height, width):
     else:
         masks = torch.zeros((0, height, width), dtype=torch.uint8)
     return masks
+
 
 class ConvertCocoPolysToMask:
     def __call__(self, image, target):

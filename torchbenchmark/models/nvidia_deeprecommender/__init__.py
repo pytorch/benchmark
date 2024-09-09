@@ -7,13 +7,14 @@
 # line parameters but tensorflow dependency for logging has
 # been removed.
 
+from typing import Tuple
+
 import torch
+from torchbenchmark.tasks import RECOMMENDATION
 
 from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import RECOMMENDATION
-from typing import Tuple
-from .nvtrain import DeepRecommenderTrainBenchmark
 from .nvinfer import DeepRecommenderInferenceBenchmark
+from .nvtrain import DeepRecommenderTrainBenchmark
 
 
 class Model(BenchmarkModel):
