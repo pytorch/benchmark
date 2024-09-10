@@ -3,9 +3,6 @@ Triton implementation by @jlebar: https://gist.github.com/jlebar/3435b2c00deea53
 """
 
 import torch
-import triton
-import triton.language as tl
-import torch
 
 import triton
 import triton.language as tl
@@ -17,7 +14,7 @@ def is_cuda():
 
 def is_hip_mi200():
     target = triton.runtime.driver.active.get_current_target()
-    return target.backend == 'hip' and target.arch == 'gfx90a'
+    return target.backend == "hip" and target.arch == "gfx90a"
 
 
 def get_cuda_autotune_config():
@@ -88,6 +85,7 @@ def get_autotune_config():
 # NOTE(TritonBench): this is copied from the triton tutorial as the baseline
 # https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html
 
+
 # `triton.jit`'ed functions can be auto-tuned by using the `triton.autotune` decorator, which consumes:
 #   - A list of `triton.Config` objects that define different configurations of
 #       meta-parameters (e.g., `BLOCK_SIZE_M`) and compilation options (e.g., `num_warps`) to try
@@ -95,7 +93,7 @@ def get_autotune_config():
 #       provided configs
 @triton.autotune(
     configs=get_autotune_config(),
-    key=['M', 'N', 'K'],
+    key=["M", "N", "K"],
 )
 @triton.jit
 def bf16xbf16_matmul_kernel(
@@ -172,13 +170,12 @@ def bf16xbf16_matmul_kernel(
     tl.store(c_ptrs, c, mask=c_mask)
 
 
-
 # TODO(davidberard98): right now this is just a copy of the triton tutorial.
 #                      TODO is to implement the int16 part.
 # https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html
 @triton.autotune(
     configs=get_autotune_config(),
-    key=['M', 'N', 'K'],
+    key=["M", "N", "K"],
 )
 @triton.jit
 def bf16xint16_matmul_kernel(
@@ -264,7 +261,9 @@ def bf16xbf16_matmul(a, b):
     # Allocates output.
     c = torch.empty((M, N), device=a.device, dtype=torch.bfloat16)
     # 1D launch kernel where each block gets its own program.
-    grid = lambda META: (triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']), )
+    grid = lambda META: (
+        triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']),
+    )
     bf16xbf16_matmul_kernel[grid](
         a, b, c,  #
         M, N, K,  #
@@ -284,7 +283,9 @@ def bf16xint16_matmul(a, b):
     # Allocates output.
     c = torch.empty((M, N), device=a.device, dtype=torch.bfloat16)
     # 1D launch kernel where each block gets its own program.
-    grid = lambda META: (triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']), )
+    grid = lambda META: (
+        triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']),
+    )
     bf16xint16_matmul_kernel[grid](
         a, b, c,  #
         M, N, K,  #
