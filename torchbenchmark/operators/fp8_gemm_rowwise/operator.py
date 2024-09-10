@@ -24,7 +24,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser.add_argument(
         "--no_fp8_fast_accum", dest="fp8_fast_accum", action="store_false"
     )
-    parser.add_argument("--use_tma", action="store_true")
+    parser.add_argument("--no_use_tma", dest="use_tma", action="store_false")
     args = parser.parse_args(args)
     return args
 
