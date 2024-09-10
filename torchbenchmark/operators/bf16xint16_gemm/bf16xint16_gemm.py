@@ -37,7 +37,9 @@ from .kernel import (
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "gbps", "latency"]
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args=tb_args, extra_args=extra_args)
         # `Group size` and `inner K tiles` are defaults from gpt-fast.
         self.group_size = 32
@@ -47,7 +49,7 @@ class Operator(BenchmarkOperator):
         def args(B, Dout, Din):
             x = torch.randn(B, Din, device=self.device, dtype=torch.bfloat16)
             w = torch.randint(
-                -2**15,
+                -(2**15),
                 2**15 - 1,
                 (Din, Dout),
                 device=self.device,
