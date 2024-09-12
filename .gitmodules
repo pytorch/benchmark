@@ -19,3 +19,6 @@
 [submodule "submodules/ThunderKittens"]
 	path = submodules/ThunderKittens
 	url = https://github.com/HazyResearch/ThunderKittens.git
+[submodule "submodules/generative-recommenders"]
+	path = submodules/generative-recommenders
+	url = https://github.com/facebookresearch/generative-recommenders.git

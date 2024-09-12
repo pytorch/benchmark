@@ -7,7 +7,12 @@ import numpy
 import torch
 import torch._inductor.config as inductor_config
 import triton
-from hammer.ops.triton.triton_hstu_linear import _addmm_fwd, triton_addmm
+from torchbenchmark import add_path, SUBMODULE_PATH
+
+try:
+    from hammer.ops.triton.triton_hstu_linear import triton_addmm
+except ModuleNotFoundError:
+    from .hstu import triton_addmm
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
