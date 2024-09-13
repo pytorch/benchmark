@@ -26,6 +26,8 @@ def input_cast(cond, action, example_inputs):
         return example_inputs
     elif isinstance(example_inputs, torch.Tensor):
         return example_inputs
+    elif isinstance(example_inputs, torch.nn.Module):
+        return example_inputs
     else:
         raise RuntimeError(f"Unsupported input type: {type(example_inputs)}")
 
