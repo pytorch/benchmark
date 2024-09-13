@@ -456,6 +456,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             self.mode = Mode.FWD
         elif self.tb_args.mode == "fwd_bwd":
             self.mode = Mode.FWD_BWD
+        elif self.tb_args.mode == "fwd_no_grad":
+            self.mode = Mode.FWD_NO_GRAD
         else:
             assert (
                 self.tb_args.mode == "bwd"
@@ -521,6 +523,14 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             fwd_bwd_fn = lambda: (fwd_fn(), bwd_fn())
             setattr(fwd_bwd_fn, "_name", bm_func_name)
             return fwd_bwd_fn
+        elif self.mode == Mode.FWD_NO_GRAD:
+
+            def fwd_no_grad_fn():
+                with torch.no_grad():
+                    fwd_fn()
+
+            setattr(fwd_no_grad_fn, "_name", bm_func_name)
+            return fwd_no_grad_fn
 
     def run(
         self, warmup=DEFAULT_WARMUP, rep=DEFAULT_RUN_ITERS, quantiles=DEFAULT_QUANTILES

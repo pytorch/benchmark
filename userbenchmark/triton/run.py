@@ -32,9 +32,9 @@ def get_parser(args=None):
     parser.add_argument("--op", type=str, required=False, help="Operator to benchmark.")
     parser.add_argument(
         "--mode",
-        choices=["fwd", "bwd", "fwd_bwd"],
+        choices=["fwd", "bwd", "fwd_bwd", "fwd_no_grad"],
         default="fwd",
-        help="Test mode (fwd, bwd, or fwd_bwd).",
+        help="Test mode (fwd, bwd, fwd_bwd, or fwd_no_grad).",
     )
     parser.add_argument("--bwd", action="store_true", help="Run backward pass.")
     parser.add_argument(
