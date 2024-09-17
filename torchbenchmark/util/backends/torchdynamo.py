@@ -274,7 +274,7 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
         module.train()
     # Generate the FX Module
     exported_model = capture_pre_autograd_graph(
-            model,
+            module,
             (),
             kwargs=example_inputs,
             dynamic_shapes=dynamic_shapes,
