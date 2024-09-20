@@ -1155,3 +1155,11 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                         ir_dir / f"{fn._name}_{kernel.name}_{input_id}.{ir}", "w"
                     ) as f:
                         f.write(kernel.asm[ir])
+            if "cubin" in kernel.asm:
+                from triton.tools.disasm import get_sass
+
+                sass = get_sass(kernel.asm["cubin"])
+                with open(
+                    ir_dir / f"{fn._name}_{kernel.name}_{input_id}.sass", "w"
+                ) as f:
+                    f.write(sass)
