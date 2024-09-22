@@ -210,6 +210,15 @@ def apply_torchdynamo_args(
                     change_linear_weights_to_int4_woqtensors(module)
             elif model.device == "cpu" and model.test == "eval":
                 enable_inductor_quant(model, args.is_qat)
+                #from torchao.quantization import quantize_, int8_dynamic_activation_int8_weight, int8_weight_only
+                #module, example_inputs = model.get_module()
+                #with torch.no_grad():
+                    #from torchao.utils import unwrap_tensor_subclass
+                    #module = unwrap_tensor_subclass(module)
+                    #quantize_(module, int8_weight_only())
+                    #module=torchao.autoquant(torch.compile(module, mode='max-autotune'))
+                    #module(*example_inputs)
+                    #model.set_module(module)
 
         if args.freeze_prepack_weights:
             torch._inductor.config.freezing = True
@@ -254,30 +263,43 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
     from torch._export import capture_pre_autograd_graph
     from torch.export import Dim
     module, example_inputs = model.get_module()
-    input_shapes = {k: list(v.shape) for (k, v) in example_inputs.items()}
-    dims = set()
-    for _, v in input_shapes.items():
-        dims.update(v)
-    dim_str_map = {x: Dim("dim" + str(list(dims).index(x)), max=1024 * 1024) for x in dims}
-    dynamic_shapes = {k: {v.index(dim): dim_str_map[dim] for dim in v} for (k, v) in input_shapes.items()}
-    if "labels" in dynamic_shapes.keys():
-        for k in dynamic_shapes.keys():
-            if k != "labels":
-                tmp_dims = input_shapes[k]
-                for tmp_dim in input_shapes[k]:
-                    if tmp_dim not in input_shapes['labels']:
-                        del dynamic_shapes[k][input_shapes[k].index(tmp_dim)]
+    #print(example_inputs)
+    if isinstance(example_inputs, dict):
+        input_shapes = {k: list(v.shape) for (k, v) in example_inputs.items()}
+    #print(example_inputs.items())
+        dims = set()
+        for _, v in input_shapes.items():
+            dims.update(v)
+        dim_str_map = {x: Dim("dim" + str(list(dims).index(x))) for x in dims}
+        dim_str_map = {x: Dim("dim" + str(list(dims).index(x)), max=1024 * 1024) for x in dims}
+    #print(dim_str_map)
+    #print(1111111111111111111111111111)
+        dynamic_shapes = {k: {v.index(dim): dim_str_map[dim] for dim in v} for (k, v) in input_shapes.items()}
+    #print(dynamic_shapes.items())
+        if "labels" in dynamic_shapes.keys():
+            for k in dynamic_shapes.keys():
+                if k != "labels":
+                    tmp_dims = input_shapes[k]
+                    for tmp_dim in input_shapes[k]:
+                        if tmp_dim not in input_shapes['labels']:
+                            del dynamic_shapes[k][input_shapes[k].index(tmp_dim)]
     # Create X86InductorQuantizer
     quantizer = xiq.X86InductorQuantizer()
     quantizer.set_global(xiq.get_default_x86_inductor_quantization_config(is_qat=is_qat))
     if is_qat:
         module.train()
     # Generate the FX Module
-    exported_model = capture_pre_autograd_graph(
+    if isinstance(example_inputs, dict):
+        exported_model = capture_pre_autograd_graph(
             module,
             (),
-            kwargs=example_inputs,
+            example_inputs,
             dynamic_shapes=dynamic_shapes,
+        )
+    else:
+        exported_model = capture_pre_autograd_graph(
+            module,
+            example_inputs,
         )
     # PT2E Quantization flow
     prepared_model = prepare_qat_pt2e(exported_model, quantizer) if is_qat else prepare_pt2e(exported_model, quantizer)
