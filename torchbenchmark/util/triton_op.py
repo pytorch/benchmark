@@ -193,9 +193,7 @@ class BenchmarkOperatorMetrics:
     extra_metrics: Optional[Dict[str, float]] = None
 
 
-BUILTIN_METRICS = set(map(lambda x: x.name, fields(BenchmarkOperatorMetrics))) - {
-    "extra_metrics"
-}
+BUILTIN_METRICS = {x.name for x in fields(BenchmarkOperatorMetrics)} - {"extra_metrics"}
 
 
 @dataclass
@@ -892,7 +890,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
 
                 do_bench_ncu_in_task(
                     fn=fn,
-                    warmup=warmup,
                     grad_to_none=self.get_grad_to_none(self.example_inputs),
                     range_name=_RANGE_NAME,
                 )
