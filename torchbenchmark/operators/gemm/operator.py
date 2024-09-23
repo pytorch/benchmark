@@ -39,13 +39,8 @@ if inductor_config.is_fbcode():
 else:
     HAS_HAMMER = False
 
-try:
-    torch.ops.load_library(
-        "//pytorch/benchmark/torchbenchmark/operators/gemm/cutlass:colfax_gemm_lib"
-    )
-    colfax_gemm = torch.ops.cutlass.colfax_gemm
-except (ImportError, IOError, AttributeError) as e:
-    colfax_gemm = None
+
+colfax_gemm = None
 
 BUILDIN_SHAPES = [
     (256, 256, 256, None),
