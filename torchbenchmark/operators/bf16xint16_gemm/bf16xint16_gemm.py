@@ -48,6 +48,11 @@ class Operator(BenchmarkOperator):
             action="store_true",
             help="Instead of computing A @ B, compute B.T @ A.T.",
         )
+        parser.add_argument(
+            "--one-shape-only",
+            action="store_true",
+            help="Just benchmark one (large) shape (2**16, 1280, 8192)",
+        )
 
         gemm_args = parser.parse_args(extra_args)
 
@@ -56,6 +61,7 @@ class Operator(BenchmarkOperator):
         # Motivation: on H100, only one the lhs of the wgmma instruction can be read from registers,
         # so the order (which input is int16) matters.
         self.transpose = gemm_args.transpose
+        self.one_shape_only = gemm_args.one_shape_only
 
         # `Group size` and `inner K tiles` are defaults from gpt-fast.
         self.group_size = 32
@@ -87,8 +93,10 @@ class Operator(BenchmarkOperator):
             "ffn.w2": (3584, 8192),
         }
 
-        yield args(2**16, 1280, 8192)
-        return
+        if self.one_shape_only:
+            # for debugging; this is a lot faster than running all configs
+            yield args(2**16, 1280, 8192)
+            return
 
         for bsz in (1, 4, 16, 64, 256, 1024, 2**12, 2**14, 2**16):
             for name, (k, n) in name_to_shapes_70b.items():
