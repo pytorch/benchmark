@@ -379,6 +379,7 @@ def bf16xint16_matmul_kernel(
     BLOCK_SIZE_N: tl.constexpr,
     BLOCK_SIZE_K: tl.constexpr,  #
     GROUP_SIZE_M: tl.constexpr,  #
+    TRANSPOSE: tl.constexpr,  # if true, assume a_ptr is int16; otherwise assume b_ptr is int16
 ):
     """Kernel for computing the matmul C = A x B.
     A has shape (M, K), B has shape (K, N) and C has shape (M, N)
@@ -421,9 +422,19 @@ def bf16xint16_matmul_kernel(
         # If it is out of bounds, set it to 0.
         a = tl.load(a_ptrs, mask=offs_k[None, :] < K - k * BLOCK_SIZE_K, other=0.0)
         b = tl.load(b_ptrs, mask=offs_k[:, None] < K - k * BLOCK_SIZE_K, other=0)
-        b_bf16 = b.to(tl.bfloat16)
+        if TRANSPOSE:
+            tl.static_assert(a.dtype == tl.int16)
+            tl.static_assert(b.dtype == tl.bfloat16)
+            a_bf16 = a.to(tl.bfloat16)
+            b_bf16 = b
+        else:
+            tl.static_assert(a.dtype == tl.bfloat16)
+            tl.static_assert(b.dtype == tl.int16)
+            a_bf16 = a
+            b_bf16 = b.to(tl.bfloat16)
+
         # We accumulate along the K dimension.
-        accumulator = tl.dot(a, b_bf16, accumulator)
+        accumulator = tl.dot(a_bf16, b_bf16, accumulator)
         # Advance the ptrs to the next K block.
         a_ptrs += BLOCK_SIZE_K * stride_ak
         b_ptrs += BLOCK_SIZE_K * stride_bk
@@ -469,7 +480,7 @@ def bf16xbf16_matmul(a, b):
     return c
 
 
-def bf16xint16_matmul(a, b):
+def bf16xint16_matmul(a, b, transpose=False):
     # Check constraints.
     assert a.shape[1] == b.shape[0], "Incompatible dimensions"
     assert a.is_contiguous(), "Matrix A must be contiguous"
@@ -494,5 +505,6 @@ def bf16xint16_matmul(a, b):
         b.stride(1),  #
         c.stride(0),
         c.stride(1),  #
+        TRANSPOSE=transpose,
     )
     return c

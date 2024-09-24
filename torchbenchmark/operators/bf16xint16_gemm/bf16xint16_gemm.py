@@ -41,6 +41,22 @@ class Operator(BenchmarkOperator):
         self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
     ):
         super().__init__(tb_args=tb_args, extra_args=extra_args)
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "--transpose",
+            action="store_true",
+            help="Instead of computing A @ B, compute B.T @ A.T.",
+        )
+
+        gemm_args = parser.parse_args(extra_args)
+
+        # Normally, we compute x @ w, where x is bf16 and w is int16.
+        # If transposed, we compute w.T @ x.T, where x.T/w.T are contiguous and w.T is int16.
+        # Motivation: on H100, only one the lhs of the wgmma instruction can be read from registers,
+        # so the order (which input is int16) matters.
+        self.transpose = gemm_args.transpose
+
         # `Group size` and `inner K tiles` are defaults from gpt-fast.
         self.group_size = 32
         self.inner_k_tiles = 8
@@ -55,6 +71,12 @@ class Operator(BenchmarkOperator):
                 device=self.device,
                 dtype=torch.int16,
             )
+
+            if self.transpose:
+                # transpose logic below is only valid for 2D tensors.
+                assert x.dim() == 2
+                assert w.dim() == 2
+                return (w.T.contiguous(), x.T.contiguous())
             return (x, w)
 
         # LLama-2 shapes w/ 8-way tensor parallelism.
@@ -64,6 +86,10 @@ class Operator(BenchmarkOperator):
             "ffn.w13": (8192, 7168),
             "ffn.w2": (3584, 8192),
         }
+
+        yield args(2**16, 1280, 8192)
+        return
+
         for bsz in (1, 4, 16, 64, 256, 1024, 2**12, 2**14, 2**16):
             for name, (k, n) in name_to_shapes_70b.items():
                 yield args(bsz, n, k)
@@ -76,19 +102,25 @@ class Operator(BenchmarkOperator):
 
     @register_benchmark(baseline=True)
     def bf16xbf16(self, x, w):
-        x = x.reshape(-1, x.size(-1))
-        w_bf16 = w.to(torch.bfloat16)
-        return lambda: bf16xbf16_matmul(x, w_bf16)
+        x_bf16 = x.to(torch.bfloat16) if self.transpose else x
+        w_bf16 = w if self.transpose else w.to(torch.bfloat16)
+        return lambda: bf16xbf16_matmul(x_bf16, w_bf16)
 
     @register_benchmark()
     def bf16xint16(self, x, w):
         x = x.reshape(-1, x.size(-1))
-        return lambda: bf16xint16_matmul(x, w)
+        return lambda: bf16xint16_matmul(x, w, transpose=self.transpose)
 
     @register_benchmark()
     def bf16xint16_casted(self, x, w):
         x = x.reshape(-1, x.size(-1))
-        return lambda: bf16xbf16_matmul(x, w.to(torch.bfloat16))
+
+        def fn():
+            x_bf16 = x.to(torch.bfloat16) if self.transpose else x
+            w_bf16 = w if self.transpose else w.to(torch.bfloat16)
+            return bf16xbf16_matmul(x_bf16, w_bf16)
+
+        return fn
 
     @register_metric()
     def best_config(self, fn, inputs, metrics):
