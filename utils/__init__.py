@@ -1,7 +1,7 @@
-import sys
 import subprocess
-from typing import Dict, List
+import sys
 from pathlib import Path
+from typing import Dict, List
 
 REPO_DIR = Path(__file__).parent.parent
 TORCH_DEPS = ["numpy", "torch", "torchvision", "torchaudio"]
@@ -20,13 +20,15 @@ class add_path:
         except ValueError:
             pass
 
+
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
     for module in packages:
-        cmd = [sys.executable, "-c", f'import {module}; print({module}.__version__)']
+        cmd = [sys.executable, "-c", f"import {module}; print({module}.__version__)"]
         version = subprocess.check_output(cmd).decode().strip()
         versions[module] = version
     return versions
+
 
 def generate_pkg_constraints(package_versions: Dict[str, str]):
     """

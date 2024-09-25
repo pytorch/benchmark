@@ -7,6 +7,19 @@ from typing import Callable, Generator, List, Optional, Tuple
 
 import torch
 import triton
+from torchbenchmark.util.jagged_utils import (
+    ABSOLUTE_TOLERANCE,
+    generate_input_vals,
+    generate_random_nested_tensors,
+    get_param_fstrings,
+    get_parse_op_args,
+    get_plot_args,
+    get_styles,
+    get_tensor_bytes_limit,
+    GIGABYTES_PER_BYTE,
+    RANDOM_CHOICE_MARGIN,
+    RELATIVE_TOLERANCE,
+)
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -22,50 +35,10 @@ from .kernels import (
     triton_jagged_sum_kernel_variable_length_loop_sum_then_buffer,
 )
 
-seed = 16
-random.seed(seed)
-torch.manual_seed(seed)
-
-GIGABYTES_PER_BYTE = 1e-6
-RANDOM_CHOICE_MARGIN = 0.3
-ABSOLUTE_TOLERANCE = 1e-4
-RELATIVE_TOLERANCE = 1e-3
-TENSOR_BYTES_LIMIT = 8 * 1e9  # allocate tensors no greater than 8GB
-
 
 def parse_op_args(args: List[str]):
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--B",
-        type=int,
-        help="[Optional] Size of dimension 0 in shape (B, *, M) (integer)",
-    )
-    parser.add_argument(
-        "--M",
-        type=int,
-        help="[Optional] Size of dimension 2 in shape (B, *, M) (integer)",
-    )
-    parser.add_argument(
-        "--seqlen",
-        type=int,
-        help="[Optional] Maximum sequence length on ragged dimension (integer)",
-    )
-    parser.add_argument(
-        "--sparsity",
-        type=float,
-        help="[Optional] Average sparsity for nested tensor (float, (0.0-1.0))",
-    )
-    parser.add_argument(
-        "--sum-then-buffer",
-        type=int,  # 1: sum then buffer, 0: buffer then sum
-        default=0,
-        help="[Optional] For Triton kernels, determines whether to sum individual blocks then add to a buffer or add to a buffer then sum; 1: sum then buffer, 0: buffer then sum; default 0",
-    )
-    parser.add_argument(
-        "--plot-benchmarks",
-        type=str,
-        default="all",
-        help="[Optional] Determines which benchmarks to plot: all, torch, triton",
+    parser = get_parse_op_args(
+        "B", "M", "seqlen", "sparsity", "sum_then_buffer", "plot_benchmarks"
     )
     return parser.parse_args(args)
 
@@ -125,7 +98,9 @@ class Operator(BenchmarkOperator):
         False  # enables GPU/CPU sync (for methods like NestedTensor unbind)
     )
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         self.sizes = list(range(2, 12, 4)) + list(
             range(12, 23, 3)
@@ -138,6 +113,8 @@ class Operator(BenchmarkOperator):
         self.sparsity = args.sparsity
         self.sum_then_buffer = args.sum_then_buffer
         self.plot_benchmarks = args.plot_benchmarks
+
+        self.tensor_bytes_limit = get_tensor_bytes_limit(tb_args.test_only)
 
     @register_benchmark(baseline=True)
     def torch_jagged_sum_no_pad(
@@ -182,6 +159,16 @@ class Operator(BenchmarkOperator):
 
         return _inner
 
+    @register_benchmark()
+    def torch_compile_nested_tensor_integration(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        def _inner(x: torch.Tensor):  # sum along ragged dimension (dim == 1)
+            return torch.sum(x, dim=x._ragged_idx)  # pyre-ignore: Undefined attribute [16]: `torch._tensor.Tensor` has no attribute `_ragged_idx`.
+
+        torch_compile_func = torch.compile(_inner)
+        return lambda: torch_compile_func(x)
+
     def get_x_val(self, example_inputs):
         if self.B is None:
             return example_inputs[1]
@@ -193,93 +180,28 @@ class Operator(BenchmarkOperator):
             return example_inputs[4]
 
     def get_x_vals(self) -> Tuple[List[int], List[int], List[int], List[float]]:
-        B_vals, M_vals, seqlen_vals, sparsity_vals = [], [], [], []
-
-        def get_dim_vals():
-            vals = []
-            vals.extend([2**n for n in self.sizes])
-            vals.extend(
-                [
-                    (n - 1) * (n + 1)
-                    for n in self.sizes
-                    if n - 1 > 0 and (n - 1) * (n + 1) not in vals
-                ]
-            )
-            return vals
-
-        if self.B is None:
-            B_vals.extend(get_dim_vals())
-        else:
-            B_vals.extend([self.B])
-
-        if self.M is None:
-            M_vals.extend(get_dim_vals())
-        else:
-            M_vals.extend([self.M])
-
-        if self.seqlen is None:
-            seqlen_vals.extend(
-                list(range(100, 1000, 100)) + list(range(1000, 20000, 1000))
-            )
-        else:
-            seqlen_vals.extend([self.seqlen])
-
-        if self.sparsity is None:
-            sparsity_vals.extend([n / 10 for n in range(1, 10)])
-        else:
-            sparsity_vals.extend([self.sparsity])
-
-        return B_vals, M_vals, seqlen_vals, sparsity_vals
+        return generate_input_vals(
+            self.B, self.M, self.seqlen, self.sparsity, self.sizes
+        )
 
     def get_input_iter(self) -> Generator:
         """
         Generate random nested tensors of shape (B, *, M), where * is the ragged dimension
         """
 
-        def get_size_in_bytes(shape) -> int:
-            num_elements = math.prod(shape)
-            element_size = self.dtype.itemsize
-            return math.floor(num_elements * element_size)
-
         B_vals, M_vals, seqlen_vals, sparsity_vals = self.get_x_vals()
-        vals = itertools.product(B_vals, M_vals, seqlen_vals, sparsity_vals)
 
-        for B, M, max_seqlen, sparsity in vals:
-            if (
-                get_size_in_bytes((B, M, max_seqlen)) < TENSOR_BYTES_LIMIT
-            ):  # ensure that GPU memory is not exceeded
-                tensors = []
-
-                # greater sparsity --> shorter sequence lengths on ragged dimension
-                seqlen_avg = math.floor(
-                    max_seqlen * (1 - sparsity)
-                )  # average sequence length across all tensors in nested tensor
-                seqlen_margin = math.floor(
-                    max_seqlen * RANDOM_CHOICE_MARGIN
-                )  # use margin to constrain sequence lengths to range [seqlen_avg - seqlen_margin, seqlen_avg + seqlen_margin] to approximate an average sequence length, which correlates with sparsity
-
-                for _ in range(B):
-                    seqlen_randint = random.randint(
-                        max(
-                            seqlen_avg - seqlen_margin, 1
-                        ),  # seqlen_randint must be at least 1
-                        min(
-                            seqlen_avg + seqlen_margin, max_seqlen
-                        ),  # seqlen_randint must not exceed self.seqlen
-                    )
-                    tensor_2d = torch.randn(
-                        (seqlen_randint, M), device=self.device, dtype=self.dtype
-                    )
-                    tensors.append(tensor_2d)
-
-                nt = torch.nested.nested_tensor(
-                    tensors,
-                    layout=torch.jagged,
-                    device=self.device,
-                    dtype=self.dtype,
-                )
-
-                yield (nt, B, M, max_seqlen, sparsity)
+        for nt, B, M, max_seqlen, sparsity in generate_random_nested_tensors(
+            B_vals,
+            M_vals,
+            seqlen_vals,
+            sparsity_vals,
+            device=self.device,
+            dtype=self.dtype,
+            TENSOR_BYTES_LIMIT=self.tensor_bytes_limit,
+            RANDOM_CHOICE_MARGIN=RANDOM_CHOICE_MARGIN,
+        ):
+            yield (nt, B, M, max_seqlen, sparsity)
 
     def _get_accuracy(self, fn: Callable, baseline_fn: Callable) -> bool:
         output = fn()
@@ -310,54 +232,29 @@ class Operator(BenchmarkOperator):
         )  # return (B, '*', M, max seqlen, sparsity) for each example input
 
     def plot(self):
-        str_B, str_M, str_seqlen, str_sparsity = f"-B-{self.B}", f"-M-{self.M}", f"-seqlen-{self.seqlen}", f"-sparsity-{self.sparsity}"
-        if self.B is None:
-            x_axis = "B"
-            x_log = True
-            params = str_M + str_seqlen + str_sparsity
-        elif self.M is None:
-            x_axis = "M"
-            x_log = True
-            params = str_B + str_seqlen + str_sparsity
-        elif self.seqlen is None:
-            x_axis = "seqlen"
-            x_log = False
-            params = str_B + str_M + str_sparsity
-        else:
-            x_axis = "sparsity"
-            x_log = False
-            params = str_B + str_M + str_seqlen
+        x_axis, params = get_param_fstrings(self.B, self.M, self.seqlen, self.sparsity)
 
         line_vals_all = [
             "torch_jagged_sum_no_pad",
             "torch_jagged_sum_pad",
             "triton_jagged_sum_no_pad_simple_fused",
             "triton_jagged_sum_no_pad_variable_length_loop",
+            "torch_compile_nested_tensor_integration",
         ]
         line_names_all = [
             "PyTorch jagged sum, no padding",
             "PyTorch jagged sum, padding",
             "Triton kernel jagged sum, simple fused",
             "Triton kernel jagged sum, variable length loop",
+            "Inductor, NestedTensor integration",
         ]
-        styles_all = [
-            ("blue", "-"),
-            ("red", "-"),
-            ("green", "-"),
-            ("yellow", "-"),
-        ]
-        if self.plot_benchmarks == "all":
-            line_vals, line_names, styles = line_vals_all, line_names_all, styles_all
-        elif self.plot_benchmarks == "torch":
-            line_vals = line_vals_all[:2]
-            line_names = line_names_all[:2]
-            styles = styles_all[:2]
-        else:
-            line_vals = line_vals_all[2:]
-            line_names = line_names_all[2:]
-            styles = styles_all[2:]
+        styles_all = get_styles(len(line_vals_all))
 
-        plot_name = f"jagged-sum-perf-var-{x_axis}-xlog-{x_log}" + params
+        line_vals, line_names, styles = get_plot_args(
+            self.plot_benchmarks, 2, line_vals_all, line_names_all, styles_all
+        )
+
+        plot_name = f"jagged-sum-perf-var-{x_axis}" + params
 
         @triton.testing.perf_report(
             triton.testing.Benchmark(
@@ -369,7 +266,6 @@ class Operator(BenchmarkOperator):
                 styles=styles,
                 xlabel=x_axis,
                 ylabel="latency",
-                x_log=x_log,
                 plot_name=plot_name,
                 args={},
             )

@@ -1,16 +1,18 @@
-from .dataloader import SuperSloMo
-from .model_wrapper import Model as ModelWrapper
-import torch
-import torch.optim as optim
-import torchvision.transforms as transforms
-from typing import Tuple
 import os
 
 from argparse import Namespace
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
+from typing import Tuple
+
+import torch
+import torch.optim as optim
+import torchvision.transforms as transforms
 
 from torchbenchmark import DATA_PATH
+from torchbenchmark.tasks import COMPUTER_VISION
+
+from ...util.model import BenchmarkModel
+from .dataloader import SuperSloMo
+from .model_wrapper import Model as ModelWrapper
 
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False

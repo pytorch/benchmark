@@ -7,9 +7,10 @@ import torch
 
 import triton
 import triton.language as tl
-from torch._inductor.runtime import triton_helpers, triton_heuristics
 from torch._C import _cuda_getCurrentRawStream as get_raw_stream
+from torch._inductor.runtime import triton_helpers, triton_heuristics
 from torch._inductor.runtime.triton_helpers import libdevice
+
 empty_strided_cuda = torch._C._dynamo.guards._empty_strided_cuda
 reinterpret_tensor = torch.ops.inductor._reinterpret_tensor
 assert_size_stride = torch._C._dynamo.guards.assert_size_stride
@@ -30,7 +31,16 @@ assert_size_stride = torch._C._dynamo.guards.assert_size_stride
     key=["num_queries"],
 )
 @triton.jit
-def triton_tem_fused_no_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.constexpr, BLOCK_M : tl.constexpr, BLOCK_N: tl.constexpr, BLOCK_DMODEL: tl.constexpr):
+def triton_tem_fused_no_exp2(
+    arg_Q,
+    arg_K,
+    arg_V,
+    out_ptr0,
+    num_queries: tl.constexpr,
+    BLOCK_M: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_DMODEL: tl.constexpr,
+):
     Q = arg_Q
     K = arg_K
     V = arg_V
@@ -75,7 +85,7 @@ def triton_tem_fused_no_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.cons
         strides=(stride_qm, stride_qk),
         offsets=(start_m * BLOCK_M, 0),
         block_shape=(BLOCK_M, BLOCK_DMODEL),
-        order=(1, 0)
+        order=(1, 0),
     )
     K_block_ptr = tl.make_block_ptr(
         base=K + qkv_offset,
@@ -83,7 +93,7 @@ def triton_tem_fused_no_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.cons
         strides=(stride_kk, stride_kn),
         offsets=(0, 0),
         block_shape=(BLOCK_DMODEL, BLOCK_N),
-        order=(0, 1)
+        order=(0, 1),
     )
     V_block_ptr = tl.make_block_ptr(
         base=V + qkv_offset,
@@ -91,7 +101,7 @@ def triton_tem_fused_no_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.cons
         strides=(stride_vk, stride_vn),
         offsets=(0, 0),
         block_shape=(BLOCK_N, BLOCK_DMODEL),
-        order=(1, 0)
+        order=(1, 0),
     )
     # initialize offsets
     offs_m = start_m * BLOCK_M + tl.arange(0, BLOCK_M)
@@ -136,7 +146,7 @@ def triton_tem_fused_no_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.cons
         # -- compute scaling constant ---
         row_max = tl.max(qk, 1)
         m_i_new = tl.maximum(m_i, row_max)
-        masked_out_rows = (m_i_new == float("-inf"))
+        masked_out_rows = m_i_new == float("-inf")
 
         # TODO FIX ME and use 2^x instead of exp
         # alpha = tl.math.exp2(m_i - m_i_new)
@@ -170,14 +180,14 @@ def triton_tem_fused_no_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.cons
     idx_d = tl.arange(0, BLOCK_DMODEL)[None, :]
     # TODO generalize and add proper mask support
     mask = (idx_m != -1) & (idx_d != -1)
-    xindex = idx_d + (64*idx_m) + (262144*idx_h) + (4194304*idx_z)
+    xindex = idx_d + (64 * idx_m) + (262144 * idx_h) + (4194304 * idx_z)
     tl.store(out_ptr0 + (xindex), acc, None)
 
 
 @triton.autotune(
     configs=[
         triton.Config(
-            { 
+            {
                 "BLOCK_M": 128,
                 "BLOCK_N": 64,
                 "BLOCK_DMODEL": 64,
@@ -187,12 +197,21 @@ def triton_tem_fused_no_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.cons
         ),
     ],
     key=["num_queries"],
-)   
+)
 @triton.jit
-def triton_tem_fused_with_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.constexpr, BLOCK_M : tl.constexpr, BLOCK_N: tl.constexpr, BLOCK_DMODEL: tl.constexpr):
-# updated version
-    SCORE_MOD_IS_LINEAR : tl.constexpr = False
-    ROWS_GUARANTEED_SAFE : tl.constexpr = False
+def triton_tem_fused_with_exp2(
+    arg_Q,
+    arg_K,
+    arg_V,
+    out_ptr0,
+    num_queries: tl.constexpr,
+    BLOCK_M: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_DMODEL: tl.constexpr,
+):
+    # updated version
+    SCORE_MOD_IS_LINEAR: tl.constexpr = False
+    ROWS_GUARANTEED_SAFE: tl.constexpr = False
     Q = arg_Q
     K = arg_K
     V = arg_V
@@ -242,7 +261,7 @@ def triton_tem_fused_with_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.co
         strides=(stride_qm, stride_qk),
         offsets=(start_m * BLOCK_M, 0),
         block_shape=(BLOCK_M, BLOCK_DMODEL),
-        order=(1, 0)
+        order=(1, 0),
     )
     K_block_ptr = tl.make_block_ptr(
         base=K + qkv_offset,
@@ -250,7 +269,7 @@ def triton_tem_fused_with_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.co
         strides=(stride_kk, stride_kn),
         offsets=(0, 0),
         block_shape=(BLOCK_DMODEL, BLOCK_N),
-        order=(0, 1)
+        order=(0, 1),
     )
     V_block_ptr = tl.make_block_ptr(
         base=V + qkv_offset,
@@ -258,7 +277,7 @@ def triton_tem_fused_with_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.co
         strides=(stride_vk, stride_vn),
         offsets=(0, 0),
         block_shape=(BLOCK_N, BLOCK_DMODEL),
-        order=(1, 0)
+        order=(1, 0),
     )
     # initialize offsets
     offs_m = start_m * BLOCK_M + tl.arange(0, BLOCK_M)
@@ -303,7 +322,7 @@ def triton_tem_fused_with_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.co
         # -- compute scaling constant ---
         row_max = tl.max(qk, 1)
         m_i_new = tl.maximum(m_i, row_max)
-        masked_out_rows = (m_i_new == float("-inf"))
+        masked_out_rows = m_i_new == float("-inf")
 
         alpha = tl.math.exp2(m_i - m_i_new)
         p = tl.math.exp2(qk - m_i_new[:, None])
@@ -335,7 +354,7 @@ def triton_tem_fused_with_exp2(arg_Q, arg_K, arg_V, out_ptr0, num_queries: tl.co
     idx_d = tl.arange(0, BLOCK_DMODEL)[None, :]
     # TODO generalize and add proper mask support
     mask = (idx_m != -1) & (idx_d != -1)
-    xindex = idx_d + (64*idx_m) + (262144*idx_h) + (4194304*idx_z)
+    xindex = idx_d + (64 * idx_m) + (262144 * idx_h) + (4194304 * idx_z)
     tl.store(out_ptr0 + (xindex), acc, None)
 
 
@@ -346,17 +365,22 @@ def triton_attention_no_exp2(arg0_1, arg1_1, arg2_1):
     assert_size_stride(arg2_1, (16, 16, 4096, 64), (4194304, 262144, 64, 1))
     with torch.cuda._DeviceGuard(0):
         torch.cuda.set_device(0)
-        buf0 = empty_strided_cuda((16, 16, 4096, 64), (4194304, 262144, 64, 1), torch.float16)
-	
+        buf0 = empty_strided_cuda(
+            (16, 16, 4096, 64), (4194304, 262144, 64, 1), torch.float16
+        )
+
         # batch_size, num_heads, num_queries: 16, 16, 4096
         num_queries = 4096
         batch_size = 16
         num_heads = 16
         grid = lambda META: (
-            triton.cdiv(num_queries, META["BLOCK_M"]), batch_size * num_heads, 1
+            triton.cdiv(num_queries, META["BLOCK_M"]),
+            batch_size * num_heads,
+            1,
         )
         triton_tem_fused_no_exp2[grid](arg0_1, arg1_1, arg2_1, buf0, num_queries)
-    return (buf0, )
+    return (buf0,)
+
 
 def triton_attention_with_exp2(arg0_1, arg1_1, arg2_1):
     assert_size_stride(arg0_1, (16, 16, 4096, 64), (4194304, 262144, 64, 1))
@@ -364,14 +388,18 @@ def triton_attention_with_exp2(arg0_1, arg1_1, arg2_1):
     assert_size_stride(arg2_1, (16, 16, 4096, 64), (4194304, 262144, 64, 1))
     with torch.cuda._DeviceGuard(0):
         torch.cuda.set_device(0)
-        buf0 = empty_strided_cuda((16, 16, 4096, 64), (4194304, 262144, 64, 1), torch.float16)
+        buf0 = empty_strided_cuda(
+            (16, 16, 4096, 64), (4194304, 262144, 64, 1), torch.float16
+        )
 
         # batch_size, num_heads, num_queries: 16, 16, 4096
         num_queries = 4096
         batch_size = 16
         num_heads = 16
         grid = lambda META: (
-            triton.cdiv(num_queries, META["BLOCK_M"]), batch_size * num_heads, 1
+            triton.cdiv(num_queries, META["BLOCK_M"]),
+            batch_size * num_heads,
+            1,
         )
         triton_tem_fused_with_exp2[grid](arg0_1, arg1_1, arg2_1, buf0, num_queries)
-    return (buf0, )
+    return (buf0,)

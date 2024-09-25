@@ -8,15 +8,22 @@ from typing import Callable, Generator, List, Optional, Tuple
 import torch
 import triton
 from torchbenchmark.util.jagged_utils import (
+    ABSOLUTE_TOLERANCE,
     generate_input_vals,
     generate_random_nested_tensors,
+    get_param_fstrings,
     get_parse_op_args,
+    get_plot_args,
+    get_styles,
+    get_tensor_bytes_limit,
+    GIGABYTES_PER_BYTE,
+    RANDOM_CHOICE_MARGIN,
+    RELATIVE_TOLERANCE,
 )
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
-    dump_autotuner_best_config,
     register_benchmark,
     register_metric,
 )
@@ -27,16 +34,6 @@ from .kernels import (
     triton_jagged_mean_kernel_variable_length_loop_buffer_then_sum,
     triton_jagged_mean_kernel_variable_length_loop_sum_then_buffer,
 )
-
-
-seed = 16
-random.seed(seed)
-
-GIGABYTES_PER_BYTE = 1e-6
-RANDOM_CHOICE_MARGIN = 0.3
-ABSOLUTE_TOLERANCE = 1e-4
-RELATIVE_TOLERANCE = 1e-3
-TENSOR_BYTES_LIMIT = 8 * 1e9  # allocate tensors no greater than 8GB
 
 
 def parse_op_args(args: List[str]):
@@ -101,7 +98,9 @@ class Operator(BenchmarkOperator):
         False  # enables GPU/CPU sync (for methods like NestedTensor unbind)
     )
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         self.sizes = list(range(2, 12, 4)) + list(
             range(12, 23, 3)
@@ -114,6 +113,8 @@ class Operator(BenchmarkOperator):
         self.sparsity = args.sparsity
         self.sum_then_buffer = args.sum_then_buffer
         self.plot_benchmarks = args.plot_benchmarks
+
+        self.tensor_bytes_limit = get_tensor_bytes_limit(tb_args.test_only)
 
     @register_benchmark(baseline=True)
     def torch_jagged_mean_unbind_torch_mean(
@@ -168,6 +169,16 @@ class Operator(BenchmarkOperator):
 
         return _inner
 
+    @register_benchmark()
+    def torch_compile_nested_tensor_integration(
+        self, x: torch.Tensor, B: int, M: int, seqlen: int, sparsity: float
+    ):
+        def _inner(x: torch.Tensor):  # mean along ragged dimension (dim == 1)
+            return torch.mean(x, dim=x._ragged_idx, keepdim=True)  # pyre-ignore: Undefined attribute [16]: `torch._tensor.Tensor` has no attribute `_ragged_idx`.
+
+        torch_compile_func = torch.compile(_inner)
+        return lambda: torch_compile_func(x)
+
     def get_x_val(self, example_inputs):
         if self.B is None:
             return example_inputs[1]
@@ -196,7 +207,7 @@ class Operator(BenchmarkOperator):
             sparsity_vals,
             device=self.device,
             dtype=self.dtype,
-            TENSOR_BYTES_LIMIT=TENSOR_BYTES_LIMIT,
+            TENSOR_BYTES_LIMIT=self.tensor_bytes_limit,
             RANDOM_CHOICE_MARGIN=RANDOM_CHOICE_MARGIN,
         ):
             yield (nt, B, M, max_seqlen, sparsity)
@@ -229,49 +240,8 @@ class Operator(BenchmarkOperator):
             f"sparsity: {example_inputs[4]}",  # sparsity
         )  # return (B, '*', M, max seqlen, sparsity) for each example input
 
-    @register_metric(skip_baseline=True)
-    def best_config(
-        self, fn_name, example_inputs, metrics: BenchmarkOperatorMetrics
-    ) -> str:
-        fn_name_str = str(fn_name).split(".")[1]
-
-        if "simple_fused" in fn_name_str:
-            if self.sum_then_buffer:
-                return dump_autotuner_best_config(
-                    triton_jagged_mean_kernel_simple_fused_sum_then_buffer
-                )
-            return dump_autotuner_best_config(
-                triton_jagged_mean_kernel_simple_fused_buffer_then_sum
-            )
-        elif "variable_length_loop" in fn_name_str:
-            if self.sum_then_buffer:
-                return dump_autotuner_best_config(
-                    triton_jagged_mean_kernel_variable_length_loop_sum_then_buffer
-                )
-            return dump_autotuner_best_config(
-                triton_jagged_mean_kernel_variable_length_loop_buffer_then_sum
-            )
-        return ""
-
     def plot(self):
-        str_B, str_M, str_seqlen, str_sparsity = (
-            f"-B-{self.B}",
-            f"-M-{self.M}",
-            f"-seqlen-{self.seqlen}",
-            f"-sparsity-{self.sparsity}",
-        )
-        if self.B is None:
-            x_axis = "B"
-            params = str_M + str_seqlen + str_sparsity
-        elif self.M is None:
-            x_axis = "M"
-            params = str_B + str_seqlen + str_sparsity
-        elif self.seqlen is None:
-            x_axis = "seqlen"
-            params = str_B + str_M + str_sparsity
-        else:
-            x_axis = "sparsity"
-            params = str_B + str_M + str_seqlen
+        x_axis, params = get_param_fstrings(self.B, self.M, self.seqlen, self.sparsity)
 
         line_vals_all = [
             "torch_jagged_mean_unbind_torch_mean",
@@ -279,6 +249,7 @@ class Operator(BenchmarkOperator):
             "torch_jagged_mean_torch_sum",
             "triton_jagged_mean_simple_fused",
             "triton_jagged_mean_variable_length_loop",
+            "torch_compile_nested_tensor_integration",
         ]
         line_names_all = [
             "PyTorch jagged mean, torch.mean",
@@ -286,25 +257,13 @@ class Operator(BenchmarkOperator):
             "PyTorch jagged mean, torch.sum",
             "Triton jagged mean, simple fused",
             "Triton jagged mean, variable length loop",
+            "Inductor, NestedTensor integration",
         ]
-        styles_all = [
-            ("blue", "-"),
-            ("red", "-"),
-            ("orange", "-"),
-            ("green", "-"),
-            ("magenta", "-"),
-        ]
+        styles_all = get_styles(len(line_vals_all))
 
-        if self.plot_benchmarks == "all":
-            line_vals, line_names, styles = line_vals_all, line_names_all, styles_all
-        elif self.plot_benchmarks == "torch":
-            line_vals = line_vals_all[:3]
-            line_names = line_names_all[:3]
-            styles = styles_all[:3]
-        else:
-            line_vals = line_vals_all[3:]
-            line_names = line_names_all[3:]
-            styles = styles_all[3:]
+        line_vals, line_names, styles = get_plot_args(
+            self.plot_benchmarks, 3, line_vals_all, line_names_all, styles_all
+        )
 
         plot_name = f"jagged-mean-perf-var-{x_axis}" + params
 

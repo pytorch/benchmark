@@ -15,10 +15,10 @@ import numpy as np
 import treetable as tt
 
 BASELINES = [
-    'WaveUNet',
-    'MMDenseLSTM',
-    'OpenUnmix',
-    'IRM2',
+    "WaveUNet",
+    "MMDenseLSTM",
+    "OpenUnmix",
+    "IRM2",
 ]
 EVALS = Path("evals")
 LOGS = Path("logs")
@@ -26,12 +26,15 @@ BASELINE_EVALS = Path("baselines")
 STD_KEY = "seed"
 
 parser = argparse.ArgumentParser("result_table.py")
-parser.add_argument("-p",
-                    "--paper",
-                    action="store_true",
-                    help="show results from the paper experiment")
-parser.add_argument("-i", "--individual", action="store_true", help="no aggregation by seed")
-parser.add_argument("-l", "--latex", action="store_true", help="output easy to copy latex")
+parser.add_argument(
+    "-p", "--paper", action="store_true", help="show results from the paper experiment"
+)
+parser.add_argument(
+    "-i", "--individual", action="store_true", help="no aggregation by seed"
+)
+parser.add_argument(
+    "-l", "--latex", action="store_true", help="output easy to copy latex"
+)
 parser.add_argument("metric", default="SDR", nargs="?")
 args = parser.parse_args()
 
@@ -83,7 +86,7 @@ for path in EVALS.iterdir():
         parts = [(k, v) for k, v in parts if k != STD_KEY]
     name = model + " " + " ".join(f"{k}={v}" for k, v in parts)
     stats = read(args.metric, results)
-    if (not stats or len(stats["drums"]) != 50):
+    if not stats or len(stats["drums"]) != 50:
         print(f"Missing stats for {results}", file=sys.stderr)
     else:
         all_stats[name].append(stats)
@@ -91,24 +94,26 @@ for path in EVALS.iterdir():
 metrics = [tt.leaf("score", ".2f"), tt.leaf("std", ".2f")]
 sources = ["drums", "bass", "other", "vocals"]
 
-mytable = tt.table([tt.leaf("name"), tt.group("all", metrics + [tt.leaf("count")])] +
-                   [tt.group(source, metrics) for idx, source in enumerate(sources)])
+mytable = tt.table(
+    [tt.leaf("name"), tt.group("all", metrics + [tt.leaf("count")])]
+    + [tt.group(source, metrics) for idx, source in enumerate(sources)]
+)
 
 lines = []
 for name, stats in all_stats.items():
     line = {"name": name}
-    if 'accompaniment' in stats:
-        del stats['accompaniment']
+    if "accompaniment" in stats:
+        del stats["accompaniment"]
     alls = []
     for source in sources:
         stat = [np.nanmedian(s[source]) for s in stats]
         alls.append(stat)
-        line[source] = {"score": np.mean(stat), "std": np.std(stat) / len(stat)**0.5}
+        line[source] = {"score": np.mean(stat), "std": np.std(stat) / len(stat) ** 0.5}
     alls = np.array(alls)
     line["all"] = {
         "score": alls.mean(),
-        "std": alls.mean(0).std() / alls.shape[1]**0.5,
-        "count": alls.shape[1]
+        "std": alls.mean(0).std() / alls.shape[1] ** 0.5,
+        "count": alls.shape[1],
     }
     lines.append(line)
 
@@ -125,13 +130,13 @@ lines.sort(key=lambda x: -x["all"]["score"])
 if args.latex:
     for line in lines:
         cols = [
-            line['name'],
+            line["name"],
             latex_number(line["all"]),
             latex_number(line["drums"]),
             latex_number(line["bass"]),
             latex_number(line["other"]),
-            latex_number(line["vocals"])
+            latex_number(line["vocals"]),
         ]
         print(" & ".join(cols) + r" \\")
 else:
-    print(tt.treetable(lines, mytable, colors=['33', '0']))
+    print(tt.treetable(lines, mytable, colors=["33", "0"]))

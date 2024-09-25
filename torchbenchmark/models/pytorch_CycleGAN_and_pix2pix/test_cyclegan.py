@@ -26,23 +26,31 @@ See options/base_options.py and options/test_options.py for more test options.
 See training and test tips at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/tips.md
 See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/qa.md
 """
+
 import os
-from .options.test_options import TestOptions
-from .data import create_dataset
-from .models import create_model
-from .util.visualizer import save_images
-from .util import html
-import torch
 from pathlib import Path
 
+import torch
+
+from .data import create_dataset
+from .models import create_model
+from .options.test_options import TestOptions
+from .util import html
+from .util.visualizer import save_images
+
+
 def get_model(args, device):
-    opt = TestOptions().parse(args.split(' '))
-    opt.num_threads = 0   # test code only supports num_threads = 1
-    opt.batch_size = 1    # test code only supports batch_size = 1
+    opt = TestOptions().parse(args.split(" "))
+    opt.num_threads = 0  # test code only supports num_threads = 1
+    opt.batch_size = 1  # test code only supports batch_size = 1
     opt.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
-    opt.no_flip = True    # no flip; comment this line if results on flipped images are needed.
-    opt.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
-    model = create_model(opt)      # create a model given opt.model and other options
+    opt.no_flip = (
+        True  # no flip; comment this line if results on flipped images are needed.
+    )
+    opt.display_id = (
+        -1
+    )  # no visdom display; the test code saves the results to a HTML file.
+    model = create_model(opt)  # create a model given opt.model and other options
     if len(opt.gpu_ids) > 0:
         # When opt.gpu_ids > 0, netG is converted to torch.nn.DataParallel
         model = model.netG.module
@@ -50,36 +58,49 @@ def get_model(args, device):
         model = model.netG
     root = str(Path(__file__).parent)
     # The script is probably run at Meta internally. Attempt to download the dataset from Manifold.
-    if not os.path.exists(f'{root}/example_input.pt'):
+    if not os.path.exists(f"{root}/example_input.pt"):
         try:
             from torchbenchmark.util.framework.fb.installer import install_data
+
             data_name = "pytorch_CycleGAN_and_pix2pix_example_inputs"
             root = install_data(data_name)
         except Exception as e:
             msg = f"Failed to download data from manifold: {e}"
             raise RuntimeError(msg) from e
-    data = torch.load(f'{root}/example_input.pt')
-    input = data['A'].to(device)
+    data = torch.load(f"{root}/example_input.pt")
+    input = data["A"].to(device)
 
     return model, (input,)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     opt = TestOptions().parse()  # get test options
     # hard-code some parameters for test
-    opt.num_threads = 0   # test code only supports num_threads = 1
-    opt.batch_size = 1    # test code only supports batch_size = 1
+    opt.num_threads = 0  # test code only supports num_threads = 1
+    opt.batch_size = 1  # test code only supports batch_size = 1
     opt.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
-    opt.no_flip = True    # no flip; comment this line if results on flipped images are needed.
-    opt.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
-    dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
-    model = create_model(opt)      # create a model given opt.model and other options
+    opt.no_flip = (
+        True  # no flip; comment this line if results on flipped images are needed.
+    )
+    opt.display_id = (
+        -1
+    )  # no visdom display; the test code saves the results to a HTML file.
+    dataset = create_dataset(
+        opt
+    )  # create a dataset given opt.dataset_mode and other options
+    model = create_model(opt)  # create a model given opt.model and other options
     # model.setup(opt)               # regular setup: load and print networks; create schedulers
     # create a website
-    web_dir = os.path.join(opt.results_dir, opt.name, '{}_{}'.format(opt.phase, opt.epoch))  # define the website directory
+    web_dir = os.path.join(
+        opt.results_dir, opt.name, "{}_{}".format(opt.phase, opt.epoch)
+    )  # define the website directory
     if opt.load_iter > 0:  # load_iter is 0 by default
-        web_dir = '{:s}_iter{:d}'.format(web_dir, opt.load_iter)
-    print('creating web directory', web_dir)
-    webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
+        web_dir = "{:s}_iter{:d}".format(web_dir, opt.load_iter)
+    print("creating web directory", web_dir)
+    webpage = html.HTML(
+        web_dir,
+        "Experiment = %s, Phase = %s, Epoch = %s" % (opt.name, opt.phase, opt.epoch),
+    )
     # test with eval mode. This only affects layers like batchnorm and dropout.
     # For [pix2pix]: we use batchnorm and dropout in the original pix2pix. You can experiment it with and without eval() mode.
     # For [CycleGAN]: It should not affect CycleGAN as CycleGAN uses instancenorm without dropout.
@@ -89,11 +110,17 @@ if __name__ == '__main__':
         if i >= opt.num_test:  # only apply our model to opt.num_test images.
             break
         model.set_input(data)  # unpack data from data loader
-        torch.save(data, 'example_input.pt')
-        model.test()           # run inference
+        torch.save(data, "example_input.pt")
+        model.test()  # run inference
         visuals = model.get_current_visuals()  # get image results
-        img_path = model.get_image_paths()     # get image paths
+        img_path = model.get_image_paths()  # get image paths
         if i % 5 == 0:  # save images to an HTML file
-            print('processing (%04d)-th image... %s' % (i, img_path))
-        save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
+            print("processing (%04d)-th image... %s" % (i, img_path))
+        save_images(
+            webpage,
+            visuals,
+            img_path,
+            aspect_ratio=opt.aspect_ratio,
+            width=opt.display_winsize,
+        )
     webpage.save()  # save the HTML

@@ -228,6 +228,7 @@ def apply_torchdynamo_args(
 
     if args.cold_start:
         from torch._inductor.utils import fresh_inductor_cache
+
         fresh_inductor_context = lambda: fresh_inductor_cache()
         model.run_contexts.append(fresh_inductor_context)
     if model.test == "train":

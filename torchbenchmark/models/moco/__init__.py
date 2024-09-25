@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 from argparse import Namespace
+from typing import Tuple
 
 import torch
-import torch.nn as nn
-import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
+import torch.nn as nn
+import torch.nn.parallel
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
+from torchbenchmark.tasks import OTHER
 from torchvision import models
-from typing import Tuple
+
+from ...util.model import BenchmarkModel
+from .main_moco import adjust_learning_rate
 
 from .moco.builder import MoCo
-from .main_moco import adjust_learning_rate
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import OTHER
 
 cudnn.deterministic = False
 cudnn.benchmark = True
@@ -79,7 +80,6 @@ class Model(BenchmarkModel):
         else:
             raise NotImplementedError(f"{device} not supported")
 
-
         self.model = MoCo(
             models.__dict__[self.opt.arch],
             self.opt.moco_dim,
@@ -123,7 +123,7 @@ class Model(BenchmarkModel):
         `model(*example_inputs)` should execute one step of model forward.
         """
         images = []
-        for (i, _) in self.example_inputs:
+        for i, _ in self.example_inputs:
             images = (i[0], i[1])
         return self.model, images
 

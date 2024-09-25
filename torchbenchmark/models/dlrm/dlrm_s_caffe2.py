@@ -53,12 +53,18 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import copy
+
 import functools
 
 # others
 import operator
 import time
-import copy
+
+# onnx
+# The onnx import causes deprecation warnings every time workers
+# are spawned during testing. So, we filter out those warnings.
+import warnings
 
 # data generation
 import dlrm_data_caffe2 as dc
@@ -67,18 +73,15 @@ import dlrm_data_caffe2 as dc
 import numpy as np
 import sklearn.metrics
 
-# onnx
-# The onnx import causes deprecation warnings every time workers
-# are spawned during testing. So, we filter out those warnings.
-import warnings
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-import onnx
 import caffe2.python.onnx.frontend
+import onnx
 
 # caffe2
 from caffe2.proto import caffe2_pb2
 from caffe2.python import brew, core, dyndep, model_helper, net_drawer, workspace
+
 # from caffe2.python.predictor import mobile_exporter
 
 """
@@ -103,10 +106,12 @@ class DLRM_Net:
                 # approach 1: np and caffe2 operators assume the mini-batch size is
                 # divisible exactly by the number of available devices
                 if mini_batch_size % self.ndevices != 0:
-                    sys.exit("ERROR: caffe2 net assumes that the mini_batch_size "
-                             + str(mini_batch_size)
-                             + " is evenly divisible by the number of available devices"
-                             + str(self.ndevices))
+                    sys.exit(
+                        "ERROR: caffe2 net assumes that the mini_batch_size "
+                        + str(mini_batch_size)
+                        + " is evenly divisible by the number of available devices"
+                        + str(self.ndevices)
+                    )
                 vals = np.split(val, self.ndevices, axis=0)
                 """
                 # approach 2: np and caffe2 operators do not assume exact divisibility
@@ -166,8 +171,9 @@ class DLRM_Net:
             else:
                 return workspace.FetchBlob(tag)
 
-    def AddLayerWrapper(self, layer, inp_blobs, out_blobs,
-                        add_prefix=True, reset_grad=False, **kwargs):
+    def AddLayerWrapper(
+        self, layer, inp_blobs, out_blobs, add_prefix=True, reset_grad=False, **kwargs
+    ):
         # auxiliary routine to adjust tags
         def adjust_tag(blobs, on_device):
             if blobs.__class__ == str:
@@ -312,9 +318,9 @@ class DLRM_Net:
 
             # initialize the weights
             # approach 1a: custom
-            W = np.random.uniform(low=-np.sqrt(1 / n),
-                                  high=np.sqrt(1 / n),
-                                  size=(n, m)).astype(np.float32)
+            W = np.random.uniform(
+                low=-np.sqrt(1 / n), high=np.sqrt(1 / n), size=(n, m)
+            ).astype(np.float32)
             # approach 1b: numpy rand
             # W = ra.rand(n, m).astype(np.float32)
             self.FeedBlobWrapper(tbl_s, W, False, device_id=d)
@@ -355,8 +361,7 @@ class DLRM_Net:
             # approach 2: unique
             Zflat_all = model.net.Flatten(Z, tag_int_out + "_flatten_all", axis=1)
             Zflat = model.net.BatchGather(
-                [Zflat_all, tag_int_out + "_tril_indices"],
-                tag_int_out + "_flatten"
+                [Zflat_all, tag_int_out + "_tril_indices"], tag_int_out + "_flatten"
             )
             R, R_info = model.net.Concat(
                 x + [Zflat], [tag_int_out, tag_int_out_info], axis=1
@@ -368,28 +373,34 @@ class DLRM_Net:
                 x + ly, [tag_int_out, tag_int_out_info], axis=1
             )
         else:
-            sys.exit("ERROR: --arch-interaction-op="
-                     + self.arch_interaction_op + " is not supported")
+            sys.exit(
+                "ERROR: --arch-interaction-op="
+                + self.arch_interaction_op
+                + " is not supported"
+            )
 
         return R
 
     def create_sequential_forward_ops(self):
         # embeddings
         tag = (self.temb, self.tsin, self.tsout)
-        self.emb_l, self.emb_w = self.create_emb(self.m_spa, self.ln_emb,
-                                                 self.model, tag)
+        self.emb_l, self.emb_w = self.create_emb(
+            self.m_spa, self.ln_emb, self.model, tag
+        )
         # bottom mlp
         tag = (self.tbot, self.tdin, self.tdout)
-        self.bot_l, self.bot_w = self.create_mlp(self.ln_bot, self.sigmoid_bot,
-                                                 self.model, tag)
+        self.bot_l, self.bot_w = self.create_mlp(
+            self.ln_bot, self.sigmoid_bot, self.model, tag
+        )
         # interactions
         tag = (self.tdout, self.tsout, self.tint)
         Z = self.create_interactions([self.bot_l[-1]], self.emb_l, self.model, tag)
 
         # top mlp
         tag = (self.ttop, Z, self.tout)
-        self.top_l, self.top_w = self.create_mlp(self.ln_top, self.sigmoid_top,
-                                                 self.model, tag)
+        self.top_l, self.top_w = self.create_mlp(
+            self.ln_top, self.sigmoid_top, self.model, tag
+        )
         # debug prints
         # print(self.emb_l)
         # print(self.bot_l)
@@ -401,12 +412,14 @@ class DLRM_Net:
     def create_parallel_forward_ops(self):
         # distribute embeddings (model parallelism)
         tag = (self.temb, self.tsin, self.tsout)
-        self.emb_l, self.emb_w = self.create_emb(self.m_spa, self.ln_emb,
-                                                 self.model, tag)
+        self.emb_l, self.emb_w = self.create_emb(
+            self.m_spa, self.ln_emb, self.model, tag
+        )
         # replicate mlp (data parallelism)
         tag = (self.tbot, self.tdin, self.tdout)
-        self.bot_l, self.bot_w = self.create_mlp(self.ln_bot, self.sigmoid_bot,
-                                                 self.model, tag)
+        self.bot_l, self.bot_w = self.create_mlp(
+            self.ln_bot, self.sigmoid_bot, self.model, tag
+        )
 
         # add communication (butterfly shuffle)
         t_list = []
@@ -435,7 +448,7 @@ class DLRM_Net:
                 )
                 if src_blob != dst_blob:
                     with core.DeviceScope(
-                            core.DeviceOption(workspace.GpuDeviceType, dst_d)
+                        core.DeviceOption(workspace.GpuDeviceType, dst_d)
                     ):
                         blob = self.model.Copy(src_blob, dst_blob)
                 else:
@@ -449,14 +462,19 @@ class DLRM_Net:
         # interactions
         for d in range(self.ndevices):
             on_device = "gpu_" + str(d) + "/"
-            tag = (on_device + self.tdout, on_device + self.tsout, on_device + self.tint)
+            tag = (
+                on_device + self.tdout,
+                on_device + self.tsout,
+                on_device + self.tint,
+            )
             with core.DeviceScope(core.DeviceOption(workspace.GpuDeviceType, d)):
                 self.create_interactions([x[d][-1]], ly[d], self.model, tag)
 
         # replicate mlp (data parallelism)
         tag = (self.ttop, self.tint, self.tout)
-        self.top_l, self.top_w = self.create_mlp(self.ln_top, self.sigmoid_top,
-                                                 self.model, tag)
+        self.top_l, self.top_w = self.create_mlp(
+            self.ln_top, self.sigmoid_top, self.model, tag
+        )
 
         # debug prints
         # print(self.model.net.Proto(),end='\n')
@@ -500,8 +518,18 @@ class DLRM_Net:
             self.test_net = None
         else:
             # WARNING: assume that workspace and tags have been initialized elsewhere
-            self.set_tags(tag[0], tag[1], tag[2], tag[3], tag[4], tag[5], tag[6],
-                          tag[7], tag[8], tag[9])
+            self.set_tags(
+                tag[0],
+                tag[1],
+                tag[2],
+                tag[3],
+                tag[4],
+                tag[5],
+                tag[6],
+                tag[7],
+                tag[8],
+                tag[9],
+            )
             self.model = model
             self.test_net = test_net
 
@@ -602,11 +630,12 @@ class DLRM_Net:
                 self.onnx_tsd[self.ttar] = (onnx.TensorProto.FLOAT, T.shape)
 
     def create_model(self, X, S_lengths, S_indices, T):
-        #setup tril indices for the interactions
+        # setup tril indices for the interactions
         offset = 1 if self.arch_interaction_itself else 0
         num_fea = len(self.emb_l) + 1
-        tril_indices = np.array([j + i * num_fea
-                                 for i in range(num_fea) for j in range(i + offset)])
+        tril_indices = np.array(
+            [j + i * num_fea for i in range(num_fea) for j in range(i + offset)]
+        )
         self.FeedBlobWrapper(self.tint + "_tril_indices", tril_indices)
         if self.save_onnx:
             tish = tril_indices.shape
@@ -667,8 +696,13 @@ class DLRM_Net:
     def BCEloss(self, scale=1.0, threshold=0.0):
         # add BCEloss to the mode
         if 0.0 < threshold and threshold < 1.0:
-            self.AddLayerWrapper(self.model.Clip, self.tout, "tout_c",
-                                 min=threshold, max=(1.0 - threshold))
+            self.AddLayerWrapper(
+                self.model.Clip,
+                self.tout,
+                "tout_c",
+                min=threshold,
+                max=(1.0 - threshold),
+            )
             self.AddLayerWrapper(self.model.MakeTwoClass, "tout_c", "tout_2c")
         else:
             self.AddLayerWrapper(self.model.MakeTwoClass, self.tout, "tout_2c")
@@ -680,8 +714,9 @@ class DLRM_Net:
             self.AddLayerWrapper(self.model.Scale, "sd", "sd2", scale=scale)
             self.loss = self.AddLayerWrapper(self.model.AveragedLoss, "sd2", "loss")
 
-    def sgd_optimizer(self, learning_rate,
-                      T=None, _gradientMap=None, sync_dense_params=True):
+    def sgd_optimizer(
+        self, learning_rate, T=None, _gradientMap=None, sync_dense_params=True
+    ):
         # create one, it and lr tags (or use them if already present)
         if T is not None:
             (tag_one, tag_it, tag_lr) = T
@@ -695,11 +730,21 @@ class DLRM_Net:
             # lr = self.AddLayerWrapper(self.model.LearningRate, tag_it, tag_lr,
             #                           base_lr=-1 * learning_rate, policy="fixed")
             # approach 2: use brew
-            self.AddLayerWrapper(self.model.param_init_net.ConstantFill,
-                                 [], tag_one, shape=[1], value=1.0)
+            self.AddLayerWrapper(
+                self.model.param_init_net.ConstantFill,
+                [],
+                tag_one,
+                shape=[1],
+                value=1.0,
+            )
             self.AddLayerWrapper(brew.iter, self.model, tag_it)
-            self.AddLayerWrapper(self.model.LearningRate, tag_it, tag_lr,
-                                 base_lr=-1 * learning_rate, policy="fixed")
+            self.AddLayerWrapper(
+                self.model.LearningRate,
+                tag_it,
+                tag_lr,
+                base_lr=-1 * learning_rate,
+                policy="fixed",
+            )
             # save the blob shapes for latter (only needed if onnx is requested)
             if self.save_onnx:
                 self.onnx_tsd[tag_one] = (onnx.TensorProto.FLOAT, (1,))
@@ -728,8 +773,9 @@ class DLRM_Net:
                 ]
                 self.model.NCCLAllreduce(grad_blobs, grad_blobs)
             # update weights
-            self.AddLayerWrapper(self.model.WeightedSum,
-                                 [w, tag_one, "", tag_lr], w, reset_grad=True)
+            self.AddLayerWrapper(
+                self.model.WeightedSum, [w, tag_one, "", tag_lr], w, reset_grad=True
+            )
         # bottom MLP weight and bias
         for w in self.bot_w:
             # allreduce across devices if needed
@@ -740,8 +786,9 @@ class DLRM_Net:
                 ]
                 self.model.NCCLAllreduce(grad_blobs, grad_blobs)
             # update weights
-            self.AddLayerWrapper(self.model.WeightedSum,
-                                 [w, tag_one, "", tag_lr], w, reset_grad=True)
+            self.AddLayerWrapper(
+                self.model.WeightedSum, [w, tag_one, "", tag_lr], w, reset_grad=True
+            )
         # update embeddings
         for i, w in enumerate(self.emb_w):
             # select device
@@ -756,15 +803,17 @@ class DLRM_Net:
             # update weights
             if self.ndevices > 1:
                 with core.DeviceScope(core.DeviceOption(workspace.GpuDeviceType, d)):
-                    self.model.ScatterWeightedSum([w, _tag_one, w_grad.indices,
-                                                   w_grad.values, _tag_lr], w)
+                    self.model.ScatterWeightedSum(
+                        [w, _tag_one, w_grad.indices, w_grad.values, _tag_lr], w
+                    )
             else:
-                self.model.ScatterWeightedSum([w, _tag_one, w_grad.indices,
-                                               w_grad.values, _tag_lr], w)
+                self.model.ScatterWeightedSum(
+                    [w, _tag_one, w_grad.indices, w_grad.values, _tag_lr], w
+                )
 
     def print_all(self):
         # approach 1: all
-        print(workspace.Blobs(), end='\n')
+        print(workspace.Blobs(), end="\n")
         for _, l in enumerate(workspace.Blobs()):
             print(l)
             print(self.FetchBlobWrapper(l))
@@ -806,32 +855,22 @@ class DLRM_Net:
 
 def define_metrics():
     metrics = {
-        'loss': lambda y_true, y_score:
-        sklearn.metrics.log_loss(
-            y_true=y_true,
-            y_pred=y_score,
-            labels=[0,1]),
-        'recall': lambda y_true, y_score:
-        sklearn.metrics.recall_score(
-            y_true=y_true,
-            y_pred=np.round(y_score)
+        "loss": lambda y_true, y_score: sklearn.metrics.log_loss(
+            y_true=y_true, y_pred=y_score, labels=[0, 1]
         ),
-        'precision': lambda y_true, y_score:
-        sklearn.metrics.precision_score(
-            y_true=y_true,
-            y_pred=np.round(y_score)
+        "recall": lambda y_true, y_score: sklearn.metrics.recall_score(
+            y_true=y_true, y_pred=np.round(y_score)
         ),
-        'f1': lambda y_true, y_score:
-        sklearn.metrics.f1_score(
-            y_true=y_true,
-            y_pred=np.round(y_score)
+        "precision": lambda y_true, y_score: sklearn.metrics.precision_score(
+            y_true=y_true, y_pred=np.round(y_score)
         ),
-        'ap': sklearn.metrics.average_precision_score,
-        'roc_auc': sklearn.metrics.roc_auc_score,
-        'accuracy': lambda y_true, y_score:
-        sklearn.metrics.accuracy_score(
-            y_true=y_true,
-            y_pred=np.round(y_score)
+        "f1": lambda y_true, y_score: sklearn.metrics.f1_score(
+            y_true=y_true, y_pred=np.round(y_score)
+        ),
+        "ap": sklearn.metrics.average_precision_score,
+        "roc_auc": sklearn.metrics.roc_auc_score,
+        "accuracy": lambda y_true, y_score: sklearn.metrics.accuracy_score(
+            y_true=y_true, y_pred=np.round(y_score)
         ),
         # 'pre_curve' : sklearn.metrics.precision_recall_curve,
         # 'roc_curve' :  sklearn.metrics.roc_curve,
@@ -855,11 +894,8 @@ def calculate_metrics(targets, scores):
         #     print(", ", end="")
         # metric_compute_start = time_wrap(False)
         try:
-            validation_results[metric_name] = metric_function(
-                targets,
-                scores
-            )
-        except Exception as error :
+            validation_results[metric_name] = metric_function(targets, scores)
+        except Exception as error:
             validation_results[metric_name] = -1
             print("{} in calculating {}".format(error, metric_name))
         # metric_compute_end = time_wrap(False)
@@ -869,10 +905,12 @@ def calculate_metrics(targets, scores):
     # print(" ms")
     return validation_results
 
+
 if __name__ == "__main__":
+    import argparse
+
     ### import packages ###
     import sys
-    import argparse
 
     ### parse arguments ###
     parser = argparse.ArgumentParser(
@@ -887,13 +925,15 @@ if __name__ == "__main__":
     parser.add_argument("--arch-interaction-itself", action="store_true", default=False)
     # activations and loss
     parser.add_argument("--activation-function", type=str, default="relu")
-    parser.add_argument("--loss-function", type=str, default="mse")   # or bce
+    parser.add_argument("--loss-function", type=str, default="mse")  # or bce
     parser.add_argument("--loss-threshold", type=float, default=0.0)  # 1.0e-7
     parser.add_argument("--round-targets", type=bool, default=False)
     # data
     parser.add_argument("--data-size", type=int, default=1)
     parser.add_argument("--num-batches", type=int, default=0)
-    parser.add_argument("--data-generation", type=str, default="random")  # or synthetic or dataset
+    parser.add_argument(
+        "--data-generation", type=str, default="random"
+    )  # or synthetic or dataset
     parser.add_argument("--data-trace-file", type=str, default="./input/dist_emb_j.log")
     parser.add_argument("--data-set", type=str, default="kaggle")  # or terabyte
     parser.add_argument("--raw-data-file", type=str, default="")
@@ -952,29 +992,59 @@ if __name__ == "__main__":
     ln_bot = np.fromstring(args.arch_mlp_bot, dtype=int, sep="-")
     if args.data_generation == "dataset":
         # input and target from dataset
-        (nbatches, lX, lS_l, lS_i, lT,
-         nbatches_test, lX_test, lS_l_test, lS_i_test, lT_test,
-         ln_emb, m_den) = dc.read_dataset(
-             args.data_set, args.max_ind_range, args.data_sub_sample_rate,
-             args.mini_batch_size, args.num_batches, args.data_randomize, "train",
-             args.raw_data_file, args.processed_data_file, args.memory_map
+        (
+            nbatches,
+            lX,
+            lS_l,
+            lS_i,
+            lT,
+            nbatches_test,
+            lX_test,
+            lS_l_test,
+            lS_i_test,
+            lT_test,
+            ln_emb,
+            m_den,
+        ) = dc.read_dataset(
+            args.data_set,
+            args.max_ind_range,
+            args.data_sub_sample_rate,
+            args.mini_batch_size,
+            args.num_batches,
+            args.data_randomize,
+            "train",
+            args.raw_data_file,
+            args.processed_data_file,
+            args.memory_map,
         )
         # enforce maximum limit on number of vectors per embedding
         if args.max_ind_range > 0:
-            ln_emb = np.array(list(map(
-                lambda x: x if x < args.max_ind_range else args.max_ind_range,
-                ln_emb
-            )))
+            ln_emb = np.array(
+                list(
+                    map(
+                        lambda x: x if x < args.max_ind_range else args.max_ind_range,
+                        ln_emb,
+                    )
+                )
+            )
         ln_bot[0] = m_den
     else:
         # input and target at random
         ln_emb = np.fromstring(args.arch_embedding_size, dtype=int, sep="-")
         m_den = ln_bot[0]
         (nbatches, lX, lS_l, lS_i, lT) = dc.generate_random_data(
-            m_den, ln_emb, args.data_size, args.num_batches, args.mini_batch_size,
-            args.num_indices_per_lookup, args.num_indices_per_lookup_fixed,
-            1, args.round_targets, args.data_generation, args.data_trace_file,
-            args.data_trace_enable_padding
+            m_den,
+            ln_emb,
+            args.data_size,
+            args.num_batches,
+            args.mini_batch_size,
+            args.num_indices_per_lookup,
+            args.num_indices_per_lookup_fixed,
+            1,
+            args.round_targets,
+            args.data_generation,
+            args.data_trace_file,
+            args.data_trace_enable_padding,
         )
 
     ### parse command line arguments ###
@@ -992,32 +1062,53 @@ if __name__ == "__main__":
     elif args.arch_interaction_op == "cat":
         num_int = num_fea * m_den_out
     else:
-        sys.exit("ERROR: --arch-interaction-op="
-                 + args.arch_interaction_op + " is not supported")
+        sys.exit(
+            "ERROR: --arch-interaction-op="
+            + args.arch_interaction_op
+            + " is not supported"
+        )
     arch_mlp_top_adjusted = str(num_int) + "-" + args.arch_mlp_top
     ln_top = np.fromstring(arch_mlp_top_adjusted, dtype=int, sep="-")
     # sanity check: feature sizes and mlp dimensions must match
     if m_den != ln_bot[0]:
-        sys.exit("ERROR: arch-dense-feature-size "
-            + str(m_den) + " does not match first dim of bottom mlp " + str(ln_bot[0]))
+        sys.exit(
+            "ERROR: arch-dense-feature-size "
+            + str(m_den)
+            + " does not match first dim of bottom mlp "
+            + str(ln_bot[0])
+        )
     if m_spa != m_den_out:
-        sys.exit("ERROR: arch-sparse-feature-size "
-            + str(m_spa) + " does not match last dim of bottom mlp " + str(m_den_out))
+        sys.exit(
+            "ERROR: arch-sparse-feature-size "
+            + str(m_spa)
+            + " does not match last dim of bottom mlp "
+            + str(m_den_out)
+        )
     if num_int != ln_top[0]:
-        sys.exit("ERROR: # of feature interactions "
-            + str(num_int) + " does not match first dim of top mlp " + str(ln_top[0]))
+        sys.exit(
+            "ERROR: # of feature interactions "
+            + str(num_int)
+            + " does not match first dim of top mlp "
+            + str(ln_top[0])
+        )
 
     # test prints (model arch)
     if args.debug_mode:
         print("model arch:")
-        print("mlp top arch " + str(ln_top.size - 1)
-              + " layers, with input to output dimensions:")
+        print(
+            "mlp top arch "
+            + str(ln_top.size - 1)
+            + " layers, with input to output dimensions:"
+        )
         print(ln_top)
 
         print("# of interactions")
         print(num_int)
-        print("mlp bot arch " + str(ln_bot.size - 1)
-              + " layers, with input to output dimensions:")
+        print(
+            "mlp bot arch "
+            + str(ln_bot.size - 1)
+            + " layers, with input to output dimensions:"
+        )
         print(ln_bot)
         print("# of features (sparse and dense)")
         print(num_fea)
@@ -1025,8 +1116,13 @@ if __name__ == "__main__":
         print(m_den)
         print("sparse feature size")
         print(m_spa)
-        print("# of embeddings (= # of sparse features) " + str(ln_emb.size)
-              + ", with dimensions " + str(m_spa) + "x:")
+        print(
+            "# of embeddings (= # of sparse features) "
+            + str(ln_emb.size)
+            + ", with dimensions "
+            + str(m_spa)
+            + "x:"
+        )
         print(ln_emb)
 
         print("data (inputs and targets):")
@@ -1068,9 +1164,7 @@ if __name__ == "__main__":
     # plot compute graph
     if args.plot_compute_graph:
         graph = net_drawer.GetPydotGraph(
-            dlrm.parameters().net,
-            "dlrm_s_caffe2_graph",
-            "BT"
+            dlrm.parameters().net, "dlrm_s_caffe2_graph", "BT"
         )
         graph.write_pdf(graph.get_name() + ".pdf")
     # test prints
@@ -1088,8 +1182,9 @@ if __name__ == "__main__":
             elif args.loss_function == "bce":
                 dlrm.BCEloss(scale=nd, threshold=args.loss_threshold)
             else:
-                sys.exit("ERROR: --loss-function=" + args.loss_function
-                         + " is not supported")
+                sys.exit(
+                    "ERROR: --loss-function=" + args.loss_function + " is not supported"
+                )
 
             # define test net (as train net without gradients)
             dlrm.test_net = core.Net(copy.deepcopy(dlrm.model.net.Proto()))
@@ -1115,14 +1210,14 @@ if __name__ == "__main__":
     while k < args.nepochs:
         j = 0
         while j < nbatches:
-            '''
+            """
             # debug prints
             print("input and targets")
             print(lX[j])
             print(lS_l[j])
             print(lS_i[j])
             print(lT[j].astype(np.float32))
-            '''
+            """
             # forward and backward pass, where the latter runs only
             # when gradients and loss have been added to the net
             time1 = time.time()
@@ -1132,13 +1227,13 @@ if __name__ == "__main__":
 
             # compte loss and accuracy
             Z = dlrm.get_output()  # numpy array
-            T = lT[j]              # numpy array
-            '''
+            T = lT[j]  # numpy array
+            """
             # debug prints
             print("output and loss")
             print(Z)
             print(dlrm.get_loss())
-            '''
+            """
             mbs = T.shape[0]  # = args.mini_batch_size except maybe for last
             A = np.sum((np.round(Z, 0) == T).astype(np.uint8))
             total_accu += 0 if args.inference_only else A
@@ -1154,7 +1249,7 @@ if __name__ == "__main__":
                 and (((j + 1) % args.test_freq == 0) or (j + 1 == nbatches))
             )
             if should_print or should_test:
-                gT = 1000. * total_time / total_iter if args.print_time else -1
+                gT = 1000.0 * total_time / total_iter if args.print_time else -1
                 total_time = 0
 
                 gA = total_accu / total_samp
@@ -1196,7 +1291,13 @@ if __name__ == "__main__":
                             break
 
                         # forward pass
-                        dlrm.run(lX_test[i], lS_l_test[i], lS_i_test[i], lT_test[i], test_net=True)
+                        dlrm.run(
+                            lX_test[i],
+                            lS_l_test[i],
+                            lS_i_test[i],
+                            lT_test[i],
+                            test_net=True,
+                        )
                         Z_test = dlrm.get_output()
                         T_test = lT_test[i]
 
@@ -1207,7 +1308,9 @@ if __name__ == "__main__":
                             # compte loss and accuracy
                             L_test = dlrm.get_loss()
                             mbs_test = T_test.shape[0]  # = mini_batch_size except last
-                            A_test = np.sum((np.round(Z_test, 0) == T_test).astype(np.uint8))
+                            A_test = np.sum(
+                                (np.round(Z_test, 0) == T_test).astype(np.uint8)
+                            )
                             test_accu += A_test
                             test_loss += L_test * mbs_test
                             test_samp += mbs_test
@@ -1215,8 +1318,8 @@ if __name__ == "__main__":
                     # compute metrics (after test loop has finished)
                     if args.mlperf_logging:
                         validation_results = calculate_metrics(targets, scores)
-                        gA_test = validation_results['accuracy']
-                        gL_test = validation_results['loss']
+                        gA_test = validation_results["accuracy"]
+                        gL_test = validation_results["loss"]
                     else:
                         gA_test = test_accu / test_samp
                         gL_test = test_loss / test_samp
@@ -1227,28 +1330,26 @@ if __name__ == "__main__":
                         best_gA_test = gA_test
 
                     if args.mlperf_logging:
-                        is_best = validation_results['roc_auc'] > best_auc_test
+                        is_best = validation_results["roc_auc"] > best_auc_test
                         if is_best:
-                            best_auc_test = validation_results['roc_auc']
+                            best_auc_test = validation_results["roc_auc"]
 
                         print(
                             "Testing at - {}/{} of epoch {},".format(j + 1, nbatches, k)
                             + " loss {:.6f}, recall {:.4f}, precision {:.4f},".format(
-                                validation_results['loss'],
-                                validation_results['recall'],
-                                validation_results['precision']
+                                validation_results["loss"],
+                                validation_results["recall"],
+                                validation_results["precision"],
                             )
                             + " f1 {:.4f}, ap {:.4f},".format(
-                                validation_results['f1'],
-                                validation_results['ap'],
+                                validation_results["f1"],
+                                validation_results["ap"],
                             )
                             + " auc {:.4f}, best auc {:.4f},".format(
-                                validation_results['roc_auc'],
-                                best_auc_test
+                                validation_results["roc_auc"], best_auc_test
                             )
                             + " accuracy {:3.3f} %, best accuracy {:3.3f} %".format(
-                                validation_results['accuracy'] * 100,
-                                best_gA_test * 100
+                                validation_results["accuracy"] * 100, best_gA_test * 100
                             )
                         )
                     else:
@@ -1260,24 +1361,31 @@ if __name__ == "__main__":
                         )
 
                     # check thresholds
-                    if (args.mlperf_logging
+                    if (
+                        args.mlperf_logging
                         and (args.mlperf_acc_threshold > 0)
-                        and (best_gA_test > args.mlperf_acc_threshold)):
-                        print("MLPerf testing accuracy threshold "
-                              + str(args.mlperf_acc_threshold)
-                              + " reached, stop training")
+                        and (best_gA_test > args.mlperf_acc_threshold)
+                    ):
+                        print(
+                            "MLPerf testing accuracy threshold "
+                            + str(args.mlperf_acc_threshold)
+                            + " reached, stop training"
+                        )
                         break
 
-                    if (args.mlperf_logging
+                    if (
+                        args.mlperf_logging
                         and (args.mlperf_auc_threshold > 0)
-                        and (best_auc_test > args.mlperf_auc_threshold)):
-                        print("MLPerf testing auc threshold "
-                              + str(args.mlperf_auc_threshold)
-                              + " reached, stop training")
+                        and (best_auc_test > args.mlperf_auc_threshold)
+                    ):
+                        print(
+                            "MLPerf testing auc threshold "
+                            + str(args.mlperf_auc_threshold)
+                            + " reached, stop training"
+                        )
                         break
 
-
-            j += 1 # nbatches
+            j += 1  # nbatches
         k += 1  # nepochs
 
     # test prints

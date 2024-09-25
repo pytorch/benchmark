@@ -26,6 +26,7 @@ class ModelNotFoundError(RuntimeError):
 
 REPO_PATH = Path(os.path.abspath(__file__)).parent.parent
 DATA_PATH = os.path.join(REPO_PATH, "torchbenchmark", "data", ".data")
+SUBMODULE_PATH = REPO_PATH.joinpath("submodules")
 
 
 class add_path:
@@ -40,6 +41,22 @@ class add_path:
             sys.path.remove(self.path)
         except ValueError:
             pass
+
+
+class add_ld_library_path:
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        self.os_environ = os.environ.copy()
+        library_path = os.environ.get("LD_LIBRARY_PATH")
+        if not library_path:
+            os.environ["LD_LIBRARY_PATH"] = self.path
+        else:
+            os.environ["LD_LIBRARY_PATH"] = f"{library_path}:{self.path}"
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        os.environ = self.os_environ.copy()
 
 
 with add_path(str(REPO_PATH)):
@@ -177,7 +194,7 @@ def setup(
         model_paths = list(model_paths)
         model_paths.extend(canary_model_paths)
     skip_models = [] if not skip_models else skip_models
-    model_paths = [ x for x in model_paths if os.path.basename(x) not in skip_models ]
+    model_paths = [x for x in model_paths if os.path.basename(x) not in skip_models]
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         if test_mode:
@@ -331,6 +348,7 @@ class ModelTask(base_task.TaskBase):
         import importlib
         import os
         import traceback
+
         from torchbenchmark import load_model_by_name
 
         diagnostic_msg = ""
@@ -574,7 +592,10 @@ class ModelTask(base_task.TaskBase):
 
 
 def list_models_details(workers: int = 1) -> List[ModelDetails]:
-    return [ModelTask(os.path.basename(model_path)).model_details for model_path in _list_model_paths()]
+    return [
+        ModelTask(os.path.basename(model_path)).model_details
+        for model_path in _list_model_paths()
+    ]
 
 
 def list_models(model_match=None):

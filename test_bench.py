@@ -113,11 +113,9 @@ class TestBenchNetwork:
 
             benchmark(task.invoke)
             benchmark.extra_info["machine_state"] = get_machine_state()
-            benchmark.extra_info["batch_size"] = task.get_model_attribute(
-                 "batch_size"
-            )
+            benchmark.extra_info["batch_size"] = task.get_model_attribute("batch_size")
             benchmark.extra_info["precision"] = task.get_model_attribute(
-                 "dargs", "precision"
+                "dargs", "precision"
             )
             benchmark.extra_info["test"] = "eval"
 

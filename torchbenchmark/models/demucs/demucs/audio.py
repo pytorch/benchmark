@@ -14,11 +14,19 @@ from .utils import temp_filenames
 
 
 def _read_info(path):
-    stdout_data = sp.check_output([
-        'ffprobe', "-loglevel", "panic",
-        str(path), '-print_format', 'json', '-show_format', '-show_streams'
-    ])
-    return json.loads(stdout_data.decode('utf-8'))
+    stdout_data = sp.check_output(
+        [
+            "ffprobe",
+            "-loglevel",
+            "panic",
+            str(path),
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+        ]
+    )
+    return json.loads(stdout_data.decode("utf-8"))
 
 
 class AudioFile:
@@ -26,6 +34,7 @@ class AudioFile:
     Allows to read audio from any format supported by ffmpeg, as well as resampling or
     converting to mono on the fly. See :method:`read` for more details.
     """
+
     def __init__(self, path: Path):
         self.path = Path(path)
         self._info = None
@@ -46,12 +55,13 @@ class AudioFile:
 
     @property
     def duration(self):
-        return float(self.info['format']['duration'])
+        return float(self.info["format"]["duration"])
 
     @property
     def _audio_streams(self):
         return [
-            index for index, stream in enumerate(self.info["streams"])
+            index
+            for index, stream in enumerate(self.info["streams"])
             if stream["codec_type"] == "audio"
         ]
 
@@ -59,18 +69,20 @@ class AudioFile:
         return len(self._audio_streams)
 
     def channels(self, stream=0):
-        return int(self.info['streams'][self._audio_streams[stream]]['channels'])
+        return int(self.info["streams"][self._audio_streams[stream]]["channels"])
 
     def samplerate(self, stream=0):
-        return int(self.info['streams'][self._audio_streams[stream]]['sample_rate'])
+        return int(self.info["streams"][self._audio_streams[stream]]["sample_rate"])
 
-    def read(self,
-             seek_time=None,
-             duration=None,
-             streams=slice(None),
-             samplerate=None,
-             channels=None,
-             temp_folder=None):
+    def read(
+        self,
+        seek_time=None,
+        duration=None,
+        streams=slice(None),
+        samplerate=None,
+        channels=None,
+        temp_folder=None,
+    ):
         """
         Slightly more efficient implementation than stempeg,
         in particular, this will extract all stems at once
@@ -105,22 +117,24 @@ class AudioFile:
             query_duration = None
         else:
             target_size = int((samplerate or self.samplerate()) * duration)
-            query_duration = float((target_size + 1) / (samplerate or self.samplerate()))
+            query_duration = float(
+                (target_size + 1) / (samplerate or self.samplerate())
+            )
 
         with temp_filenames(len(streams)) as filenames:
-            command = ['ffmpeg', '-y']
-            command += ['-loglevel', 'panic']
+            command = ["ffmpeg", "-y"]
+            command += ["-loglevel", "panic"]
             if seek_time:
-                command += ['-ss', str(seek_time)]
-            command += ['-i', str(self.path)]
+                command += ["-ss", str(seek_time)]
+            command += ["-i", str(self.path)]
             for stream, filename in zip(streams, filenames):
-                command += ['-map', f'0:{self._audio_streams[stream]}']
+                command += ["-map", f"0:{self._audio_streams[stream]}"]
                 if query_duration is not None:
-                    command += ['-t', str(query_duration)]
-                command += ['-threads', '1']
-                command += ['-f', 'f32le']
+                    command += ["-t", str(query_duration)]
+                command += ["-threads", "1"]
+                command += ["-f", "f32le"]
                 if samplerate is not None:
-                    command += ['-ar', str(samplerate)]
+                    command += ["-ar", str(samplerate)]
                 command += [filename]
 
             sp.run(command, check=True)
@@ -148,7 +162,7 @@ class AudioFile:
                     wav = wav[:channels, :]
                 else:
                     # Case 4: What is a reasonable choice here?
-                    raise ValueError('The input file has less channels than requested')
+                    raise ValueError("The input file has less channels than requested")
                 if target_size is not None:
                     wav = wav[..., :target_size]
                 wavs.append(wav)

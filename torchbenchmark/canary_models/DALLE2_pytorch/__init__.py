@@ -1,11 +1,19 @@
 import torch
 
-from dalle2_pytorch import DALLE2, Unet, Decoder, DiffusionPriorNetwork, DiffusionPrior, OpenAIClipAdapter
+from dalle2_pytorch import (
+    DALLE2,
+    Decoder,
+    DiffusionPrior,
+    DiffusionPriorNetwork,
+    OpenAIClipAdapter,
+    Unet,
+)
 
 torch.backends.cudnn.deterministic = False
 torch.backends.cudnn.benchmark = False
-from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import COMPUTER_VISION
+
+from ...util.model import BenchmarkModel
 
 
 class Model(BenchmarkModel):
@@ -15,56 +23,54 @@ class Model(BenchmarkModel):
     CANNOT_SET_CUSTOM_OPTIMIZER = True
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
-        super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
+        super().__init__(
+            test=test, device=device, batch_size=batch_size, extra_args=extra_args
+        )
 
         if self.device == "cpu":
             raise NotImplementedError("DALL-E 2 Not Supported on CPU")
-    
+
         self.clip = OpenAIClipAdapter().to(self.device)
 
-        self.sample_text = self.example_input = torch.randint(0, 49408, (self.batch_size, 256)).to(self.device)
+        self.sample_text = self.example_input = torch.randint(
+            0, 49408, (self.batch_size, 256)
+        ).to(self.device)
         self.sample_images = torch.randn(self.batch_size, 3, 256, 256).to(self.device)
 
         prior_network = DiffusionPriorNetwork(
-            dim = 512,
-            depth = 6,
-            dim_head = 64,
-            heads = 8
+            dim=512, depth=6, dim_head=64, heads=8
         ).to(self.device)
 
         diffusion_prior = DiffusionPrior(
-            net = prior_network,
-            clip = self.clip,
-            timesteps = 1,
-            cond_drop_prob = 0.2
+            net=prior_network, clip=self.clip, timesteps=1, cond_drop_prob=0.2
         ).to(self.device)
 
         unet1 = Unet(
-            dim = 128,
-            image_embed_dim = 512,
-            cond_dim = 128,
-            channels = 3,
+            dim=128,
+            image_embed_dim=512,
+            cond_dim=128,
+            channels=3,
             dim_mults=(1, 2, 4, 8),
-            text_embed_dim = 512,
-            cond_on_text_encodings = True  # set to True for any unets that need to be conditioned on text encodings (ex. first unet in cascade)
+            text_embed_dim=512,
+            cond_on_text_encodings=True,  # set to True for any unets that need to be conditioned on text encodings (ex. first unet in cascade)
         ).to(self.device)
 
         unet2 = Unet(
-            dim = 16,
-            image_embed_dim = 512,
-            cond_dim = 128,
-            channels = 3,
-            dim_mults = (1, 2, 4, 8, 16)
+            dim=16,
+            image_embed_dim=512,
+            cond_dim=128,
+            channels=3,
+            dim_mults=(1, 2, 4, 8, 16),
         ).to(self.device)
 
         decoder = Decoder(
-            unet = (unet1, unet2),
-            image_sizes = (128, 256),
-            clip = self.clip,
-            timesteps = 1,
-            sample_timesteps = (1, 1),
-            image_cond_drop_prob = 0.1,
-            text_cond_drop_prob = 0.5
+            unet=(unet1, unet2),
+            image_sizes=(128, 256),
+            clip=self.clip,
+            timesteps=1,
+            sample_timesteps=(1, 1),
+            image_cond_drop_prob=0.1,
+            text_cond_drop_prob=0.5,
         ).to(self.device)
 
         self.model = DALLE2(prior=diffusion_prior, decoder=decoder).to(self.device)

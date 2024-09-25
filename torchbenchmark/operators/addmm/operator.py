@@ -1,12 +1,18 @@
-import os
 import argparse
+import itertools
+import os
 from typing import Any, Callable, Generator, List, Optional, Tuple
 
 import numpy
 import torch
 import torch._inductor.config as inductor_config
 import triton
-from hammer.ops.triton.triton_hstu_linear import _addmm_fwd, triton_addmm
+from torchbenchmark import add_path, SUBMODULE_PATH
+
+try:
+    from hammer.ops.triton.triton_hstu_linear import triton_addmm
+except ModuleNotFoundError:
+    from .hstu import triton_addmm
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -64,16 +70,23 @@ BUILDIN_SHAPES = [
     (20068, 1536, 512),
 ]
 
+# M=13, K=2^6..2^25, N=2
+LARGE_K_SHAPES = list(itertools.product([13], [2**i for i in range(6, 26)], [2]))
+
 
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["tflops", "best_config"]
     DEFAULT_PRECISION = "bf16"
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:
             self.shapes = [(addmm_args.m, addmm_args.k, addmm_args.n)]
+        elif addmm_args.large_k_shapes:
+            self.shapes = LARGE_K_SHAPES
         else:
             self.shapes = BUILDIN_SHAPES
         self.col_major = addmm_args.col_major

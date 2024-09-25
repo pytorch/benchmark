@@ -1,15 +1,17 @@
 import argparse
-import os
 import csv
+import os
 import subprocess
 import warnings
 from pathlib import Path
 from typing import List
 
+
 def _get_torchao_head_sha():
     cmd_args = ["git", "ls-remote", "https://github.com/pytorch/ao.git", "HEAD"]
     sha = subprocess.check_output(cmd_args).decode().split("\t")[0]
     return sha
+
 
 def _get_model_set(filename: str):
     if "timm_models" in filename:
@@ -19,6 +21,7 @@ def _get_model_set(filename: str):
     if "torchbench" in filename:
         return "torchbench"
     raise RuntimeError(f"Unknown model set from filename: {filename}")
+
 
 def post_ci_process(output_files: List[str]):
     for path in output_files:
@@ -71,6 +74,6 @@ def post_ci_process(output_files: List[str]):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test-files", nargs='+', help="Add files to test.")
+    parser.add_argument("--test-files", nargs="+", help="Add files to test.")
     args = parser.parse_args()
     post_ci_process(args.test_files)

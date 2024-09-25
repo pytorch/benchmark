@@ -6,26 +6,29 @@
 
 import sys
 
+import torch
+
 import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-import torch
 
 from .utils import apply_model, average_metric, center_trim
 
 
-def train_model(epoch,
-                dataset,
-                model,
-                criterion,
-                optimizer,
-                augment,
-                repeat=1,
-                device="cpu",
-                seed=None,
-                workers=4,
-                world_size=1,
-                batch_size=16):
+def train_model(
+    epoch,
+    dataset,
+    model,
+    criterion,
+    optimizer,
+    augment,
+    repeat=1,
+    device="cpu",
+    seed=None,
+    workers=4,
+    world_size=1,
+    batch_size=16,
+):
 
     if world_size > 1:
         sampler = DistributedSampler(dataset)
@@ -34,17 +37,23 @@ def train_model(epoch,
             sampler_epoch += seed * 1000
         sampler.set_epoch(sampler_epoch)
         batch_size //= world_size
-        loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=workers)
+        loader = DataLoader(
+            dataset, batch_size=batch_size, sampler=sampler, num_workers=workers
+        )
     else:
-        loader = DataLoader(dataset, batch_size=batch_size, num_workers=workers, shuffle=True)
+        loader = DataLoader(
+            dataset, batch_size=batch_size, num_workers=workers, shuffle=True
+        )
     current_loss = 0
     for repetition in range(repeat):
-        tq = tqdm.tqdm(loader,
-                       ncols=120,
-                       desc=f"[{epoch:03d}] train ({repetition + 1}/{repeat})",
-                       leave=False,
-                       file=sys.stdout,
-                       unit=" batch")
+        tq = tqdm.tqdm(
+            loader,
+            ncols=120,
+            desc=f"[{epoch:03d}] train ({repetition + 1}/{repeat})",
+            leave=False,
+            file=sys.stdout,
+            unit=" batch",
+        )
         total_loss = 0
         for idx, streams in enumerate(tq):
             if len(streams) < batch_size:
@@ -77,23 +86,27 @@ def train_model(epoch,
     return current_loss
 
 
-def validate_model(epoch,
-                   dataset,
-                   model,
-                   criterion,
-                   device="cpu",
-                   rank=0,
-                   world_size=1,
-                   shifts=0,
-                   split=False,
-                   debug_file=None):
+def validate_model(
+    epoch,
+    dataset,
+    model,
+    criterion,
+    device="cpu",
+    rank=0,
+    world_size=1,
+    shifts=0,
+    split=False,
+    debug_file=None,
+):
     indexes = range(rank, len(dataset), world_size)
-    tq = tqdm.tqdm(indexes,
-                   ncols=120,
-                   desc=f"[{epoch:03d}] valid",
-                   leave=False,
-                   file=sys.stdout,
-                   unit=" track")
+    tq = tqdm.tqdm(
+        indexes,
+        ncols=120,
+        desc=f"[{epoch:03d}] valid",
+        leave=False,
+        file=sys.stdout,
+        unit=" track",
+    )
     current_loss = 0
     for index in tq:
         streams = dataset[index]

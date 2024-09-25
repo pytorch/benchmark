@@ -1,21 +1,24 @@
 import argparse
-from datetime import datetime
-import git
-import numpy as np
-import os
 import json
+import os
+import shutil
 import subprocess
 import sys
 import time
-import shutil
+from datetime import datetime
 from pathlib import Path
-from ..utils import dump_output, get_output_dir, get_output_json, REPO_PATH
 
 from typing import List
+
+import git
+import numpy as np
+
+from ..utils import dump_output, get_output_dir, get_output_json, REPO_PATH
 
 BM_NAME = "instruction-count"
 RESULT_JSON = "ubenchmark_results.json"
 PYTORCH_SRC_URL = "https://github.com/pytorch/pytorch.git"
+
 
 def translate_result_metrics(json_path: Path):
     metrics = {}
@@ -41,41 +44,62 @@ def translate_result_metrics(json_path: Path):
         metrics[f"{key}_t_stddev"] = float(np.std(times))
     return metrics
 
+
 def get_timestamp():
     return datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
+
 
 def get_work_dir(output_dir):
     work_dir = output_dir.joinpath(f"run-{get_timestamp()}")
     work_dir.mkdir(exist_ok=True, parents=True)
     return work_dir
 
+
 def get_run_env(env):
     env["BENCHMARK_USE_DEV_SHM"] = "1"
     return env
 
+
 def checkout_pytorch_repo(pytorch_repo: str, pytorch_branch: str):
     git.Repo.clone_from(PYTORCH_SRC_URL, pytorch_repo, depth=1, branch=pytorch_branch)
+
 
 def cleanup_pytorch_repo(pytorch_repo: str):
     pytorch_repo_path = Path(pytorch_repo)
     if pytorch_repo_path.exists():
         shutil.rmtree(pytorch_repo_path)
 
+
 def run_benchmark(pytorch_src_path: Path, output_json_path: Path):
     benchmark_path = pytorch_src_path.joinpath("benchmarks", "instruction_counts")
     runtime_env = get_run_env(os.environ.copy())
-    command = [sys.executable, "main.py", "--mode", "ci", "--destination", str(output_json_path.resolve())]
+    command = [
+        sys.executable,
+        "main.py",
+        "--mode",
+        "ci",
+        "--destination",
+        str(output_json_path.resolve()),
+    ]
     subprocess.check_call(command, cwd=benchmark_path, env=runtime_env)
+
 
 def parse_args(args: List[str], work_dir: Path):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pytorch-src", default=str(work_dir.resolve()),
-                        help="Location of PyTorch source repo")
-    parser.add_argument("--pytorch-branch", default="main",
-                        help="The branch of pytorch to check out")
-    parser.add_argument("--analyze-json", type=str, default=None, help="Only analyze an existing result")
+    parser.add_argument(
+        "--pytorch-src",
+        default=str(work_dir.resolve()),
+        help="Location of PyTorch source repo",
+    )
+    parser.add_argument(
+        "--pytorch-branch", default="main", help="The branch of pytorch to check out"
+    )
+    parser.add_argument(
+        "--analyze-json", type=str, default=None, help="Only analyze an existing result"
+    )
     args = parser.parse_args(args)
     return args
+
 
 def run(args: List[str]):
     output_dir = get_output_dir(BM_NAME)

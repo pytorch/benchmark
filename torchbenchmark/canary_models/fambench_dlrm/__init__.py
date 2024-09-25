@@ -2,18 +2,21 @@
 Simplifed dlrm model from FAMBench
 It doesn't support multiGPU or fbgemm_gpu.
 """
-import torch
-import sys
+
 import os
+import sys
+from typing import List, Tuple
+
 import numpy as np
+import torch
 import torch.nn as nn
 from torchbenchmark import REPO_PATH
-from typing import Tuple, List
-from torchbenchmark.util.model import BenchmarkModel
 from torchbenchmark.tasks import RECOMMENDATION
+from torchbenchmark.util.model import BenchmarkModel
+
 
 # Import FAMBench model path
-class add_path():
+class add_path:
     def __init__(self, path):
         self.path = path
 
@@ -26,16 +29,21 @@ class add_path():
         except ValueError:
             pass
 
-DLRM_PATH = os.path.join(REPO_PATH, "submodules", "FAMBench", "benchmarks", "dlrm", "ootb")
+
+DLRM_PATH = os.path.join(
+    REPO_PATH, "submodules", "FAMBench", "benchmarks", "dlrm", "ootb"
+)
 with add_path(DLRM_PATH):
     import optim.rwsadagrad as RowWiseSparseAdagrad
-    from .dlrmnet import DLRM_Net
-    from .data import prep_data
 
-from .config import FAMBenchTrainConfig, FAMBenchEvalConfig, cfg_to_str
+    from .data import prep_data
+    from .dlrmnet import DLRM_Net
+
 from .args import parse_fambench_args, validate_fambench_args
+from .config import cfg_to_str, FAMBenchEvalConfig, FAMBenchTrainConfig
 from .lrscheduler import LRPolicyScheduler
-from .utils import unpack_batch, loss_fn_wrap, dlrm_wrap, prefetch
+from .utils import dlrm_wrap, loss_fn_wrap, prefetch, unpack_batch
+
 
 class Model(BenchmarkModel):
     task = RECOMMENDATION.RECOMMENDATION
@@ -50,7 +58,9 @@ class Model(BenchmarkModel):
     def __init__(self, test, device, batch_size=None, extra_args=[]):
         super().__init__(test, device, batch_size, extra_args)
         if test == "train":
-            self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_TRAIN_ARGS))
+            self.fambench_args = parse_fambench_args(
+                cfg_to_str(self.DEFAULT_TRAIN_ARGS)
+            )
             self.fambench_args.inference_only = False
         elif test == "eval":
             self.fambench_args = parse_fambench_args(cfg_to_str(self.DEFAULT_EVAL_ARGS))
@@ -92,7 +102,8 @@ class Model(BenchmarkModel):
             inference_only=args.inference_only,
             quantize_mlp_with_bit=args.quantize_mlp_with_bit,
             quantize_emb_with_bit=args.quantize_emb_with_bit,
-            use_torch2trt_for_mlp=args.use_torch2trt_for_mlp,)
+            use_torch2trt_for_mlp=args.use_torch2trt_for_mlp,
+        )
         # In dlrm.quantize_embedding called below, the torch quantize calls run
         # on cpu tensors only. They cannot quantize tensors stored on the gpu.
         # So quantization occurs on cpu tensors before transferring them to gpu if
@@ -148,6 +159,7 @@ class Model(BenchmarkModel):
             if dlrm.ndevices_available <= 1:
                 if args.use_fbgemm_gpu:
                     from .fbgemm_embedding import fbgemm_gpu_emb_bag_wrapper
+
                     dlrm.fbgemm_emb_l = nn.ModuleList(
                         [
                             fbgemm_gpu_emb_bag_wrapper(
@@ -180,9 +192,7 @@ class Model(BenchmarkModel):
                 "adagrad": torch.optim.Adagrad,
             }
             # removed distributed code here
-            parameters = (
-                dlrm.parameters()
-            )
+            parameters = dlrm.parameters()
             self.optimizer = opts[args.optimizer](parameters, lr=args.learning_rate)
             self.lr_scheduler = LRPolicyScheduler(
                 self.optimizer,
@@ -240,7 +250,9 @@ class Model(BenchmarkModel):
                 ndevices=args.ndevices,
             )
             # loss
-            E = loss_fn_wrap(self.model, self.fambench_args, Z, T, args.use_gpu, self.device)
+            E = loss_fn_wrap(
+                self.model, self.fambench_args, Z, T, args.use_gpu, self.device
+            )
 
             # compute loss and accuracy
             L = E.detach().cpu().numpy()  # numpy array

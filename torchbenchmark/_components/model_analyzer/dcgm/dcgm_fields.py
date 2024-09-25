@@ -778,6 +778,7 @@ dcgmFP = dcgm_structs._dcgmGetFunctionPointer
 SHORTNAME_LENGTH = 10
 UNIT_LENGTH = 4
 
+
 # Structure to hold formatting information for values
 class c_dcgm_field_output_format_t(_PrintableStructure):
     _fields_ = [
@@ -788,6 +789,7 @@ class c_dcgm_field_output_format_t(_PrintableStructure):
 
 
 TAG_LENGTH = 48
+
 
 # Structure to represent device information
 class c_dcgm_field_meta_t(_PrintableStructure):

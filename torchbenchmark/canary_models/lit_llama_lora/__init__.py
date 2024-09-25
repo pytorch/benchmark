@@ -1,18 +1,20 @@
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import NLP
-import torch
-from ..lit_llama import LIT_LLAMA_PATH
 import os.path
 import sys
-from lit_llama.lora import mark_only_lora_as_trainable, lora
+
+import torch
+from lit_llama.lora import lora, mark_only_lora_as_trainable
 from torchbenchmark import REPO_PATH
+from torchbenchmark.tasks import NLP
+
+from ...util.model import BenchmarkModel
+from ..lit_llama import LIT_LLAMA_PATH
 
 LIT_LLAMA_PATH = os.path.join(REPO_PATH, "submodules", "lit-llama")
 
 sys.path.insert(0, LIT_LLAMA_PATH)
 
-from lit_llama.utils import EmptyInitOnDevice, lazy_load, llama_model_lookup
 from lit_llama import LLaMA
+from lit_llama.utils import EmptyInitOnDevice, lazy_load, llama_model_lookup
 
 
 class Model(BenchmarkModel):

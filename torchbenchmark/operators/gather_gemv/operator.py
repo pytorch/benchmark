@@ -13,7 +13,7 @@ from typing import Any, Callable, Generator, List, Optional
 import numpy
 import torch
 import triton
-
+from torch._dynamo.testing import rand_strided
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -23,7 +23,6 @@ from torchbenchmark.util.triton_op import (
 )
 
 from .triton_gather_gemv import triton_gemv_0 as triton_test_0
-from torch._dynamo.testing import rand_strided
 
 
 class Operator(BenchmarkOperator):
@@ -33,13 +32,16 @@ class Operator(BenchmarkOperator):
         arg0_1, arg1_1, arg2_1 = example_inputs
         return (
             2
-            * arg2_1.size(0) * arg2_1.size(0)
+            * arg2_1.size(0)
+            * arg2_1.size(0)
             * arg0_1.element_size()
             / metrics.latency
             * 1e-6
         )
 
-    def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
+    def __init__(
+        self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
+    ):
         super().__init__(tb_args, extra_args)
 
     @register_benchmark(baseline=True)
@@ -66,9 +68,10 @@ class Operator(BenchmarkOperator):
 
     def get_input_iter(self) -> Generator:
         for i in range(11, 15):
-            S = 2 ** i
-            arg0_1 = rand_strided((8, S, S), (S*S, S, 1), device='cuda:0', dtype=torch.int8)
-            arg1_1 = rand_strided((2, ), (1, ), device='cuda:0', dtype=torch.int64)
-            arg2_1 = rand_strided((S, ), (1, ), device='cuda:0', dtype=torch.bfloat16)
+            S = 2**i
+            arg0_1 = rand_strided(
+                (8, S, S), (S * S, S, 1), device="cuda:0", dtype=torch.int8
+            )
+            arg1_1 = rand_strided((2,), (1,), device="cuda:0", dtype=torch.int64)
+            arg2_1 = rand_strided((S,), (1,), device="cuda:0", dtype=torch.bfloat16)
             yield arg0_1, arg1_1, arg2_1
-

@@ -137,6 +137,12 @@ HUGGINGFACE_MODELS = {
         'AutoConfig.from_pretrained("meta-llama/Llama-2-70b-hf")',
         "AutoModelForMaskedLM",
     ),
+    "llama_v31_8b": (
+        512,
+        512,
+        'AutoConfig.from_pretrained("meta-llama/Meta-Llama-3.1-8B")',
+        "AutoModelForCausalLM",
+    ),
     "codellama": (
         512,
         512,

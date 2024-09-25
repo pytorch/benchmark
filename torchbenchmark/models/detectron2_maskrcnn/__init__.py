@@ -1,15 +1,15 @@
-import torch
+import itertools
 import os
-import itertools
-import itertools
 from pathlib import Path
 from typing import Tuple
 
+import torch
+
 from detectron2.checkpoint import DetectionCheckpointer
+from torchbenchmark.tasks import COMPUTER_VISION
 
 # TorchBench imports
 from torchbenchmark.util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
 
 MODEL_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
 MODEL_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -20,6 +20,7 @@ DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-mi
 if not os.path.exists(DATA_DIR):
     try:
         from torchbenchmark.util.framework.fb.installer import install_data
+
         DATA_DIR = install_data("coco2017-minimal")
     except Exception:
         pass
@@ -29,8 +30,8 @@ assert os.path.exists(
 if not "DETECTRON2_DATASETS" in os.environ:
     os.environ["DETECTRON2_DATASETS"] = DATA_DIR
 
-from detectron2.config import instantiate
 from detectron2 import model_zoo
+from detectron2.config import instantiate
 from detectron2.utils.events import EventStorage
 from torch.utils._pytree import tree_map
 
@@ -44,9 +45,9 @@ def prefetch(dataloader, device, precision="fp32"):
     for batch in dataloader:
         r.append(
             tree_map(
-                lambda x: x.to(device, dtype=dtype)
-                if isinstance(x, torch.Tensor)
-                else x,
+                lambda x: (
+                    x.to(device, dtype=dtype) if isinstance(x, torch.Tensor) else x
+                ),
                 batch,
             )
         )
@@ -85,7 +86,10 @@ class Model(BenchmarkModel):
             # load model from checkpoint
             if not os.path.exists(self.model_file):
                 try:
-                    from torchbenchmark.util.framework.fb.installer import install_model_weights
+                    from torchbenchmark.util.framework.fb.installer import (
+                        install_model_weights,
+                    )
+
                     self.model_file = install_model_weights(self.name)
                 except Exception:
                     pass

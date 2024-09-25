@@ -22,15 +22,17 @@ from demucs.utils import free_port
 def main():
     args = sys.argv[1:]
     gpus = th.cuda.device_count()
-    n_nodes = int(os.environ['SLURM_JOB_NUM_NODES'])
-    node_id = int(os.environ['SLURM_NODEID'])
-    job_id = int(os.environ['SLURM_JOBID'])
+    n_nodes = int(os.environ["SLURM_JOB_NUM_NODES"])
+    node_id = int(os.environ["SLURM_NODEID"])
+    job_id = int(os.environ["SLURM_JOBID"])
 
     rank_offset = gpus * node_id
-    hostnames = sp.run(['scontrol', 'show', 'hostnames', os.environ['SLURM_JOB_NODELIST']],
-                       capture_output=True,
-                       check=True).stdout
-    master_addr = hostnames.split()[0].decode('utf-8')
+    hostnames = sp.run(
+        ["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]],
+        capture_output=True,
+        check=True,
+    ).stdout
+    master_addr = hostnames.split()[0].decode("utf-8")
 
     if n_nodes == 1:
         port = free_port()
@@ -45,12 +47,15 @@ def main():
     for gpu in range(gpus):
         kwargs = {}
         if gpu > 0:
-            kwargs['stdin'] = sp.DEVNULL
-            kwargs['stdout'] = sp.DEVNULL
+            kwargs["stdin"] = sp.DEVNULL
+            kwargs["stdout"] = sp.DEVNULL
             # We keep stderr to see tracebacks from children.
         tasks.append(
-            sp.Popen(["python3", "-m", "demucs"] + args +
-                     ["--rank", str(rank_offset + gpu)], **kwargs))
+            sp.Popen(
+                ["python3", "-m", "demucs"] + args + ["--rank", str(rank_offset + gpu)],
+                **kwargs,
+            )
+        )
         tasks[-1].rank = rank_offset + gpu
 
     failed = False
@@ -64,9 +69,10 @@ def main():
                 else:
                     tasks.remove(task)
                     if exitcode:
-                        print(f"Task {task.rank} died with exit code "
-                              f"{exitcode}",
-                              file=sys.stderr)
+                        print(
+                            f"Task {task.rank} died with exit code " f"{exitcode}",
+                            file=sys.stderr,
+                        )
                         failed = True
                     else:
                         print(f"Task {task.rank} exited successfully")

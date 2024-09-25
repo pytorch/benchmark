@@ -2,17 +2,17 @@ from typing import Optional, OrderedDict, Tuple
 
 from .dcgm.cpu_monitor import CPUMonitor
 from .dcgm.dcgm_monitor import DCGMMonitor
+from .dcgm.dcgm_structs import DCGMError
 from .dcgm.nvml_monitor import NVMLMonitor
+from .tb_dcgm_types.cpu_peak_memory import CPUPeakMemory
 from .tb_dcgm_types.da_exceptions import TorchBenchAnalyzerException
 from .tb_dcgm_types.gpu_device_factory import GPUDeviceFactory
-from .dcgm.dcgm_structs import DCGMError
-from .tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
 from .tb_dcgm_types.gpu_fp32active import GPUFP32Active
 from .tb_dcgm_types.gpu_pcie_rx import GPUPCIERX
 from .tb_dcgm_types.gpu_pcie_tx import GPUPCIETX
-from .tb_dcgm_types.cpu_peak_memory import CPUPeakMemory
+from .tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
 from .tb_dcgm_types.record_aggregator import RecordAggregator
-from .tb_dcgm_types.tb_logger import set_logger, LOGGER_NAME
+from .tb_dcgm_types.tb_logger import LOGGER_NAME, set_logger
 from .tb_dcgm_types.config import *
 
 import logging

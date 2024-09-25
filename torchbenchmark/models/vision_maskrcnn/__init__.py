@@ -2,21 +2,23 @@
 Maskrcnn model from torchvision
 """
 
-import torch
-import os
 import itertools
-from ...util.model import BenchmarkModel
-from torchbenchmark.tasks import COMPUTER_VISION
+import os
 from pathlib import Path
 from typing import Tuple
 
+import torch
+
 # Model specific imports
 import torchvision
-from .coco_utils import ConvertCocoPolysToMask
-from torchvision.datasets.coco import CocoDetection
 
 # silence some spam
 from pycocotools import coco
+from torchbenchmark.tasks import COMPUTER_VISION
+from torchvision.datasets.coco import CocoDetection
+
+from ...util.model import BenchmarkModel
+from .coco_utils import ConvertCocoPolysToMask
 
 coco.print = lambda *args: None
 
@@ -28,6 +30,7 @@ DATA_DIR = os.path.join(CURRENT_DIR.parent.parent, "data", ".data", "coco2017-mi
 if not os.path.exists(DATA_DIR):
     try:
         from torchbenchmark.util.framework.fb.installer import install_data
+
         DATA_DIR = os.path.join(install_data("coco2017-minimal"), "coco2017-minimal")
     except Exception:
         pass
@@ -105,7 +108,7 @@ class Model(BenchmarkModel):
 
     def get_module(self):
         self.model.eval()
-        for (example_inputs, _example_targets) in self.data_loader:
+        for example_inputs, _example_targets in self.data_loader:
             return self.model, (example_inputs,)
 
     def train(self):
