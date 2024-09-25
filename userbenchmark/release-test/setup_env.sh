@@ -38,7 +38,7 @@ conda install -y -c pytorch ${MAGMA_VERSION}
 
 # install pip version of pytorch and torchvision
 if [[ ${PYTORCH_CHANNEL} == "pytorch-test" ]]; then
-    pip3 install torch torchvision --index-url https://download.pytorch.org/whl/test/cu${CUDA_VERSION//./}
+    pip3 install torch==${PYTORCH_VERSION} torchvision --index-url https://download.pytorch.org/whl/test/cu${CUDA_VERSION//./}
 else
     pip3 install torch torchvision
 fi
