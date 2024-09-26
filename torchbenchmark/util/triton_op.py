@@ -177,6 +177,8 @@ class BenchmarkOperatorMetrics:
     ncu_rep: Optional[str] = None
     # ncu replay file with TTGIR line numbers
     ncu_rep_ir: Optional[str] = None
+    # nsys replay file
+    nsys_rep: Optional[str] = None
     # kineto trace file
     kineto_trace: Optional[str] = None
     # cpu peak memory
@@ -859,6 +861,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 metrics.ncu_rep_ir = self.ncu_trace(
                     input_id, fn_name, replay=True, profile_ir=True
                 )
+            if "nsys_rep" in self.required_metrics:
+                metrics.nsys_rep = self.nsys_rep(input_id, fn_name)
             if "kineto_trace" in self.required_metrics:
                 metrics.kineto_trace = self.kineto_trace(input_id, fn)
             if "best_config" in self.required_metrics:
@@ -886,14 +890,33 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     "_ncu_trace_in_task must be measured by itself. "
                     f"required_metrics: {self.required_metrics}, _only: {self._only}, _input_id: {self._input_id}"
                 )
-                from torchbenchmark._components.ncu import do_bench_ncu_in_task
+                from torchbenchmark._components.ncu import do_bench_in_task
 
-                do_bench_ncu_in_task(
+                do_bench_in_task(
                     fn=fn,
                     grad_to_none=self.get_grad_to_none(self.example_inputs),
                     range_name=_RANGE_NAME,
                 )
                 metrics.extra_metrics["_ncu_trace_in_task"] = "success"
+            if "_nsys_rep_in_task" in self.required_metrics:
+                assert (
+                    self.required_metrics == ["_nsys_rep_in_task"]
+                    and len(self._only) == 1
+                    and (self._input_id is not None)
+                ), (
+                    "_nsys_rep_in_task must be measured by itself. "
+                    f"required_metrics: {self.required_metrics}, _only: {self._only}, _input_id: {self._input_id}"
+                )
+                from torchbenchmark._components.ncu import do_bench_in_task
+
+                do_bench_in_task(
+                    fn=fn,
+                    grad_to_none=self.get_grad_to_none(self.example_inputs),
+                    range_name=_RANGE_NAME,
+                    warmup=True,
+                    use_cuda_profiler_range=True,
+                )
+                metrics.extra_metrics["_nsys_rep_in_task"] = "success"
             # generate customized metrics
             if self.name in REGISTERED_METRICS:
                 for metric_name in REGISTERED_METRICS[self.name]:
@@ -924,6 +947,54 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             metrics_needed=["gpu_peak_mem", "cpu_peak_mem"],
             metrics_gpu_backend="nvml",
         )
+
+    def nsys_rep(self, input_id: int, fn_name: str) -> str:
+        import subprocess
+        import sys
+
+        op_task_args = [] if IS_FBCODE else [sys.executable]
+        op_task_args.extend(copy.deepcopy(sys.argv))
+        for override_option in ["--only", "--input-id", "--num-inputs", "--metrics"]:
+            op_task_args = _remove_params(
+                op_task_args, _find_param_loc(op_task_args, override_option)
+            )
+        op_task_args.extend(
+            [
+                "--only",
+                fn_name,
+                "--num-inputs",
+                str(1),
+                "--input-id",
+                str(input_id),
+                "--metrics",
+                "_nsys_rep_in_task",
+            ]
+        )
+        nsys_output_dir = self.get_temp_path(f"nsys_traces/{fn_name}_{input_id}")
+        nsys_output_dir.mkdir(parents=True, exist_ok=True)
+        ext = ".nsys-rep"
+        nsys_output_file = nsys_output_dir.joinpath(f"nsys_output{ext}").resolve()
+        nsys_trace_cmd = [
+            "nsys",
+            "profile",
+            "-c",
+            "cudaProfilerApi",
+            "-t",
+            "nvtx,osrt,cuda,cudnn,cublas",
+            "-w",
+            "true",
+            "-f",
+            "true",
+            "-o",
+            nsys_output_file,
+        ]
+        nsys_trace_cmd.extend(op_task_args)
+        try:
+            subprocess.check_call(nsys_trace_cmd)
+        except subprocess.CalledProcessError:
+            # FIXME: calling nsys on Tritonbench will throw SIGTERM with error code 143
+            pass
+        return str(nsys_output_file.resolve())
 
     def ncu_trace(
         self, input_id: int, fn_name: str, replay: bool = False, profile_ir=False
