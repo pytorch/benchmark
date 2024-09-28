@@ -225,9 +225,7 @@ class Operator(BenchmarkOperator):
         q = q.transpose(1, 2).contiguous()
         k = k.transpose(1, 2).contiguous()
         v = v.transpose(1, 2).contiguous()
-        fn = lambda: flashattn_hopper_cuda.fwd(
-            q, k, v, None, self.sm_scale, self.causal
-        )
+        fn = lambda: flash_attn_v3(q, k, v, self.sm_scale, self.causal)
         return fn
 
     @register_benchmark()
@@ -359,6 +357,25 @@ class Operator(BenchmarkOperator):
             k,
             v,
         )
+
+    @register_benchmark()
+    def flex_attention(self, q, k, v):
+        from torch.nn.attention.flex_attention import create_block_mask, flex_attention
+
+        def causal_mask(b, h, q_idx, kv_idx):
+            return q_idx >= kv_idx
+
+        flex_attention = torch.compile(flex_attention, dynamic=False)
+
+        if self.causal:
+            B, H, S, D = q.shape
+            block_mask = create_block_mask(
+                causal_mask, B=None, H=None, Q_LEN=S, KV_LEN=S
+            )
+        else:
+            block_mask = None
+
+        return lambda: flex_attention(q, k, v, block_mask=block_mask)
 
     @register_metric()
     def tflops(
