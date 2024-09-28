@@ -87,4 +87,5 @@ class Model(BenchmarkModel):
         )
         score = image_embedding @ text_embedding.t()
 
-        return self.text[torch.argmax(score)]
+        indices = torch.argmax(score, dim=1)
+        return [self.texts[i][indices[i].item()] for i in range(self.batch_size)]
