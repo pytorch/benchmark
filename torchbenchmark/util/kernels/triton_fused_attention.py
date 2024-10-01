@@ -11,6 +11,8 @@ Extra Credits:
 
 """
 
+import sys
+
 import numpy as np
 import torch
 
@@ -22,10 +24,14 @@ HAS_TMA_DESC = "nv_tma_desc_type" in dir(tl)
 
 if HAS_TMA_DESC:
     print(
-        "TMA benchmarks will be running with experimental grid constant TMA descriptor."
+        "TMA benchmarks will be running with experimental grid constant TMA descriptor.",
+        file=sys.stderr,
     )
 else:
-    print("TMA benchmarks will be running without grid constant TMA descriptor.")
+    print(
+        "TMA benchmarks will be running without grid constant TMA descriptor.",
+        file=sys.stderr,
+    )
 
 
 class TmaAutoTuneHelper:
