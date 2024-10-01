@@ -10,6 +10,7 @@ import triton
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    gemm_shapes,
     register_benchmark,
     register_metric,
     register_x_val,
@@ -21,6 +22,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser.add_argument("--m", type=int)
     parser.add_argument("--n", type=int)
     parser.add_argument("--k", type=int)
+    parser.add_argument("--llama", action="store_true")
     parser.add_argument(
         "--no_fp8_fast_accum", dest="fp8_fast_accum", action="store_false"
     )
@@ -105,6 +107,8 @@ class Operator(BenchmarkOperator):
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:
             self.shapes = [(addmm_args.m, addmm_args.n, addmm_args.k)]
+        elif addmm_args.llama:
+            self.shapes = gemm_shapes()
         else:
             self.shapes = BUILDIN_SHAPES
         self.fp8_fast_accum = addmm_args.fp8_fast_accum
