@@ -75,8 +75,13 @@ try:
     with add_ld_library_path(torch_lib_path):
         from flash_attn_interface import flash_attn_func as flash_attn_v3
 except (ImportError, IOError, AttributeError):
-    HAS_FLASH_V3 = False
-    pass
+    try:
+        from ai_codesign.gen_ai.flash_attention_v2.hopper.flash_attn_interface import (
+            flash_attn_func as flash_attn_v3,
+        )
+    except (ImportError, IOError, AttributeError):
+        HAS_FLASH_V3 = False
+        pass
 
 # [Optional] xformers backend
 try:
