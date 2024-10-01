@@ -10,6 +10,11 @@ on:
   push:
     branches:
       - main
+    # ignore tritonbench paths
+    paths-ignore:
+      - 'torchbenchmark/operators'
+      - 'torchbenchmark/util/triton_op.py'
+      - 'userbenchmark/triton'
 
 jobs:
   cpu-test:
