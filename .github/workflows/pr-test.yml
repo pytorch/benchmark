@@ -1,6 +1,11 @@
 name: TorchBench PR Test
 on:
   pull_request:
+    # ignore tritonbench paths
+    paths-ignore:
+      - 'torchbenchmark/operators'
+      - 'torchbenchmark/util/triton_op.py'
+      - 'userbenchmark/triton'
   workflow_dispatch:
   push:
     branches:
