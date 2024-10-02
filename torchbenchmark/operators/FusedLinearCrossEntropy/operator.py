@@ -88,6 +88,11 @@ class Operator(BenchmarkOperator):
     def LigerLMHeadCE(self, input, target) -> Callable:
         return lambda: self.liger_model(input, target)
     
+    @register_benchmark()
+    def inductor_fused_linear_cross_entropy(self, input, target) -> Callable:
+        compiled = torch.compile(self.baseline_model, dynamic=False)
+        return lambda: compiled(input, target)
+    
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()
         return lambda: y.backward(retain_graph=True)
