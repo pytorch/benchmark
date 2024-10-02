@@ -33,6 +33,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
 
 try:
     from fbgemm_gpu.experimental.gemm.triton_gemm.fp8_gemm import (
+        get_fp8_constants as get_fp8_constants,
         matmul_fp8_row as triton_fp8_row,
     )
 
@@ -52,7 +53,7 @@ try:
     from fbgemm_gpu.experimental.gemm.triton_gemm.fp8_gemm import scale_fp8_row
 
     HAS_CUBLAS = True
-except ImportError:
+except (ImportError, IOError, AttributeError):
     HAS_CUBLAS = False
 
 
@@ -79,7 +80,8 @@ BUILDIN_SHAPES = [
     (16384, 8192, 13312),
 ]
 
-E4M3_MAX_POS: float = torch.finfo(torch.float8_e4m3fn).max
+FP8_DTYPE, _, _, _ = get_fp8_constants()
+E4M3_MAX_POS: float = torch.finfo(FP8_DTYPE).max
 EPS: float = 1e-12
 FP16_MAX_POS: float = torch.finfo(torch.float16).max
 
@@ -91,7 +93,7 @@ def fp8_row_quantize(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     if x.dtype is torch.float16:
         scale = torch.clamp(scale, max=FP16_MAX_POS)
     xq = torch.clamp(x * scale[:, None], min=-1 * E4M3_MAX_POS, max=E4M3_MAX_POS).to(
-        torch.float8_e4m3fn
+        FP8_DTYPE
     )
     return xq, scale.reciprocal().to(torch.float32)
 
