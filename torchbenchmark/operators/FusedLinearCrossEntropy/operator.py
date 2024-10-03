@@ -5,7 +5,10 @@ from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     register_benchmark,
 )
-from liger_kernel.transformers.fused_linear_cross_entropy import LigerFusedLinearCrossEntropyLoss
+try:
+    from liger_kernel.transformers.fused_linear_cross_entropy import LigerFusedLinearCrossEntropyLoss
+except ModuleNotFoundError:
+    LigerFusedLinearCrossEntropyLoss = None
 
 # Reference: https://github.com/linkedin/Liger-Kernel/blob/\
 # 3d0653b035222cbb845435a1994854e4fd219107/benchmark/scripts/benchmark_fused_linear_cross_entropy.py
