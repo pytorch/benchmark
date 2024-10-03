@@ -27,8 +27,13 @@ def parse_args(args: List[str]) -> argparse.Namespace:
         "--no_fp8_fast_accum", dest="fp8_fast_accum", action="store_false"
     )
     parser.add_argument("--no_use_tma", dest="use_tma", action="store_false")
-    args = parser.parse_args(args)
-    return args
+    parser.add_argument(
+        "--no_use_persistent",
+        dest="no_use_persistent",
+        action="store_true",
+    )
+    parsed_args = parser.parse_args(args)
+    return parsed_args
 
 
 try:
@@ -115,6 +120,7 @@ class Operator(BenchmarkOperator):
             self.shapes = BUILDIN_SHAPES
         self.fp8_fast_accum = addmm_args.fp8_fast_accum
         self.use_tma = addmm_args.use_tma
+        self.no_use_persistent = addmm_args.no_use_persistent
 
     @register_benchmark(enabled=HAS_TRITON, baseline=True)
     def _triton(self, xq, wq, x_scale, w_scale) -> Callable:
@@ -125,6 +131,7 @@ class Operator(BenchmarkOperator):
             w_scale,
             fp8_fast_accum=self.fp8_fast_accum,
             tma_persistent=self.use_tma,
+            no_use_persistent=self.no_use_persistent,
         )
 
     @register_benchmark(enabled=HAS_CUTLASS)
