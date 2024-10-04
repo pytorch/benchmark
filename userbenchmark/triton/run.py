@@ -33,7 +33,7 @@ def get_parser(args=None):
         "--op",
         type=str,
         required=False,
-        help="Operators to benchmark. Split with comma if multiple."
+        help="Operators to benchmark. Split with comma if multiple.",
     )
     parser.add_argument(
         "--mode",
