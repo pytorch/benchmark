@@ -39,7 +39,7 @@ jobs:
           set -x
           . "${SETUP_SCRIPT}"
           # remove old results
-          release_version=$(cat ./.userbenchmark/release-test/version.txt)
+          release_version=$(cat userbenchmark/release-test/version.txt)
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
