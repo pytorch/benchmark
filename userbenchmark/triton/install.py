@@ -65,11 +65,13 @@ def install_fa3():
     cmd = [sys.executable, "setup.py", "install"]
     subprocess.check_call(cmd, cwd=str(FA3_PATH.resolve()))
 
+
 def install_liger():
     # Liger-kernel has a conflict dependency `triton` with pytorch,
     # so we need to install it without dependencies
     cmd = ["pip", "install", "liger-kernel", "--no-deps"]
     subprocess.check_call(cmd)
+
 
 def install_tk():
     try:
