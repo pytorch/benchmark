@@ -6,6 +6,7 @@ from typing import List
 
 from torch import version as torch_version
 from torchbenchmark.operators import load_opbench_by_name
+from torchbenchmark.operator_loader import load_opbench_by_name_from_loader
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperatorResult,
@@ -146,7 +147,10 @@ def get_parser(args=None):
 
 
 def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorResult:
-    Opbench = load_opbench_by_name(args.op)
+    if args.operator_loader:
+        Opbench = load_opbench_by_name_from_loader(args)
+    else:
+        Opbench = load_opbench_by_name(args.op)
     if args.fwd_bwd:
         args.mode = "fwd_bwd"
     if args.bwd:

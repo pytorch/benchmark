@@ -157,10 +157,14 @@ def _split_params_by_comma(params: Optional[str]) -> List[str]:
 
 def _find_op_name_from_module_path(module_path: str) -> str:
     PATH_PREFIX = "torchbenchmark.operators."
+    PATH_PREFIX_LOADER = "torchbenchmark.operator_loader."
     assert (
-        PATH_PREFIX in module_path
+        PATH_PREFIX in module_path or PATH_PREFIX_LOADER in module_path
     ), f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
-    suffix = module_path.partition(PATH_PREFIX)[2]
+    if PATH_PREFIX_LOADER in module_path:
+        suffix = module_path.partition(PATH_PREFIX_LOADER)[2]
+    else:
+        suffix = module_path.partition(PATH_PREFIX)[2]
     if suffix.startswith("fb."):
         return suffix.split(".")[1]
     return suffix.split(".")[0]
@@ -398,6 +402,20 @@ def register_benchmark(
         return _inner
 
     return decorator
+
+def register_benchmark_mannually(operator_name: str, func_name: str, baseline: bool = False, enabled: bool = True, label: Optional[str] = None):
+    if not operator_name in REGISTERED_BENCHMARKS:
+        REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
+    REGISTERED_BENCHMARKS[operator_name][func_name] = (
+        func_name if not label else label
+    )
+    if baseline:
+        BASELINE_BENCHMARKS[operator_name] = func_name
+    if enabled:
+        if not operator_name in ENABLED_BENCHMARKS:
+            ENABLED_BENCHMARKS[operator_name] = []
+        ENABLED_BENCHMARKS[operator_name].append(func_name)
+
 
 
 def register_metric(

@@ -1,6 +1,6 @@
 from typing import List, Any, Generator, Optional
 import argparse
-from .operator_inp_utils import OperatorInputsLoader, to_channels_last
+from .operator_inp_utils import OperatorInputsLoader, to_channels_last, aten
 from torch._ops import OpOverload
 from torch._dynamo.backends.cudagraphs import cudagraphs_inner
 from torch._inductor.compile_fx import compile_fx
@@ -12,9 +12,7 @@ import torch
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
-    register_benchmark,
-    register_metric,
-    register_x_val,
+    register_benchmark_mannually
 )
 
 timm_loader = OperatorInputsLoader.get_timm_loader()
@@ -37,33 +35,37 @@ def list_operators() -> List[OpOverload]:
         + list(torchbench_loader.get_all_ops())
     )
     # remove duplicate operators
-    all_ops = list(set(all_ops))
-    return all_ops
+    all_ops_str = list(set(str(item) for item in all_ops))
+    return all_ops_str
 
 
-def load_opbench_by_name_from_loader(op_name: str):
-    all_ops = list_operators()
-    if op_name not in all_ops:
-        raise ValueError(f"{op_name} is not found in the operator loader.")
+def load_opbench_by_name_from_loader(args: argparse.Namespace):
+    all_ops_str = list_operators()
+    if args.op not in all_ops_str:
+        raise ValueError(f"{args.op} is not found in the operator loader.")
+    op_eval = eval(args.op)
+    return dynamically_create_native_operator_class(op_eval, args)
 
 def create_operator_class(op_eval: OpOverload):
 
     def __init__(
         self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
     ):
-        super().__init__(tb_args, extra_args)
+        BenchmarkOperator.__init__(self, tb_args, extra_args)
         native_args = parse_args(extra_args)
         self.channel_list = native_args.channel_list
         self.device = tb_args.device
         self.huggingface_loader = huggingface_loader
         self.torchbench_loader = torchbench_loader
         self.timm_loader = timm_loader
+        self.use_cuda_graphs = False
+        self.DEFAULT_PRECISION = "bf16"
 
 
     def get_input_iter(self) -> Generator:
         inps_gens = [self.huggingface_loader, self.torchbench_loader, self.timm_loader]
         for inp_gen in inps_gens:
-            for inp in inp_gen:
+            for inp in inp_gen.get_inputs_for_operator(self.op_eval, self.dtype, self.device):
                 args, kwargs = inp
                 if self.channel_list:
                     args, kwargs = tree_map_only(torch.Tensor, to_channels_last, (args, kwargs))
@@ -83,11 +85,9 @@ def create_operator_class(op_eval: OpOverload):
 
                 yield gm_args
 
-    @register_benchmark(baseline=True)
     def eager(self, input):
         return lambda: self.eager_op(input)
 
-    @register_benchmark()
     def inductor(self, input):
         return lambda: self.inductor_op(input)
 
@@ -95,18 +95,27 @@ def create_operator_class(op_eval: OpOverload):
         'eager': eager,
         'inductor': inductor,
         "get_input_iter": get_input_iter,
+        "__init__": __init__,
     }
     new_class = type("Operator", (BenchmarkOperator,), class_attrs)
     new_class.op_eval = op_eval
     return new_class
 
-def dynamically_create_native_operator_classes(op_eval: OpOverload, args: argparse.Namespace):
+def dynamically_create_native_operator_class(op_eval: OpOverload, args: argparse.Namespace):
     """
     To keep same with custom operators, we dynamically create operator classes here.
     """
     class_name = f"native_{str(op_eval).replace('.', '_')}"
+    module_name = f"torchbenchmark.operator_loader.{class_name}"
     # create a new module for each operator
-    op_name_module = types.ModuleType(f"operator_loader.{class_name}")
-    sys.modules[f"operator_loader.{class_name}"] = op_name_module
+    op_name_module = types.ModuleType(module_name)
+    sys.modules[module_name] = op_name_module
     op_class = create_operator_class(op_eval)
+    # need to set __module__ to make _find_op_name_from_module_path work
+    op_class.__module__ = module_name
     op_name_module.Operator = op_class
+    # decreator doesn't work because the class is dynamically created
+    register_benchmark_mannually(class_name, "eager", baseline=True)
+    register_benchmark_mannually(class_name, "inductor")
+    return op_class
+
