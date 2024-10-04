@@ -1,4 +1,3 @@
-
 [build-system]
 # Use legacy backend to import local packages in setup.py
 build-backend = "setuptools.build_meta:__legacy__"
