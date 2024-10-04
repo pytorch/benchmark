@@ -39,22 +39,13 @@ jobs:
           set -x
           . "${SETUP_SCRIPT}"
           # remove old results
+          release_version=$(cat ./.userbenchmark/release-test/version.txt)
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
-          MANUAL_WORKFLOW="release-test"
-          if [ -z "${MANUAL_WORKFLOW}" ]; then
-            # Figure out what userbenchmarks we should run, and run it
-            python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
-            if [ -d ./.userbenchmark ]; then
-              cp -r ./.userbenchmark ../benchmark-output
-            else
-              mkdir ../benchmark-output
-            fi
-          else
-            python run_benchmark.py release-test
-            cp -r ./.userbenchmark/release-test ../benchmark-output
-          fi
+          python run_benchmark.py release-test -c ${release_version}
+          cp -r ./.userbenchmark/release-test ../benchmark-output
+
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
