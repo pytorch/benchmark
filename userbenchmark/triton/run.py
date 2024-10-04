@@ -128,6 +128,12 @@ def get_parser(args=None):
         action="store_true",
         help="Lock down GPU frequency and clocks to avoid throttling.",
     )
+    parser.add_argument(
+        "--operator-loader",
+        action="store_true",
+        help="Benchmarking ops in torchbenchmark/operator_loader.",
+    )
+
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
 
