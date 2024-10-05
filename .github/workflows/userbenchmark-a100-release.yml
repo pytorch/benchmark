@@ -40,9 +40,9 @@ jobs:
           set -x
           . "${SETUP_SCRIPT}"
           # remove old results
-          release_version=$(cat userbenchmark/release-test/version.txt)
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
+          release_version=$(cat userbenchmark/release-test/version.txt)
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           python run_benchmark.py release-test -c ${release_version}
           cp -r ./.userbenchmark/release-test ../benchmark-output
