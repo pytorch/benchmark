@@ -14,6 +14,13 @@ try:
 except ModuleNotFoundError:
     from .hstu import triton_addmm
 
+
+try:
+    from flag_gems.ops.addmm import addmm as flaggems_addmm
+    HAS_FLAGGEMS =True
+except ModuleNotFoundError:
+    HAS_FLAGGEMS = False
+
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
@@ -111,6 +118,10 @@ class Operator(BenchmarkOperator):
             compiled = torch.compile(f, dynamic=False)
             compiled(a, mat1, mat2)
         return lambda: compiled(a, mat1, mat2)
+
+    @register_benchmark(enabled=HAS_FLAGGEMS)
+    def flaggems(self, a, mat1, mat2) -> Callable:
+        return lambda: flaggems_addmm(a, mat1, mat2)
 
     @register_metric()
     def gbps(
