@@ -43,9 +43,12 @@ jobs:
       - name: Install triton-nightly
         run: |
           bash ./.ci/tritonbench/install-triton-nightly.sh
-      - name: Test Tritonbench
+      - name: Test Tritonbench install
         run: |
           bash ./.ci/tritonbench/test-install.sh
+      - name: Test Tritonbench operators
+        run: |
+          bash ./.ci/tritonbench/test-operators.sh
       - name: Clean up Conda env
         if: always()
         run: |
