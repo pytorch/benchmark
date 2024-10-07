@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 if [ -z "${SETUP_SCRIPT}" ]; then
   echo "ERROR: SETUP_SCRIPT is not set"
