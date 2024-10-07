@@ -26,8 +26,8 @@ jobs:
     timeout-minutes: 240
     environment: docker-s3-upload
     env:
-      BASE_CONDA_ENV: "tritonbench"
-      CONDA_ENV: "pr-test-cuda"
+      BASE_CONDA_ENV: "torchbench"
+      CONDA_ENV: "tritonbench-pr-test-cuda"
       SETUP_SCRIPT: "/workspace/setup_instance.sh"
       TEST_CONFIG: "cuda"
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
