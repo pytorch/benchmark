@@ -59,7 +59,8 @@ def create_operator_class(op_eval: OpOverload):
         self.torchbench_loader = torchbench_loader
         self.timm_loader = timm_loader
         self.use_cuda_graphs = False
-        self.DEFAULT_PRECISION = "bf16"
+        self.DEFAULT_PRECISION = "fp16"
+        assert self.dtype in (torch.float16, torch.float32), f"AtenOpBenchmark only supports fp16 and fp32, but got {self.dtype}"
 
 
     def get_input_iter(self) -> Generator:
