@@ -8,10 +8,9 @@ from contextlib import nullcontext
 
 import click
 import numpy as np
-from operator_inp_utils import OperatorInputsLoader
-from tqdm import tqdm
 
 import torch
+from operator_inp_utils import OperatorInputsLoader
 from torch._dynamo.backends.cudagraphs import cudagraphs_inner
 from torch._dynamo.testing import same
 from torch._inductor.compile_fx import compile_fx
@@ -20,6 +19,7 @@ from torch._inductor.lowering import lowerings
 from torch._inductor.runtime.benchmarking import benchmarker
 from torch._inductor.utils import gen_gm_and_inputs
 from torch.utils._pytree import tree_map_only
+from tqdm import tqdm
 
 
 aten = torch.ops.aten

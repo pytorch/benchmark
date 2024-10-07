@@ -5,8 +5,8 @@ import tempfile
 from typing import List
 
 from torch import version as torch_version
-from torchbenchmark.operators import load_opbench_by_name
 from torchbenchmark.operator_loader import load_opbench_by_name_from_loader
+from torchbenchmark.operators import load_opbench_by_name
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperatorResult,

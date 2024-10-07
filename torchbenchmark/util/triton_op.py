@@ -23,6 +23,7 @@ import numpy
 import tabulate
 import torch
 import triton
+
 from torchbenchmark.util.env_check import fresh_triton_cache, set_random_seed
 from torchbenchmark.util.experiment.metrics import get_peak_memory
 from torchbenchmark.util.extra_args import apply_decoration_args, parse_decoration_args
@@ -403,19 +404,23 @@ def register_benchmark(
 
     return decorator
 
-def register_benchmark_mannually(operator_name: str, func_name: str, baseline: bool = False, enabled: bool = True, label: Optional[str] = None):
+
+def register_benchmark_mannually(
+    operator_name: str,
+    func_name: str,
+    baseline: bool = False,
+    enabled: bool = True,
+    label: Optional[str] = None,
+):
     if not operator_name in REGISTERED_BENCHMARKS:
         REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
-    REGISTERED_BENCHMARKS[operator_name][func_name] = (
-        func_name if not label else label
-    )
+    REGISTERED_BENCHMARKS[operator_name][func_name] = func_name if not label else label
     if baseline:
         BASELINE_BENCHMARKS[operator_name] = func_name
     if enabled:
         if not operator_name in ENABLED_BENCHMARKS:
             ENABLED_BENCHMARKS[operator_name] = []
         ENABLED_BENCHMARKS[operator_name].append(func_name)
-
 
 
 def register_metric(
