@@ -9,15 +9,15 @@ fi
 
 # Test Tritonbench operators
 # TODO: test every operator, fwd+bwd
-python run_benchmark.py triton --op launch_latency --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op addmm --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op gemm --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op sum --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op softmax --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op layer_norm --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op flash_attention --fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op launch_latency --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op addmm --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op gemm --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op sum --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op softmax --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op layer_norm --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op flash_attention --mode fwd --num-inputs 1 --test-only
 
-python run_benchmark.py triton --op jagged_layer_norm --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op jagged_mean --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op jagged_softmax --fwd --num-inputs 1 --test-only
-python run_benchmark.py triton --op jagged_sum --fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op jagged_layer_norm --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op jagged_mean --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op jagged_softmax --mode fwd --num-inputs 1 --test-only
+python run_benchmark.py triton --op jagged_sum --mode fwd --num-inputs 1 --test-only

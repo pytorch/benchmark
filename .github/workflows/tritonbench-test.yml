@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
+        with:
+          submodules: 'true'
       - name: Tune Nvidia GPU
         run: |
           sudo nvidia-smi -pm 1
