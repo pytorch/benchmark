@@ -158,6 +158,7 @@ def _split_params_by_comma(params: Optional[str]) -> List[str]:
 
 def _find_op_name_from_module_path(module_path: str) -> str:
     PATH_PREFIX = "torchbenchmark.operators."
+    # We have a separate operator loader for aten operator benchmark.
     PATH_PREFIX_LOADER = "torchbenchmark.operator_loader."
     assert (
         PATH_PREFIX in module_path or PATH_PREFIX_LOADER in module_path
@@ -404,7 +405,6 @@ def register_benchmark(
 
     return decorator
 
-
 def register_benchmark_mannually(
     operator_name: str,
     func_name: str,
@@ -412,6 +412,24 @@ def register_benchmark_mannually(
     enabled: bool = True,
     label: Optional[str] = None,
 ):
+    """
+    Manually register a benchmark function for a given operator.
+
+    Args:
+        operator_name (str): The name of the operator for which the benchmark is being registered.
+        func_name (str): The name of the benchmark function to register. eager or
+        inductor for aten op benchmark.
+        baseline (bool, optional): If True, this benchmark function is considered the baseline. Defaults to False.
+        enabled (bool, optional): If True, this benchmark function is enabled. Defaults to True.
+        label (Optional[str], optional): An optional label for the benchmark function. Defaults to None.
+
+    This function updates the global dictionaries REGISTERED_BENCHMARKS, BASELINE_BENCHMARKS, 
+    and ENABLED_BENCHMARKS to include the new benchmark function. If the operator or function 
+    is already registered, it updates the existing entries.
+
+    We need this manually register function because decorator doesn't work for
+    dynamically created classes (operator_loader/__init__.py).
+    """
     if not operator_name in REGISTERED_BENCHMARKS:
         REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
     REGISTERED_BENCHMARKS[operator_name][func_name] = func_name if not label else label

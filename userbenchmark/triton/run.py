@@ -137,7 +137,7 @@ def get_parser(args=None):
     parser.add_argument(
         "--operator-loader",
         action="store_true",
-        help="Benchmarking ops in torchbenchmark/operator_loader.",
+        help="Benchmarking aten ops in torchbenchmark/operator_loader.",
     )
 
     if not hasattr(torch_version, "git_version"):

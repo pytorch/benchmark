@@ -12,7 +12,6 @@ from torch.utils._pytree import tree_map_only
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
-    BenchmarkOperatorMetrics,
     register_benchmark_mannually,
 )
 from .operator_inp_utils import aten, OperatorInputsLoader, to_channels_last
@@ -32,7 +31,10 @@ def parse_args(extra_args: Optional[List[str]] = None):
     return parser.parse_known_args(extra_args)
 
 
-def list_operators() -> List[OpOverload]:
+def list_operators() -> List[str]:
+    """In the original operator benchmark design, all operators are registered in the
+    operator loader. We need to collect them here.
+    """
     all_ops = (
         list(timm_loader.get_all_ops())
         + list(huggingface_loader.get_all_ops())
@@ -47,11 +49,13 @@ def load_opbench_by_name_from_loader(args: argparse.Namespace):
     all_ops_str = list_operators()
     if args.op not in all_ops_str:
         raise ValueError(f"{args.op} is not found in the operator loader.")
+    # args.op is a string, we need to evaluate it to get the actual operator overload
     op_eval = eval(args.op)
     return dynamically_create_native_operator_class(op_eval, args)
 
 
 def create_operator_class(op_eval: OpOverload):
+    """Create a new class for the operator overload."""
 
     def __init__(
         self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
@@ -63,6 +67,8 @@ def create_operator_class(op_eval: OpOverload):
         self.huggingface_loader = huggingface_loader
         self.torchbench_loader = torchbench_loader
         self.timm_loader = timm_loader
+        # We enable cuda graphs by default when we get the input iter. So, we don't
+        # utilize tritonbench's cuda graphs.
         self.use_cuda_graphs = False
         self.DEFAULT_PRECISION = "fp16"
         assert self.dtype in (
@@ -134,7 +140,7 @@ def dynamically_create_native_operator_class(
     # need to set __module__ to make _find_op_name_from_module_path work
     op_class.__module__ = module_name
     op_name_module.Operator = op_class
-    # decreator doesn't work because the class is dynamically created
+    # because the class is dynamically created, decorator can't get the desired module_path.
     register_benchmark_mannually(class_name, "eager", baseline=True)
     register_benchmark_mannually(class_name, "inductor")
     return op_class
