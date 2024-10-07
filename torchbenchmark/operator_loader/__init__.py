@@ -26,7 +26,7 @@ def parse_args(extra_args: Optional[List[str]] = None):
         action='store_true',
         help="Flag to enable channel list benchmarking.",
     )
-    return parser.parse_args(extra_args)
+    return parser.parse_known_args(extra_args)
 
 def list_operators() -> List[OpOverload]:
     all_ops = (
@@ -52,7 +52,7 @@ def create_operator_class(op_eval: OpOverload):
         self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
     ):
         BenchmarkOperator.__init__(self, tb_args, extra_args)
-        native_args = parse_args(extra_args)
+        native_args, _ = parse_args(extra_args)
         self.channel_list = native_args.channel_list
         self.device = tb_args.device
         self.huggingface_loader = huggingface_loader
