@@ -2,19 +2,21 @@ name: Tritonbench PR Test on Triton nightly
 on:
   pull_request:
     paths:
-      - 'torchbenchmark/operators'
+      - 'torchbenchmark/operators/*'
+      - 'torchbenchmark/util/kernels/*'
       - 'torchbenchmark/util/triton_op.py'
-      - 'userbenchmark/triton'
-      - '.ci/tritonbench'
+      - 'userbenchmark/triton/*'
+      - '.ci/tritonbench/*'
   workflow_dispatch:
   push:
     branches:
       - main
     paths:
-      - 'torchbenchmark/operators'
+      - 'torchbenchmark/operators/*'
+      - 'torchbenchmark/util/kernels/*'
       - 'torchbenchmark/util/triton_op.py'
-      - 'userbenchmark/triton'
-      - '.ci/tritonbench'
+      - 'userbenchmark/triton/*'
+      - '.ci/tritonbench/*'
 
 jobs:
   cuda-test:
