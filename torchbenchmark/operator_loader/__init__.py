@@ -51,7 +51,7 @@ def load_opbench_by_name_from_loader(args: argparse.Namespace):
         raise ValueError(f"{args.op} is not found in the operator loader.")
     # args.op is a string, we need to evaluate it to get the actual operator overload
     op_eval = eval(args.op)
-    return dynamically_create_aten_op_class(op_eval, args)
+    return dynamically_create_aten_op_class(op_eval)
 
 
 def create_operator_class(op_eval: OpOverload):
@@ -125,9 +125,7 @@ def create_operator_class(op_eval: OpOverload):
     return new_class
 
 
-def dynamically_create_aten_op_class(
-    op_eval: OpOverload, args: argparse.Namespace
-):
+def dynamically_create_aten_op_class(op_eval: OpOverload):
     """
     To keep same with custom operators, we dynamically create aten operator classes here.
     """
