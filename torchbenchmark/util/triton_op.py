@@ -1049,15 +1049,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             "nvidia-dcgm",
         ]
 
-        def run_command_if_exists(command):
-            if shutil.which(command[0]):  # Check if the command exists
-                try:
-                    # Run the command
-                    return subprocess.run(command, check=True).returncode
-                except (FileNotFoundError, subprocess.CalledProcessError):
-                    return -1
-            return -1
-
         def service_exists(service_name):
             try:
                 result = subprocess.run(
@@ -1071,8 +1062,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 return False
 
         if shutil.which("dyno") or service_exists("nvidia-dcgm"):
-            dyno_result = run_command_if_exists(disable_dyno_dcgm)
-            systemctl_result = run_command_if_exists(disable_dcgm_service)
+            dyno_result = subprocess.run(disable_dyno_dcgm).returncode
+            systemctl_result = subprocess.run(disable_dcgm_service).returncode
             if dyno_result != 0 and systemctl_result != 0:
                 warnings.warn(
                     "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
