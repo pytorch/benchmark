@@ -9,6 +9,8 @@ import torch
 import torch._inductor.config as inductor_config
 import triton
 
+from torchbenchmark import REPO_PATH
+
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
@@ -19,7 +21,6 @@ from torchbenchmark.util.triton_op import (
     register_x_val,
 )
 
-from .data_io import parse_args, read_shapes_from_csv
 from .kernels import matmul as kernels
 from .partition_k import matmul_partition_k
 from .persistent_matmul import (
@@ -88,6 +89,35 @@ SPLIT_K_SHAPES = [
 ]
 
 
+def parse_args(args: List[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="TorchBench Gemm operator Benchmark")
+    parser.add_argument("--m", type=int)
+    parser.add_argument("--k", type=int)
+    parser.add_argument("--n", type=int)
+    parser.add_argument("--bias", type=int)
+    parser.add_argument("--input", type=str)
+    parser.add_argument("--splitk", action="store_true", default=False)
+    parser.add_argument("--llama", action="store_true", default=False)
+    parser.add_argument("--layout", type=str, default="tn")
+    args = parser.parse_args(args)
+    return args
+
+
+def read_shapes_from_csv(csv_path: str) -> List[List[int]]:
+    input_file_path = os.path.join(
+        REPO_PATH, "torchbenchmark", "operators", "gemm", csv_path
+    )
+    shapes = []
+    with open(input_file_path, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            shape = [
+                int(row.get(f)) if row.get(f) else None for f in ("M", "N", "K", "Bias")
+            ]
+            shapes.append(shape)
+    return shapes
+
+
 class Operator(BenchmarkOperator):
     DEFAULT_METRICS = ["speedup", "tflops"]
     DEFAULT_PRECISION = "fp16"
@@ -98,6 +128,7 @@ class Operator(BenchmarkOperator):
         super().__init__(tb_args, extra_args)
         self.use_cuda_graphs = False
         gemm_args = parse_args(self.extra_args)
+        self.layout = gemm_args.layout
         if gemm_args.input:
             self.shapes = read_shapes_from_csv(gemm_args.input)
         elif gemm_args.splitk:
@@ -261,6 +292,11 @@ class Operator(BenchmarkOperator):
             w = self._scaled_randn(
                 (k, n), scale=k, device=self.device, dtype=self.dtype
             )
+            # Convert inputs to column-major if layout is "n" (non-transposed)
+            if self.layout[0] == "n":
+                a = a.T.contiguous().T
+            if self.layout[1] == "n":
+                w = w.T.contiguous().T
             if not bias == None:
                 bias = torch.randn(
                     (bias), device=self.device, dtype=self.dtype

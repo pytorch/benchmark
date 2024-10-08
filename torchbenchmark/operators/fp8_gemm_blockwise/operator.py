@@ -10,6 +10,7 @@ import triton
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
+    gemm_shapes,
     register_benchmark,
     register_metric,
     register_x_val,
@@ -21,6 +22,7 @@ def parse_args(args: List[str]) -> argparse.Namespace:
     parser.add_argument("--m", type=int)
     parser.add_argument("--n", type=int)
     parser.add_argument("--k", type=int)
+    parser.add_argument("--llama", action="store_true")
     args = parser.parse_args(args)
     return args
 
@@ -35,11 +37,17 @@ except:
     HAS_TRITON = False
 
 
+HAS_CUTLASS = True
 try:
     cutlass_fp8_block = torch.ops.llama_cpp.fp8_blockwise_matmul
-    HAS_CUTLASS = True
 except:
-    HAS_CUTLASS = False
+    try:
+        import fbgemm_gpu.experimental.gen_ai
+
+        cutlass_fp8_block = torch.ops.fbgemm.f8f8bf16_blockwise
+    except:
+        HAS_CUTLASS = False
+
 
 BUILDIN_SHAPES = [
     (1, 2304, 2048),
@@ -70,7 +78,7 @@ FP16_MAX_POS: float = torch.finfo(torch.float16).max
 
 
 def fp8_block_quantize(
-    x: torch.Tensor, block_m: int = 256, block_k: int = 256
+    x: torch.Tensor, block_m: int = 128, block_k: int = 128
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     M, K = x.shape
     grid_m = triton.cdiv(M, block_m)
@@ -116,6 +124,8 @@ class Operator(BenchmarkOperator):
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:
             self.shapes = [(addmm_args.m, addmm_args.n, addmm_args.k)]
+        elif addmm_args.llama:
+            self.shapes = gemm_shapes()
         else:
             self.shapes = BUILDIN_SHAPES
 
