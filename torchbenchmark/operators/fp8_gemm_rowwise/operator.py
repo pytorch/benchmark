@@ -27,12 +27,18 @@ def parse_args(args: List[str]) -> argparse.Namespace:
         "--no_fp8_fast_accum", dest="fp8_fast_accum", action="store_false"
     )
     parser.add_argument("--no_use_tma", dest="use_tma", action="store_false")
-    args = parser.parse_args(args)
-    return args
+    parser.add_argument(
+        "--no_use_persistent",
+        dest="no_use_persistent",
+        action="store_true",
+    )
+    parsed_args = parser.parse_args(args)
+    return parsed_args
 
 
 try:
     from fbgemm_gpu.experimental.gemm.triton_gemm.fp8_gemm import (
+        get_fp8_constants as get_fp8_constants,
         matmul_fp8_row as triton_fp8_row,
     )
 
@@ -52,7 +58,7 @@ try:
     from fbgemm_gpu.experimental.gemm.triton_gemm.fp8_gemm import scale_fp8_row
 
     HAS_CUBLAS = True
-except ImportError:
+except (ImportError, IOError, AttributeError):
     HAS_CUBLAS = False
 
 
@@ -79,7 +85,8 @@ BUILDIN_SHAPES = [
     (16384, 8192, 13312),
 ]
 
-E4M3_MAX_POS: float = torch.finfo(torch.float8_e4m3fn).max
+FP8_DTYPE, _, _, _ = get_fp8_constants()
+E4M3_MAX_POS: float = torch.finfo(FP8_DTYPE).max
 EPS: float = 1e-12
 FP16_MAX_POS: float = torch.finfo(torch.float16).max
 
@@ -91,7 +98,7 @@ def fp8_row_quantize(x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     if x.dtype is torch.float16:
         scale = torch.clamp(scale, max=FP16_MAX_POS)
     xq = torch.clamp(x * scale[:, None], min=-1 * E4M3_MAX_POS, max=E4M3_MAX_POS).to(
-        torch.float8_e4m3fn
+        FP8_DTYPE
     )
     return xq, scale.reciprocal().to(torch.float32)
 
@@ -113,6 +120,7 @@ class Operator(BenchmarkOperator):
             self.shapes = BUILDIN_SHAPES
         self.fp8_fast_accum = addmm_args.fp8_fast_accum
         self.use_tma = addmm_args.use_tma
+        self.no_use_persistent = addmm_args.no_use_persistent
 
     @register_benchmark(enabled=HAS_TRITON, baseline=True)
     def _triton(self, xq, wq, x_scale, w_scale) -> Callable:
@@ -123,6 +131,7 @@ class Operator(BenchmarkOperator):
             w_scale,
             fp8_fast_accum=self.fp8_fast_accum,
             tma_persistent=self.use_tma,
+            no_use_persistent=self.no_use_persistent,
         )
 
     @register_benchmark(enabled=HAS_CUTLASS)
