@@ -1070,22 +1070,13 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             except subprocess.CalledProcessError:
                 return False
 
-        # Attempt to disable DCGM using dyno if available
-        dyno_result = (
-            run_command_if_exists(disable_dyno_dcgm) if shutil.which("dyno") else -1
-        )
-
-        # Check if the nvidia-dcgm service exists before attempting to stop it
-        if service_exists("nvidia-dcgm"):
+        if shutil.which("dyno") or service_exists("nvidia-dcgm"):
+            dyno_result = run_command_if_exists(disable_dyno_dcgm)
             systemctl_result = run_command_if_exists(disable_dcgm_service)
-        else:
-            systemctl_result = -1
-
-        if dyno_result != 0 and systemctl_result != 0:
-            warnings.warn(
-                "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
-            )
-
+            if dyno_result != 0 and systemctl_result != 0:
+                warnings.warn(
+                    "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
+                )
         ncu_output_dir = self.get_temp_path(f"ncu_traces/{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
         ext = ".csv" if not replay else ".ncu-rep"
