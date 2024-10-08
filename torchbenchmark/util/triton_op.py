@@ -23,6 +23,7 @@ import numpy
 import tabulate
 import torch
 import triton
+
 from torchbenchmark.util.env_check import fresh_triton_cache, set_random_seed
 from torchbenchmark.util.experiment.metrics import get_peak_memory
 from torchbenchmark.util.extra_args import apply_decoration_args, parse_decoration_args
@@ -1008,6 +1009,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     def ncu_trace(
         self, input_id: int, fn_name: str, replay: bool = False, profile_ir=False
     ) -> str:
+        import shutil
         import subprocess
 
         # collect the ncu trace
@@ -1031,6 +1033,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 "_ncu_trace_in_task",
             ]
         )
+
         # Disable DCGM
         disable_dyno_dcgm = [
             "sudo",
@@ -1045,13 +1048,44 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             "stop",
             "nvidia-dcgm",
         ]
-        if (
-            subprocess.run(disable_dyno_dcgm).returncode != 0
-            and subprocess.run(disable_dcgm_service).returncode != 0
-        ):
+
+        def run_command_if_exists(command):
+            if shutil.which(command[0]):  # Check if the command exists
+                try:
+                    # Run the command
+                    return subprocess.run(command, check=True).returncode
+                except (FileNotFoundError, subprocess.CalledProcessError):
+                    return -1
+            return -1
+
+        def service_exists(service_name):
+            try:
+                result = subprocess.run(
+                    ["systemctl", "status", service_name],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True,
+                )
+                return result.returncode == 0
+            except subprocess.CalledProcessError:
+                return False
+
+        # Attempt to disable DCGM using dyno if available
+        dyno_result = (
+            run_command_if_exists(disable_dyno_dcgm) if shutil.which("dyno") else -1
+        )
+
+        # Check if the nvidia-dcgm service exists before attempting to stop it
+        if service_exists("nvidia-dcgm"):
+            systemctl_result = run_command_if_exists(disable_dcgm_service)
+        else:
+            systemctl_result = -1
+
+        if dyno_result != 0 and systemctl_result != 0:
             warnings.warn(
                 "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
             )
+
         ncu_output_dir = self.get_temp_path(f"ncu_traces/{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
         ext = ".csv" if not replay else ".ncu-rep"
