@@ -11,6 +11,7 @@ from .run import _run, get_parser
 
 CI_TESTS = [
     ["--op", "softmax", "--num-inputs", "10"],
+    ["--op", "sum"],
 ]
 
 
