@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+from collections import defaultdict
 from typing import List
 
 """
@@ -71,6 +72,8 @@ def get_mem_traffic(kernel):
     )
 
 
+# Reference: ncu_install_path/sections/SpeedOfLight_Roofline.py
+# and ncu_install_path/sections/SpeedOfLight_RooflineChart.section
 def get_arithmetic_intensity(kernel):
     fp32_add_achieved = kernel.metric_by_name(
         short_ncu_metric_name["inst_executed_fadd"]
@@ -106,24 +109,25 @@ def get_arithmetic_intensity(kernel):
 def read_ncu_report(report_path: str, required_metrics: List[str]):
     assert os.path.exists(
         report_path
-    ), f"NCU report at {report_path} does not exist. Make sure you add --metrics ncu_rep to your benchmark run."
+    ), f"The NCU report at {report_path} does not exist. Ensure you add --metrics ncu_rep to your benchmark run."
     import_ncu_python_path()
     import ncu_report
 
-    results = {}
+    # save all kernels' metrics. {metric_name: [kernel1_metric_value, kernel2_metric_value, ...]}
+    results = defaultdict(list)
     test_report = ncu_report.load_report(report_path)
     assert (
         test_report.num_ranges() > 0
-    ), f"No profile data found in NCU report at {report_path}"
+    ), f"No profile data found in the NCU report at {report_path}"
     default_range = test_report.range_by_idx(0)
     assert (
         default_range.num_actions() > 0
-    ), f"No profile data found in the default range of NCU report at {report_path}"
+    ), f"No profile data found in the default range of the NCU report at {report_path}"
     for i in range(default_range.num_actions()):
         kernel = default_range.action_by_idx(i)
         if "memory_traffic" in required_metrics:
             mem_traffic = get_mem_traffic(kernel)
-            results["memory_traffic"] = mem_traffic
+            results["memory_traffic"].append(mem_traffic)
         if "arithmetic_intensity" in required_metrics:
-            results["arithmetic_intensity"] = get_arithmetic_intensity(kernel)
+            results["arithmetic_intensity"].append(get_arithmetic_intensity(kernel))
     return results
