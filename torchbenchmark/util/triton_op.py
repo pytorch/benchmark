@@ -849,7 +849,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 or "gpu_peak_mem" in self.required_metrics
             ):
                 metrics.cpu_peak_mem, _device_id, metrics.gpu_peak_mem = (
-                    self.get_peak_mem(fn)
+                    self.get_peak_mem(fn, self.tb_args.metrics_memory_usage_backend)
                 )
             if not baseline and "accuracy" in self.required_metrics:
                 metrics.accuracy = (
@@ -949,13 +949,13 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         return metrics
 
     def get_peak_mem(
-        self, fn: Callable
+        self, fn: Callable, metrics_memory_usage_backend: str
     ) -> Tuple[Optional[float], Optional[str], Optional[float]]:
         return get_peak_memory(
             func=fn,
             device=self.device,
             metrics_needed=["gpu_peak_mem", "cpu_peak_mem"],
-            metrics_gpu_backend="nvml",
+            metrics_gpu_backend=metrics_memory_usage_backend,
         )
 
     def nsys_rep(self, input_id: int, fn_name: str) -> str:

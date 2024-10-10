@@ -481,17 +481,12 @@ def main() -> None:
         default="default",
         help="""
         Specify the backend [dcgm, default, torch] to collect metrics. In all modes,
-        the latency (execution time) is always collected using `time.time_ns()`. The CPU peak memory usage is collected by `psutil.Process()`.
-        - **Default Mode:**
-          - Optional metrics:
-            - **GPU Peak Memory Usage:** Use `--metrics gpu_peak_mem`, collected by the `nvml` library.
-            - **FLOPs:** Use `--metrics flops`, collected by `fvcore`.
-        - **DCGM Mode:**
-          - Optional metrics:
-            - **GPU Peak Memory Usage:** Use `--metrics gpu_peak_mem`, collected by the `dcgm` library.
-        - **Torch Mode:**
-          - Optional metrics:
-            - **GPU Peak Memory Usage:** Use `--metrics gpu_peak_mem`, collected by `torch.cuda.max_memory_allocated()`.
+        the latency (execution time) is always collected using `time.time_ns()`. The CPU
+        and GPU peak memory usage metrics are optional. The CPU peak memory usage is
+        collected by `psutil.Process()` in all modes. In default mode, the GPU peak memory
+        usage is collected by the `nvml` library. In dcgm mode, the GPU peak memory usage is
+        collected by the `dcgm` library. In torch mode, the GPU peak memory usage is collected
+        by `torch.cuda.max_memory_allocated()`.
         """,
     )
     args, extra_args = parser.parse_known_args()
