@@ -7,7 +7,7 @@ from typing import List
 """
 A dictionary mapping short metric names to their corresponding NVIDIA Nsight Compute
 (NCU) metric names. Don't directly use the NCU metric names in the code, use these short
-names instead.
+names instead. This mapping can help us manage the metrics we use in the benchmark.
 """
 short_ncu_metric_name = {
     "inst_executed_ffma_peak": "sm__sass_thread_inst_executed_op_ffma_pred_on.sum.peak_sustained",
@@ -25,7 +25,8 @@ short_ncu_metric_name = {
     "dram_bandwidth": "dram__bytes.sum.per_second",
     "duration": "gpu__time_duration.sum",
 }
-# A dictionary mapping benchmark metric names to their corresponding short NCU metric names.
+# A dictionary mapping benchmark metric names to their corresponding short NCU metric
+# names.
 bench_metric_to_short_ncu_metric = {
     "memory_traffic": ["dram_bytes_write", "dram_bytes_read"],
     "arithmetic_intensity": [
@@ -72,6 +73,10 @@ def get_mem_traffic(kernel):
         kernel.metric_by_name(short_ncu_metric_name["dram_bytes_read"]).value(),
         kernel.metric_by_name(short_ncu_metric_name["dram_bytes_write"]).value(),
     )
+
+
+def get_duration(kernel):
+    return kernel.metric_by_name(short_ncu_metric_name["duration"]).value()
 
 
 # Reference: ncu_install_path/sections/SpeedOfLight_Roofline.py
@@ -125,11 +130,29 @@ def read_ncu_report(report_path: str, required_metrics: List[str]):
     assert (
         default_range.num_actions() > 0
     ), f"No profile data found in the default range of the NCU report at {report_path}"
+    total_duration = 0
+    weighted_fp32_ai_sum = 0
+    weighted_fp64_ai_sum = 0
     for i in range(default_range.num_actions()):
         kernel = default_range.action_by_idx(i)
+        duration = get_duration(kernel)
         if "memory_traffic" in required_metrics:
-            mem_traffic = get_mem_traffic(kernel)
-            results["memory_traffic"].append(mem_traffic)
+            results["memory_traffic"].append(get_mem_traffic(kernel))
         if "arithmetic_intensity" in required_metrics:
-            results["arithmetic_intensity"].append(get_arithmetic_intensity(kernel))
+            fp32_ai, fp64_ai = get_arithmetic_intensity(kernel)
+            weighted_fp32_ai_sum += fp32_ai * duration
+            weighted_fp64_ai_sum += fp64_ai * duration
+            results["arithmetic_intensity"].append((fp32_ai, fp64_ai))
+            results["durations"].append(duration)
+        total_duration += duration
+    memory_traffic_read = [item[0] for item in results["memory_traffic"]]
+    memory_traffic_write = [item[1] for item in results["memory_traffic"]]
+    results["memory_traffic_read_sum"] = sum(memory_traffic_read)
+    results["memory_traffic_write_sum"] = sum(memory_traffic_write)
+    results["weighted_fp32_arithmetic_intensity"] = (
+        weighted_fp32_ai_sum / total_duration
+    )
+    results["weighted_fp64_arithmetic_intensity"] = (
+        weighted_fp64_ai_sum / total_duration
+    )
     return results
