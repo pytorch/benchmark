@@ -477,18 +477,22 @@ def main() -> None:
     )
     parser.add_argument(
         "--metrics-gpu-backend",
-        choices=["dcgm", "default"],
+        choices=["dcgm", "default", "torch"],
         default="default",
         help="""
-        Specify the backend [dcgm, default] to collect metrics.
-        In default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled.
-        Optionally, - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().
-        - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.
-        - you can specify flops by --metrics flops, and it is collected by fvcore.
-        In dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled.
-        Optionally,
-        - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().
-        - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""",
+        Specify the backend [dcgm, default, torch] to collect metrics. In all modes,
+        the latency (execution time) is always collected using `time.time_ns()`. The CPU peak memory usage is collected by `psutil.Process()`.
+        - **Default Mode:**
+          - Optional metrics:
+            - **GPU Peak Memory Usage:** Use `--metrics gpu_peak_mem`, collected by the `nvml` library.
+            - **FLOPs:** Use `--metrics flops`, collected by `fvcore`.
+        - **DCGM Mode:**
+          - Optional metrics:
+            - **GPU Peak Memory Usage:** Use `--metrics gpu_peak_mem`, collected by the `dcgm` library.
+        - **Torch Mode:**
+          - Optional metrics:
+            - **GPU Peak Memory Usage:** Use `--metrics gpu_peak_mem`, collected by `torch.cuda.max_memory_allocated()`.
+        """,
     )
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
