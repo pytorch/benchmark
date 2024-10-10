@@ -849,7 +849,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 or "gpu_peak_mem" in self.required_metrics
             ):
                 metrics.cpu_peak_mem, _device_id, metrics.gpu_peak_mem = (
-                    self.get_peak_mem(fn, self.tb_args.metrics_memory_usage_backend)
+                    self.get_peak_mem(fn, self.tb_args.metrics_gpu_backend)
                 )
             if not baseline and "accuracy" in self.required_metrics:
                 metrics.accuracy = (
