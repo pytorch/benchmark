@@ -100,7 +100,3 @@ def load_opbench_by_name(op_name: str):
     if not hasattr(Operator, "name"):
         Operator.name = op_name
     return Operator
-
-
-if __name__ == "__main__":
-    print(list_operators())
