@@ -71,15 +71,13 @@ def get_peak_memory(
     num_iter=MEMPROF_ITER,
     export_metrics_file="",
     metrics_needed=[],
-    metrics_gpu_backend="nvml",
+    metrics_gpu_backend="default",
     cpu_monitored_pid=None,
 ) -> Tuple[Optional[float], Optional[str], Optional[float]]:
     "Run one step of the model, and return the peak memory in MB."
     new_metrics_needed = [
         _ for _ in metrics_needed if _ in ["cpu_peak_mem", "gpu_peak_mem"]
     ]
-    if metrics_gpu_backend == "default":
-        metrics_gpu_backend = "nvml"
     if not new_metrics_needed:
         raise ValueError(
             f"Expected metrics_needed to be non-empty, get: {metrics_needed}"
