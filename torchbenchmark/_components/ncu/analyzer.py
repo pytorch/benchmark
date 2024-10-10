@@ -23,6 +23,7 @@ short_ncu_metric_name = {
     "dram_bytes_per_second": "dram__bytes.sum.per_second",
     "sm_freq": "smsp__cycles_elapsed.avg.per_second",
     "dram_bandwidth": "dram__bytes.sum.per_second",
+    "duration": "gpu__time_duration.sum",
 }
 # A dictionary mapping benchmark metric names to their corresponding short NCU metric names.
 bench_metric_to_short_ncu_metric = {
@@ -40,6 +41,7 @@ bench_metric_to_short_ncu_metric = {
         "dram_bytes_read",
         "sm_freq",
         "dram_bandwidth",
+        "duration",
     ],
 }
 
