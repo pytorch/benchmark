@@ -5,7 +5,7 @@ import tempfile
 from typing import List
 
 from torch import version as torch_version
-from torchbenchmark.operators import load_opbench_by_name
+from torchbenchmark.operators import list_operators, load_opbench_by_name, OP_COLLECTION
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperatorResult,
@@ -34,6 +34,13 @@ def get_parser(args=None):
         type=str,
         required=False,
         help="Operators to benchmark. Split with comma if multiple.",
+    )
+    parser.add_argument(
+        "--op-collection",
+        default=OP_COLLECTION.DEFAULT.value,
+        type=str,
+        help="Operator collections to benchmark. Split with comma. It is conflict with --op. Choices: "
+        + ",".join(op.value for op in OP_COLLECTION),
     )
     parser.add_argument(
         "--mode",
@@ -139,8 +146,12 @@ def get_parser(args=None):
     args, extra_args = parser.parse_known_args(args)
     if args.op and args.ci:
         parser.error("cannot specify operator when in CI mode")
-    elif not args.op and not args.ci:
-        parser.error("must specify operator when not in CI mode")
+    elif not args.op and not args.ci and not args.op_collection:
+        parser.error("must specify operator or operator collection when not in CI mode")
+    if not args.op and not args.op_collection:
+        print(
+            "Neither operator nor operator collection is specified. Running all operators in the default collection."
+        )
     return parser
 
 
@@ -196,7 +207,13 @@ def run(args: List[str] = []):
     if args.op:
         ops = args.op.split(",")
     else:
-        ops = []
+        op_collections = args.op_collection.split(",")
+        ops = [
+            op
+            for op_collection in op_collections
+            for op in list_operators(OP_COLLECTION(op_collection))
+        ]
+
     with gpu_lockdown(args.gpu_lockdown):
         for op in ops:
             args.op = op
