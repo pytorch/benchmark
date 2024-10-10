@@ -4,16 +4,18 @@ Utilities to measure metrics of a model.
 
 import copy
 import dataclasses
+import os
 import pathlib
 import time
 from typing import List, Optional, Tuple, Union
 
+import psutil
+
 import torch
+
 from torchbenchmark import ModelTask
 from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig
 from torchbenchmark.util.model import BenchmarkModel
-import psutil
-import os
 
 WARMUP_ROUNDS = 10
 BENCHMARK_ITERS = 15
@@ -32,9 +34,11 @@ class TorchBenchModelMetrics:
     pt2_graph_breaks: Optional[float]
     model_flops: Optional[float]
 
+
 def maybe_synchronize(device: str):
     if device == "cuda":
         torch.cuda.synchronize()
+
 
 def get_latencies(
     func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS
@@ -84,8 +88,12 @@ def get_peak_memory(
         from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
             ModelAnalyzer,
         )
+
         mem_model_analyzer = ModelAnalyzer(
-            export_metrics_file, new_metrics_needed, metrics_gpu_backend, cpu_monitored_pid
+            export_metrics_file,
+            new_metrics_needed,
+            metrics_gpu_backend,
+            cpu_monitored_pid,
         )
     else:
         mem_model_analyzer = None
