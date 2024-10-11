@@ -405,6 +405,7 @@ def register_benchmark(
 
     return decorator
 
+
 def register_benchmark_mannually(
     operator_name: str,
     func_name: str,
@@ -423,8 +424,8 @@ def register_benchmark_mannually(
         enabled (bool, optional): If True, this benchmark function is enabled. Defaults to True.
         label (Optional[str], optional): An optional label for the benchmark function. Defaults to None.
 
-    This function updates the global dictionaries REGISTERED_BENCHMARKS, BASELINE_BENCHMARKS, 
-    and ENABLED_BENCHMARKS to include the new benchmark function. If the operator or function 
+    This function updates the global dictionaries REGISTERED_BENCHMARKS, BASELINE_BENCHMARKS,
+    and ENABLED_BENCHMARKS to include the new benchmark function. If the operator or function
     is already registered, it updates the existing entries.
 
     We need this manually register function because decorator doesn't work for

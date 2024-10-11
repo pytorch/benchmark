@@ -14,7 +14,7 @@ from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     register_benchmark_mannually,
 )
-from .operator_inp_utils import aten, OperatorInputsLoader, to_channels_last
+from .operator_inp_utils import aten, OperatorInputsLoader, to_channels_last  # noqa
 
 timm_loader = OperatorInputsLoader.get_timm_loader()
 huggingface_loader = OperatorInputsLoader.get_huggingface_loader()
