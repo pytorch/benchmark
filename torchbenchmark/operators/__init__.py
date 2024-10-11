@@ -8,25 +8,6 @@ from torchbenchmark import dir_contains_file
 OPBENCH_DIR = "operators"
 INTERNAL_OPBENCH_DIR = "fb"
 
-from enum import Enum
-
-
-class OP_COLLECTION(Enum):
-    """
-    Collection of operators to benchmark.
-    For DEFAULT collection, we don't need to add ops in COLLECTION_MAP. All ops not in
-    other specific collections will be included in DEFAULT collection.
-    """
-
-    LIGER = "liger"
-    DEFAULT = "default"
-    ALL = "all"
-
-
-COLLECTION_MAP = {
-    OP_COLLECTION.LIGER: ["FusedLinearCrossEntropy"],
-}
-
 
 def _is_internal_operator(op_name: str) -> bool:
     p = (
@@ -59,16 +40,8 @@ def _list_opbench_paths() -> List[str]:
     return opbench
 
 
-def list_operators(op_collection: OP_COLLECTION = OP_COLLECTION.DEFAULT) -> List[str]:
+def list_operators() -> List[str]:
     operators = list(map(lambda y: os.path.basename(y), _list_opbench_paths()))
-    if op_collection != OP_COLLECTION.ALL:
-        if op_collection == OP_COLLECTION.DEFAULT:
-            all_other_operators = [
-                op for sublist in COLLECTION_MAP.values() for op in sublist
-            ]
-            operators = [op for op in operators if op not in all_other_operators]
-        else:
-            operators = COLLECTION_MAP[op_collection]
     if INTERNAL_OPBENCH_DIR in operators:
         operators.remove(INTERNAL_OPBENCH_DIR)
     return operators
