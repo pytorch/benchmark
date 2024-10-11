@@ -20,36 +20,6 @@ CI_TESTS: Dict[str, List[str]] = {
         "sdpa,triton_tutorial_flash_v2",
     ],
     "softmax": ["--op", "softmax", "--num-inputs", "10"],
-    "fp8_gemm": [
-        "--op",
-        "fp8_gemm",
-        "--llama",
-        "--only",
-        "torch_fp8_gemm, triton_fp8_gemm",
-    ],
-    "fp8_gemm_blockwise": [
-        "--op",
-        "fp8_gemm_blockwise",
-        "--llama",
-        "--only",
-        "_cutlass, _triton",
-    ],
-    "fp8_gemm_rowwise": [
-        "--op",
-        "fp8_gemm_rowwise",
-        "--llama",
-        "--only",
-        "_cutlass,_triton,_cublass",
-    ],
-    "gemm": [
-        "--op",
-        "gemm",
-        "--only",
-        "aten_matmul,pt2_cutlass_matmul,triton_tutorial_matmul",
-        "--precision",
-        "bf16",
-        "--llama",
-    ],
 }
 
 

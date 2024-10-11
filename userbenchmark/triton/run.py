@@ -166,7 +166,10 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
         if not hasattr(torch_version, "git_version") and args.log_scuba:
             from .fb.utils import log_benchmark
 
-            log_benchmark(metrics, args.op)
+            if "hardware" in args:
+                log_benchmark(metrics, args.op, args.hardware)
+            else:
+                log_benchmark(metrics, args.op)
         if args.plot:
             try:
                 opbench.plot()
