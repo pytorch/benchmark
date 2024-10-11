@@ -71,7 +71,7 @@ def get_peak_memory(
     num_iter=MEMPROF_ITER,
     export_metrics_file="",
     metrics_needed=[],
-    metrics_gpu_backend="default",
+    metrics_gpu_backend="torch",
     cpu_monitored_pid=None,
 ) -> Tuple[Optional[float], Optional[str], Optional[float]]:
     "Run one step of the model, and return the peak memory in MB."

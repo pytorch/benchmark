@@ -94,13 +94,13 @@ def get_parser(args=None):
     )
     parser.add_argument(
         "--metrics-gpu-backend",
-        choices=["default", "nvml"],
-        default="default",
+        choices=["torch", "nvml"],
+        default="torch",
         help=(
-            "Specify the backend [default, nvml] to collect metrics. In all modes, the latency "
+            "Specify the backend [torch, nvml] to collect metrics. In all modes, the latency "
             "(execution time) is always collected using `time.time_ns()`. The CPU peak memory "
             "usage is collected by `psutil.Process()`. In nvml mode, the GPU peak memory usage "
-            "is collected by the `nvml` library. In default mode, the GPU peak memory usage is "
+            "is collected by the `nvml` library. In torch mode, the GPU peak memory usage is "
             "collected by `torch.cuda.max_memory_allocated()`."
         ),
     )

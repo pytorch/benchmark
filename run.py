@@ -477,15 +477,15 @@ def main() -> None:
     )
     parser.add_argument(
         "--metrics-gpu-backend",
-        choices=["dcgm", "default", "nvml"],
-        default="default",
+        choices=["torch", "nvml", "dcgm"],
+        default="torch",
         help="""
-        Specify the backend [dcgm, default, nvml] to collect metrics. In all modes,
+        Specify the backend [torch, nvml, dcgm] to collect metrics. In all modes,
         the latency (execution time) is always collected using `time.time_ns()`. The CPU
         and GPU peak memory usage metrics are optional. The CPU peak memory usage is
         collected by `psutil.Process()` in all modes. In nvml mode, the GPU peak memory
         usage is collected by the `nvml` library. In dcgm mode, the GPU peak memory usage is
-        collected by the `dcgm` library. In default mode, the GPU peak memory usage is collected
+        collected by the `dcgm` library. In torch mode, the GPU peak memory usage is collected
         by `torch.cuda.max_memory_allocated()`.
         """,
     )
