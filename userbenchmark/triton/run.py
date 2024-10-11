@@ -5,8 +5,8 @@ import tempfile
 from typing import List
 
 from torch import version as torch_version
-from torchbenchmark.operators import list_operators, load_opbench_by_name, OP_COLLECTION
-
+from torchbenchmark.operators import list_operators, load_opbench_by_name
+from torchbenchmark.operators_collection import list_operators_by_collection
 from torchbenchmark.util.triton_op import (
     BenchmarkOperatorResult,
     DEFAULT_RUN_ITERS,
@@ -37,10 +37,9 @@ def get_parser(args=None):
     )
     parser.add_argument(
         "--op-collection",
-        default=OP_COLLECTION.DEFAULT.value,
+        default="default",
         type=str,
-        help="Operator collections to benchmark. Split with comma. It is conflict with --op. Choices: "
-        + ",".join(op.value for op in OP_COLLECTION),
+        help="Operator collections to benchmark. Split with comma. It is conflict with --op. Choices: [default, liger, all]",
     )
     parser.add_argument(
         "--mode",
@@ -205,12 +204,7 @@ def run(args: List[str] = []):
     if args.op:
         ops = args.op.split(",")
     else:
-        op_collections = args.op_collection.split(",")
-        ops = [
-            op
-            for op_collection in op_collections
-            for op in list_operators(OP_COLLECTION(op_collection))
-        ]
+        ops = list_operators_by_collection(args.op_collection)
 
     with gpu_lockdown(args.gpu_lockdown):
         for op in ops:
