@@ -1050,6 +1050,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     def ncu_trace(
         self, input_id: int, fn_name: str, replay: bool = False, profile_ir=False
     ) -> str:
+        import shutil
         import subprocess
 
         # collect the ncu trace
@@ -1073,6 +1074,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 "_ncu_trace_in_task",
             ]
         )
+
         # Disable DCGM
         disable_dyno_dcgm = [
             "sudo",
@@ -1087,13 +1089,26 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             "stop",
             "nvidia-dcgm",
         ]
-        if (
-            subprocess.run(disable_dyno_dcgm).returncode != 0
-            and subprocess.run(disable_dcgm_service).returncode != 0
-        ):
-            warnings.warn(
-                "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
-            )
+
+        def service_exists(service_name):
+            try:
+                result = subprocess.run(
+                    ["systemctl", "status", service_name],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True,
+                )
+                return result.returncode == 0
+            except subprocess.CalledProcessError:
+                return False
+
+        if shutil.which("dyno") or service_exists("nvidia-dcgm"):
+            dyno_result = subprocess.run(disable_dyno_dcgm).returncode
+            systemctl_result = subprocess.run(disable_dcgm_service).returncode
+            if dyno_result != 0 and systemctl_result != 0:
+                warnings.warn(
+                    "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
+                )
         ncu_output_dir = self.get_temp_path(f"ncu_traces/{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
         ext = ".csv" if not replay else ".ncu-rep"

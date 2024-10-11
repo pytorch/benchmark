@@ -9,9 +9,48 @@ from userbenchmark.utils import get_default_output_json_path, get_output_json
 from . import BM_NAME
 from .run import _run, get_parser
 
-CI_TESTS = [
-    ["--op", "softmax", "--num-inputs", "10"],
-]
+CI_TESTS: Dict[str, List[str]] = {
+    # baseline: sdpa
+    "flash_attention": [
+        "--op",
+        "flash_attention",
+        "--d-head",
+        "128",
+        "--only",
+        "sdpa,triton_tutorial_flash_v2",
+    ],
+    "softmax": ["--op", "softmax", "--num-inputs", "10"],
+    "fp8_gemm": [
+        "--op",
+        "fp8_gemm",
+        "--llama",
+        "--only",
+        "torch_fp8_gemm, triton_fp8_gemm",
+    ],
+    "fp8_gemm_blockwise": [
+        "--op",
+        "fp8_gemm_blockwise",
+        "--llama",
+        "--only",
+        "_cutlass, _triton",
+    ],
+    "fp8_gemm_rowwise": [
+        "--op",
+        "fp8_gemm_rowwise",
+        "--llama",
+        "--only",
+        "_cutlass,_triton,_cublass",
+    ],
+    "gemm": [
+        "--op",
+        "gemm",
+        "--only",
+        "aten_matmul,pt2_cutlass_matmul,triton_tutorial_matmul",
+        "--precision",
+        "bf16",
+        "--llama",
+    ],
+}
 
 
 def ci_result_to_userbenchmark_json(
@@ -25,8 +64,8 @@ def ci_result_to_userbenchmark_json(
 
 def run_ci():
     ci_result = []
-    for test_opts in CI_TESTS:
-        logging.info(f"Running the test opts: {test_opts}")
+    for op, test_opts in CI_TESTS.items():
+        logging.info(f"Running the test opts: {op}")
         test_args, test_extra_args = get_parser(test_opts).parse_known_args(test_opts)
         metrics = _run(test_args, test_extra_args)
         ci_result.append(metrics)
