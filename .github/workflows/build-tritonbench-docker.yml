@@ -1,0 +1,62 @@
+name: TritonBench Nightly Docker Build
+on:
+  pull_request:
+    path:
+      - .github/workflows/build-tritonbench-docker.yml
+  schedule:
+    # Push the nightly docker daily at 3 PM UTC
+    - cron: '0 15 * * *'
+  workflow_dispatch:
+    inputs:
+      nightly_date:
+        description: "PyTorch nightly version"
+        required: false
+env:
+  WITH_PUSH: "true"
+  CONDA_ENV: "tritonbench"
+  DOCKER_IMAGE: "ghcr.io/pytorch/tritonbench:latest"
+  SETUP_SCRIPT: "/workspace/setup_instance.sh"
+
+jobs:
+  build-push-docker:
+    if: ${{ github.repository_owner == 'pytorch' }}
+    runs-on: [self-hosted, linux.4xlarge]
+    environment: docker-s3-upload
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: benchmark
+      - name: Login to GitHub Container Registry
+        if: ${{ env.WITH_PUSH == 'true' }}
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: pytorch
+          password: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+      - name: Build TritonBench nightly docker
+        run: |
+          set -x
+          export NIGHTLY_DATE="${{ github.event.inputs.nightly_date }}"
+          cd benchmark/docker
+          full_ref="${{ github.ref }}"
+          prefix="refs/heads/"
+          branch_name=${full_ref#$prefix}
+          docker build . --build-arg TRITONBENCH_BRANCH="${branch_name}" --build-arg FORCE_DATE="${NIGHTLY_DATE}" \
+              -f tritonbench-nightly.dockerfile -t ghcr.io/pytorch/tritonbench:latest
+          # Extract pytorch version from the docker
+          PYTORCH_VERSION=$(docker run -e SETUP_SCRIPT="${SETUP_SCRIPT}" ghcr.io/pytorch/tritonbench:latest bash -c '. "${SETUP_SCRIPT}"; python -c "import torch; print(torch.__version__)"')
+          export DOCKER_TAG=$(awk '{match($0, /dev[0-9]+/, arr); print arr[0]}' <<< "${PYTORCH_VERSION}")
+          docker tag ghcr.io/pytorch/tritonbench:latest ghcr.io/pytorch/tritonbench:${DOCKER_TAG}
+      - name: Push docker to remote
+        if: ${{ env.WITH_PUSH == 'true' }}
+        run: |
+          # Extract pytorch version from the docker
+          PYTORCH_VERSION=$(docker run -e SETUP_SCRIPT="${SETUP_SCRIPT}" ghcr.io/pytorch/tritonbench:latest bash -c '. "${SETUP_SCRIPT}"; python -c "import torch; print(torch.__version__)"')
+          export DOCKER_TAG=$(awk '{match($0, /dev[0-9]+/, arr); print arr[0]}' <<< "${PYTORCH_VERSION}")
+          docker push ghcr.io/pytorch/tritonbench:${DOCKER_TAG}
+          docker push ghcr.io/pytorch/tritonbench:latest
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true
