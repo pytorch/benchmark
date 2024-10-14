@@ -5,6 +5,7 @@ import tempfile
 from typing import List
 
 from torch import version as torch_version
+from torchbenchmark.operator_loader import load_opbench_by_name_from_loader
 from torchbenchmark.operators import load_opbench_by_name
 
 from torchbenchmark.util.triton_op import (
@@ -133,6 +134,12 @@ def get_parser(args=None):
         action="store_true",
         help="Lock down GPU frequency and clocks to avoid throttling.",
     )
+    parser.add_argument(
+        "--operator-loader",
+        action="store_true",
+        help="Benchmarking aten ops in torchbenchmark/operator_loader.",
+    )
+
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
 
@@ -145,7 +152,10 @@ def get_parser(args=None):
 
 
 def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorResult:
-    Opbench = load_opbench_by_name(args.op)
+    if args.operator_loader:
+        Opbench = load_opbench_by_name_from_loader(args)
+    else:
+        Opbench = load_opbench_by_name(args.op)
     if args.fwd_bwd:
         args.mode = "fwd_bwd"
     if args.bwd:
@@ -166,7 +176,10 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
         if not hasattr(torch_version, "git_version") and args.log_scuba:
             from .fb.utils import log_benchmark
 
-            log_benchmark(metrics, args.op)
+            if "hardware" in args:
+                log_benchmark(metrics, args.op, args.hardware)
+            else:
+                log_benchmark(metrics, args.op)
         if args.plot:
             try:
                 opbench.plot()
