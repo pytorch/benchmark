@@ -289,12 +289,13 @@ class BenchmarkOperatorResult:
                         if metric in metrics_dict["extra_metrics"]
                         else metrics_dict
                     )
-                    if isinstance(_metrics_dict[metric], list):
-                        row.append(numpy.median(_metrics_dict[metric]))
-                    elif isinstance(_metrics_dict[metric], bool):
-                        row.append(1.0 if _metrics_dict[metric] else 0.0)
+                    metric_val = _metrics_dict.get(metric, None)
+                    if isinstance(metric_val, list):
+                        row.append(numpy.median(metric_val))
+                    elif isinstance(metric_val, bool):
+                        row.append(1.0 if metric_val else 0.0)
                     else:
-                        row.append(_metrics_dict[metric])
+                        row.append(metric_val)
             table.append(row)
         return headers, table
 
