@@ -5,6 +5,7 @@ import tempfile
 from typing import List
 
 from torch import version as torch_version
+from torchbenchmark.operator_loader import load_opbench_by_name_from_loader
 from torchbenchmark.operators import load_opbench_by_name
 
 from torchbenchmark.util.triton_op import (
@@ -29,7 +30,12 @@ TRITON_BENCH_CSV_DUMP_PATH = tempfile.gettempdir() + "/tritonbench/"
 
 def get_parser(args=None):
     parser = argparse.ArgumentParser(allow_abbrev=False)
-    parser.add_argument("--op", type=str, required=False, help="Operator to benchmark.")
+    parser.add_argument(
+        "--op",
+        type=str,
+        required=False,
+        help="Operators to benchmark. Split with comma if multiple.",
+    )
     parser.add_argument(
         "--mode",
         choices=["fwd", "bwd", "fwd_bwd", "fwd_no_grad"],
@@ -128,6 +134,12 @@ def get_parser(args=None):
         action="store_true",
         help="Lock down GPU frequency and clocks to avoid throttling.",
     )
+    parser.add_argument(
+        "--operator-loader",
+        action="store_true",
+        help="Benchmarking aten ops in torchbenchmark/operator_loader.",
+    )
+
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
 
@@ -140,7 +152,10 @@ def get_parser(args=None):
 
 
 def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorResult:
-    Opbench = load_opbench_by_name(args.op)
+    if args.operator_loader:
+        Opbench = load_opbench_by_name_from_loader(args)
+    else:
+        Opbench = load_opbench_by_name(args.op)
     if args.fwd_bwd:
         args.mode = "fwd_bwd"
     if args.bwd:
@@ -159,9 +174,12 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
             else:
                 print(metrics)
         if not hasattr(torch_version, "git_version") and args.log_scuba:
-            from pytorch.benchmark.fb.run_utils import log_benchmark
+            from .fb.utils import log_benchmark
 
-            log_benchmark(metrics, args.op)
+            if "hardware" in args:
+                log_benchmark(metrics, args.op, args.hardware)
+            else:
+                log_benchmark(metrics, args.op)
         if args.plot:
             try:
                 opbench.plot()
@@ -188,5 +206,11 @@ def run(args: List[str] = []):
         run_ci()
         return
 
+    if args.op:
+        ops = args.op.split(",")
+    else:
+        ops = []
     with gpu_lockdown(args.gpu_lockdown):
-        _run(args, extra_args)
+        for op in ops:
+            args.op = op
+            _run(args, extra_args)

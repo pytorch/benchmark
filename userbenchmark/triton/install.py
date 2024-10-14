@@ -66,6 +66,13 @@ def install_fa3():
     subprocess.check_call(cmd, cwd=str(FA3_PATH.resolve()))
 
 
+def install_liger():
+    # Liger-kernel has a conflict dependency `triton` with pytorch,
+    # so we need to install it without dependencies
+    cmd = ["pip", "install", "liger-kernel", "--no-deps"]
+    subprocess.check_call(cmd)
+
+
 def install_tk():
     try:
         from .tk.install import install_tk
@@ -88,6 +95,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--jax", action="store_true", help="Install jax nightly")
     parser.add_argument("--tk", action="store_true", help="Install ThunderKittens")
+    parser.add_argument("--liger", action="store_true", help="Install Liger-kernel")
     parser.add_argument("--test", action="store_true", help="Run test")
     args = parser.parse_args()
 
@@ -105,3 +113,5 @@ if __name__ == "__main__":
         install_jax()
     if args.tk and not args.test:
         install_tk()
+    if args.liger and not args.test:
+        install_liger()

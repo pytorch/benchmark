@@ -38,7 +38,7 @@ class Operator(BenchmarkOperator):
         n_elements = x.numel()
         grid = lambda meta: (triton.cdiv(n_elements, meta["BLOCK_SIZE"]),)
 
-        x_keep = (torch.rand(size=(10,)) > p).to(torch.int32).cuda()
+        x_keep = (torch.rand(size=(n_elements,)) > p).to(torch.int32).cuda()
 
         def _inner():
             return _triton_dropout[grid](

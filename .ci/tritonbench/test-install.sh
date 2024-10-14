@@ -8,5 +8,5 @@ fi
 parent_dir=$(dirname "$(readlink -f "$0")")/../..
 cd ${parent_dir}
 
-# Test TritonBench
+# Test TritonBench installation
 python install.py --userbenchmark triton --fbgemm --test

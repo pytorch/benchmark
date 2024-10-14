@@ -27,6 +27,8 @@ class ScribeUploader:
         assert "time" in field_dict, "Missing required Scribe field 'time'"
         message = defaultdict(dict)
         for field, value in field_dict.items():
+            if value is None:
+                continue
             if field in self.schema["normal"]:
                 message["normal"][field] = str(value)
             elif field in self.schema["int"]:

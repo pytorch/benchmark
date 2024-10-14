@@ -1,5 +1,6 @@
 import argparse
 import copy
+import csv
 import functools
 import gc
 import json
@@ -22,6 +23,7 @@ import numpy
 import tabulate
 import torch
 import triton
+
 from torchbenchmark.util.env_check import fresh_triton_cache, set_random_seed
 from torchbenchmark.util.experiment.metrics import get_peak_memory
 from torchbenchmark.util.extra_args import apply_decoration_args, parse_decoration_args
@@ -106,6 +108,14 @@ def do_bench_walltime(fn, warmup=25, rep=100):
     return wall_time_ms
 
 
+def gemm_shapes():
+    """Gets an extensive list of GEMM shapes for benchmarking"""
+    input_file = os.path.join(os.path.dirname(__file__), "gemm_shapes.csv")
+    with open(input_file, "r") as f:
+        reader = csv.DictReader(f)
+        return [(int(row["M"]), int(row["N"]), int(row["K"])) for row in reader]
+
+
 def llama_shapes():
     # batch sizes * seq lengths
     BS = [2**i for i in range(0, 17)]
@@ -148,10 +158,15 @@ def _split_params_by_comma(params: Optional[str]) -> List[str]:
 
 def _find_op_name_from_module_path(module_path: str) -> str:
     PATH_PREFIX = "torchbenchmark.operators."
+    # We have a separate operator loader for aten operator benchmark.
+    PATH_PREFIX_LOADER = "torchbenchmark.operator_loader."
     assert (
-        PATH_PREFIX in module_path
+        PATH_PREFIX in module_path or PATH_PREFIX_LOADER in module_path
     ), f"We rely on module path prefix to identify operator name. Expected {PATH_PREFIX}<operator_name>, get {module_path}."
-    suffix = module_path.partition(PATH_PREFIX)[2]
+    if PATH_PREFIX_LOADER in module_path:
+        suffix = module_path.partition(PATH_PREFIX_LOADER)[2]
+    else:
+        suffix = module_path.partition(PATH_PREFIX)[2]
     if suffix.startswith("fb."):
         return suffix.split(".")[1]
     return suffix.split(".")[0]
@@ -177,6 +192,8 @@ class BenchmarkOperatorMetrics:
     ncu_rep: Optional[str] = None
     # ncu replay file with TTGIR line numbers
     ncu_rep_ir: Optional[str] = None
+    # nsys replay file
+    nsys_rep: Optional[str] = None
     # kineto trace file
     kineto_trace: Optional[str] = None
     # cpu peak memory
@@ -272,12 +289,13 @@ class BenchmarkOperatorResult:
                         if metric in metrics_dict["extra_metrics"]
                         else metrics_dict
                     )
-                    if isinstance(_metrics_dict[metric], list):
-                        row.append(numpy.median(_metrics_dict[metric]))
-                    elif isinstance(_metrics_dict[metric], bool):
-                        row.append(1.0 if _metrics_dict[metric] else 0.0)
+                    metric_val = _metrics_dict.get(metric, None)
+                    if isinstance(metric_val, list):
+                        row.append(numpy.median(metric_val))
+                    elif isinstance(metric_val, bool):
+                        row.append(1.0 if metric_val else 0.0)
                     else:
-                        row.append(_metrics_dict[metric])
+                        row.append(metric_val)
             table.append(row)
         return headers, table
 
@@ -387,6 +405,42 @@ def register_benchmark(
         return _inner
 
     return decorator
+
+
+def register_benchmark_mannually(
+    operator_name: str,
+    func_name: str,
+    baseline: bool = False,
+    enabled: bool = True,
+    label: Optional[str] = None,
+):
+    """
+    Manually register a benchmark function for a given operator.
+
+    Args:
+        operator_name (str): The name of the operator for which the benchmark is being registered.
+        func_name (str): The name of the benchmark function to register. eager or
+        inductor for aten op benchmark.
+        baseline (bool, optional): If True, this benchmark function is considered the baseline. Defaults to False.
+        enabled (bool, optional): If True, this benchmark function is enabled. Defaults to True.
+        label (Optional[str], optional): An optional label for the benchmark function. Defaults to None.
+
+    This function updates the global dictionaries REGISTERED_BENCHMARKS, BASELINE_BENCHMARKS,
+    and ENABLED_BENCHMARKS to include the new benchmark function. If the operator or function
+    is already registered, it updates the existing entries.
+
+    We need this manually register function because decorator doesn't work for
+    dynamically created classes (operator_loader/__init__.py).
+    """
+    if not operator_name in REGISTERED_BENCHMARKS:
+        REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
+    REGISTERED_BENCHMARKS[operator_name][func_name] = func_name if not label else label
+    if baseline:
+        BASELINE_BENCHMARKS[operator_name] = func_name
+    if enabled:
+        if not operator_name in ENABLED_BENCHMARKS:
+            ENABLED_BENCHMARKS[operator_name] = []
+        ENABLED_BENCHMARKS[operator_name].append(func_name)
 
 
 def register_metric(
@@ -859,6 +913,8 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 metrics.ncu_rep_ir = self.ncu_trace(
                     input_id, fn_name, replay=True, profile_ir=True
                 )
+            if "nsys_rep" in self.required_metrics:
+                metrics.nsys_rep = self.nsys_rep(input_id, fn_name)
             if "kineto_trace" in self.required_metrics:
                 metrics.kineto_trace = self.kineto_trace(input_id, fn)
             if "best_config" in self.required_metrics:
@@ -886,14 +942,33 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                     "_ncu_trace_in_task must be measured by itself. "
                     f"required_metrics: {self.required_metrics}, _only: {self._only}, _input_id: {self._input_id}"
                 )
-                from torchbenchmark._components.ncu import do_bench_ncu_in_task
+                from torchbenchmark._components.ncu import do_bench_in_task
 
-                do_bench_ncu_in_task(
+                do_bench_in_task(
                     fn=fn,
                     grad_to_none=self.get_grad_to_none(self.example_inputs),
                     range_name=_RANGE_NAME,
                 )
                 metrics.extra_metrics["_ncu_trace_in_task"] = "success"
+            if "_nsys_rep_in_task" in self.required_metrics:
+                assert (
+                    self.required_metrics == ["_nsys_rep_in_task"]
+                    and len(self._only) == 1
+                    and (self._input_id is not None)
+                ), (
+                    "_nsys_rep_in_task must be measured by itself. "
+                    f"required_metrics: {self.required_metrics}, _only: {self._only}, _input_id: {self._input_id}"
+                )
+                from torchbenchmark._components.ncu import do_bench_in_task
+
+                do_bench_in_task(
+                    fn=fn,
+                    grad_to_none=self.get_grad_to_none(self.example_inputs),
+                    range_name=_RANGE_NAME,
+                    warmup=True,
+                    use_cuda_profiler_range=True,
+                )
+                metrics.extra_metrics["_nsys_rep_in_task"] = "success"
             # generate customized metrics
             if self.name in REGISTERED_METRICS:
                 for metric_name in REGISTERED_METRICS[self.name]:
@@ -925,9 +1000,58 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             metrics_gpu_backend="nvml",
         )
 
+    def nsys_rep(self, input_id: int, fn_name: str) -> str:
+        import subprocess
+        import sys
+
+        op_task_args = [] if IS_FBCODE else [sys.executable]
+        op_task_args.extend(copy.deepcopy(sys.argv))
+        for override_option in ["--only", "--input-id", "--num-inputs", "--metrics"]:
+            op_task_args = _remove_params(
+                op_task_args, _find_param_loc(op_task_args, override_option)
+            )
+        op_task_args.extend(
+            [
+                "--only",
+                fn_name,
+                "--num-inputs",
+                str(1),
+                "--input-id",
+                str(input_id),
+                "--metrics",
+                "_nsys_rep_in_task",
+            ]
+        )
+        nsys_output_dir = self.get_temp_path(f"nsys_traces/{fn_name}_{input_id}")
+        nsys_output_dir.mkdir(parents=True, exist_ok=True)
+        ext = ".nsys-rep"
+        nsys_output_file = nsys_output_dir.joinpath(f"nsys_output{ext}").resolve()
+        nsys_trace_cmd = [
+            "nsys",
+            "profile",
+            "-c",
+            "cudaProfilerApi",
+            "-t",
+            "nvtx,osrt,cuda,cudnn,cublas",
+            "-w",
+            "true",
+            "-f",
+            "true",
+            "-o",
+            nsys_output_file,
+        ]
+        nsys_trace_cmd.extend(op_task_args)
+        try:
+            subprocess.check_call(nsys_trace_cmd)
+        except subprocess.CalledProcessError:
+            # FIXME: calling nsys on Tritonbench will throw SIGTERM with error code 143
+            pass
+        return str(nsys_output_file.resolve())
+
     def ncu_trace(
         self, input_id: int, fn_name: str, replay: bool = False, profile_ir=False
     ) -> str:
+        import shutil
         import subprocess
 
         # collect the ncu trace
@@ -951,6 +1075,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 "_ncu_trace_in_task",
             ]
         )
+
         # Disable DCGM
         disable_dyno_dcgm = [
             "sudo",
@@ -965,13 +1090,26 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             "stop",
             "nvidia-dcgm",
         ]
-        if (
-            subprocess.run(disable_dyno_dcgm).returncode != 0
-            and subprocess.run(disable_dcgm_service).returncode != 0
-        ):
-            warnings.warn(
-                "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
-            )
+
+        def service_exists(service_name):
+            try:
+                result = subprocess.run(
+                    ["systemctl", "status", service_name],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=True,
+                )
+                return result.returncode == 0
+            except subprocess.CalledProcessError:
+                return False
+
+        if shutil.which("dyno") or service_exists("nvidia-dcgm"):
+            dyno_result = subprocess.run(disable_dyno_dcgm).returncode
+            systemctl_result = subprocess.run(disable_dcgm_service).returncode
+            if dyno_result != 0 and systemctl_result != 0:
+                warnings.warn(
+                    "DCGM may not have been successfully disabled. Proceeding to collect NCU trace anyway..."
+                )
         ncu_output_dir = self.get_temp_path(f"ncu_traces/{fn_name}_{input_id}")
         ncu_output_dir.mkdir(parents=True, exist_ok=True)
         ext = ".csv" if not replay else ".ncu-rep"
