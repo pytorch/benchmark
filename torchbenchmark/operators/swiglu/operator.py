@@ -63,3 +63,6 @@ class Operator(BenchmarkOperator):
         y = fwd_fn()
         do = torch.randn_like(y)
         return lambda: y.backward(do, retain_graph=True)
+
+    def get_grad_to_none(self, args) -> List[torch.Tensor]:
+        return [args[0]]
