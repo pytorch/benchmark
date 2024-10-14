@@ -61,5 +61,5 @@ class Operator(BenchmarkOperator):
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()
-        # TODO: we should get rid of this randn_like
-        return lambda: y.backward(torch.randn_like(y), retain_graph=True)
+        do = torch.randn_like(y)
+        return lambda: y.backward(do, retain_graph=True)
