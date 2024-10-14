@@ -137,22 +137,34 @@ def read_ncu_report(report_path: str, required_metrics: List[str]):
         kernel = default_range.action_by_idx(i)
         duration = get_duration(kernel)
         if "memory_traffic" in required_metrics:
-            results["memory_traffic"].append(get_mem_traffic(kernel))
+            results["memory_traffic_raw"].append(get_mem_traffic(kernel))
         if "arithmetic_intensity" in required_metrics:
             fp32_ai, fp64_ai = get_arithmetic_intensity(kernel)
             weighted_fp32_ai_sum += fp32_ai * duration
             weighted_fp64_ai_sum += fp64_ai * duration
-            results["arithmetic_intensity"].append((fp32_ai, fp64_ai))
+            # do not use the arithmetic_intensity_raw in benchmark metric argument
+            # because metric printer will only print the first element of the list
+            results["arithmetic_intensity_raw"].append((fp32_ai, fp64_ai))
             results["durations"].append(duration)
         total_duration += duration
-    memory_traffic_read = [item[0] for item in results["memory_traffic"]]
-    memory_traffic_write = [item[1] for item in results["memory_traffic"]]
-    results["memory_traffic_read_sum"] = sum(memory_traffic_read)
-    results["memory_traffic_write_sum"] = sum(memory_traffic_write)
-    results["weighted_fp32_arithmetic_intensity"] = (
-        weighted_fp32_ai_sum / total_duration
-    )
-    results["weighted_fp64_arithmetic_intensity"] = (
-        weighted_fp64_ai_sum / total_duration
-    )
+    if "memory_traffic" in required_metrics:
+        memory_traffic_read = [item[0] for item in results["memory_traffic_raw"]]
+        memory_traffic_write = [item[1] for item in results["memory_traffic_raw"]]
+        results["memory_traffic_read_sum"] = sum(memory_traffic_read)
+        results["memory_traffic_write_sum"] = sum(memory_traffic_write)
+        results["memory_traffic"] = (
+            results["memory_traffic_read_sum"],
+            results["memory_traffic_write_sum"],
+        )
+    if "arithmetic_intensity" in required_metrics:
+        results["weighted_fp32_arithmetic_intensity"] = (
+            weighted_fp32_ai_sum / total_duration
+        )
+        results["weighted_fp64_arithmetic_intensity"] = (
+            weighted_fp64_ai_sum / total_duration
+        )
+        results["arithmetic_intensity"] = (
+            results["weighted_fp32_arithmetic_intensity"],
+            results["weighted_fp64_arithmetic_intensity"],
+        )
     return results

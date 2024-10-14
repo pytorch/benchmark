@@ -875,11 +875,11 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 if bench_metric in self.required_metrics
                 for short_ncu_metric in short_ncu_metrics
             ]
-            if "ncu_rep" in self.required_metrics:
-                if ncu_metrics:
-                    extend_ncu_args = ["--metrics", ",".join(ncu_metrics)]
-                else:
-                    extend_ncu_args = None
+            if ncu_metrics:
+                extend_ncu_args = ["--metrics", ",".join(ncu_metrics)]
+            else:
+                extend_ncu_args = None
+            if ncu_metrics or "ncu_rep" in self.required_metrics:
                 metrics.ncu_rep = self.ncu_trace(
                     input_id, fn_name, replay=True, extend_ncu_args=extend_ncu_args
                 )
