@@ -2,11 +2,10 @@ import argparse
 from typing import Callable, Generator, List, Optional
 
 import torch
-
+from torchbenchmark.util.triton_op import BenchmarkOperator, register_benchmark
 from transformers.models.llama.configuration_llama import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaMLP
 
-from torchbenchmark.util.triton_op import BenchmarkOperator, register_benchmark
 
 try:
     from liger_kernel.transformers.geglu import LigerGEGLUMLP
