@@ -70,7 +70,6 @@ class Operator(BenchmarkOperator):
     def __init__(self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None):
         super().__init__(tb_args, extra_args)
         self.model = Model()
-        self.model2 = Model2()
 
     def get_input_iter(self) -> Generator:
         for i in range(10):
