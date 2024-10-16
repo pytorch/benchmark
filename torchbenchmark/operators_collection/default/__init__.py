@@ -1,32 +1,28 @@
-default_operators = [
-    "addmm",
-    "bf16xint16_gemm",
-    "flash_attention",
-    "fp8_attention",
-    "fp8_fused_quant_gemm_rowwise",
-    "fp8_gemm",
-    "fp8_gemm_blockwise",
-    "fp8_gemm_rowwise",
-    "gather_gemv",
-    "gemm",
-    "grouped_gemm",
-    "int4_gemm",
-    "jagged_layer_norm",
-    "jagged_mean",
-    "jagged_softmax",
-    "jagged_sum",
-    "launch_latency",
-    "layer_norm",
-    "low_mem_dropout",
-    "ragged_attention",
-    "softmax",
-    "sum",
-    "template_attention",
-    "test_op",
-    "vector_add",
-    "welford",
-]
+from torchbenchmark.operators_collection.all import get_operators as get_all_operators
+from torchbenchmark.operators_collection.liger import (
+    get_operators as get_liger_operators,
+)
 
 
 def get_operators():
-    return default_operators
+    """
+    Retrieve the list of operators for the default collection.
+
+    This function retrieves the list of operators for the default collection by
+    comparing the operators from the 'all' collection and the 'liger' collection.
+    It returns a list of operators that are present in the 'all' collection but
+    not in the 'liger' collection.
+
+    In the future, if we add more operator collections, we will need to update
+    this function to exclude desired operators in other collections.
+
+    other_collections = list_operator_collections()
+    to_remove = set(other_collections).union(liger_operators)
+    return [item for item in all_operators if item not in to_remove]
+
+    Returns:
+        List[str]: A list of operator names for the default collection.
+    """
+    all_operators = get_all_operators()
+    liger_operators = get_liger_operators()
+    return [item for item in all_operators if item not in liger_operators]
