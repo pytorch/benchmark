@@ -24,6 +24,7 @@ import tabulate
 import torch
 import triton
 
+from torchbenchmark._components.ncu import analyzer as ncu_analyzer
 from torchbenchmark.util.env_check import fresh_triton_cache, set_random_seed
 from torchbenchmark.util.experiment.metrics import get_peak_memory
 from torchbenchmark.util.extra_args import apply_decoration_args, parse_decoration_args
@@ -907,8 +908,30 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 metrics.compile_time = self.compile_time(input_id, fn_name, metrics)
             if "ncu_trace" in self.required_metrics:
                 metrics.ncu_trace = self.ncu_trace(input_id, fn_name)
-            if "ncu_rep" in self.required_metrics:
-                metrics.ncu_rep = self.ncu_trace(input_id, fn_name, replay=True)
+            # Collect NCU metrics if any required metrics match the ncu analyzer
+            # metrics. Only profile with the necessary metrics to avoid excessive
+            # overhead.
+            ncu_metrics = [
+                ncu_analyzer.short_ncu_metric_name[short_ncu_metric]
+                for bench_metric, short_ncu_metrics in ncu_analyzer.bench_metric_to_short_ncu_metric.items()
+                if bench_metric in self.required_metrics
+                for short_ncu_metric in short_ncu_metrics
+            ]
+            if ncu_metrics:
+                extend_ncu_args = ["--metrics", ",".join(ncu_metrics)]
+            else:
+                extend_ncu_args = None
+            if ncu_metrics or "ncu_rep" in self.required_metrics:
+                metrics.ncu_rep = self.ncu_trace(
+                    input_id, fn_name, replay=True, extend_ncu_args=extend_ncu_args
+                )
+            # Read and update NCU metrics if any required metrics match the NCU metrics
+            if ncu_metrics:
+                ncu_analyzer_results = ncu_analyzer.read_ncu_report(
+                    metrics.ncu_rep, self.required_metrics
+                )
+                for metric_name, metric_value in ncu_analyzer_results.items():
+                    metrics.extra_metrics[metric_name] = metric_value
             if "ncu_rep_ir" in self.required_metrics:
                 metrics.ncu_rep_ir = self.ncu_trace(
                     input_id, fn_name, replay=True, profile_ir=True
@@ -1049,7 +1072,12 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         return str(nsys_output_file.resolve())
 
     def ncu_trace(
-        self, input_id: int, fn_name: str, replay: bool = False, profile_ir=False
+        self,
+        input_id: int,
+        fn_name: str,
+        replay: bool = False,
+        profile_ir=False,
+        extend_ncu_args: List[str] = None,
     ) -> str:
         import shutil
         import subprocess
@@ -1057,6 +1085,10 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         # collect the ncu trace
         import sys
 
+        extend_ncu_args = extend_ncu_args or [
+            "--set",
+            "full",
+        ]
         op_task_args = [] if IS_FBCODE else [sys.executable]
         op_task_args.extend(copy.deepcopy(sys.argv))
         for override_option in ["--only", "--input-id", "--num-inputs", "--metrics"]:
@@ -1118,8 +1150,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         ).resolve()
         ncu_args = [
             "ncu",
-            "--set",
-            "full",
             "--nvtx",
             "--nvtx-include",
             f"{_RANGE_NAME}/",
@@ -1128,6 +1158,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             "--import-source",
             "yes",
         ]
+        ncu_args.extend(extend_ncu_args)
         if replay:
             ncu_args.extend(
                 [
