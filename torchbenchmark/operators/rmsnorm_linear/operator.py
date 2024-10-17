@@ -1,0 +1,2 @@
+class Operator(BenchmarkOperator):
+    pass
