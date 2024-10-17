@@ -8,10 +8,12 @@ import torch
 import triton
 
 try:
-    from gen_ai.llm_inference.fb.llm.llama_layers import (
-        quantize_fp8_row,
+    from fbgemm_gpu.experimental.gemm.triton_gemm.fp8_gemm import quantize_fp8_row
+    from gen_ai.llm_inference.fb.llm.kernel.rms_norm import (
         rms_norm,
         rms_norm_fp8_rowwise_quant,
+    )
+    from gen_ai.llm_inference.fb.llm.kernel.silu_mul import (
         silu_mul,
         silu_mul_fp8_rowwise_quant,
     )
@@ -120,8 +122,7 @@ class Operator(BenchmarkOperator):
     @register_benchmark(enabled=HAS_FB_IMPORT)
     def silu_mul_quant(self, x1, x2, wq, w_scale, wd) -> Callable:
         def _impl(x1, x2, wq, w_scale, wd):
-            y = torch.empty_like(x1)
-            x = silu_mul(x1, x2, y)
+            x = silu_mul(x1, x2)
             xq, x_scale = quantize_fp8_row(x, use_triton=True)
             if torch.version.hip:
                 # use CK kernel for AMD
