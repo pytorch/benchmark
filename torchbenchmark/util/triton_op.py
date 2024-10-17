@@ -491,7 +491,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
     _input_iter: Optional[Generator] = None
     extra_args: List[str] = []
     example_inputs: Any = None
-    use_cuda_graphs: bool = True
+    use_cuda_graphs: bool = False
 
     """
     A base class for adding operators to torch benchmark.
