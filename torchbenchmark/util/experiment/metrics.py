@@ -4,11 +4,15 @@ Utilities to measure metrics of a model.
 
 import copy
 import dataclasses
+import os
 import pathlib
 import time
 from typing import List, Optional, Tuple, Union
 
+import psutil
+
 import torch
+
 from torchbenchmark import ModelTask
 from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig
 from torchbenchmark.util.model import BenchmarkModel
@@ -29,6 +33,11 @@ class TorchBenchModelMetrics:
     pt2_compilation_time: Optional[float]
     pt2_graph_breaks: Optional[float]
     model_flops: Optional[float]
+
+
+def maybe_synchronize(device: str):
+    if device == "cuda":
+        torch.cuda.synchronize()
 
 
 def get_latencies(
@@ -62,14 +71,10 @@ def get_peak_memory(
     num_iter=MEMPROF_ITER,
     export_metrics_file="",
     metrics_needed=[],
-    metrics_gpu_backend="dcgm",
+    metrics_gpu_backend="torch",
     cpu_monitored_pid=None,
 ) -> Tuple[Optional[float], Optional[str], Optional[float]]:
     "Run one step of the model, and return the peak memory in MB."
-    from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
-        ModelAnalyzer,
-    )
-
     new_metrics_needed = [
         _ for _ in metrics_needed if _ in ["cpu_peak_mem", "gpu_peak_mem"]
     ]
@@ -77,10 +82,19 @@ def get_peak_memory(
         raise ValueError(
             f"Expected metrics_needed to be non-empty, get: {metrics_needed}"
         )
-    mem_model_analyzer = ModelAnalyzer(
-        export_metrics_file, new_metrics_needed, metrics_gpu_backend, cpu_monitored_pid
-    )
-    continue_num_iter = BENCHMARK_ITERS - num_iter
+    if metrics_gpu_backend in ["dcgm", "nvml"]:
+        from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
+            ModelAnalyzer,
+        )
+
+        mem_model_analyzer = ModelAnalyzer(
+            export_metrics_file,
+            new_metrics_needed,
+            metrics_gpu_backend,
+            cpu_monitored_pid,
+        )
+    else:
+        mem_model_analyzer = None
 
     def work_func():
         if device == "cuda":
@@ -99,22 +113,37 @@ def get_peak_memory(
         num_iter = BENCHMARK_ITERS
     else:
         num_iter = MEMPROF_ITER
-    mem_model_analyzer.start_monitor()
 
-    for _i in range(num_iter):
-        work_func()
-    mem_model_analyzer.stop_monitor()
-    mem_model_analyzer.aggregate()
     device_id = None
     gpu_peak_mem = None
     cpu_peak_mem = None
-    if "gpu_peak_mem" in metrics_needed:
-        device_id, gpu_peak_mem = mem_model_analyzer.calculate_gpu_peak_mem()
-    if "cpu_peak_mem" in metrics_needed:
-        cpu_peak_mem = mem_model_analyzer.calculate_cpu_peak_mem()
-    if export_metrics_file:
-        mem_model_analyzer.update_export_name("_peak_memory")
-        mem_model_analyzer.export_all_records_to_csv()
+
+    if mem_model_analyzer:
+        mem_model_analyzer.start_monitor()
+        for _i in range(num_iter):
+            work_func()
+        mem_model_analyzer.stop_monitor()
+        mem_model_analyzer.aggregate()
+
+        if "gpu_peak_mem" in metrics_needed:
+            device_id, gpu_peak_mem = mem_model_analyzer.calculate_gpu_peak_mem()
+        if "cpu_peak_mem" in metrics_needed:
+            cpu_peak_mem = mem_model_analyzer.calculate_cpu_peak_mem()
+        if export_metrics_file:
+            mem_model_analyzer.update_export_name("_peak_memory")
+            mem_model_analyzer.export_all_records_to_csv()
+    else:
+        if device == "cuda":
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.empty_cache()
+        for _ in range(num_iter):
+            work_func()
+        if device == "cuda":
+            device_id = torch.cuda.current_device()
+            gpu_peak_mem = torch.cuda.max_memory_allocated() / 10**9
+        total = psutil.virtual_memory().total
+        percentage = psutil.Process(os.getpid()).memory_percent()
+        cpu_peak_mem = percentage * total / 10**9
     return cpu_peak_mem, device_id, gpu_peak_mem
 
 

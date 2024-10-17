@@ -149,10 +149,11 @@ class Operator(BenchmarkOperator):
 
     @register_benchmark()
     def matmul_partition_k(self, a, b, bias) -> Callable:
+        bc = b.contiguous()
         if not bias == None:
-            return lambda: matmul_partition_k(a, b) + bias
+            return lambda: matmul_partition_k(a, bc) + bias
         else:
-            return lambda: matmul_partition_k(a, b)
+            return lambda: matmul_partition_k(a, bc)
 
     @register_benchmark()
     def triton_persistent_matmul(self, a, b, bias) -> Callable:
@@ -161,7 +162,7 @@ class Operator(BenchmarkOperator):
         else:
             return lambda: matmul_persistent(a, b)
 
-    @register_benchmark(enabled=not IS_FBCODE)
+    @register_benchmark(ci=not IS_FBCODE)
     def triton_tma_persistent_matmul(self, a, b, bias) -> Callable:
         b = b.T.contiguous()
         if not bias == None:
@@ -169,7 +170,7 @@ class Operator(BenchmarkOperator):
         else:
             return lambda: matmul_tma_persistent(a, b)
 
-    @register_benchmark(enabled=not IS_FBCODE)
+    @register_benchmark(ci=not IS_FBCODE)
     def triton_tma_persistent_cached_matmul(self, a, b, bias) -> Callable:
         b = b.T.contiguous()
         if not bias == None:
@@ -197,7 +198,7 @@ class Operator(BenchmarkOperator):
         else:
             return lambda: hstu_triton_matmul(a, b)
 
-    @register_benchmark(enabled=bool(colfax_gemm))
+    @register_benchmark(ci=False)  # colfax_cutlass build is broken on CUDA 12.4
     def colfax_cutlass_matmul(self, a, b, bias) -> Callable:
         assert colfax_gemm, f"colfax_gemm operator is not available."
         if not bias == None:

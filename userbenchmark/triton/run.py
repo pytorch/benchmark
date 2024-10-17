@@ -7,6 +7,7 @@ from typing import List
 from torch import version as torch_version
 from torchbenchmark.operator_loader import load_opbench_by_name_from_loader
 from torchbenchmark.operators import load_opbench_by_name
+from torchbenchmark.operators_collection import list_operators_by_collection
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperatorResult,
@@ -35,6 +36,13 @@ def get_parser(args=None):
         type=str,
         required=False,
         help="Operators to benchmark. Split with comma if multiple.",
+    )
+    parser.add_argument(
+        "--op-collection",
+        default="default",
+        type=str,
+        help="Operator collections to benchmark. Split with comma."
+        " It is conflict with --op. Choices: [default, liger, all]",
     )
     parser.add_argument(
         "--mode",
@@ -94,6 +102,18 @@ def get_parser(args=None):
         help="Metrics to collect, split with comma. E.g., --metrics latency,tflops,speedup.",
     )
     parser.add_argument(
+        "--metrics-gpu-backend",
+        choices=["torch", "nvml"],
+        default="torch",
+        help=(
+            "Specify the backend [torch, nvml] to collect metrics. In all modes, the latency "
+            "(execution time) is always collected using `time.time_ns()`. The CPU peak memory "
+            "usage is collected by `psutil.Process()`. In nvml mode, the GPU peak memory usage "
+            "is collected by the `nvml` library. In torch mode, the GPU peak memory usage is "
+            "collected by `torch.cuda.max_memory_allocated()`."
+        ),
+    )
+    parser.add_argument(
         "--only",
         default=None,
         help="Specify one or multiple operator implementations to run.",
@@ -146,8 +166,10 @@ def get_parser(args=None):
     args, extra_args = parser.parse_known_args(args)
     if args.op and args.ci:
         parser.error("cannot specify operator when in CI mode")
-    elif not args.op and not args.ci:
-        parser.error("must specify operator when not in CI mode")
+    if not args.op and not args.op_collection:
+        print(
+            "Neither operator nor operator collection is specified. Running all operators in the default collection."
+        )
     return parser
 
 
@@ -209,7 +231,8 @@ def run(args: List[str] = []):
     if args.op:
         ops = args.op.split(",")
     else:
-        ops = []
+        ops = list_operators_by_collection(args.op_collection)
+
     with gpu_lockdown(args.gpu_lockdown):
         for op in ops:
             args.op = op
