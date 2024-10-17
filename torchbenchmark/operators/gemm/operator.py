@@ -149,10 +149,11 @@ class Operator(BenchmarkOperator):
 
     @register_benchmark()
     def matmul_partition_k(self, a, b, bias) -> Callable:
+        bc = b.contiguous()
         if not bias == None:
-            return lambda: matmul_partition_k(a, b) + bias
+            return lambda: matmul_partition_k(a, bc) + bias
         else:
-            return lambda: matmul_partition_k(a, b)
+            return lambda: matmul_partition_k(a, bc)
 
     @register_benchmark()
     def triton_persistent_matmul(self, a, b, bias) -> Callable:
