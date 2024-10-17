@@ -22,3 +22,6 @@
 [submodule "submodules/generative-recommenders"]
 	path = submodules/generative-recommenders
 	url = https://github.com/facebookresearch/generative-recommenders.git
+[submodule "submodules/mirage"]
+	path = submodules/mirage
+	url = https://github.com/mirage-project/mirage.git
