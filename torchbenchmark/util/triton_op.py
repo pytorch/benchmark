@@ -37,11 +37,27 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
+@dataclass
+class BenchmarkOperatorBackend:
+    # backend name
+    name: str
+    # backend label
+    label: str
+    # baseline
+    baseline: bool = False
+    # enabled
+    enabled: bool = True
+    # need to be tested in ci
+    # ci = False implies enabled = False
+    ci: bool = True
+
+
 IS_FBCODE = not hasattr(torch.version, "git_version")
 DEFAULT_WARMUP = 25
 DEFAULT_RUN_ITERS = 100
 DEFAULT_QUANTILES = [0.5, 0.1, 0.9]
-REGISTERED_BENCHMARKS: Dict[str, OrderedDict[str, str]] = {}
+REGISTERED_BENCHMARKS: Dict[str, OrderedDict[str, BenchmarkOperatorBackend]] = {}
 ENABLED_BENCHMARKS: Dict[str, List[str]] = {}
 REGISTERED_METRICS: Dict[str, List[str]] = {}
 REGISTERED_X_VALS: Dict[str, str] = {}
@@ -220,6 +236,7 @@ class BenchmarkOperatorResult:
     op_name: str
     op_mode: str
     metrics: List[str]
+    # Tuple: (x_val, Dict[impl_name, BenchmarkOperatorMetrics])
     result: List[Tuple[Any, Dict[str, BenchmarkOperatorMetrics]]]
     _result_dict: Optional[Dict[Number, Dict[str, BenchmarkOperatorMetrics]]] = None
 
@@ -230,47 +247,48 @@ class BenchmarkOperatorResult:
         if len(self.result) == 0:
             return headers, table
         y_val = self.result[0][1]
-        y_val_keys = list(y_val.keys())
+        backends = list(y_val.keys())
         # move the baseline benchmark to the front of the list if exists
         if (
             self.op_name in BASELINE_BENCHMARKS
-            and BASELINE_BENCHMARKS[self.op_name] in y_val_keys
+            and BASELINE_BENCHMARKS[self.op_name] in backends
         ):
-            y_val_keys.insert(
-                0, y_val_keys.pop(y_val_keys.index(BASELINE_BENCHMARKS[self.op_name]))
+            backends.insert(
+                0, backends.pop(backends.index(BASELINE_BENCHMARKS[self.op_name]))
             )
-        y_val_keys = [(x, REGISTERED_BENCHMARKS[self.op_name][x]) for x in y_val_keys]
         key_metrics = {}
         # Add header for x_only_metrics
         x_only_metrics = sorted(
             [metric for metric in self.metrics if metric in X_ONLY_METRICS]
         )
         headers.extend(x_only_metrics)
-        for k, label in y_val_keys:
+        for backend in backends:
+            label = REGISTERED_BENCHMARKS[self.op_name][backend].label
 
-            def select_metric(m):
+            def select_metric(backend, m):
                 if m in x_only_metrics:
                     return False
                 if (
                     m in BASELINE_SKIP_METRICS
-                    and k == BASELINE_BENCHMARKS[self.op_name]
+                    and backend == BASELINE_BENCHMARKS[self.op_name]
                 ):
                     return False
                 return True
 
-            key_metrics[k] = sorted(filter(select_metric, self.metrics))
-            for metric in key_metrics[k]:
+            key_metrics[backend] = [
+                metric for metric in self.metrics if select_metric(backend, metric)
+            ]
+            for metric in key_metrics[backend]:
                 # add extra metrics
                 headers.append(f"{label}-{metric}")
         # generate rows
         for x_val, y_val in self.result:
             row = []
             row.append(x_val)
-            # Append x_val_only metrics
+            # Append x_only metrics
             for x_only_metric in x_only_metrics:
-                x_only_metric_dict = asdict(
-                    y_val[y_val_keys[0][0]]
-                )  # retrieve canonical name for metric function, where y_val_keys[0] = (canonical name, customized label name)
+                # retrieve x_only metrics from the first backend metrics
+                x_only_metric_dict = asdict(y_val[backends[0]])
                 if (
                     "extra_metrics" in x_only_metric_dict
                     and x_only_metric in x_only_metric_dict["extra_metrics"]
@@ -278,13 +296,13 @@ class BenchmarkOperatorResult:
                     row.append(x_only_metric_dict["extra_metrics"][x_only_metric])
                 else:
                     row.append(x_only_metric_dict[x_only_metric])
-            for k, _label in y_val_keys:
-                metrics_dict = asdict(y_val[k])
+            for backend in backends:
+                metrics_dict = asdict(y_val[backend])
                 if metrics_dict["error_msg"]:
                     row.append(metrics_dict["error_msg"])
-                    row.extend([None] * (len(key_metrics[k]) - 1))
+                    row.extend([None] * (len(key_metrics[backend]) - 1))
                     continue
-                for metric in key_metrics[k]:
+                for metric in key_metrics[backend]:
                     _metrics_dict = (
                         metrics_dict["extra_metrics"]
                         if metric in metrics_dict["extra_metrics"]
@@ -384,18 +402,26 @@ def register_x_val(label: str = "x_val"):
 
 
 def register_benchmark(
-    baseline: bool = False, enabled: bool = True, label: Optional[str] = None
+    baseline: bool = False,
+    enabled: bool = True,
+    ci: bool = True,
+    label: Optional[str] = None,
 ):
     def decorator(function):
         operator_name = _find_op_name_from_module_path(function.__module__)
+        backend_config = BenchmarkOperatorBackend(
+            name=function.__name__,
+            label=label if label else function.__name__,
+            baseline=baseline,
+            enabled=enabled if ci else False,
+            ci=ci,
+        )
         if not operator_name in REGISTERED_BENCHMARKS:
             REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
-        REGISTERED_BENCHMARKS[operator_name][function.__name__] = (
-            function.__name__ if not label else label
-        )
-        if baseline:
+        REGISTERED_BENCHMARKS[operator_name][function.__name__] = backend_config
+        if backend_config.baseline:
             BASELINE_BENCHMARKS[operator_name] = function.__name__
-        if enabled:
+        if backend_config.enabled:
             if not operator_name in ENABLED_BENCHMARKS:
                 ENABLED_BENCHMARKS[operator_name] = []
             ENABLED_BENCHMARKS[operator_name].append(function.__name__)
@@ -414,6 +440,7 @@ def register_benchmark_mannually(
     baseline: bool = False,
     enabled: bool = True,
     label: Optional[str] = None,
+    ci: bool = True,
 ):
     """
     Manually register a benchmark function for a given operator.
@@ -435,7 +462,13 @@ def register_benchmark_mannually(
     """
     if not operator_name in REGISTERED_BENCHMARKS:
         REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
-    REGISTERED_BENCHMARKS[operator_name][func_name] = func_name if not label else label
+    REGISTERED_BENCHMARKS[operator_name][func_name] = BenchmarkOperatorBackend(
+        name=function.__name__,
+        label=label if label else function.__name__,
+        baseline=baseline,
+        enabled=enabled,
+        ci=ci,
+    )
     if baseline:
         BASELINE_BENCHMARKS[operator_name] = func_name
     if enabled:

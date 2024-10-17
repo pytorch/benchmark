@@ -17,10 +17,12 @@ try:
         silu_mul,
         silu_mul_fp8_rowwise_quant,
     )
+    from gen_ai.llm_inference.fb.llm.quantization.quantize import quantize_fp8_row
 
     HAS_FB_IMPORT = True
 except ImportError:
     HAS_FB_IMPORT = False
+
 
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
@@ -33,7 +35,7 @@ from torchbenchmark.util.triton_op import (
 
 def parse_args(args: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="TorchBench FP8 fused quant gemm rowwise operator Benchmark"
+        description="Tritonbench FP8 fused quant gemm rowwise operator Benchmark"
     )
     parser.add_argument("--m", type=int)
     parser.add_argument("--n", type=int)
