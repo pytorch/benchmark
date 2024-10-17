@@ -16,7 +16,7 @@ class Operator(BenchmarkOperator):
 
     DEFAULT_PRECISION = "fp16"
 
-    def __init__(self):
+    def __init__(self, tb_args, extra_args):
         if HAS_MIRAGE:
             self.mirage_optimized_graph = self._get_mi_optimized_graph()
         self.baseline = self._get_baseline()
@@ -29,9 +29,9 @@ class Operator(BenchmarkOperator):
         W2 = graph.new_input(dims=(4096, 4096), dtype=mi.float16)
         D1 = graph.matmul(X, W1)
         D2 = graph.matmul(X, W2)
-        O = graph.mul(graph.silu(D1, D2))
+        O = graph.mul(graph.silu(D1), graph.silu(D2))
         graph.mark_output(O)
-        optimized_graph = mi.superoptimize(graph)
+        optimized_graph = graph.superoptimize()
         return optimized_graph
 
 
