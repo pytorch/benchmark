@@ -351,13 +351,23 @@ class BenchmarkOperatorResult:
         # tritonbench_{op_name}_{op_mode}[{x_val}-{provider}-{metric}]
         userbenchmark_metrics_dict = {}
         headers, table = self._table()
+        num_rows = len(table)
+        agg_data = {}
         for row in table:
             x_val = row[0]
+
             for ind, value in enumerate(row[1:]):
                 header = headers[ind + 1]
                 provider, _dash, metrics = header.partition("-")
                 metric_name = f"tritonbench_{self.op_name}_{self.op_mode}[x_{x_val}-{provider}]_{metrics}"
                 userbenchmark_metrics_dict[metric_name] = value
+                agg_metric_name = (
+                    f"tritonbench_{self.op_name}_{self.op_mode}[{provider}]_{metrics}"
+                )
+                agg_data[agg_metric_name] = agg_data.get(agg_metric_name, 0) + value
+        final_agg_data = {k: v / num_rows for k, v in agg_data.items()}
+        userbenchmark_metrics_dict.update(final_agg_data)
+
         return userbenchmark_metrics_dict
 
     def get_y_vals(self, x_val, provider, metric_name: str):
