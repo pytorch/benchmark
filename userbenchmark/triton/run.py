@@ -159,6 +159,12 @@ def get_parser(args=None):
         action="store_true",
         help="Benchmarking aten ops in torchbenchmark/operator_loader.",
     )
+    parser.add_argument(
+        "--logging-name",
+        type=str,
+        default=None,
+        help="Override default name for logging in scuba.",
+    )
 
     if not hasattr(torch_version, "git_version"):
         parser.add_argument("--log-scuba", action="store_true", help="Log to scuba.")
@@ -199,9 +205,11 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
             from .fb.utils import log_benchmark
 
             if "hardware" in args:
-                log_benchmark(metrics, args.op, args.hardware)
+                log_benchmark(
+                    metrics, args.op, args.hardware, logging_op_name=args.logging_name
+                )
             else:
-                log_benchmark(metrics, args.op)
+                log_benchmark(metrics, args.op, logging_op_name=args.logging_name)
         if args.plot:
             try:
                 opbench.plot()
