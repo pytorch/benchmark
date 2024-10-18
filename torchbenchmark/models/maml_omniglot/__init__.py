@@ -18,7 +18,6 @@
 
 from pathlib import Path
 from typing import Tuple
-from unittest.result import TestResult
 
 import higher
 import numpy as np 
