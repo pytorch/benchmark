@@ -82,7 +82,7 @@ class Model(BenchmarkModel):
             np.dtypes.Float32DType,
             np.dtypes.Int64DType,
         ]):
-            self.meta_inputs = torch.load(f"{root}/maml_omniglot/batch.pt", weights_only=True)
+            self.meta_inputs = torch.load(f"{root}/maml_omniglot/batch.pt")
         self.meta_inputs = tuple(
             [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]
         )
