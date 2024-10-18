@@ -34,7 +34,7 @@ def _get_ci_args(
 
 
 def _get_full_ci_args(modelset: str) -> List[List[str]]:
-    backends = ["autoquant", "int8dynamic", "int8weightonly", "noquant"]
+    backends = ["autoquant", "noquant"]
     modelset = [modelset]
     dtype = ["bfloat16"]
     mode = ["inference"]
@@ -91,6 +91,8 @@ def run(args: List[str]):
             )
     else:
         benchmark_args = [pt2_args]
+
+    print("benchmark args:", benchmark_args)
 
     output_files = [_run_pt2_args(args) for args in benchmark_args]
     # Post-processing
