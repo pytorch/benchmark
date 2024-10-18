@@ -1,4 +1,4 @@
-liger_operators = ["FusedLinearCrossEntropy"]
+liger_operators = ["FusedLinearCrossEntropy", "fused_linear_jsd", "jsd"]
 
 
 def get_operators():
