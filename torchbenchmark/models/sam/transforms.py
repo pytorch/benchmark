@@ -8,6 +8,7 @@ from copy import deepcopy
 from typing import Tuple
 
 import numpy as np
+import numpy.typing as npt
 import torch
 from torch.nn import functional as F
 from torchvision.transforms.functional import resize, to_pil_image  # type: ignore
@@ -23,7 +24,7 @@ class ResizeLongestSide:
     def __init__(self, target_length: int) -> None:
         self.target_length = target_length
 
-    def apply_image(self, image: np.ndarray) -> np.ndarray:
+    def apply_image(self, image: npt.NDArray) -> npt.NDArray:
         """
         Expects a numpy array with shape HxWxC in uint8 format.
         """
@@ -33,8 +34,8 @@ class ResizeLongestSide:
         return np.array(resize(to_pil_image(image), target_size))
 
     def apply_coords(
-        self, coords: np.ndarray, original_size: Tuple[int, ...]
-    ) -> np.ndarray:
+        self, coords: npt.NDArray, original_size: Tuple[int, ...]
+    ) -> npt.NDArray:
         """
         Expects a numpy array of length 2 in the final dimension. Requires the
         original image size in (H, W) format.
@@ -49,8 +50,8 @@ class ResizeLongestSide:
         return coords
 
     def apply_boxes(
-        self, boxes: np.ndarray, original_size: Tuple[int, ...]
-    ) -> np.ndarray:
+        self, boxes: npt.NDArray, original_size: Tuple[int, ...]
+    ) -> npt.NDArray:
         """
         Expects a numpy array shape Bx4. Requires the original image size
         in (H, W) format.
