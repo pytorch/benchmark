@@ -86,7 +86,7 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--quantization",
-        choices=["int8dynamic", "int8weightonly", "int4weightonly"],
+        choices=["int8dynamic", "int8weightonly", "int4weightonly", "pt2e", "auto_quant"],
         help="Apply quantization to the model before running it",
     )
     parser.add_argument(
@@ -209,16 +209,21 @@ def apply_torchdynamo_args(
                 elif args.quantization == "int4weightonly":
                     change_linear_weights_to_int4_woqtensors(module)
             elif model.device == "cpu" and model.test == "eval":
-                enable_inductor_quant(model, args.is_qat)
-                #from torchao.quantization import quantize_, int8_dynamic_activation_int8_weight, int8_weight_only
-                #module, example_inputs = model.get_module()
-                #with torch.no_grad():
-                    #from torchao.utils import unwrap_tensor_subclass
-                    #module = unwrap_tensor_subclass(module)
-                    #quantize_(module, int8_weight_only())
-                    #module=torchao.autoquant(torch.compile(module, mode='max-autotune'))
-                    #module(*example_inputs)
-                    #model.set_module(module)
+                if args.quantization == "pt2e":
+                    enable_inductor_quant(model, args.is_qat)
+                elif args.quantization == "auto_quant":
+                    from torchao.quantization import quantize_, int8_dynamic_activation_int8_weight, int8_weight_only
+                    module, example_inputs = model.get_module()
+                    with torch.no_grad():
+                        from torchao.utils import unwrap_tensor_subclass
+                        #module = unwrap_tensor_subclass(module)
+                        #quantize_(module, int8_weight_only())
+                        module=torchao.autoquant(torch.compile(module, mode='max-autotune'))
+                        if isinstance(example_inputs, dict):
+                            module(**example_inputs)
+                        else:
+                            module(*example_inputs)
+                        model.set_module(module)
 
         if args.freeze_prepack_weights:
             torch._inductor.config.freezing = True
@@ -263,47 +268,21 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
     from torch._export import capture_pre_autograd_graph
     from torch.export import Dim
     module, example_inputs = model.get_module()
-    print(example_inputs)
-    input_ids = torch.randn(2, 512).to(torch.long)
-    example_inputs = {
-        "input_ids": input_ids,
-    }
 
     if isinstance(example_inputs, dict):
+        input_ids = torch.randn(2, 512).to(torch.long)
+        example_inputs = {
+            "input_ids": input_ids,
+        }
         input_shapes = {k: list(v.shape) for (k, v) in example_inputs.items()}
         dims = set()
         for _, v in input_shapes.items():
             dims.update(v)
-        #dims={1,512}
             dims=sorted(dims)
-        for x in dims:
-            print(x)
         #dim_str_map = {x: Dim("dim" + str(list(dims).index(x))) for x in dims}
         dim_str_map = {x: Dim("dim" + str(list(dims).index(x)), min=1, max=1024 * 1024) for x in dims}
-        print(dim_str_map)
-    #print(1111111111111111111111111111)
-        print(input_shapes.items())
-        #input_shapes['input_ids']=[512,512]
         dynamic_shapes = {k: {v.index(dim): dim_str_map[dim] for dim in v} for (k, v) in input_shapes.items()}
-        #dynamic_shapes = {'input_ids': dim_str_map}
-        #dim1_x = Dim("dim1_x", min=511, max=513)
-        #dynamic_shapes = {"input_ids": {1: 512}}
-        print(input_shapes["input_ids"])
         del dynamic_shapes["input_ids"][1]
-        print(input_shapes.items())
-        dim_1 = Dim("dim1")
-        dim_0 = Dim("dim0", min=0, max=1024 * 1024)
-        print(dynamic_shapes)
-        #batch = Dim("batch")
-        #dynamic_shapes = {"input_ids": {0: dim_0}}
-        print(dynamic_shapes)
-        #if "input_ids" in dynamic_shapes.keys():
-        #    for k in dynamic_shapes.keys():
-        #        if k != "input_ids":
-        #            tmp_dims = input_shapes[k]
-        #            for tmp_dim in input_shapes[k]:
-        #                if tmp_dim not in input_shapes["input_ids"]:
-        #                    del dynamic_shapes[k][input_shapes[k].index(tmp_dim)]
     # Create X86InductorQuantizer
     quantizer = xiq.X86InductorQuantizer()
     quantizer.set_global(xiq.get_default_x86_inductor_quantization_config(is_qat=is_qat))
@@ -315,13 +294,9 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
         example_inputs = {
             "input_ids": input_ids,
         }
-        print(module)
-        print(example_inputs)
-        print(dynamic_shapes)
         exported_model = capture_pre_autograd_graph(
             module,
             (),
-            #kwargs=example_inputs,
             example_inputs,
             dynamic_shapes=dynamic_shapes,
         )
@@ -339,7 +314,10 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
         model.set_module(prepared_model)
         model.train()
     else:
-        prepared_model(**example_inputs)
+        if isinstance(example_inputs, dict):
+            prepared_model(**example_inputs)
+        else:
+            prepared_model(*example_inputs)
     with torch.no_grad():
         converted_model = convert_pt2e(prepared_model)
         torch.ao.quantization.move_exported_model_to_eval(converted_model)
