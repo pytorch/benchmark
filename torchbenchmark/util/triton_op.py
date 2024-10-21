@@ -364,6 +364,8 @@ class BenchmarkOperatorResult:
                 agg_metric_name = (
                     f"tritonbench_{self.op_name}_{self.op_mode}[{provider}]_{metrics}"
                 )
+                if value is None:
+                    continue
                 agg_data[agg_metric_name] = agg_data.get(agg_metric_name, 0) + value
         final_agg_data = {k: v / num_rows for k, v in agg_data.items()}
         userbenchmark_metrics_dict.update(final_agg_data)
