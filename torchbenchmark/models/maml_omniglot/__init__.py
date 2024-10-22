@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Tuple
 
 import higher
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -79,7 +80,16 @@ class Model(BenchmarkModel):
         self.model = net
 
         root = str(Path(__file__).parent)
-        self.meta_inputs = torch.load(f"{root}/batch.pt")
+        with torch.serialization.safe_globals(
+            [
+                np.core.multiarray._reconstruct,
+                np.ndarray,
+                np.dtype,
+                np.dtypes.Float32DType,
+                np.dtypes.Int64DType,
+            ]
+        ):
+            self.meta_inputs = torch.load(f"{root}/batch.pt", weights_only=True)
         self.meta_inputs = tuple(
             [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]
         )
