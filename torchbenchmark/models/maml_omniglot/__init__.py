@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -75,8 +76,19 @@ class Model(BenchmarkModel):
         self.model = net
 
         root = str(Path(__file__).parent)
-        self.meta_inputs = torch.load(f'{root}/batch.pt')
-        self.meta_inputs = tuple([torch.from_numpy(i).to(self.device) for i in self.meta_inputs])
+        with torch.serialization.safe_globals(
+            [
+                np.core.multiarray._reconstruct,
+                np.ndarray,
+                np.dtype,
+                np.dtypes.Float32DType,
+                np.dtypes.Int64DType,
+            ]
+        ):
+            self.meta_inputs = torch.load(f"{root}/batch.pt", weights_only=True)
+        self.meta_inputs = tuple(
+            [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]
+        )
         self.example_inputs = (self.meta_inputs[0][0],)
 
     def get_module(self):

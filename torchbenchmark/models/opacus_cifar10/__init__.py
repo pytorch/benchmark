@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -24,7 +26,13 @@ class Model(BenchmarkModel):
         super().__init__(test=test, device=device, batch_size=batch_size, extra_args=extra_args)
 
         self.model = models.resnet18(num_classes=10)
+        prev_wo_envvar = os.environ.get("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", None)
+        os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
         self.model = ModuleValidator.fix(self.model)
+        if prev_wo_envvar is None:
+            del os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"]
+        else:
+            os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = prev_wo_envvar
         self.model = self.model.to(device)
 
         # Cifar10 images are 32x32 and have 10 classes

@@ -7,6 +7,7 @@ import functools
 from pathlib import Path
 from typing import Tuple
 
+import numpy as np
 from ...util.model import BenchmarkModel
 from torchbenchmark.tasks import OTHER
 
@@ -70,8 +71,21 @@ class Model(BenchmarkModel):
         self.model = net
 
         root = str(Path(__file__).parent.parent)
-        self.meta_inputs = torch.load(f'{root}/maml_omniglot/batch.pt')
-        self.meta_inputs = tuple([torch.from_numpy(i).to(self.device) for i in self.meta_inputs])
+        with torch.serialization.safe_globals(
+            [
+                np.core.multiarray._reconstruct,
+                np.ndarray,
+                np.dtype,
+                np.dtypes.Float32DType,
+                np.dtypes.Int64DType,
+            ]
+        ):
+            self.meta_inputs = torch.load(
+                f"{root}/maml_omniglot/batch.pt", weights_only=True
+            )
+        self.meta_inputs = tuple(
+            [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]
+        )
         self.example_inputs = (self.meta_inputs[0][0],)
 
     def get_module(self):
