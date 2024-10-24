@@ -4,6 +4,13 @@ import torch
 import triton
 import triton.language as tl
 
+try:
+    from flag_gems.ops.softmax import softmax as flag_gems_softmax
+    HAS_FLAGGEMS = True
+except ModuleNotFoundError:
+    HAS_FLAGGEMS = False
+
+
 from torchbenchmark.util.triton_op import (
     BenchmarkOperator,
     BenchmarkOperatorMetrics,
@@ -14,8 +21,12 @@ from torchbenchmark.util.triton_op import (
 
 class Operator(BenchmarkOperator):
 
+    @register_benchmark(enabled=HAS_FLAGGEMS)
+    def flaggems(self, x):
+        return lambda: flag_gems_softmax(x)
+    
     @register_benchmark()
-    def triton_softmax(self, x):
+    def triton_tutorial(self, x):
         n_rows, n_cols = x.shape
         # The block size is the smallest power of two greater than the number of columns in `x`
         BLOCK_SIZE = triton.next_power_of_2(n_cols)
@@ -78,7 +89,7 @@ class Operator(BenchmarkOperator):
         tl.store(output_ptrs, softmax_output, mask=col_offsets < n_cols)
 
     @register_benchmark(baseline=True)
-    def naive_softmax(self, x):
+    def pytorch(self, x):
         """Compute row-wise softmax of X using native pytorch
         We subtract the maximum element in order to avoid overflows. Softmax is invariant to
         this shift.
