@@ -206,10 +206,19 @@ def _run(args: argparse.Namespace, extra_args: List[str]) -> BenchmarkOperatorRe
 
             if "hardware" in args:
                 log_benchmark(
-                    metrics, args.op, args.hardware, logging_op_name=args.logging_name
+                    metrics=metrics,
+                    benchmark_name=args.op,
+                    device=args.device,
+                    hardware=args.hardware,
+                    logging_op_name=args.logging_name,
                 )
             else:
-                log_benchmark(metrics, args.op, logging_op_name=args.logging_name)
+                log_benchmark(
+                    metrics=metrics,
+                    benchmark_name=args.op,
+                    device=args.device,
+                    logging_op_name=args.logging_name,
+                )
         if args.plot:
             try:
                 opbench.plot()
