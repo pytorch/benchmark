@@ -68,10 +68,10 @@ class Operator(BenchmarkOperator):
         op_args = parse_op_args(self.extra_args)
         self.hidden_size = op_args.hidden_size
         self.vocab_size = op_args.vocab_size
-        self.baseline_model = TorchLMHeadCE(
+        self.baseline_op = TorchLMHeadCE(
             H=self.hidden_size, V=self.vocab_size, dtype=self.dtype
         ).to(self.device)
-        self.liger_model = LigerLMHeadCE(
+        self.liger_op = LigerLMHeadCE(
             H=self.hidden_size, V=self.vocab_size, dtype=self.dtype
         ).to(self.device)
         self.use_cuda_graphs = False
@@ -91,16 +91,16 @@ class Operator(BenchmarkOperator):
             yield _input, target
 
     @register_benchmark(baseline=True)
-    def LMHeadCE(self, input, target) -> Callable:
-        return lambda: self.baseline_model(input, target)
+    def torch_lm_head_ce(self, input, target) -> Callable:
+        return lambda: self.baseline_op(input, target)
 
     @register_benchmark()
-    def LigerLMHeadCE(self, input, target) -> Callable:
-        return lambda: self.liger_model(input, target)
+    def liger_lm_head_ce(self, input, target) -> Callable:
+        return lambda: self.liger_op(input, target)
 
     @register_benchmark()
     def inductor_fused_linear_cross_entropy(self, input, target) -> Callable:
-        compiled = torch.compile(self.baseline_model, dynamic=False)
+        compiled = torch.compile(self.baseline_op, dynamic=False)
         return lambda: compiled(input, target)
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:

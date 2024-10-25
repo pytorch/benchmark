@@ -23,8 +23,8 @@ class Operator(BenchmarkOperator):
         super().__init__(tb_args, extra_args)
         self.B = 8
         self.T = 2048
-        self.baseline_model = CrossEntropyLoss()
-        self.liger_model = LigerCrossEntropyLoss()
+        self.baseline_op = CrossEntropyLoss()
+        self.liger_op = LigerCrossEntropyLoss()
         self.use_cuda_graphs = False
 
     def get_input_iter(self) -> Generator:
@@ -41,16 +41,16 @@ class Operator(BenchmarkOperator):
             yield _input, target
 
     @register_benchmark(baseline=True)
-    def CrossEntropyLoss(self, input, target) -> Callable:
-        return lambda: self.baseline_model(input, target)
+    def cross_entropy_loss(self, input, target) -> Callable:
+        return lambda: self.baseline_op(input, target)
 
     @register_benchmark()
-    def LigerCrossEntropyLoss(self, input, target) -> Callable:
-        return lambda: self.liger_model(input, target)
+    def liger_cross_entropy_loss(self, input, target) -> Callable:
+        return lambda: self.liger_op(input, target)
 
     @register_benchmark()
-    def InductorCrossEntropyLoss(self, input, target) -> Callable:
-        compiled = torch.compile(self.baseline_model, dynamic=False)
+    def inductor_cross_entropy_loss(self, input, target) -> Callable:
+        compiled = torch.compile(self.baseline_op, dynamic=False)
         return lambda: compiled(input, target)
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:

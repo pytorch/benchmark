@@ -30,10 +30,8 @@ class Operator(BenchmarkOperator):
             intermediate_size=self.intermediate_size,
             hidden_act=self.hidden_act,
         )
-        self.baseline_model = LlamaMLP(self.llama_config).to(self.device).to(self.dtype)
-        self.liger_model = (
-            LigerGEGLUMLP(self.llama_config).to(self.device).to(self.dtype)
-        )
+        self.baseline_op = LlamaMLP(self.llama_config).to(self.device).to(self.dtype)
+        self.liger_op = LigerGEGLUMLP(self.llama_config).to(self.device).to(self.dtype)
         self.use_cuda_graphs = False
 
     def get_input_iter(self) -> Generator:
@@ -45,16 +43,16 @@ class Operator(BenchmarkOperator):
             yield (input,)
 
     @register_benchmark(baseline=True)
-    def LlamaMLP(self, input) -> Callable:
-        return lambda: self.baseline_model(input)
+    def torch_geglu(self, input) -> Callable:
+        return lambda: self.baseline_op(input)
 
     @register_benchmark()
-    def LigerGEGLUMLP(self, input) -> Callable:
-        return lambda: self.liger_model(input)
+    def liger_geglu(self, input) -> Callable:
+        return lambda: self.liger_op(input)
 
     @register_benchmark()
-    def InductorLlamaMLP(self, input) -> Callable:
-        compiled = torch.compile(self.baseline_model, dynamic=False)
+    def inductor_geglu(self, input) -> Callable:
+        compiled = torch.compile(self.baseline_op, dynamic=False)
         return lambda: compiled(input)
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
