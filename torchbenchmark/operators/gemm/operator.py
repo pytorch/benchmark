@@ -240,7 +240,7 @@ class Operator(BenchmarkOperator):
             compiled(a, b)
         return lambda: compiled(a, b)
 
-    @register_benchmark()
+    @register_benchmark(enabled=not torch.version.hip)
     def pt2_cutlass_matmul(self, a, b, bias) -> Callable:
         torch._dynamo.reset()
         with inductor_config.patch(

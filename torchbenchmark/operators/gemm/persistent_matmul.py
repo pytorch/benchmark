@@ -133,13 +133,18 @@ def matmul_kernel_persistent(
 
 
 def matmul_persistent(a, b):
+    reduced_stages = 0
+    if torch.version.hip:
+        # amd hits shared memory limits with current settings
+        reduced_stages = 1
+
     configs = {
         torch.float8_e4m3fn: {
             "BLOCK_SIZE_M": 128,
             "BLOCK_SIZE_N": 256,
             "BLOCK_SIZE_K": 128,
             "GROUP_SIZE_M": 8,
-            "num_stages": 4,
+            "num_stages": 4 - reduced_stages,
             "num_warps": 8,
         },
         torch.float16: {
@@ -147,7 +152,7 @@ def matmul_persistent(a, b):
             "BLOCK_SIZE_N": 256,
             "BLOCK_SIZE_K": 64,
             "GROUP_SIZE_M": 8,
-            "num_stages": 3,
+            "num_stages": 3 - reduced_stages,
             "num_warps": 8,
         },
         torch.bfloat16: {
@@ -155,7 +160,7 @@ def matmul_persistent(a, b):
             "BLOCK_SIZE_N": 256,
             "BLOCK_SIZE_K": 64,
             "GROUP_SIZE_M": 8,
-            "num_stages": 3,
+            "num_stages": 3 - reduced_stages,
             "num_warps": 8,
         },
     }
