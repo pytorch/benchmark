@@ -81,8 +81,16 @@ class Model(BenchmarkModel):
                 np.core.multiarray._reconstruct,
                 np.ndarray,
                 np.dtype,
-                np.dtypes.Float32DType,
-                np.dtypes.Int64DType,
+                (
+                    type(np.dtype(np.float32))
+                    if np.__version__ < "1.25.0"
+                    else np.dtypes.Float32DType
+                ),
+                (
+                    type(np.dtype(np.int64))
+                    if np.__version__ < "1.25.0"
+                    else np.dtypes.Int64DType
+                ),
             ]
         ):
             self.meta_inputs = torch.load(f"{root}/batch.pt", weights_only=True)
