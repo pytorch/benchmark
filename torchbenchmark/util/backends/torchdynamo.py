@@ -208,7 +208,7 @@ def apply_torchdynamo_args(
                     change_linear_weights_to_int8_woqtensors(module)
                 elif args.quantization == "int4weightonly":
                     change_linear_weights_to_int4_woqtensors(module)
-            elif model.device == "cpu" and model.test == "eval":
+            elif (model.device == "cpu" or model.device == "xpu") and model.test == "eval":
                 if args.quantization == "pt2e":
                     enable_inductor_quant(model, args.is_qat)
                 elif args.quantization == "auto_quant":
