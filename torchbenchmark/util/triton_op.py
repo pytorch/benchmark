@@ -475,8 +475,8 @@ def register_benchmark_mannually(
     if not operator_name in REGISTERED_BENCHMARKS:
         REGISTERED_BENCHMARKS[operator_name] = OrderedDict()
     REGISTERED_BENCHMARKS[operator_name][func_name] = BenchmarkOperatorBackend(
-        name=function.__name__,
-        label=label if label else function.__name__,
+        name=func_name,
+        label=label if label else func_name,
         baseline=baseline,
         enabled=enabled,
         ci=ci,
