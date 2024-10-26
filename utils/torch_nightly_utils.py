@@ -18,7 +18,7 @@ from typing import List
 import requests
 from bs4 import BeautifulSoup
 
-from cuda_utils import CUDA_VERSION_MAP, DEFAULT_CUDA_VERSION
+from cuda_utils import CUDA_VERSION_MAP, DEFAULT_CUDA_VERSION  # @manual
 from python_utils import DEFAULT_PYTHON_VERSION, PYTHON_VERSION_MAP
 
 PYTORCH_CUDA_VERISON = CUDA_VERSION_MAP[DEFAULT_CUDA_VERSION]["pytorch_url"]
