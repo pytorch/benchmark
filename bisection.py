@@ -54,7 +54,7 @@ TORCHBENCH_BISECTION_TARGETS = {
 
 try:
     # OSS utils
-    from regression_detector import generate_regression_result
+    from regression_detector import generate_regression_result  # @manual
     from utils import gitutils
     from utils.build_utils import (
         build_repo,
