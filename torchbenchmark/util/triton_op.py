@@ -62,7 +62,7 @@ ENABLED_BENCHMARKS: Dict[str, List[str]] = {}
 REGISTERED_METRICS: Dict[str, List[str]] = {}
 REGISTERED_X_VALS: Dict[str, str] = {}
 BASELINE_BENCHMARKS: Dict[str, str] = {}
-BASELINE_SKIP_METRICS = set(["speedup", "accuracy"])
+BASELINE_SKIP_METRICS = set(["speedup", "accuracy", "mem_footprint"])
 X_ONLY_METRICS = set(["hw_roofline"])
 PRECISION_DTYPE_MAPPING = {
     "fp32": torch.float32,
@@ -225,6 +225,8 @@ class BenchmarkOperatorMetrics:
     best_config: Optional[Dict[str, Any]] = None
     # extra metrics
     extra_metrics: Optional[Dict[str, float]] = None
+    # mem footprint
+    mem_footprint: Optional[float] = None
 
 
 BUILTIN_METRICS = {x.name for x in fields(BenchmarkOperatorMetrics)} - {"extra_metrics"}
@@ -939,6 +941,11 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 metrics.cpu_peak_mem, _device_id, metrics.gpu_peak_mem = (
                     self.get_peak_mem(fn, self.tb_args.metrics_gpu_backend)
                 )
+            if "mem_footprint" in self.required_metrics and ("cpu_peak_mem" in self.required_metrics or "gpu_peak_mem" in self.required_metrics) and self.baseline_metrics:
+                cpu_mem_footprint = metrics.cpu_peak_mem / self.baseline_metrics.cpu_peak_mem if "cpu_peak_mem" in self.required_metrics else None
+                gpu_mem_footprint = metrics.gpu_peak_mem / self.baseline_metrics.gpu_peak_mem if "gpu_peak_mem" in self.required_metrics else None
+                # metrics.mem_footprint = [cpu_mem_footprint, gpu_mem_footprint]
+                metrics.mem_footprint = gpu_mem_footprint
             if not baseline and "accuracy" in self.required_metrics:
                 metrics.accuracy = (
                     self._get_accuracy(fn, self.baseline_fn)
