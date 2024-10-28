@@ -48,10 +48,10 @@ except ImportError:
 
 
 try:
-    cutlass_fp8_row = torch.ops.fbgemm.f8f8bf16_rowwise
-    HAS_CUTLASS = True
+    cutlass_or_ck_fp8_row = torch.ops.fbgemm.f8f8bf16_rowwise
+    HAS_CUTLASS_OR_CK = True
 except ImportError:
-    HAS_CUTLASS = False
+    HAS_CUTLASS_OR_CK = False
 
 try:
     cublas_fp8_row = torch.ops.fbgemm.f8f8bf16_cublas
@@ -134,9 +134,11 @@ class Operator(BenchmarkOperator):
             no_use_persistent=self.no_use_persistent,
         )
 
-    @register_benchmark(enabled=HAS_CUTLASS)
-    def _cutlass(self, xq, wq, x_scale, w_scale) -> Callable:
-        return lambda: cutlass_fp8_row(
+    @register_benchmark(
+        enabled=HAS_CUTLASS_OR_CK, label="ck" if torch.version.hip else "cutlass"
+    )
+    def _cutlass_or_ck(self, xq, wq, x_scale, w_scale) -> Callable:
+        return lambda: cutlass_or_ck_fp8_row(
             xq, wq, x_scale, w_scale, use_fast_accum=self.fp8_fast_accum
         )
 
@@ -207,13 +209,13 @@ class Operator(BenchmarkOperator):
                 line_vals=[
                     "_torch",
                     "_triton",
-                    "_cutlass",
+                    "_ck" if torch.version.hip else "_cutlass",
                     "_cublas",
                 ],  # possible values for `line_arg``
                 line_names=[
                     "Torch",
                     "Triton",
-                    "Cutlass",
+                    "CK" if torch.version.hip else "Cutlass",
                     "cuBLAS",
                 ],  # label name for the lines
                 styles=[("blue", "-"), ("green", "-"), ("yellow", "-")],  # line styles
