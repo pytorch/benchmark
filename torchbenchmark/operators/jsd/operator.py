@@ -1,9 +1,13 @@
 import argparse
-from typing import Callable, Generator, List, Optional
+from typing import Callable, Generator, List, Optional, Tuple
 
 import torch
 
-from torchbenchmark.util.triton_op import BenchmarkOperator, register_benchmark
+from torchbenchmark.util.triton_op import (
+    BenchmarkOperator,
+    register_benchmark,
+    register_x_val,
+)
 
 try:
     from liger_kernel.transformers.jsd import LigerJSD
@@ -85,6 +89,11 @@ class Operator(BenchmarkOperator):
     def inductor_jsd(self, _input, target) -> Callable:
         compiled = torch.compile(self.baseline_op, dynamic=False)
         return lambda: compiled(_input, target)
+
+    @register_x_val(label="(B, T, V)")
+    def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
+        input_tensor = example_inputs[0]
+        return (self.B, self.T, input_tensor.size(1))
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()

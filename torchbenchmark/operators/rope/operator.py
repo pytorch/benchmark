@@ -1,9 +1,13 @@
 import argparse
-from typing import Callable, Generator, List, Optional
+from typing import Callable, Generator, List, Optional, Tuple
 
 import torch
 
-from torchbenchmark.util.triton_op import BenchmarkOperator, register_benchmark
+from torchbenchmark.util.triton_op import (
+    BenchmarkOperator,
+    register_benchmark,
+    register_x_val,
+)
 from transformers.models.llama.modeling_llama import (
     apply_rotary_pos_emb,
     LlamaRotaryEmbedding,
@@ -89,6 +93,10 @@ class Operator(BenchmarkOperator):
         cos, sin = compiled(k, pos_ids)
         compiled_func = torch.compile(apply_rotary_pos_emb, dynamic=False)
         return lambda: compiled_func(q, k, cos, sin, pos_ids)
+
+    @register_x_val(label="(H, T)")
+    def get_x_val(self, example_inputs) -> Tuple[int, int]:
+        return (example_inputs[0], example_inputs[1])
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         q_out, k_out = fwd_fn()

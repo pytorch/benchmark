@@ -1,9 +1,13 @@
 import argparse
-from typing import Callable, Generator, List, Optional
+from typing import Callable, Generator, List, Optional, Tuple
 
 import torch
 
-from torchbenchmark.util.triton_op import BenchmarkOperator, register_benchmark
+from torchbenchmark.util.triton_op import (
+    BenchmarkOperator,
+    register_benchmark,
+    register_x_val,
+)
 from transformers.models.llama.configuration_llama import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaMLP
 
@@ -58,6 +62,10 @@ class Operator(BenchmarkOperator):
     def inductor_swiglu(self, input) -> Callable:
         compiled = torch.compile(self.baseline_op, dynamic=False)
         return lambda: compiled(input)
+
+    @register_x_val(label="(B, T, H)")
+    def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
+        return (self.B, example_inputs[0].size(1), example_inputs[0].size(2))
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()

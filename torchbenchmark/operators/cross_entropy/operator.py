@@ -1,11 +1,15 @@
 import argparse
-from typing import Callable, Generator, List, Optional
+from typing import Callable, Generator, List, Optional, Tuple
 
 import torch
 
 from torch.nn import CrossEntropyLoss
 
-from torchbenchmark.util.triton_op import BenchmarkOperator, register_benchmark
+from torchbenchmark.util.triton_op import (
+    BenchmarkOperator,
+    register_benchmark,
+    register_x_val,
+)
 
 try:
     from liger_kernel.transformers.cross_entropy import LigerCrossEntropyLoss
@@ -52,6 +56,11 @@ class Operator(BenchmarkOperator):
     def inductor_cross_entropy_loss(self, input, target) -> Callable:
         compiled = torch.compile(self.baseline_op, dynamic=False)
         return lambda: compiled(input, target)
+
+    @register_x_val(label="(B, T, V)")
+    def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
+        v = example_inputs[0].size(-1)
+        return (self.B, self.T, v)
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()

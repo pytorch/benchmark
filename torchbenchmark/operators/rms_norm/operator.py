@@ -1,9 +1,13 @@
 import argparse
-from typing import Callable, Generator, List, Optional
+from typing import Callable, Generator, List, Optional, Tuple
 
 import torch
 
-from torchbenchmark.util.triton_op import BenchmarkOperator, register_benchmark
+from torchbenchmark.util.triton_op import (
+    BenchmarkOperator,
+    register_benchmark,
+    register_x_val,
+)
 
 try:
     from liger_kernel.transformers.rms_norm import LigerRMSNorm
@@ -63,6 +67,10 @@ class Operator(BenchmarkOperator):
     def inductor_rms(self, H, input) -> Callable:
         compiled = torch.compile(self.llama_rms_op, dynamic=False)
         return lambda: compiled(input)
+
+    @register_x_val(label="(M, H)")
+    def get_x_val(self, example_inputs) -> Tuple[int, int]:
+        return (self.M, example_inputs[0].size(1))
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()

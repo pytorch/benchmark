@@ -1,10 +1,14 @@
 import argparse
-from typing import Callable, Generator, List, Optional
+from typing import Callable, Generator, List, Optional, Tuple
 
 import torch
 from torch.nn import Embedding
 
-from torchbenchmark.util.triton_op import BenchmarkOperator, register_benchmark
+from torchbenchmark.util.triton_op import (
+    BenchmarkOperator,
+    register_benchmark,
+    register_x_val,
+)
 
 try:
     from liger_kernel.transformers.experimental.embedding import LigerEmbedding
@@ -46,6 +50,11 @@ class Operator(BenchmarkOperator):
         self.baseline_op = Embedding(V, D).to(self.device).to(self.dtype)
         compiled = torch.compile(self.baseline_op, dynamic=False)
         return lambda: compiled(input)
+
+    @register_x_val(label="(B, T, D, V)")
+    def get_x_val(self, example_inputs) -> Tuple[int, int, int]:
+        V, D, input_tensor = example_inputs
+        return (input_tensor.size(0), input_tensor.size(1), D, V)
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()
