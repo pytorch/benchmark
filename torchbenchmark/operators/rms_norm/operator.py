@@ -70,8 +70,7 @@ class Operator(BenchmarkOperator):
 
     @register_x_val(label="(M, H)")
     def get_x_val(self, example_inputs) -> Tuple[int, int]:
-        H = example_inputs[0].size(1)
-        return (self.M, H)
+        return (self.M, example_inputs[0])
 
     def get_bwd_fn(self, fwd_fn: Callable) -> Callable:
         y = fwd_fn()
