@@ -4,7 +4,7 @@ from torchbenchmark import add_path, SUBMODULE_PATH
 
 try:
     # Internal Import
-    from hammer.generative_recommenders.ops.triton.triton_ragged_hstu_attention import (
+    from hammer.oss.generative_recommenders.ops.triton.triton_ragged_hstu_attention import (
         _ragged_hstu_attn_fwd,
         _ragged_hstu_attn_fwd_persistent,
     )
@@ -119,6 +119,11 @@ class RaggedHSTUAttn(torch.nn.Module):
             "BLOCK_D_V": DimV,
             "max_attn_len": 0,
             "HAS_MAX_ATTN_LEN": False,
+            "sort_by_length_indices": False,
+            "AUTOTUNE_MAX_SEQ_LEN": N,
+            "contextual_seq_len": 0,
+            "HAS_CONTEXTUAL_SEQ_LEN": False,
+            "HAS_SORT_BY_LENGTH_INDICES": False,
         }
         if self.persistent_kernel:
             grid = (1216,)
