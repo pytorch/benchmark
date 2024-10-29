@@ -1,7 +1,6 @@
 import argparse
 from typing import Callable, Generator, List, Optional, Tuple
 
-from hypothesis import example
 import torch
 
 from torchbenchmark.util.triton_op import (
