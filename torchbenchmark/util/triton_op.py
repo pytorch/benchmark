@@ -941,12 +941,20 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
                 metrics.cpu_peak_mem, _device_id, metrics.gpu_peak_mem = (
                     self.get_peak_mem(fn, self.tb_args.metrics_gpu_backend)
                 )
-            if "mem_footprint" in self.required_metrics and ("cpu_peak_mem" in self.required_metrics or "gpu_peak_mem" in self.required_metrics) and self.baseline_metrics:
-                metrics.mem_footprint = (
-                    self.baseline_metrics.gpu_peak_mem / metrics.gpu_peak_mem
-                    if "gpu_peak_mem" in self.required_metrics
-                    else None
-                )
+            if (
+                "mem_footprint" in self.required_metrics
+                and "gpu_peak_mem" in self.required_metrics
+                and self.baseline_metrics
+            ):
+                if (
+                    self.baseline_metrics.gpu_peak_mem is not None
+                    and metrics.gpu_peak_mem is not None
+                ):
+                    metrics.mem_footprint = (
+                        self.baseline_metrics.gpu_peak_mem / metrics.gpu_peak_mem
+                    )
+                else:
+                    metrics.mem_footprint = None
             if not baseline and "accuracy" in self.required_metrics:
                 metrics.accuracy = (
                     self._get_accuracy(fn, self.baseline_fn)
