@@ -111,6 +111,7 @@ class Operator(BenchmarkOperator):
         self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
     ):
         super().__init__(tb_args, extra_args)
+        self.use_cuda_graphs = True
         addmm_args = parse_args(self.extra_args)
         if addmm_args.m and addmm_args.n and addmm_args.k:
             self.shapes = [(addmm_args.m, addmm_args.n, addmm_args.k)]
