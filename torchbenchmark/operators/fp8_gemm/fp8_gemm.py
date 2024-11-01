@@ -47,6 +47,7 @@ class Operator(BenchmarkOperator):
         self, tb_args: argparse.Namespace, extra_args: Optional[List[str]] = None
     ):
         super().__init__(tb_args, extra_args)
+        self.use_cuda_graphs = True
         self.extra_args = parse_args(extra_args)
 
     def get_input_iter(self):
