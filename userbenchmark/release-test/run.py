@@ -27,6 +27,7 @@ from .result_analyzer import analyze
 
 BM_NAME = "release-test"
 EXAMPLE_URL = "https://github.com/pytorch/examples.git"
+ALGORITHMIC_EFFICIENCY_URL = "https://github.com/mlcommons/algorithmic-efficiency.git" 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_CONFIG_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "configs"
@@ -132,6 +133,7 @@ def prepare_release_tests(args: argparse.Namespace, work_dir: Path):
     dump_test_scripts(run_scripts, work_dir)
     # clone the examples repo
     Repo.clone_from(EXAMPLE_URL, work_dir.joinpath("examples"))
+    Repo.clone_from(ALGORITHMIC_EFFICIENCY_URL, work_dir.joinpath("algorithmic_efficiency")
     return run_scripts
 
 
