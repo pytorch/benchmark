@@ -77,6 +77,7 @@ from torch._utils_internal import (
     log_chromium_event_internal,
     log_compilation_event,
     signpost_event,
+    log_pt2_compile_chromium_event,
 )
 from torch.fx._utils import _format_graph_code, lazy_format_graph_code
 from torch.nn.modules.lazy import LazyModuleMixin
@@ -1175,6 +1176,7 @@ class ChromiumEventLogger:
             suppress_context=False,
             expect_trace_id=False,  # Not every chromium event will have a trace_id
         )
+        log_pt2_compile_chromium_event(event)
         return event
 
     def log_instant_event(
