@@ -10,7 +10,9 @@ import triton
 from torchbenchmark import add_path, SUBMODULE_PATH
 
 try:
-    from hammer.ops.triton.triton_hstu_linear import triton_addmm
+    from hammer.oss.generative_recommenders.ops.triton.triton_hstu_linear import (
+        triton_addmm,
+    )
 except ModuleNotFoundError:
     from .hstu import triton_addmm
 
