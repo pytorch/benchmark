@@ -30,7 +30,9 @@ def dump_result_csv(work_dir, result):
     DELIMITER = ";"
     # generate header
     run_keys = sorted(result.keys())
+    print("run_keys:", run_keys)
     workloads = sorted(result[run_keys[0]])
+    print("workloads:", workloads)
     metrics = sorted(result[run_keys[0]][workloads[0]])
     for run_key in run_keys:
         csv_object[0].append(f"{run_key}")
