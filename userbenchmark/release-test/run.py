@@ -134,8 +134,8 @@ def prepare_release_tests(args: argparse.Namespace, work_dir: Path):
     dump_test_scripts(run_scripts, work_dir)
     # clone the examples repo
     Repo.clone_from(EXAMPLE_URL, work_dir.joinpath("examples"))
-    Repo.clone_from(ALGORITHMIC_EFFICIENCY_URL, work_dir.joinpath("algorithmic_efficiency"))
-    print("algorithmic_efficiency cloned.")
+    # Repo.clone_from(ALGORITHMIC_EFFICIENCY_URL, work_dir.joinpath("algorithmic_efficiency"))
+    # print("algorithmic_efficiency cloned.")
     algorithmic_efficiency_path = work_dir.joinpath("algorithmic_efficiency")
     print(f"algorithmic_efficiency_path.exist(): {algorithmic_efficiency_path.exists()}.")
     return run_scripts
