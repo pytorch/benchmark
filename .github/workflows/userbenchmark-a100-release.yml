@@ -1,9 +1,8 @@
 name: Release TorchBench Userbenchmark on A100
 on:
   pull_request:
-  push:
-    branches:
-      - main
+    paths:
+      - userbenchmark/release-test/*
 
 jobs:
   run-userbenchmark:
