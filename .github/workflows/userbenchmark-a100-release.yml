@@ -42,6 +42,12 @@ jobs:
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
+
+          # Install necessary packages  <-- Added these lines
+          pip3 install -e '.[jax_cpu]'
+          pip3 install -e '.[pytorch_gpu]' -f 'https://download.pytorch.org/whl/cu121'
+          pip3 install -e '.[full]'
+          
           release_version=$(cat userbenchmark/release-test/version.txt)
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           python run_benchmark.py release-test -c ${release_version}
