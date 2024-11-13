@@ -499,9 +499,9 @@ def register_metric(
 ):
     def decorator(func):
         metric_name = func.__name__
-        if not metric_name in BUILTIN_METRICS:
+        if metric_name not in BUILTIN_METRICS:
             operator_name = _find_op_name_from_module_path(func.__module__)
-            if not operator_name in REGISTERED_METRICS:
+            if operator_name not in REGISTERED_METRICS:
                 REGISTERED_METRICS[operator_name] = []
             REGISTERED_METRICS[operator_name].append(func.__name__)
         if skip_baseline:
@@ -1232,8 +1232,6 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
         return str(ncu_output_file.resolve())
 
     def kineto_trace(self, input_id: int, fn: Callable) -> str:
-        from pathlib import Path
-
         from torchbenchmark._components.kineto import do_bench_kineto
 
         kineto_output_dir = self.get_temp_path(f"kineto_traces/{fn._name}_{input_id}")
@@ -1332,7 +1330,7 @@ class BenchmarkOperator(metaclass=PostInitProcessor):
             return total_flops
 
         fn = self._get_bm_func(fn_name)
-        if not fn in self._op_flops:
+        if fn not in self._op_flops:
             self._op_flops[fn] = _get_flops(self, fn)
         op_flops = self._op_flops[fn]
         return op_flops / metrics.latency / 1e12 * 1e3
