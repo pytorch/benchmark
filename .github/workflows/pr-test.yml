@@ -1,24 +1,10 @@
 name: TorchBench PR Test
 on:
   pull_request:
-    # ignore tritonbench paths
-    paths-ignore:
-      - 'torchbenchmark/operators/*'
-      - 'torchbenchmark/util/kernels/*'
-      - 'torchbenchmark/util/triton_op.py'
-      - 'userbenchmark/triton/*'
-      - '.ci/tritonbench/*'
   workflow_dispatch:
   push:
     branches:
       - main
-    # ignore tritonbench paths
-    paths-ignore:
-      - 'torchbenchmark/operators/*'
-      - 'torchbenchmark/util/kernels/*'
-      - 'torchbenchmark/util/triton_op.py'
-      - 'userbenchmark/triton/*'
-      - '.ci/tritonbench/*'
 
 jobs:
   cpu-test:

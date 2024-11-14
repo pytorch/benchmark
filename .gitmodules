@@ -4,21 +4,3 @@
 [submodule "submodules/lit-llama"]
 	path = submodules/lit-llama
 	url = https://github.com/Lightning-AI/lit-llama.git
-[submodule "submodules/FBGEMM"]
-	path = submodules/FBGEMM
-	url = https://github.com/pytorch/FBGEMM.git
-[submodule "submodules/cutlass-kernels"]
-	path = submodules/cutlass-kernels
-	url = https://github.com/ColfaxResearch/cutlass-kernels.git
-[submodule "submodules/flash-attention"]
-	path = submodules/flash-attention
-	url = https://github.com/Dao-AILab/flash-attention.git
-[submodule "submodules/kernels"]
-	path = submodules/kernels
-	url = https://github.com/triton-lang/kernels
-[submodule "submodules/ThunderKittens"]
-	path = submodules/ThunderKittens
-	url = https://github.com/HazyResearch/ThunderKittens.git
-[submodule "submodules/generative-recommenders"]
-	path = submodules/generative-recommenders
-	url = https://github.com/facebookresearch/generative-recommenders.git

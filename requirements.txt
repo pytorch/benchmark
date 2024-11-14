@@ -20,3 +20,5 @@ numpy
 opencv-python
 submitit
 pynvml
+pandas
+scipy
