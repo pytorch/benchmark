@@ -264,7 +264,7 @@ def apply_torchdynamo_args(
 
 def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_qat: 'bool'=False):
     from torch.ao.quantization.quantize_pt2e import prepare_pt2e, prepare_qat_pt2e, convert_pt2e
-    import torch.ao.quantization.quantizer.x86_inductor_quantizer as xiq
+    import torch.ao.quantization.quantizer.xpu_inductor_quantizer as xiq
     from torch._export import capture_pre_autograd_graph
     from torch.export import Dim
     module, example_inputs = model.get_module()
@@ -284,13 +284,13 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
         dynamic_shapes = {k: {v.index(dim): dim_str_map[dim] for dim in v} for (k, v) in input_shapes.items()}
         del dynamic_shapes["input_ids"][1]
     # Create X86InductorQuantizer
-    quantizer = xiq.X86InductorQuantizer()
-    quantizer.set_global(xiq.get_default_x86_inductor_quantization_config(is_qat=is_qat))
+    quantizer = xiq.XPUInductorQuantizer()
+    quantizer.set_global(xiq.get_default_xpu_inductor_quantization_config())
     if is_qat:
         module.train()
     # Generate the FX Module
     if isinstance(example_inputs, dict):
-        input_ids = torch.ones(2, 512).to(torch.long)
+        input_ids = torch.ones(2, 512).to(torch.long).to('xpu')
         example_inputs = {
             "input_ids": input_ids,
         }
