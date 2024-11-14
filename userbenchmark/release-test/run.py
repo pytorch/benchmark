@@ -186,6 +186,7 @@ def run(args: List[str]):
         print("Running run_algorithmic_efficiency starts...")
         experiment_dir = os.path.join(work_dir, "algorithmic_efficiency_results")  # Create a subdirectory
         experiment_name = f"algorithmic_efficiency_{get_timestamp()}"
+        print("start run_algorithmic_efficiency")
         run_algorithmic_efficiency(work_dir, experiment_dir, experiment_name)
         run_benchmark(run_scripts, work_dir)
         print("analyze work_dir:", work_dir)
