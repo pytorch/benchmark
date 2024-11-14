@@ -413,6 +413,18 @@ def dynamo_timed(
                             structured_logging_overhead_s = (
                                 torch._logging.get_structured_logging_overhead()
                             )
+
+                            # REMOTE_CACHE_VERSION is fbcode specific
+                            # TODO: move REMOTE_CACHE_VERSION to the OSS side
+                            remote_cache_version: Optional[int] = None
+                            try:
+                                from torch._environment import is_fbcode
+                                if is_fbcode():
+                                    from torch._inductor.fb.remote_cache import REMOTE_CACHE_VERSION
+                                    remote_cache_version = REMOTE_CACHE_VERSION
+                            except Exception:
+                                pass
+
                             metrics = CompilationMetrics(
                                 compile_id=compile_id,
                                 inductor_compile_time_s=inductor_compile_time,
@@ -420,6 +432,7 @@ def dynamo_timed(
                                 fail_type=fail_type,
                                 fail_reason=fail_reason,
                                 remote_cache_time_saved_s=remote_cache_time_saved,
+                                remote_cache_version=remote_cache_version,
                                 structured_logging_overhead_s=structured_logging_overhead_s,
                                 is_forward=False,  # is_forward
                                 num_triton_bundles=codecache_metrics.get(
@@ -899,6 +912,7 @@ class CompilationMetrics:
     # a compiled frame
     has_guarded_code: Optional[bool] = None
     remote_cache_time_saved_s: Optional[float] = None
+    remote_cache_version: Optional[int] = None
     structured_logging_overhead_s: Optional[float] = None
     config_suppress_errors: Optional[bool] = None
     config_inline_inbuilt_nn_modules: Optional[bool] = None
