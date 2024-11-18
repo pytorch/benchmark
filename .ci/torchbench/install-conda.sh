@@ -5,7 +5,7 @@ if [ -z "${CONDA_ENV}" ]; then
   exit 1
 fi
 
-python utils/python_utils.py --create-conda-env ${CONDA_ENV}
+python3 utils/python_utils.py --create-conda-env ${CONDA_ENV}
 
 conda activate ${CONDA_ENV}
 
