@@ -4,17 +4,17 @@ from pathlib import Path
 
 from typing import List, Optional
 
-DEFAULT_PYTHON_VERSION = "3.11"
+DEFAULT_PYTHON_VERSION = "3.12"
 
 PYTHON_VERSION_MAP = {
-    "3.8": {
-        "pytorch_url": "cp38",
-    },
     "3.10": {
         "pytorch_url": "cp310",
     },
     "3.11": {
         "pytorch_url": "cp311",
+    },
+    "3.12": {
+        "pytorch_url": "cp312",
     },
 }
 REPO_DIR = Path(__file__).parent.parent
