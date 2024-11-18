@@ -10,12 +10,6 @@ if [ -z "${TEST_CONFIG}" ]; then
   exit 1
 fi
 
-if [ -z "${SETUP_SCRIPT}" ]; then
-  echo "ERROR: SETUP_SCRIPT is not set"
-  exit 1
-fi
-
-. "${SETUP_SCRIPT}"
 conda activate "${CONDA_ENV}"
 
 parent_dir=$(dirname "$(readlink -f "$0")")/../..
