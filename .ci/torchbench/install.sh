@@ -5,6 +5,8 @@ if [ -z "${CONDA_ENV}" ]; then
   exit 1
 fi
 
+. ${HOME}/miniconda3/etc/profile.d/conda.sh
+
 conda activate "${CONDA_ENV}"
 
 parent_dir=$(dirname "$(readlink -f "$0")")/../..

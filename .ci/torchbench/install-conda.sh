@@ -5,7 +5,18 @@ if [ -z "${CONDA_ENV}" ]; then
   exit 1
 fi
 
-python3 utils/python_utils.py --create-conda-env ${CONDA_ENV}
+mkdir workspace
+cd workspace
+wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh
+chmod +x Miniconda3-latest-Linux-x86_64.sh && \
+bash ./Miniconda3-latest-Linux-x86_64.sh -b -u
+cd ..
+
+. ${HOME}/miniconda3/etc/profile.d/conda.sh
+conda activate base
+conda init
+
+python utils/python_utils.py --create-conda-env ${CONDA_ENV}
 
 conda activate ${CONDA_ENV}
 
