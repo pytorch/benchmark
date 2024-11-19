@@ -38,6 +38,12 @@ def pytest_addoption(parser):
         action="store_true",
         help="Run benchmarks on mps only and ignore machine configuration checks",
     )
+    parser.addoption(
+        "--device_only",
+        action="store",
+        default=None,
+        help="Run benchmarks on the specific device only and ignore machine configuration checks",
+    )
 
 
 def set_fuser(fuser):
