@@ -14,6 +14,8 @@ import torch
 import torchbenchmark
 from torchbenchmark.util.model import is_staged_train_test
 
+torch._inductor.config.force_disable_caches = True
+
 INDUCTOR_CONFIG_KEYS = [
     "triton.cudagraphs",
     "triton.unique_kernel_names",
