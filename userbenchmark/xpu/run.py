@@ -12,7 +12,7 @@ import yaml
 from datetime import datetime
 from pathlib import Path
 from typing import List
-from .cpu_utils import REPO_PATH, parse_str_to_list, validate, get_output_dir, get_output_json, dump_output, analyze
+from .xpu_utils import REPO_PATH, parse_str_to_list, validate, get_output_dir, get_output_json, dump_output, analyze
 from ..utils import add_path
 
 with add_path(REPO_PATH):

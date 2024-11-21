@@ -9,7 +9,8 @@ import numpy
 from typing import List, Dict, Optional
 from pathlib import Path
 
-from cpu_utils import add_path, REPO_PATH, validate, parse_str_to_list, list_metrics, get_output_dir, get_output_json, dump_output
+from xpu_utils import add_path, REPO_PATH, validate, parse_str_to_list, list_metrics, get_output_dir, get_output_json, dump_output
+
 with add_path(str(REPO_PATH)):
     from torchbenchmark.util.experiment.instantiator import (list_models, load_model, load_model_isolated, TorchBenchModelConfig,
                                                             list_devices, list_tests)
