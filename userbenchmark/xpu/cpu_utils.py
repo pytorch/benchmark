@@ -48,7 +48,7 @@ def get_output_dir(bm_name, test_date=None):
     current_dir = Path(__file__).parent.absolute()
     bm_out_dir = current_dir.parent.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
     test_date = test_date if test_date else datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
-    output_dir = bm_out_dir.joinpath("xpu-" + test_date)
+    output_dir = bm_out_dir.joinpath(bm_name + "-" + test_date)
     output_dir.mkdir(exist_ok=True, parents=True)
     return output_dir
 

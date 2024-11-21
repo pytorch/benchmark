@@ -48,7 +48,7 @@ def get_output_dir(bm_name, test_date=None):
     current_dir = Path(__file__).parent.absolute()
     bm_out_dir = current_dir.parent.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
     test_date = test_date if test_date else datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
-    output_dir = bm_out_dir.joinpath("cpu-" + test_date)
+    output_dir = bm_out_dir.joinpath(bm_name + "-" + test_date)
     output_dir.mkdir(exist_ok=True, parents=True)
     return output_dir
 
@@ -102,8 +102,8 @@ def add_test_results(runs, result_metrics):
         latency_sum = 0
         throughput_sum = 0
         cmem_sum = 0
-        for ins_res in run["results"]: 
-            if latency_metric:           
+        for ins_res in run["results"]:
+            if latency_metric:
                 latency_sum += ins_res["metrics"]["latency"]
             if throughput_metric:
                 throughput_sum += ins_res["metrics"]["throughput"]
