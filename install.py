@@ -84,6 +84,12 @@ if __name__ == "__main__":
         print(
             f"Installing userbenchmark {args.userbenchmark} with extra args: {extra_args}"
         )
+        if args.models:
+            cmd.extend(["--models"] + args.models)
+        if args.skip:
+            cmd.extend(["--skip"] + args.skip)
+        if args.canary:
+            cmd.extend(["--canary"])
         cmd.extend(extra_args)
         if userbenchmark_dir.joinpath("install.py").is_file():
             # add the current run env to PYTHONPATH to load framework install utils
