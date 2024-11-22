@@ -30,30 +30,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: benchmark
-      - name: Pull docker image
-        uses: pytorch/test-infra/.github/actions/pull-docker-image@main
-        with:
-          docker-image: ${{ env.DOCKER_IMAGE }}
+      - name: Install Conda
+        run: |
+          cd benchmark
+          bash ./.ci/torchbench/install-conda.sh
       - name: Install and Test TorchBench
         run: |
-          container_name=$(docker run \
-            -e BASE_CONDA_ENV="${BASE_CONDA_ENV}" \
-            -e CONDA_ENV="${CONDA_ENV}" \
-            -e SETUP_SCRIPT="${SETUP_SCRIPT}" \
-            -e HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN}" \
-            -e TEST_CONFIG="${TEST_CONFIG}" \
-            --tty \
-            --detach \
-            --shm-size=32gb \
-            -v "${PWD}/benchmark:/benchmark" \
-            -w / \
-            "${{ env.DOCKER_IMAGE }}" \
-            tail -f /dev/null
-          )
-          echo "Container name: ${container_name}"
-          docker exec -t -w "/" "${container_name}" bash -c "sudo chown -R runner /benchmark; sudo chgrp -R runner /benchmark"
-          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/.ci/torchbench/install.sh
-          docker exec -t -w "/benchmark" "${container_name}" bash /benchmark/.ci/torchbench/test.sh
+          cd benchmark
+          bash .ci/torchbench/install.sh
+          bash .ci/torchbench/test.sh
       - name: Teardown Linux
         uses: pytorch/test-infra/.github/actions/teardown-linux@main
         if: always()
