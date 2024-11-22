@@ -23,3 +23,6 @@ conda activate ${CONDA_ENV}
 python utils/cuda_utils.py --install-torch-deps
 python utils/cuda_utils.py --install-torch-nightly
 python utils/cuda_utils.py --install-torchbench-deps
+
+# use the same numpy version as the build environment
+pip install -r utils/build_requirements.txt
