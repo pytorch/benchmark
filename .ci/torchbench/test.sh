@@ -10,6 +10,10 @@ if [ -z "${TEST_CONFIG}" ]; then
   exit 1
 fi
 
+if [[ -n "${SETUP_SCRIPT}" && -e "${SETUP_SCRIPT}" ]]; then
+  . "${SETUP_SCRIPT}"
+fi
+
 . ${HOME}/miniconda3/etc/profile.d/conda.sh
 
 conda activate "${CONDA_ENV}"
