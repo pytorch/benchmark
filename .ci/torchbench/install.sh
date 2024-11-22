@@ -14,6 +14,4 @@ cd ${parent_dir}
 
 python -c "import torch; print(torch.__version__); print(torch.version.git_version)"
 
-pip install -r requirements.txt
-
 python install.py $@
