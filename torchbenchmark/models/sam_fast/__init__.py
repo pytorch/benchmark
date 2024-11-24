@@ -32,6 +32,7 @@ class Model(BenchmarkModel):
         data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
 
         image_path = os.path.join(data_folder, "truck.jpg")
+        assert os.path.exists(image_path), f"Expected image file exists at {image_path} but not found."
         self.image = cv2.imread(image_path)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         self.sample_image = torch.randn((3, 256, 256)).to(device)
