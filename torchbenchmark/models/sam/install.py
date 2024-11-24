@@ -1,7 +1,6 @@
 import os
-import subprocess
-import sys
 
+from utils import s3_utils
 import requests
 from utils.python_utils import pip_install_requirements
 
@@ -27,8 +26,8 @@ def download_checkpoint():
 
 
 def download_data():
-    download(
-        "https://github.com/facebookresearch/segment-anything/raw/main/notebooks/images/truck.jpg"
+    s3_utils.checkout_s3_data(
+        "INPUT_TARBALLS", "sam.tar.gz", decompress=True
     )
 
 
@@ -41,3 +40,4 @@ if __name__ == "__main__":
 
     # Download checkpoint and data files to the .data folder
     download_checkpoint()
+    download_data()

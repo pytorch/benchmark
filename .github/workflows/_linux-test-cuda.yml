@@ -33,4 +33,6 @@ jobs:
       - name: Clean up Conda env
         if: always()
         run: |
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           conda remove -n "${CONDA_ENV}" --all
