@@ -82,7 +82,7 @@ def get_peak_memory(
         raise ValueError(
             f"Expected metrics_needed to be non-empty, get: {metrics_needed}"
         )
-    if metrics_gpu_backend in ["dcgm", "nvml"]:
+    if device == "cuda" and metrics_gpu_backend in ["dcgm", "nvml"]:
         from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
             ModelAnalyzer,
         )
