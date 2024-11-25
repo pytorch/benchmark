@@ -39,4 +39,3 @@ if __name__ == "__main__":
 
     # Download checkpoint and data files to the .data folder
     download_checkpoint()
-    download_data()
