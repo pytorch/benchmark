@@ -11,6 +11,7 @@ INPUT_TARBALLS:
   - Super_SloMo_inputs.tar.gz
   - speech_transformer_inputs.tar.gz
   - Reddit_minimal.tar.gz
+  - sam_inputs.tar.gz
 MODEL_PKLS:
   - drq/obs.pkl
   - maml_omniglot/batch.pt

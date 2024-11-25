@@ -10,12 +10,12 @@ if [ -z "${TEST_CONFIG}" ]; then
   exit 1
 fi
 
-if [ -z "${SETUP_SCRIPT}" ]; then
-  echo "ERROR: SETUP_SCRIPT is not set"
-  exit 1
+if [[ -n "${SETUP_SCRIPT}" && -e "${SETUP_SCRIPT}" ]]; then
+  . "${SETUP_SCRIPT}"
 fi
 
-. "${SETUP_SCRIPT}"
+. ${HOME}/miniconda3/etc/profile.d/conda.sh
+
 conda activate "${CONDA_ENV}"
 
 parent_dir=$(dirname "$(readlink -f "$0")")/../..

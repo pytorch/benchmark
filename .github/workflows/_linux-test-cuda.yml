@@ -11,24 +11,19 @@ jobs:
   linux-test-cuda:
     # Don't run on forked repos
     if: github.repository_owner == 'pytorch'
-    runs-on: [a100-runner]
+    runs-on: linux.aws.a100
     timeout-minutes: 240
     environment: docker-s3-upload
     env:
-      BASE_CONDA_ENV: "torchbench"
       CONDA_ENV: "pr-test-cuda"
-      SETUP_SCRIPT: "/workspace/setup_instance.sh"
       TEST_CONFIG: "cuda"
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-      - name: Tune Nvidia GPU
+      - name: Install Conda
         run: |
-          sudo nvidia-smi -pm 1
-          sudo nvidia-smi -ac 1215,1410
-          sudo ldconfig
-          nvidia-smi
+          bash ./.ci/torchbench/install-conda.sh
       - name: Install TorchBench
         run: |
           bash ./.ci/torchbench/install.sh
@@ -38,6 +33,5 @@ jobs:
       - name: Clean up Conda env
         if: always()
         run: |
-          . "${SETUP_SCRIPT}"
-          conda deactivate && conda deactivate
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda remove -n "${CONDA_ENV}" --all
