@@ -35,7 +35,7 @@ class Model(BenchmarkModel):
         self.model = sam_model_registry[model_type](checkpoint=sam_checkpoint)
         self.model.to(device=device)
         data_folder = os.path.dirname(DATA_PATH)
-        image_path = os.path.join(data_folder, "data", "sam", "truck.jpg")
+        image_path = os.path.join(data_folder, "data", ".data", "sam_inputs", "truck.jpg")
         if not os.path.exists(image_path):
             from torchbenchmark.util.framework.fb.installer import install_data
 

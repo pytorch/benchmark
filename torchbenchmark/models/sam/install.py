@@ -27,7 +27,7 @@ def download_checkpoint():
 
 def download_data():
     s3_utils.checkout_s3_data(
-        "INPUT_TARBALLS", "sam.tar.gz", decompress=True
+        "INPUT_TARBALLS", "sam_inputs.tar.gz", decompress=True
     )
 
 

@@ -31,7 +31,7 @@ class Model(BenchmarkModel):
         self.model = sam_model_fast_registry[model_type](checkpoint=sam_checkpoint)
         self.model.to(device=device)
         data_folder = os.path.dirname(DATA_PATH)
-        image_path = os.path.join(data_folder, "data", "sam", "truck.jpg")
+        image_path = os.path.join(data_folder, "data", ".data", "sam_inputs", "truck.jpg")
         assert os.path.exists(image_path), f"Expected image file exists at {image_path} but not found."
         self.image = cv2.imread(image_path)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
