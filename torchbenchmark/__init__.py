@@ -172,15 +172,11 @@ def _is_canary_model(model_name: str) -> bool:
     return False
 
 
-def setup(
+def _filter_model_paths(
     models: Optional[List[str]] = None,
     skip_models: Optional[List[str]] = None,
-    verbose: bool = True,
-    continue_on_fail: bool = False,
-    test_mode: bool = False,
     allow_canary: bool = False,
-) -> bool:
-    failures = {}
+) -> List[str]:
     models = list(map(lambda p: p.lower(), models))
     model_paths = filter(
         lambda p: True if not models else os.path.basename(p).lower() in models,
@@ -195,6 +191,19 @@ def setup(
         model_paths.extend(canary_model_paths)
     skip_models = [] if not skip_models else skip_models
     model_paths = [x for x in model_paths if os.path.basename(x) not in skip_models]
+    return model_paths
+
+
+def setup(
+    models: Optional[List[str]] = None,
+    skip_models: Optional[List[str]] = None,
+    verbose: bool = True,
+    continue_on_fail: bool = False,
+    test_mode: bool = False,
+    allow_canary: bool = False,
+) -> bool:
+    failures = {}
+    model_paths = _filter_model_paths(models, skip_models, allow_canary)
     for model_path in model_paths:
         print(f"running setup for {model_path}...", end="", flush=True)
         if test_mode:
