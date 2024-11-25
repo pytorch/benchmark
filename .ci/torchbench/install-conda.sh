@@ -12,13 +12,13 @@ chmod +x Miniconda3-latest-Linux-x86_64.sh && \
 bash ./Miniconda3-latest-Linux-x86_64.sh -b -u
 cd ..
 
-. ${HOME}/miniconda3/etc/profile.d/conda.sh
+. "${HOME}"/miniconda3/etc/profile.d/conda.sh
 conda activate base
 conda init
 
-python utils/python_utils.py --create-conda-env ${CONDA_ENV}
+python utils/python_utils.py --create-conda-env "${CONDA_ENV}"
 
-conda activate ${CONDA_ENV}
+conda activate "${CONDA_ENV}"
 
 python utils/cuda_utils.py --install-torch-deps
 python utils/cuda_utils.py --install-torch-nightly

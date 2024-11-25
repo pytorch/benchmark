@@ -1,7 +1,7 @@
 import os
+import requests
 
 from utils import s3_utils
-import requests
 from utils.python_utils import pip_install_requirements
 
 
@@ -26,9 +26,7 @@ def download_checkpoint():
 
 
 def download_data():
-    s3_utils.checkout_s3_data(
-        "INPUT_TARBALLS", "sam_inputs.tar.gz", decompress=True
-    )
+    s3_utils.checkout_s3_data("INPUT_TARBALLS", "sam_inputs.tar.gz", decompress=True)
 
 
 if __name__ == "__main__":

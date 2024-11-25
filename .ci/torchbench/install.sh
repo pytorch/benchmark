@@ -9,7 +9,7 @@ if [[ -n "${SETUP_SCRIPT}" && -e "${SETUP_SCRIPT}" ]]; then
   . "${SETUP_SCRIPT}"
 fi
 
-. ${HOME}/miniconda3/etc/profile.d/conda.sh
+. "${HOME}"/miniconda3/etc/profile.d/conda.sh
 
 conda activate "${CONDA_ENV}"
 
