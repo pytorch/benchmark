@@ -307,6 +307,11 @@ def enable_inductor_quant(model: 'torchbenchmark.util.model.BenchmarkModel', is_
             module,
             example_inputs,
         )
+
+    for name, buffer in exported_model.named_buffers():
+        if not buffer.is_xpu:
+            buffer.data = buffer.to('xpu')
+
     # PT2E Quantization flow
     prepared_model = prepare_qat_pt2e(exported_model, quantizer) if is_qat else prepare_pt2e(exported_model, quantizer)
     # Calibration
