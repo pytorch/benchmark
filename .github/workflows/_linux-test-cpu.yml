@@ -15,8 +15,7 @@ jobs:
     timeout-minutes: 240
     environment: docker-s3-upload
     env:
-      BASE_CONDA_ENV: "torchbench"
-      CONDA_ENV: "pr-test-cpu"
+      CONDA_ENV: "torchbench"
       DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
       SETUP_SCRIPT: "/workspace/setup_instance.sh"
       TEST_CONFIG: "cpu"

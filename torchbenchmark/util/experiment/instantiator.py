@@ -122,8 +122,9 @@ def list_devices() -> List[str]:
     devices = ["cpu"]
     import torch
 
-    if torch.cuda.is_available():
-        devices.append("cuda")
+    device_type = torch._C._get_accelerator().type
+    if device_type != "cpu":
+        devices.append(device_type)
     return devices
 
 

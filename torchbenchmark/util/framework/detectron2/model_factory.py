@@ -147,7 +147,7 @@ class Detectron2Model(BenchmarkModel):
         elif self.test == "eval":
             loader = self.setup_eval(cfg, args)
 
-        self.example_inputs = prefetch(itertools.islice(loader, 100), self.device)
+        self.example_inputs = prefetch(itertools.islice(loader, 1), self.device)
 
     def setup_train(self):
         if hasattr(self, "FCOS_USE_BN") and self.FCOS_USE_BN:

@@ -68,9 +68,9 @@ spec:
           mountPath: /dev
         - name: root-mount
           mountPath: /root
-        env:
-        - name: NVIDIA_DRIVER_VERSION
-          value: "535.161.07"
+        # env:
+        # - name: NVIDIA_DRIVER_VERSION
+        #   value: latest
       containers:
       - image: "gcr.io/google-containers/pause:2.0"
         name: pause
