@@ -90,6 +90,8 @@ if __name__ == "__main__":
             cmd.extend(["--skip"] + args.skip)
         if args.canary:
             cmd.extend(["--canary"])
+        if args.continue_on_fail:
+            cmd.extend(["--continue_on_fail"])
         cmd.extend(extra_args)
         if userbenchmark_dir.joinpath("install.py").is_file():
             # add the current run env to PYTHONPATH to load framework install utils
