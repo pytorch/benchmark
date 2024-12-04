@@ -202,7 +202,6 @@ def main():
 
     with torch.no_grad():
         for _, (frame0, frame1) in enumerate(tqdm(videoFramesloader), 0):
-
             I0 = frame0.to(device)
             I1 = frame1.to(device)
 

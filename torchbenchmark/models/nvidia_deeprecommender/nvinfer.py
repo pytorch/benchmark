@@ -102,7 +102,6 @@ def getCommandLineArgs():
 
 
 def getBenchmarkArgs(forceCuda, device="cuda"):
-
     class Args:
         pass
 
@@ -130,7 +129,6 @@ def getBenchmarkArgs(forceCuda, device="cuda"):
 
 
 def processArgState(args):
-
     if not args.silent:
         print(args)
 
@@ -163,11 +161,9 @@ def processArgState(args):
 
 
 class DeepRecommenderInferenceBenchmark:
-
     def __init__(
         self, device="cpu", jit=False, batch_size=256, usecommandlineargs=False
     ):
-
         self.toytest = True
 
         self.batch_size = batch_size
@@ -271,7 +267,6 @@ class DeepRecommenderInferenceBenchmark:
 
     def eval(self, niter=1):
         for iteration in range(niter):
-
             if self.toytest:
                 out = self.rencoder(self.toyinputs)
                 continue
@@ -303,7 +298,6 @@ class DeepRecommenderInferenceBenchmark:
         return out
 
     def TimedInferenceRun(self):
-
         print("Timed Inference Start")
 
         e_start_time = time.time()

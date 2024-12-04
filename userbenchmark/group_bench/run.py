@@ -145,7 +145,7 @@ def parse_str_to_list(candidates: Optional[str]) -> List[str]:
 
 
 def metrics_to_dict(
-    metrics: Union[TorchBenchModelMetrics, Dict[str, str]]
+    metrics: Union[TorchBenchModelMetrics, Dict[str, str]],
 ) -> Dict[str, Union[str, float]]:
     if isinstance(metrics, TorchBenchModelMetrics):
         pass

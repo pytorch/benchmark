@@ -8,7 +8,6 @@ from torchbenchmark.util.model import BenchmarkModel
 
 
 class DenseLayer(nn.Module):
-
     def __init__(self, c_in, bn_size, growth_rate, act_fn):
         """
         Inputs:
@@ -36,7 +35,6 @@ class DenseLayer(nn.Module):
 
 
 class DenseBlock(nn.Module):
-
     def __init__(self, c_in, num_layers, bn_size, growth_rate, act_fn):
         """
         Inputs:
@@ -67,7 +65,6 @@ class DenseBlock(nn.Module):
 
 
 class TransitionLayer(nn.Module):
-
     def __init__(self, c_in, c_out, act_fn):
         super().__init__()
         self.transition = nn.Sequential(
@@ -83,7 +80,6 @@ class TransitionLayer(nn.Module):
 
 
 class DenseNet(nn.Module):
-
     def __init__(
         self,
         num_classes=10,
@@ -91,7 +87,7 @@ class DenseNet(nn.Module):
         bn_size=2,
         growth_rate=16,
         act_fn_name="relu",
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         act_fn_by_name = {

@@ -26,7 +26,7 @@ def loss_for_task(net, n_inner_iter, x_spt, y_spt, x_qry, y_qry):
     new_params = params
     for _ in range(n_inner_iter):
         grads = grad(compute_loss)(new_params, buffers, x_spt, y_spt)
-        new_params = [p - g * 1e-1 for p, g, in zip(new_params, grads)]
+        new_params = [p - g * 1e-1 for p, g in zip(new_params, grads)]
 
     # The final set of adapted parameters will induce some
     # final loss and accuracy on the query dataset.

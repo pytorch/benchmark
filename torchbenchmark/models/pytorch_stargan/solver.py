@@ -244,7 +244,6 @@ class Solver:
         print("Start training...")
         start_time = time.time()
         for i in range(start_iters, self.num_iters):
-
             # =================================================================================== #
             #                             1. Preprocess input data                                #
             # =================================================================================== #
@@ -444,7 +443,6 @@ class Solver:
         start_time = time.time()
         for i in range(start_iters, self.num_iters):
             for dataset in ["CelebA", "RaFD"]:
-
                 # =================================================================================== #
                 #                             1. Preprocess input data                                #
                 # =================================================================================== #
@@ -651,7 +649,6 @@ class Solver:
 
         with torch.no_grad():
             for i, (x_real, c_org) in enumerate(data_loader):
-
                 # Prepare input images and target domain labels.
                 x_real = x_real.to(self.device)
                 c_trg_list = self.create_labels(
@@ -682,7 +679,6 @@ class Solver:
 
         with torch.no_grad():
             for i, (x_real, c_org) in enumerate(self.celeba_loader):
-
                 # Prepare input images and target domain labels.
                 x_real = x_real.to(self.device)
                 c_celeba_list = self.create_labels(

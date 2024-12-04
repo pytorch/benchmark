@@ -17,21 +17,15 @@ def check_env(bisection_root: str):
     assert (
         bisection_path.is_dir()
     ), f"Specified bisection root {bisection_path} is not a directory."
-    assert bisection_path.joinpath(
-        "gh-issue.md"
-    ).exists(), (
-        f"Bisection directory {bisection_path} doesn't contain file gh-issue.md."
-    )
-    assert bisection_path.joinpath(
-        "result.json"
-    ).exists(), (
-        f"Bisection directory {bisection_path} doesn't contain file result.json."
-    )
-    assert bisection_path.joinpath(
-        "config.yaml"
-    ).exists(), (
-        f"Bisection directory {bisection_path} doesn't contain file config.yaml."
-    )
+    assert (
+        bisection_path.joinpath("gh-issue.md").exists()
+    ), f"Bisection directory {bisection_path} doesn't contain file gh-issue.md."
+    assert (
+        bisection_path.joinpath("result.json").exists()
+    ), f"Bisection directory {bisection_path} doesn't contain file result.json."
+    assert (
+        bisection_path.joinpath("config.yaml").exists()
+    ), f"Bisection directory {bisection_path} doesn't contain file config.yaml."
 
 
 def setup_gh_issue(bisection_root: str, gh_workflow_id: str):

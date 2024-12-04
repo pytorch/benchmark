@@ -251,7 +251,5 @@ if __name__ == "__main__":
     if args.install_torchbench_deps:
         install_torchbench_deps()
     if args.check_torch_nightly_version:
-        assert (
-            not args.install_torch_nightly
-        ), "Error: Can't run install torch nightly and check version in the same command."
+        assert not args.install_torch_nightly, "Error: Can't run install torch nightly and check version in the same command."
         check_torch_nightly_version(args.force_date)

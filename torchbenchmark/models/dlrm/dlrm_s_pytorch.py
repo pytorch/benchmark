@@ -252,7 +252,6 @@ class DLRM_Net(nn.Module):
             and (ln_top is not None)
             and (arch_interaction_op is not None)
         ):
-
             # save arguments
             self.ndevices = ndevices
             self.output_d = 0
@@ -645,7 +644,6 @@ if __name__ == "__main__":
     ln_bot = np.fromstring(args.arch_mlp_bot, dtype=int, sep="-")
     # input data
     if args.data_generation == "dataset":
-
         train_data, train_ld, test_data, test_ld = dp.make_criteo_data_and_loaders(args)
         nbatches = args.num_batches if args.num_batches > 0 else len(train_ld)
         nbatches_test = len(test_ld)
@@ -1137,10 +1135,12 @@ if __name__ == "__main__":
 
                         metrics = {
                             "loss": sklearn.metrics.log_loss,
-                            "recall": lambda y_true, y_score: sklearn.metrics.recall_score(
+                            "recall": lambda y_true,
+                            y_score: sklearn.metrics.recall_score(
                                 y_true=y_true, y_pred=np.round(y_score)
                             ),
-                            "precision": lambda y_true, y_score: sklearn.metrics.precision_score(
+                            "precision": lambda y_true,
+                            y_score: sklearn.metrics.precision_score(
                                 y_true=y_true, y_pred=np.round(y_score)
                             ),
                             "f1": lambda y_true, y_score: sklearn.metrics.f1_score(
@@ -1148,7 +1148,8 @@ if __name__ == "__main__":
                             ),
                             "ap": sklearn.metrics.average_precision_score,
                             "roc_auc": sklearn.metrics.roc_auc_score,
-                            "accuracy": lambda y_true, y_score: sklearn.metrics.accuracy_score(
+                            "accuracy": lambda y_true,
+                            y_score: sklearn.metrics.accuracy_score(
                                 y_true=y_true, y_pred=np.round(y_score)
                             ),
                             # 'pre_curve' : sklearn.metrics.precision_recall_curve,

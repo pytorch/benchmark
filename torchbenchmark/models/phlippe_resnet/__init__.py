@@ -13,7 +13,6 @@ from torchbenchmark.util.model import BenchmarkModel
 
 
 class ResNetBlock(nn.Module):
-
     def __init__(self, c_in, act_fn, subsample=False, c_out=-1):
         """
         Inputs:
@@ -58,14 +57,13 @@ class ResNetBlock(nn.Module):
 
 
 class ResNetModel(nn.Module):
-
     def __init__(
         self,
         num_classes=10,
         num_blocks=[3, 3, 3],
         c_hidden=[16, 32, 64],
         act_fn_name="relu",
-        **kwargs
+        **kwargs,
     ):
         """
         Inputs:

@@ -13,7 +13,6 @@ def composite4(fg, bg, a):
 
 
 def compose_image_withshift(alpha_pred, fg_pred, bg, seg):
-
     image_sh = torch.zeros(fg_pred.shape)
     if alpha_pred.is_cuda:
         image_sh = image_sh.cuda()
@@ -54,7 +53,6 @@ def get_bbox(mask, R, C):
 
 
 def crop_images(crop_list, reso, bbox):
-
     for i in range(0, len(crop_list)):
         img = crop_list[i]
         if img.ndim >= 3:
@@ -71,7 +69,6 @@ def crop_images(crop_list, reso, bbox):
 
 
 def create_bbox(bbox_init, sh):
-
     w = np.maximum(bbox_init[2], bbox_init[3])
 
     x1 = bbox_init[0] - 0.1 * w
@@ -95,7 +92,6 @@ def create_bbox(bbox_init, sh):
 
 
 def uncrop(alpha, bbox, R=720, C=1280):
-
     alpha = cv2.resize(alpha, (bbox[3], bbox[2]))
 
     if alpha.ndim == 2:

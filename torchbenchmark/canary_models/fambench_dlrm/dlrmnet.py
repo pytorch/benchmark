@@ -399,7 +399,6 @@ class DLRM_Net(nn.Module):
 
     #  using quantizing functions from caffe2/aten/src/ATen/native/quantized/cpu
     def quantize_embedding(self, bits):
-
         n = len(self.emb_l)
         self.emb_l_q = [None] * n
         for k in range(n):
@@ -420,7 +419,6 @@ class DLRM_Net(nn.Module):
         self.quantize_bits = bits
 
     def interact_features(self, x, ly):
-
         if self.arch_interaction_op == "dot":
             # concatenate dense and sparse features
             (batch_size, d) = x.shape

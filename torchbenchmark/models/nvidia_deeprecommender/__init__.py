@@ -18,7 +18,6 @@ from .nvtrain import DeepRecommenderTrainBenchmark
 
 
 class Model(BenchmarkModel):
-
     task = RECOMMENDATION.RECOMMENDATION
     DEFAULT_TRAIN_BSIZE = 256
     DEFAULT_EVAL_BSIZE = 256

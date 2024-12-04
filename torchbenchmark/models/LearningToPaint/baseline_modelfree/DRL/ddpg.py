@@ -55,7 +55,6 @@ class DDPG(object):
         resume=None,
         output_path=None,
     ):
-
         self.max_step = max_step
         self.env_batch = env_batch
         self.batch_size = batch_size

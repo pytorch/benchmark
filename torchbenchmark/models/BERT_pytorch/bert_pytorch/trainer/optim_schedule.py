@@ -1,4 +1,4 @@
-"""A wrapper class for optimizer """
+"""A wrapper class for optimizer"""
 
 import numpy as np
 

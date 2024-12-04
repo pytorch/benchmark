@@ -29,7 +29,6 @@ def train_model(
     world_size=1,
     batch_size=16,
 ):
-
     if world_size > 1:
         sampler = DistributedSampler(dataset)
         sampler_epoch = epoch * repeat

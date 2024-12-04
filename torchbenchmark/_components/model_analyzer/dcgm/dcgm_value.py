@@ -124,7 +124,6 @@ class DcgmValue:
 
 ###############################################################################
 def self_test():
-
     v = DcgmValue(1.0)
     assert not v.IsBlank()
     assert v.value == 1.0

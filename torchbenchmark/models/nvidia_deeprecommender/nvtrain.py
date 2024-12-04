@@ -29,7 +29,6 @@ from .reco_encoder.model import model
 
 
 def getTrainBenchmarkArgs():
-
     class Args:
         pass
 
@@ -62,7 +61,6 @@ def getTrainBenchmarkArgs():
 
 
 def getTrainCommandLineArgs():
-
     parser = argparse.ArgumentParser(description="RecoEncoder")
     parser.add_argument(
         "--lr", type=float, default=0.00001, metavar="N", help="learning rate"
@@ -184,7 +182,6 @@ def getTrainCommandLineArgs():
 
 
 def processTrainArgState(args):
-
     if not args.silent:
         print(args)
 
@@ -269,7 +266,6 @@ def DoTrainEval(encoder, evaluation_data_layer, device):
 
 
 class DeepRecommenderTrainBenchmark:
-
     def __init__(
         self, device="cpu", jit=False, batch_size=256, processCommandLine=False
     ):
@@ -278,7 +274,6 @@ class DeepRecommenderTrainBenchmark:
     def TrainInit(
         self, device="cpu", jit=False, batch_size=256, processCommandLine=False
     ):
-
         # Force test to run in toy mode. Single call of fake data to model.
         self.toytest = True
         self.toybatch = batch_size
@@ -433,13 +428,11 @@ class DeepRecommenderTrainBenchmark:
         self.optimizer = optimizer
 
     def DoTrain(self):
-
         self.rencoder.train()
         # if self.args.optimizer == "momentum":
         #  self.scheduler.step()
 
         for i, mb in enumerate(self.data_layer.iterate_one_epoch()):
-
             inputs = Variable(mb.to(self.args.device).to_dense())
 
             self.optimizer.zero_grad()
@@ -512,7 +505,6 @@ class DeepRecommenderTrainBenchmark:
 
     def train(self, niter=1):
         for self.epoch in range(niter):
-
             if self.toytest:
                 self.rencoder.train()
                 self.optimizer.zero_grad()
@@ -611,7 +603,6 @@ class DeepRecommenderTrainBenchmark:
 
 
 def main():
-
     gpuTrain = DeepRecommenderTrainBenchmark(device="cuda")
     gpuTrain.TimedTrainingRun()
 
@@ -620,5 +611,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

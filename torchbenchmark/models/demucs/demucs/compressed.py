@@ -20,7 +20,6 @@ class StemsSet:
     def __init__(
         self, tracks, metadata, duration=None, stride=1, samplerate=44100, channels=2
     ):
-
         self.metadata = []
         for name, path in tracks.items():
             meta = dict(metadata[name])
