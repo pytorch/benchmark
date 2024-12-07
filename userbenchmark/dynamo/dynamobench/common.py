@@ -3222,7 +3222,8 @@ class BenchmarkRunner:
                     total = psutil.virtual_memory().total
                     percentage = psutil.Process(os.getpid()).memory_percent()
                     peak_mem = percentage * total / 10**9
-            except Exception:
+            except Exception as e:
+                print("exception:", e)
                 log.exception("Backend %s failed in warmup()", mode)
                 write_csv_when_exception(
                     self.args, current_name, "warmup_failed", current_device
