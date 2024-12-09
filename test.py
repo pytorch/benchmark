@@ -55,7 +55,6 @@ def _create_example_model_instance(task: ModelTask, device: str):
 
 
 def _load_test(path, device):
-
     model_name = os.path.basename(path)
 
     def _skip_cuda_memory_check_p(metadata):

@@ -1,4 +1,4 @@
-""" Hacked from https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/train.py
+"""Hacked from https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/train.py
 
 ImageNet Training Script
 
@@ -39,7 +39,6 @@ def train_one_epoch(
     model_ema=None,
     mixup_fn=None,
 ):
-
     if args.mixup_off_epoch and epoch >= args.mixup_off_epoch:
         if args.prefetcher and loader.mixup_enabled:
             loader.mixup_enabled = False

@@ -460,7 +460,6 @@ class ResnetGenerator(nn.Module):
 
         mult = 2**n_downsampling
         for i in range(n_blocks):  # add ResNet blocks
-
             model += [
                 ResnetBlock(
                     ngf * mult,

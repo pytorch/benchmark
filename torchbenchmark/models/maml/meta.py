@@ -78,7 +78,6 @@ class Meta(nn.Module):
         corrects = [0 for _ in range(self.update_step + 1)]
 
         for i in range(task_num):
-
             # 1. run the i-th task and compute loss for k=0
             logits = self.net(x_spt[i], vars=None, bn_training=True)
             loss = F.cross_entropy(logits, y_spt[i])

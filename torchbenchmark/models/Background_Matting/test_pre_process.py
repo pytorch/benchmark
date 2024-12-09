@@ -7,7 +7,6 @@ GOOD_MATCH_PERCENT = 0.15
 
 
 def alignImages(im1, im2, masksDL):
-
     # Convert images to grayscale
     im1Gray = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
     im2Gray = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
@@ -106,7 +105,6 @@ list_im.sort()
 
 
 for i in range(0, len(list_im)):
-
     image = cv2.imread(list_im[i], cv2.IMREAD_COLOR)
     back = cv2.imread(list_im[i].replace("img", "back"), cv2.IMREAD_COLOR)
     mask = cv2.imread(list_im[i].replace("img", "masksDL"))

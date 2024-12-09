@@ -173,7 +173,6 @@ for epoch in range(dict1["epoch"] + 1, args.epochs):
     scheduler.step()
 
     for trainIndex, (trainData, trainFrameIndex) in enumerate(trainloader, 0):
-
         ## Getting the input and the target from the training set
         frame0, frameT, frame1 = trainData
 

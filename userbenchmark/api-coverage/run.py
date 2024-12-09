@@ -68,7 +68,6 @@ API_LIST, IGNORED_API_LIST = generate_API_list()
 
 
 class CoverageMode(torch.overrides.TorchFunctionMode):
-
     def __init__(self, model="", output_file=None):
         self.model = model
         self.seen = set()

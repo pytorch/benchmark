@@ -43,7 +43,6 @@ from . import data_loader_terabyte, data_utils
 #            "total": randomizes total dataset
 # split (bool) : to split into train, test, validation data-sets
 class CriteoDataset(Dataset):
-
     def __init__(
         self,
         dataset,
@@ -253,7 +252,6 @@ class CriteoDataset(Dataset):
             print("Split data according to indices...")
 
     def __getitem__(self, index):
-
         if isinstance(index, slice):
             return [
                 self[idx]
@@ -374,7 +372,6 @@ def ensure_dataset_preprocessed(args, d_path):
 
 
 def make_criteo_data_and_loaders(args):
-
     if args.mlperf_logging and args.memory_map and args.data_set == "terabyte":
         # more efficient for larger batches
         data_directory = path.dirname(args.raw_data_file)
@@ -516,7 +513,6 @@ def make_criteo_data_and_loaders(args):
 
 # uniform ditribution (input data)
 class RandomDataset(Dataset):
-
     def __init__(
         self,
         m_den,
@@ -562,7 +558,6 @@ class RandomDataset(Dataset):
         # torch.manual_seed(numpy_rand_seed)
 
     def __getitem__(self, index):
-
         if isinstance(index, slice):
             return [
                 self[idx]
@@ -621,7 +616,6 @@ def collate_wrapper_random(list_of_tuples):
 
 
 def make_random_data_and_loader(args, ln_emb, m_den):
-
     train_data = RandomDataset(
         m_den,
         ln_emb,

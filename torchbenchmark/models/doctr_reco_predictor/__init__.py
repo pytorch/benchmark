@@ -1,4 +1,5 @@
 "Doctr recognition model"
+
 from typing import Tuple
 
 import torch

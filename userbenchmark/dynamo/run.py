@@ -90,7 +90,6 @@ def _run_torchbench(args: List[str]) -> None:
 
 
 class PT2SysArgvManager:
-
     def __init__(self, args):
         self.args = args
 

@@ -193,9 +193,9 @@ class RecordAggregator:
                     record_types=[record_type],
                     filters=[lambda r: groupby_criterion(r) == field_value],
                 )
-                groupby_result[record_type][
-                    field_value
-                ] = temp_records_aggregator.get_records()
+                groupby_result[record_type][field_value] = (
+                    temp_records_aggregator.get_records()
+                )
         return groupby_result
 
     def record_types(self):

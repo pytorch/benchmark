@@ -347,14 +347,15 @@ def prepare_training_loop(args):
                 # print(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'GIoU', 'obj', 'cls', 'total', 'targets', 'img_size'))
                 # pbar = tqdm(zip(range(opt.train_num_batch), dataloader), total=nb)  # progress bar
                 pbar = zip(range(opt.train_num_batch), dataloader)
-                for i, (
-                    imgs,
-                    targets,
-                    paths,
-                    _,
-                ) in (
-                    pbar
-                ):  # batch -------------------------------------------------------------
+                for (
+                    i,
+                    (
+                        imgs,
+                        targets,
+                        paths,
+                        _,
+                    ),
+                ) in pbar:  # batch -------------------------------------------------------------
                     if i > 3:
                         break
                     ni = i + nb * epoch  # number integrated batches (since train start)

@@ -19,7 +19,6 @@ def train_epoch(
     model_ema=None,
     num_batch=1,
 ):
-
     # batch_time_m = AverageMeter()
     # data_time_m = AverageMeter()
     losses_m = AverageMeter()

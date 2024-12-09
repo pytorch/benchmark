@@ -1,5 +1,5 @@
 """
-Hacked from https://github.com/huggingface/transformers/blob/main/examples/pytorch/translation/run_translation_no_trainer.py 
+Hacked from https://github.com/huggingface/transformers/blob/main/examples/pytorch/translation/run_translation_no_trainer.py
 It runs HuggingFace transformer models translation on WMT16
 """
 

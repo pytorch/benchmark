@@ -46,9 +46,9 @@ if __name__ == "__main__":
         seq = [
             char_list[int(i)] for i in j["utts"][x]["output"][0]["rec_tokenid"].split()
         ]
-        h.write(" ".join(seq).replace("<eos>", "")),
+        (h.write(" ".join(seq).replace("<eos>", "")),)
         h.write(" (" + j["utts"][x]["utt2spk"].replace("-", "_") + "-" + x + ")\n")
 
         seq = [char_list[int(i)] for i in j["utts"][x]["output"][0]["tokenid"].split()]
-        r.write(" ".join(seq).replace("<eos>", "")),
+        (r.write(" ".join(seq).replace("<eos>", "")),)
         r.write(" (" + j["utts"][x]["utt2spk"].replace("-", "_") + "-" + x + ")\n")

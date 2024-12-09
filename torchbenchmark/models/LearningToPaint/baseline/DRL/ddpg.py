@@ -51,7 +51,6 @@ class DDPG(object):
         device="cpu",
         Decoder=None,
     ):
-
         self.max_step = max_step
         self.env_batch = env_batch
         self.batch_size = batch_size

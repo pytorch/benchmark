@@ -2,8 +2,6 @@ import time
 
 import pynvml
 
-from packaging import version
-
 from ..tb_dcgm_types.gpu_free_memory import GPUFreeMemory
 from ..tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
 from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
@@ -14,9 +12,7 @@ from .monitor import Monitor
 
 
 class NVMLMonitor(Monitor):
-    """
-    Use NVML to monitor GPU metrics
-    """
+    """Use NVML to monitor GPU metrics."""
 
     # Mapping between the NVML Fields and Model Analyzer Records
     # For more explainations, please refer to https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html
@@ -28,7 +24,8 @@ class NVMLMonitor(Monitor):
     }
 
     def __init__(self, gpus, frequency, metrics):
-        """
+        """Initialize the NVML monitor.
+
         Parameters
         ----------
         gpus : list of GPUDevice
@@ -48,23 +45,12 @@ class NVMLMonitor(Monitor):
         self._gpus = gpus
         # gpu handles: {gpu: handle}
         self._gpu_handles = {}
-        self._nvmlDeviceGetHandleByUUID = None
-        self.check_nvml_compatibility()
+        self._nvmlDeviceGetHandleByUUID = self._nvml.nvmlDeviceGetHandleByUUID
         for gpu in self._gpus:
             self._gpu_handles[gpu] = self._nvmlDeviceGetHandleByUUID(gpu.device_uuid())
             self._records[gpu] = {}
             for metric in self._metrics:
                 self._records[gpu][metric] = []
-
-    def check_nvml_compatibility(self):
-        # check pynvml version, if it is less than 11.5.0, convert uuid to bytes
-        current_version = version.parse(pynvml.__version__)
-        if current_version < version.parse("11.5.0"):
-            self._nvmlDeviceGetHandleByUUID = (
-                self._nvmlDeviceGetHandleByUUID_for_older_pynvml
-            )
-        else:
-            self._nvmlDeviceGetHandleByUUID = self._nvml.nvmlDeviceGetHandleByUUID
 
     def _nvmlDeviceGetHandleByUUID_for_older_pynvml(self, uuid):
         return self._nvml.nvmlDeviceGetHandleByUUID(uuid.encode("ascii"))

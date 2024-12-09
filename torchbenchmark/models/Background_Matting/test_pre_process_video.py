@@ -7,7 +7,6 @@ GOOD_MATCH_PERCENT = 0.15
 
 
 def alignImages(im1, im2, masksDL):
-
     # Convert images to grayscale
     im1Gray = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
     im2Gray = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
@@ -76,7 +75,6 @@ def adjustExposure(img, back, mask):
 
 
 def bias_gain(orgR, capR, cap_mask):
-
     xR = capR[cap_mask]
     yR = orgR[cap_mask]
 
@@ -128,7 +126,6 @@ back = cv2.imread(args.video_name)
 # back_new=(255*back_new).astype(np.uint8)
 
 for i in range(0, len(list_im)):
-
     image = cv2.imread(list_im[i])
     mask = cv2.imread(list_im[i].replace("img", "masksDL"))
 

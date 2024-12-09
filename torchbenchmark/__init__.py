@@ -304,7 +304,6 @@ class Worker(subprocess_worker.SubprocessWorker):
 
 
 class ModelTask(base_task.TaskBase):
-
     # The worker may (and often does) consume significant system resources.
     # In order to ensure that runs do not interfere with each other, we only
     # allow a single ModelTask to exist at a time.

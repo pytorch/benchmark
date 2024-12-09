@@ -199,9 +199,7 @@ if __name__ == "__main__":
             args.pytorch_repo
         ).is_dir(), f"Specified PyTorch repo dir {args.pytorch_repo} doesn't exist."
         commits = gitutils.get_git_commits(args.pytorch_repo, args.base, args.head)
-        assert (
-            commits
-        ), f"Can't find git commit {args.base} or {args.head} in repo {args.pytorch_repo}"
+        assert commits, f"Can't find git commit {args.base} or {args.head} in repo {args.pytorch_repo}"
     # setup cuda environment
     cuda_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
     result_a = run_commit(

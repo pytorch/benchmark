@@ -165,7 +165,6 @@ for data in train_loader:
 
 print("Starting training")
 for epoch in range(0, args.epoch):
-
     netG.train()
     netD.train()
 

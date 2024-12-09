@@ -27,7 +27,6 @@ except (ImportError, ModuleNotFoundError):
 
 
 class TestParseFunction(TestCase):
-
     @staticmethod
     def _indent(s: str) -> str:
         return textwrap.indent(s, " " * 12)
@@ -115,7 +114,6 @@ class TestParseFunction(TestCase):
 
     def test_parse_method(self) -> None:
         class MyClass:
-
             @staticmethod
             def f(x: int) -> int:
                 """Identity, but with more steps"""
@@ -228,7 +226,6 @@ class TestParseFunction(TestCase):
 
     def test_no_functor(self) -> None:
         class F:
-
             def __call__(self) -> None:
                 pass
 
@@ -255,9 +252,7 @@ class TestParseFunction(TestCase):
             task_base.parse_f(g)
 
     def test_no_decorator(self) -> None:
-
         def my_decorator(f: typing.Callable) -> typing.Callable:
-
             @functools.wraps(f)
             def g(*args, **kwargs) -> typing.Any:
                 return f(*args, **kwargs)
@@ -275,7 +270,6 @@ class TestParseFunction(TestCase):
 
 
 class TestSubprocessRPC(TestCase):
-
     def test_pipe_basic_read_write(self) -> None:
         pipe = subprocess_rpc.Pipe()
 
@@ -378,7 +372,6 @@ class TestSubprocessRPC(TestCase):
         del_audit = {"count": 0}
 
         class OwnCheckingPipe(subprocess_rpc.Pipe):
-
             def __init__(self):
                 super().__init__()
                 self._cleanup_was_run = False
@@ -394,7 +387,6 @@ class TestSubprocessRPC(TestCase):
                 del_audit["count"] += 1
 
         class NonOwnCheckingPipe(subprocess_rpc.Pipe):
-
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 assertFalse(self._owns_pipe)
@@ -424,7 +416,6 @@ class TestSubprocessRPC(TestCase):
 
 
 class TestSubprocessExceptions(TestCase):
-
     def _test_raise(
         self,
         raise_type: typing.Type[Exception],

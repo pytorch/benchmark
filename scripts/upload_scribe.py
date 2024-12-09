@@ -31,7 +31,6 @@ class ScribeUploader:
             elif field in self.schema["float"]:
                 message["float"][field] = float(value)
             else:
-
                 raise ValueError(
                     "Field {} is not currently used, "
                     "be intentional about adding new fields".format(field)

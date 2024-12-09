@@ -60,7 +60,6 @@ def pytest_generate_tests(metafunc):
     group="hub",
 )
 class TestBenchNetwork:
-
     def test_train(self, model_path, device, benchmark):
         try:
             model_name = os.path.basename(model_path)

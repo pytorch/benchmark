@@ -16,7 +16,6 @@ from .pytorch_unet.utils.dice_score import dice_loss
 
 
 class Model(BenchmarkModel):
-
     task = COMPUTER_VISION.SEGMENTATION
     DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1

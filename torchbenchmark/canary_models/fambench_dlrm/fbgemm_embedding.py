@@ -31,9 +31,7 @@ def quantize_fbgemm_gpu_embedding_bag(model, quantize_type, device):
         weights_ty = quantize_type
         if D % weights_ty.align_size() != 0:
             assert D % 4 == 0
-            weights_ty = (
-                SparseType.FP16
-            )  # fall back to FP16 if dimension couldn't be aligned with the required size
+            weights_ty = SparseType.FP16  # fall back to FP16 if dimension couldn't be aligned with the required size
         embedding_specs.append(("", E, D, weights_ty, emb_location))
 
     q_model = (
@@ -232,7 +230,6 @@ class fbgemm_gpu_emb_bag_wrapper(nn.Module):
             torch.set_grad_enabled(False)
 
     def forward(self, lS_o, lS_i, v_W_l=None):
-
         # convert offsets to fbgemm format
         lengths_list = list(map(len, lS_i))
         indices_lengths_cumsum = np.cumsum([0] + lengths_list)

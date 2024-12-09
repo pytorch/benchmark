@@ -126,7 +126,6 @@ step = 50  # steps to visualize training images in tensorboard
 KK = len(train_loader)
 
 for epoch in range(0, args.epoch):
-
     net.train()
 
     netL, alL, fgL, fg_cL, al_fg_cL, elapse_run, elapse = 0, 0, 0, 0, 0, 0, 0

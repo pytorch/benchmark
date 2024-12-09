@@ -219,7 +219,6 @@ def is_using_isolated_cpus():
     lscpu = parse_lscpu_cpu_core_list()
     assert len(lscpu) > 0, "unable to parse current CPUs"
     for cpu, core, active in lscpu:
-
         # check that all used cpus are isolated ones (more critical)
         if (cpu in using_cpus or cpu in omp_using_cpus) and cpu not in isolated_cpus:
             return False
@@ -337,9 +336,7 @@ def check_machine_configured(check_process_affinity=True):
         assert (
             900 == get_nvidia_gpu_clocks()[0]
         ), "Nvidia gpu clock isn't limited, to increase consistency by reducing throttling"
-        assert (
-            is_using_isolated_cpus()
-        ), "taskset or GOMP_CPU_AFFINITY not specified or not matching kernel isolated cpus"
+        assert is_using_isolated_cpus(), "taskset or GOMP_CPU_AFFINITY not specified or not matching kernel isolated cpus"
         assert (
             check_pstate_frequency_pin()
         ), "Must pin CPU frequency to a fixed number in MHz"

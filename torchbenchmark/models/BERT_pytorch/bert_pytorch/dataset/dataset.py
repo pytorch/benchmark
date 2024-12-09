@@ -7,7 +7,6 @@ QUIET = True
 
 
 class BERTDataset(Dataset):
-
     def __init__(
         self,
         corpus_path,
@@ -31,7 +30,6 @@ class BERTDataset(Dataset):
 
         assert generator != None
         with generator as f:
-
             if self.corpus_lines is None and not on_memory:
                 for _ in f:
                     self.corpus_lines += 1
@@ -71,8 +69,10 @@ class BERTDataset(Dataset):
         bert_label = (t1_label + t2_label)[: self.seq_len]
 
         padding = [self.vocab.pad_index for _ in range(self.seq_len - len(bert_input))]
-        bert_input.extend(padding), bert_label.extend(padding), segment_label.extend(
-            padding
+        (
+            bert_input.extend(padding),
+            bert_label.extend(padding),
+            segment_label.extend(padding),
         )
 
         output = {
@@ -123,7 +123,6 @@ class BERTDataset(Dataset):
             return t1, self.get_random_line(), 0
 
     def get_corpus_line(self, item):
-
         if self.on_memory:
             return self.lines[item][0], self.lines[item][1]
         else:

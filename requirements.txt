@@ -19,7 +19,7 @@ pyyaml
 numpy
 opencv-python
 submitit
-pynvml
+pynvml>=12.0.0
 pandas
 scipy
 numba

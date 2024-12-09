@@ -674,7 +674,6 @@ def merge_reformat(tmp_dir, out_dir, table):
 
     csv_files = glob.glob(os.path.join(tmp_dir, "*.csv"))
     for csvf in csv_files:
-
         with open(csvf, "r") as csvfile:
             prefix = os.path.basename(csvf).split("_")[0]
             csvreader = csv.reader(csvfile, delimiter=",", quotechar='"')

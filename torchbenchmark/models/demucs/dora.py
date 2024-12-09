@@ -6,6 +6,7 @@
 """
 Dora the Explorer, special thank to @pierrestock.
 """
+
 import argparse
 import json
 import logging

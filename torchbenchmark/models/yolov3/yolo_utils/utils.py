@@ -204,9 +204,10 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     # Rescale coords (xyxy) from img1_shape to img0_shape
     if ratio_pad is None:  # calculate from img0_shape
         gain = max(img1_shape) / max(img0_shape)  # gain  = old / new
-        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (
-            img1_shape[0] - img0_shape[0] * gain
-        ) / 2  # wh padding
+        pad = (
+            (img1_shape[1] - img0_shape[1] * gain) / 2,
+            (img1_shape[0] - img0_shape[0] * gain) / 2,
+        )  # wh padding
     else:
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
@@ -365,9 +366,7 @@ def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False):
             ) ** 2 / 4
             if DIoU:
                 return iou - rho2 / c2  # DIoU
-            elif (
-                CIoU
-            ):  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
+            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
                 v = (4 / math.pi**2) * torch.pow(
                     torch.atan(w2 / h2) - torch.atan(w1 / h1), 2
                 )
@@ -503,9 +502,7 @@ def compute_loss(p, targets, model):  # predictions, targets, model
             # Obj
             tobj[b, a, gj, gi] = (1.0 - model.gr) + model.gr * giou.detach().clamp(
                 0
-            ).type(
-                tobj.dtype
-            )  # giou ratio
+            ).type(tobj.dtype)  # giou ratio
 
             # Class
             if model.nc > 1:  # cls loss (only if multiple classes)
@@ -583,8 +580,9 @@ def build_targets(p, targets, model):
                 g = 0.5  # offset
                 j, k = ((gxy % 1.0 < g) & (gxy > 1.0)).T
                 l, m = ((gxy % 1.0 > (1 - g)) & (gxy < (gain[[2, 3]] - 1.0))).T
-                a, t = torch.cat((a, a[j], a[k], a[l], a[m]), 0), torch.cat(
-                    (t, t[j], t[k], t[l], t[m]), 0
+                a, t = (
+                    torch.cat((a, a[j], a[k], a[l], a[m]), 0),
+                    torch.cat((t, t[j], t[k], t[l], t[m]), 0),
                 )
                 offsets = (
                     torch.cat(
@@ -855,9 +853,10 @@ def kmean_anchors(
         k = k[np.argsort(k.prod(1))]  # sort small to large
         iou = wh_iou(wh, torch.Tensor(k))
         max_iou = iou.max(1)[0]
-        bpr, aat = (max_iou > thr).float().mean(), (
-            iou > thr
-        ).float().mean() * n  # best possible recall, anch > thr
+        bpr, aat = (
+            (max_iou > thr).float().mean(),
+            (iou > thr).float().mean() * n,
+        )  # best possible recall, anch > thr
         print(
             "%.2f iou_thr: %.3f best possible recall, %.2f anchors > thr"
             % (thr, bpr, aat)
@@ -1240,8 +1239,9 @@ def plot_labels(labels):
     c, b = labels[:, 0], labels[:, 1:].transpose()  # classees, boxes
 
     def hist2d(x, y, n=100):
-        xedges, yedges = np.linspace(x.min(), x.max(), n), np.linspace(
-            y.min(), y.max(), n
+        xedges, yedges = (
+            np.linspace(x.min(), x.max(), n),
+            np.linspace(y.min(), y.max(), n),
         )
         hist, xedges, yedges = np.histogram2d(x, y, (xedges, yedges))
         xidx = np.clip(np.digitize(x, xedges) - 1, 0, hist.shape[0] - 1)

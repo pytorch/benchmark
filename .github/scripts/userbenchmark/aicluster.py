@@ -236,9 +236,7 @@ def run_aicluster_benchmark(
     index = get_metrics_index(s3, benchmark_name, work_dir)
     # if the previous run is not successful, exit immediately
     if check_success and not determine_success_today(index):
-        assert (
-            False
-        ), f"Don't find the last successful run in index: { index }. Please report a bug."
+        assert False, f"Don't find the last successful run in index: { index }. Please report a bug."
     # upload to scribe by the index
     if upload_scribe:
         upload_metrics_to_scribe(s3, benchmark_name, index, work_dir)

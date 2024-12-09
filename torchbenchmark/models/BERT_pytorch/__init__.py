@@ -48,7 +48,6 @@ class CorpusGenerator(io.TextIOBase):
         return self.lines <= self.lines_read
 
     def readline(self):
-
         self.lines_read = self.lines_read + 1
         if self.lines_read > self.lines:
             return ""

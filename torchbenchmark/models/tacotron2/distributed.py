@@ -53,7 +53,6 @@ and will be allreduced at the finish of the backward pass.
 
 
 class DistributedDataParallel(Module):
-
     def __init__(self, module):
         super(DistributedDataParallel, self).__init__()
         # fallback for PyTorch 0.3

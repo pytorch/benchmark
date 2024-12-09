@@ -8,6 +8,7 @@
 Run training locally on all visible GPUs. Start only
 one task per node as this script will spawn one child for each GPU.
 """
+
 import subprocess as sp
 import sys
 import time

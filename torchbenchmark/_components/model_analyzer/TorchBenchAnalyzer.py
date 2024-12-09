@@ -258,9 +258,9 @@ class ModelAnalyzer:
                 ]
                 cluster_records.sort(key=lambda x: x.timestamp())
                 for record in cluster_records:
-                    csv_records[gpu_uuid][record_type][
-                        record.timestamp()
-                    ] = record.value()
+                    csv_records[gpu_uuid][record_type][record.timestamp()] = (
+                        record.value()
+                    )
         with open(self.export_csv_name, "w") as fout:
             for gpu_uuid in csv_records:
                 # timestamp record in DCGM is microsecond

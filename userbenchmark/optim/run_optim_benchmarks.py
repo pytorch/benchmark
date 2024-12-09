@@ -3,7 +3,7 @@
 This script is intended for the CI context only! The whole purpose behind this script is to enable
 process/context/memory isolation across different models and devices. The OG script (which this
 script calls) is the userbenchmark/optim/run.py script, which is better documented and what is
-intended to be used locally. The current script is simply a wrapper that dispatches serial 
+intended to be used locally. The current script is simply a wrapper that dispatches serial
 subprocesses to run the OG script and handles the metrics.json merging afterwards.
 
 WARNING! Running this script will wipe clean the OUTPUT_DIR, .userbenchmark/optim/tmp!
@@ -73,8 +73,8 @@ def parse_args() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
 
 def main() -> None:
     args, optim_bm_args = parse_args()
-    assert not OUTPUT_DIR.exists() or not any(
-        OUTPUT_DIR.glob("*")
+    assert (
+        not OUTPUT_DIR.exists() or not any(OUTPUT_DIR.glob("*"))
     ), f"{OUTPUT_DIR} must be empty or nonexistent. Its contents will be wiped by this script."
 
     models = args.models

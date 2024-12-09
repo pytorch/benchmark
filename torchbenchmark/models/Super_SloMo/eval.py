@@ -124,8 +124,9 @@ def convert_video(
 ):
     vin = cv2.VideoCapture(source)
     count = vin.get(cv2.CAP_PROP_FRAME_COUNT)
-    w0, h0 = int(vin.get(cv2.CAP_PROP_FRAME_WIDTH)), int(
-        vin.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    w0, h0 = (
+        int(vin.get(cv2.CAP_PROP_FRAME_WIDTH)),
+        int(vin.get(cv2.CAP_PROP_FRAME_HEIGHT)),
     )
 
     codec = cv2.VideoWriter_fourcc(*output_format)

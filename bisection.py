@@ -632,8 +632,8 @@ def main() -> None:
     if args.skip_update:
         skip_update_repos = list(map(lambda x: x.strip(), args.skip_update.split(",")))
         for repo in skip_update_repos:
-            assert repo in list(
-                TORCHBENCH_BISECTION_TARGETS.keys()
+            assert (
+                repo in list(TORCHBENCH_BISECTION_TARGETS.keys())
             ), f"User specified skip update repo {repo} not in list: {TORCHBENCH_BISECTION_TARGETS.keys()}"
     else:
         skip_update_repos = None

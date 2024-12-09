@@ -44,12 +44,10 @@ SUPPORT_PROFILE_LIST = [
 
 
 def run_one_step_with_cudastreams(func, streamcount):
-
     print("Running Utilization Scaling Using Cuda Streams")
 
     streamlist = []
     for i in range(1, streamcount + 1, 1):
-
         # create additional streams and prime with load
         while len(streamlist) < i:
             s = torch.cuda.Stream()

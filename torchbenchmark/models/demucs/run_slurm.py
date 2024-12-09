@@ -9,6 +9,7 @@ Run training from Slurm on all visible GPUs. Start only
 one task per node as this script will spawn one child for each GPU.
 This will not schedule a job but instead should be launched from srun/sbatch.
 """
+
 import os
 import subprocess as sp
 import sys

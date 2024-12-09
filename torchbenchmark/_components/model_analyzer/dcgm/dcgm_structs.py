@@ -90,9 +90,7 @@ DCGM_ST_CONNECTION_NOT_VALID = (
     -21
 )  # Connection to the host engine is not valid any longer
 DCGM_ST_GPU_NOT_SUPPORTED = -22  # This GPU is not supported by DCGM
-DCGM_ST_GROUP_INCOMPATIBLE = (
-    -23
-)  # The GPUs of the provided group are not compatible with each other for the requested operation
+DCGM_ST_GROUP_INCOMPATIBLE = -23  # The GPUs of the provided group are not compatible with each other for the requested operation
 DCGM_ST_MAX_LIMIT = -24
 DCGM_ST_LIBRARY_NOT_FOUND = -25  # DCGM library could not be found
 DCGM_ST_DUPLICATE_KEY = -26  # Duplicate key passed to the function
@@ -111,9 +109,7 @@ DCGM_ST_FIELD_UNSUPPORTED_BY_API = (
 DCGM_ST_MODULE_NOT_LOADED = (
     -33
 )  # This request is serviced by a module of DCGM that is not currently loaded
-DCGM_ST_IN_USE = (
-    -34
-)  # The requested operation could not be completed because the affected resource is in use
+DCGM_ST_IN_USE = -34  # The requested operation could not be completed because the affected resource is in use
 DCGM_ST_GROUP_IS_EMPTY = (
     -35
 )  # The specified group is empty and this operation is not valid with an empty group
@@ -126,9 +122,7 @@ DCGM_ST_PROFILING_LIBRARY_ERROR = (
 DCGM_ST_PROFILING_MULTI_PASS = (
     -38
 )  # The requested profiling metrics cannot be collected in a single pass
-DCGM_ST_DIAG_ALREADY_RUNNING = (
-    -39
-)  # A diag instance is already running, cannot run a new diag until the current one finishes.
+DCGM_ST_DIAG_ALREADY_RUNNING = -39  # A diag instance is already running, cannot run a new diag until the current one finishes.
 DCGM_ST_DIAG_BAD_JSON = (
     -40
 )  # The DCGM GPU Diagnostic returned JSON that cannot be parsed

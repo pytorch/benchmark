@@ -274,8 +274,10 @@ class Pipe:
     def get_writer_pid(self) -> int:
         assert (
             self._writer_pid is not None
-        ), "Writer pid is not specified. Maybe calling from child process or input pipe.\
+        ), (
+            "Writer pid is not specified. Maybe calling from child process or input pipe.\
                                               Please report a bug."
+        )
         return self._writer_pid
 
     def set_writer_pid(self, writer_pid: int) -> None:

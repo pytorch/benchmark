@@ -210,9 +210,7 @@ if __name__ == "__main__":
         wheels = get_most_recent_successful_wheels(
             args.packages, args.pyver, args.platform
         )
-        assert (
-            wheels
-        ), f"We do not find any successful pytorch nightly build of packages: {args.packages}."
+        assert wheels, f"We do not find any successful pytorch nightly build of packages: {args.packages}."
         print(f"Found pytorch nightly wheels: {wheels} ")
         install_wheels(wheels)
         exit(0)

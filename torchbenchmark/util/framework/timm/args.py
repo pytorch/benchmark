@@ -1,4 +1,4 @@
-""" Hacked from https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/train.py
+"""Hacked from https://github.com/rwightman/pytorch-image-models/blob/f7d210d759beb00a3d0834a3ce2d93f6e17f3d38/train.py
 
 ImageNet Training Script
 
@@ -437,13 +437,15 @@ def get_args(config_string="", config_file=None):
         metavar="PCT",
         help="Color jitter factor (default: 0.4)",
     )
-    parser.add_argument(
-        "--aa",
-        type=str,
-        default=None,
-        metavar="NAME",
-        help='Use AutoAugment policy. "v0" or "original". (default: None)',
-    ),
+    (
+        parser.add_argument(
+            "--aa",
+            type=str,
+            default=None,
+            metavar="NAME",
+            help='Use AutoAugment policy. "v0" or "original". (default: None)',
+        ),
+    )
     parser.add_argument(
         "--aug-repeats",
         type=int,

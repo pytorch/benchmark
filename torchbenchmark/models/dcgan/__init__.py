@@ -18,7 +18,6 @@ from ...util.model import BenchmarkModel
 
 class DCGAN:
     def __init__(self, bench):
-
         # Spatial size of training images. All images will be resized to this
         #   size using a transformer.
         self.image_size = 64
@@ -90,7 +89,6 @@ class Generator(nn.Module):
         self.debug_print = False
 
     def forward(self, input):
-
         if self.debug_print:
             print(input.shape)
 
@@ -231,7 +229,6 @@ class Model(BenchmarkModel):
         return (output,)
 
     def train(self):
-
         # Training Loop
 
         # Lists to keep track of progress
@@ -262,9 +259,7 @@ class Model(BenchmarkModel):
 
         # For each epoch
         for epoch in range(num_epochs):
-
             for i in range(num_train_batch):
-
                 ############################
                 # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
                 ###########################

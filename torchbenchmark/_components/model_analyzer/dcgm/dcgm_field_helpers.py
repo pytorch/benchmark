@@ -147,7 +147,6 @@ class FieldValueEncoder(json.JSONEncoder):
 
 
 def py_helper_dcgm_field_values_since_callback(gpuId, values, numValues, userData):
-
     userData = ctypes.cast(userData, ctypes.py_object).value
     userData._ProcessValues(gpuId, values[0:numValues])
     return 0
@@ -363,7 +362,6 @@ class DcgmFieldGroupWatcher(DcgmFieldValueCollection):
 def py_helper_dcgm_field_values_since_entity_callback(
     entityGroupId, entityId, values, numValues, userData
 ):
-
     userData = ctypes.cast(userData, ctypes.py_object).value
     userData._ProcessValues(entityGroupId, entityId, values[0:numValues])
     return 0
@@ -382,9 +380,7 @@ Helper class for handling field value update callbacks and storing them in a .va
 
 class DcgmFieldValueEntityCollection:
     def __init__(self, handle, groupId):
-        self.values = (
-            {}
-        )  # 3D dictionary of [entityGroupId][entityId][fieldId](DcgmFieldValueTimeSeries)
+        self.values = {}  # 3D dictionary of [entityGroupId][entityId][fieldId](DcgmFieldValueTimeSeries)
         self._handle = handle
         self._groupId = groupId
         self._numValuesSeen = 0
@@ -408,9 +404,9 @@ class DcgmFieldValueEntityCollection:
             value = DcgmFieldValue(rawValue)
 
             if value.fieldId not in self.values[entityGroupId][entityId]:
-                self.values[entityGroupId][entityId][
-                    value.fieldId
-                ] = DcgmFieldValueTimeSeries()
+                self.values[entityGroupId][entityId][value.fieldId] = (
+                    DcgmFieldValueTimeSeries()
+                )
 
             self.values[entityGroupId][entityId][value.fieldId].InsertValue(value)
 

@@ -257,9 +257,7 @@ def get_metrics_by_date(
         if metric_datetime.date() == pick_date.date():
             pick_metrics_json_key = metrics_json_key
             break
-    assert (
-        pick_metrics_json_key
-    ), f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
+    assert pick_metrics_json_key, f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
     metrics_json = s3.get_file_as_json(pick_metrics_json_key)
     return (metrics_json, pick_metrics_json_key)

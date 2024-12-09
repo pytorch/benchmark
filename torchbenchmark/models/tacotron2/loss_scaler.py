@@ -2,7 +2,6 @@ import torch
 
 
 class LossScaler:
-
     def __init__(self, scale=1):
         self.cur_scale = scale
 
@@ -31,7 +30,6 @@ class LossScaler:
 
 
 class DynamicLossScaler:
-
     def __init__(self, init_scale=2**32, scale_factor=2.0, scale_window=1000):
         self.cur_scale = init_scale
         self.cur_iter = 0

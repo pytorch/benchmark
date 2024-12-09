@@ -3,7 +3,7 @@ Logic:
 1. AudioDataLoader generate a minibatch from AudioDataset, the size of this
    minibatch is AudioDataLoader's batchsize. For now, we always set
    AudioDataLoader's batchsize as 1. The real minibatch size we care about is
-   set in AudioDataset's __init__(...). So actually, we generate the 
+   set in AudioDataset's __init__(...). So actually, we generate the
    information of one minibatch in AudioDataset.
 2. After AudioDataLoader getting one minibatch from AudioDataset,
    AudioDataLoader calls its collate_fn(batch) to process this minibatch.
