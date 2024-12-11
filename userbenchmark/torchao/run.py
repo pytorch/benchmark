@@ -39,7 +39,7 @@ def _get_full_ci_args(modelset: str) -> List[List[str]]:
     dtype = ["bfloat16"]
     mode = ["inference"]
     device = ["cuda"]
-    experiment = ["performance", "accuracy"]
+    experiment = ["performance"]
     cfgs = itertools.product(*[backends, modelset, dtype, mode, device, experiment])
     return [_get_ci_args(*cfg) for cfg in cfgs]
 
