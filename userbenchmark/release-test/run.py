@@ -37,6 +37,38 @@ bash {RELEASE_TEST_ROOT}/setup_env.sh '{CUDA_VERSION}' '{MAGMA_VERSION}' '{PYTOR
 bash {RELEASE_TEST_ROOT}/run_release_test.sh '{CUDA_VERSION}' '{RESULT_DIR}'
 """
 
+def run_algorithmic_efficiency(work_dir, experiment_dir, experiment_name):
+    """Runs algorithmic efficiency benchmarks."""
+    repo_dir = work_dir.joinpath("algorithmic_efficiency")
+    print("repo_dir:", repo_dir)
+    repo_url = "https://github.com/mlcommons/algorithmic-efficiency.git"
+
+    if not os.path.exists(repo_dir):
+        try:
+            Repo.clone_from(repo_url, repo_dir)
+        except Exception as e:
+            print(f"Error cloning algorithmic-efficiency repo using Repo.clone_from: {e}")
+            return False
+
+    command = [
+        "python3",
+        f"{repo_dir}/submission_runner.py",
+        "--workload=mnist",
+        "--framework=pytorch",
+        f"--submission_path={repo_dir}/reference_algorithms/development_algorithms/mnist/mnist_pytorch/submission.py",
+        "--tuning_ruleset=external",
+        f"--tuning_search_space={repo_dir}/reference_algorithms/development_algorithms/mnist/tuning_search_space.json",
+        "--num_tuning_trials=3",  # Adjust as needed
+        f"--experiment_dir={experiment_dir}",
+        f"--experiment_name={experiment_name}",
+    ]
+    print("running command:", command)
+
+    ret = subprocess.call(command)
+    if ret != 0:
+        print(f"Error running algorithmic efficiency benchmark: {ret}")
+        return False
+    return True
 
 def get_timestamp():
     return datetime.fromtimestamp(time.time()).strftime("%Y%m%d%H%M%S")
@@ -77,6 +109,7 @@ def dump_test_scripts(run_scripts, work_dir):
         run_script_loc = work_dir.joinpath(run_key)
         run_script_loc.mkdir(exist_ok=True)
         with open(run_script_loc.joinpath("run.sh"), "w") as rs:
+            print("writing run_script:", run_script)
             rs.write(run_script)
 
 
@@ -149,7 +182,14 @@ def run(args: List[str]):
     work_dir = get_work_dir(get_output_dir(BM_NAME))
     run_scripts = prepare_release_tests(args=args, work_dir=work_dir)
     if not args.dry_run:
+        # Run algorithmic efficiency benchmarks
+        print("Running run_algorithmic_efficiency starts...")
+        experiment_dir = os.path.join(work_dir, "algorithmic_efficiency_results")  # Create a subdirectory
+        experiment_name = f"algorithmic_efficiency_{get_timestamp()}"
+        print("start run_algorithmic_efficiency")
+        run_algorithmic_efficiency(work_dir, experiment_dir, experiment_name)
         run_benchmark(run_scripts, work_dir)
+        print("analyze work_dir:", work_dir)
         metrics = analyze(work_dir)
         dump_result_to_json(metrics)
         cleanup_release_tests(work_dir)
