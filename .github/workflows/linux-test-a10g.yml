@@ -1,4 +1,4 @@
-name: TorchBench Test on A10G
+name: TorchBench PR Test on A10G
 on:
   workflow_dispatch:
   pull_request:
