@@ -24,8 +24,12 @@ jobs:
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
+        with:
+          path: benchmark
       - name: Install Conda
         run: |
+          set -x
+          pushd benchmark
           bash ./.ci/torchbench/install-conda.sh
       - name: Install TorchBench
         run: |
