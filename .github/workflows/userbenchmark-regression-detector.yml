@@ -34,19 +34,19 @@ jobs:
       - name: Install TorchBench
         run: |
           set -x
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          bash ./.ci/torchbench/activate-conda.sh
           pushd benchmark
           # only install the subset of models currently running.
           python install.py BERT_pytorch DALLE2_pytorch hf_GPT2_large hf_T5_large resnet50 timm_vision_transformer_large yolov3
       - name: Print torch.version.git_version
         run: |
           set -x
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          bash ./.ci/torchbench/activate-conda.sh
           python -c "import torch; print(torch.version.git_version)"
       - name: Run optim user benchmark
         run: |
           set -x
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          bash ./.ci/torchbench/activate-conda.sh
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
@@ -60,7 +60,7 @@ jobs:
         continue-on-error: true
         run: |
           set -x
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          bash ./.ci/torchbench/activate-conda.sh
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           # TODO: the following assumes only one metrics-*.json is found. It will keep
@@ -82,7 +82,7 @@ jobs:
       - name: Upload result jsons to Scribe and S3
         run: |
           pushd benchmark
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          bash ./.ci/torchbench/activate-conda.sh
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
@@ -100,7 +100,7 @@ jobs:
           set -x
           # Do not error earlier as we want all artifacts and regressions to be reported first
           # TODO: potentially move errors.txt to benchmark-output so it gets uploaded to S3
-          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          bash ./.ci/torchbench/activate-conda.sh
           pushd benchmark
           if [ -e errors.txt ]; then cat errors.txt && exit 1; fi
       - name: Remove conda environment
