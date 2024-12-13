@@ -21,7 +21,7 @@ jobs:
       - name: Setup SSH (Click me for login details)
         uses: pytorch/test-infra/.github/actions/setup-ssh@main
         with:
-          github-secret: ${{ secrets.GITHUB_TOKEN }}
+          github-secret: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
       - name: Install Conda
         run: |
           bash ./.ci/torchbench/install-conda.sh
