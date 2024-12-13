@@ -1,4 +1,4 @@
-name: linux-test-a10g
+name: TorchBench Test on A10G
 on:
   workflow_dispatch:
   # Remove me upon land
@@ -36,3 +36,7 @@ jobs:
         run: |
           . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda remove -n "${CONDA_ENV}" --all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
+  cancel-in-progress: true
