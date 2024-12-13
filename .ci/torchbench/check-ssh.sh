@@ -1,13 +1,12 @@
 #!/bin/bash
+set -eou pipefail
 
-# Loop to continuously check the output of `who`
-while true; do
-    # Check if `who` returns non-empty output
-    if who | grep -q '.'; then
-        echo "User(s) logged in. Sleeping for 1000 seconds..."
-        sleep 1000
-    else
-        echo "No users logged in. Exiting..."
-        exit 0
+echo "Holding runner for 2 hours until all ssh sessions have logged out"
+for _ in $(seq 1440); do
+    # Break if no ssh session exists anymore
+    if [ "$(who)" = "" ]; then
+      break
     fi
+    echo "."
+    sleep 5
 done
