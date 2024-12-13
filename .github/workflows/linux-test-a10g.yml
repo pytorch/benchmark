@@ -2,8 +2,6 @@ name: TorchBench PR Test on A10G
 on:
   workflow_dispatch:
   pull_request:
-    types:
-        - labeled
 
 jobs:
   linux-test-a10g:
