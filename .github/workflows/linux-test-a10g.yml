@@ -1,13 +1,15 @@
 name: TorchBench Test on A10G
 on:
   workflow_dispatch:
-  # Remove me upon land
   pull_request:
+    types:
+        - labeled
 
 jobs:
   linux-test-a10g:
     # Don't run on forked repos
-    if: github.repository_owner == 'pytorch'
+    # Only run on PR labeled 'with-ssh'
+    if: github.repository_owner == 'pytorch' && contains(github.event.pull_request.labels.*.name, 'with-ssh')
     runs-on: linux.g5.4xlarge.nvidia.gpu
     timeout-minutes: 240
     environment: docker-s3-upload
