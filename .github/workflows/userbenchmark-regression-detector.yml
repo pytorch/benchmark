@@ -34,8 +34,9 @@ jobs:
       - name: Install TorchBench
         run: |
           set -x
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           pushd benchmark
-          bash ./scripts/activate_conda.sh
           # only install the subset of models currently running.
           python install.py BERT_pytorch DALLE2_pytorch hf_GPT2_large hf_T5_large resnet50 timm_vision_transformer_large yolov3
       - name: Print torch.version.git_version
@@ -46,10 +47,11 @@ jobs:
       - name: Run optim user benchmark
         run: |
           set -x
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
-          bash ./scripts/activate_conda.sh
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
 
           # TODO: scale this to run other benchmarks, but let's start with optim
@@ -60,8 +62,9 @@ jobs:
         continue-on-error: true
         run: |
           set -x
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           pushd benchmark
-          bash ./scripts/activate_conda.sh
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           # TODO: the following assumes only one metrics-*.json is found. It will keep
           # overwriting gh-issue.md if multiple are found. Scaling this up is a potential next step.
@@ -81,8 +84,9 @@ jobs:
             torchbench-perf-report
       - name: Upload result jsons to Scribe and S3
         run: |
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           pushd benchmark
-          bash ./scripts/activate_conda.sh
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
@@ -101,7 +105,6 @@ jobs:
           # Do not error earlier as we want all artifacts and regressions to be reported first
           # TODO: potentially move errors.txt to benchmark-output so it gets uploaded to S3
           pushd benchmark
-          bash ./scripts/activate_conda.sh
           if [ -e errors.txt ]; then cat errors.txt && exit 1; fi
       - name: Remove conda environment
         if: always()
