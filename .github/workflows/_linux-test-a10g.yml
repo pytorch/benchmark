@@ -28,9 +28,9 @@ jobs:
       - name: Install TorchBench
         run: |
           bash ./.ci/torchbench/install.sh
-      - name: Test TorchBench
+      - name: Wait for SSH session to end
         run: |
-          bash ./.ci/torchbench/test.sh
+          bash ./.ci/torchbench/check-ssh.sh
       - name: Clean up Conda env
         if: always()
         run: |
