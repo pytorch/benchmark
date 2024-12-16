@@ -51,11 +51,6 @@ jobs:
           repository: pytorch/audio
           path: srcs/audio
           fetch-depth: 0
-      - name: Tune Nvidia GPU
-        run: |
-          sudo nvidia-smi -pm 1
-          sudo nvidia-smi -ac 1215,1410
-          nvidia-smi
       - name: Install Deps
         run: |
           sudo apt-get -y update && sudo apt -y update
