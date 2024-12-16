@@ -28,7 +28,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [a100-runner]
+    runs-on: linux.aws.a100
     timeout-minutes: 2880 # 48 hours
     steps:
       - name: Checkout
@@ -53,11 +53,6 @@ jobs:
           repository: pytorch/audio
           path: srcs/audio
           fetch-depth: 0
-      - name: Tune Nvidia GPU
-        run: |
-          sudo nvidia-smi -pm 1
-          sudo nvidia-smi -ac 1215,1410
-          nvidia-smi
       - name: Install devel packages
         run: |
           sudo apt-get update -y

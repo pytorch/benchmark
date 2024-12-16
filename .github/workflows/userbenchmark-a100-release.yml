@@ -6,7 +6,7 @@ on:
 
 jobs:
   run-userbenchmark:
-    runs-on: [a100-runner]
+    runs-on: linux.aws.a100
     timeout-minutes: 1440 # 24 hours
     environment: docker-s3-upload
     env:
@@ -20,11 +20,6 @@ jobs:
         with:
           path: benchmark
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-      - name: Tune Nvidia GPU
-        run: |
-          sudo nvidia-smi -pm 1
-          sudo nvidia-smi -ac 1215,1410
-          nvidia-smi
       - name: Clone and setup conda env
         run: |
           CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
