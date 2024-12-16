@@ -54,7 +54,7 @@ def _create_example_model_instance(task: ModelTask, device: str):
             )
 
 
-def _load_test(path, device):
+def _load_test(path, device, mode):
     model_name = os.path.basename(path)
 
     def _skip_cuda_memory_check_p(metadata):
@@ -96,7 +96,7 @@ def _load_test(path, device):
         ):
             try:
                 task.make_model_instance(
-                    test="train", device=device, batch_size=batch_size
+                    test="train", device=device, batch_size=batch_size, extra_args=["--inductor"] if mode == "inductor" else []
                 )
                 task.invoke()
                 task.check_details_train(device=device, md=metadata)
@@ -119,7 +119,7 @@ def _load_test(path, device):
         ):
             try:
                 task.make_model_instance(
-                    test="eval", device=device, batch_size=batch_size
+                    test="eval", device=device, batch_size=batch_size, extra_args=["--inductor"] if mode == "inductor" else []
                 )
                 task.invoke()
                 task.check_details_eval(device=device, md=metadata)
@@ -149,22 +149,24 @@ def _load_test(path, device):
         [example_fn, train_fn, eval_fn, check_device_fn],
         ["example", "train", "eval", "check_device"],
     ):
-        # set exclude list based on metadata
-        setattr(
-            TestBenchmark,
-            f"test_{model_name}_{fn_name}_{device}",
-            (
-                unittest.skipIf(
-                    skip_by_metadata(
-                        test=fn_name, device=device, extra_args=[], metadata=metadata
-                    ),
-                    "This test is skipped by its metadata",
-                )(fn)
-            ),
-        )
+        for mode in ["eager", "inductor"]:
+            # set exclude list based on metadata
+            setattr(
+                TestBenchmark,
+                f"test_{model_name}_{fn_name}_{device}" if fn_name in ["example", "check_device"] else f"test_{model_name}_{fn_name}_{device}_{mode}",
+                (
+                    unittest.skipIf(
+                        skip_by_metadata(
+                            test=fn_name, device=device, extra_args=[], metadata=metadata
+                        ),
+                        "This test is skipped by its metadata",
+                    )(fn)
+                ),
+            )
 
 
 def _load_tests():
+    modes = ["eager", "inductor"]
     devices = ["cpu"]
     if torch.cuda.is_available():
         devices.append("cuda")
@@ -176,12 +178,9 @@ def _load_tests():
     if os.getenv("USE_CANARY_MODELS"):
         model_paths.extend(_list_canary_model_paths())
     for path in model_paths:
-        # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
-        # api, enable after PyTorch 1.13 release
-        if "quantized" in path:
-            continue
         for device in devices:
-            _load_test(path, device)
+            for mode in modes:
+                _load_test(path, device, mode)
 
 
 _load_tests()
