@@ -1,5 +1,7 @@
 name: Torchao nightly workflow (A100)
 on:
+  # DEBUG
+  pull_request:
   workflow_dispatch:
   schedule:
     - cron: '00 18 * * *' # run at 6:00 PM UTC, K8s containers will roll out at 12PM EST
