@@ -52,7 +52,7 @@ jobs:
         working-directory: benchmark
         run: |
           set -eux
-          ${CONDA_RUN} pip install torch torchvision torchaudio
+          ${CONDA_RUN} pip install torch torchvision torchaudio torchao
 
       - name: Install benchmark
         shell: bash
