@@ -53,7 +53,6 @@ jobs:
         run: |
           set -eux
           ${CONDA_RUN} pip install torch torchvision torchaudio
-          ${CONDA_RUN} pip install -r requirements.txt
 
       - name: Install benchmark
         shell: bash
