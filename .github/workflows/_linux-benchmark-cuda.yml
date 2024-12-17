@@ -52,6 +52,7 @@ jobs:
         working-directory: benchmark
         run: |
           set -eux
+          ${CONDA_RUN} pip install -r requirements.txt
           ${CONDA_RUN} python install.py
 
       - name: Run benchmark
