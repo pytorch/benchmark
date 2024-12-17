@@ -1,5 +1,5 @@
+numpy
 opencv-python
-numpy==1.21.2
 pandas
 Pillow
 scikit-image
