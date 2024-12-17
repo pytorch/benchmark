@@ -30,7 +30,7 @@ def _get_ci_args(
         "--output",
         f"{str(OUTPUT_DIR.joinpath(output_file_name).resolve())}",
         "--only",  # DEBUG: TO BE REMOVED
-        "hf_T5",  # DEBUG: TO BE REMOVED
+        "alexnet",  # DEBUG: TO BE REMOVED
     ]
     return ci_args
 
