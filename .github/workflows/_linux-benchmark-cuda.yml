@@ -47,7 +47,7 @@ jobs:
         with:
           python-version: "3.9"
 
-      - name: Install dependencies
+      - name: Install torch dependencies
         shell: bash
         working-directory: benchmark
         run: |
