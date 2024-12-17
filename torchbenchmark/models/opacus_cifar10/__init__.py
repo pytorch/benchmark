@@ -1,11 +1,4 @@
 import os
-import torch
-import torch.optim as optim
-import torch.nn as nn
-import torch.utils.data as data
-import torchvision.models as models
-from opacus import PrivacyEngine
-from opacus.validators.module_validator import ModuleValidator
 from typing import Tuple
 
 import torch

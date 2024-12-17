@@ -16,11 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-import torch
-import torch.optim as optim
-import torch.nn as nn
-import torch.nn.functional as F
 from pathlib import Path
 from typing import Tuple
 
