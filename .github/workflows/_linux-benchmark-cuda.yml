@@ -60,7 +60,7 @@ jobs:
         working-directory: benchmark
         run: |
           set -eux
-          ${CONDA_RUN} python install.py
+          ${CONDA_RUN} python install.py --models hf_T5
 
       - name: Run benchmark
         shell: bash
