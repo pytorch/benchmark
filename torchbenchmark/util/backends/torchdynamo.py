@@ -181,12 +181,11 @@ def apply_torchdynamo_args(
                     ),
                 )
 
+        print("{args.quantization=}")
         if args.quantization:
             import torchao
             from torchao.quantization import (
-                change_linear_weights_to_int4_woqtensors,
-                change_linear_weights_to_int8_dqtensors,
-                change_linear_weights_to_int8_woqtensors,
+                quantize_, int8_weight_only, int4_weight_only, int8_dynamic_activation_int8_weight
             )
 
             torch._dynamo.config.automatic_dynamic_shapes = False
@@ -196,12 +195,52 @@ def apply_torchdynamo_args(
             module, example_inputs = model.get_module()
             if args.quantization == "int8dynamic":
                 torch._inductor.config.force_fuse_int_mm_with_mul = True
-                change_linear_weights_to_int8_dqtensors(module)
+                quantize_(module, int8_dynamic_activation_int8_weight(), set_inductor_config=False)
             elif args.quantization == "int8weightonly":
                 torch._inductor.config.use_mixed_mm = True
-                change_linear_weights_to_int8_woqtensors(module)
+                quantize_(module, int8_weight_only(), set_inductor_config=False)
             elif args.quantization == "int4weightonly":
-                change_linear_weights_to_int4_woqtensors(module)
+                quantize_(module, int4_weight_only(), set_inductor_config=False)
+            if args.quantization == "autoquant":
+                print("module:", type(module))
+
+                torchao.autoquant(module, example_input=example_inputs, manual=True, error_on_unseen=False, set_inductor_config=False)
+                # torchao.autoquant(module, error_on_unseen=False, set_inductor_config=False)
+                if isinstance(example_inputs, dict):
+                    module(**example_inputs)
+                else:
+                    module(*example_inputs)
+
+                module.finalize_autoquant()
+
+                # for n, m in model.named_modules():
+                #     if isinstance(m, torch.nn.Linear):
+                #         print(f"name {n}, weight type:, {type(m.weight.data)}")
+
+                from torchao.quantization.autoquant import AUTOQUANT_CACHE
+                assert len(AUTOQUANT_CACHE)>0, f"Err: found no autoquantizable layers in model {type(module)}, stopping autoquantization"
+
+                # print("autoquant profile")
+                # from torchao.utils import benchmark_model, profiler_runner
+                # model = torch.compile(module, mode="max-autotune")
+                # inputs = example_inputs
+                # benchmark_model(model, 20, inputs)
+                # print("elapsed_time: ", benchmark_model(model, 100, inputs), " milliseconds")
+                # profiler_runner("quant.json.gz", benchmark_model, model, 5, inputs)
+
+            else:
+                unwrap_tensor_subclass(module)
+        # else:
+        #     module, example_inputs = model.get_module()
+        #     # noquant profile
+        #     print("noquant profile")
+        #     from torchao.utils import benchmark_model, profiler_runner
+        #     model = torch.compile(module, mode="max-autotune")
+        #     inputs = example_inputs
+        #     benchmark_model(model, 20, inputs)
+        #     print("elapsed_time: ", benchmark_model(model, 100, inputs), " milliseconds")
+        #     profiler_runner("noquant.json.gz", benchmark_model, model, 5, inputs)
+>>>>>>> Stashed changes
 
         if args.freeze_prepack_weights:
             torch._inductor.config.freezing = True

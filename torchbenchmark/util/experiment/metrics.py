@@ -17,7 +17,7 @@ from torchbenchmark import ModelTask
 from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig
 from torchbenchmark.util.model import BenchmarkModel
 
-WARMUP_ROUNDS = 10
+WARMUP_ROUNDS = 20
 BENCHMARK_ITERS = 15
 MEMPROF_ITER = 2
 NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
@@ -62,6 +62,12 @@ def get_latencies(
             func()
             t1 = time.time_ns()
         result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
+
+    # from torchao.utils import benchmark_model, profiler_runner
+    # print("device:", device)
+    # print("elpased:", benchmark_model(func, 100, (), device_type="cuda"))
+    # profiler_runner("quant.json.gz", benchmark_model, func, 5, (), device_type="cuda")
+
     return result_summary
 
 

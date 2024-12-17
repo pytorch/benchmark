@@ -1,7 +1,4 @@
-model: "*"
-extended_models:
-  - huggingface
-  - timm
+model: "resnet18"
 test: eval
 device: cuda
 extra_args: --precision bf16 --torchdynamo inductor --inductor-compile-mode max-autotune
@@ -10,7 +7,7 @@ metrics:
 test_group:
   test_batch_size_default:
     subgroup:
-      - extra_args:
-      - extra_args: --quantization int8dynamic
-      - extra_args: --quantization int8weightonly
-      - extra_args: --quantization int4weightonly
+      - extra_args: --quantization autoquant
+      - extra_args: --quantization noquant      
+
+
