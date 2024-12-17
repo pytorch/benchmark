@@ -76,6 +76,6 @@ jobs:
         uses: pytorch/test-infra/.github/actions/upload-benchmark-results@main
         with:
           benchmark-results-dir: ${{ env.OUTPUT_DIR }}
-          dry-run: true  # DEBUG: TO BE REMOVED
+          dry-run: false
           schema-version: v3
           github-token: ${{ secrets.GITHUB_TOKEN }}

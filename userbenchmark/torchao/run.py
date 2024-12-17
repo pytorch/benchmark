@@ -36,7 +36,8 @@ def _get_ci_args(
 
 
 def _get_full_ci_args(modelset: str) -> List[List[str]]:
-    backends = ["autoquant", "int8dynamic", "int8weightonly", "noquant"]
+    # backends = ["autoquant", "int8dynamic", "int8weightonly", "noquant"]
+    backends = ["autoquant"]  # DEBUG: TO BE REMOVED
     modelset = [modelset]
     dtype = ["bfloat16"]
     mode = ["inference"]
