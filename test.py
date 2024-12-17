@@ -178,6 +178,10 @@ def _load_tests():
     if os.getenv("USE_CANARY_MODELS"):
         model_paths.extend(_list_canary_model_paths())
     for path in model_paths:
+        # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
+        # api, enable after PyTorch 1.13 release
+        if "quantized" in path:
+            continue
         for device in devices:
             for mode in modes:
                 _load_test(path, device, mode)
