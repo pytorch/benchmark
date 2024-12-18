@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 1440
     environment: docker-s3-upload
     env:
-      OUTPUT_DIR: '.userbenchmark'
+      OUTPUT_DIR: .userbenchmark
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
       ONLY: ${{ inputs.only || '' }}
     steps:
@@ -89,7 +89,7 @@ jobs:
       - name: Upload the benchmark results to OSS benchmark database for the dashboard
         uses: pytorch/test-infra/.github/actions/upload-benchmark-results@main
         with:
-          benchmark-results-dir: benchmark/${{ env.OUTPUT_DIR }}
+          benchmark-results-dir: benchmark/${{ env.OUTPUT_DIR }}/${{ inputs.userbenchmark }}
           dry-run: false
           schema-version: v3
           github-token: ${{ secrets.GITHUB_TOKEN }}
