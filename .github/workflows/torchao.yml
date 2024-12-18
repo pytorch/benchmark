@@ -20,6 +20,8 @@ jobs:
     with:
       userbenchmark: torchao
       userbenchmark-run-args: "--ci --dashboard --torchbench"
+      # TODO (huydhn): Bring back the rest of them
+      only: BERT_pytorch
     secrets:
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
   huggingface:

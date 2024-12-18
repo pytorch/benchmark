@@ -10,6 +10,11 @@ on:
         required: true
         type: string
         description: Userbenchmark run command line arguments
+      only:
+        required: False
+        type: string
+        default: ''
+        description: Only run the selected model, used for testing
     secrets:
       HUGGING_FACE_HUB_TOKEN:
         required: false
@@ -26,6 +31,7 @@ jobs:
     env:
       OUTPUT_DIR: '.userbenchmark'
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+      ONLY: ${{ inputs.only || '' }}
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
@@ -60,17 +66,25 @@ jobs:
         working-directory: benchmark
         run: |
           set -eux
-          ${CONDA_RUN} python install.py --numpy --models resnet18
+
+          if [[ -z "${ONLY}" ]]; then
+            ${CONDA_RUN} python install.py --numpy
+          else
+            ${CONDA_RUN} python install.py --numpy --models "${ONLY}"
+          fi
 
       - name: Run benchmark
         shell: bash
         working-directory: benchmark
         run: |
           set -eux
-          ${CONDA_RUN} python run_benchmark.py ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-run-args }}
 
-          # DEBUG
-          ls -laR "${OUTPUT_DIR}"
+          if [[ -z "${ONLY}" ]]; then
+            ${CONDA_RUN} python run_benchmark.py ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-run-args }}
+          else
+            ${CONDA_RUN} python run_benchmark.py ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-run-args }} \
+              --only "${ONLY}"
+          fi
 
       - name: Upload the benchmark results to OSS benchmark database for the dashboard
         uses: pytorch/test-infra/.github/actions/upload-benchmark-results@main

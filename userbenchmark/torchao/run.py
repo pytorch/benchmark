@@ -1,5 +1,7 @@
 import argparse
+import glob
 import itertools
+from multiprocessing import Process
 from typing import List
 
 from userbenchmark.utils import get_output_dir
@@ -29,15 +31,12 @@ def _get_ci_args(
         f"--{experiment}",
         "--output",
         f"{str(OUTPUT_DIR.joinpath(output_file_name).resolve())}",
-        "--only",  # DEBUG: TO BE REMOVED
-        "resnet18",  # DEBUG: TO BE REMOVED
     ]
     return ci_args
 
 
 def _get_full_ci_args(modelset: str) -> List[List[str]]:
-    # backends = ["autoquant", "int8dynamic", "int8weightonly", "noquant"]
-    backends = ["autoquant"]  # DEBUG: TO BE REMOVED
+    backends = ["autoquant", "int8dynamic", "int8weightonly", "noquant"]
     modelset = [modelset]
     dtype = ["bfloat16"]
     mode = ["inference"]
@@ -92,11 +91,19 @@ def run(args: List[str]):
             raise RuntimeError(
                 "CI mode must run with --timm, --huggingface, or --torchbench"
             )
+        for params in benchmark_args:
+            params.extend(pt2_args)
     else:
         benchmark_args = [pt2_args]
 
-    output_files = [_run_pt2_args(args) for args in benchmark_args]
+    for params in benchmark_args:
+        # TODO (huydhn): Figure out why it crashes when running in the same process
+        p = Process(target=_run_pt2_args, args=(params,))
+        p.start()
+        p.join()
+
     # Post-processing
-    if args.dashboard:
-        post_ci_process(output_files)
-    print("\n".join(output_files))
+    for file in glob.glob(f"{OUTPUT_DIR}/*.csv", recursive=True):
+        print(file)
+        if args.dashboard:
+            post_ci_process(file)
