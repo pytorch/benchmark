@@ -101,9 +101,3 @@ def run(args: List[str]):
         p = Process(target=_run_pt2_args, args=(params,))
         p.start()
         p.join()
-
-    # Post-processing
-    for file in glob.glob(f"{OUTPUT_DIR}/*.csv", recursive=True):
-        print(file)
-        if args.dashboard:
-            post_ci_process(file)
