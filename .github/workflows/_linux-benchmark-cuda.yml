@@ -60,7 +60,7 @@ jobs:
         working-directory: benchmark
         run: |
           set -eux
-          ${CONDA_RUN} python install.py --numpy --models alexnet
+          ${CONDA_RUN} python install.py --numpy --models resnet18
 
       - name: Run benchmark
         shell: bash
