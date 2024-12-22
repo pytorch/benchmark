@@ -183,7 +183,21 @@ def apply_torchdynamo_args(
 
         if args.quantization:
             import torchao
-            if model.device == "cuda":
+            if model.device == "cpu":
+                if args.quantization == "auto_quant":
+                    module, example_inputs = model.get_module()
+                    with torch.no_grad():
+                        module=torchao.autoquant(module)
+                        if isinstance(example_inputs, dict):
+                            module(**example_inputs)
+                        else:
+                            module(*example_inputs)
+                        model.set_module(module)
+                else:
+                    raise ValueError(
+                    "The quantization mode is not enabled on CPU"
+                    )               
+            else:
                 from torchao.quantization import (
                     change_linear_weights_to_int4_woqtensors,
                     change_linear_weights_to_int8_dqtensors,
@@ -203,16 +217,6 @@ def apply_torchdynamo_args(
                     change_linear_weights_to_int8_woqtensors(module)
                 elif args.quantization == "int4weightonly":
                     change_linear_weights_to_int4_woqtensors(module)
-            elif model.device == "cpu" and model.test == "eval":
-                if args.quantization == "auto_quant":
-                    module, example_inputs = model.get_module()
-                    with torch.no_grad():
-                        module=torchao.autoquant(torch.compile(module, mode='max-autotune'))
-                        if isinstance(example_inputs, dict):
-                            module(**example_inputs)
-                        else:
-                            module(*example_inputs)
-                        model.set_module(module)
 
         if args.freeze_prepack_weights:
             torch._inductor.config.freezing = True
