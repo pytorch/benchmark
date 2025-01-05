@@ -12,18 +12,18 @@ OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 
 
 def _get_ci_args(
-    backend: str, modelset: str, dtype, mode: str, device: str, experiment: str
+    quantization: str, modelset: str, dtype, mode: str, device: str, experiment: str
 ) -> List[List[str]]:
     if modelset == "timm":
         modelset_full_name = "timm_models"
     else:
         modelset_full_name = modelset
-    output_file_name = f"torchao_{backend}_{modelset_full_name}_{dtype}_{mode}_{device}_{experiment}.csv"
+    output_file_name = f"torchao_{quantization}_{modelset_full_name}_{dtype}_{mode}_{device}_{experiment}.csv"
     ci_args = [
         "--progress",
         f"--{modelset}",
         "--quantization",
-        f"{backend}",
+        f"{quantization}",
         f"--{mode}",
         f"--{dtype}",
         f"--{experiment}",
@@ -32,16 +32,33 @@ def _get_ci_args(
     ]
     return ci_args
 
+def _get_eager_baseline_args(quantization: str, modelset: str, dtype, mode: str, device: str, experiment: str):
+    if modelset == "timm":
+        modelset_full_name = "timm_models"
+    else:
+        modelset_full_name = modelset
+    output_file_name = f"torchao_{quantization}_{modelset_full_name}_{dtype}_{mode}_{device}_{experiment}_eager.csv"
+    ci_args = [
+        "--progress",
+        f"--{modelset}",
+        f"--{mode}",
+        f"--{dtype}",
+        f"--{experiment}",
+        "--nothing",
+        "--output",
+        f"{str(OUTPUT_DIR.joinpath(output_file_name).resolve())}",
+    ]
+    return ci_args
 
 def _get_full_ci_args(modelset: str) -> List[List[str]]:
-    backends = ["autoquant", "int8dynamic", "int8weightonly", "noquant"]
+    quantizations = ["autoquant-all", "autoquant", "noquant"]
     modelset = [modelset]
     dtype = ["bfloat16"]
     mode = ["inference"]
     device = ["cuda"]
-    experiment = ["performance", "accuracy"]
-    cfgs = itertools.product(*[backends, modelset, dtype, mode, device, experiment])
-    return [_get_ci_args(*cfg) for cfg in cfgs]
+    experiment = ["performance"]
+    cfgs = itertools.product(*[quantizations, modelset, dtype, mode, device, experiment])
+    return [_get_ci_args(*cfg) for cfg in cfgs] + [_get_eager_baseline_args("noquant", modelset[0], dtype[0], mode[0], device[0], experiment[0])]
 
 
 def _get_output(pt2_args):
