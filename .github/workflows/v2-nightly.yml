@@ -104,7 +104,7 @@ jobs:
           # Upload result to Scribe
           python scripts/upload_scribe_${CONFIG_VER}.py --pytest_bench_json "${LATEST_RESULT}" --torchbench_score_file "${SCORE_FILE}"
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Benchmark result
           path: benchmark-output/

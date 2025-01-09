@@ -90,7 +90,7 @@ jobs:
             https://api.github.com/repos/pytorch/benchmark/actions/workflows/57994037/dispatches \
             -d '{"ref": "main", "inputs": {"regression_date": "${{ env.TORCHBENCH_REGRESSION_DETECTED }}" } }'
       - name: Upload result to GH Actions Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: TorchBench V3 result
           path: benchmark-output/
