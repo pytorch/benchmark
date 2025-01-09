@@ -90,7 +90,7 @@ jobs:
           cp -r "${BISECT_WORKDIR}" ../bisection-result
       - name: Upload artifact
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Bisection result
           path: bisection-result/
