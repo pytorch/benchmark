@@ -33,6 +33,9 @@ jobs:
       - name: Run user benchmark
         run: |
           set -x
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
+
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
  
