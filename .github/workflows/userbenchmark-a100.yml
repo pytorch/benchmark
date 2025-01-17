@@ -24,8 +24,6 @@ jobs:
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-        with:
-          path: benchmark
       - name: Install Conda
         run: |
           bash ./.ci/torchbench/install-conda.sh
@@ -37,7 +35,7 @@ jobs:
           set -x
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
-          pushd benchmark
+ 
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
           if [ -z "${MANUAL_WORKFLOW}" ]; then
@@ -59,7 +57,6 @@ jobs:
           path: benchmark-output/
       - name: Upload result jsons to Scribe and S3
         run: |
-          pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
