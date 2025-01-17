@@ -26,15 +26,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: benchmark
-      - name: Clone and setup conda env
+      - name: Install Conda
         run: |
-          CONDA_ENV=${BASE_CONDA_ENV}
-          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
+          bash ./.ci/torchbench/install-conda.sh
       - name: Install TorchBench
         run: |
-          set -x
-          pushd benchmark
-          python install.py
+          bash ./.ci/torchbench/install.sh
       - name: Run user benchmark
         run: |
           set -x
@@ -72,5 +69,5 @@ jobs:
       - name: Clean up Conda env
         if: always()
         run: |
-          conda deactivate && conda deactivate
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda remove -n "${CONDA_ENV}" --all
