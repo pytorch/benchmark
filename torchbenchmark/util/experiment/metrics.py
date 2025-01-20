@@ -39,14 +39,15 @@ def get_latencies(
     for _i in range(nwarmup):
         func()
     result_summary = []
+    synchronize_func = torch.cuda.synchronize if device == "cuda" else torch.xpu.synchronize
     for _i in range(num_iter):
-        if device == "cuda":
-            torch.cuda.synchronize()
+        if device == "cuda" or device == "xpu":
+            synchronize_func()
             # Collect time_ns() instead of time() which does not provide better precision than 1
             # second according to https://docs.python.org/3/library/time.html#time.time.
             t0 = time.time_ns()
             func()
-            torch.cuda.synchronize()  # Wait for the events to be recorded!
+            synchronize_func() # Wait for the events to be recorded!
             t1 = time.time_ns()
         else:
             t0 = time.time_ns()
