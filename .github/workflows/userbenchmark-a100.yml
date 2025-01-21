@@ -45,21 +45,21 @@ jobs:
             # Figure out what userbenchmarks we should run, and run it
             python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
             if [ -d ./.userbenchmark ]; then
-              cp -r ./.userbenchmark ../benchmark-output
+              cp -r ./.userbenchmark benchmark-output
             else
-              mkdir ../benchmark-output
+              mkdir benchmark-output
             fi
           else
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
-            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
-            ls -las ../benchmark-output
+            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" benchmark-output
+            ls -las benchmark-output
             pwd
           fi
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: TorchBench result
-          path: ../benchmark-output/
+          path: benchmark-output
       - name: Upload result jsons to Scribe and S3
         run: |
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
