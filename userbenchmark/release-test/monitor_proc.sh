@@ -17,11 +17,11 @@ get_gpu_max_memory_usage_cuda() {
     local max=$2
     local curr
     # Some processes might not use the GPU
-    if ! nvidia-smi pmon -s m -c 1 -o T | grep "${my_pid}" >/dev/null 2>/dev/null; then
+    if ! nvidia-smi dmon -s m -c 1 -o T -i 0 | grep "${my_pid}" >/dev/null 2>/dev/null; then
         echo "${max}"
         return
     fi
-    curr=$(nvidia-smi pmon -s m -c 1 -o T | grep "${my_pid}" | awk '{print $5}' | sort | tail -1 | grep -o "[0-9.]*")
+    curr=$(nvidia-smi dmon -s m -c 1 -o T -i 0 | grep "${my_pid}" | awk '{print $4}' | sort | tail -1 | grep -o "[0-9.]*")
     max "${curr}" "${max}"
 }
 
