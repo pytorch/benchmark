@@ -21,52 +21,47 @@ jobs:
       TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      SETUP_SCRIPT: "/workspace/setup_instance.sh"
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-        with:
-          path: benchmark
-      - name: Clone and setup conda env
+      - name: Install Conda
         run: |
-          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
-          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
+          bash ./.ci/torchbench/install-conda.sh
       - name: Install TorchBench
         run: |
-          set -x
-          . "${SETUP_SCRIPT}"
-          pushd benchmark
-          python install.py
+          bash ./.ci/torchbench/install.sh
       - name: Run user benchmark
         run: |
           set -x
-          . "${SETUP_SCRIPT}"
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
+
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
-          pushd benchmark
+ 
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
             python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
             if [ -d ./.userbenchmark ]; then
-              cp -r ./.userbenchmark ../benchmark-output
+              cp -r ./.userbenchmark benchmark-output
             else
-              mkdir ../benchmark-output
+              mkdir benchmark-output
             fi
           else
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
-            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
+            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" benchmark-output
+            ls -las benchmark-output
+            pwd
           fi
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: TorchBench result
-          path: benchmark-output/
+          path: benchmark-output
       - name: Upload result jsons to Scribe and S3
         run: |
-          . "${SETUP_SCRIPT}"
-          pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
@@ -76,6 +71,5 @@ jobs:
       - name: Clean up Conda env
         if: always()
         run: |
-          . "${SETUP_SCRIPT}"
-          conda deactivate && conda deactivate
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda remove -n "${CONDA_ENV}" --all

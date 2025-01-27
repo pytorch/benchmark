@@ -18,6 +18,7 @@ fi
 
 
 nvcc --version
+sudo apt update
 sudo apt-get install bc
 sudo apt-get install --reinstall time
 which time
