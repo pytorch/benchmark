@@ -27,9 +27,6 @@ jobs:
       - name: Install Conda
         run: |
           bash ./.ci/torchbench/install-conda.sh
-      - name: Install TorchBench
-        run: |
-          bash ./.ci/torchbench/install.sh
       - name: Run user benchmark
         run: |
           set -x
