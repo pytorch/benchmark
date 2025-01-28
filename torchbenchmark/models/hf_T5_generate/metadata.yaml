@@ -6,3 +6,7 @@ eval_deterministic: false
 eval_nograd: true
 train_benchmark: false
 train_deterministic: false
+not_implemented:
+  # Timeout and exceed 300s time limit on A10G
+  - device: NVIDIA A10G
+    test: eval
