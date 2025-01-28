@@ -7,5 +7,6 @@ python -c "import torch; import time; a = torch.randn([4096, 4096]).cuda(); time
 for i in {1..120}; do
     nvidia-smi dmon -s m -c 1 -o T -i 0
     curr=$(nvidia-smi dmon -s m -c 1 -o T -i 0 | tail -n +3 | awk '{print $3}' | sort -n | tail -1 | grep -o "[0-9.]*")
+    echo ${curr}
     sleep 0.5
 done
