@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - userbenchmark/release-test/*
+      - .github/workflows/userbenchmark-a100-release.yml
 
 jobs:
   run-userbenchmark:
