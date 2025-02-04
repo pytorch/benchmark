@@ -34,22 +34,12 @@ jobs:
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
 
+          release_version=$(cat ./.github/scripts/userbenchmark/release-test/version.txt)
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
-          MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
-          if [ -z "${MANUAL_WORKFLOW}" ]; then
-            # Figure out what userbenchmarks we should run, and run it
-            python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
-            if [ -d ./.userbenchmark ]; then
-              cp -r ./.userbenchmark benchmark-output
-            else
-              mkdir benchmark-output
-            fi
-          else
-            python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
-            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" benchmark-output
-            ls -las benchmark-output
-            pwd
-          fi
+
+          python run_benchmark.py release-test -c ${release_version}
+          cp -r ./.userbenchmark/release-test  benchmark-output
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
