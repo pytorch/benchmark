@@ -37,9 +37,9 @@ def check_precision(
     if precision == "bypass":
         return True
     if precision == "fp16":
-        return model.device == "cuda" and hasattr(model, "enable_fp16")
+        return model.device == "cuda" or model.device == "xpu" and hasattr(model, "enable_fp16")
     if precision == "tf32":
-        return model.device == "cuda"
+        return model.device == "cuda" or model.device == "xpu"
     if precision == "amp":
         return True
     if precision == "fx_int8":
@@ -47,9 +47,9 @@ def check_precision(
     if precision == "bf16":
         return True
     if precision == "amp_fp16":
-        if model.test == "eval" and model.device == "cuda":
+        if model.test == "eval" and (model.device == "cuda" or model.device == "xpu"):
             return True
-        if model.test == "train" and model.device == "cuda":
+        if model.test == "train" and (model.device == "cuda" or model.device == "xpu"):
             return hasattr(model, "enable_amp") or is_staged_train_test(model)
     if precision == "amp_bf16":
         if model.test == "eval" and model.device == "cpu":
@@ -87,13 +87,13 @@ def get_precision_default(model: "torchbenchmark.util.model.BenchmarkModel") -> 
     if (
         hasattr(model, "DEFAULT_EVAL_CUDA_PRECISION")
         and model.test == "eval"
-        and model.device == "cuda"
+        and (model.device == "cuda" or model.device == "xpu")
     ):
         return model.DEFAULT_EVAL_CUDA_PRECISION
     if (
         hasattr(model, "DEFAULT_TRAIN_CUDA_PRECISION")
         and model.test == "train"
-        and model.device == "cuda"
+        and (model.device == "cuda" or model.device == "xpu")
     ):
         return model.DEFAULT_TRAIN_CUDA_PRECISION
     if hasattr(model, "DEFAULT_PRECISION"):
