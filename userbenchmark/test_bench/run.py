@@ -111,6 +111,34 @@ def generate_model_configs_from_bisect_yaml(
     return result
 
 
+def generate_model_configs_from_yaml(
+    yaml_file: str,
+) -> List[TorchBenchModelConfig]:
+    yaml_file_path = os.path.join(yaml_file)
+    assert os.path.exists(yaml_file_path)
+
+    with open(yaml_file_path, "r") as yf:
+        config_obj = yaml.safe_load(yf)
+    model_set = set(list_models(internal=False))
+    device = config_obj["device"]
+    configs = []
+    for model in model_set:
+        cfg = next(filter(lambda c: c["model"] == model, config_obj["models"]), None)
+        tests = cfg.get("tests", "eval") if cfg is not None else ["eval"]
+        for test in tests:
+            config = TorchBenchModelConfig(
+                name=model,
+                device=device,
+                test=test,
+                batch_size=cfg.get("batch_size", None) if cfg is not None else None,
+                extra_args=[],
+                skip=cfg is not None and cfg.get("skip", False),
+            )
+            print(config)
+            configs.append(config)
+    return configs
+
+
 def init_output_dir(
     configs: List[TorchBenchModelConfig], output_dir: pathlib.Path
 ) -> List[TorchBenchModelConfig]:
@@ -340,6 +368,8 @@ def run(args: List[str]):
     args, extra_args = parse_known_args(args)
     if args.run_bisect:
         configs = generate_model_configs_from_bisect_yaml(args.run_bisect)
+    elif args.config:
+        configs = generate_model_configs_from_yaml(args.config)
     else:
         modelset = set(list_models(internal=(not args.oss)))
         timm_set = set(list_extended_models(suite_name="timm"))
