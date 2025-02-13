@@ -131,24 +131,32 @@ def generate_model_configs_from_yaml(
     yaml_file_path = os.path.join(yaml_file)
     assert os.path.exists(yaml_file_path)
 
+    def _get_val(d: dict, key: str, default_value = None):
+        if d is None:
+            return default_value
+        else:
+            return d.get(key, default_value)
+
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
-    devices = config_obj["devices"]
-    extra_args = config_obj.get("extra_args", [])
+    devices = _get_val(config_obj, "devices")
+    batch_size = _get_val(config_obj, "batch_size")
+    extra_args = _get_val(config_obj, "extra_args", [])
+
     model_names = set(list_models(internal=False))
     cfgs = itertools.product(*[devices, model_names])
     configs = []
     for device, model in cfgs:
-        cfg = next(filter(lambda c: c["model"] == model, config_obj["models"]), None)
-        tests = cfg.get("tests", ["eval"]) if cfg is not None else ["eval"]
+        model_cfg = next(filter(lambda c: c["model"] == model, config_obj["models"]), None)
+        tests = _get_val(model_cfg, "tests", ["eval"])
         for test in tests:
             config = TorchBenchModelConfig(
                 name=model,
                 device=device,
                 test=test,
-                batch_size=cfg.get("batch_size", None) if cfg is not None else None,
-                extra_args=cfg.get("extra_args", extra_args) if cfg is not None else extra_args,
-                skip=cfg is not None and cfg.get("skip", False),
+                batch_size=_get_val(model_cfg, "batch_size", batch_size),
+                extra_args=_get_val(model_cfg, "extra_args", extra_args),
+                skip=_get_val(model_cfg, "skip", False),
             )
             configs.append(config)
     return configs
