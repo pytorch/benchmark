@@ -114,15 +114,30 @@ def generate_model_configs_from_bisect_yaml(
 def generate_model_configs_from_yaml(
     yaml_file: str,
 ) -> List[TorchBenchModelConfig]:
+    """
+    The configuration might like this:
+
+        devices:
+          - "foo"
+        models:
+          - model: BERT_pytorch
+            batch_size: 1
+
+          - model: yolov3
+            skip: true
+        extra_args:
+          - "--accuracy"
+    """
     yaml_file_path = os.path.join(yaml_file)
     assert os.path.exists(yaml_file_path)
 
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
-    model_set = set(list_models(internal=False))
-    device = config_obj["device"]
+    devices = config_obj["devices"]
+    model_names = set(list_models(internal=False))
+    cfgs = itertools.product(*[devices, model_names])
     configs = []
-    for model in model_set:
+    for device, model in cfgs:
         cfg = next(filter(lambda c: c["model"] == model, config_obj["models"]), None)
         tests = cfg.get("tests", "eval") if cfg is not None else ["eval"]
         for test in tests:
