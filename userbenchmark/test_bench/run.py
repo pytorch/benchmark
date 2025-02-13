@@ -131,10 +131,9 @@ def generate_model_configs_from_yaml(
                 device=device,
                 test=test,
                 batch_size=cfg.get("batch_size", None) if cfg is not None else None,
-                extra_args=[],
+                extra_args=cfg.get("extra_args", []) if cfg is not None else [],
                 skip=cfg is not None and cfg.get("skip", False),
             )
-            print(config)
             configs.append(config)
     return configs
 
