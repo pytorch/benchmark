@@ -134,19 +134,20 @@ def generate_model_configs_from_yaml(
     with open(yaml_file_path, "r") as yf:
         config_obj = yaml.safe_load(yf)
     devices = config_obj["devices"]
+    extra_args = config_obj.get("extra_args", [])
     model_names = set(list_models(internal=False))
     cfgs = itertools.product(*[devices, model_names])
     configs = []
     for device, model in cfgs:
         cfg = next(filter(lambda c: c["model"] == model, config_obj["models"]), None)
-        tests = cfg.get("tests", "eval") if cfg is not None else ["eval"]
+        tests = cfg.get("tests", ["eval"]) if cfg is not None else ["eval"]
         for test in tests:
             config = TorchBenchModelConfig(
                 name=model,
                 device=device,
                 test=test,
                 batch_size=cfg.get("batch_size", None) if cfg is not None else None,
-                extra_args=cfg.get("extra_args", []) if cfg is not None else [],
+                extra_args=cfg.get("extra_args", extra_args) if cfg is not None else extra_args,
                 skip=cfg is not None and cfg.get("skip", False),
             )
             configs.append(config)
