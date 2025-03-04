@@ -16,7 +16,10 @@ from pathlib import Path
 import cpuinfo
 import distro
 import psutil
+<<<<<<< HEAD
 import importlib
+=======
+>>>>>>> 351cd08c (Adding support for hpu device)
 
 def read_sys_file(sysfile: Path):
     with open(sysfile, "r") as f:

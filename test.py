@@ -17,7 +17,6 @@ from torchbenchmark import (
     ModelTask,
 )
 from torchbenchmark.util.metadata_utils import skip_by_metadata
-from torchbenchmark.util.machine_config import is_habana_available
 
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
@@ -175,7 +174,7 @@ def _load_tests():
     model_paths = _list_model_paths()
     if os.getenv("USE_CANARY_MODELS"):
         model_paths.extend(_list_canary_model_paths())
-    if is_habana_available():
+    if hasattr(torch, "hpu") and torch.hpu.is_avaiable():
         devices.append("hpu")
     for path in model_paths:
         # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
