@@ -13,6 +13,12 @@ HUGGINGFACE_MODELS = {
         'AutoConfig.from_pretrained("gpt2")',
         "AutoModelForCausalLM",
     ),
+    "hf_Qwen2": (
+        512,
+        32768,
+        'AutoConfig.from_pretrained("Qwen/Qwen2-7B")',
+        "AutoModelForCausalLM"
+    ),
     "hf_GPT2_large": (
         512,
         1024,
