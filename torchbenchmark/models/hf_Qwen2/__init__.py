@@ -26,12 +26,12 @@ class Model(HuggingFaceModel):
         input_ids = inputs.input_ids.cuda()
         attention_mask = inputs.attention_mask.cuda()
 
-        self.example_inputs = {
+        self.example_inputs = ((), {
             "input_ids": input_ids, 
             "attention_mask": attention_mask, 
             "past_key_values": DynamicCache(), 
             "use_cache": True
-        }
+        })
         self.model.to(self.device)
 
     def train(self):
@@ -41,6 +41,7 @@ class Model(HuggingFaceModel):
         return self.model, self.example_inputs
 
     def eval(self):
-        example_inputs = self.example_inputs
+        example_inputs_args, example_inputs_kwargs = self.example_inputs
+        example_inputs_kwargs["past_key_values"] = DynamicCache()   
         self.model.eval()
-        self.model(input_ids=example_inputs["input_ids"], attention_mask=example_inputs["attention_mask"], past_key_values=DynamicCache(), use_cache=True)
+        self.model(*example_inputs_args, **example_inputs_kwargs)

@@ -2,8 +2,8 @@ import torch
 import importlib 
 import sys
 import pprint
-#import torchbenchmark
 from pathlib import Path
+import torch.utils._pytree as pytree
 
 # Makes sure we setup torchbenchmark 
 repo = Path(__file__).parent.parent.parent
@@ -13,8 +13,34 @@ from userbenchmark.utils import dump_output
 from userbenchmark.export_new_models import BM_NAME
 
 models = [
-    "hf_Qwen2"
+    "hf_Qwen2",
+    # "hf_simplescaling",
+    # "hf_minicpm",
+    "kokoro",
 ]
+
+def compare_output(eager, export):
+    flat_orig_outputs = pytree.tree_leaves(eager)
+    flat_loaded_outputs = pytree.tree_leaves(export)
+
+    for orig, loaded in zip(flat_orig_outputs, flat_loaded_outputs):
+        if type(orig) != type(loaded):
+            raise AssertionError("not equal")
+
+        # torch.allclose doesn't work for float8
+        if isinstance(orig, torch.Tensor) and orig.dtype not in [
+            torch.float8_e4m3fn,
+            torch.float8_e5m2,
+        ]:
+            if orig.is_meta:
+                if orig != loaded:
+                    raise AssertionError("not equal")
+            else:
+                if not torch.allclose(orig, loaded):
+                    raise AssertionError("not equal")
+        else:
+            if not orig != loaded:
+                raise AssertionError("not equal")
 
 def get_model(name):
     model_module_ = importlib.import_module(f"torchbenchmark.models.{name}")
@@ -30,12 +56,17 @@ def run():
         model = get_model(model_name)
         model, example_inputs = model.get_module()
         try:
-            ep = torch.export.export(model, (), example_inputs, strict=False).module()
+            ep = torch.export.export(model, example_inputs[0], example_inputs[1], strict=False).module()
+        except Exception as e:
+            errors[model_name] = str(e)
+            continue 
+            
+        try:
+            compare_output(model(*example_inputs[0], **example_inputs[1]), ep.module()(*example_inputs[0], **example_inputs[1]))
         except Exception as e:
             errors[model_name] = str(e)
             continue
-        else:
-            count_success += 1
+        count_success += 1
     
     metrics["success_rate"] = count_success / len(models)
     metrics["errors"] = errors
