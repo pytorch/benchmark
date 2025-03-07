@@ -19,13 +19,18 @@ models = [
     "kokoro",
 ]
 
+
+def assert_equal(a, b):
+    if a != b:
+        raise AssertionError("not equal")
+
+
 def compare_output(eager, export):
     flat_orig_outputs = pytree.tree_leaves(eager)
     flat_loaded_outputs = pytree.tree_leaves(export)
 
     for orig, loaded in zip(flat_orig_outputs, flat_loaded_outputs):
-        if type(orig) != type(loaded):
-            raise AssertionError("not equal")
+        assert_equal(type(orig), type(loaded))
 
         # torch.allclose doesn't work for float8
         if isinstance(orig, torch.Tensor) and orig.dtype not in [
@@ -33,14 +38,13 @@ def compare_output(eager, export):
             torch.float8_e5m2,
         ]:
             if orig.is_meta:
-                if orig != loaded:
-                    raise AssertionError("not equal")
+                assert_equal(orig, loaded)
             else:
                 if not torch.allclose(orig, loaded):
                     raise AssertionError("not equal")
         else:
-            if not orig != loaded:
-                raise AssertionError("not equal")
+            assert_equal(orig, loaded)
+            
 
 def get_model(name):
     model_module_ = importlib.import_module(f"torchbenchmark.models.{name}")
