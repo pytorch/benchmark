@@ -69,7 +69,7 @@ class TestBenchNetwork:
                 extra_args=[],
                 metadata=get_metadata_from_yaml(model_path),
             ):
-                raise NotImplementedError("Test skipped by its metadata.")
+                pytest.skip(f"Test train on {device} is not implemented, skipping...")
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
             if "quantized" in model_name:
@@ -88,9 +88,7 @@ class TestBenchNetwork:
             benchmark.extra_info["test"] = "train"
 
         except Exception as e:
-            if "skip" in str(e).lower():
-                pytest.skip(f"Test train on {device} is not implemented, skipping...")
-            elif isinstance(e, NotImplementedError):
+            if isinstance(e, NotImplementedError):
                 print(f"Test train on {device} is not implemented")
             else:
                 print(f"Exception occured due to: {e}")
@@ -104,7 +102,7 @@ class TestBenchNetwork:
                 extra_args=[],
                 metadata=get_metadata_from_yaml(model_path),
             ):
-                raise NotImplementedError("Test skipped by its metadata.")
+                pytest.skip(f"Test eval on {device} is not implemented, skipping...")
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
             if "quantized" in model_name:
@@ -124,9 +122,7 @@ class TestBenchNetwork:
             benchmark.extra_info["test"] = "eval"
 
         except Exception as e:
-            if "skip" in str(e).lower():
-                pytest.skip(f"Test eval on {device} is not implemented, skipping...")
-            elif isinstance(e, NotImplementedError):
+            if isinstance(e, NotImplementedError):
                 print(f"Test eval on {device} is not implemented")
             else:
                 print(f"Exception occured due to: {e}")
