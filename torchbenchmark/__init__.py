@@ -325,8 +325,6 @@ class ModelTask(base_task.TaskBase):
         )
 
         self.worker.run("import torch")
-        if is_habana_available():
-            self.worker.run("import habana_frameworks.torch.hpu")
         self._details: ModelDetails = ModelDetails(
             **self._maybe_import_model(
                 package=__name__,
