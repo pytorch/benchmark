@@ -420,6 +420,3 @@ def check_environment():
             check[1] == None or os.environ[check[0]] in check[1]
         ):
             raise RuntimeError(f"{check[0]} is set")
-
-def is_habana_available():
-    return importlib.util.find_spec("habana_frameworks") is not None
