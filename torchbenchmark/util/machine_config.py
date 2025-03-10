@@ -17,6 +17,7 @@ import cpuinfo
 import distro
 import psutil
 
+
 def read_sys_file(sysfile: Path):
     with open(sysfile, "r") as f:
         return f.read()
