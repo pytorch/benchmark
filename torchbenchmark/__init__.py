@@ -11,7 +11,6 @@ import tempfile
 import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, NoReturn, Optional, Tuple
-from torchbenchmark.util.machine_config import is_habana_available
 
 import torch
 
