@@ -88,8 +88,12 @@ class TestBenchNetwork:
             benchmark.extra_info["test"] = "train"
 
         except Exception as e:
-            print(f"Exception occured due to: {e}")
-            pytest.skip(f"Test train on {device} is not implemented, skipping...")
+            if "skip" in str(e).lower():
+                pytest.skip(f"Test train on {device} is not implemented, skipping...")
+            elif isinstance(e, NotImplementedError):
+                print(f"Test train on {device} is not implemented")
+            else:
+                print(f"Exception occured due to: {e}")
 
     def test_eval(self, model_path, device, benchmark, pytestconfig):
         try:
@@ -120,8 +124,12 @@ class TestBenchNetwork:
             benchmark.extra_info["test"] = "eval"
 
         except Exception as e:
-            print(f"Exception occured due to: {e}")
-            pytest.skip(f"Test train on {device} is not implemented, skipping...")
+            if "skip" in str(e).lower():
+                pytest.skip(f"Test eval on {device} is not implemented, skipping...")
+            elif isinstance(e, NotImplementedError):
+                print(f"Test eval on {device} is not implemented")
+            else:
+                print(f"Exception occured due to: {e}")
 
 
 @pytest.mark.benchmark(
