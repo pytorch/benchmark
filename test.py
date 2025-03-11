@@ -174,7 +174,7 @@ def _load_tests():
     model_paths = _list_model_paths()
     if os.getenv("USE_CANARY_MODELS"):
         model_paths.extend(_list_canary_model_paths())
-    if hasattr(torch, "hpu") and torch.hpu.is_avaiable():
+    if hasattr(torch, "hpu") and torch.hpu.is_available():
         devices.append("hpu")
     for path in model_paths:
         # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
