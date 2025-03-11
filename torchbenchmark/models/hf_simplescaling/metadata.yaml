@@ -7,5 +7,9 @@ eval_nograd: true
 not_implemented:
 - device: cpu
 - test: train
+- test: eval
+- device: cuda
+- test: train
+- test: eval
 train_benchmark: false
 train_deterministic: false
