@@ -1,0 +1,4 @@
+transformers
+flash_attn
+vector_quantize_pytorch
+vocos

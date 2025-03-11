@@ -14,8 +14,8 @@ from userbenchmark.export_new_models import BM_NAME
 
 models = [
     "hf_Qwen2",
-    # "hf_simplescaling",
-    # "hf_minicpm",
+    #"hf_simplescaling",
+    "hf_minicpm",
     "kokoro",
 ]
 
@@ -57,16 +57,19 @@ def run():
     errors = {}
     count_success = 0
     for model_name in models:
+        print(f"Testing {model_name}")
         model = get_model(model_name)
         model, example_inputs = model.get_module()
         try:
-            ep = torch.export.export(model, example_inputs[0], example_inputs[1], strict=False).module()
+            with torch.inference_mode():
+                ep = torch.export.export(model, example_inputs[0], example_inputs[1], strict=False).module()
         except Exception as e:
             errors[model_name] = str(e)
             continue 
             
         try:
-            compare_output(model(*example_inputs[0], **example_inputs[1]), ep.module()(*example_inputs[0], **example_inputs[1]))
+            with torch.inference_mode():
+                compare_output(model(*example_inputs[0], **example_inputs[1]), ep.module()(*example_inputs[0], **example_inputs[1]))
         except Exception as e:
             errors[model_name] = str(e)
             continue
