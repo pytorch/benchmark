@@ -7,6 +7,7 @@ from .model import create_model, SequenceGenerator
 
 class Model(BenchmarkModel):
     task = NLP.LANGUAGE_MODELING
+    DEFAULT_TRAIN_BSIZE = 1
     DEFAULT_EVAL_BSIZE = 1
 
     def __init__(self, test, device, batch_size=None, extra_args=[]):
