@@ -119,22 +119,34 @@ def add_test_results(runs, result_metrics):
         ins_number = len(run["results"])
         assert ins_number
         latency_metric = "latency" in run["results"][0]["metrics"]
+        iter_latencies_metric = "iter_latencies" in run["results"][0]["metrics"]
         throughput_metric = "throughput" in run["results"][0]["metrics"]
+        iter_throughputs_metric = "iter_throughputs" in run["results"][0]["metrics"]
         cmem_metric = "cpu_peak_mem" in run["results"][0]["metrics"]
         latency_sum = 0
+        iter_latencies = []
         throughput_sum = 0
+        iter_throughputs = []
         cmem_sum = 0
         for ins_res in run["results"]:
             if latency_metric:
                 latency_sum += ins_res["metrics"]["latency"]
+            if iter_latencies_metric:
+                iter_latencies += ins_res["metrics"]["iter_latencies"]
             if throughput_metric:
                 throughput_sum += ins_res["metrics"]["throughput"]
+            if iter_throughputs_metric:
+                iter_throughputs += ins_res["metrics"]["iter_throughputs"]
             if cmem_metric:
                 cmem_sum += ins_res["metrics"]["cpu_peak_mem"]
         if latency_metric:
             result_metrics[f"{run_base_name}_latency"] = latency_sum / ins_number
+        if iter_latencies_metric:
+            result_metrics[f"{run_base_name}_iter_latencies"] = iter_latencies
         if throughput_metric:
             result_metrics[f"{run_base_name}_throughput"] = throughput_sum
+        if iter_throughputs_metric:
+            result_metrics[f"{run_base_name}_iter_throughputs"] = iter_throughputs
         if cmem_metric:
             result_metrics[f"{run_base_name}_cmem"] = cmem_sum / ins_number
     return result_metrics
