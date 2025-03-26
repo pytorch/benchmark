@@ -38,8 +38,12 @@ with add_path(str(REPO_PATH)):
     BM_NAME = "cpu"
     CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
+    # output_iter_metrics is True only when '--output-iter-metrics' is given,
+    # otherwise it is False by default.
     def result_to_output_metrics(
-        metrics: List[str], metrics_res: TorchBenchModelMetrics
+        metrics: List[str],
+        metrics_res: TorchBenchModelMetrics,
+        output_iter_metrics: bool,
     ) -> Dict[str, float]:
         result_metrics = {}
         if metrics_res:
@@ -48,11 +52,19 @@ with add_path(str(REPO_PATH)):
                 median_latency = numpy.median(metrics_res.latencies)
                 assert median_latency, f"Run failed for metric {latency_metric}"
                 result_metrics[latency_metric] = median_latency
+                if output_iter_metrics:
+                    iter_latencies_metric = "iter_latencies"
+                    result_metrics[iter_latencies_metric] = list(metrics_res.latencies)
             if "throughputs" in metrics and metrics_res.throughputs:
                 throughput_metric = "throughput"
                 median_throughput = numpy.median(metrics_res.throughputs)
                 assert median_throughput, f"Run failed for metric {throughput_metric}"
                 result_metrics[throughput_metric] = median_throughput
+                if output_iter_metrics:
+                    iter_throughputs_metric = "iter_throughputs"
+                    result_metrics[iter_throughputs_metric] = list(
+                        metrics_res.throughputs
+                    )
             if "cpu_peak_mem" in metrics and metrics_res.cpu_peak_mem:
                 cpu_peak_mem = "cpu_peak_mem"
                 result_metrics[cpu_peak_mem] = metrics_res.cpu_peak_mem
@@ -118,7 +130,9 @@ with add_path(str(REPO_PATH)):
             args.output = args.output if args.output else get_output_dir(BM_NAME)
             target_dir = Path(args.output).joinpath(f"{config.name}-{config.test}")
             target_dir.mkdir(exist_ok=True, parents=True)
-            metrics_dict = result_to_output_metrics(metrics, metrics_res)
+            metrics_dict = result_to_output_metrics(
+                metrics, metrics_res, args.output_iter_metrics
+            )
             dump_result_to_json(metrics_dict, target_dir)
 
     if __name__ == "__main__":
@@ -142,6 +156,12 @@ with add_path(str(REPO_PATH)):
         parser.add_argument("--output", "-o", default=None, help="Output dir.")
         parser.add_argument(
             "--metrics", default="latencies", help="Benchmark metrics, split by comma."
+        )
+        parser.add_argument(
+            "--output-iter-metrics",
+            action=argparse.BooleanOptionalAction,
+            default=False,
+            help="Enable per-iteration benchmark metrics",
         )
         parser.add_argument(
             "--nwarmup", default=20, help="Benchmark warmup iteration number."
