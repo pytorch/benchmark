@@ -1,5 +1,5 @@
 cuda:
-  - version: 12.7
+  - version: 12.6
     magma_version: magma-cuda126
 pytorch:
   - version: 2.6.0
