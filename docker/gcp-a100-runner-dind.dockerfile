@@ -31,9 +31,9 @@ RUN sudo mkdir -p /workspace; sudo chown runner:runner /workspace
 # We assume that the host NVIDIA driver binaries and libraries are mapped to the docker filesystem
 
 # Use the CUDA installation scripts from pytorch/builder
-# Install CUDA 12.4 only to reduce docker size
+# Install CUDA 12.8 only to reduce docker size
 RUN cd /workspace; mkdir -p pytorch-ci; cd pytorch-ci; wget https://raw.githubusercontent.com/pytorch/pytorch/main/.ci/docker/common/install_cuda.sh
-RUN sudo bash -c "set -x;export OVERRIDE_GENCODE=\"${OVERRIDE_GENCODE}\" OVERRIDE_GENCODE_CUDNN=\"${OVERRIDE_GENCODE_CUDNN}\"; bash /workspace/pytorch-ci/install_cuda.sh 12.4"
+RUN sudo bash -c "set -x;export OVERRIDE_GENCODE=\"${OVERRIDE_GENCODE}\" OVERRIDE_GENCODE_CUDNN=\"${OVERRIDE_GENCODE_CUDNN}\"; bash /workspace/pytorch-ci/install_cuda.sh 12.8"
 
 # Install miniconda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /workspace/Miniconda3-latest-Linux-x86_64.sh
