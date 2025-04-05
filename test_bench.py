@@ -31,6 +31,9 @@ def pytest_generate_tests(metafunc):
     if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         devices.append("mps")
 
+    if device_only := metafunc.config.option.device_only:
+        devices = [device_only]
+
     if metafunc.config.option.cpu_only:
         devices = ["cpu"]
 
