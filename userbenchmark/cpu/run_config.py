@@ -38,15 +38,25 @@ with add_path(str(REPO_PATH)):
     BM_NAME = "cpu"
     CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-    # output_iter_metrics is True only when '--output-iter-metrics' is given,
-    # otherwise it is False by default.
+    # output_warmup_metrics is True only when '--output-warmup-metrics' is given,
+    # otherwise it is False by default. output_iter_metrics is True only when
+    # '--output-iter-metrics' is given, otherwise it is False by default.
     def result_to_output_metrics(
         metrics: List[str],
         metrics_res: TorchBenchModelMetrics,
+        output_warmup_metrics: bool,
         output_iter_metrics: bool,
     ) -> Dict[str, float]:
         result_metrics = {}
         if metrics_res:
+            if "latencies" in metrics and output_warmup_metrics and metrics_res.warmup_latencies:
+                warmup_latency_metric = "warmup_latency"
+                median_warmup_latency = numpy.median(metrics_res.warmup_latencies)
+                assert median_warmup_latency, f"Run failed for metric {warmup_latency_metric}"
+                result_metrics[warmup_latency_metric] = median_warmup_latency
+                if output_iter_metrics:
+                    warmup_iter_latencies_metric = "warmup_iter_latencies"
+                    result_metrics[warmup_iter_latencies_metric] = list(metrics_res.warmup_latencies)
             if "latencies" in metrics and metrics_res.latencies:
                 latency_metric = "latency"
                 median_latency = numpy.median(metrics_res.latencies)
@@ -55,6 +65,14 @@ with add_path(str(REPO_PATH)):
                 if output_iter_metrics:
                     iter_latencies_metric = "iter_latencies"
                     result_metrics[iter_latencies_metric] = list(metrics_res.latencies)
+            if "throughputs" in metrics and output_warmup_metrics and metrics_res.warmup_throughputs:
+                warmup_throughput_metric = "warmup_throughput"
+                median_warmup_throughput = numpy.median(metrics_res.warmup_throughputs)
+                assert median_warmup_throughput, f"Run failed for metric {warmup_throughput_metric}"
+                result_metrics[warmup_throughput_metric] = median_warmup_throughput
+                if output_iter_metrics:
+                    warmup_iter_throughputs_metric = "warmup_iter_throughputs"
+                    result_metrics[warmup_iter_throughputs_metric] = list(metrics_res.warmup_throughputs)
             if "throughputs" in metrics and metrics_res.throughputs:
                 throughput_metric = "throughput"
                 median_throughput = numpy.median(metrics_res.throughputs)
@@ -131,7 +149,7 @@ with add_path(str(REPO_PATH)):
             target_dir = Path(args.output).joinpath(f"{config.name}-{config.test}")
             target_dir.mkdir(exist_ok=True, parents=True)
             metrics_dict = result_to_output_metrics(
-                metrics, metrics_res, args.output_iter_metrics
+                metrics, metrics_res, args.output_warmup_metrics, args.output_iter_metrics
             )
             dump_result_to_json(metrics_dict, target_dir)
 
@@ -156,6 +174,12 @@ with add_path(str(REPO_PATH)):
         parser.add_argument("--output", "-o", default=None, help="Output dir.")
         parser.add_argument(
             "--metrics", default="latencies", help="Benchmark metrics, split by comma."
+        )
+        parser.add_argument(
+            "--output-warmup-metrics",
+            action=argparse.BooleanOptionalAction,
+            default=False,
+            help="Enable warmup benchmark metrics",
         )
         parser.add_argument(
             "--output-iter-metrics",

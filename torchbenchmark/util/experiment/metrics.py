@@ -25,7 +25,9 @@ NANOSECONDS_PER_MILLISECONDS = 1_000_000.0
 
 @dataclasses.dataclass
 class TorchBenchModelMetrics:
+    warmup_latencies: List[float]
     latencies: List[float]
+    warmup_throughputs: List[float]
     throughputs: List[float]
     cpu_peak_mem: Optional[float]
     gpu_peak_mem: Optional[float]
@@ -42,13 +44,10 @@ def maybe_synchronize(device: str):
 
 def get_latencies(
     func, device: str, nwarmup=WARMUP_ROUNDS, num_iter=BENCHMARK_ITERS
-) -> List[float]:
+) -> Tuple[List[float], List[float]]:
     "Run one step of the model, and return the latency in milliseconds."
-    # Warm-up `nwarmup` rounds
-    for _i in range(nwarmup):
-        func()
     result_summary = []
-    for _i in range(num_iter):
+    for _i in range(nwarmup + num_iter):
         if device == "cuda":
             torch.cuda.synchronize()
             # Collect time_ns() instead of time() which does not provide better precision than 1
@@ -62,7 +61,7 @@ def get_latencies(
             func()
             t1 = time.time_ns()
         result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
-    return result_summary
+    return result_summary[:nwarmup], result_summary[nwarmup:]
 
 
 def get_peak_memory(
@@ -185,7 +184,9 @@ def get_model_test_metrics(
 ) -> TorchBenchModelMetrics:
     import os
 
+    warmup_latencies = None
     latencies = None
+    warmup_throughputs = None
     throughputs = None
     cpu_peak_mem = None
     gpu_peak_mem = None
@@ -206,7 +207,7 @@ def get_model_test_metrics(
         else model.get_model_attribute("device")
     )
     if "latencies" in metrics or "throughputs" in metrics:
-        latencies = get_latencies(
+        warmup_latencies, latencies = get_latencies(
             model.invoke, device, nwarmup=nwarmup, num_iter=num_iter
         )
     if "cpu_peak_mem" in metrics or "gpu_peak_mem" in metrics:
@@ -219,6 +220,7 @@ def get_model_test_metrics(
             cpu_monitored_pid=model_pid,
         )
     if "throughputs" in metrics:
+        warmup_throughputs = [model.batch_size * 1000 / latency for latency in warmup_latencies]
         throughputs = [model.batch_size * 1000 / latency for latency in latencies]
     if "pt2_compilation_time" in metrics:
         pt2_compilation_time = (
@@ -241,7 +243,9 @@ def get_model_test_metrics(
             else model.ttfb
         )
     return TorchBenchModelMetrics(
+        warmup_latencies,
         latencies,
+        warmup_throughputs,
         throughputs,
         cpu_peak_mem,
         gpu_peak_mem,

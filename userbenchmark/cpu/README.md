@@ -32,6 +32,7 @@ All parameters of `cpu` userbenchmark as below,
 - `--niter` benchmark iteration number. Default value is 30.
 - `--output, -o` output dir. By default will create folder under
   `.userbenchmark/cpu`.
+- `--output-warmup-metrics` include warmup metrics in output.
 - `--output-iter-metrics` include per-iteration metrics in output.
 - `--timeout` limit single model test run time. Default `None` means no
   limitation.
