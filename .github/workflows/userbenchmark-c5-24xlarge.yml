@@ -54,7 +54,7 @@ jobs:
           echo "CONTAINER_ID=${CONTAINER_ID}" >> "${GITHUB_ENV}"
       - name: Install TorchBench
         run: |
-          docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash /benchmark/scripts/torchbench_install.sh
+          docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash /benchmark/.ci/torchbench/install.sh
       - name: Run user benchmark
         run: |
           # remove old results
