@@ -34,11 +34,11 @@ ${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3
 # export MEM_FILE=${RESULT_DIR}/mnist_hogwild/result_mem.log
 # ${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3
 # run CPU WLM LSTM
-mkdir -p ${RESULT_DIR}/wlm_cpu_lstm
-pushd "${EXAMPLES_DIR}/word_language_model"
-export LOG_FILE=${RESULT_DIR}/wlm_cpu_lstm/result.log
-export MEM_FILE=${RESULT_DIR}/wlm_cpu_lstm/result_mem.log
-${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3 --model LSTM
+# mkdir -p ${RESULT_DIR}/wlm_cpu_lstm
+# pushd "${EXAMPLES_DIR}/word_language_model"
+# export LOG_FILE=${RESULT_DIR}/wlm_cpu_lstm/result.log
+# export MEM_FILE=${RESULT_DIR}/wlm_cpu_lstm/result_mem.log
+# ${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3 --model LSTM
 # run GPU WLM LSTM
 # mkdir -p ${RESULT_DIR}/wlm_gpu_lstm
 # pushd "${EXAMPLES_DIR}/word_language_model"
