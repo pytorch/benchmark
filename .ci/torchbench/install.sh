@@ -18,4 +18,4 @@ cd ${parent_dir}
 
 python -c "import torch; print(torch.__version__); print(torch.version.git_version)"
 
-python install.py $@ --skip llama_v2_7b_16h --skip hf_GPT2_large
+python install.py $@ --skip llama_v2_7b_16h hf_GPT2_large
