@@ -46,11 +46,11 @@ ${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3
 # export MEM_FILE=${RESULT_DIR}/wlm_gpu_lstm/result_mem.log
 # ${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3 --model LSTM --cuda
 # run CPU WLM Transformer
-mkdir -p ${RESULT_DIR}/wlm_cpu_trans
-pushd "${EXAMPLES_DIR}/word_language_model"
-export LOG_FILE=${RESULT_DIR}/wlm_cpu_trans/result.log
-export MEM_FILE=${RESULT_DIR}/wlm_cpu_trans/result_mem.log
-${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3 --model Transformer
+# mkdir -p ${RESULT_DIR}/wlm_cpu_trans
+# pushd "${EXAMPLES_DIR}/word_language_model"
+# export LOG_FILE=${RESULT_DIR}/wlm_cpu_trans/result.log
+# export MEM_FILE=${RESULT_DIR}/wlm_cpu_trans/result_mem.log
+# ${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3 --model Transformer
 # run GPU WLM Transformer
 # mkdir -p ${RESULT_DIR}/wlm_gpu_trans
 # pushd "${EXAMPLES_DIR}/word_language_model"
