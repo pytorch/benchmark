@@ -21,18 +21,12 @@ sudo apt update
 sudo apt-get install bc
 sudo apt-get install --reinstall time
 which time
-# run mnist
-# mkdir -p ${RESULT_DIR}/mnist
-# pushd "${EXAMPLES_DIR}/mnist"
-# export LOG_FILE=${RESULT_DIR}/mnist/result.log
-# export MEM_FILE=${RESULT_DIR}/mnist/result_mem.log
-# ${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3
 # run mnist-hogwild
-mkdir -p ${RESULT_DIR}/mnist_hogwild
-pushd "${EXAMPLES_DIR}/mnist_hogwild"
-export LOG_FILE=${RESULT_DIR}/mnist_hogwild/result.log
-export MEM_FILE=${RESULT_DIR}/mnist_hogwild/result_mem.log
-${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3
+#mkdir -p ${RESULT_DIR}/mnist_hogwild
+#pushd "${EXAMPLES_DIR}/mnist_hogwild"
+#export LOG_FILE=${RESULT_DIR}/mnist_hogwild/result.log
+#export MEM_FILE=${RESULT_DIR}/mnist_hogwild/result_mem.log
+#${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3
 # run CPU WLM LSTM
 mkdir -p ${RESULT_DIR}/wlm_cpu_lstm
 pushd "${EXAMPLES_DIR}/word_language_model"
@@ -51,6 +45,12 @@ pushd "${EXAMPLES_DIR}/word_language_model"
 export LOG_FILE=${RESULT_DIR}/wlm_cpu_trans/result.log
 export MEM_FILE=${RESULT_DIR}/wlm_cpu_trans/result_mem.log
 ${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3 --model Transformer
+# run mnist
+mkdir -p ${RESULT_DIR}/mnist
+pushd "${EXAMPLES_DIR}/mnist"
+export LOG_FILE=${RESULT_DIR}/mnist/result.log
+export MEM_FILE=${RESULT_DIR}/mnist/result_mem.log
+${PREFIX} bash "${CURRENT_DIR}/monitor_proc.sh" python main.py --epochs 3
 # run GPU WLM Transformer
 # mkdir -p ${RESULT_DIR}/wlm_gpu_trans
 # pushd "${EXAMPLES_DIR}/word_language_model"
