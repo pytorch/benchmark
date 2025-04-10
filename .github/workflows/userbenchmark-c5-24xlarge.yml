@@ -18,85 +18,55 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       CONDA_ENV: "torchbench"
-      DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
-      SETUP_SCRIPT: "/workspace/setup_instance.sh"
     steps:
-      - name: "[FB EMPLOYEES] Enable SSH (Click me for login details)"
-        uses: pytorch/test-infra/.github/actions/setup-ssh@main
-        with:
-          github-secret: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-        with:
-          path: benchmark
       - name: Install Conda
         run: |
-          cd benchmark
-          bash scripts/install_conda.sh
-      - name: Pull docker image
-        uses: pytorch/test-infra/.github/actions/pull-docker-image@main
-        with:
-          docker-image: ${{ env.DOCKER_IMAGE }}
-      - name: Run Docker Image
-        run: |
-          CONTAINER_ID=$(docker run \
-            -e CONDA_ENV \
-            -e SETUP_SCRIPT \
-            --tty \
-            --detach \
-            -v "${PWD}/benchmark:/benchmark" \
-            -w / \
-            "${{ env.DOCKER_IMAGE }}" \
-            tail -f /dev/null
-          )
-          echo "Container ID: ${CONTAINER_ID}"
-          # Write the CONTAINER_ID to GITHUB_ENV
-          echo "CONTAINER_ID=${CONTAINER_ID}" >> "${GITHUB_ENV}"
+          bash ./.ci/torchbench/install-conda.sh
       - name: Install TorchBench
         run: |
-          docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash /benchmark/scripts/torchbench_install.sh
+          bash ./.ci/torchbench/install.sh
       - name: Run user benchmark
         run: |
+          set -x
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
+
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
-          pushd benchmark
+
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
-          # Run userbenchmark
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
-            docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash -c ". ${SETUP_SCRIPT} && conda activate ${CONDA_ENV} && \
-                              python .github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}"
+            python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
             if [ -d ./.userbenchmark ]; then
-              cp -r ./.userbenchmark ../benchmark-output
+              cp -r ./.userbenchmark benchmark-output
             else
-              mkdir ../benchmark-output
+              mkdir benchmark-output
             fi
           else
-            docker exec -t -w "/benchmark" "${CONTAINER_ID}" bash -c ". ${SETUP_SCRIPT} && conda activate ${CONDA_ENV} && \
-                              python run_benchmark.py \
-                              \"${{ github.event.inputs.userbenchmark_name }}\" ${{ github.event.inputs.userbenchmark_options }}"
-            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
+            python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
+            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" benchmark-output
+            ls -las benchmark-output
+            pwd
           fi
-      - name: Upload result jsons to Scribe
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TorchBench result
+          path: benchmark-output
+      - name: Upload result jsons to Scribe and S3
         run: |
-          pushd benchmark
-          . scripts/activate_conda.sh
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
             python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
             python ./scripts/userbenchmark/upload_s3.py --upload-file "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
           done
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: TorchBench result
-          path: benchmark-output/
-      - name: Teardown Linux
-        uses: pytorch/test-infra/.github/actions/teardown-linux@main
+      - name: Clean up Conda env
         if: always()
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
-  cancel-in-progress: true
+        run: |
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda remove -n "${CONDA_ENV}" --all
