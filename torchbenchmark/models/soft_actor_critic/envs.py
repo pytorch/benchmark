@@ -2,7 +2,7 @@ import math
 import random
 from collections import deque
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 
@@ -132,7 +132,7 @@ def highway_env(env_id):
 
     highway_env: https://highway-env.readthedocs.io/en/latest/index.html
     """
-    import gym
+    import gymnasium as gym
 
     env = gym.make(env_id)
     env.configure({"action": {"type": "ContinuousAction"}})
