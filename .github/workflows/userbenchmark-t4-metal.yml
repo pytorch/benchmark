@@ -1,7 +1,5 @@
-name: TorchBench Userbenchmark on T4 Metal
+name: TorchBench Userbenchmark on AWS t4.metal
 on:
-  schedule:
-    - cron: '0 17 * * *' # run at 5 PM UTC
   workflow_dispatch:
     inputs:
       userbenchmark_name:
@@ -11,93 +9,64 @@ on:
 
 jobs:
   run-userbenchmark:
-    runs-on: [self-hosted, bm-runner]
+    runs-on: [self-hosted, linux.g4dn.metal.nvidia.gpu]
     timeout-minutes: 1440 # 24 hours
     environment: docker-s3-upload
     env:
-      CONDA_ENV_NAME: "userbenchmarks-ci"
       PLATFORM_NAME: "aws_t4_metal"
       TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      SETUP_SCRIPT: "/data/nvme/bin/setup_instance.sh"
+      CONDA_ENV: "torchbench"
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
-        with:
-          path: benchmark
-      - name: Create conda environment
+      - name: Install Conda
         run: |
-          python benchmark/utils/python_utils.py --create-conda-env "${CONDA_ENV_NAME}"
-          sudo python benchmark/utils/cuda_utils.py --setup-cuda-softlink
-      - name: Install PyTorch nightly
-        run: |
-          . "${SETUP_SCRIPT}" && . activate "${CONDA_ENV_NAME}"
-          pushd benchmark
-          # Install dependencies
-          python utils/cuda_utils.py --install-torch-deps
-          # check the machine is tuned
-          pip install -U py-cpuinfo psutil distro boto3
-          sudo ${HOME}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python3 torchbenchmark/util/machine_config.py
-          # Check if nightly builds are available
-          NIGHTLIES=$(python utils/torch_nightly_utils.py --packages torch)
-          # If failed, the script will generate empty result
-          if [ -z $NIGHTLIES ]; then
-              echo "Torch nightly build failed. Cancel the workflow."
-              exit 1
-          fi
-          # Install PyTorch and torchvision nightly from pip
-          python utils/cuda_utils.py --install-torch-nightly
-          python utils/cuda_utils.py --check-torch-nightly-version
-          # make sure pytorch+cuda works
-          python -c "import torch; torch.cuda.init()"
+          bash ./.ci/torchbench/install-conda.sh
       - name: Install TorchBench
         run: |
-          set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
-          pushd benchmark
-          python install.py
+          bash ./.ci/torchbench/install.sh
       - name: Run user benchmark
         run: |
           set -x
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
+
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
-          pushd benchmark
+
           if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
           MANUAL_WORKFLOW="${{ github.event.inputs.userbenchmark_name }}"
           if [ -z "${MANUAL_WORKFLOW}" ]; then
             # Figure out what userbenchmarks we should run, and run it
             python ./.github/scripts/userbenchmark/schedule-benchmarks.py --platform ${PLATFORM_NAME}
             if [ -d ./.userbenchmark ]; then
-              cp -r ./.userbenchmark ../benchmark-output
+              cp -r ./.userbenchmark benchmark-output
             else
-              mkdir ../benchmark-output
+              mkdir benchmark-output
             fi
           else
             python run_benchmark.py "${{ github.event.inputs.userbenchmark_name }}" ${{ github.event.inputs.userbenchmark_options }}
-            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" ../benchmark-output
+            cp -r ./.userbenchmark/"${{ github.event.inputs.userbenchmark_name }}" benchmark-output
+            ls -las benchmark-output
+            pwd
           fi
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: TorchBench result
-          path: benchmark-output/
-      - name: Upload result jsons to Scribe
+          path: benchmark-output
+      - name: Upload result jsons to Scribe and S3
         run: |
-          . "${SETUP_SCRIPT}" && conda activate "${CONDA_ENV_NAME}"
-          conda install -y six
-          pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
           for r in ${RESULTS[@]}; do
             python ./scripts/userbenchmark/upload_scribe.py --userbenchmark_json "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
             python ./scripts/userbenchmark/upload_s3.py --upload-file "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
           done
-      - name: Remove conda environment
-        run: |
-          conda env remove --name "${CONDA_ENV_NAME}"
-      - name: Cleanup repo
+      - name: Clean up Conda env
         if: always()
         run: |
-          sudo rm -rf benchmark || true
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
+          conda remove -n "${CONDA_ENV}" --all
