@@ -72,7 +72,9 @@ class TestBenchNetwork:
                 extra_args=[],
                 metadata=get_metadata_from_yaml(model_path),
             ):
-                raise NotImplementedError("Test skipped by its metadata.")
+                pytest.skip(
+                    f"Test train on {device} is skipped by its metadata skipping..."
+                )
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
             if "quantized" in model_name:
@@ -90,8 +92,11 @@ class TestBenchNetwork:
             )
             benchmark.extra_info["test"] = "train"
 
-        except NotImplementedError:
-            print(f"Test train on {device} is not implemented, skipping...")
+        except Exception as e:
+            if isinstance(e, NotImplementedError):
+                print(f"Test train on {device} is not implemented")
+            else:
+                pytest.fail(f"Test train failed on {device} due to this error: {e}")
 
     def test_eval(self, model_path, device, benchmark, pytestconfig):
         try:
@@ -102,7 +107,9 @@ class TestBenchNetwork:
                 extra_args=[],
                 metadata=get_metadata_from_yaml(model_path),
             ):
-                raise NotImplementedError("Test skipped by its metadata.")
+                pytest.skip(
+                    f"Test eval on {device} is skipped by its metadata skipping..."
+                )
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
             if "quantized" in model_name:
@@ -121,8 +128,11 @@ class TestBenchNetwork:
             )
             benchmark.extra_info["test"] = "eval"
 
-        except NotImplementedError:
-            print(f"Test eval on {device} is not implemented, skipping...")
+        except Exception as e:
+            if isinstance(e, NotImplementedError):
+                print(f"Test eval on {device} is not implemented")
+            else:
+                pytest.fail(f"Test eval failed on {device} due to this error: {e}")
 
 
 @pytest.mark.benchmark(
