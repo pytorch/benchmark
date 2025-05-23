@@ -210,8 +210,7 @@ class YOLOLayer(nn.Module):
             i, n = self.index, self.nl  # index in layers, number of layers
             p = out[self.layers[i]]
             bs, _, ny, nx = p.shape  # bs, 255, 13, 13
-            if (self.nx, self.ny) != (nx, ny):
-                self.create_grids((nx, ny), p.device)
+            self.create_grids((nx, ny), p.device)
 
             # outputs and weights
             # w = F.softmax(p[:, -n:], 1)  # normalized weights
@@ -233,8 +232,7 @@ class YOLOLayer(nn.Module):
             bs = 1  # batch size
         else:
             bs, _, ny, nx = p.shape  # bs, 255, 13, 13
-            if (self.nx, self.ny) != (nx, ny):
-                self.create_grids((nx, ny), p.device)
+            self.create_grids((nx, ny), p.device)
 
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
         p = (
