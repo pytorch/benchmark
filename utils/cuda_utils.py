@@ -8,13 +8,13 @@ from pathlib import Path
 from typing import Optional
 
 # defines the default CUDA version to compile against
-DEFAULT_CUDA_VERSION = "12.4"
+DEFAULT_CUDA_VERSION = "12.6"
 REPO_ROOT = Path(__file__).parent.parent
 
 CUDA_VERSION_MAP = {
-    "12.4": {
-        "pytorch_url": "cu124",
-        "magma": "magma-cuda124",
+    "12.6": {
+        "pytorch_url": "cu126",
+        "magma": "magma-cuda126",
         "jax": "jax[cuda12]",
     },
 }
