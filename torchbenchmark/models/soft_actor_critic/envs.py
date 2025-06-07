@@ -2,7 +2,7 @@ import math
 import random
 from collections import deque
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 
@@ -132,7 +132,7 @@ def highway_env(env_id):
 
     highway_env: https://highway-env.readthedocs.io/en/latest/index.html
     """
-    import gym
+    import gymnasium as gym
 
     env = gym.make(env_id)
     env.configure({"action": {"type": "ContinuousAction"}})
@@ -339,15 +339,15 @@ def load_dmc(
     """
     Load a task from the deepmind control suite.
 
-    Uses dmc2gym (https://github.com/denisyarats/dmc2gym)
+    Uses dmc2gymnasiym (https://github.com/imgeorgiev/dmc2gymnasium)
 
     Note that setting seed=None (the default) picks a random seed
     """
-    import dmc2gym
+    import dmc2gymnasium
 
     if seed is None:
         seed = random.randint(1, 100000)
-    env = dmc2gym.make(
+    env = dmc2gymnasium.make(
         domain_name=domain_name,
         task_name=task_name,
         from_pixels=from_pixels,
