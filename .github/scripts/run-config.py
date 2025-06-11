@@ -59,9 +59,7 @@ def get_models(config) -> Optional[str]:
         r = re.compile(model_pattern)
         matched_models = list(filter(lambda x: r.match(x), models))
         enabled_models.extend(matched_models)
-    assert (
-        enabled_models
-    ), f"The model patterns you specified {config['models']} does not match any model. Please double check."
+    assert enabled_models, f"The model patterns you specified {config['models']} does not match any model. Please double check."
     return enabled_models
 
 

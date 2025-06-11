@@ -84,9 +84,7 @@ def visualize_embeddings_umap(
     cat_counts=None,
     use_max_count=True,
 ):
-
     for k in range(0, len(emb_l)):
-
         E = emb_l[k].weight.detach().cpu().numpy()
         print("umap", E.shape)
 
@@ -121,7 +119,6 @@ def visualize_embeddings_umap(
         if use_max_count is False or n_vis == E.shape[0]:
             Y = reducer.fit_transform(E[:n_vis, :])
         else:
-
             # select values with couns > 1
             done = False
             min_cnt = 1
@@ -197,9 +194,7 @@ def visualize_embeddings_umap(
 
 
 def visualize_embeddings_tsne(emb_l, output_dir="", max_size=10000):
-
     for k in range(0, len(emb_l)):
-
         E = emb_l[k].weight.detach().cpu()
         print("tsne", E.shape)
 
@@ -244,7 +239,6 @@ def visualize_embeddings_tsne(emb_l, output_dir="", max_size=10000):
 
 
 def analyse_categorical_data(X_cat, n_days=10, output_dir=""):
-
     # analyse categorical variables
     n_vec = len(X_cat)
     n_cat = len(X_cat[0])
@@ -314,7 +308,6 @@ def analyse_categorical_data(X_cat, n_days=10, output_dir=""):
 
 
 def analyse_categorical_counts(X_cat, emb_l=None, output_dir=""):
-
     # analyse categorical variables
     n_vec = len(X_cat)
     n_cat = len(X_cat[0])
@@ -329,7 +322,6 @@ def analyse_categorical_counts(X_cat, emb_l=None, output_dir=""):
     all_counts = []
 
     for i in range(0, n_cat):
-
         cat = all_cat[:, i]
         if emb_l is None:
             s = set(cat)
@@ -374,7 +366,6 @@ def analyse_categorical_counts(X_cat, emb_l=None, output_dir=""):
 
 
 def dlrm_output_wrap(dlrm, X, lS_o, lS_i, T):
-
     all_feat_vec = []
     all_cat_vec = []
     x_vec = None
@@ -459,7 +450,6 @@ def dlrm_output_wrap(dlrm, X, lS_o, lS_i, T):
 
 
 def create_umap_data(dlrm, data_ld, max_size=50000, offset=0, info=""):
-
     all_features = []
     all_X = []
     all_cat = []
@@ -474,7 +464,6 @@ def create_umap_data(dlrm, data_ld, max_size=50000, offset=0, info=""):
         all_z.append([])
 
     for j, (X, lS_o, lS_i, T) in enumerate(data_ld):
-
         if j < offset:
             continue
 
@@ -517,7 +506,6 @@ def plot_all_data_3(
     output_dir="",
     orig_space_dim=0,
 ):
-
     size = 1
     colors = ["red", "green"]
 
@@ -584,7 +572,6 @@ def plot_one_class_3(
     output_dir="",
     orig_space_dim=0,
 ):
-
     size = 1
 
     fig, (ax0, ax1, ax2) = plt.subplots(1, 3)
@@ -643,7 +630,6 @@ def visualize_umap_data(
     output_dir="",
     orig_space_dim=0,
 ):
-
     # all classes
     plot_all_data_3(
         umap_Y=umap_Y,
@@ -778,7 +764,6 @@ def visualize_umap_data(
 
 
 def hdbscan_clustering(umap_data, train_data, test_data, info="", output_dir=""):
-
     clusterer = hdbscan.HDBSCAN(
         min_samples=10, min_cluster_size=500, prediction_data=True
     )
@@ -864,7 +849,6 @@ def visualize_all_data_umap(
     output_dir="",
     umap_metric="euclidean",
 ):
-
     data_ratio = 1
 
     print("creating umap data")
@@ -1037,12 +1021,10 @@ def analyze_model_data(
     skip_data_plots=False,
     umap_metric="euclidean",
 ):
-
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     if skip_embedding is False:
-
         cat_counts = None
 
         cat_counts = analyse_categorical_counts(
@@ -1081,7 +1063,6 @@ def analyze_model_data(
 
 
 if __name__ == "__main__":
-
     output_dir = ""
 
     ### parse arguments ###
@@ -1168,7 +1149,6 @@ if __name__ == "__main__":
         ln_top = np.array([367, 512, 256, 1])
 
     elif args.dataset == "terabyte":
-
         if args.max_ind_range == 10000000:
             # 2. Criteo Terabyte (see ./bench/dlrm_s_criteo_terabyte.sh [--sub-sample=0.875] --max-in-range=10000000)
             m_spa = 64

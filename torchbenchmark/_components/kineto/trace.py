@@ -76,7 +76,7 @@ def do_bench_kineto(
     ]
     if profile_opts is None:
         profile_opts = DEFAULT_PROFILE_OPTS
-    prefix = f"tritonbench_{fn._name}"
+    prefix = f"torchbench_{fn._name}"
     name = f"{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{''.join(random.choices(string.digits, k=10))}.json"
     with profiler.profile(
         schedule=profiler.schedule(wait=0, warmup=n_warmup, active=1, repeat=1),

@@ -19,9 +19,7 @@ class GPTTrainingConfig:
 @dataclass
 class GPTGenerationConfig:
     max_new_tokens: int = 512  # max number of new tokens to generate
-    temperature: float = (
-        1.0  # temperature for sampling. > 1.0: more exploring, < 1.0: more conservative.
-    )
+    temperature: float = 1.0  # temperature for sampling. > 1.0: more exploring, < 1.0: more conservative.
     top_k: Optional[int] = (
         None  # top_k > 0: keep only top k tokens with highest probability (top-k filtering).
     )
@@ -87,6 +85,6 @@ class Model(BenchmarkModel):
             *self.example_inputs,
             self.generate_config.max_new_tokens,
             self.generate_config.temperature,
-            self.generate_config.top_k
+            self.generate_config.top_k,
         )
         return (out,)

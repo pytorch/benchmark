@@ -3,6 +3,7 @@ import logging
 import os
 
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.nn.functional as F
 from PIL import Image
@@ -102,7 +103,7 @@ def get_output_filenames(args):
     return args.output or list(map(_generate_name, args.input))
 
 
-def mask_to_image(mask: np.ndarray):
+def mask_to_image(mask: npt.NDArray):
     if mask.ndim == 2:
         return Image.fromarray((mask * 255).astype(np.uint8))
     elif mask.ndim == 3:

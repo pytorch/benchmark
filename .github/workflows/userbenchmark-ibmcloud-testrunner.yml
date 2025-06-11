@@ -1,4 +1,4 @@
-name: TorchBench Userbenchmark test on IBM Cloud 
+name: TorchBench Userbenchmark test on IBM Cloud
 on:
   workflow_dispatch:
     inputs:
@@ -85,7 +85,7 @@ jobs:
             python ./scripts/userbenchmark/upload_s3.py --upload-file "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
           done
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: TorchBench result
           path: benchmark-output/

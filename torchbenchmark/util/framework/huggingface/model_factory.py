@@ -165,6 +165,8 @@ class HuggingFaceGenerationModel(HuggingFaceModel):
             do_sample=False,
             num_beams=1,
             use_cache=True,
+            # Introduced by transformers 4.41.0 https://github.com/huggingface/transformers/issues/30892
+            decoder_start_token_id=0,
         )
         self.model = GenerationWrapper(self.model, generation_config)
         self.example_inputs = (self.example_inputs["input_ids"],)

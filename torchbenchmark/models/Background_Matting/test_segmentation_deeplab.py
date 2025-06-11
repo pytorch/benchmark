@@ -183,7 +183,6 @@ list_im.sort()
 
 
 for i in range(0, len(list_im)):
-
     image = Image.open(list_im[i])
 
     res_im, seg = MODEL.run(image)

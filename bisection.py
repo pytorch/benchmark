@@ -54,7 +54,7 @@ TORCHBENCH_BISECTION_TARGETS = {
 
 try:
     # OSS utils
-    from regression_detector import generate_regression_result
+    from regression_detector import generate_regression_result  # @manual
     from utils import gitutils
     from utils.build_utils import (
         build_repo,
@@ -632,8 +632,8 @@ def main() -> None:
     if args.skip_update:
         skip_update_repos = list(map(lambda x: x.strip(), args.skip_update.split(",")))
         for repo in skip_update_repos:
-            assert repo in list(
-                TORCHBENCH_BISECTION_TARGETS.keys()
+            assert (
+                repo in list(TORCHBENCH_BISECTION_TARGETS.keys())
             ), f"User specified skip update repo {repo} not in list: {TORCHBENCH_BISECTION_TARGETS.keys()}"
     else:
         skip_update_repos = None

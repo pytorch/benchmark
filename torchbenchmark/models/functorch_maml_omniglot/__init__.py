@@ -2,6 +2,8 @@ import functools
 from pathlib import Path
 from typing import Tuple
 
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,7 +26,7 @@ def loss_for_task(net, n_inner_iter, x_spt, y_spt, x_qry, y_qry):
     new_params = params
     for _ in range(n_inner_iter):
         grads = grad(compute_loss)(new_params, buffers, x_spt, y_spt)
-        new_params = [p - g * 1e-1 for p, g, in zip(new_params, grads)]
+        new_params = [p - g * 1e-1 for p, g in zip(new_params, grads)]
 
     # The final set of adapted parameters will induce some
     # final loss and accuracy on the query dataset.
@@ -73,7 +75,26 @@ class Model(BenchmarkModel):
         self.model = net
 
         root = str(Path(__file__).parent.parent)
-        self.meta_inputs = torch.load(f"{root}/maml_omniglot/batch.pt")
+        with torch.serialization.safe_globals(
+            [
+                np.core.multiarray._reconstruct,
+                np.ndarray,
+                np.dtype,
+                (
+                    type(np.dtype(np.float32))
+                    if np.__version__ < "1.25.0"
+                    else np.dtypes.Float32DType
+                ),
+                (
+                    type(np.dtype(np.int64))
+                    if np.__version__ < "1.25.0"
+                    else np.dtypes.Int64DType
+                ),
+            ]
+        ):
+            self.meta_inputs = torch.load(
+                f"{root}/maml_omniglot/batch.pt", weights_only=True
+            )
         self.meta_inputs = tuple(
             [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]
         )

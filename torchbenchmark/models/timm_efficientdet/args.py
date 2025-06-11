@@ -303,13 +303,15 @@ def get_args(config_file=None):
         metavar="PCT",
         help="Color jitter factor (default: 0.4)",
     )
-    parser.add_argument(
-        "--aa",
-        type=str,
-        default=None,
-        metavar="NAME",
-        help='Use AutoAugment policy. "v0" or "original". (default: None)',
-    ),
+    (
+        parser.add_argument(
+            "--aa",
+            type=str,
+            default=None,
+            metavar="NAME",
+            help='Use AutoAugment policy. "v0" or "original". (default: None)',
+        ),
+    )
     parser.add_argument(
         "--reprob",
         type=float,

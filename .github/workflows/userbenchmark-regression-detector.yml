@@ -11,48 +11,45 @@ on:
 
 jobs:
   run-userbenchmark:
-    runs-on: [a100-runner]
+    runs-on: linux.aws.a100
     timeout-minutes: 1440 # 24 hours
     environment: docker-s3-upload
     env:
-      BASE_CONDA_ENV: "torchbench"
       CONDA_ENV: "optim"
       PLATFORM_NAME: "gcp_a100"
       TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN: ${{ secrets.TORCHBENCH_USERBENCHMARK_SCRIBE_GRAPHQL_ACCESS_TOKEN }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      SETUP_SCRIPT: "/workspace/setup_instance.sh"
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
         with:
           path: benchmark
-      - name: Tune Nvidia GPU
+      - name: Install Conda
         run: |
-          sudo nvidia-smi -pm 1
-          sudo nvidia-smi -ac 1215,1410
-          nvidia-smi
-      - name: Clone and setup Conda env
-        run: |
-          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
-          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
+          set -x
+          pushd benchmark
+          bash ./.ci/torchbench/install-conda.sh
       - name: Install TorchBench
         run: |
           set -x
-          . "${SETUP_SCRIPT}"
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           pushd benchmark
           # only install the subset of models currently running.
           python install.py BERT_pytorch DALLE2_pytorch hf_GPT2_large hf_T5_large resnet50 timm_vision_transformer_large yolov3
       - name: Print torch.version.git_version
         run: |
           set -x
-          . "${SETUP_SCRIPT}"
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           python -c "import torch; print(torch.version.git_version)"
       - name: Run optim user benchmark
         run: |
           set -x
-          . "${SETUP_SCRIPT}"
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           # remove old results
           if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
           pushd benchmark
@@ -65,7 +62,9 @@ jobs:
       - name: Detect potential regressions
         continue-on-error: true
         run: |
-          . "${SETUP_SCRIPT}"
+          set -x
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           # TODO: the following assumes only one metrics-*.json is found. It will keep
@@ -86,7 +85,8 @@ jobs:
             torchbench-perf-report
       - name: Upload result jsons to Scribe and S3
         run: |
-          . "${SETUP_SCRIPT}"
+          . "${HOME}"/miniconda3/etc/profile.d/conda.sh
+          conda activate "${CONDA_ENV}"
           pushd benchmark
           RESULTS=($(find ${PWD}/../benchmark-output -name "metrics-*.json" -maxdepth 2 | sort -r))
           echo "Uploading result jsons: ${RESULTS}"
@@ -95,13 +95,14 @@ jobs:
             python ./scripts/userbenchmark/upload_s3.py --upload-file "${r}" --userbenchmark_platform "${PLATFORM_NAME}"
           done
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: TorchBench result
           path: benchmark-output/
       - name: Finally, error if errors.txt exists
         if: always()
         run: |
+          set -x
           # Do not error earlier as we want all artifacts and regressions to be reported first
           # TODO: potentially move errors.txt to benchmark-output so it gets uploaded to S3
           pushd benchmark
@@ -109,6 +110,5 @@ jobs:
       - name: Remove conda environment
         if: always()
         run: |
-          . "${SETUP_SCRIPT}"
-          conda deactivate && conda deactivate
+          . ${HOME}/miniconda3/etc/profile.d/conda.sh
           conda remove -n "${CONDA_ENV}" --all

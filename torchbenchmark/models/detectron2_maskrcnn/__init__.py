@@ -76,7 +76,7 @@ class Model(BenchmarkModel):
             self.model = instantiate(model_cfg).to(self.device)
             train_loader = instantiate(data_cfg.train)
             self.example_inputs = prefetch(
-                itertools.islice(train_loader, 100), self.device
+                itertools.islice(train_loader, 1), self.device
             )
             self.optimizer = torch.optim.SGD(self.model.parameters(), 0.0)
         elif test == "eval":
@@ -97,7 +97,7 @@ class Model(BenchmarkModel):
             self.model.eval()
             test_loader = instantiate(data_cfg.test)
             self.example_inputs = prefetch(
-                itertools.islice(test_loader, 100), self.device
+                itertools.islice(test_loader, 1), self.device
             )
 
     def get_module(self):

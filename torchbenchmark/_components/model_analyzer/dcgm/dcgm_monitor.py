@@ -123,7 +123,6 @@ class DCGMMonitor(Monitor):
                 for metric_type in self._metrics:
                     dcgm_field = self.model_analyzer_to_dcgm_field[metric_type]
                     for measurement in metrics[dcgm_field].values:
-
                         if measurement.value is not None:
                             # DCGM timestamp is in nanoseconds
                             records.append(

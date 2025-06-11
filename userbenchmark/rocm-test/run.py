@@ -91,7 +91,7 @@ def compute_score(results, reference_latencies: Dict[str, float]) -> float:
 
 
 def result_to_output_metrics(
-    results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]]
+    results: List[Tuple[TorchBenchModelConfig, TorchBenchModelMetrics]],
 ) -> Dict[str, float]:
     # metrics name examples:
     # test_eval[timm_regnet-cuda-eager]_latency

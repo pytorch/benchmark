@@ -121,9 +121,7 @@ def _run_model_test_proper_bs(
         except NotImplementedError as e:
             status = "NotImplemented"
             error_message = str(e)
-        except (
-            TypeError
-        ) as e:  # TypeError is raised when the model doesn't support variable batch sizes
+        except TypeError as e:  # TypeError is raised when the model doesn't support variable batch sizes
             status = "TypeError"
             error_message = str(e)
         except KeyboardInterrupt as e:

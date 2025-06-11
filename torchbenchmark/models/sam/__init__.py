@@ -6,6 +6,7 @@ import os
 import cv2
 import numpy as np
 import torch
+from torchbenchmark import DATA_PATH
 from torchbenchmark.tasks import COMPUTER_VISION
 
 from ...util.model import BenchmarkModel
@@ -33,9 +34,7 @@ class Model(BenchmarkModel):
 
         self.model = sam_model_registry[model_type](checkpoint=sam_checkpoint)
         self.model.to(device=device)
-        data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
-
-        image_path = os.path.join(data_folder, "truck.jpg")
+        image_path = os.path.join(DATA_PATH, "sam_inputs", "truck.jpg")
         if not os.path.exists(image_path):
             from torchbenchmark.util.framework.fb.installer import install_data
 

@@ -10,92 +10,86 @@ on:
         required: true
         type: string
         description: Userbenchmark run command line arguments
+      only:
+        required: False
+        type: string
+        default: ''
+        description: Only run the selected model, used for testing
     secrets:
       HUGGING_FACE_HUB_TOKEN:
         required: false
         description: |
           HF auth token to avoid rate limits when downloading models or datasets from hub
-      AWS_ACCESS_KEY_ID:
-        required: true
-        description: |
-          AWS access token for S3 uploading
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-        description: |
-          AWS secret access key for S3 uploading
 
 jobs:
-  # Run a specific userbenchmark with given arguments
-  # Need to pass in userbenchmark name and arguments
   benchmark:
     # Don't run on forked repos
     if: github.repository_owner == 'pytorch'
-    runs-on: [a100-runner]
-    timeout-minutes: 1440 # 24 hours
+    runs-on: linux.aws.a100
+    timeout-minutes: 1440
     environment: docker-s3-upload
     env:
-      BASE_CONDA_ENV: "torchbench"
-      CONDA_ENV: "userbenchmark"
-      SETUP_SCRIPT: "/workspace/setup_instance.sh"
+      OUTPUT_DIR: .userbenchmark
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      ONLY: ${{ inputs.only || '' }}
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v3
         with:
           path: benchmark
-      - name: Tune Nvidia GPU
-        run: |
-          sudo nvidia-smi -pm 1
-          sudo nvidia-smi -ac 1215,1410
-          sudo ldconfig
-          nvidia-smi
+
       - name: Remove result if it already exists
-        if: always()
+        shell: bash
+        working-directory: benchmark
         run: |
-          # remove old results if exists
-          if [ -d benchmark-output ]; then rm -Rf benchmark-output; fi
-          pushd benchmark
-          if [ -d .userbenchmark ]; then rm -Rf .userbenchmark; fi
-      - name: Clone and setup conda env
-        run: |
-          CONDA_ENV=${BASE_CONDA_ENV} . "${SETUP_SCRIPT}"
-          conda create --name "${CONDA_ENV}" --clone "${BASE_CONDA_ENV}"
-      - name: Install benchmark
-        run: |
-          . "${SETUP_SCRIPT}"
-          pushd benchmark
-          python install.py
-      - name: Run benchmark
-        run: |
-          . "${SETUP_SCRIPT}"
-          pushd benchmark
-          python run_benchmark.py ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-run-args }}
-      - name: Copy benchmark logs
-        if: always()
-        run: |
-          pushd benchmark
-          cp -r ./.userbenchmark/${{ inputs.userbenchmark }} ../benchmark-output
-      - name: Upload benchmark result to GH Actions Artifact
-        uses: actions/upload-artifact@v3
-        if: always()
+          set -eux
+
+          if [[ -d "${OUTPUT_DIR}" ]]; then
+            rm -rf "${OUTPUT_DIR}"
+          fi
+
+      - name: Setup miniconda
+        uses: pytorch/test-infra/.github/actions/setup-miniconda@main
         with:
-          name: ${{ inputs.userbenchmark }} benchmarking result
-          path: benchmark-output/
-      - name: Copy artifact and upload to Amazon S3
-        env:
-          WORKFLOW_RUN_ID: ${{ github.run_id }}
-          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          python-version: "3.9"
+
+      - name: Install torch dependencies
+        shell: bash
+        working-directory: benchmark
         run: |
-          . "${SETUP_SCRIPT}"
-          pushd benchmark
-          # Upload the result json to Amazon S3
-          python ./scripts/userbenchmark/upload_s3_csv.py --s3-prefix torchbench-csv --userbenchmark ${{ inputs.userbenchmark }} \
-                                                          --upload-path ../benchmark-output --match-filename "^${{ inputs.userbenchmark }}.*\.csv"
-      - name: Clean up Conda env
-        if: always()
+          set -eux
+          ${CONDA_RUN} pip3 install --pre torch torchvision torchaudio torchao \
+            --index-url https://download.pytorch.org/whl/nightly/cu124
+
+      - name: Install benchmark
+        shell: bash
+        working-directory: benchmark
         run: |
-          . "${SETUP_SCRIPT}"
-          conda deactivate && conda deactivate
-          conda remove -n "${CONDA_ENV}" --all
+          set -eux
+
+          if [[ -z "${ONLY}" ]]; then
+            ${CONDA_RUN} python install.py --numpy
+          else
+            ${CONDA_RUN} python install.py --numpy --models "${ONLY}"
+          fi
+
+      - name: Run benchmark
+        shell: bash
+        working-directory: benchmark
+        run: |
+          set -eux
+
+          if [[ -z "${ONLY}" ]]; then
+            ${CONDA_RUN} python run_benchmark.py ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-run-args }}
+          else
+            ${CONDA_RUN} python run_benchmark.py ${{ inputs.userbenchmark }} ${{ inputs.userbenchmark-run-args }} \
+              --only "${ONLY}"
+          fi
+
+      - name: Upload the benchmark results to OSS benchmark database for the dashboard
+        uses: pytorch/test-infra/.github/actions/upload-benchmark-results@main
+        with:
+          benchmark-results-dir: benchmark/${{ env.OUTPUT_DIR }}/${{ inputs.userbenchmark }}
+          dry-run: false
+          schema-version: v3
+          github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,5 +1,6 @@
 # Copyright (c) 2017 NVIDIA Corporation
 """Data Layer Classes"""
+
 from os import listdir, path
 from random import shuffle
 

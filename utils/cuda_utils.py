@@ -166,8 +166,7 @@ def install_torch_build_deps(cuda_version: str):
 
 
 def install_torchbench_deps():
-    # tritonbench flash_attn depends on packaging to build
-    cmd = ["pip", "install", "unittest-xml-reporting", "boto3", "packaging"]
+    cmd = ["pip", "install", "unittest-xml-reporting", "boto3"]
     subprocess.check_call(cmd)
 
 
@@ -252,7 +251,5 @@ if __name__ == "__main__":
     if args.install_torchbench_deps:
         install_torchbench_deps()
     if args.check_torch_nightly_version:
-        assert (
-            not args.install_torch_nightly
-        ), "Error: Can't run install torch nightly and check version in the same command."
+        assert not args.install_torch_nightly, "Error: Can't run install torch nightly and check version in the same command."
         check_torch_nightly_version(args.force_date)

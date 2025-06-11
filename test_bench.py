@@ -26,7 +26,7 @@ from torchbenchmark.util.metadata_utils import skip_by_metadata
 def pytest_generate_tests(metafunc):
     # This is where the list of models to test can be configured
     # e.g. by using info in metafunc.config
-    devices = ["cpu", "cuda"]
+    devices = ["cpu", "cuda", "hpu"]
 
     if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         devices.append("mps")
@@ -39,6 +39,9 @@ def pytest_generate_tests(metafunc):
 
     if metafunc.config.option.mps_only:
         devices = ["mps"]
+
+    if metafunc.config.option.hpu_only:
+        devices = ["hpu"]
 
     if metafunc.cls and metafunc.cls.__name__ == "TestBenchNetwork":
         paths = _list_model_paths()
@@ -60,7 +63,6 @@ def pytest_generate_tests(metafunc):
     group="hub",
 )
 class TestBenchNetwork:
-
     def test_train(self, model_path, device, benchmark):
         try:
             model_name = os.path.basename(model_path)
@@ -70,7 +72,9 @@ class TestBenchNetwork:
                 extra_args=[],
                 metadata=get_metadata_from_yaml(model_path),
             ):
-                raise NotImplementedError("Test skipped by its metadata.")
+                pytest.skip(
+                    f"Test train on {device} is skipped by its metadata skipping..."
+                )
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
             if "quantized" in model_name:
@@ -88,8 +92,11 @@ class TestBenchNetwork:
             )
             benchmark.extra_info["test"] = "train"
 
-        except NotImplementedError:
-            print(f"Test train on {device} is not implemented, skipping...")
+        except Exception as e:
+            if isinstance(e, NotImplementedError):
+                print(f"Test train on {device} is not implemented")
+            else:
+                pytest.fail(f"Test train failed on {device} due to this error: {e}")
 
     def test_eval(self, model_path, device, benchmark, pytestconfig):
         try:
@@ -100,7 +107,9 @@ class TestBenchNetwork:
                 extra_args=[],
                 metadata=get_metadata_from_yaml(model_path),
             ):
-                raise NotImplementedError("Test skipped by its metadata.")
+                pytest.skip(
+                    f"Test eval on {device} is skipped by its metadata skipping..."
+                )
             # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
             # api, enable after PyTorch 1.13 release
             if "quantized" in model_name:
@@ -119,8 +128,11 @@ class TestBenchNetwork:
             )
             benchmark.extra_info["test"] = "eval"
 
-        except NotImplementedError:
-            print(f"Test eval on {device} is not implemented, skipping...")
+        except Exception as e:
+            if isinstance(e, NotImplementedError):
+                print(f"Test eval on {device} is not implemented")
+            else:
+                pytest.fail(f"Test eval failed on {device} due to this error: {e}")
 
 
 @pytest.mark.benchmark(

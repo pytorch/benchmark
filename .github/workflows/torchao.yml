@@ -2,36 +2,36 @@ name: Torchao nightly workflow (A100)
 on:
   workflow_dispatch:
   schedule:
-    - cron: '00 18 * * *' # run at 6:00 PM UTC, K8s containers will roll out at 12PM EST
+    - cron: '00 18 * * *' # run at 6:00 PM UTC
 
 jobs:
   timm:
     uses: ./.github/workflows/_linux-benchmark-cuda.yml
     with:
-      userbenchmark: "torchao"
+      userbenchmark: torchao
       userbenchmark-run-args: "--ci --dashboard --timm"
+      # TODO (huydhn): Bring back the rest of them later
+      only: adv_inception_v3
     secrets:
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   torchbench:
     uses: ./.github/workflows/_linux-benchmark-cuda.yml
     with:
-      userbenchmark: "torchao"
+      userbenchmark: torchao
       userbenchmark-run-args: "--ci --dashboard --torchbench"
+      # TODO (huydhn): Bring back the rest of them later
+      only: BERT_pytorch
     secrets:
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   huggingface:
     uses: ./.github/workflows/_linux-benchmark-cuda.yml
     with:
-      userbenchmark: "torchao"
+      userbenchmark: torchao
       userbenchmark-run-args: "--ci --dashboard --huggingface"
+      # TODO (huydhn): Bring back the rest of them later
+      only: AlbertForMaskedLM
     secrets:
       HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}

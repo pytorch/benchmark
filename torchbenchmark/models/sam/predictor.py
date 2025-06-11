@@ -7,6 +7,7 @@
 from typing import Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import torch
 
 from .sam import Sam
@@ -32,7 +33,7 @@ class SamPredictor:
 
     def set_image(
         self,
-        image: np.ndarray,
+        image: npt.NDArray,
         image_format: str = "RGB",
     ) -> None:
         """
@@ -92,13 +93,13 @@ class SamPredictor:
 
     def predict(
         self,
-        point_coords: Optional[np.ndarray] = None,
-        point_labels: Optional[np.ndarray] = None,
-        box: Optional[np.ndarray] = None,
-        mask_input: Optional[np.ndarray] = None,
+        point_coords: Optional[npt.NDArray] = None,
+        point_labels: Optional[npt.NDArray] = None,
+        box: Optional[npt.NDArray] = None,
+        mask_input: Optional[npt.NDArray] = None,
         multimask_output: bool = True,
         return_logits: bool = False,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
         """
         Predict masks for the given input prompts, using the currently set image.
 

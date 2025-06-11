@@ -49,7 +49,7 @@ if you're interested in running torchbench as a library you can
 
 ```bash
 python3 install.py
-pip install git+https://www.github.com:pytorch/benchmark.git
+pip install git+https://www.github.com/pytorch/benchmark.git
 ```
 
 or 

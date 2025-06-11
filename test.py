@@ -18,7 +18,6 @@ from torchbenchmark import (
 )
 from torchbenchmark.util.metadata_utils import skip_by_metadata
 
-
 # Some of the models have very heavyweight setup, so we have to set a very
 # generous limit. That said, we don't want the entire test suite to hang if
 # a single test encounters an extreme failure, so we give up after a test is
@@ -55,7 +54,6 @@ def _create_example_model_instance(task: ModelTask, device: str):
 
 
 def _load_test(path, device):
-
     model_name = os.path.basename(path)
 
     def _skip_cuda_memory_check_p(metadata):
@@ -176,6 +174,8 @@ def _load_tests():
     model_paths = _list_model_paths()
     if os.getenv("USE_CANARY_MODELS"):
         model_paths.extend(_list_canary_model_paths())
+    if hasattr(torch, "hpu") and torch.hpu.is_available():
+        devices.append("hpu")
     for path in model_paths:
         # TODO: skipping quantized tests for now due to BC-breaking changes for prepare
         # api, enable after PyTorch 1.13 release

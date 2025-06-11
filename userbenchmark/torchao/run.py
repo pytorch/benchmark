@@ -1,5 +1,7 @@
 import argparse
+import glob
 import itertools
+from multiprocessing import Process
 from typing import List
 
 from userbenchmark.utils import get_output_dir
@@ -89,11 +91,13 @@ def run(args: List[str]):
             raise RuntimeError(
                 "CI mode must run with --timm, --huggingface, or --torchbench"
             )
+        for params in benchmark_args:
+            params.extend(pt2_args)
     else:
         benchmark_args = [pt2_args]
 
-    output_files = [_run_pt2_args(args) for args in benchmark_args]
-    # Post-processing
-    if args.dashboard:
-        post_ci_process(output_files)
-    print("\n".join(output_files))
+    for params in benchmark_args:
+        # TODO (huydhn): Figure out why it crashes when running in the same process
+        p = Process(target=_run_pt2_args, args=(params,))
+        p.start()
+        p.join()

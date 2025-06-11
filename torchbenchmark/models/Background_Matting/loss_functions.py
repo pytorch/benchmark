@@ -20,7 +20,6 @@ class compose_loss(_Loss):
         super(compose_loss, self).__init__()
 
     def forward(self, image, alpha_pred, fg, bg, mask):
-
         alpha_pred = (alpha_pred + 1) / 2
 
         comp = fg * alpha_pred + (1 - alpha_pred) * bg

@@ -1,4 +1,4 @@
-"""This module contains simple helper functions """
+"""This module contains simple helper functions"""
 
 from __future__ import print_function
 

@@ -44,12 +44,10 @@ SUPPORT_PROFILE_LIST = [
 
 
 def run_one_step_with_cudastreams(func, streamcount):
-
     print("Running Utilization Scaling Using Cuda Streams")
 
     streamlist = []
     for i in range(1, streamcount + 1, 1):
-
         # create additional streams and prime with load
         while len(streamlist) < i:
             s = torch.cuda.Stream()
@@ -477,18 +475,17 @@ def main() -> None:
     )
     parser.add_argument(
         "--metrics-gpu-backend",
-        choices=["dcgm", "default"],
-        default="default",
+        choices=["torch", "nvml", "dcgm"],
+        default="torch",
         help="""
-        Specify the backend [dcgm, default] to collect metrics.
-        In default mode, the latency(execution time) is collected by time.time_ns() and it is always enabled.
-        Optionally, - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().
-        - you can specify gpu peak memory usage by --metrics gpu_peak_mem, and it is collected by nvml library.
-        - you can specify flops by --metrics flops, and it is collected by fvcore.
-        In dcgm mode, the latency(execution time) is collected by time.time_ns() and it is always enabled.
-        Optionally,
-        - you can specify cpu peak memory usage by --metrics cpu_peak_mem, and it is collected by psutil.Process().
-        - you can specify cpu and gpu peak memory usage by --metrics cpu_peak_mem,gpu_peak_mem, and they are collected by dcgm library.""",
+        Specify the backend [torch, nvml, dcgm] to collect metrics. In all modes,
+        the latency (execution time) is always collected using `time.time_ns()`. The CPU
+        and GPU peak memory usage metrics are optional. The CPU peak memory usage is
+        collected by `psutil.Process()` in all modes. In nvml mode, the GPU peak memory
+        usage is collected by the `nvml` library. In dcgm mode, the GPU peak memory usage is
+        collected by the `dcgm` library. In torch mode, the GPU peak memory usage is collected
+        by `torch.cuda.max_memory_allocated()`.
+        """,
     )
     args, extra_args = parser.parse_known_args()
     if args.cudastreams and not args.device == "cuda":
@@ -541,7 +538,7 @@ def main() -> None:
             )
 
             check_dcgm()
-        elif "gpu_peak_mem" in metrics_needed:
+        elif metrics_gpu_backend == "nvml":
             from torchbenchmark._components.model_analyzer.TorchBenchAnalyzer import (
                 check_nvml,
             )

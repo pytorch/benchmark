@@ -38,6 +38,11 @@ def pytest_addoption(parser):
         action="store_true",
         help="Run benchmarks on mps only and ignore machine configuration checks",
     )
+    parser.addoption(
+        "--hpu_only",
+        action="store_true",
+        help="Run benchmarks on hpu only and ignore machine configuration checks",
+    )
 
 
 def set_fuser(fuser):

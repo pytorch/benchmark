@@ -3,7 +3,6 @@ from ..utils.util import *
 
 
 class Evaluator(object):
-
     def __init__(self, args, env_batch, writer):
         self.validate_episodes = args.validate_episodes
         self.max_step = args.max_step

@@ -59,7 +59,7 @@ jobs:
           labels: |
             torchbench-perf-report
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Bisection result
           path: bisection-result/
