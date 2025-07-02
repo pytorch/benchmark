@@ -1,8 +1,11 @@
-name: TorchBench V3 nightly (A100)
+# Note that this workflow is currently broken since it relies on non-existent runners
+# Leaving the code around since we'd like to fix it up one day, but it's low pri
+
+name: ~DISABLED~ TorchBench V3 nightly (A100)
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '00 18 * * *' # run at 6:00 PM UTC, K8s containers will roll out at 12PM EST
+  #schedule:
+  #  - cron: '00 18 * * *' # run at 6:00 PM UTC, K8s containers will roll out at 12PM EST
 
 jobs:
   run-benchmark:
