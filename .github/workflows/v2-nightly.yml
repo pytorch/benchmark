@@ -1,8 +1,12 @@
-name: TorchBench V2 nightly
+# Note that this workflow is currently broken since it relies on non-existent runners
+# Leaving the code around since we'd like to fix it up one day, but it's low pri
+
+
+name: ~DISABLED~ TorchBench V2 nightly
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 14 * * *' # run at 2 PM UTC
+  #schedule:
+  #  - cron: '0 14 * * *' # run at 2 PM UTC
 
 jobs:
   run-benchmark:
