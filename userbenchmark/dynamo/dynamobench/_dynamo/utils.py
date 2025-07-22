@@ -2225,7 +2225,7 @@ def torchscript(model, example_inputs, verbose=False):
     return None
 
 
-def getfile(obj):
+def getfile(obj: Any) -> Optional[str]:
     try:
         return inspect.getfile(obj)
     except (TypeError, OSError):
