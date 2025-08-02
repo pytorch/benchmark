@@ -4,7 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from gym import spaces
+from gymnasium import spaces
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from ...util.model import BenchmarkModel
