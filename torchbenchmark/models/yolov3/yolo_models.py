@@ -174,20 +174,31 @@ class YOLOLayer(nn.Module):
         self.na = len(anchors)  # number of anchors (3)
         self.nc = nc  # number of classes (80)
         self.no = nc + 5  # number of outputs (85)
-        self.nx, self.ny, self.ng = 0, 0, 0  # initialize number of x, y gridpoints
-        self.anchor_vec = self.anchors / self.stride
-        self.anchor_wh = self.anchor_vec.view(1, self.na, 1, 1, 2)
+        self.nx, self.ny = 0, 0  # initialize number of x, y gridpoints
+        anchor_vec = self.anchors / self.stride
+        self.register_buffer("anchor_vec", anchor_vec)
+        anchor_wh = self.anchor_vec.view(1, self.na, 1, 1, 2)
+        self.register_buffer("anchor_wh", anchor_wh)
 
         if ONNX_EXPORT:
             self.training = False
-            self.create_grids(
+            self.grid = self.create_grids(
                 (img_size[1] // stride, img_size[0] // stride)
             )  # number x, y grid points
+        else:
+            self.register_buffer(
+                "ng", torch.tensor((img_size[1] // stride, img_size[0] // stride))
+            )
+            grid = self.create_grids(
+                (img_size[1] // stride, img_size[0] // stride)
+            )  # number x, y grid points
+            self.register_buffer("grid", grid)
 
     def create_grids(self, ng=(13, 13), device="cpu"):
         self.nx, self.ny = ng  # x and y grid size
         self.ng = torch.tensor(ng, dtype=torch.float)
 
+        res = None
         # build xy offsets
         if not self.training:
             yv, xv = torch.meshgrid(
@@ -196,13 +207,13 @@ class YOLOLayer(nn.Module):
                     torch.arange(self.nx, device=device),
                 ]
             )
-            self.grid = (
-                torch.stack((xv, yv), 2).view((1, 1, self.ny, self.nx, 2)).float()
-            )
+            res = torch.stack((xv, yv), 2).view((1, 1, self.ny, self.nx, 2)).float()
 
         if self.anchor_vec.device != device:
             self.anchor_vec = self.anchor_vec.to(device)
             self.anchor_wh = self.anchor_wh.to(device)
+
+        return res
 
     def forward(self, p, out):
         ASFF = False  # https://arxiv.org/abs/1911.09516
@@ -210,7 +221,7 @@ class YOLOLayer(nn.Module):
             i, n = self.index, self.nl  # index in layers, number of layers
             p = out[self.layers[i]]
             bs, _, ny, nx = p.shape  # bs, 255, 13, 13
-            self.create_grids((nx, ny), p.device)
+            self.grid = self.create_grids((nx, ny), p.device)
 
             # outputs and weights
             # w = F.softmax(p[:, -n:], 1)  # normalized weights
@@ -232,7 +243,7 @@ class YOLOLayer(nn.Module):
             bs = 1  # batch size
         else:
             bs, _, ny, nx = p.shape  # bs, 255, 13, 13
-            self.create_grids((nx, ny), p.device)
+            self.grid = self.create_grids((nx, ny), p.device)
 
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
         p = (
