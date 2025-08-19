@@ -7,7 +7,7 @@ on:
 
 jobs:
   collect-userbenchmark-result:
-    runs-on: [linux.2xlarge] # a small instance is sufficient
+    runs-on: [amz2023.linux.2xlarge] # a small instance is sufficient
     timeout-minutes: 60 # 1 hour
     environment: docker-s3-upload
     env:
