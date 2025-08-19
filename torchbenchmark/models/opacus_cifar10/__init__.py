@@ -30,10 +30,6 @@ class Model(BenchmarkModel):
         )
 
         self.model = models.resnet18(num_classes=10)
-        for m in self.model.modules():
-            if type(m) == torch.nn.ReLU:
-                m.inplace = False
-
         prev_wo_envvar = os.environ.get("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", None)
         os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
         self.model = ModuleValidator.fix(self.model)
