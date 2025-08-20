@@ -8,8 +8,12 @@ ARG CUDA_VERSION
 ARG PYTHON_VERSION
 ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install Python and other dependencies from deadsnakes/ppa repo
-RUN apt-get update -y \
+RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
+    && echo 'tzdata tzdata/Zones/America select Los_Angeles' | debconf-set-selections \
+    && apt-get update -y \
     && apt-get install -y ccache software-properties-common git curl sudo \
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update -y \
