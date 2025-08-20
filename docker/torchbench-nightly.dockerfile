@@ -1,10 +1,12 @@
 ARG CUDA_VERSION=12.8.1
 ARG PYTHON_VERSION=3.12
 ARG BASE_IMAGE=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu22.04
-ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
-ARG NIGHTLY_DATE=${NIGHTLY_DATE}
 
 FROM ${BASE_IMAGE} AS base
+
+ARG CUDA_VERSION
+ARG PYTHON_VERSION
+ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
 
 # Install Python and other dependencies from deadsnakes/ppa repo
 RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
