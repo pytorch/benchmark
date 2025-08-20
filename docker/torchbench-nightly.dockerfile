@@ -7,6 +7,8 @@ FROM ${BASE_IMAGE} AS base
 ARG CUDA_VERSION
 ARG PYTHON_VERSION
 ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
+# The logic is copied from https://github.com/vllm-project/vllm/blob/main/docker/Dockerfile
+ARG GET_PIP_URL="https://bootstrap.pypa.io/get-pip.py"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -14,7 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
     && echo 'tzdata tzdata/Zones/America select Los_Angeles' | debconf-set-selections \
     && apt-get update -y \
-    && apt-get install -y ccache software-properties-common git curl wget sudo vim python3-pip python3-distutils \
+    && apt-get install -y ccache software-properties-common git curl wget sudo vim \
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update -y \
     && apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python${PYTHON_VERSION}-venv \
