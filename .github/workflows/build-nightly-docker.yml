@@ -11,7 +11,6 @@ on:
       - docker/torchbench-nightly.dockerfile
 
 env:
-  WITH_PUSH: "true"
   DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
   HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
 
@@ -27,7 +26,6 @@ jobs:
           path: benchmark
 
       - name: Login to GitHub Container Registry
-        if: ${{ env.WITH_PUSH == 'true' }}
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -51,7 +49,7 @@ jobs:
           docker tag ghcr.io/pytorch/torchbench:latest ghcr.io/pytorch/torchbench:${DOCKER_TAG}
 
       - name: Push docker to remote
-        if: ${{ env.WITH_PUSH == 'true' && github.event_name != 'pull_request' }}
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
           # Extract pytorch version from the docker
           PYTORCH_VERSION=$(docker run -e SETUP_SCRIPT="${SETUP_SCRIPT}" ghcr.io/pytorch/torchbench:latest bash -c '. "${SETUP_SCRIPT}"; python -c "import torch; print(torch.__version__)"')
