@@ -6,9 +6,10 @@ ARG NIGHTLY_DATE=${NIGHTLY_DATE}
 
 FROM ${BASE_IMAGE} AS base
 
-# Install Python and other dependencies
+# Install Python and other dependencies from deadsnakes/ppa repo
 RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
     && echo 'tzdata tzdata/Zones/America select Los_Angeles' | debconf-set-selections \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update -y \
     && apt-get install -y ccache software-properties-common git curl sudo \
     && apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python${PYTHON_VERSION}-venv \
