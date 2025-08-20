@@ -51,6 +51,7 @@ from torch._dynamo.testing import (
     same,
 )
 from torch._logging.scribe import open_source_signpost
+from userbenchmark.dynamo.dynamobench.utils import benchmark_and_write_json_result
 
 
 try:
@@ -563,8 +564,17 @@ def output_signpost(data, args, suite, error=None):
     return wall_time_by_phase["total_wall_time"]
 
 
-def nothing(f):
-    return f
+def nothing(model_iter_fn):
+    def _apply(module: torch.nn.Module, example_inputs: Any):
+        if isinstance(example_inputs, dict):
+            args = ()
+            kwargs = example_inputs
+        else:
+            args = example_inputs
+            kwargs = {}
+        benchmark_and_write_json_result(module, args, kwargs, "noquant", "cuda", compile=False)
+        model_iter_fn(module, example_inputs)
+    return _apply
 
 
 @functools.cache
@@ -3410,8 +3420,9 @@ def parse_args(args=None):
             "int8dynamic",
             "int8weightonly",
             "int4weightonly",
-            "autoquant",
             "noquant",
+            "autoquant",
+            "autoquant-all",
         ],
         default=None,
         help="Measure speedup of torchao quantization with TorchInductor baseline",
