@@ -24,7 +24,6 @@ jobs:
       image: 'ghcr.io/pytorch/torchbench:latest'
       options: ${{ matrix.container-options }}
       env:
-        HOME: '/root'
         HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 240
@@ -37,6 +36,8 @@ jobs:
 
       - name: Install TorchBench
         working-directory: benchmark
+        env:
+          HOME: '/root'
         shell: bash
         run: |
           set -eux
