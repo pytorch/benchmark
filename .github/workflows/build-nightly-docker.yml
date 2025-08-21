@@ -21,10 +21,12 @@ jobs:
     environment: docker-s3-upload
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: pytorch
@@ -33,17 +35,13 @@ jobs:
       - name: Build TorchBench nightly docker
         id: build-torchbench-docker-image
         shell: bash
-        working-directory: docker
         run: |
           set -eux
 
-          BRANCH_NAME="${GITHUB_REF_NAME}"
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" }}; then
-            BRANCH_NAME=${{ github.event.pull_request.base.ref }}
-          fi
-
-          docker build . --build-arg TORCHBENCH_BRANCH="${BRANCH_NAME}" \
-              -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:latest
+          docker build \
+            -f docker/torchbench-nightly.dockerfile \
+            -t ghcr.io/pytorch/torchbench:latest \
+            .
 
           # Extract pytorch version from the docker
           PYTORCH_VERSION=$(docker run ghcr.io/pytorch/torchbench:latest bash -c 'python -c "import torch; print(torch.__version__)"')

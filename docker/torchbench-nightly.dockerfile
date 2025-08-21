@@ -6,7 +6,6 @@ FROM ${BASE_IMAGE} AS base
 
 ARG CUDA_VERSION
 ARG PYTHON_VERSION
-ARG TORCHBENCH_BRANCH=${TORCHBENCH_BRANCH:-main}
 # The logic is copied from https://github.com/vllm-project/vllm/blob/main/docker/Dockerfile
 ARG GET_PIP_URL="https://bootstrap.pypa.io/get-pip.py"
 
@@ -29,9 +28,8 @@ RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
 RUN --mount=type=cache,target=/root/.cache/uv \
     python3 -m pip install uv
 
-# Checkout Torchbench and submodules
-RUN git clone --recurse-submodules -b "${TORCHBENCH_BRANCH}" --single-branch \
-    https://github.com/pytorch/benchmark /workspace/benchmark
+RUN mkdir /workspace/benchmark
+ADD . /workspace/benchmark
 
 WORKDIR /workspace/benchmark
 
