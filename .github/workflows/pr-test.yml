@@ -15,10 +15,10 @@ jobs:
         include:
           - config: cpu
             runner: linux.24xlarge
-            container-options: ''
+            container-options: '--security-opt seccomp=unconfined --ipc=host'
           - config: a100
             runner: linux.aws.a100
-            container-options: '--gpus all'
+            container-options: '--gpus all --security-opt seccomp=unconfined --ipc=host'
     name: Test ${{ matrix.config }}
     container:
       image: 'ghcr.io/pytorch/torchbench:latest'

@@ -6,7 +6,6 @@ python3 --version
 python3 -m pip --version
 
 whoami
-ls -lah /root/.docker/config.json
 ls -lah /usr/local/lib/python3.12/
 ls -lah /usr/local/lib/python3.12/dist-packages
 
