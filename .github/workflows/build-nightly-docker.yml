@@ -34,11 +34,10 @@ jobs:
         id: build-torchbench-docker-image
         shell: bash
         working-directory: docker
-        env:
-          BRANCH_NAME: ${{ env.GITHUB_REF_NAME }}
         run: |
           set -eux
 
+          BRANCH_NAME="${GITHUB_REF_NAME}"
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" }}; then
             BRANCH_NAME=${{ github.event.pull_request.base.ref }}
           fi
