@@ -34,7 +34,7 @@ WORKDIR /workspace/benchmark
 
 # Install nightly
 RUN uv pip install --system --pre torch torchvision torchaudio \
-    --index-url https://download.pytorch.org/whl/nightly/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.') \
+  --index-url https://download.pytorch.org/whl/nightly/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.')
 
 # Install python dependencies
 RUN uv pip install --system -r requirements.txt
