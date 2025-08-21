@@ -8,7 +8,6 @@ on:
       - main
 
 jobs:
-  name: Test ${{ matrix.config }}
   strategy:
     fail-fast: false
     matrix:
@@ -19,6 +18,7 @@ jobs:
         - config: a100
           runner: linux.aws.a100
           container-options: '--gpus all --shm-size=32gb'
+  name: Test ${{ matrix.config }}
   container:
     image: 'ghcr.io/pytorch/torchbench:latest'
     options: ${{ matrix.container-options }}
