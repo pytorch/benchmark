@@ -25,8 +25,7 @@ RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
     && curl -sS ${GET_PIP_URL} | python${PYTHON_VERSION} \
     && python3 --version && python3 -m pip --version
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    python3 -m pip install uv
+RUN python3 -m pip install uv
 
 RUN mkdir -p /workspace/benchmark
 ADD . /workspace/benchmark
@@ -34,13 +33,11 @@ ADD . /workspace/benchmark
 WORKDIR /workspace/benchmark
 
 # Install nightly
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system --pre torch torchvision torchaudio \
+RUN uv pip install --system --pre torch torchvision torchaudio \
     --index-url https://download.pytorch.org/whl/nightly/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.') \
 
 # Install python dependencies
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system -r requirements.txt
+RUN uv pip install --system -r requirements.txt
 
 # Install Torchbench models
 RUN python3 install.py
