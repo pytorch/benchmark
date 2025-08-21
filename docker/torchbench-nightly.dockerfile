@@ -32,12 +32,12 @@ ADD . /workspace/benchmark
 
 WORKDIR /workspace/benchmark
 
-# Install python dependencies
-RUN uv pip install --system -r requirements.txt
-
 # Install nightly
 RUN uv pip install --system --pre torch torchvision torchaudio \
   --index-url https://download.pytorch.org/whl/nightly/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.')
+
+# Install python dependencies
+RUN uv pip install --system -r requirements.txt
 
 # Install Torchbench models
 RUN python3 install.py

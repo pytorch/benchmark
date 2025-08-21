@@ -20,4 +20,4 @@ submitit
 pynvml>=12.0.0
 pandas
 scipy
-numba
+numba>=0.57.0
