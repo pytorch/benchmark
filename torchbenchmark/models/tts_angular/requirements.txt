@@ -3,7 +3,7 @@ scipy
 phonemizer
 unidecode
 Pillow
-flask
+flask==2.2.5
 tqdm
 inflect
 bokeh
