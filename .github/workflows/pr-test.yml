@@ -31,14 +31,18 @@ jobs:
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v5
+        with:
+          path: benchmark
 
       - name: Install TorchBench
+        working-directory: benchmark
         shell: bash
         run: |
           set -eux
           bash .ci/torchbench/install.sh
 
       - name: Test
+        working-directory: benchmark
         shell: bash
         run: |
           set -eux
