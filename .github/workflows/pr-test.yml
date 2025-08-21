@@ -1,4 +1,5 @@
 name: TorchBench PR Test
+
 on:
   pull_request:
   workflow_dispatch:
@@ -7,14 +8,40 @@ on:
       - main
 
 jobs:
-  cpu-test:
-    uses: ./.github/workflows/_linux-test-cpu.yml
-    secrets:
-      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
-  cuda-test:
-    uses: ./.github/workflows/_linux-test-cuda.yml
-    secrets:
-      HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+  name: Test ${{ matrix.config }}
+  strategy:
+    fail-fast: false
+    matrix:
+      include:
+        - config: cpu
+          runner: linux.24xlarge
+          container-options: '--shm-size=32gb'
+        - config: a100
+          runner: linux.aws.a100
+          container-options: '--gpus all --shm-size=32gb'
+  container:
+    image: 'ghcr.io/pytorch/torchbench:latest'
+    options: ${{ matrix.container-options }}
+  runs-on: ${{ matrix.runner }}
+  timeout-minutes: 240
+  environment: docker-s3-upload
+  env:
+    HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
+  steps:
+    - name: Checkout TorchBench
+      uses: actions/checkout@v5
+
+    - name: Install TorchBench
+      shell: bash
+      run: |
+        set -eux
+        bash .ci/torchbench/install.sh
+
+    - name: Test
+      shell: bash
+      run: |
+        set -eux
+        bash .ci/torchbench/test.sh
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
