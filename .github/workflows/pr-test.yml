@@ -39,6 +39,7 @@ jobs:
         shell: bash
         run: |
           set -eux
+          whoami
           bash .ci/torchbench/install.sh
 
       - name: Test
