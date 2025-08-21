@@ -51,7 +51,7 @@ jobs:
           docker tag ghcr.io/pytorch/torchbench:latest ghcr.io/pytorch/torchbench:${DOCKER_TAG}
 
       - name: Push docker to remote
-        if: ${{ github.event_name != 'pull_request' }}
+        # if: ${{ github.event_name != 'pull_request' }}
         run: |
           docker push ghcr.io/pytorch/torchbench:${{ env.DOCKER_TAG }}
           docker push ghcr.io/pytorch/torchbench:latest
