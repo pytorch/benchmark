@@ -39,6 +39,5 @@ RUN uv pip install --system --pre torch torchvision torchaudio \
 # Install python dependencies
 RUN uv pip install --system -r requirements.txt
 
-# TODO (huydhn): tts_angular fails to install here, need to figure out what
-# is going on there later
-RUN python3 install.py --continue_on_fail
+# Install TorchBench models
+RUN uv run install.py
