@@ -15,10 +15,10 @@ jobs:
         include:
           - config: cpu
             runner: linux.24xlarge
-            container-options: '--shm-size=32gb'
+            container-options: ''
           - config: a100
             runner: linux.aws.a100
-            container-options: '--gpus all --shm-size=32gb'
+            container-options: '--gpus all'
     name: Test ${{ matrix.config }}
     container:
       image: 'ghcr.io/pytorch/torchbench:latest'
