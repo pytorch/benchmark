@@ -28,7 +28,7 @@ RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
 RUN --mount=type=cache,target=/root/.cache/uv \
     python3 -m pip install uv
 
-RUN mkdir /workspace/benchmark
+RUN mkdir -p /workspace/benchmark
 ADD . /workspace/benchmark
 
 WORKDIR /workspace/benchmark
