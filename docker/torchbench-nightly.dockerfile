@@ -40,4 +40,4 @@ RUN uv pip install --system --pre torch torchvision torchaudio \
 RUN uv pip install --system -r requirements.txt
 
 # Install Torchbench models
-RUN python3 install.py
+RUN python3 install.py --continue_on_fail
