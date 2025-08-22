@@ -36,12 +36,16 @@ WORKDIR /workspace/benchmark
 RUN uv venv --seed .venv
 ENV PATH="/workspace/benchmark/.venv/bin:$PATH"
 
-# Install nightly
-RUN uv pip install --pre torch torchvision torchaudio \
+# Install nightly. Remember to include torchao nightly here because the
+# current stable torchao 0.12.0 here doesn't work with transformers yet
+RUN uv pip install --pre torch torchvision torchaudio torchao \
   --index-url https://download.pytorch.org/whl/nightly/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.')
 
 # Install python dependencies
 RUN uv pip install -r requirements.txt
 
-# Install TorchBench models (uv doesn't like the current pyproject.toml)
-RUN rm pyproject.toml && uv run install.py
+# Install TorchBench models
+RUN python3 install.py
+
+# Check the dependency
+RUN uv pip list
