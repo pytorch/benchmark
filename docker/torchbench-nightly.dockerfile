@@ -44,4 +44,4 @@ RUN uv pip install --pre torch torchvision torchaudio \
 RUN uv pip install -r requirements.txt
 
 # Install TorchBench models
-RUN uv run install.py
+RUN rm pyproject.toml && uv run install.py
