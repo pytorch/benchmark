@@ -33,7 +33,7 @@ ADD . /workspace/benchmark
 WORKDIR /workspace/benchmark
 
 # Create a venv and use it instead of using --system
-RUN uv venv .venv
+RUN uv venv --seed .venv
 ENV PATH="/workspace/benchmark/.venv/bin:$PATH"
 
 # Install nightly
