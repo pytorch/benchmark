@@ -60,13 +60,13 @@ jobs:
           )
 
           # Install TorchBench
-          docker exec -t "${container_name}" bash -c "
+          docker exec -t -w /tmp/workspace "${container_name}" bash -c "
             set -eux
             bash .ci/torchbench/install.sh
           "
 
           # Run TorchBench tests
-          docker exec -t "${container_name}" bash -c "
+          docker exec -t -w /tmp/workspace "${container_name}" bash -c "
             set -eux
             bash .ci/torchbench/test.sh
           "
