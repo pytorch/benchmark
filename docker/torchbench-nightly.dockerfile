@@ -11,11 +11,12 @@ ARG GET_PIP_URL="https://bootstrap.pypa.io/get-pip.py"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python and other dependencies from deadsnakes/ppa repo
+# Install Python and other dependencies from deadsnakes/ppa repo. There are few
+# other dependencies like libgl1-mesa-dev used by various Python module like cv2
 RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
     && echo 'tzdata tzdata/Zones/America select Los_Angeles' | debconf-set-selections \
     && apt-get update -y \
-    && apt-get install -y ccache software-properties-common git curl wget sudo vim \
+    && apt-get install -y ccache software-properties-common git curl wget sudo vim libgl1-mesa-dev \
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update -y \
     && apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python${PYTHON_VERSION}-venv \
