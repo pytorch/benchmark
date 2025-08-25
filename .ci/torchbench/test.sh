@@ -4,7 +4,7 @@ set -eux
 
 pip install expecttest
 
-if [[ "$TEST_CONFIG" == "cuda" ]]; then
+if [[ "$TEST_CONFIG" == "cpu" ]]; then
   python3 -m torchbenchmark._components.test.test_subprocess
   python3 -m torchbenchmark._components.test.test_worker
 fi
