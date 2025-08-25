@@ -8,7 +8,7 @@ on:
 jobs:
   clean-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, linux.2xlarge]
+    runs-on: linux.2xlarge
     environment: docker-s3-upload
     steps:
       - uses: actions/delete-package-versions@v4
@@ -17,6 +17,7 @@ jobs:
           package-type: container
           delete-only-untagged-versions: true
           token: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+
       - uses: actions/delete-package-versions@v4
         with:
           package-name: torchbench

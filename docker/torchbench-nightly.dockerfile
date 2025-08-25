@@ -11,11 +11,12 @@ ARG GET_PIP_URL="https://bootstrap.pypa.io/get-pip.py"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python and other dependencies from deadsnakes/ppa repo
+# Install Python and other dependencies from deadsnakes/ppa repo. There are few
+# other dependencies like libgl1-mesa-dev used by various Python module like cv2
 RUN echo 'tzdata tzdata/Areas select America' | debconf-set-selections \
     && echo 'tzdata tzdata/Zones/America select Los_Angeles' | debconf-set-selections \
     && apt-get update -y \
-    && apt-get install -y ccache software-properties-common git curl wget sudo vim \
+    && apt-get install -y ccache software-properties-common git curl wget sudo vim libgl1-mesa-dev \
     && add-apt-repository -y ppa:deadsnakes/ppa \
     && apt-get update -y \
     && apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python${PYTHON_VERSION}-venv \
@@ -32,11 +33,20 @@ ADD . /workspace/benchmark
 
 WORKDIR /workspace/benchmark
 
-# Install nightly
-RUN uv pip install --system --pre torch torchvision torchaudio \
+# Create a venv and use it instead of using --system
+RUN uv venv --seed .venv
+ENV PATH="/workspace/benchmark/.venv/bin:$PATH"
+
+# Install nightly. Remember to include torchao nightly here because the
+# current stable torchao 0.12.0 here doesn't work with transformers yet
+RUN uv pip install --pre torch torchvision torchaudio torchao \
   --index-url https://download.pytorch.org/whl/nightly/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.')
 
 # Install python dependencies
-RUN uv pip install --system -r requirements.txt
+RUN uv pip install -r requirements.txt
 
+# Install TorchBench models
 RUN python3 install.py
+
+# Check the dependency
+RUN uv pip list
