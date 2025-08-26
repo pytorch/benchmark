@@ -301,7 +301,7 @@ def prepare_training_loop(args):
         )  # attach class weights
 
         # Model EMA
-        ema = torch_utils.ModelEMA(model)
+        ema = torch_utils.ModelEMA(model, device=device)
 
         def train_loop(epochs=1):
             epoch = 0

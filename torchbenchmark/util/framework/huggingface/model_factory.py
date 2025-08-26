@@ -83,6 +83,10 @@ class HuggingFaceModel(BenchmarkModel):
         else:
             assert False, f"Huggingface model {name} is not supported yet."
 
+        # Turning off kv cache for torchbench models
+        if hasattr(self.model, "config") and hasattr(self.model.config, "use_cache"):
+            self.model.config.use_cache = False
+
         if is_training:
             self.model.train()
         else:

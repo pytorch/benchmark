@@ -3,4 +3,6 @@ from utils.python_utils import pip_install_requirements
 
 if __name__ == "__main__":
     pip_install_requirements()
-    s3_utils.checkout_s3_data("MODEL_PKLS", "maml_omniglot/batch.pt", decompress=False)
+    s3_utils.checkout_s3_data(
+        "MODEL_PKLS", "maml_omniglot/batch-20250825.pt", decompress=False
+    )
