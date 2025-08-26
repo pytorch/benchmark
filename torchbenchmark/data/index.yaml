@@ -14,4 +14,4 @@ INPUT_TARBALLS:
   - sam_inputs.tar.gz
 MODEL_PKLS:
   - drq/obs.pkl
-  - maml_omniglot/batch.pt
+  - maml_omniglot/batch-20250825.pt
