@@ -82,7 +82,7 @@ class Model(BenchmarkModel):
         root = str(Path(__file__).parent)
         with torch.serialization.safe_globals(
             [
-                np.core.multiarray._reconstruct,
+                np._core.multiarray._reconstruct,
                 np.ndarray,
                 np.dtype,
                 (
