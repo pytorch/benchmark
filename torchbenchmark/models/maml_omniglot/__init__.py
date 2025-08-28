@@ -101,9 +101,7 @@ class Model(BenchmarkModel):
                 ),
             ]
         ):
-            self.meta_inputs = torch.load(
-                f"{root}/batch-20250825.pt", weights_only=True
-            )
+            self.meta_inputs = torch.load(f"{root}/batch.pt", weights_only=True)
         self.meta_inputs = tuple(
             [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]
         )
