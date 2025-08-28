@@ -62,7 +62,7 @@ class Model(BenchmarkModel):
         self.module = Meta(args, config).to(device)
 
         if use_data_file:
-            self.example_inputs = torch.load(f"{root}/batch-20250825.pt")
+            self.example_inputs = torch.load(f"{root}/batch.pt")
             self.example_inputs = tuple(
                 [torch.from_numpy(i).to(self.device) for i in self.example_inputs]
             )

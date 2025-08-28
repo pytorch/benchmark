@@ -42,6 +42,10 @@ ENV PATH="/workspace/benchmark/.venv/bin:$PATH"
 RUN uv pip install --pre torch torchvision torchaudio torchao \
   --index-url https://download.pytorch.org/whl/nightly/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.')
 
+# TODO (huydhn): Find a home for this requirements file. This is here to ensure
+# that we are using the same numpy version as PyTorch CI
+RUN uv pip install -r utils/build_requirements.txt
+
 # Install python dependencies
 RUN uv pip install -r requirements.txt
 
