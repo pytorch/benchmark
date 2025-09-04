@@ -1,4 +1,5 @@
 import functools
+import json
 from collections import Counter, defaultdict
 from functools import partial
 from typing import Any, Dict, Generator, Iterable, Tuple
@@ -162,16 +163,17 @@ class OperatorInputsMode(TorchDispatchMode):
 
     def log_to_file(self, output_filename, skip_non_compute_operators=True):
         sorted_operators = sorted(self.func_db.keys())
+        json_obj = {}
+        for operator in sorted_operators:
+            if skip_non_compute_operators and non_compute_operator(eval(operator)):
+                continue
+            json_obj[operator] = {}
+            operator_inputs = self.func_db[operator]
+            for inputs, count in operator_inputs.items():
+                json_obj[operator]["count"] = count
+                # repr will add quotation marks around the dtype strings
+                for dtype_abbr in dtype_abbrs.values():
+                    inputs = inputs.replace("'" + dtype_abbr + "'", dtype_abbr)
+                json_obj[operator]["inputs"] = inputs
         with open(output_filename, "w") as f:
-            for operator in sorted_operators:
-                if skip_non_compute_operators and non_compute_operator(eval(operator)):
-                    continue
-                f.write(f"Operator: {operator}\n")
-                operator_inputs = self.func_db[operator]
-                for inps, count in operator_inputs.items():
-                    f.write(f"cnt: {count}, ")
-                    # repr will add quotation marks around the dtype strings
-                    for dtype_abbr in dtype_abbrs.values():
-                        inps = inps.replace("'" + dtype_abbr + "'", dtype_abbr)
-                    f.write(inps)
-                    f.write("\n")
+            json.dump(json_obj, f, indent=4)
