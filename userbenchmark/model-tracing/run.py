@@ -5,10 +5,10 @@ Example trace:
 
 import argparse
 import itertools
-from ast import arg
 from typing import Dict, List
 
 from torchbenchmark.util.experiment.instantiator import (
+    list_extended_models,
     list_models,
     load_model_isolated,
     TorchBenchModelConfig,
@@ -26,10 +26,6 @@ def generate_model_config(
         extra_args=[],
         extra_env=extra_env,
     )
-
-
-class ModelTrace:
-    pass
 
 
 def get_parser():
@@ -67,17 +63,39 @@ def trace_model(cfg: TorchBenchModelConfig):
     model_task.run(test_run_model)
 
 
-def run(args: List[str]):
-    parser = get_parser()
-    args: argparse.Namespace = parser.parse_args(args)
-    extra_env = (
-        {"TORCHBENCH_MODEL_TRACE_OUTPUT_DIR": args.output} if args.output else {}
-    )
-    models = args.models.split(",") if args.models else list_models()
-    modes = args.mode.split(",") if args.mode else ["train"]
+def run_models(models: List[str], args: argparse.Namespace, extra_env: Dict[str, str]):
+    modes = args.mode.split(",")
     model_args = list(itertools.product(models, modes))
     cfgs = [
         generate_model_config(model_name, mode, extra_env)
         for model_name, mode in model_args
     ]
     traces = [trace_model(cfg) for cfg in cfgs]
+
+
+def run_model_suite(args: argparse.Namespace, suite: str):
+    extra_env = {}
+    extra_env["TORCHBENCH_MODEL_TRACE_OUTPUT_DIR"] = (
+        f"{extra_env['TORCHBENCH_MODEL_TRACE_OUTPUT_DIR']}/{suite}_train"
+    )
+    if suite == "torchbench":
+        models = list_models()
+    else:
+        models = list_extended_models(suite_name=suite)
+    run_models(models, args, extra_env)
+
+
+def run(args: List[str]):
+    parser = get_parser()
+    args: argparse.Namespace = parser.parse_args(args)
+    extra_env = (
+        {"TORCHBENCH_MODEL_TRACE_OUTPUT_DIR": args.output} if args.output else {}
+    )
+    if args.models:
+        models = args.models.split(",")
+        run_models(models, args, extra_env)
+    else:
+        # run for all models
+        run_model_suite(args, "torchbench")
+        run_model_suite(args, "huggingface")
+        run_model_suite(args, "timm")
