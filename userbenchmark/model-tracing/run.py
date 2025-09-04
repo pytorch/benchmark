@@ -52,6 +52,8 @@ def test_run_model(model) -> None:
     from torchbenchmark.util.dispatch import OperatorInputsMode
 
     output_dir = os.environ.get("TORCHBENCH_MODEL_TRACE_OUTPUT_DIR", "")
+    if output_dir and not output_dir.endswith("/"):
+        output_dir += "/"
     output_filename = f"{output_dir}{model.name}_{model.test}.txt"
     with OperatorInputsMode(output_filename=output_filename):
         model.invoke()
@@ -78,7 +80,7 @@ def run_models(models: List[str], args: argparse.Namespace, extra_env: Dict[str,
 
 def run_model_suite(args: argparse.Namespace, suite: str, extra_env: Dict[str, str]):
     extra_env["TORCHBENCH_MODEL_TRACE_OUTPUT_DIR"] = (
-        f"{extra_env['TORCHBENCH_MODEL_TRACE_OUTPUT_DIR']}/{suite}_train"
+        f"{extra_env['TORCHBENCH_MODEL_TRACE_OUTPUT_DIR']}/{suite}_train/"
     )
     if suite == "torchbench":
         models = list_models()
