@@ -39,7 +39,7 @@ def get_parser():
         default="train",
         help="Mode to trace, default is train.",
     )
-    parser.add_argument("--output", type=str, help="Output directory.")
+    parser.add_argument("--output", type=str, help="Output directory.", required=True)
     return parser
 
 
@@ -70,11 +70,13 @@ def run_models(models: List[str], args: argparse.Namespace, extra_env: Dict[str,
         generate_model_config(model_name, mode, extra_env)
         for model_name, mode in model_args
     ]
-    traces = [trace_model(cfg) for cfg in cfgs]
+    for cfg in cfgs:
+        print(f"tracing {cfg.name}-{cfg.test} ...", end="")
+        trace_model(cfg)
+        print("[done]")
 
 
-def run_model_suite(args: argparse.Namespace, suite: str):
-    extra_env = {}
+def run_model_suite(args: argparse.Namespace, suite: str, extra_env: Dict[str, str]):
     extra_env["TORCHBENCH_MODEL_TRACE_OUTPUT_DIR"] = (
         f"{extra_env['TORCHBENCH_MODEL_TRACE_OUTPUT_DIR']}/{suite}_train"
     )
@@ -88,14 +90,12 @@ def run_model_suite(args: argparse.Namespace, suite: str):
 def run(args: List[str]):
     parser = get_parser()
     args: argparse.Namespace = parser.parse_args(args)
-    extra_env = (
-        {"TORCHBENCH_MODEL_TRACE_OUTPUT_DIR": args.output} if args.output else {}
-    )
+    extra_env = {"TORCHBENCH_MODEL_TRACE_OUTPUT_DIR": args.output}
     if args.models:
         models = args.models.split(",")
         run_models(models, args, extra_env)
     else:
         # run for all models
-        run_model_suite(args, "torchbench")
-        run_model_suite(args, "huggingface")
-        run_model_suite(args, "timm")
+        run_model_suite(args, "torchbench", extra_env)
+        run_model_suite(args, "huggingface", extra_env)
+        run_model_suite(args, "timm", extra_env)
