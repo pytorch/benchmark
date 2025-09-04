@@ -2,6 +2,7 @@ import contextlib
 import dataclasses
 import gc
 import importlib
+import inspect
 import io
 import os
 import pathlib
@@ -444,6 +445,19 @@ class ModelTask(base_task.TaskBase):
         """
         )
         self.gc_collect()
+
+    def run(self, fn: Callable):
+        fn_source = inspect.getsource(fn)
+        lines = ["            " + line for line in fn_source.split("\n")]
+        fn_source = "\n".join(lines)
+        fn_name = fn.__name__
+        fn_source_copy = (
+            fn_source
+            + f"""
+            {fn_name}(model)
+        """
+        )
+        self.worker.run(fn_source_copy)
 
     # =========================================================================
     # == Forward calls to `model` from parent to worker =======================
