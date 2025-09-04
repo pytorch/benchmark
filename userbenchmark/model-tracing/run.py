@@ -54,7 +54,7 @@ def test_run_model(model) -> None:
     output_dir = os.environ.get("TORCHBENCH_MODEL_TRACE_OUTPUT_DIR", "")
     if output_dir and not output_dir.endswith("/"):
         output_dir += "/"
-    output_filename = f"{output_dir}{model.name}_{model.test}.txt"
+    output_filename = f"{output_dir}{model.name}_{model.test}.json"
     with OperatorInputsMode(output_filename=output_filename):
         model.invoke()
     return
