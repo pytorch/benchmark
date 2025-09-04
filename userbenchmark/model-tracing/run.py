@@ -10,6 +10,7 @@ from typing import Dict, List
 from torchbenchmark.util.experiment.instantiator import (
     list_extended_models,
     list_models,
+    load_model,
     load_model_isolated,
     TorchBenchModelConfig,
 )
@@ -39,6 +40,9 @@ def get_parser():
         default="train",
         help="Mode to trace, default is train.",
     )
+    parser.add_argument(
+        "--non-isolated", action="store_true", help="Run in non-isolated mode."
+    )
     parser.add_argument("--output", type=str, help="Output directory.", required=True)
     return parser
 
@@ -60,9 +64,13 @@ def test_run_model(model) -> None:
     return
 
 
-def trace_model(cfg: TorchBenchModelConfig):
-    model_task = load_model_isolated(cfg)
-    model_task.run(test_run_model)
+def trace_model(cfg: TorchBenchModelConfig, isolated: bool = True):
+    if isolated:
+        model_task = load_model_isolated(cfg)
+        model_task.run(test_run_model)
+    else:
+        model = load_model(cfg)
+        test_run_model(model)
 
 
 def run_models(models: List[str], args: argparse.Namespace, extra_env: Dict[str, str]):
@@ -74,8 +82,11 @@ def run_models(models: List[str], args: argparse.Namespace, extra_env: Dict[str,
     ]
     for cfg in cfgs:
         print(f"tracing {cfg.name}-{cfg.test} ...", end="")
-        trace_model(cfg)
-        print("[done]")
+        try:
+            trace_model(cfg, isolated=not args.non_isolated)
+            print("[done]")
+        except NotImplementedError as e:
+            print(f"[not_implemented] {e}")
 
 
 def run_model_suite(args: argparse.Namespace, suite: str, extra_env: Dict[str, str]):
