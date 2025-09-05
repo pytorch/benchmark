@@ -119,8 +119,9 @@ def run_models(models: List[str], args: argparse.Namespace, extra_env: Dict[str,
 
 
 def run_model_suite(args: argparse.Namespace, suite: str, extra_env: Dict[str, str]):
+    suite_name = "hf" if suite == "huggingface" else suite
     extra_env["TORCHBENCH_MODEL_TRACE_OUTPUT_DIR"] = (
-        f"{extra_env['TORCHBENCH_MODEL_TRACE_OUTPUT_DIR']}/{suite}_train/"
+        f"{extra_env['TORCHBENCH_MODEL_TRACE_OUTPUT_DIR']}/{suite_name}_train/"
     )
     if suite == "torchbench":
         models = list_models()
