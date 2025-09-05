@@ -5,6 +5,7 @@ Example trace:
 
 import argparse
 import itertools
+import os
 from typing import Dict, List
 
 from torchbenchmark.util.experiment.instantiator import (
@@ -41,6 +42,18 @@ def get_parser():
         help="Mode to trace, default is train.",
     )
     parser.add_argument(
+        "--suites",
+        type=str,
+        default="all",
+        help="Suites to trace, split by comma. Default is all.",
+    )
+    parser.add_argument(
+        "--skip", type=str, help="models to skip, split by comma. Default is none."
+    )
+    parser.add_argument(
+        "--bypass-existing", action="store_true", help="Bypass existing trace files."
+    )
+    parser.add_argument(
         "--non-isolated", action="store_true", help="Run in non-isolated mode."
     )
     parser.add_argument("--output", type=str, help="Output directory.", required=True)
@@ -64,7 +77,19 @@ def test_run_model(model) -> None:
     return
 
 
-def trace_model(cfg: TorchBenchModelConfig, isolated: bool = True):
+def trace_model(
+    cfg: TorchBenchModelConfig, isolated: bool = True, bypass_existing=False
+):
+    output_dir = cfg.extra_env["TORCHBENCH_MODEL_TRACE_OUTPUT_DIR"]
+    if output_dir and not output_dir.endswith("/"):
+        output_dir += "/"
+    output_filename = f"{output_dir}{cfg.name}_{cfg.test}.json"
+    if (
+        os.path.exists(output_filename)
+        and os.path.getsize(output_filename)
+        and bypass_existing
+    ):
+        return
     if isolated:
         model_task = load_model_isolated(cfg)
         model_task.run(test_run_model)
@@ -83,7 +108,11 @@ def run_models(models: List[str], args: argparse.Namespace, extra_env: Dict[str,
     for cfg in cfgs:
         print(f"tracing {cfg.name}-{cfg.test} ...", end="")
         try:
-            trace_model(cfg, isolated=not args.non_isolated)
+            trace_model(
+                cfg,
+                isolated=not args.non_isolated,
+                bypass_existing=args.bypass_existing,
+            )
             print("[done]")
         except NotImplementedError as e:
             print(f"[not_implemented] {e}")
@@ -97,18 +126,21 @@ def run_model_suite(args: argparse.Namespace, suite: str, extra_env: Dict[str, s
         models = list_models()
     else:
         models = list_extended_models(suite_name=suite)
+    if args.skip:
+        models = [model for model in models if model not in args.skip.split(",")]
     run_models(models, args, extra_env)
 
 
 def run(args: List[str]):
     parser = get_parser()
     args: argparse.Namespace = parser.parse_args(args)
+    suites = args.suites.split(",")
+    if suites == ["all"]:
+        suites = ["torchbench", "huggingface", "timm"]
     extra_env = {"TORCHBENCH_MODEL_TRACE_OUTPUT_DIR": args.output}
     if args.models:
         models = args.models.split(",")
         run_models(models, args, extra_env)
     else:
-        # run for all models
-        run_model_suite(args, "torchbench", extra_env)
-        run_model_suite(args, "huggingface", extra_env)
-        run_model_suite(args, "timm", extra_env)
+        for suite in suites:
+            run_model_suite(args, suite, extra_env)

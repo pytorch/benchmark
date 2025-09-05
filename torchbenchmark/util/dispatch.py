@@ -13,6 +13,7 @@ from torch.utils._pytree import tree_map
 
 aten = torch.ops.aten
 torchvision = torch.ops.torchvision
+c10d = torch.ops.c10d
 
 
 dtype_abbrs = {
@@ -170,13 +171,15 @@ class OperatorInputsMode(TorchDispatchMode):
         for operator in sorted_operators:
             if skip_non_compute_operators and non_compute_operator(eval(operator)):
                 continue
-            json_obj[operator] = {}
+            json_obj[operator] = []
             operator_inputs = self.func_db[operator]
             for inputs, count in operator_inputs.items():
-                json_obj[operator]["count"] = count
+                op_hit = {}
+                op_hit["count"] = count
                 # repr will add quotation marks around the dtype strings
                 for dtype_abbr in dtype_abbrs.values():
                     inputs = inputs.replace("'" + dtype_abbr + "'", dtype_abbr)
-                json_obj[operator]["inputs"] = inputs
+                op_hit["inputs"] = inputs
+                json_obj[operator].append(op_hit)
         with open(output_filename, "w") as f:
             json.dump(json_obj, f, indent=4)
