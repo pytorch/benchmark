@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Update to the latest transformers and timm version with dependabot
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
+    allow:
+      - dependency-name: "transformers"
+      - dependency-name: "timm"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+    commit-message:
+      prefix: "[Dependabot] Update"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
