@@ -12,6 +12,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+import numpy as np
 
 import yaml
 from userbenchmark.utils import (
@@ -63,6 +64,12 @@ def get_default_output_path(bm_name: str) -> str:
     )
     return os.path.join(output_path, fname)
 
+def compute_quantiles(values: List[float]) -> Dict[str, float]:
+    return {
+        "q25": float(np.quantile(values, 0.25)),
+        "q50": float(np.quantile(values, 0.50)),
+        "q75": float(np.quantile(values, 0.75)),
+    }
 
 def generate_regression_result(
     control: Dict[str, Any], treatment: Dict[str, Any]
@@ -86,6 +93,7 @@ def generate_regression_result(
         detector = importlib.import_module(
             f"userbenchmark.fb.{bm_name}.regression_detector"
         ).run
+
     # Process control and treatment to include only shared keys
     filtered_control_metrics = {}
     control_only_metrics = {}
@@ -93,11 +101,15 @@ def generate_regression_result(
     treatment_only_metrics = {}
     for control_name, control_metric in control["metrics"].items():
         if control_name in treatment["metrics"]:
+            if "times" in control_metric and isinstance(control_metric["times"], list):
+                control_metric.update(compute_quantiles(control_metric["times"]))
             filtered_control_metrics[control_name] = control_metric
         else:
             control_only_metrics[control_name] = control_metric
     for treatment_name, treatment_metric in treatment["metrics"].items():
         if treatment_name in control["metrics"]:
+            if "times" in treatment_metric and isinstance(treatment_metric["times"], list):
+                treatment_metric.update(compute_quantiles(treatment_metric["times"]))
             filtered_treatment_metrics[treatment_name] = treatment_metric
         else:
             treatment_only_metrics[treatment_name] = treatment_metric
@@ -332,7 +344,7 @@ if __name__ == "__main__":
         with open(args.control, "r") as cfptr:
             control = json.load(cfptr)
         with open(args.treatment, "r") as tfptr:
-            treatment = json.load(tfptr)
+            treatment = json.load(cfptr)
         output_path = (
             args.output if args.output else get_default_output_path(control["name"])
         )
