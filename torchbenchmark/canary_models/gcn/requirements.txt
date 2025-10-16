@@ -1,4 +1,4 @@
-pyg_lib
+pyg-library
 torch_scatter
 torch_sparse
 pyg-nightly
