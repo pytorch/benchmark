@@ -385,7 +385,7 @@ def lazy_overhead_experiment(args, results, benchmark, lazy_benchmark):
     timings = np.zeros((args.repeat, 2), np.float64)
     ref_sync = CudaSync if current_device == "cuda" else NoOpSync
     warmup0 = time.perf_counter()
-    for rep in range(args.warmup):
+    for _ in range(args.warmup):
         # interleave the runs to handle frequency scaling and load changes
         timed(args, benchmark, sync=ref_sync(sync_every_iter=True))
         timed(args, lazy_benchmark, sync=LazySync(sync_every_iter=True))
@@ -470,7 +470,7 @@ def lazy_compute_experiment(
 
     # interleave the runs to handle frequency scaling and load changes
     warmup0 = time.perf_counter()
-    for rep in range(args.warmup):
+    for _ in range(args.warmup):
         # warmup
         timed(args, benchmark, sync=ref_sync)
         timed(args, lazy_benchmark, sync=lazy_sync)
@@ -621,7 +621,7 @@ def run_tracing_execute_noops(test, lazy_benchmark):
     # so you can use a profiler on top of the program.
     # note: depends on making the backend do a 'no-op' for executecomputation
     results = []
-    for i in range(300):
+    for _ in range(300):
         if test == "eval":
             results.append(call_model_with(model, example_inputs))
         elif test == "train":
