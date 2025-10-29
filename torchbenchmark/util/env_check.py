@@ -30,6 +30,8 @@ UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS = [
     "Super_SloMo",
     "vgg16",
     "mtml_ctr_instagram_model",
+    "resnet50_quantized_qat",
+    "mobilenet_v2_quantized_qat",
 ]
 CI_SKIP_OPTIMIZER = {
     # TIMM
