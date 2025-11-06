@@ -459,7 +459,7 @@ class ResnetGenerator(nn.Module):
             ]
 
         mult = 2**n_downsampling
-        for i in range(n_blocks):  # add ResNet blocks
+        for _ in range(n_blocks):  # add ResNet blocks
             model += [
                 ResnetBlock(
                     ngf * mult,
@@ -599,7 +599,7 @@ class UnetGenerator(nn.Module):
             norm_layer=norm_layer,
             innermost=True,
         )  # add the innermost layer
-        for i in range(num_downs - 5):  # add intermediate layers with ngf * 8 filters
+        for _ in range(num_downs - 5):  # add intermediate layers with ngf * 8 filters
             unet_block = UnetSkipConnectionBlock(
                 ngf * 8,
                 ngf * 8,
