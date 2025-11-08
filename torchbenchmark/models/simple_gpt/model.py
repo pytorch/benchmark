@@ -16,7 +16,6 @@ from typing_extensions import Self
 
 MaskCache = torch.Tensor
 RoPECache = torch.Tensor
-KVCache = Tuple[torch.Tensor, torch.Tensor]
 
 
 def find_multiple(n: int, k: int) -> int:
