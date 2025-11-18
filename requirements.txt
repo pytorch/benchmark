@@ -9,17 +9,15 @@ pytest
 pytest-benchmark
 requests
 tabulate
-git+https://github.com/huggingface/pytorch-image-models.git@730b907
-# this version of transformers is required by linger-kernel
-# https://github.com/linkedin/Liger-Kernel/blob/main/pyproject.toml#L23
-transformers==4.44.2
+timm==1.0.19
+transformers==4.55.2
 MonkeyType
 psutil
 pyyaml
 numpy
 opencv-python
 submitit
-pynvml>=12.0.0
+nvidia-ml-py>=13.0.0
 pandas
 scipy
-numba
+numba>=0.57.0

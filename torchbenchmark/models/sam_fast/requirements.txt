@@ -1,3 +1,3 @@
-git+https://github.com/pytorch-labs/segment-anything-fast.git
+git+https://github.com/meta-pytorch/segment-anything-fast.git
 opencv-python
 pycocotools

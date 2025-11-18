@@ -117,7 +117,7 @@ def validate(model, loader, args, evaluator=None, log_suffix="", num_batch=1):
     # end = time.time()
     # last_idx = len(loader) - 1
     with torch.no_grad():
-        for batch_idx, (input, target) in zip(range(num_batch), loader):
+        for _, (input, target) in zip(range(num_batch), loader):
             # last_batch = batch_idx == last_idx
 
             output = model(input, target)

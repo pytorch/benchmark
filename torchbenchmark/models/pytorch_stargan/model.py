@@ -39,7 +39,7 @@ class Generator(nn.Module):
 
         # Down-sampling layers.
         curr_dim = conv_dim
-        for i in range(2):
+        for _ in range(2):
             layers.append(
                 nn.Conv2d(
                     curr_dim,
@@ -57,11 +57,11 @@ class Generator(nn.Module):
             curr_dim = curr_dim * 2
 
         # Bottleneck layers.
-        for i in range(repeat_num):
+        for _ in range(repeat_num):
             layers.append(ResidualBlock(dim_in=curr_dim, dim_out=curr_dim))
 
         # Up-sampling layers.
-        for i in range(2):
+        for _ in range(2):
             layers.append(
                 nn.ConvTranspose2d(
                     curr_dim,
@@ -104,7 +104,7 @@ class Discriminator(nn.Module):
         layers.append(nn.LeakyReLU(0.01))
 
         curr_dim = conv_dim
-        for i in range(1, repeat_num):
+        for _ in range(1, repeat_num):
             layers.append(
                 nn.Conv2d(curr_dim, curr_dim * 2, kernel_size=4, stride=2, padding=1)
             )

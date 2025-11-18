@@ -248,7 +248,7 @@ class Model(BenchmarkModel):
                     break
 
             self.model.eval()
-            for step, batch in enumerate(self.eval_dataloader):
+            for batch in self.eval_dataloader:
                 outputs = self.model(**batch)
                 predictions = (
                     outputs.logits.argmax(dim=-1)
