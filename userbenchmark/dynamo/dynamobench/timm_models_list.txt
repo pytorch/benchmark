@@ -16,3 +16,8 @@ tf_efficientnet_b0 128
 visformer_small 128
 vit_base_patch14_dinov2.lvd142m 128
 vit_base_patch16_siglip_256 128
+regnety_120 32
+resnest14d 32
+vit_small_patch16_224 32
+vit_giant_patch14_224 32
+vovnet39a 32
