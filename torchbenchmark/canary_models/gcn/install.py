@@ -2,14 +2,13 @@ import subprocess
 import sys
 
 from utils import s3_utils
+from utils.python_utils import get_pip_cmd
 
 
 def pip_install_requirements():
     subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pip",
+        get_pip_cmd()
+        + [
             "install",
             "-q",
             "-r",
