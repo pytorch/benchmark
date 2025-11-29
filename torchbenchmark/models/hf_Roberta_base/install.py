@@ -6,11 +6,12 @@ from torchbenchmark.util.framework.huggingface.patch_hf import (
     cache_model,
     patch_transformers,
 )
+from utils.python_utils import get_pip_cmd
 
 
 def pip_install_requirements():
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-q", "-r", "requirements.txt"]
+        get_pip_cmd() + ["install", "-q", "-r", "requirements.txt"]
     )
 
 
