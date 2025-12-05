@@ -22,7 +22,7 @@ class Learner(nn.Module):
         # running_mean and running_var
         self.vars_bn = nn.ParameterList()
 
-        for i, (name, param) in enumerate(self.config):
+        for name, param in self.config:
             if name == "conv2d":
                 # [ch_out, ch_in, kernelsz, kernelsz]
                 w = nn.Parameter(torch.ones(*param[:4]))
