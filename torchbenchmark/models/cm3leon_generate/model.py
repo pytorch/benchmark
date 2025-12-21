@@ -855,7 +855,7 @@ class TransformerDecoder(nn.Module):
 
         self.layers = nn.ModuleList([])
         layers = []
-        for i in range(decoder_layers):
+        for _ in range(decoder_layers):
             layers.append(self.build_decoder_layer())
 
         self.layers = nn.ModuleList(layers)
@@ -1029,7 +1029,7 @@ class TransformerDecoder(nn.Module):
         # Note: we are only storing the embeddings output and output of final transformer block
         # instead of all inner representations, as thats the only thing being logged and storing
         # all intermediate representation causes OOM for large models during validation.
-        for idx, layer in enumerate(self.layers):
+        for layer in self.layers:
             x = layer(
                 x,
                 incremental_state=incremental_state,
