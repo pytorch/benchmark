@@ -196,7 +196,7 @@ python3 classify_graphs.py log_result.py > filtered_logs.py
         classified[graph_class].append(ir)
 
     final_selection = []
-    for cl, graphs in classified.items():
+    for graphs in classified.values():
         # choose the longest graph of this type
         s = sorted(graphs, key=lambda x: -len(str(x)))
         final_selection.append(str(graphs[0]))
