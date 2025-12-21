@@ -69,7 +69,7 @@ def train(agent, env, evaluate):
                     lr = (1e-4, 3e-4)
                 else:
                     lr = (3e-5, 1e-4)
-                for i in range(episode_train_times):
+                for _ in range(episode_train_times):
                     Q, value_loss = agent.update_policy(lr)
                     tot_Q += Q.data.cpu().numpy()
                     tot_value_loss += value_loss.data.cpu().numpy()
