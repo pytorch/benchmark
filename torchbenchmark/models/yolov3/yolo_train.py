@@ -352,7 +352,7 @@ def prepare_training_loop(args):
                     (
                         imgs,
                         targets,
-                        paths,
+                        _,
                         _,
                     ),
                 ) in pbar:  # batch -------------------------------------------------------------
