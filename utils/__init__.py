@@ -26,6 +26,7 @@ def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     for module in packages:
         cmd = [sys.executable, "-c", f"import {module}; print({module}.__version__)"]
         version = subprocess.check_output(cmd).decode().strip()
+        version = version.split('+')[0] # Remove any local version identifiers
         versions[module] = version
     return versions
 
