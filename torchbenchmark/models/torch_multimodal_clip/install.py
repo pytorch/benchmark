@@ -33,25 +33,37 @@ def download(output_filename, uri):
                         chunk_size=8192
                     ):  # Define the chunk size to be used
                         f.write(chunk)
-                print(f"Successfully downloaded {output_filename}")
+                print(
+                    f"Successfully downloaded {output_filename}"
+                )
                 return
             elif response.status_code == 429:
                 if attempt < max_retries - 1:
-                    print(f"Rate limited (429). Retrying in {retry_delay} seconds... (attempt {attempt + 1}/{max_retries})")
+                    print(
+                        f"Rate limited (429). Retrying in {retry_delay} seconds... (attempt {attempt + 1}/{max_retries})"
+                    )
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
-                    print(f"Failed to download file with status code {response.status_code} after {max_retries} attempts")
+                    print(
+                        f"Failed to download file with status code {response.status_code} after {max_retries} attempts"
+                    )
             else:
-                print(f"Failed to download file with status code {response.status_code}")
+                print(
+                    f"Failed to download file with status code {response.status_code}"
+                )
                 return
         except requests.exceptions.RequestException as e:
             if attempt < max_retries - 1:
-                print(f"Request failed: {e}. Retrying in {retry_delay} seconds... (attempt {attempt + 1}/{max_retries})")
+                print(
+                    f"Request failed: {e}. Retrying in {retry_delay} seconds... (attempt {attempt + 1}/{max_retries})"
+                )
                 time.sleep(retry_delay)
                 retry_delay *= 2
             else:
-                print(f"Failed to download file after {max_retries} attempts: {e}")
+                print(
+                    f"Failed to download file after {max_retries} attempts: {e}"
+                )
 
 
 def download_data(data_folder):
