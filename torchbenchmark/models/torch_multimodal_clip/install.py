@@ -63,7 +63,7 @@ def download_data(data_folder):
 
 
 if __name__ == "__main__":
-    # pip_install_requirements()
+    pip_install_requirements()
 
     # Create .data folder in the script's directory
     data_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".data")
