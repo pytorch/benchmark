@@ -33,9 +33,7 @@ def download(output_filename, uri):
                         chunk_size=8192
                     ):  # Define the chunk size to be used
                         f.write(chunk)
-                print(
-                    f"Successfully downloaded {output_filename}"
-                )
+                print(f"Successfully downloaded {output_filename}")
                 return
             elif response.status_code == 429:
                 if attempt < max_retries - 1:
@@ -61,9 +59,7 @@ def download(output_filename, uri):
                 time.sleep(retry_delay)
                 retry_delay *= 2
             else:
-                print(
-                    f"Failed to download file after {max_retries} attempts: {e}"
-                )
+                print(f"Failed to download file after {max_retries} attempts: {e}")
 
 
 def download_data(data_folder):
