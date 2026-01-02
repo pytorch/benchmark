@@ -316,7 +316,7 @@ class TTSModel:
         end_time = time.time()
         # for _, data in enumerate(data_loader):
         start_time = time.time()
-        for reps in range(niter):
+        for _ in range(niter):
             for _, data in enumerate(self.SYNTHETIC_DATA):
                 # setup input data
                 # inputs = data[0]
