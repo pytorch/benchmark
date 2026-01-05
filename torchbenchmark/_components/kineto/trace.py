@@ -94,7 +94,7 @@ def do_bench_kineto(
     ) as prof:
         start_event = torch.cuda.Event(enable_timing=True)
         end_event = torch.cuda.Event(enable_timing=True)
-        for i in range(n_warmup + 1):
+        for _ in range(n_warmup + 1):
             # we don't want `fn` to accumulate gradient values
             # if it contains a backward pass. So we clear the
             # provided gradients
