@@ -66,7 +66,7 @@ def download_data(data_folder):
     # CC-0 image from wikipedia page on pizza so legal to use
     download(
         os.path.join(data_folder, "pizza.jpg"),
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Pizza-3007395.jpg/2880px-Pizza-3007395.jpg",
+        "https://ossci-assets.s3.us-east-1.amazonaws.com/2880px-Pizza-3007395.jpg",
     )
 
 
