@@ -3,7 +3,8 @@ import subprocess
 import sys
 
 import patch
-from utils.python_utils import pip_install_requirements
+
+from utils.python_utils import get_pip_cmd, pip_install_requirements
 
 
 def patch_dalle2():
@@ -24,9 +25,7 @@ def pip_install_requirements_dalle2():
     # embedding-reader requires an old version of pandas and pyarrow
     # https://github.com/rom1504/embedding-reader/blob/a4fd55830a502685600ed8ef07947cd1cb92b083/requirements.txt#L5
     # So we need to reinstall a newer version of pandas and pyarrow, to be compatible with other models
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-U", "pandas", "pyarrow"]
-    )
+    subprocess.check_call(get_pip_cmd() + ["install", "-U", "pandas", "pyarrow"])
 
 
 if __name__ == "__main__":

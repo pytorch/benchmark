@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 from torchbenchmark import REPO_PATH
-from utils.python_utils import pip_install_requirements
+from utils.python_utils import get_pip_cmd, pip_install_requirements
 
 
 def update_fambench_submodule():
@@ -25,10 +25,8 @@ def pip_install_requirements():
         # pin fairseq version
         # ignore deps specified in requirements.txt
         subprocess.check_call(
-            [
-                sys.executable,
-                "-m",
-                "pip",
+            get_pip_cmd
+            + [
                 "install",
                 "--no-deps",
                 "git+https://github.com/facebookresearch/fairseq.git@ae59bd6",
