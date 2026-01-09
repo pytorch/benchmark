@@ -15,15 +15,14 @@ from typing import Dict, List, Optional, Set, Union
 
 import numpy
 import yaml
+from torchbenchmark import get_metadata_from_yaml, ModelTask, REPO_PATH
 
 from ..utils import (
     add_path,
     get_default_debug_output_dir,
     get_default_output_json_path,
     get_output_json,
-    REPO_PATH,
 )
-from torchbenchmark import get_metadata_from_yaml, ModelTask, REPO_PATH
 
 from . import BM_NAME
 
